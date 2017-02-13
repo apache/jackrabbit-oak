@@ -48,11 +48,9 @@ public class Check implements Runnable {
 
         private String journal;
 
-        private boolean fullTraversal;
-
         private long debugInterval = Long.MAX_VALUE;
 
-        private long minimumBinaryLength;
+        private boolean checkBinaries;
 
         private boolean ioStatistics;
         
@@ -88,19 +86,6 @@ public class Check implements Runnable {
         }
 
         /**
-         * Should a full traversal of the segment store be performed? This
-         * parameter is not required and defaults to {@code false}.
-         *
-         * @param fullTraversal {@code true} if a full traversal should be
-         *                      performed, {@code false} otherwise.
-         * @return this builder.
-         */
-        public Builder withFullTraversal(boolean fullTraversal) {
-            this.fullTraversal = fullTraversal;
-            return this;
-        }
-
-        /**
          * Number of seconds between successive debug print statements. This
          * parameter is not required and defaults to an arbitrary large number.
          *
@@ -115,17 +100,15 @@ public class Check implements Runnable {
         }
 
         /**
-         * Minimum amount of bytes to read from binary properties. This
-         * parameter is not required and defaults to zero.
+         * Instruct the command to scan the full content of binary properties.
+         * This parameter is not required and defaults to {@code false}.
          *
-         * @param minimumBinaryLength minimum amount of bytes to read from
-         *                            binary properties. If this parameter is
-         *                            set to {@code -1}, every binary property
-         *                            is read in its entirety.
+         * @param checkBinaries {@code true} if binary properties should be
+         *                      scanned, {@code false} otherwise.
          * @return this builder.
          */
-        public Builder withMinimumBinaryLength(long minimumBinaryLength) {
-            this.minimumBinaryLength = minimumBinaryLength;
+        public Builder withCheckBinaries(boolean checkBinaries) {
+            this.checkBinaries = checkBinaries;
             return this;
         }
 
@@ -182,11 +165,9 @@ public class Check implements Runnable {
 
     private final String journal;
 
-    private final boolean fullTraversal;
-
     private final long debugInterval;
 
-    private final long minimumBinaryLength;
+    private final boolean checkBinaries;
 
     private final boolean ioStatistics;
     
@@ -197,9 +178,8 @@ public class Check implements Runnable {
     private Check(Builder builder) {
         this.path = builder.path;
         this.journal = builder.journal;
-        this.fullTraversal = builder.fullTraversal;
         this.debugInterval = builder.debugInterval;
-        this.minimumBinaryLength = builder.minimumBinaryLength;
+        this.checkBinaries = builder.checkBinaries;
         this.ioStatistics = builder.ioStatistics;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
@@ -208,7 +188,7 @@ public class Check implements Runnable {
     @Override
     public void run() {
         try {
-            ConsistencyChecker.checkConsistency(path, journal, fullTraversal, debugInterval, minimumBinaryLength, ioStatistics, outWriter, errWriter);
+            ConsistencyChecker.checkConsistency(path, journal, debugInterval, checkBinaries, ioStatistics, outWriter, errWriter);
         } catch (Exception e) {
             e.printStackTrace();
         }

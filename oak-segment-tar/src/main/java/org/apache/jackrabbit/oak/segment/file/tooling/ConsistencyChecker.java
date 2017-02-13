@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
 import static com.google.common.collect.Sets.newHashSet;
-import static java.lang.Math.min;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -88,16 +87,18 @@ public class ConsistencyChecker implements Closeable {
     
     private final PrintWriter errWriter;
 
+    private int nodeCount;
+    
+    private int propertyCount;
+
     /**
-     * Run a consistency check.
+     * Run a full traversal consistency check.
      *
      * @param directory  directory containing the tar files
      * @param journalFileName  name of the journal file containing the revision history
-     * @param fullTraversal    full traversal consistency check if {@code true}. Only try
-     *                         to access the root node otherwise.
      * @param debugInterval    number of seconds between printing progress information to
      *                         the console during the full traversal phase.
-     * @param binLen           number of bytes to read from binary properties. -1 for all.
+     * @param checkBinaries    if {@code true} full content of binary properties will be scanned                        
      * @param ioStatistics     if {@code true} prints I/O statistics gathered while consistency 
      *                         check was performed
      * @param outWriter        text output stream writer
@@ -107,9 +108,8 @@ public class ConsistencyChecker implements Closeable {
     public static void checkConsistency(
             File directory,
             String journalFileName,
-            boolean fullTraversal,
             long debugInterval,
-            long binLen,
+            boolean checkBinaries,
             boolean ioStatistics,
             PrintWriter outWriter,
             PrintWriter errWriter
@@ -118,26 +118,23 @@ public class ConsistencyChecker implements Closeable {
                 JournalReader journal = new JournalReader(new File(directory, journalFileName));
                 ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval, ioStatistics, outWriter, errWriter)
         ) {
-            checker.print("Searching for last good revision in {0}", journalFileName);
-            Set<String> badPaths = newHashSet();
+            Set<String> corruptPaths = newHashSet();
             String latestGoodRevision = null;
             int revisionCount = 0;
 
             while (journal.hasNext() && latestGoodRevision == null) {
                 String revision = journal.next();
                 try {
-                    checker.print("Checking revision {0}", revision);
                     revisionCount++;
-                    String badPath = checker.check(revision, badPaths, binLen);
-                    if (badPath == null && fullTraversal) {
-                        badPath = checker.traverse(revision, binLen);
-                    }
-                    if (badPath == null) {
+                    
+                    String corruptPath = checker.checkRevision(revision, corruptPaths, "/", checkBinaries);
+
+                    if (corruptPath == null) {
                         checker.print("Found latest good revision {0}", revision);
                         checker.print("Searched through {0} revisions", revisionCount);
                         latestGoodRevision = revision;
                     } else {
-                        badPaths.add(badPath);
+                        corruptPaths.add(corruptPath);
                         checker.print("Broken revision {0}", revision);
                     }
                 } catch (IllegalArgumentException e) {
@@ -191,68 +188,61 @@ public class ConsistencyChecker implements Closeable {
         this.errWriter = errWriter;
     }
 
-    /**
-     * Check whether the nodes and all its properties of all given
-     * {@code paths} are consistent at the given {@code revision}.
-     *
-     * @param revision  revision to check
-     * @param paths     paths to check
-     * @param binLen    number of bytes to read from binary properties. -1 for all.
-     * @return  Path of the first inconsistency detected or {@code null} if none.
-     */
-    public String check(String revision, Set<String> paths, long binLen) {
-        store.setRevision(revision);
-        for (String path : paths) {
-            String err = checkPath(path, binLen);
-            if (err != null) {
-                return err;
-            }
-        }
-        return null;
-    }
 
-    private String checkPath(String path, long binLen) {
+    /**
+     * Checks the consistency of the supplied {@code path} at the given {@code revision}, 
+     * starting first with already known {@code corruptPaths}.
+     * 
+     * @param revision      revision to be checked
+     * @param corruptPaths  already known corrupt paths from previous revisions
+     * @param path          initial path from which to start the consistency check, 
+     *                      provided there are no corrupt paths.
+     * @param checkBinaries if {@code true} full content of binary properties will be scanned
+     * @return              {@code null}, if the content tree rooted at path is consistent 
+     *                      in this revision or the path of the first inconsistency otherwise.  
+     */
+    public String checkRevision(String revision, Set<String> corruptPaths, String path, boolean checkBinaries) {
+        print("Checking revision {0}", revision);
+        String result = null;
+        
         try {
             print("Checking {0}", path);
+            store.setRevision(revision);
             NodeState root = SegmentNodeStoreBuilders.builder(store).build().getRoot();
-            String parentPath = getParentPath(path);
-            String name = getName(path);
-            NodeState parent = getNode(root, parentPath);
-            if (!denotesRoot(path) && parent.hasChildNode(name)) {
-                return traverse(parent.getChildNode(name), path, false, binLen);
-            } else {
-                return traverse(parent, parentPath, false, binLen);
+
+            for (String corruptPath : corruptPaths) {
+                NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, corruptPath);
+                result = checkNode(wrapper.node, wrapper.path, checkBinaries);
+
+                if (result != null) {
+                    return result;
+                }
             }
+
+            nodeCount = 0;
+            propertyCount = 0;
+
+            NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, path);
+            result = checkNodeAndDescendants(wrapper.node, wrapper.path, checkBinaries);
+            print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
+            
+            return result;
         } catch (RuntimeException e) {
-            printError("Error while checking {0}: {1}", path, e.getMessage());
+            printError("Error while traversing {0}: {1}", revision, e.getMessage());
             return path;
         }
     }
-
-    private int nodeCount;
-    private int propertyCount;
-
+    
     /**
-     * Traverse the given {@code revision}
-     * @param revision  revision to travers
-     * @param binLen    number of bytes to read from binary properties. -1 for all.
+     * Checks the consistency of a node and its properties at the given path.
+     * 
+     * @param node              node to be checked
+     * @param path              path of the node
+     * @param checkBinaries     if {@code true} full content of binary properties will be scanned
+     * @return                  {@code null}, if the node is consistent, 
+     *                          or the path of the first inconsistency otherwise.
      */
-    public String traverse(String revision, long binLen) {
-        try {
-            store.setRevision(revision);
-            nodeCount = 0;
-            propertyCount = 0;
-            String result = traverse(SegmentNodeStoreBuilders.builder(store).build()
-                    .getRoot(), "/", true, binLen);
-            print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
-            return result;
-        } catch (RuntimeException e) {
-            printError("Error while traversing {0}", revision, e.getMessage());
-            return "/";
-        }
-    }
-
-    private String traverse(NodeState node, String path, boolean deep, long binLen) {
+    private String checkNode(NodeState node, String path, boolean checkBinaries) {
         try {
             debug("Traversing {0}", path);
             nodeCount++;
@@ -260,44 +250,85 @@ public class ConsistencyChecker implements Closeable {
                 debug("Checking {0}/{1}", path, propertyState);
                 Type<?> type = propertyState.getType();
                 if (type == BINARY) {
-                    traverse(propertyState.getValue(BINARY), binLen);
+                    traverse(propertyState.getValue(BINARY), checkBinaries);
                 } else if (type == BINARIES) {
                     for (Blob blob : propertyState.getValue(BINARIES)) {
-                        traverse(blob, binLen);
+                        traverse(blob, checkBinaries);
                     }
                 } else {
                     propertyCount++;
                     propertyState.getValue(type);
                 }
             }
-            for (ChildNodeEntry cne : node.getChildNodeEntries()) {
-                String childName = cne.getName();
-                NodeState child = cne.getNodeState();
-                if (deep) {
-                    String result = traverse(child, concat(path, childName), true, binLen);
-                    if (result != null) {
-                        return result;
-                    }
-                }
-            }
+            
             return null;
         } catch (RuntimeException | IOException e) {
             printError("Error while traversing {0}: {1}", path, e.getMessage());
             return path;
         }
     }
-
-    private void traverse(Blob blob, long length) throws IOException {
-        if (length < 0) {
-            length = Long.MAX_VALUE;
+    
+    /**
+     * Recursively checks the consistency of a node and its descendants at the given path.
+     * @param node          node to be checked
+     * @param path          path of the node
+     * @param checkBinaries if {@code true} full content of binary properties will be scanned
+     * @return              {@code null}, if the node is consistent, 
+     *                      or the path of the first inconsistency otherwise.
+     */
+    private String checkNodeAndDescendants(NodeState node, String path, boolean checkBinaries) {
+        String result = checkNode(node, path, checkBinaries);
+        if (result != null) {
+            return result;
         }
-        if (length > 0 && !isExternal(blob)) {
+        
+        try {
+            for (ChildNodeEntry cne : node.getChildNodeEntries()) {
+                String childName = cne.getName();
+                NodeState child = cne.getNodeState();
+                result = checkNodeAndDescendants(child, concat(path, childName), checkBinaries);
+                if (result != null) {
+                    return result;
+                }
+            }
+
+            return null;
+        } catch (RuntimeException e) {
+            printError("Error while traversing {0}: {1}", path, e.getMessage());
+            return path;
+        }
+    }
+    
+    static class NodeWrapper {
+        NodeState node;
+        String path;
+        
+        NodeWrapper(NodeState node, String path) {
+            this.node = node;
+            this.path = path;
+        }
+        
+        static NodeWrapper deriveTraversableNodeOnPath(NodeState root, String path) {
+            String parentPath = getParentPath(path);
+            String name = getName(path);
+            NodeState parent = getNode(root, parentPath);
+            
+            if (!denotesRoot(path) && parent.hasChildNode(name)) {
+                return new NodeWrapper(parent.getChildNode(name), path);
+            } else {
+                return new NodeWrapper(parent, parentPath);
+            }
+        }
+    }
+
+    private void traverse(Blob blob, boolean checkBinaries) throws IOException {
+        if (checkBinaries && !isExternal(blob)) {
             InputStream s = blob.getNewStream();
             try {
                 byte[] buffer = new byte[8192];
-                int l = s.read(buffer, 0, (int) min(buffer.length, length));
-                while (l >= 0 && (length -= l) > 0) {
-                    l = s.read(buffer, 0, (int) min(buffer.length, length));
+                int l = s.read(buffer, 0, buffer.length);
+                while (l >= 0) {
+                    l = s.read(buffer, 0, buffer.length);
                 }
             } finally {
                 s.close();
