@@ -35,6 +35,8 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.text.MessageFormat;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -51,8 +53,6 @@ import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Utility for checking the files of a
@@ -75,13 +75,15 @@ public class ConsistencyChecker implements Closeable {
 
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(ConsistencyChecker.class);
-
     private final StatisticsIOMonitor statisticsIOMonitor = new StatisticsIOMonitor();
 
     private final ReadOnlyFileStore store;
 
     private final long debugInterval;
+    
+    private final PrintWriter outWriter;
+    
+    private final PrintWriter errWriter;
 
     /**
      * Run a consistency check.
@@ -93,6 +95,10 @@ public class ConsistencyChecker implements Closeable {
      * @param debugInterval    number of seconds between printing progress information to
      *                         the console during the full traversal phase.
      * @param binLen           number of bytes to read from binary properties. -1 for all.
+     * @param ioStatistics     if {@code true} prints I/O statistics gathered while consistency 
+     *                         check was performed
+     * @param outWriter        text output stream writer
+     * @param errWriter        text error stream writer                        
      * @throws IOException
      */
     public static void checkConsistency(
@@ -101,13 +107,15 @@ public class ConsistencyChecker implements Closeable {
             boolean fullTraversal,
             long debugInterval,
             long binLen,
-            boolean ioStatistics
+            boolean ioStatistics,
+            PrintWriter outWriter,
+            PrintWriter errWriter
     ) throws IOException, InvalidFileStoreVersionException {
-        print("Searching for last good revision in {}", journalFileName);
         try (
                 JournalReader journal = new JournalReader(new File(directory, journalFileName));
-                ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval, ioStatistics)
+                ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval, ioStatistics, outWriter, errWriter)
         ) {
+            checker.print("Searching for last good revision in {0}", journalFileName);
             Set<String> badPaths = newHashSet();
             String latestGoodRevision = null;
             int revisionCount = 0;
@@ -115,39 +123,39 @@ public class ConsistencyChecker implements Closeable {
             while (journal.hasNext() && latestGoodRevision == null) {
                 String revision = journal.next();
                 try {
-                    print("Checking revision {}", revision);
+                    checker.print("Checking revision {0}", revision);
                     revisionCount++;
                     String badPath = checker.check(revision, badPaths, binLen);
                     if (badPath == null && fullTraversal) {
                         badPath = checker.traverse(revision, binLen);
                     }
                     if (badPath == null) {
-                        print("Found latest good revision {}", revision);
-                        print("Searched through {} revisions", revisionCount);
+                        checker.print("Found latest good revision {0}", revision);
+                        checker.print("Searched through {0} revisions", revisionCount);
                         latestGoodRevision = revision;
                     } else {
                         badPaths.add(badPath);
-                        print("Broken revision {}", revision);
+                        checker.print("Broken revision {0}", revision);
                     }
                 } catch (IllegalArgumentException e) {
-                    print("Skipping invalid record id {}", revision);
+                    checker.printError("Skipping invalid record id {0}", revision);
                 }
             }
 
             if (ioStatistics) {
-                print(
-                        "[I/O] Segment read operations: {}",
+                checker.print(
+                        "[I/O] Segment read operations: {0}",
                         checker.statisticsIOMonitor.ioOperations
                 );
-                print(
-                        "[I/O] Segment bytes read: {} ({} bytes)",
+                checker.print(
+                        "[I/O] Segment bytes read: {0} ({1} bytes)",
                         humanReadableByteCount(checker.statisticsIOMonitor.bytesRead.get()),
                         checker.statisticsIOMonitor.bytesRead
                 );
             }
 
             if (latestGoodRevision == null) {
-                print("No good revision found");
+                checker.print("No good revision found");
             }
         }
     }
@@ -155,18 +163,25 @@ public class ConsistencyChecker implements Closeable {
     /**
      * Create a new consistency checker instance
      *
-     * @param directory  directory containing the tar files
+     * @param directory        directory containing the tar files
      * @param debugInterval    number of seconds between printing progress information to
      *                         the console during the full traversal phase.
+     * @param ioStatistics     if {@code true} prints I/O statistics gathered while consistency 
+     *                         check was performed
+     * @param outWriter        text output stream writer
+     * @param errWriter        text error stream writer                        
      * @throws IOException
      */
-    public ConsistencyChecker(File directory, long debugInterval, boolean ioStatistics) throws IOException, InvalidFileStoreVersionException {
+    public ConsistencyChecker(File directory, long debugInterval, boolean ioStatistics, PrintWriter outWriter,
+            PrintWriter errWriter) throws IOException, InvalidFileStoreVersionException {
         FileStoreBuilder builder = fileStoreBuilder(directory);
         if (ioStatistics) {
             builder.withIOMonitor(statisticsIOMonitor);
         }
         this.store = builder.buildReadOnly();
         this.debugInterval = debugInterval;
+        this.outWriter = outWriter;
+        this.errWriter = errWriter;
     }
 
     /**
@@ -191,7 +206,7 @@ public class ConsistencyChecker implements Closeable {
 
     private String checkPath(String path, long binLen) {
         try {
-            print("Checking {}", path);
+            print("Checking {0}", path);
             NodeState root = SegmentNodeStoreBuilders.builder(store).build().getRoot();
             String parentPath = getParentPath(path);
             String name = getName(path);
@@ -202,7 +217,7 @@ public class ConsistencyChecker implements Closeable {
                 return traverse(parent, parentPath, false, binLen);
             }
         } catch (RuntimeException e) {
-            print("Error while checking {}: {}", path, e.getMessage());
+            printError("Error while checking {0}: {1}", path, e.getMessage());
             return path;
         }
     }
@@ -211,7 +226,7 @@ public class ConsistencyChecker implements Closeable {
     private int propertyCount;
 
     /**
-     * Travers the given {@code revision}
+     * Traverse the given {@code revision}
      * @param revision  revision to travers
      * @param binLen    number of bytes to read from binary properties. -1 for all.
      */
@@ -222,20 +237,20 @@ public class ConsistencyChecker implements Closeable {
             propertyCount = 0;
             String result = traverse(SegmentNodeStoreBuilders.builder(store).build()
                     .getRoot(), "/", true, binLen);
-            print("Checked {} nodes and {} properties", nodeCount, propertyCount);
+            print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
             return result;
         } catch (RuntimeException e) {
-            print("Error while traversing {}", revision, e.getMessage());
+            printError("Error while traversing {0}", revision, e.getMessage());
             return "/";
         }
     }
 
     private String traverse(NodeState node, String path, boolean deep, long binLen) {
         try {
-            debug("Traversing {}", path);
+            debug("Traversing {0}", path);
             nodeCount++;
             for (PropertyState propertyState : node.getProperties()) {
-                debug("Checking {}/{}", path, propertyState);
+                debug("Checking {0}/{1}", path, propertyState);
                 Type<?> type = propertyState.getType();
                 if (type == BINARY) {
                     traverse(propertyState.getValue(BINARY), binLen);
@@ -260,7 +275,7 @@ public class ConsistencyChecker implements Closeable {
             }
             return null;
         } catch (RuntimeException | IOException e) {
-            print("Error while traversing {}: {}", path, e.getMessage());
+            printError("Error while traversing {0}: {1}", path, e.getMessage());
             return path;
         }
     }
@@ -297,29 +312,37 @@ public class ConsistencyChecker implements Closeable {
         store.close();
     }
 
-    private static void print(String format) {
-        LOG.info(format);
+    private void print(String format) {
+        outWriter.println(format);
     }
 
-    private static void print(String format, Object arg) {
-        LOG.info(format, arg);
+    private void print(String format, Object arg) {
+        outWriter.println(MessageFormat.format(format, arg));
     }
 
-    private static void print(String format, Object arg1, Object arg2) {
-        LOG.info(format, arg1, arg2);
+    private void print(String format, Object arg1, Object arg2) {
+        outWriter.println(MessageFormat.format(format, arg1, arg2));
+    }
+    
+    private void printError(String format, Object arg) {
+        errWriter.println(MessageFormat.format(format, arg));
+    }
+
+    private void printError(String format, Object arg1, Object arg2) {
+        errWriter.println(MessageFormat.format(format, arg1, arg2));
     }
 
     private long ts;
 
     private void debug(String format, Object arg) {
         if (debug()) {
-            LOG.debug(format, arg);
+            print(format, arg);
         }
     }
 
     private void debug(String format, Object arg1, Object arg2) {
         if (debug()) {
-            LOG.debug(format, arg1, arg2);
+            print(format, arg1, arg2);
         }
     }
 
@@ -339,6 +362,4 @@ public class ConsistencyChecker implements Closeable {
             return false;
         }
     }
-
-
 }
