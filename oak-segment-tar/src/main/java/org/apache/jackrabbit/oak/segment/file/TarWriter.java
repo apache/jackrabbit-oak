@@ -42,9 +42,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Stopwatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -161,20 +163,23 @@ class TarWriter implements Closeable {
      */
     private final Map<UUID, Set<UUID>> graph = newHashMap();
 
+    private final IOMonitor ioMonitor;
+
     /**
      * Used for maintenance operations (GC or recovery) via the TarReader and tests
      */
-    TarWriter(File file) {
+    TarWriter(File file, IOMonitor ioMonitor) {
         this.file = file;
         this.monitor = FileStoreMonitor.DEFAULT;
         this.writeIndex = -1;
+        this.ioMonitor = ioMonitor;
     }
 
-    TarWriter(File directory, FileStoreMonitor monitor, int writeIndex) {
-        this.file = new File(directory, format(FILE_NAME_FORMAT, writeIndex,
-                "a"));
+    TarWriter(File directory, FileStoreMonitor monitor, int writeIndex, IOMonitor ioMonitor) {
+        this.file = new File(directory, format(FILE_NAME_FORMAT, writeIndex, "a"));
         this.monitor = monitor;
         this.writeIndex = writeIndex;
+        this.ioMonitor = ioMonitor;
     }
 
     /**
@@ -237,31 +242,39 @@ class TarWriter implements Closeable {
         return writeEntry(uuid, header, data, offset, size, generation);
     }
 
-    private synchronized long writeEntry(
-            UUID uuid, byte[] header, byte[] data, int offset, int size, int generation)
-            throws IOException {
+    private synchronized long writeEntry(UUID uuid, byte[] header, byte[] data, int offset, int size, int generation) throws IOException {
         checkState(!closed);
+
         if (access == null) {
             access = new RandomAccessFile(file, "rw");
             channel = access.getChannel();
         }
 
-        long initialLength = access.getFilePointer();
-        access.write(header);
-        access.write(data, offset, size);
+        long msb = uuid.getMostSignificantBits();
+        long lsb = uuid.getLeastSignificantBits();
+
         int padding = getPaddingSize(size);
+
+        long initialLength = access.getFilePointer();
+
+        access.write(header);
+
+        ioMonitor.beforeSegmentWrite(file, msb, lsb, size);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        access.write(data, offset, size);
+        ioMonitor.afterSegmentWrite(file, msb, lsb, size, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
         if (padding > 0) {
             access.write(ZERO_BYTES, 0, padding);
         }
 
         long currentLength = access.getFilePointer();
+        monitor.written(currentLength - initialLength);
+
         checkState(currentLength <= Integer.MAX_VALUE);
-        TarEntry entry = new TarEntry(
-                uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(),
-                (int) (currentLength - size - padding), size, generation);
+        TarEntry entry = new TarEntry(msb, lsb, (int) (currentLength - size - padding), size, generation);
         index.put(uuid, entry);
 
-        monitor.written(currentLength - initialLength);
         return currentLength;
     }
 
@@ -375,7 +388,7 @@ class TarWriter implements Closeable {
         }
         close();
         int newIndex = writeIndex + 1;
-        return new TarWriter(file.getParentFile(), monitor, newIndex);
+        return new TarWriter(file.getParentFile(), monitor, newIndex, ioMonitor);
     }
 
     private void writeBinaryReferences() throws IOException {

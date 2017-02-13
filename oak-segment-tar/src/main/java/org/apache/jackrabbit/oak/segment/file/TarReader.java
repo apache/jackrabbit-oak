@@ -133,7 +133,7 @@ class TarReader implements Closeable {
 
         // regenerate the first generation based on the recovered data
         File file = sorted.values().iterator().next();
-        generateTarFile(entries, file, recovery);
+        generateTarFile(entries, file, recovery, ioMonitor);
 
         reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
         if (reader != null) {
@@ -161,7 +161,7 @@ class TarReader implements Closeable {
             LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
             collectFileEntries(file, entries, false);
             file = findAvailGen(file, ".ro.bak");
-            generateTarFile(entries, file, recovery);
+            generateTarFile(entries, file, recovery, ioMonitor);
             reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
             if (reader != null) {
                 return reader;
@@ -207,10 +207,10 @@ class TarReader implements Closeable {
      * @param file
      * @throws IOException
      */
-    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries, File file, TarRecovery recovery) throws IOException {
+    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries, File file, TarRecovery recovery, IOMonitor ioMonitor) throws IOException {
         log.info("Regenerating tar file {}", file);
 
-        try (TarWriter writer = new TarWriter(file)) {
+        try (TarWriter writer = new TarWriter(file, ioMonitor)) {
             for (Entry<UUID, byte[]> entry : entries.entrySet()) {
                 try {
                     recovery.recoverEntry(entry.getKey(), entry.getValue(), writer);
@@ -843,7 +843,7 @@ class TarReader implements Closeable {
                 name.substring(0, pos) + (char) (generation + 1) + ".tar");
 
         log.debug("Writing new generation {}", newFile.getName());
-        TarWriter writer = new TarWriter(newFile);
+        TarWriter writer = new TarWriter(newFile, ioMonitor);
         for (TarEntry entry : entries) {
             if (entry != null) {
                 long msb = entry.msb();

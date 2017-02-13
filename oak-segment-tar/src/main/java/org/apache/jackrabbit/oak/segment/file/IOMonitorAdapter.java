@@ -31,4 +31,14 @@ public class IOMonitorAdapter implements IOMonitor {
         // Intentionally left blank
     }
 
+    @Override
+    public void beforeSegmentWrite(File file, long msb, long lsb, int length) {
+        // Intentionally left blank
+    }
+
+    @Override
+    public void afterSegmentWrite(File file, long msb, long lsb, int length, long elapsed) {
+        // Intentionally left blank
+    }
+
 }

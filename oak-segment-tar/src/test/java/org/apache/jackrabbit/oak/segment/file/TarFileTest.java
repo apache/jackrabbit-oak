@@ -58,34 +58,21 @@ public class TarFileTest {
         long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
         byte[] data = "Hello, World!".getBytes(UTF_8);
 
-        TarWriter writer = new TarWriter(file);
-        try {
+        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
             writer.writeEntry(msb, lsb, data, 0, data.length, 0);
             assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
-        } finally {
-            writer.close();
         }
 
         assertEquals(5120, file.length());
 
-        TarReader reader = TarReader.open(file, false, new IOMonitorAdapter());
-        try {
+        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
             assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
-        } finally {
-            reader.close();
-        }
-
-        reader = TarReader.open(file, false, new IOMonitorAdapter());
-        try {
-            assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
-        } finally {
-            reader.close();
         }
     }
 
     @Test
     public void testWriteAndReadBinaryReferences() throws Exception {
-        try (TarWriter writer = new TarWriter(file)) {
+        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
             writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, 0);
 
             writer.addBinaryReference(1, new UUID(1, 0), "r0");
@@ -132,7 +119,7 @@ public class TarFileTest {
 
     @Test
     public void binaryReferencesIndexShouldBeTrimmedDownOnSweep() throws Exception {
-        try (TarWriter writer = new TarWriter(file)) {
+        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
             writer.writeEntry(1, 1, new byte[] {1}, 0, 1, 1);
             writer.writeEntry(1, 2, new byte[] {1}, 0, 1, 1);
             writer.writeEntry(2, 1, new byte[] {1}, 0, 1, 2);
@@ -168,7 +155,7 @@ public class TarFileTest {
 
     @Test
     public void graphShouldBeTrimmedDownOnSweep() throws Exception {
-        try (TarWriter writer = new TarWriter(file)) {
+        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
             writer.writeEntry(1, 1, new byte[] {1}, 0, 1, 1);
             writer.writeEntry(1, 2, new byte[] {1}, 0, 1, 1);
             writer.writeEntry(1, 3, new byte[] {1}, 0, 1, 1);

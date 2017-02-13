@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -78,7 +77,7 @@ public class TarWriterTest {
         assertTrue(z.getReferences().isEmpty());
 
         File tar = folder.newFile(getClass().getName() + ".tar");
-        try (TarWriter tarWriter = new TarWriter(tar)) {
+        try (TarWriter tarWriter = new TarWriter(tar, new IOMonitorAdapter())) {
             y.write(tarWriter);
             b.write(tarWriter);
             a.write(tarWriter);
@@ -239,8 +238,7 @@ public class TarWriterTest {
     @Test
     public void createNextGenerationTest() throws IOException {
         int counter = 2222;
-        TarWriter t0 = new TarWriter(folder.newFolder(),
-                FileStoreMonitor.DEFAULT, counter);
+        TarWriter t0 = new TarWriter(folder.newFolder(), FileStoreMonitor.DEFAULT, counter, new IOMonitorAdapter());
 
         // not dirty, will not create a new writer
         TarWriter t1 = t0.createNextGeneration();
