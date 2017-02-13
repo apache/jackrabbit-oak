@@ -162,8 +162,8 @@ class SegmentUtils {
         }
     }
 
-    static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen) throws IOException, InvalidFileStoreVersionException {
-        checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
+    static void check(File dir, String journalFileName, long debugLevel, boolean checkBin) throws IOException, InvalidFileStoreVersionException {
+        checkConsistency(dir, journalFileName, true, debugLevel, checkBin ? -1L : 0L);
     }
 
     static void compact(File directory, boolean force) throws IOException, InvalidFileStoreVersionException {

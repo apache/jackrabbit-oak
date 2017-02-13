@@ -36,53 +36,48 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<String> journal = parser.accepts(
                 "journal", "journal file")
                 .withRequiredArg().ofType(String.class).defaultsTo("journal.log");
-        OptionSpec deep = parser.accepts(
-                "deep", "<deprecated> enable deep consistency checking. ");
+        OptionSpec<?> deep = parser.accepts(
+                "deep", "<deprecated> enable deep consistency checking.");
         ArgumentAcceptingOptionSpec<Long> notify = parser.accepts(
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
-        OptionSpec bin = parser.accepts("bin", "read the content of binary properties");
-        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
-        OptionSpec ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
+        OptionSpec<?> bin = parser.accepts("bin", "read the content of binary properties");
+        OptionSpec<?> segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
+        OptionSpec<?> ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
 
         OptionSet options = parser.parse(args);
+        
+        PrintWriter out = new PrintWriter(System.out, true);
+        PrintWriter err = new PrintWriter(System.err, true);
 
         if (options.nonOptionArguments().size() != 1) {
-            printUsage(parser);
+            printUsage(parser, err);
         }
 
         File dir = isValidFileStoreOrFail(new File(options.nonOptionArguments().get(0).toString()));
         String journalFileName = journal.value(options);
         long debugLevel = notify.value(options);
-
-        long binLen = 0L;
         
-        if (options.has(bin)) {
-            binLen = -1L;        
-        }
-
         if (options.has(deep)) {
-            printUsage(parser, "The --deep option was deprecated! Please do not use it in the future!"
+            printUsage(parser, err, "The --deep option was deprecated! Please do not use it in the future!"
                     , "A deep scan of the content tree, traversing every node, will be performed by default.");
         }
         
-        PrintWriter out = new PrintWriter(System.out, true);
-        PrintWriter err = new PrintWriter(System.err, true);
         
         if (options.has(segment)) {
-            SegmentUtils.check(dir, journalFileName, true, debugLevel, binLen);
+            SegmentUtils.check(dir, journalFileName, debugLevel, options.has(bin));
         } else {
-            SegmentTarUtils.check(dir, journalFileName, true, debugLevel, binLen, options.has(ioStatistics), out, err);
+            SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), options.has(ioStatistics), out, err);
         }
     }
 
-    private void printUsage(OptionParser parser, String... messages) throws IOException {
+    private void printUsage(OptionParser parser, PrintWriter err, String... messages) throws IOException {
         for (String message : messages) {
-            System.err.println(message);
+            err.println(message);
         }
         
-        System.err.println("usage: check path/to/segmentstore <options>");
-        parser.printHelpOn(System.err);
+        err.println("usage: check path/to/segmentstore <options>");
+        parser.printHelpOn(err);
         System.exit(1);
     }
 
