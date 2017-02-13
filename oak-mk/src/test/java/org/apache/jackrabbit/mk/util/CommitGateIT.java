@@ -20,9 +20,12 @@ import junit.framework.TestCase;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.junit.Ignore;
+
 /**
  * Test the commit gate.
  */
+@Ignore
 public class CommitGateIT extends TestCase {
 
     public void test() throws InterruptedException {
