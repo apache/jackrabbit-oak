@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidF
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -65,10 +66,13 @@ class CheckCommand implements Command {
                     , "A deep scan of the content tree, traversing every node, will be performed by default.");
         }
         
+        PrintWriter out = new PrintWriter(System.out, true);
+        PrintWriter err = new PrintWriter(System.err, true);
+        
         if (options.has(segment)) {
             SegmentUtils.check(dir, journalFileName, true, debugLevel, binLen);
         } else {
-            SegmentTarUtils.check(dir, journalFileName, true, debugLevel, binLen, options.has(ioStatistics));
+            SegmentTarUtils.check(dir, journalFileName, true, debugLevel, binLen, options.has(ioStatistics), out, err);
         }
     }
 

@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
+import java.io.PrintWriter;
 
 import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
 
@@ -54,6 +55,10 @@ public class Check implements Runnable {
         private long minimumBinaryLength;
 
         private boolean ioStatistics;
+        
+        private PrintWriter outWriter;
+        
+        private PrintWriter errWriter;
 
         private Builder() {
             // Prevent external instantiation.
@@ -137,6 +142,28 @@ public class Check implements Runnable {
             this.ioStatistics = ioStatistics;
             return this;
         }
+        
+        /**
+         * The text output stream writer used to print normal output.
+         * @param outWriter the output writer.
+         * @return this builder.
+         */
+        public Builder withOutWriter(PrintWriter outWriter) {
+            this.outWriter = outWriter;
+            
+            return this;
+        }
+        
+        /**
+         * The text error stream writer used to print erroneous output.
+         * @param errWriter the error writer.
+         * @return this builder.
+         */
+        public Builder withErrWriter(PrintWriter errWriter) {
+            this.errWriter = errWriter;
+            
+            return this;
+        }
 
         /**
          * Create an executable version of the {@link Check} command.
@@ -162,6 +189,10 @@ public class Check implements Runnable {
     private final long minimumBinaryLength;
 
     private final boolean ioStatistics;
+    
+    private final PrintWriter outWriter;
+    
+    private final PrintWriter errWriter;
 
     private Check(Builder builder) {
         this.path = builder.path;
@@ -170,12 +201,14 @@ public class Check implements Runnable {
         this.debugInterval = builder.debugInterval;
         this.minimumBinaryLength = builder.minimumBinaryLength;
         this.ioStatistics = builder.ioStatistics;
+        this.outWriter = builder.outWriter;
+        this.errWriter = builder.errWriter;
     }
 
     @Override
     public void run() {
         try {
-            ConsistencyChecker.checkConsistency(path, journal, fullTraversal, debugInterval, minimumBinaryLength, ioStatistics);
+            ConsistencyChecker.checkConsistency(path, journal, fullTraversal, debugInterval, minimumBinaryLength, ioStatistics, outWriter, errWriter);
         } catch (Exception e) {
             e.printStackTrace();
         }

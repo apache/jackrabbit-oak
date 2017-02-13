@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -184,7 +185,8 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen, boolean ioStatistics) {
+    static void check(File dir, String journalFileName, boolean fullTraversal, long debugLevel, long binLen,
+            boolean ioStatistics, PrintWriter outWriter, PrintWriter errWriter) {
         Check.builder()
                 .withPath(dir)
                 .withJournal(journalFileName)
@@ -192,6 +194,8 @@ final class SegmentTarUtils {
                 .withDebugInterval(debugLevel)
                 .withMinimumBinaryLength(binLen)
                 .withIOStatistics(ioStatistics)
+                .withOutWriter(outWriter)
+                .withErrWriter(errWriter)
                 .build()
                 .run();
     }
