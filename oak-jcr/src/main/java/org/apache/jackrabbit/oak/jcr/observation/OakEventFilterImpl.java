@@ -384,35 +384,47 @@ public class OakEventFilterImpl extends OakEventFilter {
         return includeAncestorRemove;
     }
 
+    /**
+     * This helper method goes through the provided globPath and adds
+     * each parent (ancestor)'s path to the ancestorPaths set.
+     * <p>
+     * OAK-5619 : this used to add "${parent}/*" type ancestor paths, however
+     * that was wrong: we must only take the actual "${parent}"s to which we want
+     * to listen to. Also, the glob case looks slightly different than originally
+     * implemented:
+     * <ul>
+     *  <li>* : we treat this as a normal name, ie as a normal parent and continue normally</li>
+     *  <li>**: when a ** is hit, the loop through the elements can be stopped,
+     *  as ** includes all children already, so no further paths are needed.</li>
+     * </ul>
+     * @param ancestorPaths the set to which the ancestors of globPath will
+     * be added to
+     * @param globPath the input path that may contain globs
+     */
     static void addAncestorPaths(Set<String> ancestorPaths, String globPath) {
         if (globPath == null || !globPath.contains("/")) {
             return;
         }
-        // from /a/b/c         => add /*, /a/* and /a/b/*
-        // from /a/b/**        => add /*, /a/*
-        // from /a             => add /*, nothing
+        // from /a/b/c         => add /a, /a/b, /a/b/c
+        // from /a/b/**        => add /a, /a/b, /a/b/**
+        // from /a             => add /a
         // from /              => add nothing
-        // from /a/b/**/*.html => add /*, /a/*
-        // from /a/b/*/*.html  => add /*, /a/*
+        // from /a/b/**/*.html => add /a, /a/b, /a/b/**
+        // from /a/b/*/*.html  => add /a, /a/b, /a/b/*, /a/b/*/*.html
+        // from /a/b/*/d       => add /a, /a/b, /a/b/*, /a/b/*/d
+        // from /a/b/*/d/e     => add /a, /a/b, /a/b/*, /a/b/*/d, /a/b/*/d/e
 
         Iterator<String> it = PathUtils.elements(globPath).iterator();
         StringBuffer sb = new StringBuffer();
-        if (it.hasNext()) {
-            ancestorPaths.add("/*");
-        }
         while(it.hasNext()) {
             String element = it.next();
-            if (element.contains("*")) {
-                if (ancestorPaths.size() > 0) {
-                    ancestorPaths.remove(ancestorPaths.size()-1);
-                }
-                break;
-            } else if (!it.hasNext()) {
-                break;
-            }
             sb.append("/");
             sb.append(element);
-            ancestorPaths.add(sb.toString() + "/*");
+            ancestorPaths.add(sb.toString());
+            if (element.equals("**")) {
+                // then we can stop as ** contains everything already
+                break;
+            }
         }
     }
 
