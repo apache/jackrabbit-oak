@@ -42,6 +42,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1539,6 +1540,179 @@ public class ObservationTest extends AbstractRepositoryTest {
         testNode.getNode("a").remove();
         testNode.getSession().save();
     }
+    
+    /**
+     * This tests a filter which registers a few paths and then expects
+     * NOT to get any event if an unrelated parent is removed
+     */
+    @Test
+    public void includeAncestorsRemove_Unrelated() throws Exception {
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a"},
+                new String[] {"/a"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a/b"},
+                new String[] {"/a/b"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a/b/c"},
+                new String[] {"/a/b/c"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a/b/c/d"},
+                new String[] {"/a/b/c/d"},
+                new String[] {"/a/b/c/d/jcr:primaryType"});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d/*.html"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a/b/c/d"},
+                new String[] {"/a/b/c/d"},
+                new String[] {});
+
+        // and some glob tests:
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/*/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/related/unrelatedchild", "/a/b/related", "/a/unrelated/child", "/a/unrelated", 
+                        "/a"},
+                new String[] {"/a", "/a/b/related"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/**/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/related/child", "/a/b/c/related", 
+                        "/a/b/related/child", "/a/b/related", "/a/unrelated/child", "/a/unrelated", 
+                        "/a"},
+                new String[] {"/a", "/a/b/related", "/a/b/related/child", "/a/b/c/related/child", "/a/b/c/related"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/**/d/*.html"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/related/child", "/a/b/c/related", 
+                        "/a/b/related/child", "/a/b/related", "/a/unrelated/child", "/a/unrelated", 
+                        "/a"},
+                new String[] {"/a", "/a/b/related", "/a/b/related/child", "/a/b/c/related/child", "/a/b/c/related"},
+                new String[] {});
+
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/*/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/related/unrelatedchild", "/a/related", 
+                        "/a/b"},
+                new String[] {"/a/b", "/a/related"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/**/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/related/child", "/a/b/c/related", 
+                        "/a/b/related/child", "/a/b/related", "/a/related/relatedchild", "/a/related", 
+                        "/a/b"},
+                new String[] {"/a/b", "/a/related/relatedchild", "/a/related", "/a/b/related/child", "/a/b/related", "/a/b/c/related/child", "/a/b/c/related"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/*/c/*.html"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/related/unrelatedchild", "/a/related", 
+                        "/a/b/c/x.html", "/a/b"},
+                new String[] {"/a/b", "/a/related", "/a/b/c/x.html"},
+                new String[] {"/a/b/c/x.html/jcr:primaryType"});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/**/c/*.html"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/related/child", "/a/b/c/related", 
+                        "/a/b/related/child", "/a/b/related", "/a/related/child", "/a/related", 
+                        "/a/b"},
+                new String[] {"/a/b", "/a/related/child", "/a/related", "/a/b/related/child", "/a/b/related", "/a/b/c/related/child", "/a/b/c/related", "/a/b/c/related/child", "/a/b/c/related"},
+                new String[] {});
+    }
+    
+    private void doIncludeAncestorsRemove_Unrelated(String[] absPaths, 
+            String[] createAndRemoveNodes, String[] expectedRemoveNodeEvents, String[] expectedRemovePropertyEvents) throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+
+        OakEventFilter filterWithAncestorsRemove = FilterFactory.wrap(new JackrabbitEventFilter());
+        filterWithAncestorsRemove.setEventTypes(NODE_REMOVED | PROPERTY_REMOVED);
+        assertTrue(absPaths.length >= 1);
+        String[] additionalPaths = new String[absPaths.length];
+        System.arraycopy(absPaths, 0, additionalPaths, 0, absPaths.length);
+        if (!absPaths[0].contains("*")) {
+            filterWithAncestorsRemove.setAbsPath(absPaths[0]);
+            if (absPaths.length > 1) {
+                additionalPaths = new String[absPaths.length - 1];
+                System.arraycopy(absPaths, 1, additionalPaths, 0, absPaths.length - 1);
+            }
+        }
+        filterWithAncestorsRemove.withIncludeGlobPaths(additionalPaths);
+        filterWithAncestorsRemove.setIsDeep(true);
+        filterWithAncestorsRemove = filterWithAncestorsRemove.withIncludeAncestorsRemove();
+        ExpectationListener listenerWithAncestorsRemove = new ExpectationListener();
+        oManager.addEventListener(listenerWithAncestorsRemove, filterWithAncestorsRemove);
+
+        OakEventFilter filterWithoutAncestorsRemove = FilterFactory.wrap(new JackrabbitEventFilter());
+        filterWithoutAncestorsRemove.setEventTypes(NODE_REMOVED);
+        if (!absPaths[0].contains("*")) {
+            filterWithoutAncestorsRemove.setAbsPath(absPaths[0]);
+        }
+        filterWithoutAncestorsRemove.withIncludeGlobPaths(additionalPaths);
+        filterWithoutAncestorsRemove.setIsDeep(true);
+        ExpectationListener listenerWithoutAncestorsRemove = new ExpectationListener();
+        oManager.addEventListener(listenerWithoutAncestorsRemove, filterWithoutAncestorsRemove);
+
+        Session session = getAdminSession();
+        for (String path : createAndRemoveNodes) {
+            Iterator<String> it = PathUtils.elements(path).iterator();
+            Node node = session.getRootNode();
+            while(it.hasNext()) {
+                String elem = it.next();
+                if (!node.hasNode(elem)) {
+                    node = node.addNode(elem);
+                } else {
+                    node = node.getNode(elem);
+                }
+            }
+        }
+        session.save();
+
+        for (String nodePath : expectedRemoveNodeEvents) {
+            listenerWithAncestorsRemove.expect(nodePath, NODE_REMOVED);
+        }
+        for (String propertyPath : expectedRemovePropertyEvents) {
+            listenerWithAncestorsRemove.expect(propertyPath, PROPERTY_REMOVED);
+        }
+
+        for (String path : createAndRemoveNodes) {
+            Iterator<String> it = PathUtils.elements(path).iterator();
+            Node node = session.getRootNode();
+            while(it.hasNext()) {
+                String elem = it.next();
+                node = node.getNode(elem);
+            }
+            node.remove();
+            session.save();
+        }
+        
+        Thread.sleep(1000);
+        List<Expectation> missing = listenerWithoutAncestorsRemove.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listenerWithoutAncestorsRemove.getUnexpected();
+        assertTrue("Unexpected events (listenerWithoutAncestorsRemove): " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events (listenerWithoutAncestorsRemove): " + missing, missing.isEmpty());
+
+        missing = listenerWithAncestorsRemove.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listenerWithAncestorsRemove.getUnexpected();
+        assertTrue("Unexpected events (listenerWithAncestorsRemove): " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events (listenerWithAncestorsRemove): " + missing, missing.isEmpty());
+    }
 
     @Test
     public void includeAncestorsRemove() throws Exception {
@@ -2123,7 +2297,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("/**/*.jsp");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "/**/*.jsp", "/**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "/**/*.jsp", "/**/*.jsp/**"});
 
         oef = FilterFactory.wrap(new JackrabbitEventFilter());
         oef.setEventTypes(ALL_EVENTS);
@@ -2131,14 +2305,14 @@ public class ObservationTest extends AbstractRepositoryTest {
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("/**/*.jsp");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "/**/*.jsp", "/**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "/**/*.jsp", "/**/*.jsp/**"});
         
         oef = FilterFactory.wrap(new JackrabbitEventFilter());
         oef.setEventTypes(ALL_EVENTS);
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("**/*.jsp");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "**/*.jsp", "**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "**/*.jsp", "**/*.jsp/**"});
 
         oef = FilterFactory.wrap(new JackrabbitEventFilter());
         oef.setEventTypes(ALL_EVENTS);
@@ -2159,7 +2333,14 @@ public class ObservationTest extends AbstractRepositoryTest {
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("/parent/**/*.jsp");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "/parent/*", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/parent/**", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+        
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeAncestorsRemove()
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/parent/bar/**/*.jsp");
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/parent/bar", "/parent/bar/**", "/parent/bar/**/*.jsp", "/parent/bar/**/*.jsp/**"});
         
         oef = FilterFactory.wrap(new JackrabbitEventFilter());
         oef.setEventTypes(ALL_EVENTS);
@@ -2180,7 +2361,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("/parent/**/*.jsp", "/foo/bar/**");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "/foo/*", "/foo/bar/*", "/foo/bar/**", "/parent/*", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/foo", "/foo/bar", "/foo/bar/**", "/parent/**", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
     }
 
     private void doTestAggregate6(OakEventFilter oef, String[] expectedSubTrees, String[] expectedPrefilterPaths)
