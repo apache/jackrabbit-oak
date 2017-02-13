@@ -217,7 +217,7 @@ public class FileStore extends AbstractFileStore {
         if (indices.length > 0) {
             writeNumber = indices[indices.length - 1] + 1;
         }
-        this.tarWriter = new TarWriter(directory, stats, writeNumber);
+        this.tarWriter = new TarWriter(directory, stats, writeNumber, ioMonitor);
         
         this.snfeListener = builder.getSnfeListener();
 

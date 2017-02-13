@@ -85,15 +85,10 @@ public class FileStoreStatsTest {
             long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
             byte[] data = "Hello, World!".getBytes(UTF_8);
 
-            TarWriter writer = null;
-            try {
-                writer = new TarWriter(directory, stats, 0);
+            try (TarWriter writer = new TarWriter(directory, stats, 0, new IOMonitorAdapter())) {
                 writer.writeEntry(msb, lsb, data, 0, data.length, 0);
-            } finally {
-                writer.close();
+                assertEquals(stats.getApproximateSize() - initialSize, writer.fileLength());
             }
-            assertEquals(stats.getApproximateSize() - initialSize,
-                    writer.fileLength());
         } finally {
             store.close();
         }

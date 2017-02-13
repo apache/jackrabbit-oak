@@ -25,4 +25,8 @@ public interface IOMonitor {
 
     void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed);
 
+    void beforeSegmentWrite(File file, long msb, long lsb, int length);
+
+    void afterSegmentWrite(File file, long msb, long lsb, int length, long elapsed);
+
 }
