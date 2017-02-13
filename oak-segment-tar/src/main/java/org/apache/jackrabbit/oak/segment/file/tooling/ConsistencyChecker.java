@@ -65,12 +65,15 @@ public class ConsistencyChecker implements Closeable {
 
         private final AtomicLong ioOperations = new AtomicLong(0);
 
-        private final AtomicLong bytesRead = new AtomicLong(0);
+        private final AtomicLong readBytes = new AtomicLong(0);
+
+        private final AtomicLong readTime = new AtomicLong(0);
 
         @Override
-        public void beforeSegmentRead(File file, long msb, long lsb, int length) {
+        public void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed) {
             ioOperations.incrementAndGet();
-            bytesRead.addAndGet(length);
+            readBytes.addAndGet(length);
+            readTime.addAndGet(elapsed);
         }
 
     }
@@ -144,13 +147,17 @@ public class ConsistencyChecker implements Closeable {
 
             if (ioStatistics) {
                 checker.print(
-                        "[I/O] Segment read operations: {0}",
+                        "[I/O] Segment read: Number of operations: {0}",
                         checker.statisticsIOMonitor.ioOperations
                 );
                 checker.print(
-                        "[I/O] Segment bytes read: {0} ({1} bytes)",
-                        humanReadableByteCount(checker.statisticsIOMonitor.bytesRead.get()),
-                        checker.statisticsIOMonitor.bytesRead
+                        "[I/O] Segment read: Total size: {0} ({1} bytes)",
+                        humanReadableByteCount(checker.statisticsIOMonitor.readBytes.get()),
+                        checker.statisticsIOMonitor.readBytes
+                );
+                checker.print(
+                        "[I/O] Segment read: Total time: {0} ns",
+                        checker.statisticsIOMonitor.readTime
                 );
             }
 

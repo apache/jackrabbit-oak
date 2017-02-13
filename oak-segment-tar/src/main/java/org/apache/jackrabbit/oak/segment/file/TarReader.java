@@ -1118,7 +1118,7 @@ class TarReader implements Closeable {
         ioMonitor.beforeSegmentRead(file, msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
         ByteBuffer buffer = access.read(offset, size);
-        long elapsed = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+        long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
         ioMonitor.afterSegmentRead(file, msb, lsb, size, elapsed);
         return buffer;
     }
