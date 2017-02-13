@@ -21,6 +21,8 @@ import java.io.File;
 
 public interface IOMonitor {
 
-    void onSegmentRead(File file, long msb, long lsb, int length);
+    void beforeSegmentRead(File file, long msb, long lsb, int length);
+
+    void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed);
 
 }

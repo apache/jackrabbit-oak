@@ -47,6 +47,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
@@ -55,6 +56,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Predicate;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -574,8 +576,7 @@ class TarReader implements Closeable {
         if (position != -1) {
             int pos = index.getInt(position + 16);
             int len = index.getInt(position + 20);
-            ioMonitor.onSegmentRead(file, msb, lsb, len);
-            return access.read(pos, len);
+            return readSegment(msb, lsb, pos, len);
         } else {
             return null;
         }
@@ -845,10 +846,14 @@ class TarReader implements Closeable {
         TarWriter writer = new TarWriter(newFile);
         for (TarEntry entry : entries) {
             if (entry != null) {
-                byte[] data = new byte[entry.size()];
-                ioMonitor.onSegmentRead(file, entry.msb(), entry.lsb(), entry.size());
-                access.read(entry.offset(), entry.size()).get(data);
-                writer.writeEntry(entry.msb(), entry.lsb(), data, 0, entry.size(), entry.generation());
+                long msb = entry.msb();
+                long lsb = entry.lsb();
+                int offset = entry.offset();
+                int size = entry.size();
+                int gen = entry.generation();
+                byte[] data = new byte[size];
+                readSegment(msb, lsb, offset, size).get(data);
+                writer.writeEntry(msb, lsb, data, 0, size, gen);
             }
         }
 
@@ -1107,6 +1112,15 @@ class TarReader implements Closeable {
         hasGraph = true;
 
         return graph;
+    }
+
+    private ByteBuffer readSegment(long msb, long lsb, int offset, int size) throws IOException {
+        ioMonitor.beforeSegmentRead(file, msb, lsb, size);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        ByteBuffer buffer = access.read(offset, size);
+        long elapsed = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+        ioMonitor.afterSegmentRead(file, msb, lsb, size, elapsed);
+        return buffer;
     }
 
     private static Map<UUID, List<UUID>> parseGraph(ByteBuffer buffer, boolean bulkOnly) {

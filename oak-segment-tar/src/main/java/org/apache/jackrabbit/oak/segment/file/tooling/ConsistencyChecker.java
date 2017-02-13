@@ -68,7 +68,7 @@ public class ConsistencyChecker implements Closeable {
         private final AtomicLong bytesRead = new AtomicLong(0);
 
         @Override
-        public void onSegmentRead(File file, long msb, long lsb, int length) {
+        public void beforeSegmentRead(File file, long msb, long lsb, int length) {
             ioOperations.incrementAndGet();
             bytesRead.addAndGet(length);
         }
