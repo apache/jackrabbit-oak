@@ -108,7 +108,6 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1547,7 +1546,6 @@ public class ObservationTest extends AbstractRepositoryTest {
      * NOT to get any event if an unrelated parent is removed
      */
     @Test
-    @Ignore("OAK-5619")
     public void includeAncestorsRemove_Unrelated() throws Exception {
         doIncludeAncestorsRemove_Unrelated(
                 new String[] {"/a/b/c/d"}, 
@@ -2299,7 +2297,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("/**/*.jsp");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "/**/*.jsp", "/**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "/**/*.jsp", "/**/*.jsp/**"});
 
         oef = FilterFactory.wrap(new JackrabbitEventFilter());
         oef.setEventTypes(ALL_EVENTS);
@@ -2307,14 +2305,14 @@ public class ObservationTest extends AbstractRepositoryTest {
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("/**/*.jsp");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "/**/*.jsp", "/**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "/**/*.jsp", "/**/*.jsp/**"});
         
         oef = FilterFactory.wrap(new JackrabbitEventFilter());
         oef.setEventTypes(ALL_EVENTS);
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("**/*.jsp");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "**/*.jsp", "**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "**/*.jsp", "**/*.jsp/**"});
 
         oef = FilterFactory.wrap(new JackrabbitEventFilter());
         oef.setEventTypes(ALL_EVENTS);
@@ -2335,7 +2333,14 @@ public class ObservationTest extends AbstractRepositoryTest {
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("/parent/**/*.jsp");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "/parent/*", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/parent/**", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+        
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeAncestorsRemove()
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/parent/bar/**/*.jsp");
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/parent/bar", "/parent/bar/**", "/parent/bar/**/*.jsp", "/parent/bar/**/*.jsp/**"});
         
         oef = FilterFactory.wrap(new JackrabbitEventFilter());
         oef.setEventTypes(ALL_EVENTS);
@@ -2356,7 +2361,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         oef.withIncludeAncestorsRemove()
                 .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
                 .withIncludeGlobPaths("/parent/**/*.jsp", "/foo/bar/**");
-        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/*", "/foo/*", "/foo/bar/*", "/foo/bar/**", "/parent/*", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/foo", "/foo/bar", "/foo/bar/**", "/parent/**", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
     }
 
     private void doTestAggregate6(OakEventFilter oef, String[] expectedSubTrees, String[] expectedPrefilterPaths)
