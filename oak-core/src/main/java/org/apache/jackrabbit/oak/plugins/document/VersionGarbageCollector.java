@@ -159,8 +159,9 @@ public class VersionGarbageCollector {
         final Stopwatch elapsed;
         private final List<GCPhase> phases = Lists.newArrayList();
         private final Map<GCPhase, Stopwatch> watches = Maps.newHashMap();
+        private final AtomicBoolean canceled;
 
-        GCPhases() {
+        GCPhases(AtomicBoolean canceled) {
             this.stats = new VersionGCStats();
             this.elapsed = Stopwatch.createStarted();
             this.watches.put(GCPhase.NONE, Stopwatch.createStarted());
@@ -168,12 +169,25 @@ public class VersionGarbageCollector {
             this.watches.put(GCPhase.DELETING, stats.deleteDeletedDocs);
             this.watches.put(GCPhase.SORTING, stats.sortDocIds);
             this.watches.put(GCPhase.SPLITS_CLEANUP, stats.collectAndDeleteSplitDocs);
+            this.canceled = canceled;
         }
 
-        public void start(GCPhase started) {
+        /**
+         * Attempts to start a GC phase and tracks the time spent in this phase
+         * until {@link #stop(GCPhase)} is called.
+         *
+         * @param started the GC phase.
+         * @return {@code true} if the phase was started or {@code false} if the
+         *          revision GC was canceled and the phase should not start.
+         */
+        public boolean start(GCPhase started) {
+            if (canceled.get()) {
+                return false;
+            }
             suspend(currentWatch());
             this.phases.add(started);
             resume(currentWatch());
+            return true;
         }
 
         public void stop(GCPhase phase) {
@@ -231,7 +245,7 @@ public class VersionGarbageCollector {
         }
 
         private VersionGCStats gc(long maxRevisionAgeInMillis) throws IOException {
-            GCPhases phases = new GCPhases();
+            GCPhases phases = new GCPhases(cancel);
             final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAgeInMillis;
             final RevisionVector headRevision = nodeStore.getHeadRevision();
 
@@ -260,9 +274,10 @@ public class VersionGarbageCollector {
         }
 
         private void collectSplitDocuments(GCPhases phases, long oldestRevTimeStamp) {
-            phases.start(GCPhase.SPLITS_CLEANUP);
-            versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, phases.stats);
-            phases.stop(GCPhase.SPLITS_CLEANUP);
+            if (phases.start(GCPhase.SPLITS_CLEANUP)) {
+                versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, phases.stats);
+                phases.stop(GCPhase.SPLITS_CLEANUP);
+            }
         }
 
         private void collectDeletedDocuments(GCPhases phases,
@@ -272,50 +287,55 @@ public class VersionGarbageCollector {
             int docsTraversed = 0;
             DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel);
             try {
-                phases.start(GCPhase.COLLECTING);
-                Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
-                try {
-                    for (NodeDocument doc : itr) {
-                        // continue with GC?
-                        if (cancel.get()) {
-                            break;
+                if (phases.start(GCPhase.COLLECTING))   {
+                    Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
+                    try {
+                        for (NodeDocument doc : itr) {
+                            // continue with GC?
+                            if (cancel.get()) {
+                                break;
+                            }
+                            // Check if node is actually deleted at current revision
+                            // As node is not modified since oldestRevTimeStamp then
+                            // this node has not be revived again in past maxRevisionAge
+                            // So deleting it is safe
+                            docsTraversed++;
+                            if (docsTraversed % PROGRESS_BATCH_SIZE == 0){
+                                log.info("Iterated through {} documents so far. {} found to be deleted",
+                                        docsTraversed, gc.getNumDocuments());
+                            }
+                            gc.possiblyDeleted(doc);
+                            if (gc.hasLeafBatch()) {
+                                if (phases.start(GCPhase.DELETING)) {
+                                    gc.removeLeafDocuments(phases.stats);
+                                    phases.stop(GCPhase.DELETING);
+                                }
+                            }
                         }
-                        // Check if node is actually deleted at current revision
-                        // As node is not modified since oldestRevTimeStamp then
-                        // this node has not be revived again in past maxRevisionAge
-                        // So deleting it is safe
-                        docsTraversed++;
-                        if (docsTraversed % PROGRESS_BATCH_SIZE == 0){
-                            log.info("Iterated through {} documents so far. {} found to be deleted",
-                                    docsTraversed, gc.getNumDocuments());
-                        }
-                        gc.possiblyDeleted(doc);
-                        if (gc.hasLeafBatch()) {
-                            phases.start(GCPhase.DELETING);
-                            gc.removeLeafDocuments(phases.stats);
-                            phases.stop(GCPhase.DELETING);
-                        }
+                    } finally {
+                        Utils.closeIfCloseable(itr);
                     }
-                } finally {
-                    Utils.closeIfCloseable(itr);
+                    phases.stop(GCPhase.COLLECTING);
                 }
-                phases.stop(GCPhase.COLLECTING);
 
                 if (gc.getNumDocuments() == 0){
                     return;
                 }
 
-                phases.start(GCPhase.DELETING);
-                gc.removeLeafDocuments(phases.stats);
-                phases.stop(GCPhase.DELETING);
+                if (phases.start(GCPhase.DELETING)) {
+                    gc.removeLeafDocuments(phases.stats);
+                    phases.stop(GCPhase.DELETING);
+                }
 
-                phases.start(GCPhase.SORTING);
-                gc.ensureSorted();
-                phases.stop(GCPhase.SORTING);
+                if (phases.start(GCPhase.SORTING)) {
+                    gc.ensureSorted();
+                    phases.stop(GCPhase.SORTING);
+                }
 
-                phases.start(GCPhase.DELETING);
-                gc.removeDocuments(phases.stats);
-                phases.stop(GCPhase.DELETING);
+                if (phases.start(GCPhase.DELETING)) {
+                    gc.removeDocuments(phases.stats);
+                    phases.stop(GCPhase.DELETING);
+                }
             } finally {
                 gc.close();
             }

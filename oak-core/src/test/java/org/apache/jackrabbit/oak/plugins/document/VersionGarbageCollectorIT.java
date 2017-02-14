@@ -75,7 +75,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -605,7 +604,6 @@ public class VersionGarbageCollectorIT {
         assertNotEquals(modCount, foo.getModCount());
     }
 
-    @Ignore("OAK-5605")
     @Test
     public void cancelGCBeforeFirstPhase() throws Exception {
         createTestNode("foo");
@@ -639,7 +637,6 @@ public class VersionGarbageCollectorIT {
         assertEquals(0, stats.splitDocGCCount);
     }
 
-    @Ignore("OAK-5605")
     @Test
     public void cancelGCAfterFirstPhase() throws Exception {
         createTestNode("foo");
