@@ -92,4 +92,14 @@ public interface DocumentStoreStatsCollector {
      */
     void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, String key,
                            boolean newEntry, boolean success, int retryCount);
+
+    /**
+     * Called when a remove operation for documents was completed.
+     * @param timeTakenNanos time taken
+     * @param collection the collection
+     * @param removeCount the number of removed documents
+     */
+    void doneRemove(long timeTakenNanos,
+                    Collection<? extends Document> collection,
+                    int removeCount);
 }

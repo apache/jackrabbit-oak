@@ -1531,6 +1531,7 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> void delete(Collection<T> collection, String id) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
+        Stopwatch watch = startWatch();
         try {
             connection = this.ch.getRWConnection();
             db.delete(connection, tmd, Collections.singletonList(id));
@@ -1539,6 +1540,7 @@ public class RDBDocumentStore implements DocumentStore {
             throw handleException("removing " + id, ex, collection, id);
         } finally {
             this.ch.closeConnection(connection);
+            stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, 1);
         }
     }
 
@@ -1547,6 +1549,7 @@ public class RDBDocumentStore implements DocumentStore {
         RDBTableMetaData tmd = getTable(collection);
         for (List<String> sublist : Lists.partition(ids, 64)) {
             Connection connection = null;
+            Stopwatch watch = startWatch();
             try {
                 connection = this.ch.getRWConnection();
                 numDeleted += db.delete(connection, tmd, sublist);
@@ -1555,6 +1558,7 @@ public class RDBDocumentStore implements DocumentStore {
                 throw handleException("removing " + ids, ex, collection, ids);
             } finally {
                 this.ch.closeConnection(connection);
+                stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids.size());
             }
         }
         return numDeleted;
@@ -1571,15 +1575,19 @@ public class RDBDocumentStore implements DocumentStore {
             subMap.put(entry.getKey(), entry.getValue());
             if (subMap.size() == 64 || !it.hasNext()) {
                 Connection connection = null;
+                int num = 0;
+                Stopwatch watch = startWatch();
                 try {
                     connection = this.ch.getRWConnection();
-                    numDeleted += db.delete(connection, tmd, subMap);
+                    num = db.delete(connection, tmd, subMap);
+                    numDeleted += num;
                     connection.commit();
                 } catch (Exception ex) {
                     Set<String> ids = subMap.keySet();
                     throw handleException("deleting " + ids, ex, collection, ids);
                 } finally {
                     this.ch.closeConnection(connection);
+                    stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, num);
                 }
                 subMap.clear();
             }
@@ -1590,6 +1598,7 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> int deleteWithCondition(Collection<T> collection, List<QueryCondition> conditions) {
         int numDeleted = 0;
         RDBTableMetaData tmd = getTable(collection);
+        Stopwatch watch = startWatch();
         Connection connection = null;
         try {
             connection = this.ch.getRWConnection();
@@ -1599,6 +1608,7 @@ public class RDBDocumentStore implements DocumentStore {
             throw DocumentStoreException.convert(ex, "deleting " + collection + ": " + conditions);
         } finally {
             this.ch.closeConnection(connection);
+            stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, numDeleted);
         }
         return numDeleted;
     }

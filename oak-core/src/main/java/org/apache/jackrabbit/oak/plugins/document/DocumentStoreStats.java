@@ -69,6 +69,9 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     static final String NODES_UPDATE_RETRY_COUNT = "DOCUMENT_NODES_UPDATE_RETRY";
     static final String NODES_UPDATE_TIMER = "DOCUMENT_NODES_UPDATE_TIMER";
 
+    static final String NODES_REMOVE = "DOCUMENT_NODES_REMOVE";
+    static final String NODES_REMOVE_TIMER = "DOCUMENT_NODES_REMOVE_TIMER";
+
     static final String JOURNAL_QUERY = "DOCUMENT_JOURNAL_QUERY";
     static final String JOURNAL_CREATE = "DOCUMENT_JOURNAL_CREATE";
     static final String JOURNAL_QUERY_TIMER = "DOCUMENT_JOURNAL_QUERY_TIMER";
@@ -102,6 +105,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     private final MeterStats createSplitNodeMeter;
     private final MeterStats updateNodeFailureMeter;
     private final MeterStats updateNodeRetryCountMeter;
+    private final MeterStats removeNodes;
+    private final TimerStats removeNodesTimer;
 
     public DocumentStoreStats(StatisticsProvider provider) {
         statisticsProvider = checkNotNull(provider);
@@ -137,6 +142,9 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
         queryNodesLock = provider.getMeter(NODES_QUERY_LOCK, StatsOptions.DEFAULT);
         queryNodesLockTimer = provider.getTimer(NODES_QUERY_LOCK_TIMER, StatsOptions.METRICS_ONLY);
+
+        removeNodes = provider.getMeter(NODES_REMOVE, StatsOptions.DEFAULT);
+        removeNodesTimer = provider.getTimer(NODES_REMOVE_TIMER, StatsOptions.METRICS_ONLY);
     }
 
     //~------------------------------------------< DocumentStoreStatsCollector >
@@ -268,6 +276,19 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         perfLog(timeTakenNanos, "findAndModify [{}]", key);
     }
 
+    @Override
+    public void doneRemove(long timeTakenNanos,
+                           Collection<? extends Document> collection,
+                           int removeCount) {
+        if (collection == Collection.NODES) {
+            if (removeCount > 0) {
+                removeNodes.mark(removeCount);
+                removeNodesTimer.update(timeTakenNanos / removeCount, TimeUnit.NANOSECONDS);
+            }
+        }
+        perfLog(timeTakenNanos, "remove [{}]", removeCount);
+    }
+
     private void perfLog(long timeTakenNanos, String logMessagePrefix, Object... arguments){
         if (!perfLog.isDebugEnabled()){
             return;
@@ -310,6 +331,11 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     @Override
     public long getNodesUpdateCount() {
         return updateNodeMeter.getCount();
+    }
+
+    @Override
+    public long getNodesRemoveCount() {
+        return removeNodes.getCount();
     }
 
     @Override
@@ -385,6 +411,11 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     @Override
     public CompositeData getUpdateNodesFailureHistory() {
         return getTimeSeriesData(NODES_UPDATE_FAILURE, NODES_UPDATE_FAILURE);
+    }
+
+    @Override
+    public CompositeData getRemoveNodesHistory() {
+        return getTimeSeriesData(NODES_REMOVE, NODES_REMOVE);
     }
 
     private CompositeData getTimeSeriesData(String name, String desc){
