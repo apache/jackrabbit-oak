@@ -250,18 +250,22 @@ public class ReplicaSetInfo implements Runnable {
             }
         }
 
+        Set<String> hostsToCheck = new HashSet<String>();
         if (secondaries.isEmpty()) {
             LOG.debug("No secondaries found: {}", members);
             unknownState = true;
+        } else {
+            hostsToCheck.addAll(secondaries);
         }
 
         if (primary == null) {
             LOG.debug("No primary found: {}", members);
             unknownState = true;
+        } else {
+            hostsToCheck.add(primary);
         }
 
         Map<String, Timestamped<RevisionVector>> vectors = null;
-        Set<String> hostsToCheck = union(secondaries, of(primary));
         if (!unknownState) {
             vectors = getRootRevisions(hostsToCheck);
             if (vectors.containsValue(null)) {
