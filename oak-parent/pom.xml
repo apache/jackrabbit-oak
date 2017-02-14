@@ -38,6 +38,7 @@
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
     <skip.coverage>true</skip.coverage>
+    <minimum.coverage>0.0</minimum.coverage>
     <known.issues />
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
@@ -426,6 +427,27 @@
               <skip>${skip.coverage}</skip>
               <dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
               <outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>default-check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>${minimum.coverage}</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
             </configuration>
           </execution>
         </executions>

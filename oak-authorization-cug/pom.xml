@@ -24,6 +24,12 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
+  <properties>
+    <!-- enable execution of jacoco and set minimal line coverage -->
+    <skip.coverage>false</skip.coverage>
+    <minimum.coverage>0.96</minimum.coverage>
+  </properties>
+
   <artifactId>oak-authorization-cug</artifactId>
   <name>Oak CUG Authorization</name>
   <packaging>bundle</packaging>
