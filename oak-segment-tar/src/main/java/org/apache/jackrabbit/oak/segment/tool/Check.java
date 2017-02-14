@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
 
@@ -51,6 +52,8 @@ public class Check implements Runnable {
         private long debugInterval = Long.MAX_VALUE;
 
         private boolean checkBinaries;
+        
+        private Set<String> filterPaths;
 
         private boolean ioStatistics;
         
@@ -111,6 +114,19 @@ public class Check implements Runnable {
             this.checkBinaries = checkBinaries;
             return this;
         }
+        
+        /**
+         * Content paths to be checked. This parameter is not required and
+         * defaults to "/".
+         * 
+         * @param filterPaths
+         *            paths to be checked
+         * @return this builder.
+         */
+        public Builder withFilterPaths(Set<String> filterPaths) {
+            this.filterPaths = filterPaths;
+            return this;
+        }
 
         /**
          * Instruct the command to print statistics about I/O operations
@@ -168,6 +184,8 @@ public class Check implements Runnable {
     private final long debugInterval;
 
     private final boolean checkBinaries;
+    
+    private final Set<String> filterPaths;
 
     private final boolean ioStatistics;
     
@@ -180,6 +198,7 @@ public class Check implements Runnable {
         this.journal = builder.journal;
         this.debugInterval = builder.debugInterval;
         this.checkBinaries = builder.checkBinaries;
+        this.filterPaths = builder.filterPaths;
         this.ioStatistics = builder.ioStatistics;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
@@ -188,7 +207,7 @@ public class Check implements Runnable {
     @Override
     public void run() {
         try {
-            ConsistencyChecker.checkConsistency(path, journal, debugInterval, checkBinaries, ioStatistics, outWriter, errWriter);
+            ConsistencyChecker.checkConsistency(path, journal, debugInterval, checkBinaries, filterPaths, ioStatistics, outWriter, errWriter);
         } catch (Exception e) {
             e.printStackTrace();
         }

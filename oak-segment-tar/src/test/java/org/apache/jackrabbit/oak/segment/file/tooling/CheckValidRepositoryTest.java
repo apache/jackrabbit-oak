@@ -24,8 +24,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -77,18 +79,22 @@ public class CheckValidRepositoryTest {
     }
     
     @Test
-    public void testSuccessfulCheckWithBinaryTraversal() throws Exception {
+    public void testSuccessfulFullCheckWithBinaryTraversal() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
         
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
         
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/");
+        
         Check.builder()
         .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
         .withCheckBinaries(true)
+        .withFilterPaths(filterPaths)
         .withIOStatistics(true)
         .withOutWriter(outWriter)
         .withErrWriter(errWriter)
@@ -103,17 +109,56 @@ public class CheckValidRepositoryTest {
     }
     
     @Test
-    public void testSuccessfulCheckWithoutBinaryTraversal() throws Exception {
+    public void testSuccessfulOnlyRootKidsCheckWithBinaryTraversalAndFilterPaths() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
         
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
         
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/a");
+        filterPaths.add("/b");
+        filterPaths.add("/c");
+        filterPaths.add("/d");
+        filterPaths.add("/e");
+        filterPaths.add("/f");
+        
         Check.builder()
         .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
+        .withCheckBinaries(true)
+        .withFilterPaths(filterPaths)
+        .withIOStatistics(true)
+        .withOutWriter(outWriter)
+        .withErrWriter(errWriter)
+        .build()
+        .run();
+        
+        outWriter.close();
+        errWriter.close();
+        
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 6 nodes and 45 properties"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+    }
+    
+    @Test
+    public void testSuccessfulFullCheckWithoutBinaryTraversal() throws Exception {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+        
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+        
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/");
+        
+        Check.builder()
+        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+        .withJournal("journal.log")
+        .withDebugInterval(Long.MAX_VALUE)
+        .withFilterPaths(filterPaths)
         .withIOStatistics(true)
         .withOutWriter(outWriter)
         .withErrWriter(errWriter)
@@ -125,6 +170,101 @@ public class CheckValidRepositoryTest {
         
         assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 7 nodes and 15 properties"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+    }
+    
+    @Test
+    public void testSuccessfulPartialCheckWithoutBinaryTraversal() throws Exception {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+        
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+        
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/a");
+        filterPaths.add("/b");
+        filterPaths.add("/d");
+        filterPaths.add("/e");
+        
+        Check.builder()
+        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+        .withJournal("journal.log")
+        .withDebugInterval(Long.MAX_VALUE)
+        .withFilterPaths(filterPaths)
+        .withIOStatistics(true)
+        .withOutWriter(outWriter)
+        .withErrWriter(errWriter)
+        .build()
+        .run();
+        
+        outWriter.close();
+        errWriter.close();
+        
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 4 nodes and 10 properties"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+    }
+    
+    @Test
+    public void testUnsuccessfulPartialCheckWithoutBinaryTraversal() throws Exception {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+        
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+        
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/g");
+        
+        Check.builder()
+        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+        .withJournal("journal.log")
+        .withDebugInterval(Long.MAX_VALUE)
+        .withFilterPaths(filterPaths)
+        .withIOStatistics(true)
+        .withOutWriter(outWriter)
+        .withErrWriter(errWriter)
+        .build()
+        .run();
+        
+        outWriter.close();
+        errWriter.close();
+        
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Broken revision", "Checked 0 nodes and 0 properties", "No good revision found"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Invalid path: /g"));
+    }
+    
+    @Test
+    public void testUnsuccessfulPartialCheckWithBinaryTraversal() throws Exception {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+        
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+        
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/a");
+        filterPaths.add("/f");
+        filterPaths.add("/g");
+        filterPaths.add("/d");
+        filterPaths.add("/e");
+        
+        Check.builder()
+        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+        .withJournal("journal.log")
+        .withDebugInterval(Long.MAX_VALUE)
+        .withFilterPaths(filterPaths)
+        .withCheckBinaries(true)
+        .withIOStatistics(true)
+        .withOutWriter(outWriter)
+        .withErrWriter(errWriter)
+        .build()
+        .run();
+        
+        outWriter.close();
+        errWriter.close();
+        
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Broken revision", "Checked 2 nodes and 10 properties", "No good revision found"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Invalid path: /g"));
     }
     
     private static void assertExpectedOutput(String message, List<String> assertMessages) {
