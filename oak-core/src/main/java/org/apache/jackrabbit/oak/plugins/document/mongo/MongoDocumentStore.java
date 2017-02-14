@@ -646,14 +646,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     public <T extends Document> void remove(Collection<T> collection, String key) {
         log("remove", key);
         DBCollection dbCollection = getDBCollection(collection);
-        long start = PERFLOG.start();
+        Stopwatch watch = startWatch();
         try {
             dbCollection.remove(getByKeyQuery(key).get());
         } catch (Exception e) {
             throw DocumentStoreException.convert(e, "Remove failed for " + key);
         } finally {
             invalidateCache(collection, key);
-            PERFLOG.end(start, 1, "remove key={}", key);
+            stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, 1);
         }
     }
 
@@ -661,7 +661,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
         log("remove", keys);
         DBCollection dbCollection = getDBCollection(collection);
-        long start = PERFLOG.start();
+        Stopwatch watch = startWatch();
         try {
             for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
                 DBObject query = QueryBuilder.start(Document.ID).in(keyBatch).get();
@@ -678,7 +678,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 }
             }
         } finally {
-            PERFLOG.end(start, 1, "remove keys={}", keys);
+            stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, keys.size());
         }
     }
 
@@ -688,7 +688,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         log("remove", toRemove);
         int num = 0;
         DBCollection dbCollection = getDBCollection(collection);
-        long start = PERFLOG.start();
+        Stopwatch watch = startWatch();
         try {
             List<String> batchIds = Lists.newArrayList();
             List<DBObject> batch = Lists.newArrayList();
@@ -716,7 +716,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 }
             }
         } finally {
-            PERFLOG.end(start, 1, "remove keys={}", toRemove);
+            stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, num);
         }
         return num;
     }
@@ -728,7 +728,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         log("remove", collection, indexedProperty, startValue, endValue);
         int num = 0;
         DBCollection dbCollection = getDBCollection(collection);
-        long start = PERFLOG.start();
+        Stopwatch watch = startWatch();
         try {
             QueryBuilder queryBuilder = QueryBuilder.start(indexedProperty);
             queryBuilder.greaterThan(startValue);
@@ -749,7 +749,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 }
             }
         } finally {
-            PERFLOG.end(start, 1, "remove from {}: {} in ({}, {})", collection, indexedProperty, startValue, endValue);
+            stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, num);
         }
         return num;
     }

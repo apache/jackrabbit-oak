@@ -22,8 +22,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
@@ -33,6 +39,10 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.mockito.Matchers.anyInt;
@@ -141,6 +151,84 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         ds.findAndUpdate(Collection.NODES, up);
 
         verify(coll).doneFindAndModify(anyLong(), eq(Collection.NODES), eq(id), eq(false), eq(true), anyInt());
+    }
+
+    @Test
+    public void removeSingle() throws Exception {
+        String id = testName.getMethodName();
+
+        UpdateOp up = new UpdateOp(id, true);
+        ds.create(Collection.NODES, singletonList(up));
+        removeMe.add(id);
+
+        DocumentStoreStatsCollector coll = mock(DocumentStoreStatsCollector.class);
+        configureStatsCollector(coll);
+
+        ds.remove(Collection.NODES, id);
+
+        verify(coll).doneRemove(anyLong(), eq(Collection.NODES), eq(1));
+    }
+
+    @Test
+    public void removeMultiple() throws Exception {
+        List<String> ids = Lists.newArrayList();
+        for (int i = 0; i < 10; i++) {
+            String id = testName.getMethodName() + "-" + i;
+            ids.add(id);
+            UpdateOp up = new UpdateOp(id, true);
+            ds.create(Collection.NODES, singletonList(up));
+            removeMe.add(id);
+        }
+
+        DocumentStoreStatsCollector coll = mock(DocumentStoreStatsCollector.class);
+        configureStatsCollector(coll);
+
+        ds.remove(Collection.NODES, ids);
+
+        verify(coll).doneRemove(anyLong(), eq(Collection.NODES), eq(10));
+    }
+
+    @Test
+    public void removeConditional() throws Exception {
+        Revision r = Revision.newRevision(1);
+        Key modified = new Key(MODIFIED_IN_SECS, null);
+        Condition c = newEqualsCondition(getModifiedInSecs(r.getTimestamp()));
+        Map<String, Map<Key, Condition>> ids = Maps.newHashMap();
+        for (int i = 0; i < 10; i++) {
+            String id = testName.getMethodName() + "-" + i;
+            ids.put(id, singletonMap(modified, c));
+            UpdateOp up = new UpdateOp(id, true);
+            NodeDocument.setModified(up, r);
+            ds.create(Collection.NODES, singletonList(up));
+            removeMe.add(id);
+        }
+
+        DocumentStoreStatsCollector coll = mock(DocumentStoreStatsCollector.class);
+        configureStatsCollector(coll);
+
+        ds.remove(Collection.NODES, ids);
+
+        verify(coll).doneRemove(anyLong(), eq(Collection.NODES), eq(10));
+    }
+
+    @Test
+    public void removeIndexProperty() throws Exception {
+        Revision r = new Revision(123456, 0, 1);
+        long mod = NodeDocument.getModifiedInSecs(r.getTimestamp());
+        for (int i = 0; i < 10; i++) {
+            String id = testName.getMethodName() + "-" + i;
+            UpdateOp up = new UpdateOp(id, true);
+            NodeDocument.setModified(up, r);
+            ds.create(Collection.NODES, singletonList(up));
+            removeMe.add(id);
+        }
+
+        DocumentStoreStatsCollector coll = mock(DocumentStoreStatsCollector.class);
+        configureStatsCollector(coll);
+
+        ds.remove(Collection.NODES, MODIFIED_IN_SECS, mod - 1, mod + 1);
+
+        verify(coll).doneRemove(anyLong(), eq(Collection.NODES), eq(10));
     }
 
     private void configureStatsCollector(DocumentStoreStatsCollector stats) {

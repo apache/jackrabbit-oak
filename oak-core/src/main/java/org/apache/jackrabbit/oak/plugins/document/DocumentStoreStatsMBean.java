@@ -38,6 +38,8 @@ public interface DocumentStoreStatsMBean {
 
     long getNodesUpdateCount();
 
+    long getNodesRemoveCount();
+
     long getJournalCreateCount();
 
     long getJournalReadCount();
@@ -67,4 +69,6 @@ public interface DocumentStoreStatsMBean {
     CompositeData getUpdateNodesRetryHistory();
 
     CompositeData getUpdateNodesFailureHistory();
+
+    CompositeData getRemoveNodesHistory();
 }

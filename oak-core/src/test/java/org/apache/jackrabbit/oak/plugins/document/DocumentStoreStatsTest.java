@@ -130,6 +130,15 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
+    public void doneRemove() throws Exception {
+        stats.doneRemove(100, Collection.NODES, 42);
+        assertEquals(42, getMeter(DocumentStoreStats.NODES_REMOVE).getCount());
+
+        stats.doneRemove(100, Collection.NODES, 17);
+        assertEquals(59, getMeter(DocumentStoreStats.NODES_REMOVE).getCount());
+    }
+
+    @Test
     public void perfLog() throws Exception{
         String logName = DocumentStoreStats.class.getName() + ".perf";
         LogCustomizer customLogs = LogCustomizer.forLogger(logName)
