@@ -22,6 +22,8 @@ import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidF
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -43,6 +45,9 @@ class CheckCommand implements Command {
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
         OptionSpec<?> bin = parser.accepts("bin", "read the content of binary properties");
         OptionSpec<?> segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
+        ArgumentAcceptingOptionSpec<String> filter = parser.accepts(
+                "filter", "comma separated content paths to be checked")
+                .withRequiredArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("/");
         OptionSpec<?> ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
 
         OptionSet options = parser.parse(args);
@@ -57,17 +62,17 @@ class CheckCommand implements Command {
         File dir = isValidFileStoreOrFail(new File(options.nonOptionArguments().get(0).toString()));
         String journalFileName = journal.value(options);
         long debugLevel = notify.value(options);
-        
+        Set<String> filterPaths = new LinkedHashSet<String>(filter.values(options));
+
         if (options.has(deep)) {
             printUsage(parser, err, "The --deep option was deprecated! Please do not use it in the future!"
                     , "A deep scan of the content tree, traversing every node, will be performed by default.");
         }
         
-        
         if (options.has(segment)) {
             SegmentUtils.check(dir, journalFileName, debugLevel, options.has(bin));
         } else {
-            SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), options.has(ioStatistics), out, err);
+            SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), filterPaths, options.has(ioStatistics), out, err);
         }
     }
 

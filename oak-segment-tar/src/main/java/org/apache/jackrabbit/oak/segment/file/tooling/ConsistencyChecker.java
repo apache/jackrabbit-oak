@@ -98,7 +98,8 @@ public class ConsistencyChecker implements Closeable {
      * @param journalFileName  name of the journal file containing the revision history
      * @param debugInterval    number of seconds between printing progress information to
      *                         the console during the full traversal phase.
-     * @param checkBinaries    if {@code true} full content of binary properties will be scanned                        
+     * @param checkBinaries    if {@code true} full content of binary properties will be scanned
+     * @param filterPaths      collection of repository paths to be checked                         
      * @param ioStatistics     if {@code true} prints I/O statistics gathered while consistency 
      *                         check was performed
      * @param outWriter        text output stream writer
@@ -110,6 +111,7 @@ public class ConsistencyChecker implements Closeable {
             String journalFileName,
             long debugInterval,
             boolean checkBinaries,
+            Set<String> filterPaths,
             boolean ioStatistics,
             PrintWriter outWriter,
             PrintWriter errWriter
@@ -127,7 +129,7 @@ public class ConsistencyChecker implements Closeable {
                 try {
                     revisionCount++;
                     
-                    String corruptPath = checker.checkRevision(revision, corruptPaths, "/", checkBinaries);
+                    String corruptPath = checker.checkRevision(revision, corruptPaths, filterPaths, checkBinaries);
 
                     if (corruptPath == null) {
                         checker.print("Found latest good revision {0}", revision);
@@ -190,23 +192,22 @@ public class ConsistencyChecker implements Closeable {
 
 
     /**
-     * Checks the consistency of the supplied {@code path} at the given {@code revision}, 
+     * Checks the consistency of the supplied {@code paths} at the given {@code revision}, 
      * starting first with already known {@code corruptPaths}.
      * 
      * @param revision      revision to be checked
      * @param corruptPaths  already known corrupt paths from previous revisions
-     * @param path          initial path from which to start the consistency check, 
+     * @param paths         paths on which to run consistency check, 
      *                      provided there are no corrupt paths.
      * @param checkBinaries if {@code true} full content of binary properties will be scanned
      * @return              {@code null}, if the content tree rooted at path is consistent 
      *                      in this revision or the path of the first inconsistency otherwise.  
      */
-    public String checkRevision(String revision, Set<String> corruptPaths, String path, boolean checkBinaries) {
+    public String checkRevision(String revision, Set<String> corruptPaths, Set<String> paths, boolean checkBinaries) {
         print("Checking revision {0}", revision);
         String result = null;
         
         try {
-            print("Checking {0}", path);
             store.setRevision(revision);
             NodeState root = SegmentNodeStoreBuilders.builder(store).build().getRoot();
 
@@ -222,14 +223,23 @@ public class ConsistencyChecker implements Closeable {
             nodeCount = 0;
             propertyCount = 0;
 
-            NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, path);
-            result = checkNodeAndDescendants(wrapper.node, wrapper.path, checkBinaries);
-            print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
+            for (String path : paths) {
+                print("Checking {0}", path);
+                
+                NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, path);
+                result = checkNodeAndDescendants(wrapper.node, wrapper.path, checkBinaries);
+                
+                if (result != null) {
+                    break;
+                }
+            }
             
             return result;
         } catch (RuntimeException e) {
             printError("Error while traversing {0}: {1}", revision, e.getMessage());
-            return path;
+            return "/";
+        } finally {
+            print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
         }
     }
     
@@ -313,7 +323,11 @@ public class ConsistencyChecker implements Closeable {
             String name = getName(path);
             NodeState parent = getNode(root, parentPath);
             
-            if (!denotesRoot(path) && parent.hasChildNode(name)) {
+            if (!denotesRoot(path)) {
+                if (!parent.hasChildNode(name)) {
+                    throw new IllegalArgumentException("Invalid path: " + path);
+                }
+                
                 return new NodeWrapper(parent.getChildNode(name), path);
             } else {
                 return new NodeWrapper(parent, parentPath);

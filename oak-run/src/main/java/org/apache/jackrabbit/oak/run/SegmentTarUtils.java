@@ -28,8 +28,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
-import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -51,6 +51,8 @@ import org.apache.jackrabbit.oak.segment.tool.Restore;
 import org.apache.jackrabbit.oak.segment.tool.Revisions;
 import org.apache.jackrabbit.oak.segment.tool.SegmentGraph;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import com.google.common.io.Closer;
 
 final class SegmentTarUtils {
 
@@ -185,13 +187,14 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, boolean ioStatistics, 
+    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, Set<String> filterPaths, boolean ioStatistics, 
             PrintWriter outWriter, PrintWriter errWriter) {
         Check.builder()
                 .withPath(dir)
                 .withJournal(journalFileName)
                 .withDebugInterval(debugLevel)
                 .withCheckBinaries(checkBinaries)
+                .withFilterPaths(filterPaths)
                 .withIOStatistics(ioStatistics)
                 .withOutWriter(outWriter)
                 .withErrWriter(errWriter)
