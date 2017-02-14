@@ -233,7 +233,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         } else {
             Authorizable a = userManager.getAuthorizable(parent);
             if (a == null) {
-                log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
+                log.debug("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent an Authorizable.");
                 return false;
             }
 
@@ -618,7 +618,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 } else {
                     handleFailure("New member of " + gr + ": No such authorizable (NodeID = " + memberContentId + ')');
                     if (importBehavior == ImportBehavior.BESTEFFORT) {
-                        log.info("ImportBehavior.BESTEFFORT: Remember non-existing member for processing.");
+                        log.debug("ImportBehavior.BESTEFFORT: Remember non-existing member for processing.");
                         /* since we ignore the set of failed ids later on and
                            don't know the real memberId => use fake memberId as
                            value in the map */
@@ -644,7 +644,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
             // handling non-existing members in case of best-effort
             if (!nonExisting.isEmpty()) {
-                log.info("ImportBehavior.BESTEFFORT: Found " + nonExisting.size() + " entries of rep:members pointing to non-existing authorizables. Adding to rep:members.");
+                log.debug("ImportBehavior.BESTEFFORT: Found " + nonExisting.size() + " entries of rep:members pointing to non-existing authorizables. Adding to rep:members.");
                 Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
@@ -716,7 +716,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                     handleFailure("Failed to grant impersonation for " + principalName + " on " + a);
                     if (importBehavior == ImportBehavior.BESTEFFORT &&
                             getPrincipalManager().getPrincipal(principalName) == null) {
-                        log.info("ImportBehavior.BESTEFFORT: Remember non-existing impersonator for special processing.");
+                        log.debug("ImportBehavior.BESTEFFORT: Remember non-existing impersonator for special processing.");
                         nonExisting.add(principalName);
                     }
                 }
