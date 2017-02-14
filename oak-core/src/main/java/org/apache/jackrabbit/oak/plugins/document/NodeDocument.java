@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1643,8 +1644,34 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 }
             };
         } else {
-            changes = mergeSorted(transform(copyOf(ranges), rangeToChanges),
-                    ValueComparator.REVERSE);
+            changes = new Iterable<Entry<Revision, String>>() {
+                private List<Range> rangeList = copyOf(ranges);
+                private Iterable<Iterable<Entry<Revision, String>>> changesPerRange
+                        = transform(rangeList, rangeToChanges);
+                @Override
+                public Iterator<Entry<Revision, String>> iterator() {
+                    final Iterator<Iterable<Entry<Revision, String>>> it
+                            = checkNotNull(changesPerRange.iterator());
+                    return new MergeSortedIterators<Entry<Revision, String>>(ValueComparator.REVERSE) {
+                        @Override
+                        public Iterator<Entry<Revision, String>> nextIterator() {
+                            while (it.hasNext()) {
+                                Iterator<Entry<Revision, String>> next = it.next().iterator();
+                                // check if this even has elements
+                                if (next.hasNext()) {
+                                    return next;
+                                }
+                            }
+                            return null;
+                        }
+
+                        @Override
+                        public String description() {
+                            return "Ranges to merge sort: " + rangeList;
+                        }
+                    };
+                }
+            };
         }
         return filter(changes, new Predicate<Entry<Revision, String>>() {
             @Override
