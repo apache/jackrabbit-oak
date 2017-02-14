@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
@@ -55,11 +57,13 @@ import static org.junit.Assume.assumeTrue;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Atomics;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -71,6 +75,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -598,6 +603,92 @@ public class VersionGarbageCollectorIT {
         // foo must now reflect state after GC
         foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotEquals(modCount, foo.getModCount());
+    }
+
+    @Ignore("OAK-5605")
+    @Test
+    public void cancelGCBeforeFirstPhase() throws Exception {
+        createTestNode("foo");
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo").child("bar");
+        merge(store, builder);
+
+        builder = store.getRoot().builder();
+        builder.child("foo").remove();
+        merge(store, builder);
+        store.runBackgroundOperations();
+
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
+
+        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        VersionGCSupport gcSupport = new VersionGCSupport(store.getDocumentStore()) {
+            @Override
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(long lastModifiedTime) {
+                // cancel as soon as it runs
+                gcRef.get().cancel();
+                return super.getPossiblyDeletedDocs(lastModifiedTime);
+            }
+        };
+        gcRef.set(new VersionGarbageCollector(store, gcSupport));
+        VersionGCStats stats = gcRef.get().gc(30, TimeUnit.MINUTES);
+        assertTrue(stats.canceled);
+        assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedLeafDocGCCount);
+        assertEquals(0, stats.intermediateSplitDocGCCount);
+        assertEquals(0, stats.splitDocGCCount);
+    }
+
+    @Ignore("OAK-5605")
+    @Test
+    public void cancelGCAfterFirstPhase() throws Exception {
+        createTestNode("foo");
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo").child("bar");
+        merge(store, builder);
+
+        builder = store.getRoot().builder();
+        builder.child("foo").remove();
+        merge(store, builder);
+        store.runBackgroundOperations();
+
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
+
+        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        VersionGCSupport gcSupport = new VersionGCSupport(store.getDocumentStore()) {
+            @Override
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
+                return new Iterable<NodeDocument>() {
+                    @Override
+                    public Iterator<NodeDocument> iterator() {
+                        return new AbstractIterator<NodeDocument>() {
+                            private Iterator<NodeDocument> it = candidates(lastModifiedTime);
+                            @Override
+                            protected NodeDocument computeNext() {
+                                if (it.hasNext()) {
+                                    return it.next();
+                                }
+                                // cancel when we reach the end
+                                gcRef.get().cancel();
+                                return endOfData();
+                            }
+                        };
+                    }
+                };
+            }
+
+            private Iterator<NodeDocument> candidates(long lastModifiedTime) {
+                return super.getPossiblyDeletedDocs(lastModifiedTime).iterator();
+            }
+        };
+        gcRef.set(new VersionGarbageCollector(store, gcSupport));
+        VersionGCStats stats = gcRef.get().gc(30, TimeUnit.MINUTES);
+        assertTrue(stats.canceled);
+        assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedLeafDocGCCount);
+        assertEquals(0, stats.intermediateSplitDocGCCount);
+        assertEquals(0, stats.splitDocGCCount);
     }
 
     private void createTestNode(String name) throws CommitFailedException {
