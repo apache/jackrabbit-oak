@@ -85,11 +85,8 @@ public class BundlingConfigHandler implements Observer, Closeable {
     }
 
     @Override
-    public void close() throws IOException{
-        if (backgroundObserver != null){
-            observerRegistration.close();
-            backgroundObserver.close();
-        }
+    public void close() throws IOException {
+        unregisterObserver();
     }
 
     public BackgroundObserverMBean getMBean(){
@@ -113,6 +110,16 @@ public class BundlingConfigHandler implements Observer, Closeable {
     private void registerObserver(Observable observable, Executor executor) {
         backgroundObserver = new BackgroundObserver(this, executor, 5);
         observerRegistration = observable.addObserver(backgroundObserver);
+    }
+
+    public void unregisterObserver() throws IOException {
+        if (backgroundObserver != null) {
+            observerRegistration.close();
+            backgroundObserver.close();
+
+            observerRegistration = null;
+            backgroundObserver = null;
+        }
     }
 
 }
