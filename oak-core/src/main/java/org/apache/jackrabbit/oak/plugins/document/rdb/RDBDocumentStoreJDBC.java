@@ -616,7 +616,7 @@ public class RDBDocumentStoreJDBC {
     @CheckForNull
     public RDBRow read(Connection connection, RDBTableMetaData tmd, String id, long lastmodcount, long lastmodified) throws SQLException {
 
-        boolean useCaseStatement = lastmodcount != -1 && lastmodified >= 1 && this.dbInfo.allowsCaseInSelect();
+        boolean useCaseStatement = lastmodcount != -1 && lastmodified >= 1;
         StringBuffer sql = new StringBuffer();
         sql.append("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, ");
         if (useCaseStatement) {
