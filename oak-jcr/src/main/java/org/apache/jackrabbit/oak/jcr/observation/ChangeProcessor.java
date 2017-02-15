@@ -58,8 +58,9 @@ import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
-import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.stats.TimeSeriesMax;
@@ -89,6 +90,18 @@ class ChangeProcessor implements Observer {
      * kicks in.
      */
     public static final int MAX_DELAY = 10000;
+
+    //It'd would have been more useful to have following 2 properties as instance variables
+    //which got set by tests. But, the tests won't get a handle to the actual instance, so
+    //static-members it is.
+    /**
+     * Number of milliseconds to wait before issuing consecutive queue full warn messages
+     * Controlled by command line property "oak.observation.full-queue.warn.interval".
+     * Note, the command line parameter is wait interval in minutes.
+     */
+    static long QUEUE_FULL_WARN_INTERVAL = TimeUnit.MINUTES.toMillis(Integer
+            .getInteger("oak.observation.full-queue.warn.interval", 30));
+    static Clock clock = Clock.SIMPLE;
 
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
@@ -199,6 +212,8 @@ class ChangeProcessor implements Observer {
             private volatile long delay;
             private volatile boolean blocking;
 
+            private long lastQueueFullWarnTimestamp = -1;
+
             @Override
             protected void added(int queueSize) {
                 maxQueueLength.recordValue(queueSize);
@@ -207,11 +222,11 @@ class ChangeProcessor implements Observer {
                 if (queueSize == queueLength) {
                     if (commitRateLimiter != null) {
                         if (!blocking) {
-                            LOG.warn("Revision queue is full. Further commits will be blocked.");
+                            logQueueFullWarning("Revision queue is full. Further commits will be blocked.");
                         }
                         commitRateLimiter.blockCommits();
                     } else if (!blocking) {
-                        LOG.warn("Revision queue is full. Further revisions will be compacted.");
+                        logQueueFullWarning("Revision queue is full. Further revisions will be compacted.");
                     }
                     blocking = true;
                 } else {
@@ -243,8 +258,22 @@ class ChangeProcessor implements Observer {
                                 commitRateLimiter.unblockCommits();
                                 blocking = false;
                             }
+                        } else {
+                            blocking = false;
                         }
                     }
+                }
+            }
+
+            private void logQueueFullWarning(String message) {
+                long currTime = clock.getTime();
+                if (lastQueueFullWarnTimestamp + QUEUE_FULL_WARN_INTERVAL < currTime) {
+                    LOG.warn("{} Suppressing further such cases for {} minutes.",
+                            message,
+                            TimeUnit.MILLISECONDS.toMinutes(QUEUE_FULL_WARN_INTERVAL));
+                    lastQueueFullWarnTimestamp = currTime;
+                } else {
+                    LOG.debug(message);
                 }
             }
         };
