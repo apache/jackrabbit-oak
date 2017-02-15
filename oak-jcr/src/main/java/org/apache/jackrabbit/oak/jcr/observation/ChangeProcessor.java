@@ -124,7 +124,7 @@ class ChangeProcessor implements FilteringAwareObserver {
      * Note, the command line parameter is wait interval in minutes.
      */
     static long QUEUE_FULL_WARN_INTERVAL = TimeUnit.MINUTES.toMillis(Integer
-            .getInteger("oak.observation.full-queue.warn.interval", 10));
+            .getInteger("oak.observation.full-queue.warn.interval", 30));
     static Clock clock = Clock.SIMPLE;
 
     // OAK-4533: make DELAY_THRESHOLD and MAX_DELAY adjustable - using System.properties for now
@@ -371,9 +371,9 @@ class ChangeProcessor implements FilteringAwareObserver {
             private void logQueueFullWarning(String message) {
                 long currTime = clock.getTime();
                 if (lastQueueFullWarnTimestamp + QUEUE_FULL_WARN_INTERVAL < currTime) {
-                    LOG.warn("{} Suppressing further such cases for {} seconds.",
+                    LOG.warn("{} Suppressing further such cases for {} minutes.",
                             message,
-                            TimeUnit.MILLISECONDS.toSeconds(QUEUE_FULL_WARN_INTERVAL));
+                            TimeUnit.MILLISECONDS.toMinutes(QUEUE_FULL_WARN_INTERVAL));
                     lastQueueFullWarnTimestamp = currTime;
                 } else {
                     LOG.debug(message);
