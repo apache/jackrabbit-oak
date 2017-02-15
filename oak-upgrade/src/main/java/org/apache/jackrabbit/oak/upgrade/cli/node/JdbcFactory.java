@@ -57,7 +57,7 @@ public class JdbcFactory implements NodeStoreFactory {
     }
 
     @Override
-    public NodeStore create(BlobStore blobStore, Closer closer) {
+    public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
         DocumentMK.Builder builder = MongoFactory.getBuilder(cacheSize);
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
@@ -69,6 +69,10 @@ public class JdbcFactory implements NodeStoreFactory {
         log.info("Initialized DocumentNodeStore on RDB with Cache size : {} MB, Fast migration : {}", cacheSize,
                 builder.isDisableBranches());
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
+
+        // TODO probably we should disable all observers, see OAK-5651
+        documentNodeStore.getBundlingConfigHandler().unregisterObserver();
+
         closer.register(MongoFactory.asCloseable(documentNodeStore));
         return documentNodeStore;
     }
