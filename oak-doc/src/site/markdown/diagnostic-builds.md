@@ -22,7 +22,7 @@ deliver one or more oak bundles, let's say `oak-core` into a specific
 environment in order to assess whether it actually solves the issues.
 
 What you are aiming is to eventually produce a bundle in the format
-of, for example, `oak-core-1.0.22-r1707077`.
+of, for example, `oak-core-1.0.22-R2707077`.
 
 Let's see it through an example.
 
@@ -53,10 +53,15 @@ you will see something like
 what you're interested is the revision number. In our case: `1708581`.
 
 This means you'll produce a bundle with a version of
-`1.0.22-r1708581`.
+`1.0.22-R2708581`.
 
 **Note that the produced version is lower then the official release
   you're working on. 1.0.22 vs 1.0.23**
+  
+**Note to use the '-R' (uppercase) instead of '-r' (lowercase) as it
+  will be lower than '-SNAPSHOT'. Doing otherwise will result in
+  troubles when trying to apply a '-SNAPSHOT' version on top of the
+  internal build**
 
 If you're in doubt about what versioning and how OSGi or Maven will
 behave have a look at the
@@ -66,12 +71,12 @@ fix is going to be released.
 
 ## Changing the version in all the poms.
 
-Now that you know you want to produce `1.0.22-r1708581` you have to
+Now that you know you want to produce `1.0.22-R2708581` you have to
 change all the poms accordingly.
 
 Go into `oak-parent` and issue the following maven command.
 
-    oak-parent$ mvn versions:set -DnewVersion=1.0.22-r1708581
+    oak-parent$ mvn versions:set -DnewVersion=1.0.22-R2708581
 
 you may encounter the following exception. Simply ignore it. Nothing
 went wrong.
@@ -85,7 +90,7 @@ Now you can build the release as usual
     jackrabbit-oak$ mvn clean install
 
 and you'll have a full oak build with the version
-`1.0.22-r1708581`. Go into `oak-core/target` and take the produced
+`1.0.22-R2708581`. Go into `oak-core/target` and take the produced
 jar.
 
 ## Re-setting the svn branch
