@@ -146,8 +146,16 @@ public class IndexNode {
             lock.readLock().unlock();
             return false;
         } else {
-            refreshPolicy.refreshOnReadIfRequired(refreshCallback);
-            return true;
+            boolean success = false;
+            try {
+                refreshPolicy.refreshOnReadIfRequired(refreshCallback);
+                success = true;
+                return true;
+            } finally {
+                if (!success) {
+                    lock.readLock().unlock();
+                }
+            }
         }
     }
 

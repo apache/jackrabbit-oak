@@ -21,9 +21,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ReaderRefreshPolicy;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -43,7 +47,12 @@ import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 public class IndexNodeTest {
     @Rule
@@ -98,10 +107,42 @@ public class IndexNodeTest {
         assertNull(IndexNode.open("/foo", rootBuilder.getNodeState(), builder.getNodeState(), readerFactory, nrtFactory));
     }
 
+    @Test
+    public void lockAndRefreshPolicy() throws Exception {
+        NodeState state = createNRTIndex();
+        IndexDefinition definition = new IndexDefinition(root, state, "/foo");
+        NRTIndex nrtIndex = nrtFactory.createIndex(definition);
+        NRTIndex mock = spy(nrtIndex);
+        doReturn(new FailingPolicy()).when(mock).getRefreshPolicy();
+        IndexNode node = new IndexNode("/foo", definition, Collections.<LuceneIndexReader>emptyList(), mock);
+
+        try {
+            node.acquire();
+            fail();
+        } catch (Exception ignore) {
+
+        }
+
+        node.close();
+    }
+
     private static NodeState createNRTIndex(){
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "sync");
         return idx.build();
+    }
+
+    private static class FailingPolicy implements ReaderRefreshPolicy {
+
+        @Override
+        public void refreshOnReadIfRequired(Runnable refreshCallback) {
+            throw new IllegalStateException();
+        }
+
+        @Override
+        public void refreshOnWriteIfRequired(Runnable refreshCallback) {
+            throw new IllegalStateException();
+        }
     }
 }
