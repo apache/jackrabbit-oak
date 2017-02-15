@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +90,7 @@ public class MigrationOptions {
 
     private final Boolean srcExternalBlobs;
 
-    public MigrationOptions(MigrationCliArguments args) {
+    public MigrationOptions(MigrationCliArguments args) throws CliArgumentException {
         this.disableMmap = args.hasOption(OptionParserFactory.DISABLE_MMAP);
         this.copyBinaries = args.hasOption(OptionParserFactory.COPY_BINARIES);
         if (args.hasOption(OptionParserFactory.CACHE_SIZE)) {
@@ -110,9 +111,9 @@ public class MigrationOptions {
         } else {
             this.copyOrphanedVersions = epoch;
         }
-        this.includePaths = args.getOptionList(OptionParserFactory.INCLUDE_PATHS);
-        this.excludePaths = args.getOptionList(OptionParserFactory.EXCLUDE_PATHS);
-        this.mergePaths = args.getOptionList(OptionParserFactory.MERGE_PATHS);
+        this.includePaths = checkPaths(args.getOptionList(OptionParserFactory.INCLUDE_PATHS));
+        this.excludePaths = checkPaths(args.getOptionList(OptionParserFactory.EXCLUDE_PATHS));
+        this.mergePaths = checkPaths(args.getOptionList(OptionParserFactory.MERGE_PATHS));
         this.includeIndex = args.hasOption(OptionParserFactory.INCLUDE_INDEX);
         this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
         this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
@@ -367,6 +368,18 @@ public class MigrationOptions {
 
     public Boolean getSrcExternalBlobs() {
         return srcExternalBlobs;
+    }
+
+    private static String[] checkPaths(String[] paths) throws CliArgumentException {
+        if (paths == null) {
+            return paths;
+        }
+        for (String p : paths) {
+            if (!PathUtils.isValid(p)) {
+                throw new CliArgumentException("Following path is not valid: " + p, 1);
+            }
+        }
+        return paths;
     }
 
 }
