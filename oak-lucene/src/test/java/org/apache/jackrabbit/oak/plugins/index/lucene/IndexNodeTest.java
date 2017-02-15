@@ -39,7 +39,6 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -108,7 +107,6 @@ public class IndexNodeTest {
         assertNull(IndexNode.open("/foo", rootBuilder.getNodeState(), builder.getNodeState(), readerFactory, nrtFactory));
     }
 
-    @Ignore("OAK-5649")
     @Test
     public void lockAndRefreshPolicy() throws Exception {
         NodeState state = createNRTIndex();
