@@ -25,7 +25,7 @@ import static com.google.common.base.Throwables.propagate;
 import static com.google.common.base.Throwables.propagateIfInstanceOf;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.DAYS;
-import static org.apache.jackrabbit.oak.segment.file.JournalUtil.findPersistedRecordId;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
 
 import java.io.Closeable;
 import java.io.File;

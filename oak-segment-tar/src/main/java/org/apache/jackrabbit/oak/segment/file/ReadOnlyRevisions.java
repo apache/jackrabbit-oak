@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.segment.file.JournalUtil.findPersistedRecordId;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
 
 import java.io.Closeable;
 import java.io.File;
