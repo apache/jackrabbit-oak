@@ -19,17 +19,20 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class JournalUtil {
+class FileStoreUtil {
 
-    private static final Logger log = LoggerFactory.getLogger(JournalUtil.class);
+    private static final Logger log = LoggerFactory.getLogger(FileStoreUtil.class);
 
-    private JournalUtil() {
+    private FileStoreUtil() {
         // Prevent instantiation
     }
 
@@ -56,6 +59,50 @@ class JournalUtil {
                 } catch (IllegalArgumentException ignore) {
                     log.warn("Skipping invalid record id {}", entry);
                 }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if a segment is contained in one of the provided TAR files.
+     *
+     * @param readers A list of {@link TarReader} instances.
+     * @param id      An instance of {@link SegmentId}.
+     * @return {@code true} if the segment is contained in at least one of the
+     * provided TAR files, {@code false} otherwise.
+     */
+    static boolean containSegment(List<TarReader> readers, SegmentId id) {
+        for (TarReader reader : readers) {
+            if (reader.containsEntry(id.getMostSignificantBits(), id.getLeastSignificantBits())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Read the entry corresponding to a segment from one of the provided TAR
+     * files.
+     *
+     * @param readers A list of {@link TarReader} instances.
+     * @param id      An instance of {@link SegmentId}.
+     * @return An instance of {@link ByteBuffer} if the entry for the segment
+     * could be found, {@code null} otherwise.
+     */
+    static ByteBuffer readEntry(List<TarReader> readers, SegmentId id) {
+        for (TarReader reader : readers) {
+            if (reader.isClosed()) {
+                log.debug("Skipping closed tar file {}", reader);
+                continue;
+            }
+            try {
+                ByteBuffer buffer = reader.readEntry(id.getMostSignificantBits(), id.getLeastSignificantBits());
+                if (buffer != null) {
+                    return buffer;
+                }
+            } catch (IOException e) {
+                log.warn("Failed to read from tar file {}", reader, e);
             }
         }
         return null;

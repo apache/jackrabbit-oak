@@ -159,14 +159,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     @Override
     public boolean containsSegment(SegmentId id) {
-        long msb = id.getMostSignificantBits();
-        long lsb = id.getLeastSignificantBits();
-        for (TarReader reader : readers) {
-            if (reader.containsEntry(msb, lsb)) {
-                return true;
-            }
-        }
-        return false;
+        return FileStoreUtil.containSegment(readers, id);
     }
 
     @Override
@@ -176,20 +169,11 @@ public class ReadOnlyFileStore extends AbstractFileStore {
             return segmentCache.getSegment(id, new Callable<Segment>() {
                 @Override
                 public Segment call() throws Exception {
-                    long msb = id.getMostSignificantBits();
-                    long lsb = id.getLeastSignificantBits();
-
-                    for (TarReader reader : readers) {
-                        try {
-                            ByteBuffer buffer = reader.readEntry(msb, lsb);
-                            if (buffer != null) {
-                                return new Segment(ReadOnlyFileStore.this, segmentReader, id, buffer);
-                            }
-                        } catch (IOException e) {
-                            log.warn("Failed to read from tar file {}", reader, e);
-                        }
+                    ByteBuffer buffer = FileStoreUtil.readEntry(readers, id);
+                    if (buffer == null) {
+                        throw new SegmentNotFoundException(id);
                     }
-                    throw new SegmentNotFoundException(id);
+                    return new Segment(ReadOnlyFileStore.this, segmentReader, id, buffer);
                 }
             });
         } catch (ExecutionException e) {
