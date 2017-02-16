@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.segment.file.JournalUtil.findPersistedRecordId;
 
 import java.io.Closeable;
 import java.io.File;
@@ -29,13 +30,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Function;
 
 public class ReadOnlyRevisions implements Revisions, Closeable {
 
@@ -69,34 +69,14 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
      * @throws IOException
      */
     synchronized void bind(@Nonnull SegmentStore store) throws IOException {
-        if (head.get() == null) {
-            RecordId persistedId = null;
-            try (JournalReader journalReader = new JournalReader(new File(
-                    directory, JOURNAL_FILE_NAME))) {
-                while (persistedId == null && journalReader.hasNext()) {
-                    String entry = journalReader.next();
-                    try {
-                        RecordId id = RecordId.fromString(store, entry);
-                        if (store.containsSegment(id.getSegmentId())) {
-                            persistedId = id;
-                        } else {
-                            LOG.warn(
-                                    "Unable to access revision {}, rewinding...",
-                                    id);
-                        }
-                    } catch (IllegalArgumentException ignore) {
-                        LOG.warn("Skipping invalid record id {}", entry);
-                    }
-                }
-            }
-
-            if (persistedId == null) {
-                throw new IllegalStateException(
-                        "Cannot start readonly store from empty journal");
-            } else {
-                head.set(persistedId);
-            }
+        if (head.get() != null) {
+            return;
         }
+        RecordId persistedId = findPersistedRecordId(store, new File(directory, JOURNAL_FILE_NAME));
+        if (persistedId == null) {
+            throw new IllegalStateException("Cannot start readonly store from empty journal");
+        }
+        head.set(persistedId);
     }
 
     private void checkBound() {
