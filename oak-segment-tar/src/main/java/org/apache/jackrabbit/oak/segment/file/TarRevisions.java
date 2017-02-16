@@ -25,6 +25,7 @@ import static com.google.common.base.Throwables.propagate;
 import static com.google.common.base.Throwables.propagateIfInstanceOf;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.DAYS;
+import static org.apache.jackrabbit.oak.segment.file.JournalUtil.findPersistedRecordId;
 
 import java.io.Closeable;
 import java.io.File;
@@ -157,33 +158,16 @@ public class TarRevisions implements Revisions, Closeable {
      * @param writeInitialNode   provider for the initial node in case the journal is empty.
      * @throws IOException
      */
-    synchronized void bind(@Nonnull SegmentStore store,
-                           @Nonnull Supplier<RecordId> writeInitialNode)
-    throws IOException {
-        if (head.get() == null) {
-            RecordId persistedId = null;
-            try (JournalReader journalReader = new JournalReader(new File(directory, JOURNAL_FILE_NAME))) {
-                while (persistedId == null && journalReader.hasNext()) {
-                    String entry = journalReader.next();
-                    try {
-                        RecordId id = RecordId.fromString(store, entry);
-                        if (store.containsSegment(id.getSegmentId())) {
-                            persistedId = id;
-                        } else {
-                            LOG.warn("Unable to access revision {}, rewinding...", id);
-                        }
-                    } catch (IllegalArgumentException ignore) {
-                        LOG.warn("Skipping invalid record id {}", entry);
-                    }
-                }
-            }
-
-            if (persistedId == null) {
-                head.set(writeInitialNode.get());
-            } else {
-                persistedHead.set(persistedId);
-                head.set(persistedId);
-            }
+    synchronized void bind(@Nonnull SegmentStore store, @Nonnull Supplier<RecordId> writeInitialNode) throws IOException {
+        if (head.get() != null) {
+            return;
+        }
+        RecordId persistedId = findPersistedRecordId(store, new File(directory, JOURNAL_FILE_NAME));
+        if (persistedId == null) {
+            head.set(writeInitialNode.get());
+        } else {
+            persistedHead.set(persistedId);
+            head.set(persistedId);
         }
     }
 
