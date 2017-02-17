@@ -424,6 +424,7 @@ public class VersionGarbageCollector {
 
         void removeLeafDocuments(VersionGCStats stats) throws IOException {
             int removeCount = removeDeletedDocuments(getLeafDocIdsToDelete(), "(leaf)");
+            leafDocIdsToDelete.clear();
             stats.deletedLeafDocGCCount += removeCount;
             stats.deletedDocGCCount += removeCount;
         }
