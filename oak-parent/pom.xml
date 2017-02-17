@@ -604,6 +604,11 @@
         <artifactId>tomcat-jdbc</artifactId>
         <version>7.0.73</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>org.apache.felix.jaas</artifactId>
+        <version>1.0.2</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
