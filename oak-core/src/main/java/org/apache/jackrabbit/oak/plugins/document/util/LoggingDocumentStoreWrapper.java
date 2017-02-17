@@ -430,10 +430,10 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
     }
 
     @Override
-    public void updateAccessedRevision(RevisionVector revision) {
+    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
         logMethod("updateAccessedRevision", revision);
         if (store instanceof RevisionListener) {
-            ((RevisionListener) store).updateAccessedRevision(revision);
+            ((RevisionListener) store).updateAccessedRevision(revision, currentClusterId);
         }
     }
 }
