@@ -670,6 +670,8 @@ Points to note
     * If the factory requires to load a file e.g. stop words from some file then
       file content can be provided via creating child `nt:file` node of the
       filename
+    * The property value MUST be of type `String`. No other JCR type should be used
+      for them like array or integer etc
 3. The analyzer-chain processes text from nodes as well text passed in query. So,
    do take care that any mapping configuration (e.g. synonym mappings) factor in
    the chain of analyzers.
@@ -683,9 +685,20 @@ Points to note
 4. Precedence: Specifying analyzer class directly has precedence over analyzer configuration
    by composition. If you want to configure analyzers by composition then analyzer class
    MUST NOT not be specified. In-build analyzer has least precedence and comes into play only
-   if no custom analyzer has been configured. Similary, setting `indexOriginalTerm` on
+   if no custom analyzer has been configured. Similarly, setting `indexOriginalTerm` on
    analyzers node to modify behavior of in-built analyzer also works only when no custom
    analyzer has been configured.
+5. To determine list of supported factories have a look at Lucene javadocs for 
+    * [TokenizerFactory](https://lucene.apache.org/core/4_7_1/analyzers-common/org/apache/lucene/analysis/util/TokenizerFactory.html)
+    * [CharFilterFactory](https://lucene.apache.org/core/4_7_1/analyzers-common/org/apache/lucene/analysis/util/CharFilterFactory.html)
+    * [FilterFactory](https://lucene.apache.org/core/4_7_1/analyzers-common/org/apache/lucene/analysis/util/TokenFilterFactory.html)
+6. Oak support for composing analyzer is based on Lucene. So some helpful docs around this
+    * https://cwiki.apache.org/confluence/display/solr/Understanding+Analyzers%2C+Tokenizers%2C+and+Filters
+    * https://cwiki.apache.org/confluence/display/solr/CharFilterFactories
+    * https://wiki.apache.org/solr/AnalyzersTokenizersTokenFilters#Specifying_an_Analyzer_in_the_schema
+    
+Note that currently only one analyzer can be configured per index. Its not possible to specify separate
+analyzer for query and index time currently. 
 
 <a name="codec"></a>
 #### Codec
