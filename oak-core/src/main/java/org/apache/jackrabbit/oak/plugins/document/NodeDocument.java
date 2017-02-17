@@ -1048,7 +1048,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         }
 
         if (store instanceof RevisionListener) {
-            ((RevisionListener) store).updateAccessedRevision(lastRevision);
+            ((RevisionListener) store).updateAccessedRevision(lastRevision, nodeStore.getClusterId());
         }
 
         return new DocumentNodeState(nodeStore, path, readRevision, props, hasChildren(), lastRevision);

@@ -149,7 +149,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private RevisionVector mostRecentAccessedRevisions;
 
-    final LocalChanges localChanges;
+    LocalChanges localChanges;
 
     private final long maxReplicationLagMillis;
 
@@ -249,11 +249,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             localChanges = null;
         } else {
             replicaInfo = new ReplicaSetInfo(clock, db, builder.getMongoUri(), estimationPullFrequencyMS, maxReplicationLagMillis, builder.getExecutor());
-            Thread replicaInfoThread = new Thread(replicaInfo, "MongoDocumentStore replica set info provider (" + builder.getClusterId() + ")");
+            Thread replicaInfoThread = new Thread(replicaInfo, "MongoDocumentStore replica set info provider");
             replicaInfoThread.setDaemon(true);
             replicaInfoThread.start();
-            localChanges = new LocalChanges(builder.getClusterId());
-            replicaInfo.addListener(localChanges);
         }
 
         // indexes:
@@ -1325,12 +1323,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                         NodeDocument cachedDoc = nodesCache.getIfPresent(parentId);
                         secondarySafe = cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit);
                     }
-                } else {
+                } else if (localChanges != null) {
                     secondarySafe = true;
                     secondarySafe &= collection == Collection.NODES;
                     secondarySafe &= documentId == null || !localChanges.mayContain(documentId);
                     secondarySafe &= parentId == null || !localChanges.mayContainChildrenOf(parentId);
                     secondarySafe &= mostRecentAccessedRevisions == null || replicaInfo.isMoreRecentThan(mostRecentAccessedRevisions);
+                } else { // localChanges not initialized yet
+                    secondarySafe = false;
                 }
 
                 ReadPreference readPreference;
@@ -1666,7 +1666,12 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     @Override
-    public synchronized void updateAccessedRevision(RevisionVector revisions) {
+    public synchronized void updateAccessedRevision(RevisionVector revisions, int clusterId) {
+        if (localChanges == null && replicaInfo != null) {
+            localChanges = new LocalChanges(clusterId);
+            replicaInfo.addListener(localChanges);
+        }
+
         RevisionVector previousValue = mostRecentAccessedRevisions;
         if (mostRecentAccessedRevisions == null) {
             mostRecentAccessedRevisions = revisions;

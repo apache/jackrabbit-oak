@@ -162,9 +162,9 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
     }
 
     @Override
-    public synchronized void updateAccessedRevision(RevisionVector revision) {
+    public synchronized void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
         if (store instanceof RevisionListener) {
-            ((RevisionListener) store).updateAccessedRevision(revision);
+            ((RevisionListener) store).updateAccessedRevision(revision, currentClusterId);
         }
     }
 }

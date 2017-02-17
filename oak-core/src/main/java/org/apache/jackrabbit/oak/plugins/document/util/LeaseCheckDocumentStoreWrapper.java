@@ -215,9 +215,9 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
     }
 
     @Override
-    public void updateAccessedRevision(RevisionVector revision) {
+    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
         if (delegate instanceof RevisionListener) {
-            ((RevisionListener) delegate).updateAccessedRevision(revision);
+            ((RevisionListener) delegate).updateAccessedRevision(revision, currentClusterId);
         }
     }
 

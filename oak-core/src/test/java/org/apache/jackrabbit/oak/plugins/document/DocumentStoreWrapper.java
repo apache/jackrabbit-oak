@@ -173,9 +173,9 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
     }
 
     @Override
-    public void updateAccessedRevision(RevisionVector revision) {
+    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
         if (store instanceof RevisionListener) {
-            ((RevisionListener) store).updateAccessedRevision(revision);
+            ((RevisionListener) store).updateAccessedRevision(revision, currentClusterId);
         }
     }
 }
