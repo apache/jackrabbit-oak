@@ -31,11 +31,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
@@ -44,26 +47,38 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
-    static final int OBS_QUEUE_LENGTH = 5;
-    static final String OBS_QUEUE_FULL_WARN = "Revision queue is full. Further revisions will be compacted.";
+    private static final int OBS_QUEUE_LENGTH = 5;
+    private static final String OBS_QUEUE_FULL_WARN = "Revision queue is full. Further revisions will be compacted.";
 
     private static final String TEST_NODE = "test_node";
     private static final String TEST_NODE_TYPE = "oak:Unstructured";
     private static final String TEST_PATH = '/' + TEST_NODE;
 
-    private static final long CONDITION_TIMEOUT = 10*1000;
+    private static final long OBS_TIMEOUT_PER_ITEM = 1000;
+    private static final long CONDITION_TIMEOUT = OBS_QUEUE_LENGTH * OBS_TIMEOUT_PER_ITEM;
 
     private Session observingSession;
     private ObservationManager observationManager;
 
+    private final BlockableListener listener = new BlockableListener();
+
+    private static final Logger LOG = LoggerFactory.getLogger(ObservationQueueFullWarnTest.class);
+
+    private final Semaphore blockObservation = new Semaphore(1);
+
+    private final AtomicInteger numAddedNodes = new AtomicInteger(0);
+    private final AtomicInteger numObservedNodes = new AtomicInteger(0);
+
     public ObservationQueueFullWarnTest(NodeStoreFixture fixture) {
         super(fixture);
+        LOG.info("fixture: {}", fixture);
     }
 
     @Override
@@ -78,7 +93,7 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         session.getRootNode().addNode(TEST_NODE, TEST_NODE_TYPE);
         session.save();
 
-        Map<String,Object> attrs = new HashMap<>();
+        Map<String, Object> attrs = new HashMap<>();
         attrs.put(RepositoryImpl.REFRESH_INTERVAL, 0);
         observingSession = ((JackrabbitRepository) getRepository()).login(new SimpleCredentials("admin", "admin".toCharArray()), null, attrs);
         observationManager = observingSession.getWorkspace().getObservationManager();
@@ -96,17 +111,13 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
                 .contains(OBS_QUEUE_FULL_WARN)
                 .create();
 
-        final LoggingListener listener = new LoggingListener();
         observationManager.addEventListener(listener, NODE_ADDED, TEST_PATH, true, null, null, false);
         try {
-            Node n = getAdminSession().getNode(TEST_PATH);
-
             customLogs.starting();
-            addNodeToFillObsQueue(n, 0, listener);
-            assertTrue("Observation queue full warning must gets logged", customLogs.getLogs().size() > 0);
+            addNodeToFillObsQueue();
+            assertTrue("Observation queue full warning must get logged", customLogs.getLogs().size() > 0);
             customLogs.finished();
-        }
-        finally {
+        } finally {
             observationManager.removeEventListener(listener);
         }
     }
@@ -135,40 +146,35 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         ChangeProcessor.clock = virtualClock;
         virtualClock.waitUntil(System.currentTimeMillis());
 
-        final LoggingListener listener = new LoggingListener();
         observationManager.addEventListener(listener, NODE_ADDED, TEST_PATH, true, null, null, false);
         try {
-            Node n = getAdminSession().getNode(TEST_PATH);
-            int nodeNameCounter = 0;
-
             //Create first level WARN message
-            nodeNameCounter = addNodeToFillObsQueue(n, nodeNameCounter, listener);
-            emptyObsQueueABit(listener);
+            addNodeToFillObsQueue();
+            emptyObsQueue();
 
             //Don't wait, fill up the queue again
             warnLogs.starting();
             debugLogs.starting();
-            nodeNameCounter = addNodeToFillObsQueue(n, nodeNameCounter, listener);
+            addNodeToFillObsQueue();
             assertTrue("Observation queue full warning must not logged until some time has past since last log",
                     warnLogs.getLogs().size() == 0);
             assertTrue("Observation queue full warning should get logged on debug though in the mean time",
                     debugLogs.getLogs().size() > 0);
             warnLogs.finished();
             debugLogs.finished();
-            emptyObsQueueABit(listener);
+            emptyObsQueue();
 
             //Wait some time so reach WARN level again
             virtualClock.waitUntil(virtualClock.getTime() + ChangeProcessor.QUEUE_FULL_WARN_INTERVAL);
 
             warnLogs.starting();
             debugLogs.starting();
-            addNodeToFillObsQueue(n, nodeNameCounter, listener);
+            addNodeToFillObsQueue();
             assertTrue("Observation queue full warning must get logged after some time has past since last log",
                     warnLogs.getLogs().size() > 0);
             warnLogs.finished();
             debugLogs.finished();
-        }
-        finally {
+        } finally {
             observationManager.removeEventListener(listener);
             ChangeProcessor.clock = oldClockInstance;
             ChangeProcessor.QUEUE_FULL_WARN_INTERVAL = oldWarnLogInterval;
@@ -177,66 +183,79 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         }
     }
 
-    private void emptyObsQueueABit(final LoggingListener listener) throws InterruptedException {
-        //Let queue empty up a bit.
-        boolean notTimedOut = listener.waitFor(CONDITION_TIMEOUT, new Condition() {
-            @Override
-            public boolean evaluate() {
-                return listener.numAdded >= 2;
+    private void addANode(String prefix) throws RepositoryException {
+        Session session = getAdminSession();
+        Node parent = session.getNode(TEST_PATH);
+        String nodeName = prefix + numAddedNodes.get();
+        parent.addNode(nodeName);
+        session.save();
+        numAddedNodes.incrementAndGet();
+    }
+
+    private void addNodeToFillObsQueue()
+            throws RepositoryException {
+        blockObservation.acquireUninterruptibly();
+        try {
+            for (int i = 0; i <= OBS_QUEUE_LENGTH; i++) {
+                addANode("n");
             }
-        });
-        listener.numAdded = 0;
-        assertTrue("Listener didn't process events within time-out", notTimedOut);
+        } finally {
+            blockObservation.release();
+        }
     }
 
     private interface Condition {
         boolean evaluate();
     }
 
-    private static int addNodeToFillObsQueue(Node parent, int nodeNameCounter, LoggingListener listener)
-            throws RepositoryException {
-        listener.blockObservation.acquireUninterruptibly();
-        try {
-            for (int i = 0; i <= OBS_QUEUE_LENGTH; i++, nodeNameCounter++) {
-                parent.addNode("n" + nodeNameCounter);
-                parent.getSession().save();
+    private boolean waitFor(long timeout, Condition c)
+            throws InterruptedException {
+        long end = System.currentTimeMillis() + timeout;
+        long remaining = end - System.currentTimeMillis();
+        while (remaining > 0) {
+            if (c.evaluate()) {
+                return true;
             }
-            return nodeNameCounter;
-        } finally {
-            listener.blockObservation.release();
+
+            //Add another node only when num_pending_to_be_observed nodes is
+            //less that observation queue. This is done to let all observation finish
+            //up in case last few event were dropped due to full observation queue
+            //(which is ok as the next event that comes in gets diff-ed with last
+            //processed revision)
+            if (numAddedNodes.get() < numObservedNodes.get() + OBS_QUEUE_LENGTH) {
+                try {
+                    addANode("addedWhileWaiting");
+                } catch (RepositoryException e) {
+                    LOG.warn("exception while adding during wait: {}", e);
+                }
+            }
+            Thread.sleep(OBS_TIMEOUT_PER_ITEM/10);//The constant is exaggerated
+            remaining = end - System.currentTimeMillis();
         }
+        return c.evaluate();
     }
 
-    private class LoggingListener implements EventListener {
+    private void emptyObsQueue() throws InterruptedException {
+        boolean notTimedOut = waitFor(CONDITION_TIMEOUT, new Condition() {
+            @Override
+            public boolean evaluate() {
+                return numObservedNodes.get()==numAddedNodes.get();
+            }
+        });
+        assertTrue("Listener didn't process events within time-out", notTimedOut);
+    }
 
-        private volatile int numAdded = 0;
-
-        Semaphore blockObservation = new Semaphore(1);
-
+    private class BlockableListener implements EventListener {
         @Override
-        public synchronized void onEvent(EventIterator events) {
+        public void onEvent(EventIterator events) {
             blockObservation.acquireUninterruptibly();
             while (events.hasNext()) {
-                events.nextEvent();
-                numAdded++;
+                Event event = events.nextEvent();
+                if (event.getType() == Event.NODE_ADDED) {
+                    numObservedNodes.incrementAndGet();
+                }
             }
             blockObservation.release();
-
-            notifyAll();
-        }
-
-        synchronized boolean waitFor(long timeout, Condition c)
-                throws InterruptedException {
-            long end = System.currentTimeMillis() + timeout;
-            long remaining = end - System.currentTimeMillis();
-            while (remaining > 0) {
-                if (c.evaluate()) {
-                    return true;
-                }
-                wait(remaining);
-                remaining = end - System.currentTimeMillis();
-            }
-            return false;
         }
     }
 }
