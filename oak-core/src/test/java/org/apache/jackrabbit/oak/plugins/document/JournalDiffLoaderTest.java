@@ -28,6 +28,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -323,6 +325,27 @@ public class JournalDiffLoaderTest {
         assertThat(changes, containsInAnyOrder("bar", "baz"));
         assertTrue("must use JournalDiffLoader",
                 journalQueryCounter.get() > 0);
+    }
+
+    @Ignore("OAK-5651")
+    @Test
+    public void emptyBranchCommit() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(0).disableBranches().getNodeStore();
+        DocumentStore store = ns.getDocumentStore();
+        DocumentNodeState before = ns.getRoot();
+        String id = Utils.getIdFromPath("/node-0");
+        NodeBuilder builder = ns.getRoot().builder();
+        int i = 0;
+        while (store.find(Collection.NODES, id) == null) {
+            NodeBuilder child = builder.child("node-" + i++);
+            for (int j = 0; j < 20; j++) {
+                child.setProperty("p-" + j, "value");
+            }
+        }
+        merge(ns, builder);
+        DocumentNodeState after = ns.getRoot();
+        new JournalDiffLoader(before, after, ns).call();
     }
 
     private static CacheStats getMemoryDiffStats(DocumentNodeStore ns) {
