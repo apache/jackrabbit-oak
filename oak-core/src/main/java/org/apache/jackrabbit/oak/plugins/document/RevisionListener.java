@@ -22,6 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document;
  */
 public interface RevisionListener {
 
-    void updateAccessedRevision(RevisionVector revision);
+    void updateAccessedRevision(RevisionVector revision, int currentClusterId);
 
 }
