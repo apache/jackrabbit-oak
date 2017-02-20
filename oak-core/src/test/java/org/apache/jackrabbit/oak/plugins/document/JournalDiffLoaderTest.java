@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -327,7 +326,6 @@ public class JournalDiffLoaderTest {
                 journalQueryCounter.get() > 0);
     }
 
-    @Ignore("OAK-5651")
     @Test
     public void emptyBranchCommit() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
