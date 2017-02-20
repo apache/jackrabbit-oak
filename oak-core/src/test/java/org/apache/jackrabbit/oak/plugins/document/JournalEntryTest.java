@@ -356,6 +356,16 @@ public class JournalEntryTest {
         assertTrue("Incorrect hasChanges", entry.hasChanges());
     }
 
+    @Test
+    public void emptyBranchCommit() {
+        DocumentStore store = new MemoryDocumentStore();
+        JournalEntry entry = JOURNAL.newDocument(store);
+
+        entry.branchCommit(Collections.<Revision>emptyList());
+        assertFalse(entry.getBranchCommits().iterator().hasNext());
+        assertNull(entry.get(JournalEntry.BRANCH_COMMITS));
+    }
+
     private static void addRandomPaths(java.util.Collection<String> paths) throws IOException {
         paths.add("/");
         Random random = new Random(42);
