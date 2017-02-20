@@ -55,6 +55,14 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         valueFactory = new ValueFactoryImpl(root, namePathMapper);
         propertyName = "testProperty";
+
+        getQueryEngineSettings().setFailTraversal(false);
+    }
+
+    @Override
+    public void after() throws Exception {
+        getQueryEngineSettings().setFailTraversal(true);
+        super.after();
     }
 
     /**

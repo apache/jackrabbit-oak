@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionHook;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -80,6 +81,8 @@ public abstract class AbstractSecurityTest {
     protected ContentSession adminSession;
     protected Root root;
 
+    protected QueryEngineSettings querySettings;
+
     @Before
     public void before() throws Exception {
         Oak oak = new Oak()
@@ -93,6 +96,7 @@ public abstract class AbstractSecurityTest {
                 .with(new PropertyIndexProvider())
                 .with(new TypeEditorProvider())
                 .with(new ConflictValidatorProvider())
+                .with(getQueryEngineSettings())
                 .with(getSecurityProvider());
         withEditors(oak);
         contentRepository = oak.createContentRepository();
@@ -131,6 +135,14 @@ public abstract class AbstractSecurityTest {
 
     protected Oak withEditors(Oak oak) {
         return oak;
+    }
+
+    protected QueryEngineSettings getQueryEngineSettings() {
+        if (querySettings == null) {
+            querySettings = new QueryEngineSettings();
+            querySettings.setFailTraversal(true);
+        }
+        return querySettings;
     }
 
     protected ConfigurationParameters getSecurityConfigParameters() {
