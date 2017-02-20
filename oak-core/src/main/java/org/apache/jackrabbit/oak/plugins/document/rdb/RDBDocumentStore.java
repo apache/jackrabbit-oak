@@ -1398,11 +1398,13 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
         } else {
+            Stopwatch watch = startWatch();
             for (String id : ids) {
                 UpdateOp up = update.copy();
                 up = up.shallowCopy(id);
                 internalCreateOrUpdate(collection, up, false, true);
             }
+            stats.doneUpdate(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids.size());
         }
     }
 
