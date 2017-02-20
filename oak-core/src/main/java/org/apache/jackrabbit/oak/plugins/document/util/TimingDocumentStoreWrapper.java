@@ -412,11 +412,11 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
-    public void updateAccessedRevision(RevisionVector revision) {
+    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
         try {
             long start = now();
             if (base instanceof RevisionListener) {
-                ((RevisionListener) base).updateAccessedRevision(revision);
+                ((RevisionListener) base).updateAccessedRevision(revision, currentClusterId);
             }
             updateAndLogTimes("updateAccessedRevision", start, 0, 0);
         } catch (Exception e) {
