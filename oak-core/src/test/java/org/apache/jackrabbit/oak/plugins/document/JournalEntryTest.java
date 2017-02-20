@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -354,6 +355,16 @@ public class JournalEntryTest {
 
         entry.branchCommit(Collections.singleton(Revision.fromString("r123-0-1")));
         assertTrue("Incorrect hasChanges", entry.hasChanges());
+    }
+
+    @Ignore("OAK-5651")
+    @Test
+    public void emptyBranchCommit() {
+        DocumentStore store = new MemoryDocumentStore();
+        JournalEntry entry = JOURNAL.newDocument(store);
+
+        entry.branchCommit(Collections.<Revision>emptyList());
+        assertFalse(entry.getBranchCommits().iterator().hasNext());
     }
 
     private static void addRandomPaths(java.util.Collection<String> paths) throws IOException {
