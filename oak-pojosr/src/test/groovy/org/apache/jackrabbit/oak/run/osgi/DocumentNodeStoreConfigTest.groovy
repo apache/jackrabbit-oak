@@ -129,7 +129,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         //3. Shut down ds
         srds.unregister();
-        TimeUnit.MILLISECONDS.sleep(500);
+        TimeUnit.MILLISECONDS.sleep(1000);
         assertNoService(NodeStore.class)
 
         //4. Restart ds, service should still be down
