@@ -83,6 +83,33 @@ so the method should be reasonably fast (not read any data itself, or at least n
 
 If an index implementation can not query the data, it has to return `Infinity` (`Double.POSITIVE_INFINITY`).
 
+#### Query Options
+
+By default, queries without index will log an info level message as follows
+(see OAK-4888, since Oak 1.6):
+
+    Traversal query (query without index): {statement}; consider creating an index
+
+This message is only logged if no index is available, and if the query
+potentially traverses many nodes. 
+No message is logged if an index is available, but traversing is cheap.
+
+By setting the JMX configuration `QueryEngineSettings.failTraversal` to true,
+queries without index throw an exception instead of just logging a message.
+
+In the query itself, the syntax `option(traversal {ok|fail|warn})` is supported 
+(at the very end of the statement, after `order by`).
+This is to override the default setting, 
+for queries that traverse a well known number of nodes (for example 10 or 20 nodes).
+This is supported for both XPath and SQL-2, as follows: 
+
+    /jcr:root/oak:index/*[@type='lucene'] option(traversal ok)
+
+    select * from [nt:base] 
+    where ischildnode('/oak:index') 
+    order by name()
+    option(traversal ok)
+
 ### Compatibility
 
 #### Result Size
