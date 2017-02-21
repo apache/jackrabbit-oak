@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -185,28 +187,17 @@ public class UserQueryManager {
             stmt.append(searchRoot);
         }
 
-        String propName;
+        String propName = Text.getName(relPath);
         String path;
         String ntName;
-        if (relPath.indexOf('/') == -1) {
-            // search for properties somewhere in the authorizable tree
-            propName = relPath;
+        if (relPath.indexOf('/') == -1 && !isReserved(propName)) {
+            // arbitrary property specified in query and no explicit relative path specified
+            // -> need to search within the whole in the authorizable tree
             path = null;
             ntName = null;
         } else {
-            propName = Text.getName(relPath);
-            String[] segments = Text.explode(relPath, '/', false);
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < segments.length - 1; i++) {
-                if (!PathUtils.denotesCurrent(segments[i])) {
-                    if (i > 0) {
-                        sb.append('/');
-                    }
-                    sb.append(segments[i]);
-                }
-            }
-            path = Strings.emptyToNull(sb.toString());
-            ntName = namePathMapper.getJcrName(QueryUtil.getNodeTypeName(type));
+            path = getQueryPath(relPath);
+            ntName = (path == null) ? namePathMapper.getJcrName(QueryUtil.getNodeTypeName(type)) : null;
         }
 
         stmt.append("//");
@@ -302,6 +293,32 @@ public class UserQueryManager {
             log.warn("Invalid user query: " + statement, e);
             throw new RepositoryException(e);
         }
+    }
+
+    @CheckForNull
+    private static String getQueryPath(@Nonnull String relPath) {
+        if (relPath.indexOf('/') == -1) {
+            // just a single segment -> don't include the path in the query
+            return null;
+        } else {
+            // compute the relative path excluding the trailing property name
+            String[] segments = Text.explode(relPath, '/', false);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < segments.length - 1; i++) {
+                if (!PathUtils.denotesCurrent(segments[i])) {
+                    if (i > 0) {
+                        sb.append('/');
+                    }
+                    sb.append(segments[i]);
+                }
+            }
+            return Strings.emptyToNull(sb.toString());
+        }
+    }
+
+    @CheckForNull
+    private static boolean isReserved(@Nonnull String propName) {
+        return UserConstants.GROUP_PROPERTY_NAMES.contains(propName) || UserConstants.USER_PROPERTY_NAMES.contains(propName);
     }
 
     /**
