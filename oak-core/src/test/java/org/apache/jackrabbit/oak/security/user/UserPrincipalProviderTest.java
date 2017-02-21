@@ -139,9 +139,6 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
     @Test
     public void testEveryoneMembers() throws Exception {
-        // FIXME: check, why this query causes a traversal despite the existence of an index
-        getQueryEngineSettings().setFailTraversal(false);
-
         Principal everyone = principalProvider.getPrincipal(EveryonePrincipal.NAME);
         assertTrue(everyone instanceof EveryonePrincipal);
 
@@ -158,8 +155,6 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
             ((java.security.acl.Group) ep).isMember(getTestUser().getPrincipal());
 
         } finally {
-            getQueryEngineSettings().setFailTraversal(true);
-
             if (everyoneGroup != null) {
                 everyoneGroup.remove();
                 root.commit();

@@ -284,18 +284,14 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testFindWithNullValue() throws RepositoryException {
-        // FIXME: check, why this query causes a traversal despite the existence of an index
-        getQueryEngineSettings().setFailTraversal(false);
+        Iterator<Authorizable> result = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null);
+        assertTrue(result.hasNext());
+    }
 
-        try {
-            Iterator<Authorizable> result = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null);
-            assertTrue(result.hasNext());
-
-            result = userMgr.findAuthorizables("./" + UserConstants.REP_PRINCIPAL_NAME, null);
-            assertTrue(result.hasNext());
-        } finally {
-            getQueryEngineSettings().setFailTraversal(true);
-        }
+    @Test
+    public void testFindWithNullValue2() throws RepositoryException {
+        Iterator<Authorizable> result = userMgr.findAuthorizables("./" + UserConstants.REP_PRINCIPAL_NAME, null);
+        assertTrue(result.hasNext());
     }
 
     @Test
