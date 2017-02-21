@@ -459,7 +459,10 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                     "Timed out waiting for change processor to stop after "
                             + STOP_TIME_OUT
                             + " milliseconds. Falling back to asynchronous stop on "
-                            + processor);
+                            + processor
+                            + " (listener details: '"
+                            + processor.getListenerToString()
+                            + "')");
             processor.stop();
         }
     }
