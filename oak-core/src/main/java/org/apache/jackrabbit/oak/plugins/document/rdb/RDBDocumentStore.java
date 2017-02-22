@@ -1622,10 +1622,8 @@ public class RDBDocumentStore implements DocumentStore {
         String data = null;
         try {
             connection = this.ch.getRWConnection();
-            Number flagB = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
-            Boolean hasBinary = flagB != null && flagB.intValue() == NodeDocument.HAS_BINARY_VAL;
-            Boolean flagD = (Boolean) document.get(NodeDocument.DELETED_ONCE);
-            Boolean deletedOnce = flagD != null && flagD.booleanValue();
+            Number hasBinary = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
+            Boolean deletedOnce = (Boolean) document.get(NodeDocument.DELETED_ONCE);
             Long modcount = (Long) document.get(MODCOUNT);
             Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);
             boolean success = false;

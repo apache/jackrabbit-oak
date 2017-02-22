@@ -84,7 +84,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     public boolean appendingUpdate(Connection connection, RDBTableMetaData tmd, String id, Long modified,
-            boolean setModifiedConditionally, Boolean hasBinary, Boolean deletedOnce, Long modcount, Long cmodcount,
+            boolean setModifiedConditionally, Number hasBinary, Boolean deletedOnce, Long modcount, Long cmodcount,
             Long oldmodcount, String appendData) throws SQLException {
         String appendDataWithComma = "," + appendData;
         PreparedStatementComponent stringAppend = this.dbInfo.getConcatQuery(appendDataWithComma, tmd.getDataLimitInOctets());
@@ -104,8 +104,8 @@ public class RDBDocumentStoreJDBC {
             if (setModifiedConditionally) {
                 stmt.setObject(si++, modified, Types.BIGINT);
             }
-            stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
-            stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
+            stmt.setObject(si++, hasBinaryAsNullOrInteger(hasBinary), Types.SMALLINT);
+            stmt.setObject(si++, deletedOnceAsNullOrInteger(deletedOnce), Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
             stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
             stmt.setObject(si++, appendDataWithComma.length(), Types.BIGINT);
@@ -304,9 +304,8 @@ public class RDBDocumentStoreJDBC {
                 int si = 1;
                 setIdInStatement(tmd, stmt, si++, id);
                 stmt.setObject(si++, document.get(MODIFIED), Types.BIGINT);
-                stmt.setObject(si++, (hasBinary != null && hasBinary.intValue() == NodeDocument.HAS_BINARY_VAL) ? 1 : 0,
-                        Types.SMALLINT);
-                stmt.setObject(si++, (deletedOnce != null && deletedOnce) ? 1 : 0, Types.SMALLINT);
+                stmt.setObject(si++, hasBinaryAsNullOrInteger(hasBinary), Types.SMALLINT);
+                stmt.setObject(si++, deletedOnceAsNullOrInteger(deletedOnce), Types.SMALLINT);
                 stmt.setObject(si++, document.get(MODCOUNT), Types.BIGINT);
                 stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
                 stmt.setObject(si++, data.length(), Types.BIGINT);
@@ -383,9 +382,8 @@ public class RDBDocumentStoreJDBC {
 
                 int si = 1;
                 stmt.setObject(si++, document.get(MODIFIED), Types.BIGINT);
-                stmt.setObject(si++, (hasBinary != null && hasBinary.intValue() == NodeDocument.HAS_BINARY_VAL) ? 1 : 0,
-                        Types.SMALLINT);
-                stmt.setObject(si++, (deletedOnce != null && deletedOnce) ? 1 : 0, Types.SMALLINT);
+                stmt.setObject(si++, hasBinaryAsNullOrInteger(hasBinary), Types.SMALLINT);
+                stmt.setObject(si++, deletedOnceAsNullOrInteger(deletedOnce), Types.SMALLINT);
                 stmt.setObject(si++, modcount, Types.BIGINT);
                 stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
                 stmt.setObject(si++, data.length(), Types.BIGINT);
@@ -512,11 +510,11 @@ public class RDBDocumentStoreJDBC {
                 long modified = readLongFromResultSet(rs, 2);
                 long modcount = readLongFromResultSet(rs, 3);
                 long cmodcount = readLongFromResultSet(rs, 4);
-                long hasBinary = rs.getLong(5);
-                long deletedOnce = rs.getLong(6);
+                Long hasBinary = readLongOrNullFromResultSet(rs, 5);
+                Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, 6);
                 String data = rs.getString(7);
                 byte[] bdata = rs.getBytes(8);
-                result.add(new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata));
+                result.add(new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, data, bdata));
                 dataTotal += data.length();
                 bdataTotal += bdata == null ? 0 : bdata.length;
             }
@@ -584,11 +582,11 @@ public class RDBDocumentStoreJDBC {
                     long modified = readLongFromResultSet(rs, col++);
                     long modcount = readLongFromResultSet(rs, col++);
                     long cmodcount = readLongFromResultSet(rs, col++);
-                    long hasBinary = rs.getLong(col++);
-                    long deletedOnce = rs.getLong(col++);
+                    Long hasBinary = readLongOrNullFromResultSet(rs, col++);
+                    Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, col++);
                     String data = rs.getString(col++);
                     byte[] bdata = rs.getBytes(col++);
-                    RDBRow row = new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata);
+                    RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, data, bdata);
                     rows.add(row);
                 }
             } catch (SQLException ex) {
@@ -648,11 +646,11 @@ public class RDBDocumentStoreJDBC {
                 long modified = readLongFromResultSet(rs, 1);
                 long modcount = readLongFromResultSet(rs, 2);
                 long cmodcount = readLongFromResultSet(rs, 3);
-                long hasBinary = rs.getLong(4);
-                long deletedOnce = rs.getLong(5);
+                Long hasBinary = readLongOrNullFromResultSet(rs, 4);
+                Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, 5);
                 String data = rs.getString(6);
                 byte[] bdata = rs.getBytes(7);
-                return new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata);
+                return new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, data, bdata);
             } else {
                 return null;
             }
@@ -676,7 +674,7 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    public boolean update(Connection connection, RDBTableMetaData tmd, String id, Long modified, Boolean hasBinary,
+    public boolean update(Connection connection, RDBTableMetaData tmd, String id, Long modified, Number hasBinary,
             Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String data) throws SQLException {
 
         StringBuilder t = new StringBuilder();
@@ -690,8 +688,8 @@ public class RDBDocumentStoreJDBC {
         try {
             int si = 1;
             stmt.setObject(si++, modified, Types.BIGINT);
-            stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
-            stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
+            stmt.setObject(si++, hasBinaryAsNullOrInteger(hasBinary), Types.SMALLINT);
+            stmt.setObject(si++, deletedOnceAsNullOrInteger(deletedOnce), Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
             stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
@@ -808,6 +806,31 @@ public class RDBDocumentStoreJDBC {
     private static long readLongFromResultSet(ResultSet res, int index) throws SQLException {
         long v = res.getLong(index);
         return res.wasNull() ? RDBRow.LONG_UNSET : v;
+    }
+
+    @CheckForNull
+    private static Boolean readBooleanOrNullFromResultSet(ResultSet res, int index) throws SQLException {
+        long v = res.getLong(index);
+        return res.wasNull() ? null : Boolean.valueOf(v != 0);
+    }
+
+    @CheckForNull
+    private static Long readLongOrNullFromResultSet(ResultSet res, int index) throws SQLException {
+        long v = res.getLong(index);
+        return res.wasNull() ? null : Long.valueOf(v);
+    }
+
+    private static final Integer INT_FALSE = 0;
+    private static final Integer INT_TRUE = 1;
+    
+    @CheckForNull
+    private static Integer deletedOnceAsNullOrInteger(Boolean b) {
+        return b == null ? null : (b.booleanValue() ? INT_TRUE : INT_FALSE);
+    }
+
+    @CheckForNull
+    private static Integer hasBinaryAsNullOrInteger(Number n) {
+        return n == null ? null : (n.longValue() == 1 ? INT_TRUE : INT_FALSE);
     }
 
     private static <T extends Document> List<T> sortDocuments(Collection<T> documents) {
