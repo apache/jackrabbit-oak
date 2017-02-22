@@ -948,7 +948,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         Map<Revision, String> validRevisions = Maps.newHashMap();
         Branch branch = nodeStore.getBranches().getBranch(readRevision);
         LastRevs lastRevs = createLastRevs(readRevision,
-                validRevisions, branch, lastModified);
+                nodeStore, branch, lastModified);
 
         Revision min = getLiveRevision(nodeStore, readRevision, validRevisions, lastRevs);
         if (min == null) {
@@ -1720,6 +1720,15 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         return getLocalMap(STALE_PREV);
     }
 
+    @CheckForNull
+    String resolveCommitValue(Revision revision) {
+        NodeDocument commitRoot = getCommitRoot(revision);
+        if (commitRoot == null) {
+            return null;
+        }
+        return commitRoot.getCommitValue(revision);
+    }
+
     //-------------------------< UpdateOp modifiers >---------------------------
 
     public static void setChildrenFlag(@Nonnull UpdateOp op,
@@ -1884,7 +1893,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     private LastRevs createLastRevs(@Nonnull RevisionVector readRevision,
-                                    @Nonnull Map<Revision, String> validRevisions,
+                                    @Nonnull RevisionContext context,
                                     @Nullable Branch branch,
                                     @Nullable Revision pendingLastRev) {
         LastRevs lastRevs = new LastRevs(getLastRev(), readRevision, branch);
@@ -1906,10 +1915,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 // already found most recent change from this cluster node
                 continue;
             }
-            String commitValue = validRevisions.get(r);
-            if (commitValue == null) {
-                commitValue = resolveCommitValue(r);
-            }
+            String commitValue = context.getCommitValue(r, this);
             if (commitValue == null) {
                 continue;
             }
@@ -1927,14 +1933,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         }
         return lastRevs;
-    }
-
-    private String resolveCommitValue(Revision revision) {
-        NodeDocument commitRoot = getCommitRoot(revision);
-        if (commitRoot == null) {
-            return null;
-        }
-        return commitRoot.getCommitValue(revision);
     }
 
     /**
@@ -2168,7 +2166,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             Revision propRev = entry.getKey();
             String commitValue = validRevisions.get(propRev);
             if (commitValue == null) {
-                commitValue = resolveCommitValue(propRev);
+                commitValue = context.getCommitValue(propRev, this);
             }
             if (commitValue == null) {
                 continue;

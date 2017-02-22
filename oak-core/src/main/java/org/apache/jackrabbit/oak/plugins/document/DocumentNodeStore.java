@@ -82,6 +82,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
@@ -362,6 +363,12 @@ public final class DocumentNodeStore
      * The change log to keep track of commits for diff operations.
      */
     private final DiffCache diffCache;
+
+    /**
+     * A fixed size cache for commit values.
+     */
+    private final Cache<Revision, String> commitValueCache
+            = new CacheLIRS<Revision, String>(10000);
 
     /**
      * The blob store.
@@ -1828,6 +1835,20 @@ public final class DocumentNodeStore
             return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
         }
         return Revision.newRevision(clusterId);
+    }
+
+    @Override
+    public String getCommitValue(@Nonnull Revision changeRevision,
+                                 @Nonnull NodeDocument doc) {
+        String value = commitValueCache.getIfPresent(changeRevision);
+        if (value != null) {
+            return value;
+        }
+        value = doc.resolveCommitValue(changeRevision);
+        if (Utils.isCommitted(value)) {
+            commitValueCache.put(changeRevision, value);
+        }
+        return value;
     }
 
     //----------------------< background operations >---------------------------
