@@ -633,7 +633,7 @@ class ChangeProcessor implements FilteringAwareObserver {
     }
     
     /** for logging only **/
-    public String getListenerToString() {
+    String getListenerToString() {
         if (tracker == null) {
             return "null";
         }
