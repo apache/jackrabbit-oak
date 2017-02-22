@@ -1855,7 +1855,7 @@ public final class DocumentNodeStore
     }
 
     private void internalRunBackgroundUpdateOperations() {
-        BackgroundWriteStats stats = null;
+        BackgroundWriteStats stats;
         synchronized (backgroundWriteMonitor) {
             long start = clock.getTime();
             long time = start;
@@ -1873,12 +1873,7 @@ public final class DocumentNodeStore
             stats.clean = cleanTime;
             stats.totalWriteTime = clock.getTime() - start;
             String msg = "Background operations stats ({})";
-            if (stats.totalWriteTime > TimeUnit.SECONDS.toMillis(10)) {
-                // log as info if it took more than 10 seconds
-                LOG.info(msg, stats);
-            } else {
-                LOG.debug(msg, stats);
-            }
+            logBackgroundOperation(start, msg, stats);
         }
         //Push stats outside of sync block
         nodeStoreStatsCollector.doneBackgroundUpdate(stats);
@@ -1911,14 +1906,29 @@ public final class DocumentNodeStore
             readStats = backgroundRead();
             readStats.totalReadTime = clock.getTime() - start;
             String msg = "Background read operations stats (read:{} {})";
-            if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
-                // log as info if it took more than 10 seconds
-                LOG.info(msg, readStats.totalReadTime, readStats);
-            } else {
-                LOG.debug(msg, readStats.totalReadTime, readStats);
-            }
+            logBackgroundOperation(start, msg, readStats.totalReadTime, readStats);
         }
         nodeStoreStatsCollector.doneBackgroundRead(readStats);
+    }
+
+    /**
+     * Log a background operation with the given {@code startTime}. The
+     * {@code message} is logged at INFO if more than 10 seconds passed since
+     * the {@code startTime}, otherwise at DEBUG.
+     *
+     * @param startTime time when the background operation started.
+     * @param message   the log message.
+     * @param arguments the arguments for the log message.
+     */
+    private void logBackgroundOperation(long startTime,
+                                        String message,
+                                        Object... arguments) {
+        if (clock.getTime() - startTime > TimeUnit.SECONDS.toMillis(10)) {
+            // log as info if it took more than 10 seconds
+            LOG.info(message, arguments);
+        } else {
+            LOG.debug(message, arguments);
+        }
     }
 
     /**
