@@ -211,14 +211,14 @@ public class BroadcastTest {
         int correct = 0;
         for (int i = 0; i < 50; i++) {
             c1.put(k, new StringValue("Hello World " + i));
-            waitFor(c2, k, 100);
+            waitFor(c2, k, 10000);
             StringValue v2 = c2.getIfPresent(k);
             if (v2 != null && v2.toString().equals("Hello World " + i)) {
                 correct++;
             }
             c2.invalidate(k);
             assertNull(c2.getIfPresent(k));
-            waitFor(c1, k, null, 100);
+            waitFor(c1, k, null, 10000);
             StringValue v1 = c1.getIfPresent(k);
             if (v1 == null) {
                 correct++;
@@ -236,7 +236,7 @@ public class BroadcastTest {
         return false;
     }
     
-    private static boolean waitFor(Callable<Boolean> call, int timeout) {
+    private static boolean waitFor(Callable<Boolean> call, int timeoutInMilliseconds) {
         long start = System.currentTimeMillis();
         while (true) {
             try {
@@ -252,13 +252,13 @@ public class BroadcastTest {
             } catch (Exception e) {
                 throw new AssertionError(e);
             }
-            if (time > timeout) {
+            if (time > timeoutInMilliseconds) {
                 return false;
             }
         }
     }
     
-    private static <K, V> boolean waitFor(final Cache<K, V> map, final K key, final V value, int timeout) {
+    private static <K, V> boolean waitFor(final Cache<K, V> map, final K key, final V value, int timeoutInMilliseconds) {
         return waitFor(new Callable<Boolean>() {
             @Override
             public Boolean call() {
@@ -268,16 +268,16 @@ public class BroadcastTest {
                 } 
                 return value.equals(v);
             }
-        }, timeout);
+        }, timeoutInMilliseconds);
     }
     
-    private static <K, V> boolean waitFor(final Cache<K, V> map, final K key, int timeout) {
+    private static <K, V> boolean waitFor(final Cache<K, V> map, final K key, int timeoutInMilliseconds) {
         return waitFor(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
                 return map.getIfPresent(key) != null;
             }
-        }, timeout);
+        }, timeoutInMilliseconds);
     }
     
     private static Cache<PathRev, StringValue> openCache(PersistentCache p) {
