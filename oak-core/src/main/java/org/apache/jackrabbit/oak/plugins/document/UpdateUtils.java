@@ -55,6 +55,10 @@ public class UpdateUtils {
                     doc.put(k.toString(), op.value);
                     break;
                 }
+                case REMOVE: {
+                    doc.remove(k.toString());
+                    break;
+                }
                 case MAX: {
                     Comparable newValue = (Comparable) op.value;
                     Object old = doc.get(k.toString());
