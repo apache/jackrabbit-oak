@@ -632,6 +632,18 @@ class ChangeProcessor implements FilteringAwareObserver {
                 + ", running=" + running.isSatisfied() + "]";
     }
 
+    /** for logging only **/
+    String getListenerToString() {
+        if (tracker == null) {
+            return "null";
+        }
+        EventListenerMBean listenerMBean = tracker.getListenerMBean();
+        if (listenerMBean == null) {
+            return "null (no listener mbean)";
+        }
+        return listenerMBean.getToString();
+    }
+
     /**
      * Evaluate the prefilter for a given commit.
      * @param changeSet 
