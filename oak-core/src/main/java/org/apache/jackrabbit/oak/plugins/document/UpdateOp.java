@@ -160,6 +160,19 @@ public final class UpdateOp {
     }
 
     /**
+     * Remove a property.
+     *
+     * @param property the property name
+     */
+    public void remove(@Nonnull String property) {
+        if (Document.ID.equals(property)) {
+            throw new IllegalArgumentException(Document.ID + " must not be removed");
+        }
+        Operation op = new Operation(Operation.Type.REMOVE, null);
+        changes.put(new Key(property, null), op);
+    }
+
+    /**
      * Remove a map entry.
      * The property is a map of revisions / values.
      *
@@ -393,8 +406,13 @@ public final class UpdateOp {
              * Remove the sub-key / value pair.
              * The value in the stored node is a map.
              */
-            REMOVE_MAP_ENTRY
+            REMOVE_MAP_ENTRY,
 
+            /**
+             * Remove the value.
+             * The sub-key is not used.
+             */
+            REMOVE
          }
 
 
@@ -421,17 +439,18 @@ public final class UpdateOp {
         public Operation getReverse() {
             Operation reverse = null;
             switch (type) {
-            case INCREMENT:
-                reverse = new Operation(Type.INCREMENT, -(Long) value);
-                break;
-            case SET:
-            case MAX:
-            case REMOVE_MAP_ENTRY:
-                // nothing to do
-                break;
-            case SET_MAP_ENTRY:
-                reverse = new Operation(Type.REMOVE_MAP_ENTRY, null);
-                break;
+                case INCREMENT:
+                    reverse = new Operation(Type.INCREMENT, -(Long) value);
+                    break;
+                case SET:
+                case MAX:
+                case REMOVE_MAP_ENTRY:
+                case REMOVE:
+                    // nothing to do
+                    break;
+                case SET_MAP_ENTRY:
+                    reverse = new Operation(Type.REMOVE_MAP_ENTRY, null);
+                    break;
             }
             return reverse;
         }

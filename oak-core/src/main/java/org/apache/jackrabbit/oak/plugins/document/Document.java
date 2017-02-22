@@ -111,6 +111,17 @@ public class Document implements CacheValue {
     }
 
     /**
+     * Removes the given <code>key</code>.
+     *
+     * @param key the key.
+     * @return the previous value or <code>null</code> if there was none.
+     */
+    @CheckForNull
+    public Object remove(String key) {
+        return data.remove(key);
+    }
+
+    /**
      * @return a Set view of the keys contained in this document.
      */
     public Set<String> keySet() {
