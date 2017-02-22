@@ -51,4 +51,10 @@ public class DummyRevisionContext implements RevisionContext {
     public Revision newRevision() {
         return Revision.newRevision(getClusterId());
     }
+
+    @Override
+    public String getCommitValue(@Nonnull Revision changeRevision,
+                                 @Nonnull NodeDocument doc) {
+        return doc.resolveCommitValue(changeRevision);
+    }
 }
