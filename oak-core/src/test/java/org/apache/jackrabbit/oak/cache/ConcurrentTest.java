@@ -87,8 +87,8 @@ public class ConcurrentTest {
         Thread.sleep(1000);
         stop.set(true);
         for (Thread t : threads) {
-            t.join(1000);
-            // if the thread is still alive after 1 second, we assume
+            t.join(30000);
+            // if the thread is still alive after 30 seconds, we assume
             // there is a deadlock - we just let the threads alive,
             // but report a failure (what else could we do?)
             if (t.isAlive()) {
@@ -99,7 +99,7 @@ public class ConcurrentTest {
             throw ex[0];
         }        
         long add = additionalWait.get();
-        assertTrue("Had to wait unexpectedly long for other threads: " + add, add < 1000);
+        assertTrue("Had to wait unexpectedly long for other threads: " + add, add < 30000);
     }
     
     @Test
