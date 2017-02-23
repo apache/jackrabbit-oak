@@ -560,7 +560,13 @@ public class VersionGarbageCollector {
             while (idListItr.hasNext() && !cancel.get()) {
                 Map<String, Map<Key, Condition>> deletionBatch = Maps.newLinkedHashMap();
                 for (String s : idListItr.next()) {
-                    Map.Entry<String, Long> parsed = parseEntry(s);
+                    Map.Entry<String, Long> parsed;
+                    try {
+                        parsed = parseEntry(s);
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Invalid _modified suffix for {}", s);
+                        continue;
+                    }
                     deletionBatch.put(parsed.getKey(), singletonMap(KEY_MODIFIED, newEqualsCondition(parsed.getValue())));
                 }
 
@@ -603,8 +609,8 @@ public class VersionGarbageCollector {
             int updateCount = 0;
             for (String s : resurrectedDocuments) {
                 if (!cancel.get()) {
-                    Map.Entry<String, Long> parsed = parseEntry(s);
                     try {
+                        Map.Entry<String, Long> parsed = parseEntry(s);
                         UpdateOp up = new UpdateOp(parsed.getKey(), false);
                         up.equals(MODIFIED_IN_SECS, parsed.getValue());
                         up.remove(NodeDocument.DELETED_ONCE);
@@ -612,9 +618,10 @@ public class VersionGarbageCollector {
                         if (r != null) {
                             updateCount += 1;
                         }
-                    }
-                    catch (DocumentStoreException ex) {
-                        log.warn("updating {}: {}", parsed.getKey(), ex.getMessage());
+                    } catch (IllegalArgumentException ex) {
+                        log.warn("Invalid _modified suffix for {}", s);
+                    } catch (DocumentStoreException ex) {
+                        log.warn("updating {}: {}", s, ex.getMessage());
                     }
                 }
             }
