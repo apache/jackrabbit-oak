@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 
@@ -29,8 +31,32 @@ import org.apache.jackrabbit.oak.api.Tree;
  */
 final class TestProvider extends AbstractRestrictionProvider {
 
+    private final boolean nonValidatingRead;
+
     TestProvider(Map<String, ? extends RestrictionDefinition> supportedRestrictions) {
+        this(supportedRestrictions, false);
+    }
+
+    TestProvider(Map<String, ? extends RestrictionDefinition> supportedRestrictions, boolean nonValidatingRead) {
         super(supportedRestrictions);
+        this.nonValidatingRead = nonValidatingRead;
+    }
+
+    @Nonnull
+    @Override
+    public Set<Restriction> readRestrictions(String oakPath, @Nonnull Tree aceTree) {
+        if (nonValidatingRead) {
+            Set<Restriction> restrictions = new HashSet();
+            for (PropertyState propertyState : getRestrictionsTree(aceTree).getProperties()) {
+                String name = propertyState.getName();
+                if (!JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
+                    restrictions.add(new RestrictionImpl(propertyState, new RestrictionDefinitionImpl(name, propertyState.getType(), false)));
+                }
+            }
+            return restrictions;
+        } else {
+            return super.readRestrictions(oakPath, aceTree);
+        }
     }
 
     @Nonnull
