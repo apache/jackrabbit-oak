@@ -31,6 +31,7 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -78,8 +79,12 @@ public class ExternalIdentityImporterTest {
     @Before
     public void before() throws Exception {
         securityProvider = new TestSecurityProvider(getConfigurationParameters(), new ExternalPrincipalConfiguration());
+        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+        queryEngineSettings.setFailTraversal(true);
+
         Jcr jcr = new Jcr();
         jcr.with(securityProvider);
+        jcr.with(queryEngineSettings);
         repo = jcr.createRepository();
     }
 
