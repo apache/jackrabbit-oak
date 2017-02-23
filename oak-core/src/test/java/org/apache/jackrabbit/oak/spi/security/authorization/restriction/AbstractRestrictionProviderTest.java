@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -134,14 +135,14 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     @Test
     public void testCreateForUnsupportedName() throws Exception {
         try {
-            restrictionProvider.createRestriction(unsupportedPath, "unsupported", globValue);
+            restrictionProvider.createRestriction(testPath, "unsupported", globValue);
             fail();
         } catch (AccessControlException e) {
             // success
         }
 
         try {
-            restrictionProvider.createRestriction(unsupportedPath, "unsupported", nameValues);
+            restrictionProvider.createRestriction(testPath, "unsupported", nameValues);
             fail();
         } catch (AccessControlException e) {
             // success
@@ -151,13 +152,13 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     @Test
     public void testCreateForUnsupportedType() throws Exception {
         try {
-            restrictionProvider.createRestriction(unsupportedPath, REP_GLOB, valueFactory.createValue(true));
+            restrictionProvider.createRestriction(testPath, REP_GLOB, valueFactory.createValue(true));
             fail();
         } catch (AccessControlException e) {
             // success
         }
         try {
-            restrictionProvider.createRestriction(unsupportedPath, REP_NT_NAMES,
+            restrictionProvider.createRestriction(testPath, REP_NT_NAMES,
                     valueFactory.createValue("nt:file", PropertyType.NAME),
                     valueFactory.createValue(true));
             fail();
@@ -169,7 +170,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     @Test
     public void testCreateForUnsupportedMultiValues() throws Exception {
         try {
-            restrictionProvider.createRestriction(unsupportedPath, REP_GLOB,
+            restrictionProvider.createRestriction(testPath, REP_GLOB,
                     valueFactory.createValue("*"),
                     valueFactory.createValue("/a/*"));
             fail();
@@ -184,6 +185,15 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         assertNotNull(r);
         assertEquals(REP_GLOB, r.getDefinition().getName());
         assertEquals(globValue.getString(), r.getProperty().getValue(Type.STRING));
+    }
+
+    @Test
+    public void testCreateRestrictionFromArray() throws Exception {
+        Restriction r = restrictionProvider.createRestriction(testPath, REP_GLOB, new Value[] {globValue});
+        assertNotNull(r);
+        assertEquals(REP_GLOB, r.getDefinition().getName());
+        assertEquals(globValue.getString(), r.getProperty().getValue(Type.STRING));
+        assertFalse(r.getProperty().isArray());
     }
 
     @Test

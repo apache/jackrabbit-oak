@@ -53,6 +53,12 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
             "boolean", new RestrictionDefinitionImpl("boolean", Type.BOOLEAN, true),
             "longs", new RestrictionDefinitionImpl("longs", Type.LONGS, false)
     ));
+
+    private RestrictionProvider rp3 = new TestProvider(ImmutableMap.of(
+            "string", new RestrictionDefinitionImpl("string", Type.STRING, false)),
+            true
+    );
+
     private Set<String> supported = ImmutableSet.of("boolean", "longs", REP_NT_NAMES, REP_GLOB);
     private RestrictionProvider provider = CompositeRestrictionProvider.newInstance(rp1, rp2);
 
@@ -261,6 +267,49 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
         try {
             provider.validateRestrictions("/test", aceNode.getTree());
             fail("validation should detect wrong restriction type (multi vs single valued)");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testValidateRestrictionsAtEntryNode() throws Exception {
+        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
+        aceNode.setBoolean("boolean", true);
+        aceNode.setValues("longs", new Value[] {vf.createValue(10), vf.createValue(290)});
+        aceNode.setString(REP_GLOB, "*");
+        aceNode.setNames(REP_NT_NAMES); // empty array
+
+        provider.validateRestrictions("/test", aceNode.getTree());
+    }
+
+    @Test
+    public void testValidateInvalidRestrictionDef() throws Exception {
+        RestrictionProvider rp = CompositeRestrictionProvider.newInstance(rp1, rp3);
+
+        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
+        NodeUtil rNode = aceNode.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        rNode.setValues(REP_GLOB, new Value[]{vf.createValue(10), vf.createValue(290)});
+
+        try {
+            rp.validateRestrictions("/test", aceNode.getTree());
+            fail("Validation must detect invalid restriction definition");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testValidateUnsupportedRestriction() throws Exception {
+        RestrictionProvider rp = CompositeRestrictionProvider.newInstance(rp1, rp3);
+
+        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
+        NodeUtil rNode = aceNode.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        rNode.setString("unsupported", "value");
+
+        try {
+            rp.validateRestrictions("/test", aceNode.getTree());
+            fail("Validation must detect unsupported restriction");
         } catch (AccessControlException e) {
             // success
         }
