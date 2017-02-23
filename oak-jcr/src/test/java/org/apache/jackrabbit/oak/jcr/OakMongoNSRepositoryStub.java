@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.util.Properties;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -27,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
 /**
  * A repository stub using the DocumentNodeStore.
@@ -62,9 +60,7 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
                     setPersistentCache("target/persistentCache,time").
                     setMongoDB(connection.getDB()).
                     getNodeStore();
-            QueryEngineSettings qs = new QueryEngineSettings();
-            qs.setFullTextComparisonWithoutIndex(true);
-            this.repository = new Jcr(store).with(qs).with(BundlingConfigInitializer.INSTANCE).createRepository();
+            this.repository = new Jcr(store).with(getQueryEngineSettings()).with(BundlingConfigInitializer.INSTANCE).createRepository();
 
             session = getRepository().login(superuser);
             TestContentLoader loader = new TestContentLoader();

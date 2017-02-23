@@ -25,7 +25,6 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
 /**
  * A repository stub implementation for Oak on TarMK
@@ -53,9 +52,7 @@ public class OakTarMKRepositoryStub extends OakRepositoryStub {
                     new File("target", "tarmk-" + System.currentTimeMillis());
             this.store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
             Jcr jcr = new Jcr(new Oak(SegmentNodeStore.builder(store).build()));
-            QueryEngineSettings qs = new QueryEngineSettings();
-            qs.setFullTextComparisonWithoutIndex(true);
-            jcr.with(qs);
+            jcr.with(getQueryEngineSettings());
             preCreateRepository(jcr);
             this.repository = jcr.createRepository();
 
