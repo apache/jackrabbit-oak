@@ -2887,6 +2887,52 @@ public class DocumentNodeStoreTest {
         assertTrue("Two added paths should have forced flush", numChangedPaths == 0);
     }
 
+    @Ignore("OAK-5788")
+    @Test
+    public void commitRootSameAsModifiedPath() throws Exception{
+        final AtomicInteger count = new AtomicInteger();
+        DocumentStore ds = new MemoryDocumentStore(){
+            @Override
+            public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
+                incrementCounter(collection);
+                return super.createOrUpdate(collection, update);
+            }
+
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+                if (updateOps.size() != 1) { //For size == 1 previous method gets called internally which inflates the count
+                    incrementCounter(collection);
+                }
+                return super.createOrUpdate(collection, updateOps);
+            }
+
+            @Override
+            public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
+                incrementCounter(collection);
+                return super.findAndUpdate(collection, update);
+            }
+
+            private <T extends Document> void incrementCounter(Collection<T> collection) {
+                if (collection == Collection.NODES) {
+                    count.incrementAndGet();
+                }
+            }
+        };
+
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(ds).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a").child("b");
+        merge(ns, builder);
+
+        count.set(0);
+
+        builder = ns.getRoot().builder();
+        builder.child("a").child("b").setProperty("foo", "bar");
+        merge(ns, builder);
+
+        assertEquals(1, count.get());
+    }
+
     private static class TestException extends RuntimeException {
 
     }
