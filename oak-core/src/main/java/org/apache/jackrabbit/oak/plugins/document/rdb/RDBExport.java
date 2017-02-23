@@ -42,6 +42,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.io.IOUtils;
@@ -215,7 +216,7 @@ public class RDBExport {
                 IOUtils.closeQuietly(is);
             }
             try {
-                RDBRow row = new RDBRow(id, "1".equals(shasbinary), "1".equals(sdeletedonce),
+                RDBRow row = new RDBRow(id, "1".equals(shasbinary) ? 1L : 0L, "1".equals(sdeletedonce),
                         smodified.length() == 0 ? 0 : Long.parseLong(smodified), Long.parseLong(smodcount),
                         Long.parseLong(scmodcount), sdata, bytes);
                 StringBuilder fulljson = dumpRow(ser, id, row);
@@ -314,12 +315,12 @@ public class RDBExport {
             long modified = rs.getLong("MODIFIED");
             long modcount = rs.getLong("MODCOUNT");
             long cmodcount = rs.getLong("CMODCOUNT");
-            long hasBinary = rs.getLong("HASBINARY");
-            long deletedOnce = rs.getLong("DELETEDONCE");
+            Long hasBinary = readLongOrNullFromResultSet(rs, "HASBINARY");
+            Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, "DELETEDONCE");
             String data = rs.getString("DATA");
             byte[] bdata = rs.getBytes("BDATA");
 
-            RDBRow row = new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata);
+            RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, data, bdata);
             StringBuilder fulljson = dumpRow(ser, id, row);
             if (format == Format.CSV) {
                 out.println(asCSV(fieldNames, fulljson));
@@ -339,6 +340,18 @@ public class RDBExport {
         rs.close();
         stmt.close();
         c.close();
+    }
+
+    @CheckForNull
+    private static Boolean readBooleanOrNullFromResultSet(ResultSet res, String field) throws SQLException {
+        long v = res.getLong(field);
+        return res.wasNull() ? null : Boolean.valueOf(v != 0);
+    }
+
+    @CheckForNull
+    private static Long readLongOrNullFromResultSet(ResultSet res, String field) throws SQLException {
+        long v = res.getLong(field);
+        return res.wasNull() ? null : Long.valueOf(v);
     }
 
     @Nonnull

@@ -160,11 +160,11 @@ public class RDBDocumentSerializer {
         if (RDBDocumentStore.USECMODCOUNT && row.getCollisionsModcount() != RDBRow.LONG_UNSET) {
             doc.put(CMODCOUNT, row.getCollisionsModcount());
         }
-        if (row.hasBinaryProperties()) {
-            doc.put(HASBINARY, NodeDocument.HAS_BINARY_VAL);
+        if (row.hasBinaryProperties() != null) {
+            doc.put(HASBINARY, row.hasBinaryProperties().longValue());
         }
-        if (row.deletedOnce()) {
-            doc.put(DELETEDONCE, Boolean.TRUE);
+        if (row.deletedOnce() != null) {
+            doc.put(DELETEDONCE, row.deletedOnce().booleanValue());
         }
 
         byte[] bdata = row.getBdata();

@@ -31,12 +31,13 @@ public class RDBRow {
     public static final long LONG_UNSET = Long.MIN_VALUE;
 
     private final String id;
-    private final boolean hasBinaryProperties, deletedOnce;
+    private final Long hasBinaryProperties;
+    private final Boolean deletedOnce;
     private final long modified, modcount, cmodcount;
     private final String data;
     private final byte[] bdata;
 
-    public RDBRow(String id, boolean hasBinaryProperties, boolean deletedOnce, Long modified, Long modcount, Long cmodcount, String data, byte[] bdata) {
+    public RDBRow(String id, Long hasBinaryProperties, Boolean deletedOnce, Long modified, Long modcount, Long cmodcount, String data, byte[] bdata) {
         this.id = id;
         this.hasBinaryProperties = hasBinaryProperties;
         this.deletedOnce = deletedOnce;
@@ -52,11 +53,13 @@ public class RDBRow {
         return id;
     }
 
-    public boolean hasBinaryProperties() {
+    @CheckForNull
+    public Long hasBinaryProperties() {
         return hasBinaryProperties;
     }
 
-    public boolean deletedOnce() {
+    @CheckForNull
+    public Boolean deletedOnce() {
         return deletedOnce;
     }
 
