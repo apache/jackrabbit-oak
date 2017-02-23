@@ -91,6 +91,52 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testValuesForSystemProps() {
+        String id = this.getClass().getName() + ".testValuesForSystemProps";
+
+        // remove if present
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds.remove(Collection.NODES, id);
+        }
+        removeMe.add(id);
+
+        // add
+        UpdateOp up = new UpdateOp(id, true);
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+
+        super.ds.invalidateCache();
+        nd = super.ds.find(Collection.NODES, id, 0);
+        assertNull(nd.get(NodeDocument.DELETED_ONCE));
+        assertNull(nd.get(NodeDocument.HAS_BINARY_FLAG));
+        assertFalse(nd.wasDeletedOnce());
+        assertFalse(nd.hasBinary());
+        
+        up = new UpdateOp(id, false);
+        up.set(NodeDocument.DELETED_ONCE, true);
+        super.ds.findAndUpdate(Collection.NODES, up);
+        
+        super.ds.invalidateCache();
+        nd = super.ds.find(Collection.NODES, id, 0);
+        assertEquals(true, nd.get(NodeDocument.DELETED_ONCE));
+        assertNull(nd.get(NodeDocument.HAS_BINARY_FLAG));
+        assertTrue(nd.wasDeletedOnce());
+        assertFalse(nd.hasBinary());
+
+        up = new UpdateOp(id, false);
+        up.set(NodeDocument.DELETED_ONCE, false);
+        up.set(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
+        super.ds.findAndUpdate(Collection.NODES, up);
+        
+        super.ds.invalidateCache();
+        nd = super.ds.find(Collection.NODES, id, 0);
+        assertEquals(false, nd.get(NodeDocument.DELETED_ONCE));
+        assertEquals(NodeDocument.HAS_BINARY_VAL, nd.get(NodeDocument.HAS_BINARY_FLAG));
+        assertFalse(nd.wasDeletedOnce());
+        assertTrue(nd.hasBinary());
+    }
+
+    @Test
     public void testSetId() {
         String id = this.getClass().getName() + ".testSetId";
 
