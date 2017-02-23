@@ -64,6 +64,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newE
 public class VersionGarbageCollector {
     //Kept less than MongoDocumentStore.IN_CLAUSE_BATCH_SIZE to avoid re-partitioning
     private static final int DELETE_BATCH_SIZE = 450;
+    private static final int UPDATE_BATCH_SIZE = 450;
     private static final int PROGRESS_BATCH_SIZE = 10000;
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
     private final DocumentNodeStore nodeStore;
@@ -119,10 +120,12 @@ public class VersionGarbageCollector {
         int deletedLeafDocGCCount;
         int splitDocGCCount;
         int intermediateSplitDocGCCount;
+        int updateResurrectedGCCount;
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch sortDocIds = Stopwatch.createUnstarted();
+        final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
 
         @Override
         public String toString() {
@@ -130,6 +133,7 @@ public class VersionGarbageCollector {
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
                     ", canceled=" + canceled +
                     ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: " + deletedLeafDocGCCount + ")" +
+                    ", updateResurrectedGCCount=" + updateResurrectedGCCount +
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", timeToCollectDeletedDocs=" + collectDeletedDocs +
@@ -145,7 +149,8 @@ public class VersionGarbageCollector {
         COLLECTING,
         DELETING,
         SORTING,
-        SPLITS_CLEANUP
+        SPLITS_CLEANUP,
+        UPDATING
     }
 
     /**
@@ -169,6 +174,7 @@ public class VersionGarbageCollector {
             this.watches.put(GCPhase.DELETING, stats.deleteDeletedDocs);
             this.watches.put(GCPhase.SORTING, stats.sortDocIds);
             this.watches.put(GCPhase.SPLITS_CLEANUP, stats.collectAndDeleteSplitDocs);
+            this.watches.put(GCPhase.UPDATING, stats.updateResurrectedDocuments);
             this.canceled = canceled;
         }
 
@@ -311,6 +317,12 @@ public class VersionGarbageCollector {
                                     phases.stop(GCPhase.DELETING);
                                 }
                             }
+                            if (gc.hasRescurrectUpdateBatch()) {
+                                if (phases.start(GCPhase.UPDATING)) {
+                                    gc.updateResurrectedDocuments(phases.stats);
+                                    phases.stop(GCPhase.UPDATING);
+                                }
+                            }
                         }
                     } finally {
                         Utils.closeIfCloseable(itr);
@@ -318,23 +330,26 @@ public class VersionGarbageCollector {
                     phases.stop(GCPhase.COLLECTING);
                 }
 
-                if (gc.getNumDocuments() == 0){
-                    return;
+                if (gc.getNumDocuments() != 0) {
+                    if (phases.start(GCPhase.DELETING)) {
+                        gc.removeLeafDocuments(phases.stats);
+                        phases.stop(GCPhase.DELETING);
+                    }
+
+                    if (phases.start(GCPhase.SORTING)) {
+                        gc.ensureSorted();
+                        phases.stop(GCPhase.SORTING);
+                    }
+
+                    if (phases.start(GCPhase.DELETING)) {
+                        gc.removeDocuments(phases.stats);
+                        phases.stop(GCPhase.DELETING);
+                    }
                 }
 
-                if (phases.start(GCPhase.DELETING)) {
-                    gc.removeLeafDocuments(phases.stats);
-                    phases.stop(GCPhase.DELETING);
-                }
-
-                if (phases.start(GCPhase.SORTING)) {
-                    gc.ensureSorted();
-                    phases.stop(GCPhase.SORTING);
-                }
-
-                if (phases.start(GCPhase.DELETING)) {
-                    gc.removeDocuments(phases.stats);
-                    phases.stop(GCPhase.DELETING);
+                if (phases.start(GCPhase.UPDATING)) {
+                    gc.updateResurrectedDocuments(phases.stats);
+                    phases.stop(GCPhase.UPDATING);
                 }
             } finally {
                 gc.close();
@@ -350,6 +365,7 @@ public class VersionGarbageCollector {
         private final RevisionVector headRevision;
         private final AtomicBoolean cancel;
         private final List<String> leafDocIdsToDelete = Lists.newArrayList();
+        private final List<String> resurrectedIds = Lists.newArrayList();
         private final StringSort docIdsToDelete = newStringSort();
         private final StringSort prevDocIdsToDelete = newStringSort();
         private final Set<String> exclude = Sets.newHashSet();
@@ -400,6 +416,8 @@ public class VersionGarbageCollector {
                     addDocument(id);
                     addPreviousDocuments(previousDocs);
                 }
+            } else {
+                addNonDeletedDocument(id);
             }
         }
 
@@ -422,11 +440,21 @@ public class VersionGarbageCollector {
             return leafDocIdsToDelete.size() >= DELETE_BATCH_SIZE;
         }
 
+        boolean hasRescurrectUpdateBatch() {
+            return resurrectedIds.size() >= UPDATE_BATCH_SIZE;
+        }
+
         void removeLeafDocuments(VersionGCStats stats) throws IOException {
             int removeCount = removeDeletedDocuments(getLeafDocIdsToDelete(), "(leaf)");
             leafDocIdsToDelete.clear();
             stats.deletedLeafDocGCCount += removeCount;
             stats.deletedDocGCCount += removeCount;
+        }
+
+        void updateResurrectedDocuments(VersionGCStats stats) throws IOException {
+            int updateCount = resetDeletedOnce(resurrectedIds);
+            resurrectedIds.clear();
+            stats.updateResurrectedGCCount += updateCount;
         }
 
         public void close() {
@@ -481,6 +509,10 @@ public class VersionGarbageCollector {
             leafDocIdsToDelete.add(id);
         }
 
+        private void addNonDeletedDocument(String id) throws IOException {
+            resurrectedIds.add(id);
+        }
+
         private long getNumPreviousDocuments() {
             return prevDocIdsToDelete.getSize() - exclude.size();
         }
@@ -528,15 +560,8 @@ public class VersionGarbageCollector {
             while (idListItr.hasNext() && !cancel.get()) {
                 Map<String, Map<Key, Condition>> deletionBatch = Maps.newLinkedHashMap();
                 for (String s : idListItr.next()) {
-                    int idx = s.lastIndexOf('/');
-                    String id = s.substring(0, idx);
-                    long modified = -1;
-                    try {
-                        modified = Long.parseLong(s.substring(idx + 1));
-                    } catch (NumberFormatException e) {
-                        log.warn("Invalid _modified {} for {}", s.substring(idx + 1), id);
-                    }
-                    deletionBatch.put(id, singletonMap(KEY_MODIFIED, newEqualsCondition(modified)));
+                    Map.Entry<String, Long> parsed = parseEntry(s);
+                    deletionBatch.put(parsed.getKey(), singletonMap(KEY_MODIFIED, newEqualsCondition(parsed.getValue())));
                 }
 
                 if (log.isDebugEnabled()) {
@@ -570,6 +595,30 @@ public class VersionGarbageCollector {
                 }
             }
             return deletedCount;
+        }
+
+        private int resetDeletedOnce(List<String> resurrectedDocuments) throws IOException {
+            log.info("Proceeding to reset [{}] _deletedOnce flags", resurrectedDocuments.size());
+
+            int updateCount = 0;
+            for (String s : resurrectedDocuments) {
+                if (!cancel.get()) {
+                    Map.Entry<String, Long> parsed = parseEntry(s);
+                    try {
+                        UpdateOp up = new UpdateOp(parsed.getKey(), false);
+                        up.equals(MODIFIED_IN_SECS, parsed.getValue());
+                        up.remove(NodeDocument.DELETED_ONCE);
+                        NodeDocument r = ds.findAndUpdate(Collection.NODES, up);
+                        if (r != null) {
+                            updateCount += 1;
+                        }
+                    }
+                    catch (DocumentStoreException ex) {
+                        log.warn("updating {}: {}", parsed.getKey(), ex.getMessage());
+                    }
+                }
+            }
+            return updateCount;
         }
 
         private int removeDeletedPreviousDocuments() throws IOException {
@@ -609,6 +658,29 @@ public class VersionGarbageCollector {
                 prevDocIdsToDelete.sort();
                 sorted = true;
             }
+        }
+
+        /**
+         * Parses an id/modified entry and returns the two components as a
+         * Map.Entry.
+         *
+         * @param entry the id/modified String.
+         * @return the parsed components.
+         * @throws IllegalArgumentException if the entry is malformed.
+         */
+        private Map.Entry<String, Long> parseEntry(String entry) throws IllegalArgumentException {
+            int idx = entry.lastIndexOf('/');
+            if (idx == -1) {
+                throw new IllegalArgumentException(entry);
+            }
+            String id = entry.substring(0, idx);
+            long modified;
+            try {
+                modified = Long.parseLong(entry.substring(idx + 1));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(entry);
+            }
+            return Maps.immutableEntry(id, modified);
         }
     }
 

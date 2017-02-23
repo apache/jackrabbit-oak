@@ -172,12 +172,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     private static final String DELETED = "_deleted";
 
     /**
-     * Flag indicating that whether this node was ever deleted.
-     * Its just used as a hint. If set to true then it indicates that
-     * node was once deleted.
-     *
-     * <p>Note that a true value does not mean that node should be considered
-     * deleted as it might have been resurrected in later revision</p>
+     * Flag indicating that whether this node was ever deleted. Its just used as
+     * a hint. If set to true then it indicates that node was once deleted.
+     * <p>
+     * Note that a true value does not mean that node should be considered
+     * deleted as it might have been resurrected in later revision. Further note
+     * that it might get reset by maintenance tasks once they discover that it
+     * indeed was resurrected.
      */
     public static final String DELETED_ONCE = "_deletedOnce";
 
