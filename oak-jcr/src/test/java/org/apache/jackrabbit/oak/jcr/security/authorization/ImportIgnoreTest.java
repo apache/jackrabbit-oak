@@ -32,6 +32,7 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -84,8 +85,13 @@ public class ImportIgnoreTest {
         } else {
             securityProvider = new SecurityProviderImpl();
         }
+
+        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+        queryEngineSettings.setFailTraversal(true);
+
         Jcr jcr = new Jcr();
         jcr.with(securityProvider);
+        jcr.with(queryEngineSettings);
         repo = jcr.createRepository();
         adminSession = repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
 
