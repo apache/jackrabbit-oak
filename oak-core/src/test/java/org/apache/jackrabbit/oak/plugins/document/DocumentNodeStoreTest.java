@@ -2906,6 +2906,25 @@ public class DocumentNodeStoreTest {
         assertEquals(1, ws.count);
     }
 
+    @Ignore("OAK-5791")
+    @Test
+    public void createChildNodeAndCheckNoOfCalls() throws Exception{
+        WriteCountingStore ws = new WriteCountingStore();
+
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(ws).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a").child("b");
+        merge(ns, builder);
+
+        ws.reset();
+
+        builder = ns.getRoot().builder();
+        builder.child("a").child("b").child("c");
+        merge(ns, builder);
+
+        assertEquals(2, ws.count);
+    }
+
     private static class WriteCountingStore extends MemoryDocumentStore {
         int count;
 
