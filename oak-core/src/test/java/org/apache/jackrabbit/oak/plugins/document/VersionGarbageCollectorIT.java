@@ -206,7 +206,7 @@ public class VersionGarbageCollectorIT {
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedLeafDocGCCount);
-
+        assertEquals(1, stats.updateResurrectedGCCount);
     }
 
     @Test
