@@ -25,6 +25,8 @@ import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -399,8 +401,9 @@ public class LastRevRecoveryAgent {
             // collect committed changes of this cluster node
             for (Map.Entry<Revision, String> entry : filterKeys(valueMap, cp).entrySet()) {
                 Revision rev = entry.getKey();
-                if (doc.isCommitted(rev)) {
-                    lastModified = Utils.max(lastModified, doc.getCommitRevision(rev));
+                String cv = nodeStore.getCommitValue(rev, doc);
+                if (isCommitted(cv)) {
+                    lastModified = Utils.max(lastModified, resolveCommitRevision(rev, cv));
                     break;
                 }
             }

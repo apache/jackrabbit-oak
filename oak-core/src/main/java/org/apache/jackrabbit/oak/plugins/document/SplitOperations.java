@@ -59,6 +59,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setHasBina
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setPrevious;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getPreviousIdFor;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 
 /**
  * Utility class to create document split operations.
@@ -254,7 +255,7 @@ class SplitOperations {
                     // only consider local changes
                     continue;
                 }
-                if (doc.isCommitted(entry.getKey())
+                if (isCommitted(context.getCommitValue(entry.getKey(), doc))
                         && !mostRecentRevs.contains(entry.getKey())) {
                     // this is a commit root for changes in other documents
                     revisions.put(entry.getKey(), entry.getValue());
@@ -277,7 +278,7 @@ class SplitOperations {
                     && !changes.contains(r)) {
                 // OAK-2528: _commitRoot entry without associated change
                 // consider all but most recent as garbage (OAK-3333, OAK-4050)
-                if (mostRecent && doc.isCommitted(r)) {
+                if (mostRecent && isCommitted(context.getCommitValue(r, doc))) {
                     mostRecent = false;
                 } else if (isGarbage(r)) {
                     addGarbage(r, COMMIT_ROOT);
@@ -438,7 +439,7 @@ class SplitOperations {
                     continue;
                 }
                 changes.add(rev);
-                if (doc.isCommitted(rev)) {
+                if (isCommitted(context.getCommitValue(rev, doc))) {
                     splitMap.put(rev, entry.getValue());
                 } else if (isGarbage(rev)) {
                     addGarbage(rev, property);

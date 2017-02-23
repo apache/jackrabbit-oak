@@ -502,7 +502,7 @@ public class Commit {
                 // TODO: unify above conflict detection and isConflicting()
                 boolean allowConflictingDeleteChange = allowConcurrentAddRemove(before, op);
                 for (Revision r : collisions) {
-                    Collision c = new Collision(before, r, op, revision);
+                    Collision c = new Collision(before, r, op, revision, nodeStore);
                     if (c.isConflicting() && !allowConflictingDeleteChange) {
                         // mark collisions on commit root
                         if (c.mark(store).equals(revision)) {

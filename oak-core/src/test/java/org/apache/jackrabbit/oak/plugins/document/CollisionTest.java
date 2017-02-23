@@ -99,12 +99,12 @@ public class CollisionTest {
         Revision c = ns.newRevision();
         UpdateOp op = new UpdateOp(id, true);
         NodeDocument.setDeleted(op, c, false);
-        Collision col = new Collision(doc, r1, op, c);
+        Collision col = new Collision(doc, r1, op, c, ns);
         assertTrue(col.isConflicting());
         // concurrent change
         op = new UpdateOp(id, false);
         op.setMapEntry("p", c, "b");
-        col = new Collision(doc, r1, op, c);
+        col = new Collision(doc, r1, op, c, ns);
         assertTrue(col.isConflicting());
 
         b = ns.getRoot().builder();
@@ -119,17 +119,17 @@ public class CollisionTest {
         op = new UpdateOp(id, false);
         op.setDelete(true);
         NodeDocument.setDeleted(op, c, true);
-        col = new Collision(doc, r2, op, c);
+        col = new Collision(doc, r2, op, c, ns);
         assertTrue(col.isConflicting());
         // concurrent conflicting property set
         op = new UpdateOp(id, false);
         op.setMapEntry("p", c, "c");
-        col = new Collision(doc, r2, op, c);
+        col = new Collision(doc, r2, op, c, ns);
         assertTrue(col.isConflicting());
         // concurrent non-conflicting property set
         op = new UpdateOp(id, false);
         op.setMapEntry("q", c, "a");
-        col = new Collision(doc, r2, op, c);
+        col = new Collision(doc, r2, op, c, ns);
         assertFalse(col.isConflicting());
 
         b = ns.getRoot().builder();
@@ -144,12 +144,12 @@ public class CollisionTest {
         op = new UpdateOp(id, false);
         op.setDelete(true);
         NodeDocument.setDeleted(op, c, true);
-        col = new Collision(doc, r3, op, c);
+        col = new Collision(doc, r3, op, c, ns);
         assertTrue(col.isConflicting());
         // concurrent conflicting property set
         op = new UpdateOp(id, false);
         op.setMapEntry("p", c, "d");
-        col = new Collision(doc, r3, op, c);
+        col = new Collision(doc, r3, op, c, ns);
         assertTrue(col.isConflicting());
     }
 

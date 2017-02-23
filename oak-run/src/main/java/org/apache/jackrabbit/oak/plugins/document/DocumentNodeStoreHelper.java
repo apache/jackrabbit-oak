@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper.convertFromDBObject;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 
 /**
  * Helper class to access package private method of DocumentNodeStore and other
@@ -124,7 +125,7 @@ public class DocumentNodeStoreHelper {
                 blobSize += size(blobs);
                 if (foundValid) {
                     garbageSize += size(blobs);
-                } else if (doc.isCommitted(entry.getKey())) {
+                } else if (isCommitted(ns.getCommitValue(entry.getKey(), doc))) {
                     foundValid = true;
                 } else {
                     garbageSize += size(blobs);

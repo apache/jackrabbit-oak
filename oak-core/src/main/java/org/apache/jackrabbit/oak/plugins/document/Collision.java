@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isPropertyName;
 
 /**
@@ -51,15 +52,18 @@ class Collision {
     private final Revision theirRev;
     private final UpdateOp ourOp;
     private final Revision ourRev;
+    private final RevisionContext context;
 
     Collision(@Nonnull NodeDocument document,
               @Nonnull Revision theirRev,
               @Nonnull UpdateOp ourOp,
-              @Nonnull Revision ourRev) {
+              @Nonnull Revision ourRev,
+              @Nonnull RevisionContext context) {
         this.document = checkNotNull(document);
         this.theirRev = checkNotNull(theirRev);
         this.ourOp = checkNotNull(ourOp);
         this.ourRev = checkNotNull(ourRev);
+        this.context = checkNotNull(context);
     }
 
     /**
@@ -76,14 +80,14 @@ class Collision {
     @Nonnull
     Revision mark(DocumentStore store) throws DocumentStoreException {
         // first try to mark their revision
-        if (markCommitRoot(document, theirRev, ourRev, store)) {
+        if (markCommitRoot(document, theirRev, ourRev, store, context)) {
             return theirRev;
         }
         // their commit wins, we have to mark ourRev
         NodeDocument newDoc = Collection.NODES.newDocument(store);
         document.deepCopy(newDoc);
         UpdateUtils.applyChanges(newDoc, ourOp);
-        if (!markCommitRoot(newDoc, ourRev, theirRev, store)) {
+        if (!markCommitRoot(newDoc, ourRev, theirRev, store, context)) {
             throw new IllegalStateException("Unable to annotate our revision "
                     + "with collision marker. Our revision: " + ourRev
                     + ", document:\n" + newDoc.format());
@@ -132,18 +136,20 @@ class Collision {
      *            marker.
      * @param other the revision which detected the collision.
      * @param store the document store.
+     * @param context the revision context.
      * @return <code>true</code> if the commit for the given revision was marked
      *         successfully; <code>false</code> otherwise.
      */
     private static boolean markCommitRoot(@Nonnull NodeDocument document,
                                           @Nonnull Revision revision,
                                           @Nonnull Revision other,
-                                          @Nonnull DocumentStore store) {
+                                          @Nonnull DocumentStore store,
+                                          @Nonnull RevisionContext context) {
         String p = document.getPath();
         String commitRootPath;
         // first check if we can mark the commit with the given revision
         if (document.containsRevision(revision)) {
-            if (document.isCommitted(revision)) {
+            if (isCommitted(context.getCommitValue(revision, document))) {
                 // already committed
                 return false;
             }
@@ -161,7 +167,7 @@ class Collision {
         UpdateOp op = new UpdateOp(Utils.getIdFromPath(commitRootPath), false);
         NodeDocument commitRoot = store.find(Collection.NODES, op.getId());
         // check commit status of revision
-        if (commitRoot.isCommitted(revision)) {
+        if (isCommitted(context.getCommitValue(revision, commitRoot))) {
             return false;
         }
         // check if there is already a collision marker
@@ -188,7 +194,7 @@ class Collision {
         } else {
             // check again if revision is still not committed
             // See OAK-3882
-            if (commitRoot.isCommitted(revision)) {
+            if (isCommitted(context.getCommitValue(revision, commitRoot))) {
                 // meanwhile the change was committed and
                 // already moved to a previous document
                 // -> remove collision marker again
