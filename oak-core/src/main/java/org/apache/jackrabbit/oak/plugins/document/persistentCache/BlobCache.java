@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -37,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * A persistent blob cache. Only blobs that are smaller than 10% of the maximum
  * cache size are stored.
  */
-public class BlobCache implements BlobStore, GarbageCollectableBlobStore, GenerationCache {
+public class BlobCache implements BlobStore, GarbageCollectableBlobStore, GenerationCache, Closeable {
 
     static final Logger LOG = LoggerFactory.getLogger(BlobCache.class);
 
@@ -210,6 +211,13 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     @Override
     public void receive(ByteBuffer buff) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (base instanceof Closeable) {
+            ((Closeable)base).close();
+        }
     }
     
 }
