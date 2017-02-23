@@ -22,7 +22,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.UUID;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
 /**
  * A repository stub implementation for the RDB document store.
@@ -70,9 +68,7 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
                     setPersistentCache("target/persistentCache,time").
                     setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, USERNAME, PASSWD), options).
                     getNodeStore();
-            QueryEngineSettings qs = new QueryEngineSettings();
-            qs.setFullTextComparisonWithoutIndex(true);
-            this.repository = new Jcr(m).with(qs).createRepository();
+            this.repository = new Jcr(m).with(getQueryEngineSettings()).createRepository();
             session = getRepository().login(superuser);
             TestContentLoader loader = new TestContentLoader();
             loader.loadTestContent(session);
