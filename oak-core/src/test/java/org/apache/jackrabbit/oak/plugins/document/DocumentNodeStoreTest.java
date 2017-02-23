@@ -2918,32 +2918,43 @@ public class DocumentNodeStoreTest {
 
         ws.reset();
 
+        System.out.println("======");
         builder = ns.getRoot().builder();
         builder.child("a").child("b").child("c");
         merge(ns, builder);
+        System.out.println("======");
 
-        assertEquals(2, ws.count);
+        assertEquals(1, ws.count);
     }
 
     private static class WriteCountingStore extends MemoryDocumentStore {
+        private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;
 
         @Override
         public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
-            incrementCounter(collection);
+            if (createMulti.get() == null) {
+                if (collection == Collection.NODES) System.out.println("createOrUpdate " + update);
+                incrementCounter(collection);
+            }
             return super.createOrUpdate(collection, update);
         }
 
         @Override
         public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
-            if (updateOps.size() != 1) { //For size == 1 previous method gets called internally which inflates the count
-                incrementCounter(collection);
+            incrementCounter(collection);
+            if (collection == Collection.NODES) System.out.println( "createOrUpdate (multi) " + updateOps);
+            try {
+                createMulti.set(true);
+                return super.createOrUpdate(collection, updateOps);
+            } finally {
+                createMulti.remove();
             }
-            return super.createOrUpdate(collection, updateOps);
         }
 
         @Override
         public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
+            if (collection == Collection.NODES) System.out.println( "findAndUpdate " + update);
             incrementCounter(collection);
             return super.findAndUpdate(collection, update);
         }
