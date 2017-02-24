@@ -553,7 +553,6 @@ The `--bin` option has no effect on binary properties stored in an external Blob
 If the `--filter` option is specified, the tool will traverse only the absolute paths specified as arguments.
 At least one argument is expected with this option; multiple arguments need to be comma-separated.
 The paths will be traversed in the same order as they were specified.
-If one of the paths is invalid, the consistency check will fail and the traversal will not continue for the rest of the paths.
 If the option is not specified, the full traversal of the repository (rooted at `/`) will be performed.
 
 If the `--io-stats` option is specified, the tool will print some statistics about the I/O operations performed during the execution of the check command.

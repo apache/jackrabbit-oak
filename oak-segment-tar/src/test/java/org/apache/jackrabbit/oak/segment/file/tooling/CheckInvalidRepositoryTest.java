@@ -26,7 +26,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -42,9 +41,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         super.addInvalidRevision();
     }
 
-    @Ignore
     @Test
-    public void testInvalidRevision() {
+    public void testInvalidRevisionFallbackOnValid() {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
         
@@ -58,7 +56,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
-        .withCheckBinaries(false)
+        .withCheckBinaries(true)
         .withFilterPaths(filterPaths)
         .withOutWriter(outWriter)
         .withErrWriter(errWriter)
@@ -68,8 +66,37 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Broken revision",
-                "Checked 7 nodes and 15 properties", "Found latest good revision", "Searched through 2 revisions"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checked 7 nodes and 21 properties", "Path / is consistent", 
+                 "Searched through 2 revisions"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /z"));
+    }
+    
+    @Test
+    public void testBrokenPathWithoutValidRevision() {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+        
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+        
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/z");
+        
+        Check.builder()
+        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+        .withJournal("journal.log")
+        .withDebugInterval(Long.MAX_VALUE)
+        .withCheckBinaries(true)
+        .withFilterPaths(filterPaths)
+        .withOutWriter(outWriter)
+        .withErrWriter(errWriter)
+        .build()
+        .run();
+        
+        outWriter.close();
+        errWriter.close();
+        
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("No good revision found"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /z", "Path /z not found"));
     }
 }

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.text.MessageFormat;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -120,27 +122,51 @@ public class ConsistencyChecker implements Closeable {
                 JournalReader journal = new JournalReader(new File(directory, journalFileName));
                 ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval, ioStatistics, outWriter, errWriter)
         ) {
-            Set<String> corruptPaths = newHashSet();
-            String latestGoodRevision = null;
+            Map<String, String> pathToValidRevision = newHashMap();
+            Map<String, Set<String>> pathToCorruptPaths = newHashMap();
+            for (String path : filterPaths) {
+                pathToCorruptPaths.put(path, new HashSet<String>());
+            }
+            
+            int count = 0;
             int revisionCount = 0;
 
-            while (journal.hasNext() && latestGoodRevision == null) {
+            while (journal.hasNext() && count < filterPaths.size()) {
                 String revision = journal.next();
+                checker.print("Checking revision {0}", revision);
+                
                 try {
                     revisionCount++;
                     
-                    String corruptPath = checker.checkRevision(revision, corruptPaths, filterPaths, checkBinaries);
+                    for (String path : filterPaths) {
+                        if (pathToValidRevision.get(path) == null) {
+                            
+                            Set<String> corruptPaths = pathToCorruptPaths.get(path);
+                            String corruptPath = checker.checkPathAtRevision(revision, corruptPaths, path, checkBinaries);
 
-                    if (corruptPath == null) {
-                        checker.print("Found latest good revision {0}", revision);
-                        checker.print("Searched through {0} revisions", revisionCount);
-                        latestGoodRevision = revision;
-                    } else {
-                        corruptPaths.add(corruptPath);
-                        checker.print("Broken revision {0}", revision);
+                            if (corruptPath == null) {
+                                checker.print("Path {0} is consistent", path);
+                                pathToValidRevision.put(path, revision);
+                                count++;
+                            } else {
+                                corruptPaths.add(corruptPath);
+                            }
+                        }
                     }
                 } catch (IllegalArgumentException e) {
                     checker.printError("Skipping invalid record id {0}", revision);
+                }
+            }
+            
+            checker.print("Searched through {0} revisions", revisionCount);
+            
+            if (count == 0) {
+                checker.print("No good revision found");
+            } else {
+                for (String path : filterPaths) {
+                    String validRevision = pathToValidRevision.get(path);
+                    checker.print("Latest good revision for path {0} is {1}", path,
+                            validRevision != null ? validRevision : "none");
                 }
             }
 
@@ -158,10 +184,6 @@ public class ConsistencyChecker implements Closeable {
                         "[I/O] Segment read: Total time: {0} ns",
                         checker.statisticsIOMonitor.readTime
                 );
-            }
-
-            if (latestGoodRevision == null) {
-                checker.print("No good revision found");
             }
         }
     }
@@ -197,50 +219,46 @@ public class ConsistencyChecker implements Closeable {
      * 
      * @param revision      revision to be checked
      * @param corruptPaths  already known corrupt paths from previous revisions
-     * @param paths         paths on which to run consistency check, 
+     * @param path          path on which to run consistency check, 
      *                      provided there are no corrupt paths.
      * @param checkBinaries if {@code true} full content of binary properties will be scanned
      * @return              {@code null}, if the content tree rooted at path is consistent 
      *                      in this revision or the path of the first inconsistency otherwise.  
      */
-    public String checkRevision(String revision, Set<String> corruptPaths, Set<String> paths, boolean checkBinaries) {
-        print("Checking revision {0}", revision);
+    public String checkPathAtRevision(String revision, Set<String> corruptPaths, String path, boolean checkBinaries) {
         String result = null;
         
-        try {
-            store.setRevision(revision);
-            NodeState root = SegmentNodeStoreBuilders.builder(store).build().getRoot();
+        store.setRevision(revision);
+        NodeState root = SegmentNodeStoreBuilders.builder(store).build().getRoot();
 
-            for (String corruptPath : corruptPaths) {
+        for (String corruptPath : corruptPaths) {
+            try {
                 NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, corruptPath);
                 result = checkNode(wrapper.node, wrapper.path, checkBinaries);
 
                 if (result != null) {
                     return result;
                 }
+            } catch (IllegalArgumentException e) {
+                debug("Path {0} not found", corruptPath);
             }
+        }
 
-            nodeCount = 0;
-            propertyCount = 0;
+        nodeCount = 0;
+        propertyCount = 0;
 
-            for (String path : paths) {
-                print("Checking {0}", path);
-                
-                NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, path);
-                result = checkNodeAndDescendants(wrapper.node, wrapper.path, checkBinaries);
-                
-                if (result != null) {
-                    break;
-                }
-            }
+        print("Checking {0}", path);
+        
+        try {        
+            NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, path);
+            result = checkNodeAndDescendants(wrapper.node, wrapper.path, checkBinaries);
+            print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
             
             return result;
-        } catch (RuntimeException e) {
-            printError("Error while traversing {0}: {1}", revision, e.getMessage());
-            return "/";
-        } finally {
-            print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
-        }
+        } catch (IllegalArgumentException e) {
+            printError("Path {0} not found", path);
+            return path;
+        } 
     }
     
     /**

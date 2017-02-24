@@ -30,7 +30,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 /**
- * Tests for {@link CheckCommand} assuming a valid repository.
+ * Tests for {@link CheckCommand} assuming a consistent repository.
  */
 public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
@@ -60,7 +60,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 7 nodes and 45 properties"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 7 nodes and 21 properties",
+                "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
     
@@ -95,7 +96,10 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 6 nodes and 45 properties"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions",
+                "Checked 1 nodes and 1 properties", "Checked 1 nodes and 2 properties", "Checked 1 nodes and 3 properties",
+                "Path /a is consistent", "Path /b is consistent", "Path /c is consistent", "Path /d is consistent", "Path /e is consistent",
+                "Path /f is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
     
@@ -124,7 +128,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 7 nodes and 15 properties"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 7 nodes and 15 properties",
+                "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
     
@@ -156,7 +161,9 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 4 nodes and 10 properties"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 1 nodes and 0 properties",
+                "Checked 1 nodes and 0 properties", "Checked 1 nodes and 4 properties", "Checked 1 nodes and 5 properties",
+                "Path /a is consistent", "Path /b is consistent", "Path /d is consistent", "Path /e is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
     
@@ -185,8 +192,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Broken revision", "Checked 0 nodes and 0 properties", "No good revision found"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Invalid path: /g"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "No good revision found"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
     }
     
     @Test
@@ -219,7 +226,9 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Broken revision", "Checked 2 nodes and 10 properties", "No good revision found"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Invalid path: /g"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 1 nodes and 1 properties",
+                "Checked 1 nodes and 6 properties", "Checked 1 nodes and 4 properties", "Checked 1 nodes and 5 properties",
+                "Path /a is consistent", "Path /f is consistent", "Path /d is consistent", "Path /e is consistent"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
     }
 }
