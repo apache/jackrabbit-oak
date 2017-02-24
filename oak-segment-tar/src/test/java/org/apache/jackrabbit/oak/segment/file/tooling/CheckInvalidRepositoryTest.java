@@ -68,11 +68,13 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         
         assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checked 7 nodes and 21 properties", "Path / is consistent", 
                  "Searched through 2 revisions"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /z"));
+        
+        // not sure whether first traversal will fail because of "/a" or "/z" 
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /"));
     }
     
     @Test
-    public void testBrokenPathWithoutValidRevision() {
+    public void testPartialBrokenPathWithoutValidRevision() {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
         
@@ -98,5 +100,35 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         
         assertExpectedOutput(strOut.toString(), Lists.newArrayList("No good revision found"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /z", "Path /z not found"));
+    }
+    
+    @Test
+    public void testPartialBrokenPathWithValidRevision() {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+        
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+        
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/a");
+        
+        Check.builder()
+        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+        .withJournal("journal.log")
+        .withDebugInterval(Long.MAX_VALUE)
+        .withCheckBinaries(true)
+        .withFilterPaths(filterPaths)
+        .withOutWriter(outWriter)
+        .withErrWriter(errWriter)
+        .build()
+        .run();
+        
+        outWriter.close();
+        errWriter.close();
+        
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checked 1 nodes and 1 properties", "Path /a is consistent", 
+                "Searched through 2 revisions"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /a"));
     }
 }

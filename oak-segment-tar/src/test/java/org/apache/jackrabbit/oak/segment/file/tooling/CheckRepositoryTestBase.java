@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.file.tooling;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
@@ -88,15 +89,29 @@ public class CheckRepositoryTestBase {
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         NodeBuilder builder = nodeStore.getRoot().builder();
 
+        // add a new child "z"
         addChildWithBlobProperties(nodeStore, builder, "z", 5);
+        
+        // add a new property value to existing child "a"
+        addChildWithBlobProperties(nodeStore, builder, "a", 1);
 
         NodeState after = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // get record number to corrupt (NODE record for "z")
         SegmentNodeState child = (SegmentNodeState) after.getChildNode("z");
-        int recordNumber = child.getRecordId().getRecordNumber();
+        int zRecordNumber = child.getRecordId().getRecordNumber();
+        
+        // get record number to corrupt (NODE record for "a")
+        child = (SegmentNodeState) after.getChildNode("a");
+        int aRecordNumber = child.getRecordId().getRecordNumber();
+        
         fileStore.close();
 
+        corruptRecord(zRecordNumber);
+        corruptRecord(aRecordNumber);
+    }
+
+    private void corruptRecord(int recordNumber) throws FileNotFoundException, IOException {
         //since the filestore was closed after writing the first revision, we're always dealing with the 2nd tar file
         RandomAccessFile file = new RandomAccessFile(new File(temporaryFolder.getRoot(),"data00001a.tar"), "rw");
 
