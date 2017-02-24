@@ -82,13 +82,13 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
     private final class TestACE extends ACE {
 
-    private TestACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
-        super(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
-    }
+        private TestACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
+            super(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
+        }
 
-    @Override
-    public Privilege[] getPrivileges() {
-        Set<Privilege> privileges = new HashSet<Privilege>();
+        @Override
+        public Privilege[] getPrivileges() {
+            Set<Privilege> privileges = new HashSet<Privilege>();
             for (String name : bitsProvider.getPrivilegeNames(getPrivilegeBits())) {
                 try {
                     privileges.add(getPrivilegeManager(root).getPrivilege(name));
@@ -97,7 +97,6 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
                 }
             }
             return privileges.toArray(new Privilege[privileges.size()]);
+        }
     }
-}
-
 }
