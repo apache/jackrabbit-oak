@@ -99,7 +99,10 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         errWriter.close();
         
         assertExpectedOutput(strOut.toString(), Lists.newArrayList("No good revision found"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /z", "Path /z not found"));
+        assertExpectedOutput(strErr.toString(),
+                Lists.newArrayList(
+                        "Error while traversing /z: java.lang.IllegalArgumentException: Segment reference out of bounds",
+                        "Path /z not found"));
     }
     
     @Test
@@ -129,6 +132,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         
         assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checked 1 nodes and 1 properties", "Path /a is consistent", 
                 "Searched through 2 revisions"));
-        assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /a"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList(
+                "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 }

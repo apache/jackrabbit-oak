@@ -263,7 +263,7 @@ public class Segment {
         return new SegmentReferences() {
             @Override
             public SegmentId getSegmentId(int reference) {
-                checkArgument(reference <= referencedSegmentIdCount);
+                checkArgument(reference <= referencedSegmentIdCount, "Segment reference out of bounds");
                 SegmentId id = refIds[reference - 1];
                 if (id == null) {
                     synchronized(refIds) {
