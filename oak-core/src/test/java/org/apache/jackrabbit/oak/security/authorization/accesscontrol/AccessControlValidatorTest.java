@@ -18,14 +18,20 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.security.Principal;
 import javax.jcr.AccessDeniedException;
+import javax.jcr.PropertyType;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlManager;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
@@ -39,6 +45,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -356,7 +363,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     @Test
     public void testDuplicateAce() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils.getAccessControlList(acMgr, testPath);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
         acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
         acMgr.setPolicy(testPath, acl);
 
@@ -373,6 +380,28 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             assertTrue(e.isAccessControlViolation());
             assertThat(e.getMessage(), containsString("/testRoot/rep:policy/duplicateAce"));
         }
+    }
+
+    @Test
+    public void testAceDifferentByRestrictionValue() throws Exception {
+        ValueFactory vf = getValueFactory(root);
+
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
+                ImmutableMap.<String, Value>of(),
+                ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME)}));
+
+        // add ac-entry that only differs by the value of the restriction
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
+                ImmutableMap.<String, Value>of(),
+                ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_UNSTRUCTURED, PropertyType.NAME)}));
+        assertEquals(2, acl.getAccessControlEntries().length);
+
+        acMgr.setPolicy(testPath, acl);
+
+        // persisting changes must succeed; the 2 ac-entries must not be treated as equal.
+        root.commit();
     }
 
     @Test
