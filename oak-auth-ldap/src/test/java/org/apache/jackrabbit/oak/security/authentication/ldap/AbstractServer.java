@@ -241,6 +241,7 @@ public abstract class AbstractServer {
      * Given that there is a small race between when the port was reserved and when the
      * socket is actually bound this can still fail. For now we are ignoring this rare
      * case and skip the test. See OAK-5542.
+     * TODO: OAK-5832: Make the LDAP server used in testing resilient against ports already in use
      * @throws Exception
      */
     private void startLdapServer() throws Exception {
