@@ -69,13 +69,13 @@ public class CheckRepositoryTestBase {
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         NodeBuilder builder = nodeStore.getRoot().builder();
 
-        addChildWithBlobProperties(nodeStore, builder, "a", 5);
-        addChildWithBlobProperties(nodeStore, builder, "b", 10);
-        addChildWithBlobProperties(nodeStore, builder, "c", 15);
+        addChildWithBlobProperties(nodeStore, builder, "a", 1);
+        addChildWithBlobProperties(nodeStore, builder, "b", 2);
+        addChildWithBlobProperties(nodeStore, builder, "c", 3);
 
-        addChildWithProperties(nodeStore, builder, "d", 5);
+        addChildWithProperties(nodeStore, builder, "d", 4);
         addChildWithProperties(nodeStore, builder, "e", 5);
-        addChildWithProperties(nodeStore, builder, "f", 5);
+        addChildWithProperties(nodeStore, builder, "f", 6);
 
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         fileStore.close();
