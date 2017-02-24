@@ -163,7 +163,12 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         ACE ace2b = createEntry(testPrincipal, getAggregatedPrivileges(testPrivileges), true);
 
         JackrabbitAccessControlList acl = createACL(ace1, ace2);
+        assertTrue(acl instanceof ImmutableACL);
+        assertEquals(acl, acl);
+
         JackrabbitAccessControlList repoAcl = createACL((String) null, ace1, ace2);
+        assertTrue(repoAcl instanceof ImmutableACL);
+        assertEquals(repoAcl, repoAcl);
 
         assertEquals(acl, createACL(ace1, ace2));
         assertEquals(acl, createACL(ace1, ace2b));

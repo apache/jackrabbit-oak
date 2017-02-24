@@ -31,6 +31,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -48,6 +49,7 @@ import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -77,8 +79,8 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
     }
 
     protected AbstractAccessControlList createACL(@Nullable String jcrPath,
-                                                           @Nonnull List<ACE> entries,
-                                                           @Nonnull NamePathMapper namePathMapper) {
+                                                  @Nonnull List<ACE> entries,
+                                                  @Nonnull NamePathMapper namePathMapper) {
         return createACL(jcrPath, entries, namePathMapper, getRestrictionProvider());
     }
 
@@ -106,6 +108,12 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
             }
         }
         return aggr.toArray(new Privilege[aggr.size()]);
+    }
+
+    @Test
+    public void testGetNamePathMapper() throws Exception {
+        assertSame(namePathMapper, createEmptyACL().getNamePathMapper());
+        assertSame(NamePathMapper.DEFAULT, createACL(getTestPath(), ImmutableList.<ACE>of(), NamePathMapper.DEFAULT).getNamePathMapper());
     }
 
     @Test
