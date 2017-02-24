@@ -302,7 +302,7 @@ public final class Permissions {
     }
 
     public static boolean isAggregate(long permission) {
-        return !NON_AGGREGATES.contains(permission);
+        return permission > NO_PERMISSION && !NON_AGGREGATES.contains(permission);
     }
 
     public static Iterable<Long> aggregates(final long permissions) {
