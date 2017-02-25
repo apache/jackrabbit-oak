@@ -17,6 +17,14 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertThat;
+
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,15 +53,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
 
 public class LdapProviderTest {
 
@@ -101,8 +100,10 @@ public class LdapProviderTest {
         if (!USE_COMMON_LDAP_FIXTURE) {
             LDAP_SERVER.tearDown();
         }
-        idp.close();
-        idp = null;
+        if (idp != null) {
+            idp.close();
+            idp = null;
+        }
     }
 
     protected LdapIdentityProvider createIDP() {
