@@ -210,7 +210,7 @@ Where the columns are in following order
 4. jcr:encoding
 5. path of parent node    
 
-The csv file can be generated programatically. For Oak based repositories
+The csv file can be generated programmatically. For Oak based repositories
 it can be generated via `generate` command. 
 
 ### Generate
@@ -446,9 +446,9 @@ Finally the benchmark runner supports the following repository fixtures:
 | Oak-RDB-DS          | Oak with the DocumentMK/RDB persistence and DataStore          |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
-into oak-run, or be specified separately in the class path. Furthermode, 
+into oak-run, or be specified separately in the class path. Furthermore, 
 dropDBAfterTest is interpreted to drop the *tables*, not the database
-iself, if and only if they have been auto-created)
+itself, if and only if they have been auto-created)
 
 Once started, the benchmark runner will execute each listed test case
 against all the listed repository fixtures. After starting up the
