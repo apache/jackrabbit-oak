@@ -20,15 +20,11 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
-import static java.lang.String.format;
-import static java.util.Collections.singletonMap;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -80,7 +76,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     static final int CURRENT_STORE_VERSION = 1;
 
     private static final Pattern FILE_NAME_PATTERN =
-            Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
+            Pattern.compile("(data)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
 
     static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
@@ -193,69 +189,21 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     static Map<Integer, Map<Character, File>> collectFiles(File directory) {
         Map<Integer, Map<Character, File>> dataFiles = newHashMap();
-        Map<Integer, File> bulkFiles = newHashMap();
 
         for (File file : listFiles(directory)) {
             Matcher matcher = FILE_NAME_PATTERN.matcher(file.getName());
             if (matcher.matches()) {
                 Integer index = Integer.parseInt(matcher.group(2));
-                if ("data".equals(matcher.group(1))) {
-                    Map<Character, File> files = dataFiles.get(index);
-                    if (files == null) {
-                        files = newHashMap();
-                        dataFiles.put(index, files);
-                    }
-                    Character generation = 'a';
-                    if (matcher.group(4) != null) {
-                        generation = matcher.group(4).charAt(0);
-                    }
-                    checkState(files.put(generation, file) == null);
-                } else {
-                    checkState(bulkFiles.put(index, file) == null);
+                Map<Character, File> files = dataFiles.get(index);
+                if (files == null) {
+                    files = newHashMap();
+                    dataFiles.put(index, files);
                 }
-            }
-        }
-
-        if (!bulkFiles.isEmpty()) {
-            log.info("Upgrading TarMK file names in {}", directory);
-
-            if (!dataFiles.isEmpty()) {
-                // first put all the data segments at the end of the list
-                Integer[] indices =
-                        dataFiles.keySet().toArray(new Integer[dataFiles.size()]);
-                Arrays.sort(indices);
-                int position = Math.max(
-                        indices[indices.length - 1] + 1,
-                        bulkFiles.size());
-                for (Integer index : indices) {
-                    Map<Character, File> files = dataFiles.remove(index);
-                    Integer newIndex = position++;
-                    for (Character generation : newHashSet(files.keySet())) {
-                        File file = files.get(generation);
-                        File newFile = new File(
-                                directory,
-                                format(FILE_NAME_FORMAT, newIndex, generation));
-                        log.info("Renaming {} to {}", file, newFile);
-                        file.renameTo(newFile);
-                        files.put(generation, newFile);
-                    }
-                    dataFiles.put(newIndex, files);
+                Character generation = 'a';
+                if (matcher.group(4) != null) {
+                    generation = matcher.group(4).charAt(0);
                 }
-            }
-
-            // then add all the bulk segments at the beginning of the list
-            Integer[] indices =
-                    bulkFiles.keySet().toArray(new Integer[bulkFiles.size()]);
-            Arrays.sort(indices);
-            int position = 0;
-            for (Integer index : indices) {
-                File file = bulkFiles.remove(index);
-                Integer newIndex = position++;
-                File newFile = new File(
-                        directory, format(FILE_NAME_FORMAT, newIndex, "a"));
-                log.info("Renaming {} to {}", file, newFile);
-                file.renameTo(newFile);
-                dataFiles.put(newIndex, singletonMap('a', newFile));
+                checkState(files.put(generation, file) == null);
             }
         }
 
