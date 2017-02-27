@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -48,7 +47,6 @@ public class SegmentTarFixtureTest {
     }
 
     @Test(expected = UnsupportedOperationException.class)
-    @Ignore("OAK-4998")  // FIXME OAK-4998
     public void testReadOnly()
     throws IOException, CommitFailedException, InvalidFileStoreVersionException {
         File directory = folder.getRoot();
