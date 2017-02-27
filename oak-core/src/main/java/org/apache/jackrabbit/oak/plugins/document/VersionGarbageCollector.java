@@ -122,6 +122,7 @@ public class VersionGarbageCollector {
         int intermediateSplitDocGCCount;
         int updateResurrectedGCCount;
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
+        final Stopwatch checkDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch sortDocIds = Stopwatch.createUnstarted();
@@ -137,6 +138,7 @@ public class VersionGarbageCollector {
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", timeToCollectDeletedDocs=" + collectDeletedDocs +
+                    ", timeToCheckDeletedDocs=" + checkDeletedDocs +
                     ", timeToSortDocIds=" + sortDocIds +
                     ", timeTakenToDeleteDeletedDocs=" + deleteDeletedDocs +
                     ", timeTakenToCollectAndDeleteSplitDocs=" + collectAndDeleteSplitDocs +
@@ -147,6 +149,7 @@ public class VersionGarbageCollector {
     private enum GCPhase {
         NONE,
         COLLECTING,
+        CHECKING,
         DELETING,
         SORTING,
         SPLITS_CLEANUP,
@@ -171,6 +174,7 @@ public class VersionGarbageCollector {
             this.elapsed = Stopwatch.createStarted();
             this.watches.put(GCPhase.NONE, Stopwatch.createStarted());
             this.watches.put(GCPhase.COLLECTING, stats.collectDeletedDocs);
+            this.watches.put(GCPhase.CHECKING, stats.checkDeletedDocs);
             this.watches.put(GCPhase.DELETING, stats.deleteDeletedDocs);
             this.watches.put(GCPhase.SORTING, stats.sortDocIds);
             this.watches.put(GCPhase.SPLITS_CLEANUP, stats.collectAndDeleteSplitDocs);
@@ -310,7 +314,10 @@ public class VersionGarbageCollector {
                                 log.info("Iterated through {} documents so far. {} found to be deleted",
                                         docsTraversed, gc.getNumDocuments());
                             }
-                            gc.possiblyDeleted(doc);
+                            if (phases.start(GCPhase.CHECKING)) {
+                                gc.possiblyDeleted(doc);
+                                phases.stop(GCPhase.CHECKING);
+                            }
                             if (gc.hasLeafBatch()) {
                                 if (phases.start(GCPhase.DELETING)) {
                                     gc.removeLeafDocuments(phases.stats);
