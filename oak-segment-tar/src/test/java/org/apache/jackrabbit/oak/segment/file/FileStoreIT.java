@@ -18,21 +18,15 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import com.google.common.base.Strings;
@@ -133,31 +127,6 @@ public class FileStoreIT {
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         assertFalse(store.getHead().hasProperty("step"));
         store.close();
-    }
-
-    @Test
-    public void testRearrangeOldData() throws IOException {
-        new FileOutputStream(new File(getFileStoreFolder(), "data00000.tar")).close();
-        new FileOutputStream(new File(getFileStoreFolder(), "data00010a.tar")).close();
-        new FileOutputStream(new File(getFileStoreFolder(), "data00030.tar")).close();
-        new FileOutputStream(new File(getFileStoreFolder(), "bulk00002.tar")).close();
-        new FileOutputStream(new File(getFileStoreFolder(), "bulk00005a.tar")).close();
-
-        Map<Integer, ?> files = FileStore.collectFiles(getFileStoreFolder());
-        assertEquals(
-                newArrayList(0, 1, 31, 32, 33),
-                newArrayList(newTreeSet(files.keySet())));
-
-        assertTrue(new File(getFileStoreFolder(), "data00000a.tar").isFile());
-        assertTrue(new File(getFileStoreFolder(), "data00001a.tar").isFile());
-        assertTrue(new File(getFileStoreFolder(), "data00031a.tar").isFile());
-        assertTrue(new File(getFileStoreFolder(), "data00032a.tar").isFile());
-        assertTrue(new File(getFileStoreFolder(), "data00033a.tar").isFile());
-
-        files = FileStore.collectFiles(getFileStoreFolder());
-        assertEquals(
-                newArrayList(0, 1, 31, 32, 33),
-                newArrayList(newTreeSet(files.keySet())));
     }
 
     @Test  // See OAK-2049
