@@ -155,7 +155,7 @@ public abstract class RecordCache<T> {
         @Nonnull
         private final Weigher<T, RecordId> weigher;
 
-        private long weight = -1;
+        private long weight = 0;
 
         static final <T> Supplier<RecordCache<T>> defaultFactory(final int size, @Nonnull final Weigher<T, RecordId> weigher) {
             return new Supplier<RecordCache<T>>() {

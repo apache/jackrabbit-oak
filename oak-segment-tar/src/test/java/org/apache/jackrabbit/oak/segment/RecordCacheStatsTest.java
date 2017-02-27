@@ -28,7 +28,6 @@ import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class RecordCacheStatsTest {
@@ -148,13 +147,11 @@ public class RecordCacheStatsTest {
     }
 
     @Test
-    @Ignore
     public void estimateCurrentWeight() {
         assertEquals(KEYS, cacheStats.estimateCurrentWeight());
     }
 
     @Test
-    @Ignore
     public void resetStats() {
         cacheStats.resetStats();
         assertEquals(0, cacheStats.getRequestCount());
