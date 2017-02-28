@@ -161,21 +161,4 @@ public class GuestLoginModuleTest {
         }
     }
 
-    private class ThrowingCallbackHandler implements CallbackHandler {
-
-        private boolean throwIOException;
-
-        private ThrowingCallbackHandler(boolean throwIOException) {
-            this.throwIOException = throwIOException;
-        }
-
-        @Override
-        public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-            if (throwIOException) {
-                throw new IOException();
-            } else {
-                throw new UnsupportedCallbackException(new Callback() {});
-            }
-        }
-    }
 }
