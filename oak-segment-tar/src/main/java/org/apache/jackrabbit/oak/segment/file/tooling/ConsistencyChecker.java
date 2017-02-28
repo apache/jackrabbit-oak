@@ -132,7 +132,7 @@ public class ConsistencyChecker implements Closeable {
             int revisionCount = 0;
 
             while (journal.hasNext() && count < filterPaths.size()) {
-                String revision = journal.next();
+                String revision = journal.next().getRevision();
                 checker.print("Checking revision {0}", revision);
                 
                 try {

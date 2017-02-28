@@ -24,17 +24,20 @@ import static java.nio.charset.Charset.defaultCharset;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
-import com.google.common.collect.AbstractIterator;
 import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Splitter;
+import com.google.common.collect.AbstractIterator;
 
 /**
  * Iterator over the revisions in the journal in reverse order
  * (end of the file to beginning).
  */
-public final class JournalReader extends AbstractIterator<String> implements Closeable {
+public final class JournalReader extends AbstractIterator<JournalEntry> implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(JournalReader.class);
 
     private final ReversedLinesFileReader journal;
@@ -48,15 +51,29 @@ public final class JournalReader extends AbstractIterator<String> implements Clo
      *                                the journal file.
      */
     @Override
-    protected String computeNext() {
+    protected JournalEntry computeNext() {
         try {
-            String line = journal.readLine();
-            while (line != null) {
-                int space = line.indexOf(' ');
-                if (space != -1) {
-                    return line.substring(0, space);
+            String line = null;
+            while ((line = journal.readLine()) != null) {
+                if (line.indexOf(' ') != -1) {
+                    List<String> splits = Splitter.on(' ').splitToList(line);
+                    String revision = splits.get(0);
+                    long timestamp = -1L;
+                    
+                    if (splits.size() > 2) {
+                        try {
+                            timestamp = Long.parseLong(splits.get(2));
+                        } catch (NumberFormatException e) {
+                            LOG.warn("Ignoring malformed timestamp {} for revision {}", splits.get(2), revision);
+                        }
+                    } else {
+                        LOG.warn("Timestamp information is missing for revision {}", revision);
+                    }
+
+                    return new JournalEntry(revision, timestamp);
+                } else {
+                    LOG.warn("Skipping invalid journal entry: {}", line);
                 }
-                line = journal.readLine();
             }
         } catch (IOException e) {
             LOG.error("Error reading journal file", e);
