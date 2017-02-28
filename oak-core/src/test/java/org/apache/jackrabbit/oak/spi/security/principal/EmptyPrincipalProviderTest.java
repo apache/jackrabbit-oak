@@ -19,23 +19,17 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class EmptyPrincipalProviderTest extends AbstractSecurityTest {
+public class EmptyPrincipalProviderTest {
 
     private PrincipalProvider principalProvider = EmptyPrincipalProvider.INSTANCE;
-    private Principal testPrincipal;
+    private Principal testPrincipal = new PrincipalImpl("testUser");
 
-    @Override
-    public void before() throws Exception {
-        super.before();
-        testPrincipal = getTestUser().getPrincipal();
-    }
 
     @Test
     public void testGetPrincipal() {
@@ -52,7 +46,7 @@ public class EmptyPrincipalProviderTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPrincipals() throws Exception {
-        assertTrue(principalProvider.getPrincipals(getTestUser().getID()).isEmpty());
+        assertTrue(principalProvider.getPrincipals("userId").isEmpty());
     }
 
     @Test
