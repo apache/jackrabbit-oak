@@ -297,17 +297,23 @@ public class ConsistencyChecker implements Closeable {
             debug("Traversing {0}", path);
             nodeCount++;
             for (PropertyState propertyState : node.getProperties()) {
-                debug("Checking {0}/{1}", path, propertyState);
                 Type<?> type = propertyState.getType();
+                boolean checked = false;
+                
                 if (type == BINARY) {
-                    traverse(propertyState.getValue(BINARY), checkBinaries);
+                    checked = traverse(propertyState.getValue(BINARY), checkBinaries);
                 } else if (type == BINARIES) {
                     for (Blob blob : propertyState.getValue(BINARIES)) {
-                        traverse(blob, checkBinaries);
+                        checked = checked | traverse(blob, checkBinaries);
                     }
                 } else {
-                    propertyCount++;
                     propertyState.getValue(type);
+                    propertyCount++;
+                    checked = true;
+                }
+                
+                if (checked) {
+                    debug("Checked {0}/{1}", path, propertyState);
                 }
             }
             
@@ -375,7 +381,7 @@ public class ConsistencyChecker implements Closeable {
         }
     }
 
-    private void traverse(Blob blob, boolean checkBinaries) throws IOException {
+    private boolean traverse(Blob blob, boolean checkBinaries) throws IOException {
         if (checkBinaries && !isExternal(blob)) {
             InputStream s = blob.getNewStream();
             try {
@@ -389,7 +395,10 @@ public class ConsistencyChecker implements Closeable {
             }
             
             propertyCount++;
+            return true;
         }
+        
+        return false;
     }
 
     private static boolean isExternal(Blob b) {
