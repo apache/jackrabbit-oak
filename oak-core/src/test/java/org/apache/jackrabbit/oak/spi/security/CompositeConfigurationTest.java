@@ -20,6 +20,9 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -29,15 +32,33 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class CompositeConfigurationTest extends AbstractCompositeConfigurationTest {
+public class CompositeConfigurationTest {
 
     private static final String NAME = "test";
 
-    @Override
-    public void before() throws Exception {
-        super.before();
+    private CompositeConfiguration compositeConfiguration;
 
-        compositeConfiguration = new CompositeConfiguration("test", getSecurityProvider()) {};
+    @Before
+    public void before() throws Exception {
+        compositeConfiguration = new CompositeConfiguration("test", new SecurityProvider() {
+            @Nonnull
+            @Override
+            public ConfigurationParameters getParameters(@Nullable String name) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Nonnull
+            @Override
+            public Iterable<? extends SecurityConfiguration> getConfigurations() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Nonnull
+            @Override
+            public <T> T getConfiguration(@Nonnull Class<T> configClass) {
+                throw new UnsupportedOperationException();
+            }
+        }) {};
     }
 
     @Test
@@ -67,14 +88,14 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         compositeConfiguration.addConfiguration(new SecurityConfiguration.Default());
         compositeConfiguration.addConfiguration(new SecurityConfiguration.Default());
 
-        List<SecurityConfiguration> configurations = getConfigurations();
+        List<SecurityConfiguration> configurations = compositeConfiguration.getConfigurations();
         assertFalse(configurations.isEmpty());
         assertEquals(2, configurations.size());
 
         SecurityConfiguration def = new SecurityConfiguration.Default();
         compositeConfiguration.setDefaultConfig(def);
 
-        configurations = getConfigurations();
+        configurations = compositeConfiguration.getConfigurations();
         assertEquals(2, configurations.size());
         assertFalse(configurations.contains(def));
     }
@@ -88,7 +109,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         compositeConfiguration.addConfiguration(sc);
 
         compositeConfiguration.removeConfiguration(def);
-        List<SecurityConfiguration> configurations = compositeConfiguration.getConfigurations();
+        List configurations = compositeConfiguration.getConfigurations();
         assertEquals(1, configurations.size());
         assertEquals(sc, configurations.iterator().next());
 
