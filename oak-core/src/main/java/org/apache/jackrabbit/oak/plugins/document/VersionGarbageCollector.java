@@ -438,7 +438,8 @@ public class VersionGarbageCollector {
          */
         void removeDocuments(VersionGCStats stats) throws IOException {
             removeLeafDocuments(stats);
-            stats.deletedDocGCCount += removeDeletedDocuments(getDocIdsToDelete(), "(other)");
+            stats.deletedDocGCCount += removeDeletedDocuments(
+                    getDocIdsToDelete(), getDocIdsToDeleteSize(), "(other)");
             // FIXME: this is incorrect because that method also removes intermediate docs
             stats.splitDocGCCount += removeDeletedPreviousDocuments();
         }
@@ -452,7 +453,8 @@ public class VersionGarbageCollector {
         }
 
         void removeLeafDocuments(VersionGCStats stats) throws IOException {
-            int removeCount = removeDeletedDocuments(getLeafDocIdsToDelete(), "(leaf)");
+            int removeCount = removeDeletedDocuments(
+                    getLeafDocIdsToDelete(), getLeafDocIdsToDeleteSize(), "(leaf)");
             leafDocIdsToDelete.clear();
             stats.deletedLeafDocGCCount += removeCount;
             stats.deletedDocGCCount += removeCount;
@@ -535,8 +537,16 @@ public class VersionGarbageCollector {
             return docIdsToDelete.getIds();
         }
 
+        private long getDocIdsToDeleteSize() {
+            return docIdsToDelete.getSize();
+        }
+
         private Iterator<String> getLeafDocIdsToDelete() throws IOException {
             return leafDocIdsToDelete.iterator();
+        }
+
+        private long getLeafDocIdsToDeleteSize() {
+            return leafDocIdsToDelete.size();
         }
 
         private void concurrentModification(NodeDocument doc) {
@@ -557,8 +567,10 @@ public class VersionGarbageCollector {
             });
         }
 
-        private int removeDeletedDocuments(Iterator<String> docIdsToDelete, String label) throws IOException {
-            log.info("Proceeding to delete [{}] documents [{}]", getNumDocuments(), label);
+        private int removeDeletedDocuments(Iterator<String> docIdsToDelete,
+                                           long numDocuments,
+                                           String label) throws IOException {
+            log.info("Proceeding to delete [{}] documents [{}]", numDocuments, label);
 
             Iterator<List<String>> idListItr = partition(docIdsToDelete, DELETE_BATCH_SIZE);
             int deletedCount = 0;
