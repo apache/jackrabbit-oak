@@ -73,14 +73,16 @@ public class JournalEntryTest {
         assertFalse(lines.isEmpty());
 
         String line = lines.get(0);
-        List<String> journalEntry = journalParts(line);
-        assertEquals(3, journalEntry.size());
+        List<String> parts = journalParts(line);
+        assertEquals(3, parts.size());
 
-        long entryTime = Long.valueOf(journalEntry.get(2));
+        long entryTime = Long.valueOf(parts.get(2));
         assertTrue(entryTime >= startTime);
 
         JournalReader jr = new JournalReader(journal);
-        assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), jr.next());
+        JournalEntry journalEntry = jr.next();
+        assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), journalEntry.getRevision());
+        assertEquals(journalParts(lines.get(lines.size() - 1)).get(2), String.valueOf(journalEntry.getTimestamp()));
         jr.close();
     }
 

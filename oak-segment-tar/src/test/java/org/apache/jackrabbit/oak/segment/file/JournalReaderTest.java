@@ -46,9 +46,22 @@ public class JournalReaderTest {
 
     @Test
     public void testSingleton() throws IOException {
-        try (JournalReader journalReader = createJournalReader("one 1")) {
+        try (JournalReader journalReader = createJournalReader("one 1 123")) {
             assertTrue(journalReader.hasNext());
-            assertEquals("one", journalReader.next());
+            JournalEntry entry = journalReader.next();
+            assertEquals("one", entry.getRevision());
+            assertEquals("123", String.valueOf(entry.getTimestamp()));
+            assertFalse(journalReader.hasNext());
+        }
+    }
+    
+    @Test
+    public void testSingletonMalformedTimestamp() throws IOException {
+        try (JournalReader journalReader = createJournalReader("one 1 123a")) {
+            assertTrue(journalReader.hasNext());
+            JournalEntry entry = journalReader.next();
+            assertEquals("one", entry.getRevision());
+            assertEquals("-1", String.valueOf(entry.getTimestamp()));
             assertFalse(journalReader.hasNext());
         }
     }
@@ -57,11 +70,20 @@ public class JournalReaderTest {
     public void testMultiple() throws IOException {
         try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\nthree 3 456")) {
             assertTrue(journalReader.hasNext());
-            assertEquals("three", journalReader.next());
+            
+            JournalEntry entry = journalReader.next();
+            assertEquals("three", entry.getRevision());
+            assertEquals("456", String.valueOf(entry.getTimestamp()));
+            
             assertTrue(journalReader.hasNext());
-            assertEquals("two", journalReader.next());
+            entry = journalReader.next();
+            assertEquals("two", entry.getRevision());
+            assertEquals("-1", String.valueOf(entry.getTimestamp()));
+            
             assertTrue(journalReader.hasNext());
-            assertEquals("one", journalReader.next());
+            entry = journalReader.next();
+            assertEquals("one", entry.getRevision());
+            assertEquals("-1", String.valueOf(entry.getTimestamp()));
             assertFalse(journalReader.hasNext());
         }
     }
@@ -70,34 +92,52 @@ public class JournalReaderTest {
     public void testSpaces() throws IOException {
         try (JournalReader journalReader = createJournalReader("\n \n  \n   ")) {
             assertTrue(journalReader.hasNext());
-            assertEquals("", journalReader.next());
+            
+            JournalEntry entry = journalReader.next();
+            assertEquals("", entry.getRevision());
+            assertEquals("-1", String.valueOf(entry.getTimestamp()));
+            
             assertTrue(journalReader.hasNext());
-            assertEquals("", journalReader.next());
+            entry = journalReader.next();
+            assertEquals("", entry.getRevision());
+            assertEquals("-1", String.valueOf(entry.getTimestamp()));
+            
             assertTrue(journalReader.hasNext());
-            assertEquals("", journalReader.next());
+            entry = journalReader.next();
+            assertEquals("", entry.getRevision());
+            assertEquals("-1", String.valueOf(entry.getTimestamp()));
             assertFalse(journalReader.hasNext());
         }
     }
 
     @Test
     public void testIgnoreInvalid() throws IOException {
-        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3")) {
+        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3 123")) {
             assertTrue(journalReader.hasNext());
-            assertEquals("three", journalReader.next());
+            
+            JournalEntry entry = journalReader.next();
+            assertEquals("three", entry.getRevision());
+            assertEquals("123", String.valueOf(entry.getTimestamp()));
+            
             assertTrue(journalReader.hasNext());
-            assertEquals("two", journalReader.next());
+            entry = journalReader.next();
+            assertEquals("two", entry.getRevision());
+            assertEquals("-1", String.valueOf(entry.getTimestamp()));
+            
             assertTrue(journalReader.hasNext());
-            assertEquals("one", journalReader.next());
+            entry = journalReader.next();
+            assertEquals("one", entry.getRevision());
+            assertEquals("-1", String.valueOf(entry.getTimestamp()));
             assertFalse(journalReader.hasNext());
         }
     }
 
     @Test
     public void testIterable() throws IOException {
-        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3")) {
-            assertTrue(Iterators.contains(journalReader, "three"));
-            assertTrue(Iterators.contains(journalReader, "two"));
-            assertTrue(Iterators.contains(journalReader, "one"));
+        try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3 123")) {
+            assertTrue(Iterators.contains(journalReader, new JournalEntry("three", 123L)));
+            assertTrue(Iterators.contains(journalReader, new JournalEntry("two", -1L)));
+            assertTrue(Iterators.contains(journalReader, new JournalEntry("one", -1L)));
         }
     }
 

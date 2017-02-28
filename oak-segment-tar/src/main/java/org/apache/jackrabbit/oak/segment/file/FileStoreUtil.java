@@ -49,9 +49,9 @@ class FileStoreUtil {
     static RecordId findPersistedRecordId(SegmentStore store, File journal) throws IOException {
         try (JournalReader journalReader = new JournalReader(journal)) {
             while (journalReader.hasNext()) {
-                String entry = journalReader.next();
+                JournalEntry entry = journalReader.next();
                 try {
-                    RecordId id = RecordId.fromString(store, entry);
+                    RecordId id = RecordId.fromString(store, entry.getRevision());
                     if (store.containsSegment(id.getSegmentId())) {
                         return id;
                     }

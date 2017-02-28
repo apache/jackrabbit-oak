@@ -92,7 +92,7 @@ public class TarRevisionsTest {
     public void getHead() throws IOException {
         try (JournalReader reader = createJournalReader()) {
             assertTrue(reader.hasNext());
-            assertEquals(revisions.getHead().toString10(), reader.next());
+            assertEquals(revisions.getHead().toString10(), reader.next().getRevision());
         }
     }
 
@@ -112,7 +112,7 @@ public class TarRevisionsTest {
 
         try (JournalReader reader = createJournalReader()) {
             assertTrue(reader.hasNext());
-            assertEquals(newRoot.getRecordId().toString10(), reader.next());
+            assertEquals(newRoot.getRecordId().toString10(), reader.next().getRevision());
         }
     }
 
@@ -133,7 +133,7 @@ public class TarRevisionsTest {
 
         try (JournalReader reader = createJournalReader()) {
             assertTrue(reader.hasNext());
-            assertEquals(newRoot.getRecordId().toString10(), reader.next());
+            assertEquals(newRoot.getRecordId().toString10(), reader.next().getRevision());
         }
     }
 
