@@ -60,6 +60,8 @@ public class GuestLoginModuleTest {
         assertTrue(guestLoginModule.commit());
         assertFalse(subject.getPrincipals(EveryonePrincipal.class).isEmpty());
         assertFalse(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+
+        assertTrue(guestLoginModule.logout());
     }
 
     @Test
@@ -75,6 +77,8 @@ public class GuestLoginModuleTest {
         assertFalse(guestLoginModule.commit());
         assertTrue(subject.getPrincipals().isEmpty());
         assertTrue(subject.getPublicCredentials().isEmpty());
+
+        assertFalse(guestLoginModule.logout());
     }
 
     @Test
@@ -90,6 +94,50 @@ public class GuestLoginModuleTest {
         assertFalse(guestLoginModule.commit());
         assertTrue(subject.getPrincipals().isEmpty());
         assertTrue(subject.getPublicCredentials().isEmpty());
+
+        assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testThrowingCallbackhandler() throws LoginException {
+        Subject subject = new Subject();
+        CallbackHandler cbh = new ThrowingCallbackHandler(true);
+        Map sharedState = new HashMap();
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+
+        assertFalse(guestLoginModule.login());
+        assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
+
+        assertFalse(guestLoginModule.commit());
+        assertTrue(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+
+        assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testThrowingCallbackhandler2() throws LoginException {
+        Subject subject = new Subject();
+        CallbackHandler cbh = new ThrowingCallbackHandler(false);
+        Map sharedState = new HashMap();
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+
+        assertFalse(guestLoginModule.login());
+        assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
+
+        assertFalse(guestLoginModule.commit());
+        assertTrue(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+
+        assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testAbort() throws LoginException {
+        assertTrue(guestLoginModule.abort());
+    }
+
+    @Test
+    public void testLogout() throws LoginException {
+        assertFalse(guestLoginModule.logout());
     }
 
     //--------------------------------------------------------------------------
@@ -109,6 +157,24 @@ public class GuestLoginModuleTest {
                 } else {
                     throw new UnsupportedCallbackException(callback);
                 }
+            }
+        }
+    }
+
+    private class ThrowingCallbackHandler implements CallbackHandler {
+
+        private boolean throwIOException;
+
+        private ThrowingCallbackHandler(boolean throwIOException) {
+            this.throwIOException = throwIOException;
+        }
+
+        @Override
+        public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+            if (throwIOException) {
+                throw new IOException();
+            } else {
+                throw new UnsupportedCallbackException(new Callback() {});
             }
         }
     }

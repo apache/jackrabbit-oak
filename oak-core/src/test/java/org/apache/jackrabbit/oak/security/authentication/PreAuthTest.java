@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication;
+package org.apache.jackrabbit.oak.security.authentication;
 
 import java.security.Principal;
 import java.security.PrivilegedAction;
@@ -30,6 +30,8 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

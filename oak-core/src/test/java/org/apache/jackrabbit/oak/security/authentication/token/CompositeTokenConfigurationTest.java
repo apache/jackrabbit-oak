@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.List;
 
-import org.apache.jackrabbit.oak.spi.security.AbstractCompositeConfigurationTest;
+import org.apache.jackrabbit.oak.security.AbstractCompositeConfigurationTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;

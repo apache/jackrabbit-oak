@@ -14,29 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.util.List;
+import org.junit.Test;
 
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-public abstract class AbstractCompositeConfigurationTest<T extends SecurityConfiguration> extends AbstractSecurityTest {
+public class PreAuthenticatedLoginTest {
 
-    protected CompositeConfiguration<T> compositeConfiguration;
-
-    public List<T> getConfigurations() {
-        return compositeConfiguration.getConfigurations();
+    @Test
+    public void testGetUserId() {
+        assertEquals("id", new PreAuthenticatedLogin("id").getUserId());
     }
 
-    public void addConfiguration(T configuration) {
-        compositeConfiguration.addConfiguration(configuration);
-    }
-
-    public void removeConfiguration(T configuration) {
-        compositeConfiguration.removeConfiguration(configuration);
-    }
-
-    public void setDefault(T configuration) {
-        compositeConfiguration.setDefaultConfig(configuration);
+    @Test
+    public void testGetUserIdFromNullValue() {
+        assertNull(new PreAuthenticatedLogin(null).getUserId());
     }
 }
