@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static java.text.DateFormat.getDateTimeInstance;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.text.MessageFormat;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -122,7 +125,7 @@ public class ConsistencyChecker implements Closeable {
                 JournalReader journal = new JournalReader(new File(directory, journalFileName));
                 ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval, ioStatistics, outWriter, errWriter)
         ) {
-            Map<String, String> pathToValidRevision = newHashMap();
+            Map<String, JournalEntry> pathToJournalEntry = newHashMap();
             Map<String, Set<String>> pathToCorruptPaths = newHashMap();
             for (String path : filterPaths) {
                 pathToCorruptPaths.put(path, new HashSet<String>());
@@ -132,21 +135,21 @@ public class ConsistencyChecker implements Closeable {
             int revisionCount = 0;
 
             while (journal.hasNext() && count < filterPaths.size()) {
-                String revision = journal.next().getRevision();
-                checker.print("Checking revision {0}", revision);
+                JournalEntry journalEntry = journal.next();
+                checker.print("Checking revision {0}", journalEntry.getRevision());
                 
                 try {
                     revisionCount++;
                     
                     for (String path : filterPaths) {
-                        if (pathToValidRevision.get(path) == null) {
+                        if (pathToJournalEntry.get(path) == null) {
                             
                             Set<String> corruptPaths = pathToCorruptPaths.get(path);
-                            String corruptPath = checker.checkPathAtRevision(revision, corruptPaths, path, checkBinaries);
+                            String corruptPath = checker.checkPathAtRevision(journalEntry.getRevision(), corruptPaths, path, checkBinaries);
 
                             if (corruptPath == null) {
                                 checker.print("Path {0} is consistent", path);
-                                pathToValidRevision.put(path, revision);
+                                pathToJournalEntry.put(path, journalEntry);
                                 count++;
                             } else {
                                 corruptPaths.add(corruptPath);
@@ -154,7 +157,7 @@ public class ConsistencyChecker implements Closeable {
                         }
                     }
                 } catch (IllegalArgumentException e) {
-                    checker.printError("Skipping invalid record id {0}", revision);
+                    checker.printError("Skipping invalid record id {0}", journalEntry.getRevision());
                 }
             }
             
@@ -164,9 +167,12 @@ public class ConsistencyChecker implements Closeable {
                 checker.print("No good revision found");
             } else {
                 for (String path : filterPaths) {
-                    String validRevision = pathToValidRevision.get(path);
-                    checker.print("Latest good revision for path {0} is {1}", path,
-                            validRevision != null ? validRevision : "none");
+                    JournalEntry journalEntry = pathToJournalEntry.get(path);
+                    String revision = journalEntry != null ? journalEntry.getRevision() : null;
+                    long timestamp = journalEntry != null ? journalEntry.getTimestamp() : -1L;
+                    
+                    checker.print("Latest good revision for path {0} is {1} from {2}", path,
+                            toString(revision), toString(timestamp));
                 }
             }
 
@@ -188,6 +194,22 @@ public class ConsistencyChecker implements Closeable {
         }
     }
 
+    private static String toString(String revision) {
+        if (revision != null) {
+            return revision;
+        } else {
+            return "none";
+        }
+    }
+    
+    private static String toString(long timestamp) {
+        if (timestamp != -1L) {
+            return getDateTimeInstance().format(new Date(timestamp));
+        } else {
+            return "unknown date";
+        }
+    }
+    
     /**
      * Create a new consistency checker instance
      *
@@ -392,6 +414,10 @@ public class ConsistencyChecker implements Closeable {
 
     private void print(String format, Object arg1, Object arg2) {
         outWriter.println(MessageFormat.format(format, arg1, arg2));
+    }
+    
+    private void print(String format, Object arg1, Object arg2, Object arg3) {
+        outWriter.println(MessageFormat.format(format, arg1, arg2, arg3));
     }
     
     private void printError(String format, Object arg) {
