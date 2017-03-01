@@ -69,9 +69,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     private final Set<SegmentBufferWriter> disposed = newHashSet();
 
     @Nonnull
-    private final SegmentStore store;
-
-    @Nonnull
     private final SegmentIdProvider idProvider;
 
     @Nonnull
@@ -86,12 +83,10 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     private short writerId = -1;
 
     public SegmentBufferWriterPool(
-            @Nonnull SegmentStore store,
             @Nonnull SegmentIdProvider idProvider,
             @Nonnull SegmentReader reader,
             @Nonnull String wid,
             @Nonnull Supplier<Integer> gcGeneration) {
-        this.store = checkNotNull(store);
         this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = checkNotNull(wid);
@@ -110,7 +105,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     }
 
     @Override
-    public void flush() throws IOException {
+    public void flush(@Nonnull SegmentStore store) throws IOException {
         List<SegmentBufferWriter> toFlush = newArrayList();
         List<SegmentBufferWriter> toReturn = newArrayList();
 
@@ -145,7 +140,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         // Call flush from outside the pool monitor to avoid potential
         // deadlocks of that method calling SegmentStore.writeSegment
         for (SegmentBufferWriter writer : toFlush) {
-            writer.flush();
+            writer.flush(store);
         }
     }
 
@@ -191,7 +186,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
                 writer = new SegmentBufferWriter(
-                        store,
                         idProvider,
                         reader,
                         getWriterId(wid),
@@ -200,7 +194,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             } else if (writer.getGeneration() != gcGeneration.get()) {
                 disposed.add(writer);
                 writer = new SegmentBufferWriter(
-                        store,
                         idProvider,
                         reader,
                         getWriterId(wid),

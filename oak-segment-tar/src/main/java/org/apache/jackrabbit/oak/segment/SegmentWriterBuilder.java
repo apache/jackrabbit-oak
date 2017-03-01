@@ -174,7 +174,7 @@ public final class SegmentWriterBuilder {
                     }
 
                     @Override
-                    public void flush() {
+                    public void flush(@Nonnull SegmentStore store) {
                         throw new UnsupportedOperationException("Cannot write to read-only store");
                     }
                 });
@@ -199,7 +199,6 @@ public final class SegmentWriterBuilder {
     private WriteOperationHandler createWriter(@Nonnull FileStore store, boolean pooled) {
         if (pooled) {
             return new SegmentBufferWriterPool(
-                    store,
                     store.getSegmentIdProvider(),
                     store.getReader(),
                     name,
@@ -207,7 +206,6 @@ public final class SegmentWriterBuilder {
             );
         } else {
             return new SegmentBufferWriter(
-                    store,
                     store.getSegmentIdProvider(),
                     store.getReader(),
                     name,
@@ -220,7 +218,6 @@ public final class SegmentWriterBuilder {
     private WriteOperationHandler createWriter(@Nonnull MemoryStore store, boolean pooled) {
         if (pooled) {
             return new SegmentBufferWriterPool(
-                    store,
                     store.getSegmentIdProvider(),
                     store.getReader(),
                     name,
@@ -228,7 +225,6 @@ public final class SegmentWriterBuilder {
             );
         } else {
             return new SegmentBufferWriter(
-                    store,
                     store.getSegmentIdProvider(),
                     store.getReader(),
                     name,

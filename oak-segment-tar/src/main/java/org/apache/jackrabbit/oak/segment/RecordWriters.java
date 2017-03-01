@@ -66,8 +66,8 @@ final class RecordWriters {
             this(type, size, Collections.<RecordId> emptyList());
         }
 
-        public final RecordId write(SegmentBufferWriter writer) throws IOException {
-            RecordId id = writer.prepare(type, size, ids);
+        public final RecordId write(SegmentBufferWriter writer, SegmentStore store) throws IOException {
+            RecordId id = writer.prepare(type, size, ids, store);
             return writeRecordContent(id, writer);
         }
 
