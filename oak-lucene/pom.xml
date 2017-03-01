@@ -126,7 +126,7 @@
             <Embed-Dependency>
                 lucene-*;inline=true,
               <!-- TODO FIXME OAK-3598 -->
-              oak-core;inline="org/apache/jackrabbit/oak/cache/CacheStats*"
+              oak-core;inline="org/apache/jackrabbit/oak/cache/CacheStats.class"
               <!-- TODO FIXME OAK-3598 -->
             </Embed-Dependency>
           </instructions>
