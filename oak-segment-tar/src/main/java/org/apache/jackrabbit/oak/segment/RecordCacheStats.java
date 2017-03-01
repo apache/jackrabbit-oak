@@ -20,26 +20,17 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.String.format;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
-import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 
-// FIXME OAK-4619: Unify RecordCacheStats and CacheStats
 /**
  * Statistics for {@link RecordCache}.
  */
-public class RecordCacheStats extends AnnotatedStandardMBean implements CacheStatsMBean {
-
-    @Nonnull
-    private final String name;
+public class RecordCacheStats extends AbstractCacheStats {
 
     @Nonnull
     private final Supplier<CacheStats> stats;
@@ -50,92 +41,20 @@ public class RecordCacheStats extends AnnotatedStandardMBean implements CacheSta
     @Nonnull
     private final Supplier<Long> weight;
 
-    private CacheStats lastSnapshot;
-
-    public RecordCacheStats(@Nonnull String name,
+    public RecordCacheStats(
+            @Nonnull String name,
             @Nonnull Supplier<CacheStats> stats,
-            @Nonnull Supplier<Long> elementCount, @Nonnull Supplier<Long> weight) {
-        super(CacheStatsMBean.class);
-        this.name = checkNotNull(name);
+            @Nonnull Supplier<Long> elementCount,
+            @Nonnull Supplier<Long> weight) {
+        super(name);
         this.stats = checkNotNull(stats);
         this.elementCount = checkNotNull(elementCount);
         this.weight = checkNotNull(weight);
-        this.lastSnapshot = stats.get();
-    }
-
-    private CacheStats stats() {
-        return stats.get().minus(lastSnapshot);
     }
 
     @Override
-    public synchronized void resetStats() {
-        lastSnapshot = stats.get();
-    }
-
-    @Nonnull
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public long getRequestCount() {
-        return stats().requestCount();
-    }
-
-    @Override
-    public long getHitCount() {
-        return stats().hitCount();
-    }
-
-    @Override
-    public double getHitRate() {
-        return stats().hitRate();
-    }
-
-    @Override
-    public long getMissCount() {
-        return stats().missCount();
-    }
-
-    @Override
-    public double getMissRate() {
-        return stats().missRate();
-    }
-
-    @Override
-    public long getLoadCount() {
-        return stats().loadCount();
-    }
-
-    @Override
-    public long getLoadSuccessCount() {
-        return stats().loadSuccessCount();
-    }
-
-    @Override
-    public long getLoadExceptionCount() {
-        return stats().loadExceptionCount();
-    }
-
-    @Override
-    public double getLoadExceptionRate() {
-        return stats().loadExceptionRate();
-    }
-
-    @Override
-    public long getTotalLoadTime() {
-        return stats().totalLoadTime();
-    }
-
-    @Override
-    public double getAverageLoadPenalty() {
-        return stats().averageLoadPenalty();
-    }
-
-    @Override
-    public long getEvictionCount() {
-        return stats().evictionCount();
+    protected CacheStats getCurrentStats() {
+        return stats.get();
     }
 
     @Override
@@ -152,26 +71,4 @@ public class RecordCacheStats extends AnnotatedStandardMBean implements CacheSta
     public long estimateCurrentWeight() {
         return weight.get();
     }
-
-    @Override
-    public String cacheInfoAsString() {
-        return Objects.toStringHelper("CacheStats(" + name + ")")
-            .add("hitCount", getHitCount())
-            .add("hitRate", format("%1.2f", getHitRate()))
-            .add("missCount", getMissCount())
-            .add("missRate", format("%1.2f", getMissRate()))
-            .add("requestCount", getRequestCount())
-            .add("loadCount", getLoadCount())
-            .add("loadSuccessCount", getLoadSuccessCount())
-            .add("loadExceptionCount", getLoadExceptionCount())
-            .add("totalLoadTime", format("%d s", NANOSECONDS.toSeconds(getTotalLoadTime())))
-            .add("averageLoadPenalty ", format("%1.2f ns", getAverageLoadPenalty()))
-            .add("evictionCount", getEvictionCount())
-            .add("elementCount", getElementCount())
-            .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
-            .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
-            .add("currentWeights", humanReadableByteCount(estimateCurrentWeight()))
-            .toString();
-    }
-
 }

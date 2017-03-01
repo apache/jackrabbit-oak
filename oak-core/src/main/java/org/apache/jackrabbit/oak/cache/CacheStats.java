@@ -18,28 +18,23 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Objects;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.Weigher;
-import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 
 /**
  * Cache statistics.
  */
-public class CacheStats extends AnnotatedStandardMBean implements CacheStatsMBean {
+public class CacheStats extends AbstractCacheStats {
     private final Cache<Object, Object> cache;
     private final Weigher<Object, Object> weigher;
     private final long maxWeight;
-    private final String name;
-    private com.google.common.cache.CacheStats lastSnapshot = 
-            new com.google.common.cache.CacheStats(
-            0, 0, 0, 0, 0, 0);
 
     /**
      * Construct the cache stats object.
@@ -50,73 +45,20 @@ public class CacheStats extends AnnotatedStandardMBean implements CacheStatsMBea
      * @param maxWeight the maximum weight
      */
     @SuppressWarnings("unchecked")
-    public CacheStats(Cache<?, ?> cache, String name, 
-            Weigher<?, ?> weigher, long maxWeight) {
-        super(CacheStatsMBean.class);
-        this.cache = (Cache<Object, Object>) cache;
-        this.name = name;
+    public CacheStats(
+            @Nonnull Cache<?, ?> cache,
+            @Nonnull String name,
+            @Nullable Weigher<?, ?> weigher,
+            long maxWeight) {
+        super(name);
+        this.cache = (Cache<Object, Object>) checkNotNull(cache);
         this.weigher = (Weigher<Object, Object>) weigher;
         this.maxWeight = maxWeight;
     }
 
     @Override
-    public long getRequestCount() {
-        return stats().requestCount();
-    }
-
-    @Override
-    public long getHitCount() {
-        return stats().hitCount();
-    }
-
-    @Override
-    public double getHitRate() {
-        return stats().hitRate();
-    }
-
-    @Override
-    public long getMissCount() {
-        return stats().missCount();
-    }
-
-    @Override
-    public double getMissRate() {
-        return stats().missRate();
-    }
-
-    @Override
-    public long getLoadCount() {
-        return stats().loadCount();
-    }
-
-    @Override
-    public long getLoadSuccessCount() {
-        return stats().loadSuccessCount();
-    }
-
-    @Override
-    public long getLoadExceptionCount() {
-        return stats().loadExceptionCount();
-    }
-
-    @Override
-    public double getLoadExceptionRate() {
-        return stats().loadExceptionRate();
-    }
-
-    @Override
-    public long getTotalLoadTime() {
-        return stats().totalLoadTime();
-    }
-
-    @Override
-    public double getAverageLoadPenalty() {
-        return stats().averageLoadPenalty();
-    }
-
-    @Override
-    public long getEvictionCount() {
-        return stats().evictionCount();
+    protected com.google.common.cache.CacheStats getCurrentStats() {
+        return cache.stats();
     }
 
     @Override
@@ -141,50 +83,5 @@ public class CacheStats extends AnnotatedStandardMBean implements CacheStatsMBea
     @Override
     public long getMaxTotalWeight() {
         return maxWeight;
-    }
-
-    @Override
-    public synchronized void resetStats() {
-        //Cache stats cannot be rest at Guava level. Instead we
-        //take a snapshot and then subtract it from future stats calls
-        lastSnapshot = cache.stats();
-    }
-
-    @Override
-    public String cacheInfoAsString() {
-        return Objects.toStringHelper("CacheStats")
-                .add("hitCount", getHitCount())
-                .add("hitRate", String.format("%1.2f", getHitRate()))
-                .add("missCount", getMissCount())
-                .add("missRate", String.format("%1.2f", getMissRate()))
-                .add("requestCount", getRequestCount())
-                .add("loadCount", getLoadCount())
-                .add("loadSuccessCount", getLoadSuccessCount())
-                .add("loadExceptionCount", getLoadExceptionCount())
-                .add("totalLoadTime", timeInWords(getTotalLoadTime()))
-                .add("averageLoadPenalty (nanos)", String.format("%1.2f", getAverageLoadPenalty()))
-                .add("evictionCount", getEvictionCount())
-                .add("elementCount", getElementCount())
-                .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
-                .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
-                .toString();
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    private com.google.common.cache.CacheStats stats() {
-        return cache.stats().minus(lastSnapshot);
-    }
-
-    static String timeInWords(long nanos) {
-        long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-        return String.format("%d min, %d sec",
-                TimeUnit.MILLISECONDS.toMinutes(millis),
-                TimeUnit.MILLISECONDS.toSeconds(millis) -
-                        TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
-        );
     }
 }
