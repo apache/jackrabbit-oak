@@ -210,7 +210,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             ",\"sno\":" + idProvider.getSegmentIdCount() +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
-            segment = new Segment(idProvider, reader, buffer, recordNumbers, segmentReferences, metaInfo);
+            segment = new Segment(idProvider.newDataSegmentId(), reader, buffer, recordNumbers, segmentReferences, metaInfo);
 
             statistics = new Statistics();
             statistics.id = segment.getSegmentId();

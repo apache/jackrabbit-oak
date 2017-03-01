@@ -140,9 +140,6 @@ public class Segment {
     public static final int RECORD_NUMBER_COUNT_OFFSET = 18;
 
     @Nonnull
-    private final SegmentIdProvider idProvider;
-
-    @Nonnull
     private final SegmentReader reader;
 
     @Nonnull
@@ -183,7 +180,6 @@ public class Segment {
                    @Nonnull SegmentReader reader,
                    @Nonnull final SegmentId id,
                    @Nonnull final ByteBuffer data) {
-        this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.id = checkNotNull(id);
         this.data = checkNotNull(data);
@@ -202,7 +198,7 @@ public class Segment {
             });
             this.version = SegmentVersion.fromByte(segmentVersion);
             this.recordNumbers = readRecordNumberOffsets();
-            this.segmentReferences = readReferencedSegments();
+            this.segmentReferences = readReferencedSegments(idProvider);
         } else {
             this.version = LATEST_VERSION;
             this.recordNumbers = new IdentityRecordNumbers();
@@ -253,7 +249,8 @@ public class Segment {
         return new ImmutableRecordNumbers(offsets, types);
     }
 
-    private SegmentReferences readReferencedSegments() {
+    private SegmentReferences readReferencedSegments(
+            final SegmentIdProvider idProvider) {
         checkState(getReferencedSegmentIdCount() + 1 < 0xffff,
                 "Segment cannot have more than 0xffff references");
 
@@ -298,16 +295,15 @@ public class Segment {
         };
     }
 
-    Segment(@Nonnull SegmentIdProvider idProvider,
+    Segment(@Nonnull SegmentId id,
             @Nonnull SegmentReader reader,
             @Nonnull byte[] buffer,
             @Nonnull RecordNumbers recordNumbers,
             @Nonnull SegmentReferences segmentReferences,
             @Nonnull String info
     ) {
-        this.idProvider = checkNotNull(idProvider);
+        this.id = checkNotNull(id);
         this.reader = checkNotNull(reader);
-        this.id = idProvider.newDataSegmentId();
         this.info = checkNotNull(info);
         this.data = ByteBuffer.wrap(checkNotNull(buffer));
         this.version = SegmentVersion.fromByte(buffer[3]);
