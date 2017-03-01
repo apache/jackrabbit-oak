@@ -569,7 +569,7 @@ public class FileStore extends AbstractFileStore {
         }
     }
 
-    private SegmentNotFoundException asSegmentNotFoundException(ExecutionException e, SegmentId id) {
+    private static SegmentNotFoundException asSegmentNotFoundException(ExecutionException e, SegmentId id) {
         if (e.getCause() instanceof SegmentNotFoundException) {
             return (SegmentNotFoundException) e.getCause();
         }
