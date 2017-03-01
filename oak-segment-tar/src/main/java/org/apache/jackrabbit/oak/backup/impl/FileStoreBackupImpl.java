@@ -70,7 +70,6 @@ public class FileStoreBackupImpl implements FileStoreBackup {
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                     backup,
                     backup.getSegmentIdProvider(),
-                    backup.getTracker().getSegmentCounter(),
                     backup.getReader(),
                     "b",
                     gen
