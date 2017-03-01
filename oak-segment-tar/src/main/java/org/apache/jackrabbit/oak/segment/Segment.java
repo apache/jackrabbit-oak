@@ -45,6 +45,8 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -52,9 +54,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.AbstractIterator;
 
 /**
  * A list of records.
@@ -463,6 +462,7 @@ public class Segment {
         d.get(buffer, offset, length);
     }
 
+    @Nonnull
     RecordId readRecordId(int recordNumber, int rawOffset, int recordIdOffset) {
         return internalReadRecordId(pos(recordNumber, rawOffset, recordIdOffset, RECORD_ID_BYTES));
     }
@@ -475,6 +475,7 @@ public class Segment {
         return readRecordId(recordNumber, 0, 0);
     }
 
+    @Nonnull
     private RecordId internalReadRecordId(int pos) {
         SegmentId segmentId = dereferenceSegmentId(asUnsigned(data.getShort(pos)));
         return new RecordId(segmentId, data.getInt(pos + 2));
@@ -484,6 +485,7 @@ public class Segment {
         return value & 0xffff;
     }
 
+    @Nonnull
     private SegmentId dereferenceSegmentId(int reference) {
         if (reference == 0) {
             return id;
