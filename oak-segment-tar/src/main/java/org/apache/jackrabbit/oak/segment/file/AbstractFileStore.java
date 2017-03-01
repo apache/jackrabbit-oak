@@ -104,22 +104,16 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     };
 
-    @Nonnull
-    private final SegmentIdFactory segmentIdFactory = new SegmentIdFactory() {
-
-        @Override
-        @Nonnull
-        public SegmentId newSegmentId(long msb, long lsb) {
-            return new SegmentId(AbstractFileStore.this, msb, lsb);
-        }
-
-    };
-
     protected final IOMonitor ioMonitor;
 
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
-        this.tracker = new SegmentTracker();
+        this.tracker = new SegmentTracker(new SegmentIdFactory() {
+            @Override @Nonnull
+            public SegmentId newSegmentId(long msb, long lsb) {
+                return new SegmentId(AbstractFileStore.this, msb, lsb);
+            }
+        });
         this.blobStore = builder.getBlobStore();
         this.segmentCache = new SegmentCache(builder.getSegmentCacheSize());
         this.segmentReader = new CachingSegmentReader(new Supplier<SegmentWriter>() {
@@ -250,19 +244,19 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     @Override
     @Nonnull
     public SegmentId newSegmentId(long msb, long lsb) {
-        return tracker.newSegmentId(msb, lsb, segmentIdFactory);
+        return tracker.newSegmentId(msb, lsb);
     }
 
     @Override
     @Nonnull
     public SegmentId newBulkSegmentId() {
-        return tracker.newBulkSegmentId(segmentIdFactory);
+        return tracker.newBulkSegmentId();
     }
 
     @Override
     @Nonnull
     public SegmentId newDataSegmentId() {
-        return tracker.newDataSegmentId(segmentIdFactory);
+        return tracker.newDataSegmentId();
     }
 
     /**
