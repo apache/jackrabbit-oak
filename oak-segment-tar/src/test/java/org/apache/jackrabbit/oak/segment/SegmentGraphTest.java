@@ -146,7 +146,7 @@ public class SegmentGraphTest {
     public void testSegmentGraphWithFilter() throws Exception {
         ReadOnlyFileStore store = fileStoreBuilder(getStoreFolder()).buildReadOnly();
         try {
-            Predicate<UUID> filter = createRegExpFilter(".*(writer2|writer3).*", store);
+            Predicate<UUID> filter = createRegExpFilter(".*(writer2|writer3).*", store.getSegmentIdProvider());
             Graph<UUID> segmentGraph = parseSegmentGraph(store, filter);
             assertEquals(filteredSegments, newHashSet(segmentGraph.vertices()));
             Map<UUID, Set<UUID>> map = newHashMap();

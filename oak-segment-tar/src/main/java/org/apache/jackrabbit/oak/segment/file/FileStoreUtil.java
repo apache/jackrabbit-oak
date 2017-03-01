@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,17 +42,19 @@ class FileStoreUtil {
      * provided segment store.
      *
      * @param store   An instance of {@link SegmentStore}.
+     * @param idProvider  The {@code SegmentIdProvider} of the {@code store}
      * @param journal Path to the journal file.
      * @return An instance of {@link RecordId}, or {@code null} if none could be
      * found.
      * @throws IOException If an I/O error occurs.
      */
-    static RecordId findPersistedRecordId(SegmentStore store, File journal) throws IOException {
+    static RecordId findPersistedRecordId(SegmentStore store, SegmentIdProvider idProvider, File journal)
+    throws IOException {
         try (JournalReader journalReader = new JournalReader(journal)) {
             while (journalReader.hasNext()) {
                 JournalEntry entry = journalReader.next();
                 try {
-                    RecordId id = RecordId.fromString(store, entry.getRevision());
+                    RecordId id = RecordId.fromString(idProvider, entry.getRevision());
                     if (store.containsSegment(id.getSegmentId())) {
                         return id;
                     }

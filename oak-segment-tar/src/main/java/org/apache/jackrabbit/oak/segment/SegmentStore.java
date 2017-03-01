@@ -53,14 +53,4 @@ public interface SegmentStore {
      * @param length length of the segment
      */
     void writeSegment(SegmentId id, byte[] bytes, int offset, int length) throws IOException;
-
-    /**
-     * Create a {@link SegmentId} represented by the given MSB/LSB pair.
-     *
-     * @param msb The most significant bits of the {@link SegmentId}.
-     * @param lsb The least significant bits of the {@link SegmentId}.
-     * @return A non-{@code null} instance of {@link SegmentId}.
-     */
-    @Nonnull
-    SegmentId newSegmentId(long msb, long lsb);
 }

@@ -247,12 +247,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return segmentReader.readHeadState(getRevisions());
     }
 
-    @Override
-    @Nonnull
-    public SegmentId newSegmentId(long msb, long lsb) {
-        return tracker.newSegmentId(msb, lsb);
-    }
-
     /**
      * @return  the external BlobStore (if configured) with this store, {@code null} otherwise.
      */
@@ -268,7 +262,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         int generation = Segment.getGcGeneration(buffer, id);
         w.writeEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
-            Segment segment = new Segment(tracker, segmentReader, newSegmentId(msb, lsb), buffer);
+            Segment segment = new Segment(tracker, segmentReader, tracker.newSegmentId(msb, lsb), buffer);
             populateTarGraph(segment, w);
             populateTarBinaryReferences(segment, w);
         }

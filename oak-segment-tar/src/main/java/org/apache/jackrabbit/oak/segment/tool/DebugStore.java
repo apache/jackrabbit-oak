@@ -114,7 +114,7 @@ public class DebugStore implements Runnable {
             UUID uuid = segment.getReferencedSegmentId(i);
             long msb = uuid.getMostSignificantBits();
             long lsb = uuid.getLeastSignificantBits();
-            result.add(store.newSegmentId(msb, lsb));
+            result.add(store.getSegmentIdProvider().newSegmentId(msb, lsb));
         }
 
         return result;
