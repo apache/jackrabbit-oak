@@ -43,7 +43,6 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,9 +110,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     private final SegmentIdProvider idProvider;
 
     @Nonnull
-    private final Supplier<Integer> segmentCounter;
-
-    @Nonnull
     private final SegmentReader reader;
 
     /**
@@ -154,13 +150,11 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     public SegmentBufferWriter(@Nonnull SegmentStore store,
                                @Nonnull SegmentIdProvider idProvider,
-                               @Nonnull Supplier<Integer> segmentCounter,
                                @Nonnull SegmentReader reader,
                                @CheckForNull String wid,
                                int generation) {
         this.store = checkNotNull(store);
         this.idProvider = checkNotNull(idProvider);
-        this.segmentCounter = checkNotNull(segmentCounter);
         this.reader = checkNotNull(reader);
         this.wid = (wid == null
                 ? "w-" + identityHashCode(this)
@@ -213,7 +207,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
         String metaInfo =
             "{\"wid\":\"" + wid + '"' +
-            ",\"sno\":" + segmentCounter.get() +
+            ",\"sno\":" + idProvider.getSegmentIdCount() +
             ",\"t\":" + currentTimeMillis() + "}";
         try {
             segment = new Segment(idProvider, reader, buffer, recordNumbers, segmentReferences, metaInfo);

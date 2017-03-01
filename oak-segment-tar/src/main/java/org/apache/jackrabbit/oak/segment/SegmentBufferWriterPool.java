@@ -193,7 +193,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
                 writer = new SegmentBufferWriter(
                         store,
                         tracker,
-                        tracker.getSegmentCounter(),
                         reader,
                         getWriterId(wid),
                         gcGeneration.get()
@@ -203,7 +202,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
                 writer = new SegmentBufferWriter(
                         store,
                         tracker,
-                        tracker.getSegmentCounter(),
                         reader,
                         getWriterId(wid),
                         gcGeneration.get()

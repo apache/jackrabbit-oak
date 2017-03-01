@@ -209,7 +209,6 @@ public final class SegmentWriterBuilder {
             return new SegmentBufferWriter(
                     store,
                     store.getSegmentIdProvider(),
-                    store.getTracker().getSegmentCounter(),
                     store.getReader(),
                     name,
                     generation.get()
@@ -231,7 +230,6 @@ public final class SegmentWriterBuilder {
             return new SegmentBufferWriter(
                     store,
                     store.getSegmentIdProvider(),
-                    store.getTracker().getSegmentCounter(),
                     store.getReader(),
                     name,
                     generation.get()

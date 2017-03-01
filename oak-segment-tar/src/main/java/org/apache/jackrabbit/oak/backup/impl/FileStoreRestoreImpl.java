@@ -64,7 +64,6 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                     store,
                     store.getSegmentIdProvider(),
-                    store.getTracker().getSegmentCounter(),
                     store.getReader(),
                     "r",
                     gen
