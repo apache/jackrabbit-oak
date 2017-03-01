@@ -200,7 +200,7 @@ public final class SegmentWriterBuilder {
         if (pooled) {
             return new SegmentBufferWriterPool(
                     store,
-                    store.getTracker(),
+                    store.getSegmentIdProvider(),
                     store.getReader(),
                     name,
                     generation
@@ -221,7 +221,7 @@ public final class SegmentWriterBuilder {
         if (pooled) {
             return new SegmentBufferWriterPool(
                     store,
-                    store.getTracker(),
+                    store.getSegmentIdProvider(),
                     store.getReader(),
                     name,
                     generation

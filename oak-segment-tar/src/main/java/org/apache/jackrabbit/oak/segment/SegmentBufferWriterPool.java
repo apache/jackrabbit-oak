@@ -72,7 +72,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     private final SegmentStore store;
 
     @Nonnull
-    private final SegmentTracker tracker;
+    private final SegmentIdProvider idProvider;
 
     @Nonnull
     private final SegmentReader reader;
@@ -87,12 +87,12 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
 
     public SegmentBufferWriterPool(
             @Nonnull SegmentStore store,
-            @Nonnull SegmentTracker tracker,
+            @Nonnull SegmentIdProvider idProvider,
             @Nonnull SegmentReader reader,
             @Nonnull String wid,
             @Nonnull Supplier<Integer> gcGeneration) {
         this.store = checkNotNull(store);
-        this.tracker = checkNotNull(tracker);
+        this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = checkNotNull(wid);
         this.gcGeneration = checkNotNull(gcGeneration);
@@ -192,7 +192,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             if (writer == null) {
                 writer = new SegmentBufferWriter(
                         store,
-                        tracker,
+                        idProvider,
                         reader,
                         getWriterId(wid),
                         gcGeneration.get()
@@ -201,7 +201,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
                 disposed.add(writer);
                 writer = new SegmentBufferWriter(
                         store,
-                        tracker,
+                        idProvider,
                         reader,
                         getWriterId(wid),
                         gcGeneration.get()

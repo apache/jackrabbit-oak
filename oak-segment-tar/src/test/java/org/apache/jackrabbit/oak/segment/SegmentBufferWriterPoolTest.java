@@ -52,7 +52,7 @@ public class SegmentBufferWriterPoolTest {
 
     private final SegmentBufferWriterPool pool = new SegmentBufferWriterPool(
             store,
-            store.getTracker(),
+            store.getSegmentIdProvider(),
             store.getReader(),
             "",
             Suppliers.ofInstance(0)

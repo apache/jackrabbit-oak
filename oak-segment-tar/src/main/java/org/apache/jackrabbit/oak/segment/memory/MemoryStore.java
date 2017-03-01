@@ -84,11 +84,6 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Nonnull
-    public SegmentTracker getTracker() {
-        return tracker;
-    }
-
-    @Nonnull
     public SegmentWriter getWriter() {
         return segmentWriter;
     }
