@@ -45,7 +45,7 @@ class DefaultStandbyReferencesReader implements StandbyReferencesReader {
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
 
-        Segment segment = readSegmentWithRetry(store, store.newSegmentId(msb, lsb));
+        Segment segment = readSegmentWithRetry(store, store.getSegmentIdProvider().newSegmentId(msb, lsb));
 
         if (segment == null) {
             return null;

@@ -33,6 +33,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,15 +65,16 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
     /**
      * Bind this instance to a store.
      * 
-     * @param store
-     *            store to bind to
+     * @param store store to bind to
+     * @param idProvider  {@code SegmentIdProvider} of the {@code store}
      * @throws IOException
      */
-    synchronized void bind(@Nonnull SegmentStore store) throws IOException {
+    synchronized void bind(@Nonnull SegmentStore store, @Nonnull SegmentIdProvider idProvider)
+    throws IOException {
         if (head.get() != null) {
             return;
         }
-        RecordId persistedId = findPersistedRecordId(store, new File(directory, JOURNAL_FILE_NAME));
+        RecordId persistedId = findPersistedRecordId(store, idProvider, new File(directory, JOURNAL_FILE_NAME));
         if (persistedId == null) {
             throw new IllegalStateException("Cannot start readonly store from empty journal");
         }

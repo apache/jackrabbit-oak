@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
@@ -46,12 +47,15 @@ class StandbyClientSyncExecution {
 
     private final FileStore store;
 
+    private final SegmentIdProvider idProvider;
+
     private final StandbyClient client;
 
     private final Supplier<Boolean> running;
 
     StandbyClientSyncExecution(FileStore store, StandbyClient client, Supplier<Boolean> running) {
         this.store = store;
+        this.idProvider = store.getSegmentIdProvider();
         this.client = client;
         this.running = running;
     }
@@ -83,7 +87,7 @@ class StandbyClientSyncExecution {
         if (head == null) {
             return null;
         }
-        return RecordId.fromString(store, head);
+        return RecordId.fromString(idProvider, head);
     }
 
     private SegmentNodeState newSegmentNodeState(RecordId id) {
@@ -205,7 +209,7 @@ class StandbyClientSyncExecution {
     }
 
     private boolean isLocal(UUID id) {
-        return store.containsSegment(store.newSegmentId(
+        return store.containsSegment(idProvider.newSegmentId(
                 id.getMostSignificantBits(),
                 id.getLeastSignificantBits()
         ));
@@ -220,7 +224,7 @@ class StandbyClientSyncExecution {
 
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
-        SegmentId segmentId = store.newSegmentId(msb, lsb);
+        SegmentId segmentId = idProvider.newSegmentId(msb, lsb);
         store.writeSegment(segmentId, data, 0, data.length);
     }
 

@@ -42,11 +42,11 @@ public final class RecordId implements Comparable<RecordId> {
 
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
-    public static RecordId fromString(SegmentStore factory, String id) {
+    public static RecordId fromString(SegmentIdProvider idProvider, String id) {
         Matcher matcher = PATTERN.matcher(id);
         if (matcher.matches()) {
             UUID uuid = UUID.fromString(matcher.group(1));
-            SegmentId segmentId = factory.newSegmentId(
+            SegmentId segmentId = idProvider.newSegmentId(
                     uuid.getMostSignificantBits(),
                     uuid.getLeastSignificantBits());
 

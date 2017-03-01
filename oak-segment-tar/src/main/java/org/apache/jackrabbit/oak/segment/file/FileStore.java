@@ -261,7 +261,7 @@ public class FileStore extends AbstractFileStore {
 
     FileStore bind(TarRevisions revisions) throws IOException {
         this.revisions = revisions;
-        this.revisions.bind(this, initialNode());
+        this.revisions.bind(this, tracker, initialNode());
         return this;
     }
 

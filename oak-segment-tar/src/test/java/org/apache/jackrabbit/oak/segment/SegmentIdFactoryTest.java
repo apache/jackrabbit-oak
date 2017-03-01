@@ -47,9 +47,9 @@ public class SegmentIdFactoryTest {
 
     @Test
     public void internedSegmentIds() {
-        assertTrue(store.newSegmentId(0, 0) == store.newSegmentId(0, 0));
-        assertTrue(store.newSegmentId(1, 2) == store.newSegmentId(1, 2));
-        assertTrue(store.newSegmentId(1, 2) != store.newSegmentId(3, 4));
+        assertTrue(idProvider.newSegmentId(0, 0) == idProvider.newSegmentId(0, 0));
+        assertTrue(idProvider.newSegmentId(1, 2) == idProvider.newSegmentId(1, 2));
+        assertTrue(idProvider.newSegmentId(1, 2) != idProvider.newSegmentId(3, 4));
     }
 
     @Test

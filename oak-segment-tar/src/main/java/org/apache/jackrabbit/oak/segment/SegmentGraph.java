@@ -163,13 +163,13 @@ public final class SegmentGraph {
             SegmentNodeState root = checkNotNull(fileStore).getHead();
             Predicate<UUID> filter = pattern == null
                 ? Predicates.<UUID>alwaysTrue()
-                : createRegExpFilter(pattern, fileStore);
+                : createRegExpFilter(pattern, fileStore.getSegmentIdProvider());
             Graph<UUID> segmentGraph = parseSegmentGraph(fileStore, filter);
             Graph<UUID> headGraph = parseHeadGraph(fileStore.getReader(), root.getRecordId());
 
             writer.write("nodedef>name VARCHAR, label VARCHAR, type VARCHAR, wid VARCHAR, gc INT, t INT, size INT, head BOOLEAN\n");
             for (UUID segment : segmentGraph.vertices()) {
-                writeNode(segment, writer, headGraph.containsVertex(segment), epoch, fileStore);
+                writeNode(segment, writer, headGraph.containsVertex(segment), epoch, fileStore.getSegmentIdProvider());
             }
 
             writer.write("edgedef>node1 VARCHAR, node2 VARCHAR, head BOOLEAN\n");
@@ -192,20 +192,19 @@ public final class SegmentGraph {
      * Create a regular expression based inclusion filter for segment.
      *
      * @param pattern       regular expression specifying inclusion of nodes.
-     * @param store       the segment store acting upon.
      * @return
      */
     public static Predicate<UUID> createRegExpFilter(
             @Nonnull String pattern,
-            @Nonnull final SegmentStore store) {
+            @Nonnull final SegmentIdProvider idProvider) {
         final Pattern regExp = compile(checkNotNull(pattern));
-        checkNotNull(store);
+        checkNotNull(idProvider);
 
         return new Predicate<UUID>() {
             @Override
             public boolean apply(UUID segment) {
                 try {
-                    String info = getSegmentInfo(segment, store);
+                    String info = getSegmentInfo(segment, idProvider);
                     if (info == null) {
                         info = "NULL";
                     }
@@ -290,7 +289,7 @@ public final class SegmentGraph {
         return parseSegmentGraph(fileStore, roots, Predicates.<UUID>alwaysTrue(), new Function<UUID, String>() {
             @Override @Nullable
             public String apply(UUID segmentId) {
-                Map<String, String> info = new SegmentInfo(segmentId, fileStore).getInfoMap();
+                Map<String, String> info = new SegmentInfo(segmentId, fileStore.getSegmentIdProvider()).getInfoMap();
                 String error = info.get("error");
                 if (error != null) {
                     return "Error";
@@ -446,8 +445,8 @@ public final class SegmentGraph {
         return graph;
     }
 
-    private static void writeNode(UUID node, PrintWriter writer, boolean inHead, Date epoch, SegmentStore store) {
-        SegmentInfo segmentInfo = new SegmentInfo(node, store);
+    private static void writeNode(UUID node, PrintWriter writer, boolean inHead, Date epoch, SegmentIdProvider idProvider) {
+        SegmentInfo segmentInfo = new SegmentInfo(node, idProvider);
         if (!segmentInfo.isData()) {
             writer.write(node + ",b,bulk,b,-1,-1," + inHead + "\n");
         } else {
@@ -491,21 +490,21 @@ public final class SegmentGraph {
         return Long.valueOf(string);
     }
 
-    private static String getSegmentInfo(UUID segment, SegmentStore store) {
-        return new SegmentInfo(segment, store).getInfo();
+    private static String getSegmentInfo(UUID segment, SegmentIdProvider idProvider) {
+        return new SegmentInfo(segment, idProvider).getInfo();
     }
 
     private static class SegmentInfo {
 
         private final UUID uuid;
 
-        private final SegmentStore store;
+        private final SegmentIdProvider idProvider;
 
         private SegmentId id;
 
-        SegmentInfo(UUID uuid, SegmentStore store) {
+        SegmentInfo(UUID uuid, SegmentIdProvider idProvider) {
             this.uuid = uuid;
-            this.store = store;
+            this.idProvider = idProvider;
         }
 
         boolean isData() {
@@ -516,7 +515,7 @@ public final class SegmentGraph {
             if (id == null) {
                 long msb = uuid.getMostSignificantBits();
                 long lsb = uuid.getLeastSignificantBits();
-                id = store.newSegmentId(msb, lsb);
+                id = idProvider.newSegmentId(msb, lsb);
             }
             return id;
         }

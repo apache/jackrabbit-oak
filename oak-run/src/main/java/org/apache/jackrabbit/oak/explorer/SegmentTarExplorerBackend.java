@@ -32,11 +32,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
-
 import java.util.Set;
 import java.util.UUID;
+
+import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
@@ -195,7 +194,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
 
     @Override
     public NodeState readNodeState(String recordId) {
-        return store.getReader().readNode(RecordId.fromString(store, recordId));
+        return store.getReader().readNode(RecordId.fromString(store.getSegmentIdProvider(), recordId));
     }
 
     @Override
