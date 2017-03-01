@@ -37,7 +37,7 @@ public class LargeTreeOperationTest {
 
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder test = builder.child("test");
-        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT * 3; i++) {
+        for (int i = 0; i < DocumentMK.UPDATE_LIMIT * 3; i++) {
             test.child("child-" + i);
         }
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -68,7 +68,7 @@ public class LargeTreeOperationTest {
         MemoryNodeStore memStore = new MemoryNodeStore();
         NodeBuilder builder = memStore.getRoot().builder();
         NodeBuilder test = builder.child("test");
-        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT * 3; i++) {
+        for (int i = 0; i < DocumentMK.UPDATE_LIMIT * 3; i++) {
             test.child("child-" + i);
         }
         memStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

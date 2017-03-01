@@ -131,6 +131,12 @@ public class DocumentMK {
             System.getProperty("oak.documentMK.fastDiff", "true"));
 
     /**
+     * Number of content updates that need to happen before the updates
+     * are automatically purged to the private branch.
+     */
+    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 100000);
+
+    /**
      * The node store.
      */
     protected final DocumentNodeStore nodeStore;
@@ -585,6 +591,7 @@ public class DocumentMK {
         private boolean bundlingDisabled;
         private JournalPropertyHandlerFactory journalPropertyHandlerFactory =
                 new JournalPropertyHandlerFactory();
+        private int updateLimit = UPDATE_LIMIT;
 
         public Builder() {
         }
@@ -1094,6 +1101,15 @@ public class DocumentMK {
 
         public JournalPropertyHandlerFactory getJournalPropertyHandlerFactory() {
             return journalPropertyHandlerFactory;
+        }
+
+        public Builder setUpdateLimit(int limit) {
+            updateLimit = limit;
+            return this;
+        }
+
+        public int getUpdateLimit() {
+            return updateLimit;
         }
 
         VersionGCSupport createVersionGCSupport() {

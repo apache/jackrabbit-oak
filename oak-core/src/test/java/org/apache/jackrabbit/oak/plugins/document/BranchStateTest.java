@@ -64,7 +64,7 @@ public class BranchStateTest {
             assertNull(store.find(Collection.NODES, testId));
         }
 
-        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT * 2; i++) {
+        for (int i = 0; i < DocumentMK.UPDATE_LIMIT * 2; i++) {
             builder.child("test").setProperty("p-" + i, i);
         }
         assertNotNull(store.find(Collection.NODES, testId));

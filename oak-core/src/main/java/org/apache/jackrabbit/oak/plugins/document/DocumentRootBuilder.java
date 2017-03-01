@@ -41,16 +41,6 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     private static final Logger log = LoggerFactory.getLogger(DocumentRootBuilder.class);
 
     /**
-     * Number of content updates that need to happen before the updates
-     * are automatically purged to the private branch.
-     */
-    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 100000);
-
-    static {
-        log.info("Update limit set to {}", UPDATE_LIMIT);
-    }
-
-    /**
      * The underlying store
      */
     protected final DocumentNodeStore store;
@@ -65,9 +55,15 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     private NodeState base;
 
     /**
-     * Private branch used to hold pending changes exceeding {@link #UPDATE_LIMIT}
+     * Private branch used to hold pending changes exceeding {@link #updateLimit}
      */
     private DocumentNodeStoreBranch branch;
+
+    /**
+     * Number of content updates that need to happen before the updates
+     * are automatically purged to the private branch.
+     */
+    private final int updateLimit;
 
     /**
      * Number of updated not yet persisted to the private {@link #branch}
@@ -80,6 +76,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         this.store = checkNotNull(store);
         this.base = base;
         this.branch = store.createBranch(base);
+        this.updateLimit = store.getUpdateLimit();
     }
 
     //--------------------------------------------------< MemoryNodeBuilder >---
@@ -103,7 +100,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
     @Override
     protected void updated() {
-        if (++updates > UPDATE_LIMIT) {
+        if (++updates > updateLimit) {
             purge();
         }
     }

@@ -98,7 +98,7 @@ public class DocumentNodeStoreBranchesTest {
         // 1) do more than UPDATE_LIMIT changes
         LOG.info("starting doing many changes to force a branch commit");
         NodeBuilder rootBuilder = ns.getRoot().builder();
-        int totalUpdates = 5 * DocumentRootBuilder.UPDATE_LIMIT;
+        int totalUpdates = 5 * DocumentMK.UPDATE_LIMIT;
         int updateShare = totalUpdates / NUM_NODES;
         for(int i=0; i<NUM_NODES; i++) {
             NodeBuilder childBuilder = rootBuilder.child("child"+i);

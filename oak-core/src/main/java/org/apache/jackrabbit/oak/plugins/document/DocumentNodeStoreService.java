@@ -376,6 +376,13 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_BUNDLING_DISABLED = "bundlingDisabled";
 
+    @Property(
+            label = "DocumentNodeStore update.limit",
+            description = "Number of content updates that need to happen before " +
+                    "the updates are automatically purged to the private branch."
+    )
+    public static final String PROP_UPDATE_LIMIT = "updateLimit";
+
     private DocumentStoreType documentStoreType;
 
     @Reference
@@ -433,6 +440,7 @@ public class DocumentNodeStoreService {
         int cacheStackMoveDistance = toInteger(prop(PROP_CACHE_STACK_MOVE_DISTANCE), DEFAULT_CACHE_STACK_MOVE_DISTANCE);
         boolean bundlingDisabled = toBoolean(prop(PROP_BUNDLING_DISABLED), DEFAULT_BUNDLING_DISABLED);
         boolean prefetchExternalChanges = toBoolean(prop(PROP_PREFETCH_EXTERNAL_CHANGES), false);
+        int updateLimit = toInteger(prop(PROP_UPDATE_LIMIT), DocumentMK.UPDATE_LIMIT);
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
                 setStatisticsProvider(statisticsProvider).
@@ -468,7 +476,8 @@ public class DocumentNodeStoreService {
                         }
                     }
                 }).
-                setPrefetchExternalChanges(prefetchExternalChanges);
+                setPrefetchExternalChanges(prefetchExternalChanges).
+                setUpdateLimit(updateLimit);
 
         if (!Strings.isNullOrEmpty(persistentCache)) {
             mkBuilder.setPersistentCache(persistentCache);

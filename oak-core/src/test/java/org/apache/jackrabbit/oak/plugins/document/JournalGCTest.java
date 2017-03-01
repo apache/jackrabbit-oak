@@ -190,7 +190,7 @@ public class JournalGCTest {
         NodeBuilder builder = writingNs.getRoot().builder();
         NodeBuilder foo = builder.child("foo");
         // cause a branch commit
-        for(int i=0; i<DocumentRootBuilder.UPDATE_LIMIT + 1; i++) {
+        for(int i=0; i<DocumentMK.UPDATE_LIMIT + 1; i++) {
             foo.setProperty(String.valueOf(i), "foobar");
         }
         writingNs.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

@@ -469,7 +469,10 @@ public final class DocumentNodeStore
 
     private final JournalPropertyHandlerFactory journalPropertyHandlerFactory;
 
+    private final int updateLimit;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
+        this.updateLimit = builder.getUpdateLimit();
         this.blobStore = builder.getBlobStore();
         this.statisticsProvider = builder.getStatisticsProvider();
         this.nodeStoreStatsCollector = builder.getNodeStoreStatsCollector();
@@ -633,7 +636,8 @@ public final class DocumentNodeStore
 
         this.mbean = createMBean();
         LOG.info("ChangeSetBuilder enabled and size set to maxItems: {}, maxDepth: {}", changeSetMaxItems, changeSetMaxDepth);
-        LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
+        LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}, updateLimit: {} ({})",
+                clusterId, updateLimit,
                 getClusterNodeInfoDisplayString());
 
         if (!builder.isBundlingDisabled()) {
@@ -3023,5 +3027,9 @@ public final class DocumentNodeStore
 
     public JournalPropertyHandlerFactory getJournalPropertyHandlerFactory() {
         return journalPropertyHandlerFactory;
+    }
+
+    int getUpdateLimit() {
+        return updateLimit;
     }
 }

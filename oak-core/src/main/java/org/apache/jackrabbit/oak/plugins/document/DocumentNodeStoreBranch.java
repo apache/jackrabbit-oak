@@ -77,6 +77,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     /** Lock for coordinating concurrent merge operations */
     private final ReadWriteLock mergeLock;
 
+    /** The maximum number of updates to keep in memory */
+    private final int updateLimit;
+
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted},
      * {@link ResetFailed} or {@link Merged}.
@@ -92,6 +95,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
         this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
         this.mergeLock = mergeLock;
+        this.updateLimit = store.getUpdateLimit();
     }
 
     @Nonnull
@@ -448,7 +452,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      *         as the base of this branch</li>
      *     <li>{@link Persisted} on {@link #setRoot(NodeState)} if the number of
      *         changes counted from the base to the new root reaches
-     *         {@link DocumentRootBuilder#UPDATE_LIMIT}.</li>
+     *         {@link DocumentMK.Builder#getUpdateLimit()}.</li>
      *     <li>{@link Merged} on {@link BranchState#merge(CommitHook, CommitInfo, boolean)}</li>
      * </ul>
      */
@@ -482,7 +486,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             } else if (!head.equals(root)) {
                 numUpdates += countChanges(head, root);
                 head = root;
-                if (numUpdates > DocumentRootBuilder.UPDATE_LIMIT) {
+                if (numUpdates > updateLimit) {
                     persist();
                 }
             }
