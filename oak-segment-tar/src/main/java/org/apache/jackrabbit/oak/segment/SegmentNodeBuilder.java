@@ -111,7 +111,9 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
             SegmentNodeState sState = writer.writeNode(state);
             if (state != sState) {
                 set(sState);
-                updateCount = 0;
+                if(!isChildBuilder()) {
+                    updateCount = 0;
+                }
             }
             return sState;
         } catch (IOException e) {
