@@ -35,7 +35,7 @@ import com.google.common.base.Supplier;
  * that are currently kept in memory and factory for creating {@link SegmentId}
  * instances.
  */
-public class SegmentTracker {
+public class SegmentTracker implements SegmentIdProvider {
     private static final long MSB_MASK = ~(0xfL << 12);
 
     private static final long VERSION = (0x4L << 12);
@@ -93,6 +93,11 @@ public class SegmentTracker {
         };
     }
 
+    @Override
+    public int getSegmentIdCount() {
+        return segmentCounter.get();
+    }
+
     /**
      * Returns all segment identifiers that are currently referenced in memory.
      *
@@ -114,6 +119,7 @@ public class SegmentTracker {
      * @param lsb   least  significant bits of the segment id
      * @return the segment id
      */
+    @Override
     @Nonnull
     public SegmentId newSegmentId(long msb, long lsb) {
         int index = ((int) msb) & (tables.length - 1);
@@ -125,6 +131,7 @@ public class SegmentTracker {
      *
      * @return the segment id
      */
+    @Override
     @Nonnull
     public SegmentId newDataSegmentId() {
         return newSegmentId(DATA);
@@ -135,6 +142,7 @@ public class SegmentTracker {
      *
      * @return the segment id
      */
+    @Override
     @Nonnull
     public SegmentId newBulkSegmentId() {
         return newSegmentId(BULK);
