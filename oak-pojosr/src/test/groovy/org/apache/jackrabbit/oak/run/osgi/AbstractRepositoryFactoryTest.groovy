@@ -132,6 +132,10 @@ abstract class AbstractRepositoryFactoryTest{
     }
 
     static retry(int timeoutSeconds, int intervalBetweenTriesMsec, Closure c) {
+        retry(timeoutSeconds, intervalBetweenTriesMsec, null, c)
+    }
+
+    static retry(int timeoutSeconds, int intervalBetweenTriesMsec, String message, Closure c) {
         long timeout = System.currentTimeMillis() + timeoutSeconds * 1000L;
         while (System.currentTimeMillis() < timeout) {
             try {
@@ -148,7 +152,6 @@ abstract class AbstractRepositoryFactoryTest{
             }
         }
 
-        fail("RetryLoop failed, condition is false after " + timeoutSeconds + " seconds: ");
+        fail("RetryLoop failed, condition is false after " + timeoutSeconds + " seconds" + (message ?: (":" + message)));
     }
-
 }
