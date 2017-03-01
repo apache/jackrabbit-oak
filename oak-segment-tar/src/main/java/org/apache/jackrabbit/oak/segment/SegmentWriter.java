@@ -146,7 +146,7 @@ public class SegmentWriter {
     }
 
     public void flush() throws IOException {
-        writeOperationHandler.flush();
+        writeOperationHandler.flush(store);
     }
 
     /**
@@ -485,7 +485,7 @@ public class SegmentWriter {
                             return base.getRecordId();
                         } else {
                             return RecordWriters.newMapBranchWriter(entry.getHash(), asList(entry.getKey(),
-                                value, base.getRecordId())).write(writer);
+                                value, base.getRecordId())).write(writer, store);
                         }
                     }
                 }
@@ -519,7 +519,7 @@ public class SegmentWriter {
             checkElementIndex(size, MapRecord.MAX_SIZE);
             checkPositionIndex(level, MapRecord.MAX_NUMBER_OF_LEVELS);
             checkArgument(size != 0 || level == MapRecord.MAX_NUMBER_OF_LEVELS);
-            return RecordWriters.newMapLeafWriter(level, entries).write(writer);
+            return RecordWriters.newMapLeafWriter(level, entries).write(writer, store);
         }
 
         private RecordId writeMapBranch(int level, int size, MapRecord... buckets) throws IOException {
@@ -531,7 +531,7 @@ public class SegmentWriter {
                     bucketIds.add(buckets[i].getRecordId());
                 }
             }
-            return RecordWriters.newMapBranchWriter(level, size, bitmap, bucketIds).write(writer);
+            return RecordWriters.newMapBranchWriter(level, size, bitmap, bucketIds).write(writer, store);
         }
 
         private RecordId writeMapBucket(MapRecord base, Collection<MapEntry> entries, int level)
@@ -541,7 +541,7 @@ public class SegmentWriter {
                 if (base != null) {
                     return base.getRecordId();
                 } else if (level == 0) {
-                    return RecordWriters.newMapLeafWriter().write(writer);
+                    return RecordWriters.newMapLeafWriter().write(writer, store);
                 } else {
                     return null;
                 }
@@ -650,7 +650,7 @@ public class SegmentWriter {
 
         private RecordId writeListBucket(List<RecordId> bucket) throws IOException {
             checkArgument(bucket.size() > 1);
-            return RecordWriters.newListBucketWriter(bucket).write(writer);
+            return RecordWriters.newListBucketWriter(bucket).write(writer, store);
         }
 
         private List<List<MapEntry>> splitToBuckets(Collection<MapEntry> entries, int level) {
@@ -673,12 +673,12 @@ public class SegmentWriter {
 
         private RecordId writeValueRecord(long length, RecordId blocks) throws IOException {
             long len = (length - Segment.MEDIUM_LIMIT) | (0x3L << 62);
-            return RecordWriters.newValueWriter(blocks, len).write(writer);
+            return RecordWriters.newValueWriter(blocks, len).write(writer, store);
         }
 
         private RecordId writeValueRecord(int length, byte... data) throws IOException {
             checkArgument(length < Segment.MEDIUM_LIMIT);
-            return RecordWriters.newValueWriter(length, data).write(writer);
+            return RecordWriters.newValueWriter(length, data).write(writer, store);
         }
 
         /**
@@ -778,10 +778,10 @@ public class SegmentWriter {
             RecordId recordId;
 
             if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
-                recordId = RecordWriters.newBlobIdWriter(data).write(writer);
+                recordId = RecordWriters.newBlobIdWriter(data).write(writer, store);
             } else {
                 RecordId refId = writeString(blobId);
-                recordId = RecordWriters.newBlobIdWriter(refId).write(writer);
+                recordId = RecordWriters.newBlobIdWriter(refId).write(writer, store);
             }
 
             return recordId;
@@ -791,7 +791,7 @@ public class SegmentWriter {
         throws IOException {
             checkNotNull(bytes);
             checkPositionIndexes(offset, offset + length, bytes.length);
-            return RecordWriters.newBlockWriter(bytes, offset, length).write(writer);
+            return RecordWriters.newBlockWriter(bytes, offset, length).write(writer, store);
         }
 
         private RecordId writeStream(@Nonnull InputStream stream) throws IOException {
@@ -890,9 +890,9 @@ public class SegmentWriter {
             if (!type.isArray()) {
                 return valueIds.iterator().next();
             } else if (count == 0) {
-                return RecordWriters.newListWriter().write(writer);
+                return RecordWriters.newListWriter().write(writer, store);
             } else {
-                return RecordWriters.newListWriter(count, writeList(valueIds)).write(writer);
+                return RecordWriters.newListWriter(count, writeList(valueIds)).write(writer, store);
             }
         }
 
@@ -965,7 +965,7 @@ public class SegmentWriter {
 
             RecordId tid = RecordWriters.newTemplateWriter(ids, propertyNames,
                 propertyTypes, head, primaryId, mixinIds, childNameId,
-                propNamesId).write(writer);
+                propNamesId).write(writer, store);
             templateCache.put(template, tid);
             return tid;
         }
@@ -1120,7 +1120,7 @@ public class SegmentWriter {
                 byte[] id = ((SegmentNodeState) state).getStableIdBytes();
                 stableId = writeBlock(id, 0, id.length);
             }
-            return newNodeStateWriter(stableId, ids).write(writer);
+            return newNodeStateWriter(stableId, ids).write(writer, store);
         }
 
         /**
