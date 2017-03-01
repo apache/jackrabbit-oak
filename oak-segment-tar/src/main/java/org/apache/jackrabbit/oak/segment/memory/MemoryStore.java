@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 public class MemoryStore implements SegmentStore {
 
     @Nonnull
-    private final SegmentTracker tracker = new SegmentTracker();
+    private final SegmentTracker tracker;
 
     @Nonnull
     private final MemoryStoreRevisions revisions;
@@ -58,20 +58,16 @@ public class MemoryStore implements SegmentStore {
     @Nonnull
     private final SegmentWriter segmentWriter;
 
-    private final SegmentIdFactory segmentIdFactory = new SegmentIdFactory() {
-
-        @Override
-        @Nonnull
-        public SegmentId newSegmentId(long msb, long lsb) {
-            return new SegmentId(MemoryStore.this, msb, lsb);
-        }
-
-    };
-
     private final ConcurrentMap<SegmentId, Segment> segments =
             Maps.newConcurrentMap();
 
     public MemoryStore() throws IOException {
+        this.tracker = new SegmentTracker(new SegmentIdFactory() {
+            @Override @Nonnull
+            public SegmentId newSegmentId(long msb, long lsb) {
+                return new SegmentId(MemoryStore.this, msb, lsb);
+            }
+        });
         this.revisions = new MemoryStoreRevisions();
         Supplier<SegmentWriter> getWriter = new Supplier<SegmentWriter>() {
             @Override
@@ -122,19 +118,19 @@ public class MemoryStore implements SegmentStore {
     @Override
     @Nonnull
     public SegmentId newSegmentId(long msb, long lsb) {
-        return tracker.newSegmentId(msb, lsb, segmentIdFactory);
+        return tracker.newSegmentId(msb, lsb);
     }
 
     @Override
     @Nonnull
     public SegmentId newBulkSegmentId() {
-        return tracker.newBulkSegmentId(segmentIdFactory);
+        return tracker.newBulkSegmentId();
     }
 
     @Override
     @Nonnull
     public SegmentId newDataSegmentId() {
-        return tracker.newDataSegmentId(segmentIdFactory);
+        return tracker.newDataSegmentId();
     }
 
     @Override
