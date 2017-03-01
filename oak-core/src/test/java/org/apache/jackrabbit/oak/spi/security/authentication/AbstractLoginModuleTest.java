@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
@@ -34,19 +34,29 @@ import javax.security.auth.login.LoginException;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.Query;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Descriptors;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.UserManagerCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.WhiteboardCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TestPrincipalProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNull;
@@ -117,8 +127,17 @@ public class AbstractLoginModuleTest {
     }
 
     @Test
+    public void testAbortWithFailedSystemLogout() throws LoginException {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new TestContentRepository(), null, null));
+
+        // trigger creation of system-session
+        loginModule.getRoot();
+        assertTrue(loginModule.abort());
+    }
+
+    @Test
     public void testGetSharedLoginName() {
-        Map<String, String> sharedState = new HashMap<String, String>();
+        Map<String, String> sharedState = new HashMap();
 
         sharedState.put(AbstractLoginModule.SHARED_KEY_LOGIN_NAME, "test");
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, sharedState);
@@ -131,7 +150,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetSharedCredentials() {
-        Map<String, Object> sharedState = new HashMap<String, Object>();
+        Map<String, Object> sharedState = new HashMap();
 
         sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TestCredentials());
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, sharedState);
@@ -155,7 +174,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetCredentialsFromSharedState() {
-        Map<String, Credentials> sharedState = new HashMap<String, Credentials>();
+        Map<String, Credentials> sharedState = new HashMap();
 
         sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TestCredentials());
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, sharedState);
@@ -259,10 +278,101 @@ public class AbstractLoginModuleTest {
     }
 
     @Test
-    public void testGetUserManagerFromCallback() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new TestUserManager()));
+    public void testIncompleteRepositoryCallback() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
 
-        assertNotNull(loginModule.getUserManager());
+        assertNull(loginModule.getSecurityProvider());
+        assertNull(loginModule.getRoot());
+    }
+
+    @Test
+    public void testGetRoot() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new TestContentRepository(), null, null));
+
+        Root root = loginModule.getRoot();
+        assertNotNull(root);
+        // root is stored as field -> second access returns the same object
+        assertSame(root, loginModule.getRoot());
+    }
+
+    @Test
+    public void testGetRootIOException() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+
+        assertNull(loginModule.getRoot());
+    }
+
+    @Test
+    public void testGetRootUnsupportedCallbackException() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+
+        assertNull(loginModule.getRoot());
+    }
+
+    @Test
+    public void testGetSecurityProvider() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(null, new OpenSecurityProvider(), null));
+
+        SecurityProvider securityProvider = loginModule.getSecurityProvider();
+        assertNotNull(securityProvider);
+        // securityProvider is stored as field -> second access returns the same object
+        assertSame(securityProvider, loginModule.getSecurityProvider());
+    }
+
+    @Test
+    public void testGetSecurityProviderIOException() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+
+        assertNull(loginModule.getSecurityProvider());
+    }
+
+    @Test
+    public void testGetSecurityProviderUnsupportedCallbackException() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+
+        assertNull(loginModule.getRoot());
+    }
+
+    @Test
+    public void testGetWhiteboardFromCallback() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new DefaultWhiteboard()));
+
+        Whiteboard wb = loginModule.getWhiteboard();
+        assertNotNull(wb);
+        // whiteboard is stored as field -> second access returns the same object
+        assertSame(wb, loginModule.getWhiteboard());
+
+    }
+
+    @Test
+    public void testGetWhiteboardFromIncompleteCallback() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
+
+        assertNull(loginModule.getWhiteboard());
+    }
+
+    @Test
+    public void testGetWhiteboardIOException() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+
+        assertNull(loginModule.getWhiteboard());
+    }
+
+    @Test
+    public void testGetWhiteboardUnsupportedCallbackException() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+
+        assertNull(loginModule.getWhiteboard());
+    }
+
+    @Test
+    public void testGetUserManagerFromCallback() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(Mockito.mock(UserManager.class)));
+
+        UserManager userManager = loginModule.getUserManager();
+        assertNotNull(userManager);
+        // usermanager is stored as field -> second access returns the same object
+        assertSame(userManager, loginModule.getUserManager());
     }
 
     @Test
@@ -291,6 +401,11 @@ public class AbstractLoginModuleTest {
         AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new TestPrincipalProvider()));
 
         assertNotNull(loginModule.getPrincipalProvider());
+
+        PrincipalProvider principalProvider = loginModule.getPrincipalProvider();
+        assertNotNull(principalProvider);
+        // principalProvider is stored as field -> second access returns the same object
+        assertSame(principalProvider, loginModule.getPrincipalProvider());
     }
 
     @Test
@@ -392,10 +507,18 @@ public class AbstractLoginModuleTest {
 
     private final class TestCallbackHandler implements CallbackHandler {
 
+        private Whiteboard whiteboard = null;
         private UserManager userManager = null;
         private PrincipalProvider principalProvider = null;
+        private ContentRepository contentRepository = null;
+        private SecurityProvider securityProvider = null;
+        private String workspaceName = null;
 
         private TestCallbackHandler() {
+        }
+
+        private TestCallbackHandler(@Nonnull Whiteboard whiteboard) {
+            this.whiteboard = whiteboard;
         }
 
         private TestCallbackHandler(@Nonnull UserManager userManager) {
@@ -406,13 +529,27 @@ public class AbstractLoginModuleTest {
             this.principalProvider = principalProvider;
         }
 
+        private TestCallbackHandler(@Nullable ContentRepository contentRepository, @Nullable SecurityProvider securityProvider, @Nullable String workspaceName) {
+            this.contentRepository = contentRepository;
+            this.securityProvider = securityProvider;
+        }
+
         @Override
         public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
             for (Callback cb : callbacks) {
-                if (cb instanceof PrincipalProviderCallback) {
+                if (cb instanceof WhiteboardCallback) {
+                    ((WhiteboardCallback) cb).setWhiteboard(whiteboard);
+                } else if (cb instanceof PrincipalProviderCallback) {
                     ((PrincipalProviderCallback) cb).setPrincipalProvider(principalProvider);
                 } else if (cb instanceof UserManagerCallback) {
                     ((UserManagerCallback) cb).setUserManager(userManager);
+                } else if (cb instanceof SecurityProviderCallback) {
+                    ((SecurityProviderCallback) cb).setSecurityProvider(securityProvider);
+                } else if (cb instanceof RepositoryCallback) {
+                    RepositoryCallback rcb = (RepositoryCallback) cb;
+                    rcb.setContentRepository(contentRepository);
+                    rcb.setSecurityProvider(securityProvider);
+                    rcb.setWorkspaceName(workspaceName);
                 } else {
                     throw new UnsupportedCallbackException(cb);
                 }
@@ -422,86 +559,21 @@ public class AbstractLoginModuleTest {
 
     }
 
-    private final class TestUserManager implements UserManager {
+    private final class TestContentRepository implements ContentRepository {
+
+        @Nonnull
         @Override
-        public Authorizable getAuthorizable(String s) {
-            throw new UnsupportedOperationException();
+        public ContentSession login(@Nullable Credentials credentials, @Nullable String workspaceName) {
+            ContentSession cs = Mockito.mock(ContentSession.class);
+            Mockito.when(cs.getLatestRoot()).thenReturn(RootFactory.createReadOnlyRoot(EmptyNodeState.EMPTY_NODE));
+            return cs;
+
         }
 
+        @Nonnull
         @Override
-        public <T extends Authorizable> T getAuthorizable(String s, Class<T> aClass) {
+        public Descriptors getDescriptors() {
             throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Authorizable getAuthorizable(Principal principal) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Authorizable getAuthorizableByPath(String s) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Iterator<Authorizable> findAuthorizables(String s, String s1) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Iterator<Authorizable> findAuthorizables(String s, String s1, int i) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Iterator<Authorizable> findAuthorizables(Query query) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public User createUser(String s, String s1) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public User createUser(String s, String s1, Principal principal, String s2) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public User createSystemUser(String s, String s1) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Group createGroup(String s) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Group createGroup(Principal principal) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Group createGroup(Principal principal, String s) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Group createGroup(String s, Principal principal, String s1) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isAutoSave() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void autoSave(boolean b) {
-            throw new UnsupportedOperationException();
-
         }
     }
 }
