@@ -530,7 +530,7 @@ public class FileStore extends AbstractFileStore {
                 public Segment call() throws Exception {
                     ByteBuffer buffer = FileStoreUtil.readEntry(readers, id);
                     if (buffer != null) {
-                        return new Segment(FileStore.this, segmentReader, id, buffer);
+                        return new Segment(tracker, segmentReader, id, buffer);
                     }
 
                     if (tarWriter != null) {
@@ -539,7 +539,7 @@ public class FileStore extends AbstractFileStore {
                             try {
                                 buffer = tarWriter.readEntry(id.getMostSignificantBits(), id.getLeastSignificantBits());
                                 if (buffer != null) {
-                                    return new Segment(FileStore.this, segmentReader, id, buffer);
+                                    return new Segment(tracker, segmentReader, id, buffer);
                                 }
                             } catch (IOException e) {
                                 log.warn("Failed to read from tar file {}", tarWriter, e);
@@ -556,7 +556,7 @@ public class FileStore extends AbstractFileStore {
 
                     buffer = FileStoreUtil.readEntry(readers, id);
                     if (buffer != null) {
-                        return new Segment(FileStore.this, segmentReader, id, buffer);
+                        return new Segment(tracker, segmentReader, id, buffer);
                     }
 
                     throw new SegmentNotFoundException(id);
@@ -596,7 +596,7 @@ public class FileStore extends AbstractFileStore {
                 data = ByteBuffer.wrap(buffer, offset, length);
             }
 
-            segment = new Segment(this, segmentReader, id, data);
+            segment = new Segment(tracker, segmentReader, id, data);
             generation = segment.getGcGeneration();
         }
 

@@ -26,6 +26,7 @@ import com.google.common.hash.Hashing;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 
@@ -41,12 +42,13 @@ public class StandbyTestUtils {
 
     public static Segment mockSegment(UUID uuid, byte[] buffer) {
         SegmentStore store = mock(SegmentStore.class);
+        SegmentIdProvider idProvider = mock(SegmentIdProvider.class);
         SegmentReader reader = mock(SegmentReader.class);
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
         SegmentId id = new SegmentId(store, msb, lsb);
         ByteBuffer data = ByteBuffer.wrap(buffer);
-        return new Segment(store, reader, id, data);
+        return new Segment(idProvider, reader, id, data);
     }
 
     public static long hash(byte[] data) {

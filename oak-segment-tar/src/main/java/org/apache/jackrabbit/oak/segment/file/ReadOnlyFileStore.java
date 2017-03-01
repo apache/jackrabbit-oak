@@ -173,7 +173,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
                     if (buffer == null) {
                         throw new SegmentNotFoundException(id);
                     }
-                    return new Segment(ReadOnlyFileStore.this, segmentReader, id, buffer);
+                    return new Segment(tracker, segmentReader, id, buffer);
                 }
             });
         } catch (ExecutionException e) {

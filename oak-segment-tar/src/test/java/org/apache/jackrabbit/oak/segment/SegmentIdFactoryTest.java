@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -30,20 +29,20 @@ import org.junit.Test;
 
 public class SegmentIdFactoryTest {
     private final MemoryStore store;
-    private final SegmentTracker tracker;
+    private final SegmentIdProvider idProvider;
 
     public SegmentIdFactoryTest() throws IOException {
         store = new MemoryStore();
-        tracker = store.getTracker();
+        idProvider = store.getSegmentIdProvider();
     }
 
     @Test
     public void segmentIdType() {
-        assertTrue(store.newDataSegmentId().isDataSegmentId());
-        assertTrue(store.newBulkSegmentId().isBulkSegmentId());
+        assertTrue(idProvider.newDataSegmentId().isDataSegmentId());
+        assertTrue(idProvider.newBulkSegmentId().isBulkSegmentId());
 
-        assertFalse(store.newDataSegmentId().isBulkSegmentId());
-        assertFalse(store.newBulkSegmentId().isDataSegmentId());
+        assertFalse(idProvider.newDataSegmentId().isBulkSegmentId());
+        assertFalse(idProvider.newBulkSegmentId().isDataSegmentId());
     }
 
     @Test
@@ -55,17 +54,17 @@ public class SegmentIdFactoryTest {
 
     @Test
     public void referencedSegmentIds() throws InterruptedException {
-        SegmentId a = store.newDataSegmentId();
-        SegmentId b = store.newBulkSegmentId();
-        SegmentId c = store.newDataSegmentId();
+        SegmentId a = idProvider.newDataSegmentId();
+        SegmentId b = idProvider.newBulkSegmentId();
+        SegmentId c = idProvider.newDataSegmentId();
 
-        Set<SegmentId> ids = tracker.getReferencedSegmentIds();
+        Set<SegmentId> ids = store.getReferencedSegmentIds();
         assertTrue(ids.contains(a));
         assertTrue(ids.contains(b));
         assertTrue(ids.contains(c));
 
         // the returned set is a snapshot in time, not continuously updated
-        assertFalse(ids.contains(store.newBulkSegmentId()));
+        assertFalse(ids.contains(idProvider.newBulkSegmentId()));
     }
 
     /**
@@ -73,10 +72,9 @@ public class SegmentIdFactoryTest {
      * weak for this to work reliably. But it's a good manual check for
      * the correct operation of the tracking of segment id references.
      */
-    // @Test
     public void garbageCollection() {
-        SegmentId a = store.newDataSegmentId();
-        SegmentId b = store.newBulkSegmentId();
+        SegmentId a = idProvider.newDataSegmentId();
+        SegmentId b = idProvider.newBulkSegmentId();
 
         // generate lots of garbage copies of an UUID to get the
         // garbage collector to reclaim also the original instance
@@ -87,7 +85,7 @@ public class SegmentIdFactoryTest {
         System.gc();
 
         // now the original UUID should no longer be present
-        Set<SegmentId> ids = tracker.getReferencedSegmentIds();
+        Set<SegmentId> ids = store.getReferencedSegmentIds();
         assertFalse(ids.contains(a));
         assertTrue(ids.contains(b));
     }

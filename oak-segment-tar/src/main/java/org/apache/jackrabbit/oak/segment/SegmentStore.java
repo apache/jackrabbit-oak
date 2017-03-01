@@ -63,21 +63,4 @@ public interface SegmentStore {
      */
     @Nonnull
     SegmentId newSegmentId(long msb, long lsb);
-
-    /**
-     * Create a new {@link SegmentId} for a segment of type "bulk".
-     *
-     * @return A non-{@code null} instance of {@link SegmentId}.
-     */
-    @Nonnull
-    SegmentId newBulkSegmentId();
-
-    /**
-     * Create a new {@link SegmentId} for a segment of type "data".
-     *
-     * @return A non-{@code null} instance of {@link SegmentId}.
-     */
-    @Nonnull
-    SegmentId newDataSegmentId();
-
 }

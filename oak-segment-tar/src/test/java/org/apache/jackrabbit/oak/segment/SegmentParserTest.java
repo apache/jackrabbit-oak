@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -56,7 +55,6 @@ import org.apache.jackrabbit.oak.segment.SegmentParser.ValueInfo;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class SegmentParserTest {
@@ -381,7 +379,7 @@ public class SegmentParserTest {
 
     @Test
     public void emptyList() {
-        RecordId listId = newRecordId(store, new Random());
+        RecordId listId = newRecordId(store.getSegmentIdProvider(), new Random());
         ListInfo listInfo = new TestParser(store.getReader(), "emptyList").parseList(null, listId, 0);
         assertEquals(listId, listInfo.listId);
         assertEquals(0, listInfo.count);

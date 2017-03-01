@@ -32,8 +32,8 @@ public class MutableSegmentReferencesTest {
 
     @Test
     public void referencesShouldBeGreaterThanZero() throws Exception {
-        SegmentStore store = new MemoryStore();
-        SegmentId id = store.newDataSegmentId();
+        MemoryStore store = new MemoryStore();
+        SegmentId id = store.getSegmentIdProvider().newDataSegmentId();
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         int reference = table.addOrReference(id);
@@ -42,9 +42,9 @@ public class MutableSegmentReferencesTest {
 
     @Test
     public void referencesShouldBeIncrementing() throws Exception {
-        SegmentStore store = new MemoryStore();
-        SegmentId first = store.newDataSegmentId();
-        SegmentId second = store.newDataSegmentId();
+        MemoryStore store = new MemoryStore();
+        SegmentId first = store.getSegmentIdProvider().newDataSegmentId();
+        SegmentId second = store.getSegmentIdProvider().newDataSegmentId();
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         int firstReference = table.addOrReference(first);
@@ -54,8 +54,8 @@ public class MutableSegmentReferencesTest {
 
     @Test
     public void shouldAddNewSegmentReference() throws Exception {
-        SegmentStore store = new MemoryStore();
-        SegmentId id = store.newDataSegmentId();
+        MemoryStore store = new MemoryStore();
+        SegmentId id = store.getSegmentIdProvider().newDataSegmentId();
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         int reference = table.addOrReference(id);
@@ -64,8 +64,8 @@ public class MutableSegmentReferencesTest {
 
     @Test
     public void shouldNotAddSameSegmentIdTwice() throws Exception {
-        SegmentStore store = new MemoryStore();
-        SegmentId id = store.newDataSegmentId();
+        MemoryStore store = new MemoryStore();
+        SegmentId id = store.getSegmentIdProvider().newDataSegmentId();
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         int first = table.addOrReference(id);
@@ -75,8 +75,8 @@ public class MutableSegmentReferencesTest {
 
     @Test
     public void shouldMaintainSize() throws Exception {
-        SegmentStore store = new MemoryStore();
-        SegmentId id = store.newDataSegmentId();
+        MemoryStore store = new MemoryStore();
+        SegmentId id = store.getSegmentIdProvider().newDataSegmentId();
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         assertEquals(0, table.size());
@@ -86,8 +86,8 @@ public class MutableSegmentReferencesTest {
 
     @Test
     public void shouldContainAddedSegment() throws Exception {
-        SegmentStore store = new MemoryStore();
-        SegmentId id = store.newDataSegmentId();
+        MemoryStore store = new MemoryStore();
+        SegmentId id = store.getSegmentIdProvider().newDataSegmentId();
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         assertFalse(table.contains(id));
@@ -97,9 +97,9 @@ public class MutableSegmentReferencesTest {
 
     @Test
     public void shouldIterateInInsertionOrder() throws Exception {
-        SegmentStore store = new MemoryStore();
-        SegmentId first = store.newDataSegmentId();
-        SegmentId second = store.newDataSegmentId();
+        MemoryStore store = new MemoryStore();
+        SegmentId first = store.getSegmentIdProvider().newDataSegmentId();
+        SegmentId second = store.getSegmentIdProvider().newDataSegmentId();
         List<SegmentId> ids = newArrayList(first, second);
 
         MutableSegmentReferences table = new MutableSegmentReferences();

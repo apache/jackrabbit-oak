@@ -177,7 +177,7 @@ public class TarWriterTest {
                 this.name = name;
                 this.selfId = selfId;
                 this.data = data.array();
-                segment = new Segment(store, store.getReader(), selfId.getSegmentId(), data);
+                segment = new Segment(store.getSegmentIdProvider(), store.getReader(), selfId.getSegmentId(), data);
             }
 
             public void write(TarWriter tarWriter) throws IOException {

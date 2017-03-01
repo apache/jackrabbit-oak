@@ -32,8 +32,8 @@ import javax.annotation.Nonnull;
 public final class TestUtils {
     private TestUtils() {}
 
-    public static RecordId newRecordId(SegmentStore store, Random random) {
-        SegmentId id = store.newDataSegmentId();
+    public static RecordId newRecordId(SegmentIdProvider idProvider, Random random) {
+        SegmentId id = idProvider.newDataSegmentId();
         RecordId r = new RecordId(id, newValidOffset(random));
         return r;
     }
@@ -56,22 +56,22 @@ public final class TestUtils {
      * Create a random map of record ids.
      *
      * @param rnd
-     * @param store
+     * @param idProvider
      * @param segmentCount  number of segments
      * @param entriesPerSegment  number of records per segment
      * @return  map of record ids
      */
-    public static Map<RecordId, RecordId> randomRecordIdMap(Random rnd, SegmentStore store,
+    public static Map<RecordId, RecordId> randomRecordIdMap(Random rnd, SegmentIdProvider idProvider,
             int segmentCount, int entriesPerSegment) {
         Map<RecordId, RecordId> map = newHashMap();
         for (int i = 0; i < segmentCount; i++) {
-            SegmentId id = store.newDataSegmentId();
+            SegmentId id =idProvider.newDataSegmentId();
             int offset = MAX_SEGMENT_SIZE;
             for (int j = 0; j < entriesPerSegment; j++) {
                 offset = newValidOffset(rnd, (entriesPerSegment - j) << RECORD_ALIGN_BITS, offset);
                 RecordId before = new RecordId(id, offset);
                 RecordId after = new RecordId(
-                        store.newDataSegmentId(),
+                        idProvider.newDataSegmentId(),
                         newValidOffset(rnd, 0, MAX_SEGMENT_SIZE));
                 map.put(before, after);
             }

@@ -192,6 +192,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             if (writer == null) {
                 writer = new SegmentBufferWriter(
                         store,
+                        tracker,
                         tracker.getSegmentCounter(),
                         reader,
                         getWriterId(wid),
@@ -201,6 +202,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
                 disposed.add(writer);
                 writer = new SegmentBufferWriter(
                         store,
+                        tracker,
                         tracker.getSegmentCounter(),
                         reader,
                         getWriterId(wid),
