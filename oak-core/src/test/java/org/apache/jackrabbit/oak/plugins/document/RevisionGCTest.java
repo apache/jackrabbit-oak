@@ -72,6 +72,7 @@ public class RevisionGCTest {
         if (store != null) {
             store.dispose();
         }
+        fixture.dispose();
         Revision.resetClockToDefault();
     }
 

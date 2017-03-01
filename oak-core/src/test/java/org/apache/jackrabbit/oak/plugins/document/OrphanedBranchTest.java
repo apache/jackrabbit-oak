@@ -82,6 +82,7 @@ public class OrphanedBranchTest {
     @After
     public void tearDown() throws Exception {
         store.dispose();
+        fixture.dispose();
     }
 
     @Test
