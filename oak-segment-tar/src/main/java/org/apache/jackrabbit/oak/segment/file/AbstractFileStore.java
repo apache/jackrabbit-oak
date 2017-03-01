@@ -212,11 +212,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     @Nonnull
-    public SegmentTracker getTracker() {
-        return tracker;
-    }
-
-    @Nonnull
     public abstract SegmentWriter getWriter();
 
     @Nonnull

@@ -180,7 +180,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
     public Set<UUID> getReferencedSegmentIds() {
         Set<UUID> ids = newHashSet();
 
-        for (SegmentId id : store.getTracker().getReferencedSegmentIds()) {
+        for (SegmentId id : store.getReferencedSegmentIds()) {
             ids.add(id.asUUID());
         }
 

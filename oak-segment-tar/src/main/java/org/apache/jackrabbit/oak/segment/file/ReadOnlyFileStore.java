@@ -243,4 +243,8 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     public ReadOnlyRevisions getRevisions() {
         return revisions;
     }
+
+    public Set<SegmentId> getReferencedSegmentIds() {
+        return tracker.getReferencedSegmentIds();
+    }
 }
