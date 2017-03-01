@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWrit
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.CheckForNull;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -97,6 +99,11 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Nonnull
+    public SegmentIdProvider getSegmentIdProvider() {
+        return tracker;
+    }
+
+    @Nonnull
     public Revisions getRevisions() {
         return revisions;
     }
@@ -122,24 +129,12 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
-    @Nonnull
-    public SegmentId newBulkSegmentId() {
-        return tracker.newBulkSegmentId();
-    }
-
-    @Override
-    @Nonnull
-    public SegmentId newDataSegmentId() {
-        return tracker.newDataSegmentId();
-    }
-
-    @Override
     public void writeSegment(
             SegmentId id, byte[] data, int offset, int length) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
-        Segment segment = new Segment(this, segmentReader, id, buffer);
+        Segment segment = new Segment(tracker, segmentReader, id, buffer);
         if (segments.putIfAbsent(id, segment) != null) {
             throw new IOException("Segment override: " + id);
         }
@@ -158,4 +153,7 @@ public class MemoryStore implements SegmentStore {
         segments.keySet().retainAll(tracker.getReferencedSegmentIds());
     }
 
+    public Set<SegmentId> getReferencedSegmentIds() {
+        return tracker.getReferencedSegmentIds();
+    }
 }

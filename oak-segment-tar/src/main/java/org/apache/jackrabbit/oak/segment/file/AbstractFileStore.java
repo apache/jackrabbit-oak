@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -223,6 +224,11 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return segmentReader;
     }
 
+    @Nonnull
+    public SegmentIdProvider getSegmentIdProvider() {
+        return tracker;
+    }
+
     /**
      * @return the {@link Revisions} object bound to the current store.
      */
@@ -247,18 +253,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return tracker.newSegmentId(msb, lsb);
     }
 
-    @Override
-    @Nonnull
-    public SegmentId newBulkSegmentId() {
-        return tracker.newBulkSegmentId();
-    }
-
-    @Override
-    @Nonnull
-    public SegmentId newDataSegmentId() {
-        return tracker.newDataSegmentId();
-    }
-
     /**
      * @return  the external BlobStore (if configured) with this store, {@code null} otherwise.
      */
@@ -274,7 +268,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         int generation = Segment.getGcGeneration(buffer, id);
         w.writeEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
-            Segment segment = new Segment(this, segmentReader, newSegmentId(msb, lsb), buffer);
+            Segment segment = new Segment(tracker, segmentReader, newSegmentId(msb, lsb), buffer);
             populateTarGraph(segment, w);
             populateTarBinaryReferences(segment, w);
         }

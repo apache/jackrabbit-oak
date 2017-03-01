@@ -96,6 +96,9 @@ public class SegmentWriter {
     @Nonnull
     private final SegmentReader reader;
 
+    @Nonnull
+    private final SegmentIdProvider idProvider;
+
     @CheckForNull
     private final BlobStore blobStore;
 
@@ -111,6 +114,7 @@ public class SegmentWriter {
      *
      * @param store      store to write to
      * @param reader     segment reader for the {@code store}
+     * @param idProvider segment id provider for the {@code store}
      * @param blobStore  the blog store or {@code null} for inlined blobs
      * @param cacheManager  cache manager instance for the de-duplication caches used by this writer
      * @param writeOperationHandler  handler for write operations.
@@ -118,12 +122,14 @@ public class SegmentWriter {
     public SegmentWriter(
             @Nonnull SegmentStore store,
             @Nonnull SegmentReader reader,
+            @Nonnull SegmentIdProvider idProvider,
             @Nullable BlobStore blobStore,
             @Nonnull WriterCacheManager cacheManager,
             @Nonnull WriteOperationHandler writeOperationHandler
     ) {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
+        this.idProvider = checkNotNull(idProvider);
         this.blobStore = blobStore;
         this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
@@ -702,7 +708,7 @@ public class SegmentWriter {
 
             // write as many full bulk segments as possible
             while (pos + Segment.MAX_SEGMENT_SIZE <= data.length) {
-                SegmentId bulkId = store.newBulkSegmentId();
+                SegmentId bulkId = idProvider.newBulkSegmentId();
                 store.writeSegment(bulkId, data, pos, Segment.MAX_SEGMENT_SIZE);
                 for (int i = 0; i < Segment.MAX_SEGMENT_SIZE; i += BLOCK_SIZE) {
                     blockIds.add(new RecordId(bulkId, i));
@@ -837,7 +843,7 @@ public class SegmentWriter {
 
             // Write the data to bulk segments and collect the list of block ids
             while (n != 0) {
-                SegmentId bulkId = store.newBulkSegmentId();
+                SegmentId bulkId = idProvider.newBulkSegmentId();
                 LOG.debug("Writing bulk segment {} ({} bytes)", bulkId, n);
                 store.writeSegment(bulkId, data, 0, n);
 

@@ -55,7 +55,7 @@ public class RecordCacheStatsTest {
     public RecordCacheStatsTest() throws IOException {}
 
     private RecordId newRecordId() {
-        return TestUtils.newRecordId(store, rnd);
+        return TestUtils.newRecordId(store.getSegmentIdProvider(), rnd);
     }
 
     @Before

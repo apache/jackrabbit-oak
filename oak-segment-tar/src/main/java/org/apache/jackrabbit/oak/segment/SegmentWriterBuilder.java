@@ -146,6 +146,7 @@ public final class SegmentWriterBuilder {
         return new SegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
+                store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
                 createWriter(store, pooled)
@@ -162,6 +163,7 @@ public final class SegmentWriterBuilder {
         return new SegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
+                store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
                 new WriteOperationHandler() {
@@ -186,6 +188,7 @@ public final class SegmentWriterBuilder {
         return new SegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
+                store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
                 createWriter(store, pooled)
@@ -205,6 +208,7 @@ public final class SegmentWriterBuilder {
         } else {
             return new SegmentBufferWriter(
                     store,
+                    store.getSegmentIdProvider(),
                     store.getTracker().getSegmentCounter(),
                     store.getReader(),
                     name,
@@ -226,6 +230,7 @@ public final class SegmentWriterBuilder {
         } else {
             return new SegmentBufferWriter(
                     store,
+                    store.getSegmentIdProvider(),
                     store.getTracker().getSegmentCounter(),
                     store.getReader(),
                     name,
