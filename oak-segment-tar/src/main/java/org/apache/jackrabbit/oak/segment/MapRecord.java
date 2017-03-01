@@ -24,6 +24,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
+import static org.apache.jackrabbit.oak.segment.MapEntry.newMapEntry;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -165,7 +166,7 @@ public class MapRecord extends Record {
                 RecordId key = segment.readRecordId(getRecordNumber(), 8);
                 if (name.equals(reader.readString(key))) {
                     RecordId value = segment.readRecordId(getRecordNumber(), 8, 1);
-                    return new MapEntry(reader, name, key, value);
+                    return newMapEntry(reader, name, key, value);
                 }
             }
             RecordId base = segment.readRecordId(getRecordNumber(), 8, 2);
@@ -218,7 +219,7 @@ public class MapRecord extends Record {
                 RecordId valueId = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2 + 1);
                 diff = reader.readString(keyId).compareTo(name);
                 if (diff == 0) {
-                    return new MapEntry(reader, name, keyId, valueId);
+                    return newMapEntry(reader, name, keyId, valueId);
                 }
             }
 
@@ -369,7 +370,7 @@ public class MapRecord extends Record {
                 value = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2 + 1);
             }
             String name = reader.readString(key);
-            entries[i] = new MapEntry(reader, name, key, value);
+            entries[i] = newMapEntry(reader, name, key, value);
         }
         return Arrays.asList(entries);
     }
@@ -484,9 +485,7 @@ public class MapRecord extends Record {
             } else if (d == 0) {
                 assert beforeEntry != null;
                 assert afterEntry != null;
-                RecordId beforeValue = beforeEntry.getValue();
-                assert beforeValue != null;
-                if (!beforeValue.equals(afterEntry.getValue())
+                if (!beforeEntry.getValue().equals(afterEntry.getValue())
                         && !diff.childNodeChanged(
                                 beforeEntry.getName(),
                                 beforeEntry.getNodeState(),
