@@ -385,13 +385,17 @@ public abstract class AbstractLoginModule implements LoginModule {
                 callbackHandler.handle(new Callback[]{rcb});
 
                 final ContentRepository repository = rcb.getContentRepository();
-                systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                    @Override
-                    public ContentSession run() throws LoginException, NoSuchWorkspaceException {
-                        return repository.login(null, rcb.getWorkspaceName());
-                    }
-                });
-                root = systemSession.getLatestRoot();
+                if (repository != null) {
+                    systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+                        @Override
+                        public ContentSession run() throws LoginException, NoSuchWorkspaceException {
+                            return repository.login(null, rcb.getWorkspaceName());
+                        }
+                    });
+                    root = systemSession.getLatestRoot();
+                } else {
+                    log.debug("Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
+                }
             } catch (UnsupportedCallbackException e) {
                 log.debug(e.getMessage());
             } catch (IOException e) {
