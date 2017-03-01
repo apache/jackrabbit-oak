@@ -280,6 +280,7 @@ public class Segment {
                 return id;
             }
 
+            @Nonnull
             @Override
             public Iterator<SegmentId> iterator() {
                 return new AbstractIterator<SegmentId>() {
