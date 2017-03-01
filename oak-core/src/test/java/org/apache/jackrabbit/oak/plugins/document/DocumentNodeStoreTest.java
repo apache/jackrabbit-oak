@@ -377,7 +377,7 @@ public class DocumentNodeStoreTest {
 
     @Test
     public void commitHookChangesOnBranch() throws Exception {
-        final int NUM_NODES = DocumentRootBuilder.UPDATE_LIMIT / 2;
+        final int NUM_NODES = DocumentMK.UPDATE_LIMIT / 2;
         final int NUM_PROPS = 10;
         DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
@@ -1936,7 +1936,7 @@ public class DocumentNodeStoreTest {
 
     @Test
     public void slowRebase() throws Exception {
-        final int NUM_NODES = DocumentRootBuilder.UPDATE_LIMIT / 2;
+        final int NUM_NODES = DocumentMK.UPDATE_LIMIT / 2;
         final int NUM_PROPS = 10;
         final int REBASE_COUNT = 5;
         final DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
@@ -2288,7 +2288,7 @@ public class DocumentNodeStoreTest {
                                                CommitInfo info)
                         throws CommitFailedException {
                     NodeBuilder foo = after.builder().child("foo");
-                    for (int i = 0; i <= DocumentRootBuilder.UPDATE_LIMIT; i++) {
+                    for (int i = 0; i <= DocumentMK.UPDATE_LIMIT; i++) {
                         foo.setProperty("prop", i);
                     }
                     throw new CommitFailedException("Fail", 0, "");
@@ -2330,7 +2330,7 @@ public class DocumentNodeStoreTest {
         builder.child("foo");
         b.setRoot(builder.getNodeState());
         // branch state is now InMemory
-        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT; i++) {
+        for (int i = 0; i < DocumentMK.UPDATE_LIMIT; i++) {
             builder.child("bar").setProperty("p-" + i, "foo");
         }
         b.setRoot(builder.getNodeState());
@@ -2569,7 +2569,7 @@ public class DocumentNodeStoreTest {
         builder.child("parent").child("node-x").child("child").child("x");
         b.setRoot(builder.getNodeState());
         // branch state is now InMemory
-        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT; i++) {
+        for (int i = 0; i < DocumentMK.UPDATE_LIMIT; i++) {
             builder.child("b" + i);
         }
         b.setRoot(builder.getNodeState());
@@ -2593,17 +2593,17 @@ public class DocumentNodeStoreTest {
         NodeBuilder b1 = ns.getRoot().builder();
 
         //this would push children cache entries as childX->subChildX
-        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT + 1; i++) {
+        for (int i = 0; i < DocumentMK.UPDATE_LIMIT + 1; i++) {
             b1.child("child" + i).child("subChild" + i);
         }
 
         //The fetch would happen on "br" format of revision
-        for (int i = 0; i < DocumentRootBuilder.UPDATE_LIMIT + 1; i++) {
+        for (int i = 0; i < DocumentMK.UPDATE_LIMIT + 1; i++) {
             Iterables.size(b1.getChildNode("child" + i).getChildNodeNames());
         }
 
         //must not have duplicated cache entries
-        assertTrue(ns.getNodeChildrenCacheStats().getElementCount() < 2*DocumentRootBuilder.UPDATE_LIMIT);
+        assertTrue(ns.getNodeChildrenCacheStats().getElementCount() < 2*DocumentMK.UPDATE_LIMIT);
     }
 
     // OAK-4601
@@ -2613,7 +2613,7 @@ public class DocumentNodeStoreTest {
 
         NodeBuilder b1 = ns.getRoot().builder();
 
-        final int NUM_CHILDREN = 3*DocumentRootBuilder.UPDATE_LIMIT + 1;
+        final int NUM_CHILDREN = 3*DocumentMK.UPDATE_LIMIT + 1;
         //this would push node cache entries for children
         for (int i = 0; i < NUM_CHILDREN; i++) {
             b1.child("child" + i);
@@ -2925,6 +2925,21 @@ public class DocumentNodeStoreTest {
         System.out.println("======");
 
         assertEquals(1, ws.count);
+    }
+
+    @Test
+    public void setUpdateLimit() throws Exception {
+        final int updateLimit = 17;
+        DocumentNodeStore ns = builderProvider.newBuilder().setUpdateLimit(updateLimit)
+                .setAsyncDelay(0).getNodeStore();
+        DocumentStore store = ns.getDocumentStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        for (int i = 0; i <= updateLimit * 2; i++) {
+            builder.child("foo").setProperty("p-" + i, "value");
+        }
+        // must have created a branch commit
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(doc);
     }
 
     private static class WriteCountingStore extends MemoryDocumentStore {

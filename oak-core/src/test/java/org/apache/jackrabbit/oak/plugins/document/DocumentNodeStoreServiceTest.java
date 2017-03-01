@@ -125,6 +125,15 @@ public class DocumentNodeStoreServiceTest {
         assertEquals(1, store.getJournalPropertyHandlerFactory().getServiceCount());
     }
 
+    @Test
+    public void setUpdateLimit() throws Exception {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put(DocumentNodeStoreService.PROP_UPDATE_LIMIT, 17);
+        MockOsgi.activate(service, context.bundleContext(), config);
+        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
+        assertEquals(17, store.getUpdateLimit());
+    }
+
     private void assertPersistentCachePath(String expectedPath,
                                            String persistentCache,
                                            String repoHome) {
