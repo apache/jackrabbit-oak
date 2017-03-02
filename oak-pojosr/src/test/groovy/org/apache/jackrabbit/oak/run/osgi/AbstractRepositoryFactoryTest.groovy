@@ -211,14 +211,14 @@ abstract class AbstractRepositoryFactoryTest{
 
         try {
             registry.addServiceListener(listener)
+
             closure.run()
-            def start = System.nanoTime()
+
             if (!latch.await(timeout, timeUnit)) {
                 throw new AssertionError("Exceeded timeout waiting for service event matching " +
                         "[eventTypes: ${eventTypes}, filter: ${serviceFilter}], " +
                         "got ${events.size()} non matching events: [${events}]")
             }
-            println "awaitServiceEvent completed after ${TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)}ms"
         } finally {
             registry.removeServiceListener(listener)
         }
