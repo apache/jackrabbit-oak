@@ -48,9 +48,15 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private final String workspaceName;
 
+    private final Set<Principal> principals;
+
+    private final RestrictionProvider restrictionProvider;
+
+    private final ConfigurationParameters options;
+
     private final Context ctx;
 
-    private final CompiledPermissions compiledPermissions;
+    private CompiledPermissions compiledPermissions;
 
     private Root immutableRoot;
 
@@ -61,49 +67,46 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                                   @Nonnull Context ctx) {
         this.root = root;
         this.workspaceName = workspaceName;
+        this.principals = principals;
+        this.restrictionProvider = restrictionProvider;
+        this.options = options;
         this.ctx = ctx;
 
         immutableRoot = RootFactory.createReadOnlyRoot(root);
-
-        if (PermissionUtil.isAdminOrSystem(principals, options)) {
-            compiledPermissions = AllPermissions.getInstance();
-        } else {
-            compiledPermissions = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, restrictionProvider, options, ctx);
-        }
     }
 
     @Override
     public void refresh() {
         immutableRoot = RootFactory.createReadOnlyRoot(root);
-        compiledPermissions.refresh(immutableRoot, workspaceName);
+        getCompiledPermissions().refresh(immutableRoot, workspaceName);
     }
 
     @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        return compiledPermissions.getPrivileges(PermissionUtil.getImmutableTree(tree, immutableRoot));
+        return getCompiledPermissions().getPrivileges(PermissionUtil.getImmutableTree(tree, immutableRoot));
     }
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
-        return compiledPermissions.hasPrivileges(PermissionUtil.getImmutableTree(tree, immutableRoot), privilegeNames);
+        return getCompiledPermissions().hasPrivileges(PermissionUtil.getImmutableTree(tree, immutableRoot), privilegeNames);
     }
 
     @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
-        return compiledPermissions.getRepositoryPermission();
+        return getCompiledPermissions().getRepositoryPermission();
     }
 
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-        return compiledPermissions.getTreePermission(PermissionUtil.getImmutableTree(tree, immutableRoot), parentPermission);
+        return getCompiledPermissions().getTreePermission(PermissionUtil.getImmutableTree(tree, immutableRoot), parentPermission);
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        return compiledPermissions.isGranted(PermissionUtil.getImmutableTree(tree, immutableRoot), property, permissions);
+        return getCompiledPermissions().isGranted(PermissionUtil.getImmutableTree(tree, immutableRoot), property, permissions);
     }
 
     @Override
@@ -145,10 +148,23 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
-        return compiledPermissions.getTreePermission(PermissionUtil.getImmutableTree(tree, immutableRoot), type, parentPermission);
+        return getCompiledPermissions().getTreePermission(PermissionUtil.getImmutableTree(tree, immutableRoot), type, parentPermission);
     }
 
     //--------------------------------------------------------------------------
+
+    private CompiledPermissions getCompiledPermissions() {
+        CompiledPermissions cp = compiledPermissions;
+        if (cp == null) {
+            if (PermissionUtil.isAdminOrSystem(principals, options)) {
+                cp = AllPermissions.getInstance();
+            } else {
+                cp = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, restrictionProvider, options, ctx);
+            }
+            compiledPermissions = cp;
+        }
+        return cp;
+    }
 
     private static boolean isVersionStorePath(@Nonnull String oakPath) {
         return oakPath.startsWith(VersionConstants.VERSION_STORE_PATH);
@@ -161,7 +177,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         if (tree != null) {
             isGranted = isGranted(tree, property, permissions);
         } else if (!isVersionStorePath(location.getPath())) {
-            isGranted = compiledPermissions.isGranted(oakPath, permissions);
+            isGranted = getCompiledPermissions().isGranted(oakPath, permissions);
         }
         return isGranted;
     }
