@@ -505,28 +505,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
             if (str == null) {
                 return defaultValue;
             }
-            Matcher m = pattern.matcher(str);
-            long current = -1;
-            while (m.find()) {
-                String number = m.group(1);
-                String decimal = m.group(2);
-                if (decimal != null) {
-                    number += decimal;
-                }
-                String unit = m.group(3);
-                double value = Double.valueOf(number);
-                if ("s".equals(unit)) {
-                    value *= 1000.0;
-                } else if ("m".equals(unit)) {
-                    value *= 60 * 1000.0;
-                } else if ("h".equals(unit)) {
-                    value *= 60 * 60 * 1000.0;
-                } else if ("d".equals(unit)) {
-                    value *= 24 * 60 * 60 * 1000.0;
-                }
-                current += value;
-            }
-            return current < 0 ? defaultValue : new Milliseconds(current + 1);
+            Milliseconds ms = of(str);
+            return (ms == null) ? defaultValue : ms;
         }
 
         @Override

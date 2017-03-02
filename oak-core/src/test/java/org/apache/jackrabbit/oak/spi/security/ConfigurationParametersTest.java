@@ -20,13 +20,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,6 +78,41 @@ public class ConfigurationParametersTest {
         // verify shortcut if the passed map is already an instanceof ConfigurationParameters
         ConfigurationParameters cp2 = ConfigurationParameters.of(cp);
         assertSame(cp, cp2);
+    }
+
+    @Test
+    public void testCreationFromEmptyProperties() {
+        ConfigurationParameters cp = ConfigurationParameters.of(new Properties());
+        assertSame(ConfigurationParameters.EMPTY, cp);
+    }
+
+    @Test
+    public void testCreationFromProperties() {
+        Properties properties = new Properties();
+        properties.put("a", "b");
+
+        ConfigurationParameters cp = ConfigurationParameters.of(properties);
+        assertEquals(ImmutableSet.copyOf(properties.keySet()), ImmutableSet.copyOf(cp.keySet()));
+        assertEquals(ImmutableSet.copyOf(properties.values()), ImmutableSet.copyOf(cp.values()));
+
+    }
+
+    @Test
+    public void testCreationFromEmptyDictionary() {
+        Dictionary dict = new Properties();
+        ConfigurationParameters cp = ConfigurationParameters.of(dict);
+        assertSame(ConfigurationParameters.EMPTY, cp);
+    }
+
+    @Test
+    public void testCreationFromDictionary() {
+        Dictionary dict = new Properties();
+        dict.put("a", "b");
+
+        ConfigurationParameters cp = ConfigurationParameters.of(dict);
+        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.keys())), ImmutableSet.copyOf(cp.keySet()));
+        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.elements())), ImmutableSet.copyOf(cp.values()));
+
     }
 
     @Test
@@ -436,6 +474,41 @@ public class ConfigurationParametersTest {
         assertEquals(90 * 1000, ConfigurationParameters.Milliseconds.of("1m30s").value);
         assertEquals(60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1h1m30s").value);
         assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s").value);
+    }
+
+    @Test
+    public void testDurationParserWithDefault() {
+        ConfigurationParameters.Milliseconds defValue = ConfigurationParameters.Milliseconds.FOREVER;
+        assertEquals(defValue, ConfigurationParameters.Milliseconds.of("", defValue));
+        assertEquals(defValue, ConfigurationParameters.Milliseconds.of(null, defValue));
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("1", defValue).value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("1ms", defValue).value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms", defValue).value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms   ", defValue).value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms  foobar", defValue).value);
+        assertEquals(1000, ConfigurationParameters.Milliseconds.of("1s", defValue).value);
+        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1.5s", defValue).value);
+        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1s 500ms", defValue).value);
+        assertEquals(60 * 1000, ConfigurationParameters.Milliseconds.of("1m", defValue).value);
+        assertEquals(90 * 1000, ConfigurationParameters.Milliseconds.of("1m30s", defValue).value);
+        assertEquals(60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1h1m30s", defValue).value);
+        assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s", defValue).value);
+    }
+
+    @Test
+    public void testNullMilliseconds() {
+        assertSame(ConfigurationParameters.Milliseconds.NULL, ConfigurationParameters.Milliseconds.of(0));
+    }
+
+    @Test
+    public void testForeverMilliseconds() {
+        assertSame(ConfigurationParameters.Milliseconds.FOREVER, ConfigurationParameters.Milliseconds.of(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void testNeverMilliseconds() {
+        assertSame(ConfigurationParameters.Milliseconds.NEVER, ConfigurationParameters.Milliseconds.of(Long.MIN_VALUE));
+        assertSame(ConfigurationParameters.Milliseconds.NEVER, ConfigurationParameters.Milliseconds.of(-1));
     }
 
     private class TestObject {
