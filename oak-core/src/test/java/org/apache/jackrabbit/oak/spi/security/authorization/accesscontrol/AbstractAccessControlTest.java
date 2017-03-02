@@ -19,14 +19,11 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -37,16 +34,6 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
     private RestrictionProvider restrictionProvider;
     private PrivilegeBitsProvider bitsProvider;
-
-    protected void registerNamespace(String prefix, String uri) throws Exception {
-        NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry(root) {
-            @Override
-            protected Root getWriteRoot() {
-                return root;
-            }
-        };
-        nsRegistry.registerNamespace(prefix, uri);
-    }
 
     protected RestrictionProvider getRestrictionProvider() {
         if (restrictionProvider == null) {

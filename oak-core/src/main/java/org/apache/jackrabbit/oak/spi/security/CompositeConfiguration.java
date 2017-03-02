@@ -20,7 +20,9 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -66,6 +68,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     private final List<T> configurations = new CopyOnWriteArrayList<T>();
 
+    private final Ranking rankings = new Ranking();
+
     private final String name;
     private final CompositeContext ctx = new CompositeContext();
 
@@ -106,7 +110,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         } else {
             int i = 0;
             for (T c : configurations) {
-                int r = c.getParameters().getConfigValue(PARAM_RANKING, NO_RANKING);
+                int r = rankings.get(c);
                 if (ranking > r) {
                     break;
                 } else {
@@ -115,11 +119,13 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
             }
             configurations.add(i, configuration);
         }
+        rankings.set(configuration, ranking);
         ctx.add(configuration);
     }
 
     public void removeConfiguration(@Nonnull T configuration) {
         configurations.remove(configuration);
+        rankings.remove(configuration);
         ctx.refresh(configurations);
     }
 
@@ -221,6 +227,30 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Override
     public Context getContext() {
         return ctx;
+    }
+
+    private static final class Ranking {
+
+        private Map<SecurityConfiguration, Integer> m = new ConcurrentHashMap();
+
+        private int get(@Nonnull SecurityConfiguration configuration) {
+            Integer ranking = m.get(configuration);
+            if (ranking == null) {
+                return NO_RANKING;
+            } else {
+                return ranking.intValue();
+            }
+        }
+
+        private void set(@Nonnull SecurityConfiguration configuration, int ranking) {
+            if (ranking != NO_RANKING) {
+                m.put(configuration, ranking);
+            }
+        }
+
+        private void remove(@Nonnull SecurityConfiguration configuration) {
+            m.remove(configuration);
+        }
     }
 
     private static final class CompositeContext implements Context {
