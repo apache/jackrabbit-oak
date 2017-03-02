@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -33,6 +34,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -98,10 +100,16 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
     }
 
     @Test
-    public void testNextBits() {
+    public void testNextBitsFromEmpty() {
         // empty
         assertSame(PrivilegeBits.EMPTY, PrivilegeBits.EMPTY.nextBits());
 
+        PrivilegeBits bits = PrivilegeBits.getInstance().unmodifiable();
+        assertSame(bits, bits.nextBits());
+    }
+
+    @Test
+    public void testNextBits() {
         // long based privilege bits
         PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
         long l = getLongValue(pb);
@@ -151,6 +159,18 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
 
             pb = nxt;
         }
+    }
+
+    @Test
+    public void testModifiable() {
+        assertNotSame(PrivilegeBits.EMPTY, PrivilegeBits.EMPTY.modifiable());
+
+        // other privilege bits
+        PrivilegeBits mod = PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS);
+
+        assertSame(mod, mod.modifiable());
+        assertNotSame(mod, mod.unmodifiable());
+        assertNotEquals(mod, mod.unmodifiable());
     }
 
     @Test
@@ -619,6 +639,44 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
     }
 
     @Test
+    public void testGetInstanceFromMvPropertyState() {
+        PropertyState property = PropertyStates.createProperty("name", ImmutableSet.of(Long.MAX_VALUE, Long.MIN_VALUE / 2), Type.LONGS);
+
+        PrivilegeBits pb = PrivilegeBits.getInstance(property);
+
+        assertEquivalent(pb, PrivilegeBits.getInstance(property));
+        assertSame(pb, pb.unmodifiable());
+
+        assertEquivalent(pb, PrivilegeBits.getInstance(pb));
+        assertEquivalent(PrivilegeBits.getInstance(pb), pb);
+        assertNotSame(pb, PrivilegeBits.getInstance(pb));
+
+        try {
+            pb.add(READ_NODES_PRIVILEGE_BITS);
+            fail("UnsupportedOperation expected");
+        } catch (UnsupportedOperationException e) {
+            // success
+        }
+        try {
+            pb.addDifference(READ_NODES_PRIVILEGE_BITS, READ_NODES_PRIVILEGE_BITS);
+            fail("UnsupportedOperation expected");
+        } catch (UnsupportedOperationException e) {
+            // success
+        }
+        try {
+            pb.diff(READ_NODES_PRIVILEGE_BITS);
+            fail("UnsupportedOperation expected");
+        } catch (UnsupportedOperationException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetInstanceFromNullPropertyState() {
+        assertSame(PrivilegeBits.EMPTY, PrivilegeBits.getInstance((PropertyState) null));
+    }
+
+    @Test
     public void testGetInstanceFromTree() {
         Tree privRoot = root.getTree(PRIVILEGES_PATH);
         try {
@@ -637,6 +695,11 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
         } finally {
             root.refresh();
         }
+    }
+
+    @Test
+    public void testGetInstanceFromNullTree() {
+        assertSame(PrivilegeBits.EMPTY, PrivilegeBits.getInstance((Tree) null));
     }
 
     @Test
@@ -684,6 +747,11 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
         PrivilegeBits all = provider.getBits(JCR_ALL);
         assertFalse(Permissions.ALL == PrivilegeBits.calculatePermissions(all, PrivilegeBits.EMPTY, true));
         assertTrue(Permissions.ALL == PrivilegeBits.calculatePermissions(all, all, true));
+    }
+
+    @Test
+    public void testCalculatePermissionsParentAwareAllow() {
+        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(root);
 
         // parent aware permissions
         // a) jcr:addChildNodes
@@ -704,5 +772,39 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
         assertFalse(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(remove, PrivilegeBits.EMPTY, true));
         assertFalse(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, remove, true));
         assertTrue(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(remove, remove, true));
+    }
+
+    @Test
+    public void testCalculatePermissionsParentAwareDeny() {
+        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(root);
+
+        // parent aware permissions
+        // a) jcr:addChildNodes
+        PrivilegeBits addChild = provider.getBits(JCR_ADD_CHILD_NODES);
+        assertNotEquals(Permissions.ADD_NODE, PrivilegeBits.calculatePermissions(addChild, PrivilegeBits.EMPTY, false));
+        assertEquals(Permissions.ADD_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, addChild, false));
+
+        // b) jcr:removeChildNodes and jcr:removeNode
+        PrivilegeBits removeChild = provider.getBits(JCR_REMOVE_CHILD_NODES);
+        assertEquals(Permissions.NO_PERMISSION, PrivilegeBits.calculatePermissions(removeChild, PrivilegeBits.EMPTY, false));
+        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeChild, false));
+
+        PrivilegeBits removeNode = provider.getBits(JCR_REMOVE_NODE);
+        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(removeNode, PrivilegeBits.EMPTY, false));
+        assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeNode, false));
+
+        PrivilegeBits remove = provider.getBits(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE);
+        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(remove, PrivilegeBits.EMPTY, false));
+        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, remove, false));
+        assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(remove, remove, false));
+    }
+
+    @Test
+    public void testEquals() {
+        assertEquals(READ_NODES_PRIVILEGE_BITS, READ_NODES_PRIVILEGE_BITS);
+        assertEquals(READ_NODES_PRIVILEGE_BITS, PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS).unmodifiable());
+
+        assertNotEquals(READ_NODES_PRIVILEGE_BITS, PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS));
+        assertNotEquals(PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS), READ_NODES_PRIVILEGE_BITS);
     }
 }

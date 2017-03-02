@@ -32,11 +32,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class CompositeConfigurationTest {
+public class CompositeConfigurationTest extends AbstractCompositeConfigurationTest {
 
     private static final String NAME = "test";
-
-    private CompositeConfiguration compositeConfiguration;
 
     @Before
     public void before() throws Exception {
@@ -69,15 +67,15 @@ public class CompositeConfigurationTest {
     @Test
     public void testEmpty() {
         assertSame(ConfigurationParameters.EMPTY, compositeConfiguration.getParameters());
-        assertTrue(compositeConfiguration.getConfigurations().isEmpty());
+        assertTrue(getConfigurations().isEmpty());
     }
 
     @Test
     public void testSetDefaultConfig() {
         SecurityConfiguration sc = new SecurityConfiguration.Default();
-        compositeConfiguration.setDefaultConfig(sc);
+        setDefault(sc);
 
-        List<SecurityConfiguration> configurations = compositeConfiguration.getConfigurations();
+        List<SecurityConfiguration> configurations = getConfigurations();
         assertFalse(configurations.isEmpty());
         assertEquals(1, configurations.size());
         assertEquals(sc, configurations.iterator().next());
@@ -85,17 +83,17 @@ public class CompositeConfigurationTest {
 
     @Test
     public void testAddConfiguration() {
-        compositeConfiguration.addConfiguration(new SecurityConfiguration.Default());
-        compositeConfiguration.addConfiguration(new SecurityConfiguration.Default());
+        addConfiguration(new SecurityConfiguration.Default());
+        addConfiguration(new SecurityConfiguration.Default());
 
-        List<SecurityConfiguration> configurations = compositeConfiguration.getConfigurations();
+        List<SecurityConfiguration> configurations = getConfigurations();
         assertFalse(configurations.isEmpty());
         assertEquals(2, configurations.size());
 
         SecurityConfiguration def = new SecurityConfiguration.Default();
-        compositeConfiguration.setDefaultConfig(def);
+        setDefault(def);
 
-        configurations = compositeConfiguration.getConfigurations();
+        configurations = getConfigurations();
         assertEquals(2, configurations.size());
         assertFalse(configurations.contains(def));
     }
@@ -103,18 +101,18 @@ public class CompositeConfigurationTest {
     @Test
     public void testRemoveConfiguration() {
         SecurityConfiguration def = new SecurityConfiguration.Default();
-        compositeConfiguration.setDefaultConfig(def);
+        setDefault(def);
 
         SecurityConfiguration sc = new SecurityConfiguration.Default();
-        compositeConfiguration.addConfiguration(sc);
+        addConfiguration(sc);
 
-        compositeConfiguration.removeConfiguration(def);
-        List configurations = compositeConfiguration.getConfigurations();
+        removeConfiguration(def);
+        List configurations = getConfigurations();
         assertEquals(1, configurations.size());
         assertEquals(sc, configurations.iterator().next());
 
-        compositeConfiguration.removeConfiguration(sc);
-        configurations = compositeConfiguration.getConfigurations();
+        removeConfiguration(sc);
+        configurations = getConfigurations();
         assertEquals(1, configurations.size());
         assertEquals(def, configurations.iterator().next());
     }
@@ -134,36 +132,36 @@ public class CompositeConfigurationTest {
         assertSame(Context.DEFAULT, def.get(ctx));
 
         SecurityConfiguration sc = new TestConfiguration();
-        compositeConfiguration.setDefaultConfig(sc);
+        setDefault(sc);
         ctx = compositeConfiguration.getContext();
         assertNull(delegatees.get(ctx));
         assertSame(sc.getContext(), def.get(ctx));
         assertSame(cls, ctx.getClass());
 
-        compositeConfiguration.addConfiguration(sc);
+        addConfiguration(sc);
         ctx = compositeConfiguration.getContext();
         assertNotSame(sc.getContext(), ctx);
         assertEquals(1, ((Context[]) delegatees.get(ctx)).length);
 
         // add configuration that has DEFAULT ctx -> must not be added
         SecurityConfiguration defConfig = new SecurityConfiguration.Default();
-        compositeConfiguration.addConfiguration(defConfig);
+        addConfiguration(defConfig);
         assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
 
         // add same test configuration again -> no duplicate entries
-        compositeConfiguration.addConfiguration(sc);
+        addConfiguration(sc);
         assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
 
         SecurityConfiguration sc2 = new TestConfiguration();
-        compositeConfiguration.addConfiguration(sc2);
+        addConfiguration(sc2);
         assertEquals(2, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
 
-        compositeConfiguration.removeConfiguration(sc2);
+        removeConfiguration(sc2);
         assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
 
-        compositeConfiguration.removeConfiguration(sc);
-        compositeConfiguration.removeConfiguration(sc);
-        compositeConfiguration.removeConfiguration(defConfig);
+        removeConfiguration(sc);
+        removeConfiguration(sc);
+        removeConfiguration(defConfig);
         assertNull(delegatees.get(compositeConfiguration.getContext()));
     }
 

@@ -14,24 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication.callback;
+package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
-public class TokenProviderCallbackTest {
+public class EmptyPatternTest {
 
     @Test
-    public void testCallback() {
-        TokenProviderCallback cb = new TokenProviderCallback();
+    public void testMatches() {
+        assertTrue(RestrictionPattern.EMPTY.matches());
+    }
 
-        TokenProvider tp = Mockito.mock(TokenProvider.class);
-        cb.setTokenProvider(tp);
+    @Test
+    public void testMatchesPath() {
+        assertTrue(RestrictionPattern.EMPTY.matches("/any/path"));
+    }
 
-        assertSame(tp, cb.getTokenProvider());
+    @Test
+    public void testMatchesTree() {
+        assertTrue(RestrictionPattern.EMPTY.matches(Mockito.mock(Tree.class), null));
+    }
+
+    @Test
+    public void testMatchesProperty() {
+        assertTrue(RestrictionPattern.EMPTY.matches(Mockito.mock(Tree.class), Mockito.mock(PropertyState.class)));
     }
 
 }

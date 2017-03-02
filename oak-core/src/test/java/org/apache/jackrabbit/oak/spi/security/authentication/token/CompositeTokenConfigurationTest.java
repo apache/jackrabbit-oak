@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.token;
+package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.List;
+import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.security.AbstractCompositeConfigurationTest;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.AbstractCompositeConfigurationTest;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -32,10 +34,23 @@ import static org.junit.Assert.assertTrue;
 
 public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurationTest<TokenConfiguration> {
 
-    @Override
+    @Before
     public void before() throws Exception {
-        super.before();
-        compositeConfiguration = new CompositeTokenConfiguration(getSecurityProvider());
+        compositeConfiguration = new CompositeTokenConfiguration(createSecurityProvider());
+    }
+
+    private TokenConfiguration createTokenConfiguration() {
+        return new TestTokenConfig();
+    }
+
+    private SecurityProvider createSecurityProvider() {
+        return Mockito.mock(SecurityProvider.class);
+    }
+
+    @Test
+    public void testEmptyConstructor() {
+        TokenConfiguration composite = new CompositeTokenConfiguration();
+        assertEquals(TokenConfiguration.NAME, composite.getName());
     }
 
     @Test
@@ -47,7 +62,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
 
     @Test
     public void testSetDefault() {
-        TokenConfigurationImpl tc = new TokenConfigurationImpl(getSecurityProvider());
+        TokenConfiguration tc = createTokenConfiguration();
         setDefault(tc);
 
         List<TokenConfiguration> configs = getConfigurations();
@@ -59,7 +74,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
         assertNotNull(configs);
         assertEquals(1, configs.size());
 
-        addConfiguration(new TokenConfigurationImpl(getSecurityProvider()));
+        addConfiguration(createTokenConfiguration());
         configs = getConfigurations();
         assertNotNull(configs);
         assertEquals(2, configs.size());
@@ -67,7 +82,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
 
     @Test
     public void testAddConfiguration() {
-        TokenConfigurationImpl tc = new TokenConfigurationImpl(getSecurityProvider());
+        TokenConfiguration tc = createTokenConfiguration();
         addConfiguration(tc);
 
         List<TokenConfiguration> configs = getConfigurations();
@@ -79,7 +94,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
         assertNotNull(configs);
         assertEquals(2, configs.size());
 
-        addConfiguration(new TokenConfigurationImpl(getSecurityProvider()));
+        addConfiguration(createTokenConfiguration());
         configs = getConfigurations();
         assertNotNull(configs);
         assertEquals(3, configs.size());
@@ -87,7 +102,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
 
     @Test
     public void testRemoveConfiguration() {
-        TokenConfiguration tc = new TokenConfigurationImpl(getSecurityProvider());
+        TokenConfiguration tc = createTokenConfiguration();
         addConfiguration(tc);
 
         List<TokenConfiguration> configs = getConfigurations();
@@ -104,26 +119,35 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
     public void testGetTokenProvider() {
         CompositeTokenConfiguration ctc = (CompositeTokenConfiguration) compositeConfiguration;
 
+        Root root = Mockito.mock(Root.class);
+
         TokenProvider tp = ctc.getTokenProvider(root);
         assertNotNull(tp);
         assertFalse(tp instanceof CompositeTokenProvider);
 
-        TokenConfiguration tc = new TokenConfigurationImpl(getSecurityProvider());
+        TokenConfiguration tc = createTokenConfiguration();
         setDefault(tc);
         tp = ctc.getTokenProvider(root);
         assertNotNull(tp);
         assertFalse(tp instanceof CompositeTokenProvider);
-        assertTrue(tp instanceof TokenProviderImpl);
 
         addConfiguration(tc);
         tp = ctc.getTokenProvider(root);
         assertNotNull(tp);
         assertFalse(tp instanceof CompositeTokenProvider);
-        assertTrue(tp instanceof TokenProviderImpl);
 
-        addConfiguration(new TokenConfigurationImpl(getSecurityProvider()));
+        addConfiguration(createTokenConfiguration());
         tp = ctc.getTokenProvider(root);
         assertNotNull(tp);
         assertTrue(tp instanceof CompositeTokenProvider);
+    }
+
+    private static final class TestTokenConfig extends ConfigurationBase implements TokenConfiguration {
+
+        @Nonnull
+        @Override
+        public TokenProvider getTokenProvider(Root root) {
+            return Mockito.mock(TokenProvider.class);
+        }
     }
 }
