@@ -35,7 +35,6 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <oak.version>${project.version}</oak.version>
     <tomcat.version>7.0.40</tomcat.version>
     <tika.version>1.7</tika.version>
     <skip.deployment>true</skip.deployment>
@@ -84,17 +83,17 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
-      <version>${oak.version}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-pojosr</artifactId>
-      <version>${oak.version}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
-      <version>${oak.version}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
