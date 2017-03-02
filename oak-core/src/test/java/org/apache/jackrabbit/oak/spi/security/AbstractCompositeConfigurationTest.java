@@ -14,15 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak.spi.security;
 
 import java.util.List;
 
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-
-public abstract class AbstractCompositeConfigurationTest<T extends SecurityConfiguration> extends AbstractSecurityTest {
+public abstract class AbstractCompositeConfigurationTest<T extends SecurityConfiguration> {
 
     protected CompositeConfiguration<T> compositeConfiguration;
 
