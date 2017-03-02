@@ -179,6 +179,10 @@ implementation:
 - implement `RestrictionProvider` interface exposing your custom restriction(s).
 - make the provider implementation an OSGi service and make it available to the Oak repository.
 
+Please make sure to consider the following recommendations when implementing a custom `RestrictionProvider`:
+- restrictions are part of the overall permission evaluation and thus may heavily impact overall read/write performance
+- the hashCode generation of the base implementation (`RestrictionImpl.hashCode`) relies on `PropertyStateValue.hashCode`, which includes the internal String representation, which is not optimal for binaries (see also [OAK-5784])
+
 ##### Examples
 
 ###### Example RestrictionProvider
@@ -285,3 +289,4 @@ The time-based `RestrictionPattern` used by the example provider above.
 [RestrictionDefinition]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionDefinition.html
 [RestrictionPattern]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionPattern.html
 [RestrictionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionProvider.html
+[OAK-5784]: https://issues.apache.org/jira/browse/OAK-5784
