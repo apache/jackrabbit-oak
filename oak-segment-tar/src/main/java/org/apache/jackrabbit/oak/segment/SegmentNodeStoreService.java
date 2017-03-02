@@ -310,8 +310,7 @@ public class SegmentNodeStoreService {
     @Property(boolValue = false,
             label = "Custom blob store",
             description = "Boolean value indicating that a custom BlobStore is used for storing " +
-                    "large binary values. " +
-                    "Default value is 'false'."
+                    "large binary values."
     )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
