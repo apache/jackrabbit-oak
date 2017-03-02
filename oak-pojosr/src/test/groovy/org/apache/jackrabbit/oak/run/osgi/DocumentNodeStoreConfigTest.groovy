@@ -40,6 +40,7 @@ import org.h2.jdbcx.JdbcDataSource
 import org.junit.After
 import org.junit.Ignore
 import org.junit.Test
+import org.osgi.framework.ServiceEvent
 import org.osgi.framework.ServiceReference
 import org.osgi.framework.ServiceRegistration
 
@@ -128,16 +129,18 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
 
         //3. Shut down ds
-        srds.unregister();
-
-        // Check for service to be unregistered after at most 5s, retrying every 500ms.
+        // Wait for service to be unregistered after at most 5s.
         // Previously, we waited only 500ms; this was extended due to
         // occasional test failures on Jenkins (see OAK-5612). If 5s
         // are not sufficient, we should investigate some more.
-        retry (5, 500, "NodeStore should be unregistered") {
-            ServiceReference<NodeStore> sr = registry.getServiceReference(NodeStore.class.name)
-            return sr == null
-        }
+        awaitServiceEvent({
+                    srds.unregister();
+                },
+                classNameFilter(NodeStore.class.name),
+                ServiceEvent.UNREGISTERING,
+                5, TimeUnit.SECONDS
+        )
+        assert registry.getServiceReference(NodeStore.class.name) == null
 
         //4. Restart ds, service should still be down
         srds = registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
