@@ -20,15 +20,28 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
-public class DefaultAuthorizableActionProviderTest extends AbstractSecurityTest {
+public class DefaultAuthorizableActionProviderTest {
+
+    private SecurityProvider getSecurityProvider() {
+        AuthorizationConfiguration ac = Mockito.mock(AuthorizationConfiguration.class);
+        when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+
+        SecurityProvider sp = Mockito.mock(SecurityProvider.class);
+        when(sp.getConfiguration(AuthorizationConfiguration.class)).thenReturn(ac);
+
+        return sp;
+    }
 
     @Test
     public void testNoConfig() {

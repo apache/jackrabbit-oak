@@ -16,42 +16,31 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import java.util.UUID;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class AuthorizableTypeTest extends AbstractSecurityTest {
+public class AuthorizableTypeTest {
 
+    private User user;
     private Group gr;
 
-    @Override
-    public void before() throws Exception {
-        super.before();
+    @Before
+    public void before() {
+        user = Mockito.mock(User.class);
+        Mockito.when(user.isGroup()).thenReturn(false);
 
-        gr = getUserManager(root).createGroup("gr" + UUID.randomUUID().toString());
-        root.commit();
-    }
-
-    @Override
-    public void after() throws Exception {
-        try {
-            if (gr != null) {
-                gr.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
+        gr = Mockito.mock(Group.class);
+        Mockito.when(gr.isGroup()).thenReturn(true);
     }
 
     @Test
@@ -69,14 +58,14 @@ public class AuthorizableTypeTest extends AbstractSecurityTest {
     @Test
     public void testIsTypeUser() throws Exception {
         assertFalse(AuthorizableType.USER.isType(null));
-        assertTrue(AuthorizableType.USER.isType(getTestUser()));
+        assertTrue(AuthorizableType.USER.isType(user));
         assertFalse(AuthorizableType.USER.isType(gr));
     }
 
     @Test
     public void testIsTypeGroup() throws Exception {
         assertFalse(AuthorizableType.GROUP.isType(null));
-        assertFalse(AuthorizableType.GROUP.isType(getTestUser()));
+        assertFalse(AuthorizableType.GROUP.isType(user));
         assertTrue(AuthorizableType.GROUP.isType(gr));
 
     }
@@ -84,7 +73,7 @@ public class AuthorizableTypeTest extends AbstractSecurityTest {
     @Test
     public void testIsTypeAuthorizable() throws Exception {
         assertFalse(AuthorizableType.AUTHORIZABLE.isType(null));
-        assertTrue(AuthorizableType.AUTHORIZABLE.isType(getTestUser()));
+        assertTrue(AuthorizableType.AUTHORIZABLE.isType(user));
         assertTrue(AuthorizableType.AUTHORIZABLE.isType(gr));
     }
 
