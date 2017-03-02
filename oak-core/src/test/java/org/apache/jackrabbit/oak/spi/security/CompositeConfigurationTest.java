@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import java.lang.reflect.Field;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -32,7 +30,6 @@ import org.osgi.framework.Constants;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -179,54 +176,6 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertEquals(def, configurations.iterator().next());
     }
 
-    @Test
-    public void testGetContext() throws Exception {
-        Class cls = Class.forName(CompositeConfiguration.class.getName() + "$CompositeContext");
-        Field def = cls.getDeclaredField("defaultCtx");
-        def.setAccessible(true);
-
-        Field delegatees = cls.getDeclaredField("delegatees");
-        delegatees.setAccessible(true);
-
-        Context ctx = compositeConfiguration.getContext();
-        assertSame(cls, ctx.getClass());
-        assertNull(delegatees.get(ctx));
-        assertSame(Context.DEFAULT, def.get(ctx));
-
-        SecurityConfiguration sc = new TestConfiguration();
-        setDefault(sc);
-        ctx = compositeConfiguration.getContext();
-        assertNull(delegatees.get(ctx));
-        assertSame(sc.getContext(), def.get(ctx));
-        assertSame(cls, ctx.getClass());
-
-        addConfiguration(sc);
-        ctx = compositeConfiguration.getContext();
-        assertNotSame(sc.getContext(), ctx);
-        assertEquals(1, ((Context[]) delegatees.get(ctx)).length);
-
-        // add configuration that has DEFAULT ctx -> must not be added
-        SecurityConfiguration defConfig = new SecurityConfiguration.Default();
-        addConfiguration(defConfig);
-        assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
-
-        // add same test configuration again -> no duplicate entries
-        addConfiguration(sc);
-        assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
-
-        SecurityConfiguration sc2 = new TestConfiguration();
-        addConfiguration(sc2);
-        assertEquals(2, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
-
-        removeConfiguration(sc2);
-        assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
-
-        removeConfiguration(sc);
-        removeConfiguration(sc);
-        removeConfiguration(defConfig);
-        assertNull(delegatees.get(compositeConfiguration.getContext()));
-    }
-
     @Test(expected = IllegalStateException.class)
     public void testGetSecurityProviderNotInitialized() {
         CompositeConfiguration cc = new CompositeConfiguration("name") {};
@@ -260,19 +209,5 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         addConfiguration(withImporter);
 
         assertEquals(1, compositeConfiguration.getProtectedItemImporters().size());
-    }
-
-    private static final class TestConfiguration extends SecurityConfiguration.Default {
-
-        private final Context ctx = new TestContext();
-        @Nonnull
-        @Override
-        public Context getContext() {
-            return ctx;
-        }
-    }
-
-    private static final class TestContext extends Context.Default {
-
     }
 }
