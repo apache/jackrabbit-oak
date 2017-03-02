@@ -35,7 +35,6 @@
   <description>Standalone application based on Spring Boot then embeds a Jackrabbit Oak content repository</description>
 
   <properties>
-    <oak.version>${project.version}</oak.version>
     <tika.version>1.7</tika.version>
     <skip.deployment>true</skip.deployment>
     <slf4j.version>1.7.21</slf4j.version>
@@ -155,17 +154,17 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
-      <version>${oak.version}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-pojosr</artifactId>
-      <version>${oak.version}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
-      <version>${oak.version}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
