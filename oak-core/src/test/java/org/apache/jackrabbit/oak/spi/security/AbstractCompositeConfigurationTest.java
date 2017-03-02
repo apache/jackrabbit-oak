@@ -22,6 +22,10 @@ public abstract class AbstractCompositeConfigurationTest<T extends SecurityConfi
 
     protected CompositeConfiguration<T> compositeConfiguration;
 
+    public T getComposite() {
+        return (T) compositeConfiguration;
+    }
+
     public List<T> getConfigurations() {
         return compositeConfiguration.getConfigurations();
     }

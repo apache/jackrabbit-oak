@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.principal;
+package org.apache.jackrabbit.oak.security.principal;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -32,6 +32,11 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

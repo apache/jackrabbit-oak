@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
 import com.google.common.base.Joiner;
@@ -30,15 +31,21 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -46,9 +53,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
 
-public class PermissionsTest extends AbstractSecurityTest {
+public class PermissionsTest {
 
     private static final Map<Long, Set<Long>> TEST = ImmutableMap.<Long, Set<Long>>of(
             Permissions.ADD_NODE|Permissions.ADD_PROPERTY,
@@ -60,6 +68,28 @@ public class PermissionsTest extends AbstractSecurityTest {
             Permissions.NAMESPACE_MANAGEMENT|Permissions.WORKSPACE_MANAGEMENT|Permissions.NODE_TYPE_DEFINITION_MANAGEMENT|Permissions.PRIVILEGE_MANAGEMENT,
             ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT,Permissions.WORKSPACE_MANAGEMENT,Permissions.NODE_TYPE_DEFINITION_MANAGEMENT,Permissions.PRIVILEGE_MANAGEMENT)
     );
+
+    private Tree existingTree;
+
+    @Before
+    public void before() {
+        existingTree = Mockito.mock(Tree.class);
+        when(existingTree.exists()).thenReturn(true);
+        when(existingTree.getName()).thenReturn(PathUtils.ROOT_NAME);
+        when(existingTree.getPath()).thenReturn(PathUtils.ROOT_PATH);
+        when(existingTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(true);
+        when(existingTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, "rep:root"));
+    }
+
+    private static TreeLocation createNonExistingTreeLocation(@Nonnull String path) {
+        String name = Text.getName(path);
+        Tree nonExistingTree = Mockito.mock(Tree.class);
+        when(nonExistingTree.exists()).thenReturn(false);
+        when(nonExistingTree.getName()).thenReturn(name);
+        when(nonExistingTree.getPath()).thenReturn(path);
+        when(nonExistingTree.getChild(name)).thenReturn(nonExistingTree);
+        return TreeLocation.create(nonExistingTree);
+    }
 
     @Test
     public void testGetNamesSinglePermission() {
@@ -304,7 +334,7 @@ public class PermissionsTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPermissionsFromActions() {
-        TreeLocation tl = TreeLocation.create(root.getTree("/"));
+        TreeLocation tl = TreeLocation.create(existingTree);
         Map<String, Long> map = ImmutableMap.of(
                 Session.ACTION_READ, Permissions.READ_NODE,
                 Session.ACTION_READ + "," + Session.ACTION_REMOVE, Permissions.READ_NODE|Permissions.REMOVE_NODE
@@ -317,7 +347,7 @@ public class PermissionsTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPermissionsFromPermissionNameActions() {
-        TreeLocation tl = TreeLocation.create(root.getTree("/"));
+        TreeLocation tl = TreeLocation.create(existingTree);
         long permissions = Permissions.NODE_TYPE_MANAGEMENT|Permissions.LOCK_MANAGEMENT|Permissions.VERSION_MANAGEMENT;
         Set<String> names = Permissions.getNames(permissions);
         String jcrActions = Text.implode(names.toArray(new String[names.size()]), ",");
@@ -326,7 +356,7 @@ public class PermissionsTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPermissionsFromInvalidActions() {
-        TreeLocation tl = TreeLocation.create(root.getTree("/"));
+        TreeLocation tl = TreeLocation.create(existingTree);
         List<String> l = ImmutableList.of(
                 Session.ACTION_READ + ",invalid", "invalid", "invalid," + Session.ACTION_REMOVE
         );
@@ -343,7 +373,7 @@ public class PermissionsTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPermissionsFromJackrabbitActions() {
-        TreeLocation tl = TreeLocation.create(root.getTree("/"));
+        TreeLocation tl = TreeLocation.create(existingTree);
         Map<String, Long> map = new HashMap<String, Long>();
         map.put(Session.ACTION_ADD_NODE, Permissions.ADD_NODE);
         map.put(JackrabbitSession.ACTION_ADD_PROPERTY, Permissions.ADD_PROPERTY);
@@ -364,7 +394,7 @@ public class PermissionsTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPermissionsOnAccessControlledNode() {
-        TreeLocation tl = TreeLocation.create(root.getTree("/rep:policy"));
+        TreeLocation tl = createNonExistingTreeLocation(PathUtils.ROOT_PATH + AccessControlConstants.REP_POLICY);
         Map<String, Long> map = new HashMap<String, Long>();
 
         // read -> mapped to read-access-control
@@ -396,22 +426,22 @@ public class PermissionsTest extends AbstractSecurityTest {
 
     @Test
     public void testActionRead() {
-        TreeLocation treeLocation = TreeLocation.create(root.getTree("/"));
+        TreeLocation treeLocation = TreeLocation.create(existingTree);
         assertNull(treeLocation.getProperty());
         assertEquals(Permissions.READ_NODE, Permissions.getPermissions(Session.ACTION_READ, treeLocation, false));
         assertEquals(Permissions.READ_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_READ, treeLocation, true));
 
-        TreeLocation nonExistingTree = TreeLocation.create(root.getTree("/nonExisting"));
+        TreeLocation nonExistingTree = createNonExistingTreeLocation("/nonExisting");
         assertNull(nonExistingTree.getProperty());
         assertEquals(Permissions.READ, Permissions.getPermissions(Session.ACTION_READ, nonExistingTree, false));
         assertEquals(Permissions.READ_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_READ, nonExistingTree, true));
 
-        TreeLocation nonExistingProp = TreeLocation.create(root, "/nonExisting");
+        TreeLocation nonExistingProp = createNonExistingTreeLocation("/nonExisting").getChild("nonExisting");
         assertNull(nonExistingProp.getProperty());
         assertEquals(Permissions.READ, Permissions.getPermissions(Session.ACTION_READ, nonExistingProp, false));
         assertEquals(Permissions.READ_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_READ, nonExistingProp, true));
 
-        TreeLocation existingProp = TreeLocation.create(root, "/jcr:primaryType");
+        TreeLocation existingProp = treeLocation.getChild(JcrConstants.JCR_PRIMARYTYPE);
         assertNotNull(existingProp.getProperty());
         assertEquals(Permissions.READ_PROPERTY, Permissions.getPermissions(Session.ACTION_READ, existingProp, false));
         assertEquals(Permissions.READ_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_READ, existingProp, true));
@@ -419,22 +449,22 @@ public class PermissionsTest extends AbstractSecurityTest {
 
     @Test
     public void testActionSetProperty() {
-        TreeLocation treeLocation = TreeLocation.create(root.getTree("/"));
+        TreeLocation treeLocation = TreeLocation.create(existingTree);
         assertNull(treeLocation.getProperty());
         assertEquals(Permissions.ADD_PROPERTY, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, treeLocation, false));
         assertEquals(Permissions.MODIFY_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, treeLocation, true));
 
-        TreeLocation nonExistingTree = TreeLocation.create(root.getTree("/nonExisting"));
+        TreeLocation nonExistingTree = createNonExistingTreeLocation("/nonExisting");
         assertNull(nonExistingTree.getProperty());
         assertEquals(Permissions.ADD_PROPERTY, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, nonExistingTree, false));
         assertEquals(Permissions.MODIFY_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, nonExistingTree, true));
 
-        TreeLocation nonExistingProp = TreeLocation.create(root, "/nonExisting");
+        TreeLocation nonExistingProp = createNonExistingTreeLocation("/nonExisting").getChild("nonExisting");
         assertNull(nonExistingProp.getProperty());
         assertEquals(Permissions.ADD_PROPERTY, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, nonExistingProp, false));
         assertEquals(Permissions.MODIFY_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, nonExistingProp, true));
 
-        TreeLocation existingProp = TreeLocation.create(root, "/jcr:primaryType");
+        TreeLocation existingProp = treeLocation.getChild(JcrConstants.JCR_PRIMARYTYPE);
         assertNotNull(existingProp.getProperty());
         assertEquals(Permissions.MODIFY_PROPERTY, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, existingProp, false));
         assertEquals(Permissions.MODIFY_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, existingProp, true));
@@ -442,22 +472,22 @@ public class PermissionsTest extends AbstractSecurityTest {
 
     @Test
     public void testActionRemove() {
-        TreeLocation treeLocation = TreeLocation.create(root.getTree("/"));
+        TreeLocation treeLocation = TreeLocation.create(existingTree);
         assertNull(treeLocation.getProperty());
         assertEquals(Permissions.REMOVE_NODE, Permissions.getPermissions(Session.ACTION_REMOVE, treeLocation, false));
         assertEquals(Permissions.MODIFY_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_REMOVE, treeLocation, true));
 
-        TreeLocation nonExistingTree = TreeLocation.create(root.getTree("/nonExisting"));
+        TreeLocation nonExistingTree = createNonExistingTreeLocation("/nonExisting");
         assertNull(nonExistingTree.getProperty());
         assertEquals(Permissions.REMOVE, Permissions.getPermissions(Session.ACTION_REMOVE, nonExistingTree, false));
         assertEquals(Permissions.MODIFY_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_REMOVE, nonExistingTree, true));
 
-        TreeLocation nonExistingProp = TreeLocation.create(root, "/nonExisting");
+        TreeLocation nonExistingProp = createNonExistingTreeLocation("/nonExisting").getChild("nonExisting");
         assertNull(nonExistingProp.getProperty());
         assertEquals(Permissions.REMOVE, Permissions.getPermissions(Session.ACTION_REMOVE, nonExistingProp, false));
         assertEquals(Permissions.MODIFY_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_REMOVE, nonExistingProp, true));
 
-        TreeLocation existingProp = TreeLocation.create(root, "/jcr:primaryType");
+        TreeLocation existingProp = treeLocation.getChild(JcrConstants.JCR_PRIMARYTYPE);
         assertNotNull(existingProp.getProperty());
         assertEquals(Permissions.REMOVE_PROPERTY, Permissions.getPermissions(Session.ACTION_REMOVE, existingProp, false));
         assertEquals(Permissions.MODIFY_ACCESS_CONTROL, Permissions.getPermissions(Session.ACTION_SET_PROPERTY, existingProp, true));

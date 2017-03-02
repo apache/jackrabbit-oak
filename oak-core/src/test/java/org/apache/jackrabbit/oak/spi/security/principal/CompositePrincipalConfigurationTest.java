@@ -29,20 +29,32 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.AbstractCompositeConfigurationTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class CompositePrincipalConfigurationTest extends AbstractSecurityTest {
+public class CompositePrincipalConfigurationTest extends AbstractCompositeConfigurationTest<PrincipalConfiguration> {
 
-    private CompositePrincipalConfiguration cpConfig = new CompositePrincipalConfiguration();
+    private final Root root = Mockito.mock(Root.class);
+
+    private PrincipalConfiguration principalConfigurationMock;
+
+    @Before
+    public void before() {
+        compositeConfiguration = new CompositePrincipalConfiguration();
+        principalConfigurationMock = Mockito.mock(PrincipalConfiguration.class);
+        Mockito.when(principalConfigurationMock.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+    }
 
     private static void assertSize(int expected, CompositePrincipalProvider pp) throws Exception {
         Field f = CompositePrincipalProvider.class.getDeclaredField("providers");
@@ -54,13 +66,13 @@ public class CompositePrincipalConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testEmptyGetPrincipalManager() {
-        PrincipalManager pMgr = cpConfig.getPrincipalManager(root, NamePathMapper.DEFAULT);
+        PrincipalManager pMgr = getComposite().getPrincipalManager(root, NamePathMapper.DEFAULT);
         assertTrue(pMgr instanceof PrincipalManagerImpl);
     }
 
     @Test
     public void testEmptyGetProvider() throws Exception {
-        PrincipalProvider pp = cpConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        PrincipalProvider pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertFalse(pp instanceof CompositePrincipalProvider);
         assertSame(EmptyPrincipalProvider.INSTANCE, pp);
     }
@@ -68,18 +80,18 @@ public class CompositePrincipalConfigurationTest extends AbstractSecurityTest {
     @Test
     public void testSingleGetPrincipalManager() {
         PrincipalConfiguration testConfig = new TestPrincipalConfiguration();
-        cpConfig.addConfiguration(testConfig);
+        addConfiguration(testConfig);
 
-        PrincipalManager pMgr = cpConfig.getPrincipalManager(root, NamePathMapper.DEFAULT);
+        PrincipalManager pMgr = getComposite().getPrincipalManager(root, NamePathMapper.DEFAULT);
         assertTrue(pMgr instanceof PrincipalManagerImpl);
     }
 
     @Test
     public void testSingleGetProvider() throws Exception {
         PrincipalConfiguration testConfig = new TestPrincipalConfiguration();
-        cpConfig.addConfiguration(testConfig);
+        addConfiguration(testConfig);
 
-        PrincipalProvider pp = cpConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        PrincipalProvider pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
 
         assertFalse(pp instanceof CompositePrincipalProvider);
         assertEquals(testConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT).getClass(), pp.getClass());
@@ -87,19 +99,19 @@ public class CompositePrincipalConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testMultipleGetPrincipalManager() {
-        cpConfig.addConfiguration(getSecurityProvider().getConfiguration(PrincipalConfiguration.class));
-        cpConfig.addConfiguration(new TestPrincipalConfiguration());
+        addConfiguration(principalConfigurationMock);
+        addConfiguration(new TestPrincipalConfiguration());
 
-        PrincipalManager pMgr = cpConfig.getPrincipalManager(root, NamePathMapper.DEFAULT);
+        PrincipalManager pMgr = getComposite().getPrincipalManager(root, NamePathMapper.DEFAULT);
         assertTrue(pMgr instanceof PrincipalManagerImpl);
     }
 
     @Test
     public void testMultipleGetPrincipalProvider() throws Exception {
-        cpConfig.addConfiguration(getSecurityProvider().getConfiguration(PrincipalConfiguration.class));
-        cpConfig.addConfiguration(new TestPrincipalConfiguration());
+        addConfiguration(principalConfigurationMock);
+        addConfiguration(new TestPrincipalConfiguration());
 
-        PrincipalProvider pp = cpConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        PrincipalProvider pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
 
         assertTrue(pp instanceof CompositePrincipalProvider);
         assertSize(2, (CompositePrincipalProvider) pp);
@@ -107,21 +119,21 @@ public class CompositePrincipalConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testWithEmptyPrincipalProvider() throws Exception {
-        cpConfig.addConfiguration(new TestEmptyConfiguration());
-        PrincipalProvider pp = cpConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        addConfiguration(new TestEmptyConfiguration());
+        PrincipalProvider pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertSame(EmptyPrincipalProvider.INSTANCE, pp);
 
-        cpConfig.addConfiguration(new TestPrincipalConfiguration());
-        pp = cpConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        addConfiguration(new TestPrincipalConfiguration());
+        pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertFalse(pp instanceof CompositePrincipalProvider);
 
-        cpConfig.addConfiguration(getSecurityProvider().getConfiguration(PrincipalConfiguration.class));
-        pp = cpConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        addConfiguration(principalConfigurationMock);
+        pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertTrue(pp instanceof CompositePrincipalProvider);
         assertSize(2, (CompositePrincipalProvider) pp);
 
-        cpConfig.addConfiguration(new TestEmptyConfiguration());
-        pp = cpConfig.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        addConfiguration(new TestEmptyConfiguration());
+        pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertTrue(pp instanceof CompositePrincipalProvider);
         assertSize(2, (CompositePrincipalProvider) pp);
     }
