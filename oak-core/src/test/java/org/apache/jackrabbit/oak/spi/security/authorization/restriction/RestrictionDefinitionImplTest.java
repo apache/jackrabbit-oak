@@ -18,11 +18,9 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,15 +32,13 @@ import static org.junit.Assert.fail;
 /**
  * Tests for {@link RestrictionDefinitionImpl}.
  */
-public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
+public class RestrictionDefinitionImplTest {
 
     private String name;
     private RestrictionDefinitionImpl definition;
 
     @Before
     public void before() throws Exception {
-        super.before();
-
         name = "test:defName";
         definition = new RestrictionDefinitionImpl(name, Type.NAME, true);
     }

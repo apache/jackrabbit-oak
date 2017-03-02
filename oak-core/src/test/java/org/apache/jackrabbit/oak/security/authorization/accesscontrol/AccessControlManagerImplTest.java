@@ -29,6 +29,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -61,6 +62,7 @@ import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
@@ -118,6 +120,16 @@ public class AccessControlManagerImplTest extends AbstractAccessControlManagerTe
             npMapper = new NamePathMapperImpl(nameMapper);
         }
         return npMapper;
+    }
+
+    private void registerNamespace(String prefix, String uri) throws Exception {
+        NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry(root) {
+            @Override
+            protected Root getWriteRoot() {
+                return root;
+            }
+        };
+        nsRegistry.registerNamespace(prefix, uri);
     }
 
     @Override

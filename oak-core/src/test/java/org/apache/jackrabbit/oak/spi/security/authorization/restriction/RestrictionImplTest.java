@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,7 +36,7 @@ import static org.junit.Assert.fail;
 /**
  * Tests for {@link RestrictionImpl}
  */
-public class RestrictionImplTest extends AbstractAccessControlTest {
+public class RestrictionImplTest {
 
     private final Type type = Type.NAME;
     private final String name = "test:defName";
@@ -47,8 +46,6 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
 
     @Before
     public void before() throws Exception {
-        super.before();
-
         PropertyState property = createProperty(name, value, type);
         restriction = new RestrictionImpl(property, isMandatory);
     }
