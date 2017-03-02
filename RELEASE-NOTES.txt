@@ -76,6 +76,7 @@ Bug
     [OAK-5773] - BlobCache does not implement Closeable
     [OAK-5783] - Test failure:
     security.authentication.ldap.LdapProviderTest.testSplitDNIntermediatePath2
+    [OAK-5875] - project.version in oak-example fails release-plugin
 
 Epic
 
@@ -100,6 +101,8 @@ Improvement
     [OAK-5666] - oak-upgrade should validate the paths
     [OAK-5742] - more logging when ChangeProcessor.stopAndWait fails
     [OAK-5784] - hashCode of RestrictionImpl doesn't include value
+    [OAK-5873] - Improve SegmentNodeStoreService OSGi description for
+    customBlobStore to remove default False
 
 New Feature
 
