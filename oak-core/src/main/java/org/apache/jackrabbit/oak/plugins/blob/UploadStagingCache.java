@@ -255,7 +255,9 @@ public class UploadStagingCache implements Closeable {
      *
      * @param id the id of the file to be staged
      * @param input the file to be staged
-     * @return An Optional SettableFuture.
+     * @return An Optional SettableFuture containing
+     *              1 if upload was successful,
+     *              0 if an existing id is already pending for upload
      */
     public Optional<SettableFuture<Integer>> put(String id, File input) {
         return putOptionalDisregardingSize(id, input, false);
@@ -305,6 +307,13 @@ public class UploadStagingCache implements Closeable {
             }
         } else {
             currentSize.addAndGet(-length);
+
+            // if file is still pending upload, count it as present
+            if (map.containsKey(id) || attic.containsKey(id)) {
+                SettableFuture<Integer> result = SettableFuture.create();
+                result.set(0);
+                return Optional.of(result);
+            }
         }
         return Optional.absent();
     }

@@ -381,7 +381,8 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 0, f);
-        assertFalse(future2.isPresent());
+        assertTrue(future2.isPresent());
+        assertEquals(future2.get().get().intValue(), 0);
 
         //start
         taskLatch.countDown();
