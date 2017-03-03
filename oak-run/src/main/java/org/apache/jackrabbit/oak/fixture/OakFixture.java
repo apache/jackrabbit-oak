@@ -22,7 +22,6 @@ import java.net.UnknownHostException;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
@@ -30,11 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -50,12 +45,6 @@ public abstract class OakFixture {
 
     public static final String OAK_RDB = "Oak-RDB";
     public static final String OAK_RDB_DS = "Oak-RDB-DS";
-
-    @Deprecated
-    public static final String OAK_TAR = "Oak-Tar";
-
-    @Deprecated
-    public static final String OAK_TAR_DS = "Oak-Tar-DS";
 
     public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
     public static final String OAK_SEGMENT_TAR_DS = "Oak-Segment-Tar-DS";
@@ -261,24 +250,10 @@ public abstract class OakFixture {
         };
     }
 
-    @Deprecated
-    public static OakFixture getTar(
-            final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB,
-            final boolean memoryMapping, final boolean useBlobStore) {
-        return getTar(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, 0);
-    }
-
     public static OakFixture getSegmentTar(final String name, final File base,
         final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
         final boolean useBlobStore) {
         return getSegmentTar(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, 0);
-    }
-
-    @Deprecated
-    public static OakFixture getTar(
-        final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB,
-        final boolean memoryMapping, final boolean useBlobStore, int dsCacheInMB) {
-        return new SegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, dsCacheInMB);
     }
 
     public static OakFixture getSegmentTar(final String name, final File base,
@@ -403,89 +378,6 @@ public abstract class OakFixture {
             }
         }
 
-    }
-
-    @Deprecated
-    public static class SegmentFixture extends OakFixture {
-        private FileStore[] stores;
-        private BlobStoreFixture[] blobStoreFixtures = new BlobStoreFixture[0];
-        private final File base;
-        private final int maxFileSizeMB;
-        private final int cacheSizeMB;
-        private final boolean memoryMapping;
-        private final boolean useBlobStore;
-        private final int dsCacheSizeInMB;
-
-        public SegmentFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
-                              boolean memoryMapping, boolean useBlobStore, int dsCacheSizeInMB) {
-            super(name);
-            this.base = base;
-            this.maxFileSizeMB = maxFileSizeMB;
-            this.cacheSizeMB = cacheSizeMB;
-            this.memoryMapping = memoryMapping;
-            this.useBlobStore = useBlobStore;
-            this.dsCacheSizeInMB = dsCacheSizeInMB;
-        }
-
-        @Override
-        public Oak getOak(int clusterId) throws Exception {
-            FileStore fs = FileStore.builder(base)
-                    .withMaxFileSize(maxFileSizeMB)
-                    .withCacheSize(cacheSizeMB)
-                    .withMemoryMapping(memoryMapping)
-                    .build();
-            return newOak(SegmentNodeStore.builder(fs).build());
-        }
-
-        @Override
-        public Oak[] setUpCluster(int n, StatisticsProvider statsProvider) throws Exception {
-            Oak[] cluster = new Oak[n];
-            stores = new FileStore[cluster.length];
-            if (useBlobStore) {
-                blobStoreFixtures = new BlobStoreFixture[cluster.length];
-            }
-
-            for (int i = 0; i < cluster.length; i++) {
-                BlobStore blobStore = null;
-                if (useBlobStore) {
-                    blobStoreFixtures[i] =
-                        BlobStoreFixture.create(base, true, dsCacheSizeInMB, statsProvider);
-                    blobStore = blobStoreFixtures[i].setUp();
-                }
-
-                FileStore.Builder builder = FileStore.builder(new File(base, unique));
-                if (blobStore != null) {
-                    builder.withBlobStore(blobStore);
-                }
-                stores[i] = builder.withRoot(EmptyNodeState.EMPTY_NODE)
-                        .withStatisticsProvider(statsProvider)
-                        .withMaxFileSize(maxFileSizeMB)
-                        .withCacheSize(cacheSizeMB)
-                        .withMemoryMapping(memoryMapping)
-                        .build();
-                cluster[i] = newOak(SegmentNodeStore.builder(stores[i]).build());
-            }
-            return cluster;
-        }
-
-        @Override
-        public void tearDownCluster() {
-            for (SegmentStore store : stores) {
-                store.close();
-            }
-            for (BlobStoreFixture blobStore : blobStoreFixtures) {
-                blobStore.tearDown();
-            }
-            FileUtils.deleteQuietly(new File(base, unique));
-        }
-
-        public BlobStoreFixture[] getBlobStoreFixtures() {
-            return blobStoreFixtures;
-        }
-
-        public FileStore[] getStores() {
-            return stores;
-        }
     }
 
     static Oak newOak(NodeStore nodeStore) {

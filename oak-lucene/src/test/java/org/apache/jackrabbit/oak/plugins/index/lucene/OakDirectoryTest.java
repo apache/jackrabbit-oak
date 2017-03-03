@@ -56,9 +56,11 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -339,11 +341,11 @@ public class OakDirectoryTest {
 
     @Test
     public void largeFile() throws Exception{
-        FileStore store = FileStore.builder(tempFolder.getRoot())
+        FileStore store = FileStoreBuilder.fileStoreBuilder(tempFolder.getRoot())
                 .withMemoryMapping(false)
                 .withBlobStore(new BlackHoleBlobStore())
                 .build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         IndexDefinition defn = new IndexDefinition(INITIAL_CONTENT, EmptyNodeState.EMPTY_NODE, "/foo");
         Directory directory = new OakDirectory(nodeStore.getRoot().builder(), defn, false);
 
@@ -393,11 +395,11 @@ public class OakDirectoryTest {
     @Test
     public void dirNameInException_Writes() throws Exception{
         FailOnDemandBlobStore blobStore = new FailOnDemandBlobStore();
-        FileStore store = FileStore.builder(tempFolder.getRoot())
+        FileStore store = FileStoreBuilder.fileStoreBuilder(tempFolder.getRoot())
                 .withMemoryMapping(false)
                 .withBlobStore(blobStore)
                 .build();
-        SegmentNodeStore nodeStore = SegmentNodeStore.builder(store).build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
 
         String indexPath = "/foo/bar";
 

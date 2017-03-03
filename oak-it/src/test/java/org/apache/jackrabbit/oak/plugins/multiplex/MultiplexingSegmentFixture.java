@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -37,8 +37,8 @@ public class MultiplexingSegmentFixture extends NodeStoreFixture {
                     .readOnlyMount("temp", MOUNT_PATH)
                     .build();
 
-            NodeStore globalStore = SegmentNodeStore.builder(new MemoryStore()).build();
-            NodeStore tempMount = SegmentNodeStore.builder(new MemoryStore()).build();
+            NodeStore globalStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+            NodeStore tempMount = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
 
             return new MultiplexingNodeStore.Builder(mip, globalStore).addMount("temp", tempMount).build();
         } catch (IOException e) {

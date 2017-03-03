@@ -25,23 +25,22 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.codehaus.groovy.tools.shell.IO;
+
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
+
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 /**
  * A command line console.
@@ -56,7 +55,6 @@ public class Console {
         OptionSpec shell = parser.accepts("shell", "run the shell after executing files");
         OptionSpec readWrite = parser.accepts("read-write", "connect to repository in read-write mode");
         OptionSpec<String> fdsPathSpec = parser.accepts("fds-path", "Path to FDS store").withOptionalArg().defaultsTo("");
-        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
 
         // RDB specific options
@@ -123,19 +121,6 @@ public class Console {
             }
             DocumentNodeStore store = builder.getNodeStore();
             fixture = new MongoFixture(store);
-        } else if (options.has(segment)) {
-            FileStore.Builder fsBuilder = FileStore.builder(new File(nonOptions.get(0)))
-                    .withMaxFileSize(256).withDefaultMemoryMapping();
-            if (blobStore != null) {
-                fsBuilder.withBlobStore(blobStore);
-            }
-            FileStore store;
-            if (readOnly) {
-                store = fsBuilder.buildReadOnly();
-            } else {
-                store = fsBuilder.build();
-            }
-            fixture = new SegmentFixture(store);
         } else {
             fixture = SegmentTarFixture.create(new File(nonOptions.get(0)), readOnly, blobStore);
         }
@@ -182,27 +167,6 @@ public class Console {
         @Override
         public void close() throws IOException {
             nodeStore.dispose();
-        }
-    }
-
-    @Deprecated
-    private static class SegmentFixture implements NodeStoreFixture {
-        private final SegmentStore segmentStore;
-        private final SegmentNodeStore nodeStore;
-
-        private SegmentFixture(SegmentStore segmentStore) {
-            this.segmentStore = segmentStore;
-            this.nodeStore = SegmentNodeStore.builder(segmentStore).build();
-        }
-
-        @Override
-        public NodeStore getStore() {
-            return nodeStore;
-        }
-
-        @Override
-        public void close() throws IOException {
-            segmentStore.close();
         }
     }
 }

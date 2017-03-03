@@ -32,13 +32,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import com.google.common.collect.Maps;
-import com.google.common.io.Closer;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.aws.ext.ds.S3DataStore;
@@ -51,12 +44,19 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
+import com.google.common.io.Closer;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
+
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 public class TextExtractorMain {
     private static final Logger log = LoggerFactory.getLogger(TextExtractorMain.class);
@@ -77,8 +77,6 @@ public class TextExtractorMain {
                     .accepts("nodestore", "NodeStore detail /path/to/oak/repository | mongodb://host:port/database")
                     .withRequiredArg()
                     .ofType(String.class);
-
-            OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
 
             OptionSpec<String> pathSpec = parser
                     .accepts("path", "Path in repository under which the binaries would be searched")
@@ -216,7 +214,7 @@ public class TextExtractorMain {
                 checkNotNull(blobStore, "BlobStore found to be null. FileDataStore directory " +
                         "must be specified via %s", fdsDirSpec.options());
                 checkNotNull(dataFile, "Data file path not provided");
-                NodeStore nodeStore = bootStrapNodeStore(src, options.has(segment), blobStore, closer);
+                NodeStore nodeStore = bootStrapNodeStore(src, blobStore, closer);
                 BinaryResourceProvider brp = new NodeStoreBinaryResourceProvider(nodeStore, blobStore);
                 CSVFileGenerator generator = new CSVFileGenerator(dataFile);
                 generator.generate(brp.getBinaries(path));
@@ -286,7 +284,7 @@ public class TextExtractorMain {
         return props;
     }
 
-    private static NodeStore bootStrapNodeStore(String src, boolean segment, BlobStore blobStore, Closer closer) throws IOException, InvalidFileStoreVersionException {
+    private static NodeStore bootStrapNodeStore(String src, BlobStore blobStore, Closer closer) throws IOException {
         if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(src);
             if (uri.getDatabase() == null) {
@@ -303,20 +301,7 @@ public class TextExtractorMain {
             return store;
         }
 
-        if (segment) {
-            return SegmentUtils.bootstrap(src, blobStore, closer);
-        }
-
         return SegmentTarUtils.bootstrap(src, blobStore, closer);
-    }
-
-    private static Closeable asCloseable(final FileStore fs) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                fs.close();
-            }
-        };
     }
 
     private static Closeable asCloseable(final DataStore ds) {

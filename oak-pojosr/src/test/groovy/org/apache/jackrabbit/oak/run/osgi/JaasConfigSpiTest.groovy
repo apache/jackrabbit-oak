@@ -55,7 +55,7 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
                         (AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME) : 'FelixJaasProvider'
                 ],
                 'org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager' : [:],
-                'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService' : [:]
+                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService' : [:]
         ]
     }
 

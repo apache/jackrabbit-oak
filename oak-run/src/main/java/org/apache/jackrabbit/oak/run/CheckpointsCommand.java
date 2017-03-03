@@ -20,23 +20,23 @@ package org.apache.jackrabbit.oak.run;
 import java.io.File;
 import java.sql.Timestamp;
 
+import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+
 import com.google.common.io.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 
 class CheckpointsCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().isEmpty()) {
@@ -65,8 +65,6 @@ class CheckpointsCommand implements Command {
                         .getNodeStore();
                 closer.register(Utils.asCloseable(store));
                 cps = Checkpoints.onDocumentMK(store);
-            } else if (options.has(segment)) {
-                cps = Checkpoints.onSegment(new File(connection), closer);
             } else {
                 cps = Checkpoints.onSegmentTar(new File(connection), closer);
             }

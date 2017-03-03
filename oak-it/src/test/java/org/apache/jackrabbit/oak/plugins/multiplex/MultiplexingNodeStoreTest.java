@@ -35,7 +35,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
-import com.google.common.base.Predicates;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -57,9 +55,11 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.CountingDiff;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -77,6 +77,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -844,8 +845,8 @@ public class MultiplexingNodeStoreTest {
 
                         BlobStore blobStore = new FileBlobStore(blobStorePath);
 
-                        store = FileStore.builder(storePath).withBlobStore(blobStore).build();
-                        instance = SegmentNodeStore.builder(store).build();
+                        store = FileStoreBuilder.fileStoreBuilder(storePath).withBlobStore(blobStore).build();
+                        instance = SegmentNodeStoreBuilders.builder(store).build();
 
                         return instance;
                     }

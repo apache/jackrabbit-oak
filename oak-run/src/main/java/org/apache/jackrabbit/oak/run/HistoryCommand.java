@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
+import static org.apache.jackrabbit.oak.segment.FileStoreHelper.isValidFileStoreOrFail;
 
 import java.io.File;
 
@@ -41,7 +41,6 @@ class HistoryCommand implements Command {
         OptionSpec<Integer> depthArg = parser.accepts(
                 "depth", "Depth up to which to dump node states").withRequiredArg().ofType(Integer.class)
                 .defaultsTo(0);
-        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         File directory = directoryArg.value(options);
@@ -56,11 +55,7 @@ class HistoryCommand implements Command {
         String journalName = journalArg.value(options);
         File journal = new File(isValidFileStoreOrFail(directory), journalName);
 
-        if (options.has(segment)) {
-            SegmentUtils.history(directory, journal, path, depth);
-        } else {
-            SegmentTarUtils.history(directory, journal, path, depth);
-        }
+        SegmentTarUtils.history(directory, journal, path, depth);
     }
 
 }

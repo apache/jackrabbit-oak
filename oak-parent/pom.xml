@@ -222,10 +222,6 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene.util</filter>
                   <filter>!org.apache.jackrabbit.oak.security.authentication.ldap</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.backup</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.segment</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.segment.file</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.segment.http</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr.configuration</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr.index</filter>

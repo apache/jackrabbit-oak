@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import static java.util.Arrays.asList;
+
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -27,17 +29,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Counting;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.PrincipalNameResolutionTest;
@@ -53,7 +44,18 @@ import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static java.util.Arrays.asList;
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Counting;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.MoreExecutors;
+
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 public class BenchmarkRunner {
 
@@ -195,10 +197,6 @@ public class BenchmarkRunner {
                 OakRepositoryFixture.getMongoNS(uri,
                         dropDBAfterTest.value(options),
                         cacheSize * MB),
-                OakRepositoryFixture.getTar(
-                        base.value(options), 256, cacheSize, mmap.value(options)),
-                OakRepositoryFixture.getTarWithBlobStore(base.value(options), 256, cacheSize,
-                        mmap.value(options), fdsCache.value(options)),
                 OakRepositoryFixture.getSegmentTar(base.value(options), 256, cacheSize,
                         mmap.value(options)),
                 OakRepositoryFixture.getSegmentTarWithBlobStore(base.value(options), 256, cacheSize,
@@ -275,9 +273,6 @@ public class BenchmarkRunner {
                     wikipedia.value(options),
                     flatStructure.value(options),
                     report.value(options)),
-            new RepositoryGrowthTest(wikipedia.value(options),
-                    base.value(options),
-                    luceneIndexOnFS.value(options)),
             new CreateNodesBenchmark(),
             new ManyNodes(),
             new ObservationTest(),

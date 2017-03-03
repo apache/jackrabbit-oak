@@ -26,7 +26,6 @@ class DebugCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSpec<String> nonOptions = parser.nonOptions().ofType(String.class);
         OptionSet options = parser.parse(args);
 
@@ -37,11 +36,7 @@ class DebugCommand implements Command {
 
         String[] nonOptionsArray = options.valuesOf(nonOptions).toArray(new String[0]);
 
-        if (options.has(segment)) {
-            SegmentUtils.debug(nonOptionsArray);
-        } else {
-            SegmentTarUtils.debug(nonOptionsArray);
-        }
+        SegmentTarUtils.debug(nonOptionsArray);
     }
 
 }

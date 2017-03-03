@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
+import static org.apache.jackrabbit.oak.segment.FileStoreHelper.isValidFileStoreOrFail;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 

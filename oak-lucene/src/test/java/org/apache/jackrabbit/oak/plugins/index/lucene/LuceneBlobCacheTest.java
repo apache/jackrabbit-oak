@@ -32,8 +32,9 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -63,11 +64,11 @@ public class LuceneBlobCacheTest {
     public void setUp() throws Exception {
         fileDataStore = new ReadAccessCountingDataStore();
         fileDataStore.init(tempFolder.newFolder().getAbsolutePath());
-        FileStore.Builder fileStoreBuilder = FileStore.builder(tempFolder.newFolder())
+        FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(tempFolder.newFolder())
                                         .withBlobStore(new DataStoreBlobStore(fileDataStore)).withMaxFileSize(256)
-                                        .withCacheSize(64).withMemoryMapping(false);
+                                        .withSegmentCacheSize(64).withMemoryMapping(false);
         store = fileStoreBuilder.build();
-        NodeStore nodeStore = SegmentNodeStore.builder(store).build();
+        NodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         root = nodeStore.getRoot();
         builder = root.builder();
     }

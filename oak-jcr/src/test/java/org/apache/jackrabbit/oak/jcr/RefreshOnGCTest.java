@@ -20,28 +20,21 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static java.io.File.createTempFile;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
@@ -51,20 +44,13 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
 public class RefreshOnGCTest {
-    private final Fixture fixture;
-
     private Callable<Void> compact;
     private Repository repository;
     private GCMonitorTracker gcMonitor;
 
     enum Fixture {
-        SEGMENT_PERSISTED_MAP(true),
-        SEGMENT_MEMORY_MAP(false),
         SEGMENT_TAR(false);
 
         private final boolean persistedMap;
@@ -76,43 +62,6 @@ public class RefreshOnGCTest {
         public boolean usePersistedMap() {
             return persistedMap;
         }
-    }
-
-    @Parameterized.Parameters
-    public static List<Fixture[]> fixtures() {
-        return ImmutableList.of(
-                new Fixture[] {Fixture.SEGMENT_PERSISTED_MAP},
-                new Fixture[] {Fixture.SEGMENT_MEMORY_MAP},
-                new Fixture[] {Fixture.SEGMENT_TAR});
-    }
-
-    public RefreshOnGCTest(Fixture fixtures) {
-        this.fixture = fixtures;
-    }
-
-    private NodeStore createSegmentStore(File directory, GCMonitor gcMonitor) throws Exception {
-        CompactionStrategy strategy = new CompactionStrategy(
-                false, false, CLEAN_NONE, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
-            @Override
-            public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-                setHead.call();
-                return true;
-            }
-        };
-        strategy.setPersistCompactionMap(fixture.usePersistedMap());
-        final FileStore fileStore = FileStore.builder(directory)
-                .withGCMonitor(gcMonitor)
-                .build()
-                .setCompactionStrategy(strategy);
-
-        compact = new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                fileStore.compact();
-                return null;
-            }
-        };
-        return SegmentNodeStore.builder(fileStore).build();
     }
 
     private NodeStore createSegmentTarStore(File directory, GCMonitor gcMonitor) throws Exception {
@@ -138,12 +87,7 @@ public class RefreshOnGCTest {
         gcMonitor = new GCMonitorTracker();
         gcMonitor.start(whiteboard);
 
-        Oak oak;
-        if (fixture == Fixture.SEGMENT_TAR) {
-            oak = new Oak(createSegmentTarStore(directory, gcMonitor));
-        } else {
-            oak = new Oak(createSegmentStore(directory, gcMonitor));
-        }
+        Oak oak = new Oak(createSegmentTarStore(directory, gcMonitor));
         oak.with(whiteboard);
         repository = new Jcr(oak).createRepository();
     }

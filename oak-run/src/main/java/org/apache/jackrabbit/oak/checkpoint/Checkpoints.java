@@ -24,21 +24,17 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.io.Closer;
 
 /**
  * A helper class to manage checkpoints on TarMK and DocumentMK.
  */
 public abstract class Checkpoints {
-
-    public static Checkpoints onSegment(File path, Closer closer) throws IOException, InvalidFileStoreVersionException {
-        return SegmentCheckpoints.create(path, closer);
-    }
 
     public static Checkpoints onSegmentTar(File path, Closer closer) throws IOException {
         return SegmentTarCheckpoints.create(path, closer);

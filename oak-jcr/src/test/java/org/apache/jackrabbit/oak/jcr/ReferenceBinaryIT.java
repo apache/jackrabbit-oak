@@ -33,8 +33,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.BaseEncoding;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
@@ -44,17 +42,17 @@ import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.fixture.SegmentFixture;
+import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import com.google.common.collect.Lists;
+import com.google.common.io.BaseEncoding;
 
 @RunWith(Parameterized.class)
 public class ReferenceBinaryIT {
@@ -134,29 +132,10 @@ public class ReferenceBinaryIT {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws Exception {
-        File file = getTestDir("tar");
-        SegmentStore segmentStore = FileStore.builder(file)
-                .withBlobStore(createBlobStore())
-                .withMaxFileSize(256)
-                .withMemoryMapping(true)
-                .build();
-
         List<Object[]> fixtures = Lists.newArrayList();
-        SegmentFixture segmentFixture = new SegmentFixture(segmentStore);
-        if (segmentFixture.isAvailable()) {
-            fixtures.add(new Object[] {segmentFixture});
-        }
-
-        FileBlobStore fbs = new FileBlobStore(getTestDir("fbs1").getAbsolutePath());
-        fbs.setReferenceKeyPlainText("foobar");
-        SegmentStore segmentStoreWithFBS = FileStore.builder(getTestDir("tar2"))
-                .withBlobStore(fbs)
-                .withMaxFileSize(256)
-                .withMemoryMapping(true)
-                .build();
-        SegmentFixture segmentFixtureFBS = new SegmentFixture(segmentStoreWithFBS);
-        if (segmentFixtureFBS.isAvailable()) {
-            fixtures.add(new Object[] {segmentFixtureFBS});
+        SegmentTarFixture segmentTarFixture = new SegmentTarFixture();
+        if (segmentTarFixture.isAvailable()) {
+            fixtures.add(new Object[] {segmentTarFixture});
         }
 
         DocumentMongoFixture documentFixture = new DocumentMongoFixture(MongoUtils.URL, createBlobStore());
