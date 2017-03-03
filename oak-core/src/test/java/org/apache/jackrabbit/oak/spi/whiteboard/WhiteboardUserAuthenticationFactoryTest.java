@@ -22,17 +22,20 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-public class WhiteboardUserAuthenticationFactoryTest extends AbstractSecurityTest {
+public class WhiteboardUserAuthenticationFactoryTest {
+
+    private final Root root = Mockito.mock(Root.class);
+    private final UserConfiguration userConfiguration = Mockito.mock(UserConfiguration.class);
 
     private WhiteboardUserAuthenticationFactory createFactory(@Nullable final UserAuthenticationFactory defaultFactory,
                                                               @Nonnull final String... userIds) {
@@ -46,6 +49,11 @@ public class WhiteboardUserAuthenticationFactoryTest extends AbstractSecurityTes
                 return factories;
             }
         };
+    }
+
+    @Nonnull
+    private UserConfiguration getUserConfiguration() {
+        return userConfiguration;
     }
 
     @Test

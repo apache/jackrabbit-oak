@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.user.action;
+package org.apache.jackrabbit.oak.security.user.action;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
