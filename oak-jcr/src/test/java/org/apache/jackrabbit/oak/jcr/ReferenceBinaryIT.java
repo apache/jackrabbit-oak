@@ -42,8 +42,13 @@ import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -130,12 +135,37 @@ public class ReferenceBinaryIT {
         fixture.dispose(nodeStore);
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() throws Exception {
+        File file = getTestDir("tar");
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(file)
+                .withBlobStore(createBlobStore())
+                .withMaxFileSize(256)
+                .withMemoryMapping(true)
+                .build();
+        
+        SegmentNodeStore sns = SegmentNodeStoreBuilders.builder(fileStore).build();
+        
         List<Object[]> fixtures = Lists.newArrayList();
-        SegmentTarFixture segmentTarFixture = new SegmentTarFixture();
+        SegmentTarFixture segmentTarFixture = new SegmentTarFixture(sns);
+        
         if (segmentTarFixture.isAvailable()) {
             fixtures.add(new Object[] {segmentTarFixture});
+        }
+        
+        FileBlobStore fbs = new FileBlobStore(getTestDir("fbs1").getAbsolutePath());
+        fbs.setReferenceKeyPlainText("foobar");
+        FileStore fileStoreWithFBS = FileStoreBuilder.fileStoreBuilder(getTestDir("tar2"))
+                .withBlobStore(fbs)
+                .withMaxFileSize(256)
+                .withMemoryMapping(true)
+                .build();
+        
+        SegmentNodeStore snsWithFBS = SegmentNodeStoreBuilders.builder(fileStoreWithFBS).build();
+        
+        SegmentTarFixture segmentTarFixtureFBS = new SegmentTarFixture(snsWithFBS);
+        if (segmentTarFixtureFBS.isAvailable()) {
+            fixtures.add(new Object[] {segmentTarFixtureFBS});
         }
 
         DocumentMongoFixture documentFixture = new DocumentMongoFixture(MongoUtils.URL, createBlobStore());

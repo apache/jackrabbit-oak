@@ -22,18 +22,32 @@ package org.apache.jackrabbit.oak.segment.fixture;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class SegmentTarFixture extends NodeStoreFixture {
+    private final SegmentNodeStore sns;
 
+    public SegmentTarFixture() {
+        this(null);
+    }
+    
+    public SegmentTarFixture(SegmentNodeStore sns) {
+        this.sns = sns;
+    }
+    
     @Override
     public NodeStore createNodeStore() {
-        try {
-            return SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (sns == null) {
+            try {
+                return SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            return sns;
         }
     }
 
