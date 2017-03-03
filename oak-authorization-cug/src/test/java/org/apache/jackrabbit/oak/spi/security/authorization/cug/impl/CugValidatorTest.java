@@ -48,8 +48,10 @@ public class CugValidatorTest extends AbstractCugTest {
 
     @Test
     public void testChangePrimaryType() {
+        node = new NodeUtil(root.getTree(SUPPORTED_PATH2));
         try {
             node.setName(JcrConstants.JCR_PRIMARYTYPE, NT_REP_CUG_POLICY);
+            node.setStrings(REP_PRINCIPAL_NAMES, EveryonePrincipal.NAME);
             root.commit();
             fail();
         } catch (CommitFailedException e) {
