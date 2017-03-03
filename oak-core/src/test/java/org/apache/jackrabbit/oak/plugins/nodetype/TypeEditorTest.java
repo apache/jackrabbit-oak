@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.easymock.EasyMock.createControl;
@@ -224,5 +225,99 @@ public class TypeEditorTest {
 
         builder.setProperty("any", 134.34, Type.DOUBLE);
         hook.processCommit(after, builder.getNodeState(), CommitInfo.EMPTY);
+    }
+
+    @Test
+    public void changeNodeTypeWExtraNodes() throws CommitFailedException {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeState before = builder.getNodeState();
+
+        builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+        builder.child("testcontent").child("unstructured_child").setProperty(JCR_PRIMARYTYPE, "nt:unstructured",
+                Type.NAME);
+        NodeState after = builder.getNodeState();
+        root = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        builder = root.builder();
+        before = builder.getNodeState();
+        builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:folder", Type.NAME);
+        try {
+            hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+            fail("should not be able to change node type due to extra nodes");
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+        }
+    }
+
+    @Test
+    public void changeNodeTypeWExtraProps() throws CommitFailedException {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeState before = builder.getNodeState();
+
+        builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+        builder.child("testcontent").setProperty("extra", "information");
+
+        NodeState after = builder.getNodeState();
+        root = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        builder = root.builder();
+        before = builder.getNodeState();
+        builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:folder", Type.NAME);
+        try {
+            hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+            fail("should not be able to change node type due to extra properties");
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+        }
+    }
+
+    @Test
+    public void changeNodeTypeNewBroken() throws CommitFailedException {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeState before = builder.getNodeState();
+        builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:folder", Type.NAME);
+        builder.child("testcontent").setProperty("extra", "information");
+        try {
+            hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+            fail("should not be able to change node type due to extra properties");
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+        }
+    }
+
+    @Test
+    public void malformedUUID() throws CommitFailedException {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeState before = builder.getNodeState();
+        builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+        builder.child("testcontent").setProperty("jcr:uuid", "not-a-uuid");
+        NodeState after = builder.getNodeState();
+        root = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        builder = root.builder();
+        before = builder.getNodeState();
+        builder.child("testcontent").setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REFERENCEABLE), Type.NAMES);
+        try {
+            hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+            fail("should not be able to change mixin due to illegal uuid format");
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+        }
     }
 }

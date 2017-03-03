@@ -36,6 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.valueConstraint;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -44,7 +45,9 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -55,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +79,7 @@ class TypeEditor extends DefaultEditor {
 
     private final Set<String> typesToCheck;
 
-    private final boolean checkThisNode;
+    private boolean checkThisNode;
 
     private final TypeEditor parent;
 
@@ -86,6 +90,8 @@ class TypeEditor extends DefaultEditor {
     private final EffectiveType effective;
 
     private final NodeBuilder builder;
+
+    private final boolean validate;
 
     TypeEditor(
             boolean strict, Set<String> typesToCheck, NodeState types,
@@ -102,11 +108,13 @@ class TypeEditor extends DefaultEditor {
         this.types = checkNotNull(types);
         this.effective = createEffectiveType(null, null, primary, mixins);
         this.builder = checkNotNull(builder);
+        this.validate = false;
     }
 
     private TypeEditor(
             @Nonnull TypeEditor parent, @Nonnull String name,
-            @CheckForNull String primary, @Nonnull Iterable<String> mixins, @Nonnull NodeBuilder builder)
+            @CheckForNull String primary, @Nonnull Iterable<String> mixins, @Nonnull NodeBuilder builder,
+            boolean validate)
             throws CommitFailedException {
         this.strict = parent.strict;
         this.typesToCheck = parent.typesToCheck;
@@ -119,6 +127,7 @@ class TypeEditor extends DefaultEditor {
         this.types = parent.types;
         this.effective = createEffectiveType(parent.effective, name, primary, mixins);
         this.builder = checkNotNull(builder);
+        this.validate = validate;
     }
 
     /**
@@ -133,6 +142,7 @@ class TypeEditor extends DefaultEditor {
         this.types = EMPTY_NODE;
         this.effective = checkNotNull(effective);
         this.builder = EMPTY_NODE.builder();
+        this.validate = false;
     }
 
     /**
@@ -174,23 +184,7 @@ class TypeEditor extends DefaultEditor {
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
         if (checkThisNode) {
-            NodeState definition = effective.getDefinition(after);
-            if (definition == null) {
-                constraintViolation(4, "No matching property definition found for " + after);
-            } else if (JCR_UUID.equals(after.getName())
-                    && effective.isNodeType(MIX_REFERENCEABLE)) {
-                // special handling for the jcr:uuid property of mix:referenceable
-                // TODO: this should be done in a pluggable extension
-                if (!isValidUUID(after.getValue(Type.STRING))) {
-                    constraintViolation(12, "Invalid UUID value in the jcr:uuid property");
-                }
-            } else {
-                int requiredType = getRequiredType(definition);
-                if (requiredType != PropertyType.UNDEFINED) {
-                    checkRequiredType(after, requiredType);
-                    checkValueConstraints(definition, after, requiredType);
-                }
-            }
+            checkPropertyTypeConstraints(after);
         }
     }
 
@@ -205,31 +199,20 @@ class TypeEditor extends DefaultEditor {
     }
 
     @Override
+    public void enter(NodeState before, NodeState after) throws CommitFailedException {
+        if (checkThisNode && validate) {
+            // when adding a new node, or changing node type on an existing
+            // node, we need to reverify type constraints
+            checkNodeTypeConstraints(after);
+            checkThisNode = false;
+        }
+    }
+
+    @Override
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        TypeEditor editor = childNodeChanged(name, MISSING_NODE, after);
-
-        if (editor != null && editor.checkThisNode) {
-            // TODO: add any auto-created items that are still missing
-
-            // verify the presence of all mandatory items
-            for (String property : editor.getEffective().getMandatoryProperties()) {
-                if (!after.hasProperty(property)) {
-                    editor.constraintViolation(
-                            21, "Mandatory property " + property
-                            + " not found in a new node");
-                }
-            }
-            for (String child : editor.getEffective().getMandatoryChildNodes()) {
-                if (!after.hasChildNode(child)) {
-                    editor.constraintViolation(
-                            25, "Mandatory child node " + child
-                            + " not found in a new node");
-                }
-            }
-        }
-
-        return editor;
+        // TODO: add any auto-created items that are still missing
+        return childNodeChanged(name, MISSING_NODE, after);
     }
 
     @Override
@@ -239,7 +222,6 @@ class TypeEditor extends DefaultEditor {
         String primary = after.getName(JCR_PRIMARYTYPE);
         Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
 
-        NodeBuilder childBuilder = builder.getChildNode(name);
         if (primary == null && effective != null) {
             // no primary type defined, find and apply a default type
             primary = effective.getDefaultType(name);
@@ -252,8 +234,11 @@ class TypeEditor extends DefaultEditor {
             }
         }
 
-        TypeEditor editor = new TypeEditor(this, name, primary, mixins, childBuilder);
-        if (checkThisNode && !getEffective().isValidChildNode(name, editor.getEffective())) {
+        // if node type didn't change no need to validate child node
+        boolean validate = primaryChanged(before, primary) || mixinsChanged(before, mixins);
+        NodeBuilder childBuilder = builder.getChildNode(name);
+        TypeEditor editor = new TypeEditor(this, name, primary, mixins, childBuilder, validate);
+        if (checkThisNode && validate && !effective.isValidChildNode(name, editor.getEffective())) {
             constraintViolation(
                     1, "No matching definition found for child node " + name
                     + " with effective type " + editor.getEffective());
@@ -378,6 +363,81 @@ class TypeEditor extends DefaultEditor {
             }
         }
         constraintViolation(5, "Value constraint violation in " + property);
+    }
+
+    private static boolean primaryChanged(NodeState before, String after) {
+        String pre = before.getName(JCR_PRIMARYTYPE);
+        return !Objects.equal(pre, after);
+    }
+
+    private static boolean mixinsChanged(NodeState before, Iterable<String> after) {
+        List<String> pre = Lists.newArrayList(before.getNames(JCR_MIXINTYPES));
+        Collections.sort(pre);
+        List<String> post = Lists.newArrayList(after);
+        Collections.sort(post);
+        if (pre.isEmpty() && post.isEmpty()) {
+            return false;
+        } else if (pre.isEmpty() || post.isEmpty()) {
+            return true;
+        } else {
+            return !Iterables.elementsEqual(pre, post);
+        }
+    }
+
+    private void checkNodeTypeConstraints(NodeState after) throws CommitFailedException {
+        EffectiveType effective = getEffective();
+
+        Set<String> properties = effective.getMandatoryProperties();
+        for (PropertyState ps : after.getProperties()) {
+            properties.remove(ps.getName());
+            checkPropertyTypeConstraints(ps);
+        }
+        // verify the presence of all mandatory items
+        if (!properties.isEmpty()) {
+            constraintViolation(21, "Mandatory property " + properties.iterator().next() + " not found in a new node");
+        }
+
+        List<String> names = Lists.newArrayList(after.getChildNodeNames());
+        for (String child : effective.getMandatoryChildNodes()) {
+            if (!names.remove(child)) {
+                constraintViolation(25, "Mandatory child node " + child + " not found in a new node");
+            }
+        }
+        if (!names.isEmpty()) {
+            for (String name : names) {
+                NodeState child = after.getChildNode(name);
+                String primary = child.getName(JCR_PRIMARYTYPE);
+                Iterable<String> mixins = child.getNames(JCR_MIXINTYPES);
+                NodeBuilder childBuilder = builder.getChildNode(name);
+                TypeEditor editor = new TypeEditor(this, name, primary, mixins, childBuilder, false);
+                if (!effective.isValidChildNode(name, editor.getEffective())) {
+                    constraintViolation(25, "Unexpected child node " + names + " found in a new node");
+                }
+            }
+        }
+    }
+
+    private void checkPropertyTypeConstraints(PropertyState after)
+            throws CommitFailedException {
+        if (NodeStateUtils.isHidden(after.getName())) {
+            return;
+        }
+        NodeState definition = effective.getDefinition(after);
+        if (definition == null) {
+            constraintViolation(4, "No matching property definition found for " + after);
+        } else if (JCR_UUID.equals(after.getName()) && effective.isNodeType(MIX_REFERENCEABLE)) {
+            // special handling for the jcr:uuid property of mix:referenceable
+            // TODO: this should be done in a pluggable extension
+            if (!isValidUUID(after.getValue(Type.STRING))) {
+                constraintViolation(12, "Invalid UUID value in the jcr:uuid property");
+            }
+        } else {
+            int requiredType = getRequiredType(definition);
+            if (requiredType != PropertyType.UNDEFINED) {
+                checkRequiredType(after, requiredType);
+                checkValueConstraints(definition, after, requiredType);
+            }
+        }
     }
 
 }

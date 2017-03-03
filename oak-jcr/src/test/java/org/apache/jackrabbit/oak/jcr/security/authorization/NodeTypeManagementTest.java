@@ -115,7 +115,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         String ntName = child.getPrimaryNodeType().getName();
 
         try {
-            childNode.setPrimaryType("nt:folder");
+            childNode.setPrimaryType("oak:Unstructured");
             testSession.save();
             fail("TestSession does not have sufficient privileges to change the primary type.");
         } catch (AccessDeniedException e) {
@@ -134,7 +134,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         Node child = (Node) superuser.getItem(childNode.getPath());
         String ntName = child.getPrimaryNodeType().getName();
 
-        String changedNtName = "nt:folder";
+        String changedNtName = "oak:Unstructured";
         child.setPrimaryType(changedNtName);
         testSession.save();
 
