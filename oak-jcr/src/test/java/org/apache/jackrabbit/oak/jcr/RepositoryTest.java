@@ -1872,7 +1872,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-5229")
     public void setPrimaryTypeShouldFail() throws RepositoryException {
         Node testNode = getNode(TEST_PATH);
         assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
@@ -1888,6 +1887,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             fail("Changing the primary type to nt:folder should fail.");
         } catch (RepositoryException e) {
             // ok
+            getAdminSession().refresh(false);
         }
 
         Session session2 = createAnonymousSession();
