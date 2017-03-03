@@ -20,25 +20,27 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class CompositeActionProviderTest extends AbstractSecurityTest {
+public class CompositeActionProviderTest {
+
+    private final SecurityProvider securityProvider = Mockito.mock(SecurityProvider.class);
 
     @Test
     public void testEmpty() {
         CompositeActionProvider cap = new CompositeActionProvider();
-        assertTrue(cap.getAuthorizableActions(getSecurityProvider()).isEmpty());
+        assertTrue(cap.getAuthorizableActions(securityProvider).isEmpty());
     }
 
     @Test
     public void testSingle() {
         AuthorizableActionProvider aap = new TestAuthorizableActionProvider();
-        assertEquals(aap.getAuthorizableActions(getSecurityProvider()), new CompositeActionProvider(aap).getAuthorizableActions(getSecurityProvider()));
+        assertEquals(aap.getAuthorizableActions(securityProvider), new CompositeActionProvider(aap).getAuthorizableActions(securityProvider));
     }
 
     @Test
@@ -46,7 +48,7 @@ public class CompositeActionProviderTest extends AbstractSecurityTest {
         AuthorizableActionProvider aap = new TestAuthorizableActionProvider();
         AuthorizableActionProvider aap2 = new TestAuthorizableActionProvider();
 
-        assertEquals(ImmutableList.of(TestAction.INSTANCE, TestAction.INSTANCE), new CompositeActionProvider(aap, aap2).getAuthorizableActions(getSecurityProvider()));
+        assertEquals(ImmutableList.of(TestAction.INSTANCE, TestAction.INSTANCE), new CompositeActionProvider(aap, aap2).getAuthorizableActions(securityProvider));
     }
 
     @Test
@@ -54,7 +56,7 @@ public class CompositeActionProviderTest extends AbstractSecurityTest {
         AuthorizableActionProvider aap = new TestAuthorizableActionProvider();
         AuthorizableActionProvider aap2 = new TestAuthorizableActionProvider();
 
-        assertEquals(ImmutableList.of(TestAction.INSTANCE, TestAction.INSTANCE), new CompositeActionProvider(ImmutableList.of(aap, aap2)).getAuthorizableActions(getSecurityProvider()));
+        assertEquals(ImmutableList.of(TestAction.INSTANCE, TestAction.INSTANCE), new CompositeActionProvider(ImmutableList.of(aap, aap2)).getAuthorizableActions(securityProvider));
     }
 
 
