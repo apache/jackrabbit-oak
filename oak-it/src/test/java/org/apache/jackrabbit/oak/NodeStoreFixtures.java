@@ -30,15 +30,11 @@ import org.apache.jackrabbit.oak.fixture.MemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingMemoryFixture;
 import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingSegmentFixture;
-import org.apache.jackrabbit.oak.plugins.segment.fixture.SegmentFixture;
 import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;
 
 public class NodeStoreFixtures {
 
     public static final NodeStoreFixture MEMORY_NS = new MemoryFixture();
-
-    @Deprecated
-    public static final NodeStoreFixture SEGMENT_MK = new SegmentFixture();
 
     public static final NodeStoreFixture SEGMENT_TAR = new SegmentTarFixture();
 
@@ -56,9 +52,6 @@ public class NodeStoreFixtures {
         List<NodeStoreFixture> configuredFixtures = new ArrayList<NodeStoreFixture>();
         if (fixtures.contains(FixturesHelper.Fixture.DOCUMENT_NS)) {
             configuredFixtures.add(DOCUMENT_NS);
-        }
-        if (fixtures.contains(FixturesHelper.Fixture.SEGMENT_MK)) {
-            configuredFixtures.add(SEGMENT_MK);
         }
         if (fixtures.contains(FixturesHelper.Fixture.MEMORY_NS)) {
             configuredFixtures.add(MEMORY_NS);

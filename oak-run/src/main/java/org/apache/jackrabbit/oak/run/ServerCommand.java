@@ -116,13 +116,6 @@ class ServerCommand implements Command {
                         host.value(options), port.value(options),
                         db, false, cacheSize * MB);
             }
-
-        } else if (fix.equals(OakFixture.OAK_TAR)) {
-            File baseFile = base.value(options);
-            if (baseFile == null) {
-                throw new IllegalArgumentException("Required argument base missing.");
-            }
-            oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
         } else if (fix.equals(OakFixture.OAK_SEGMENT_TAR)) {
             File baseFile = base.value(options);
             if (baseFile == null) {

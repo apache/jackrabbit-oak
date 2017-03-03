@@ -28,16 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
 import org.apache.jackrabbit.oak.benchmark.util.Date;
@@ -68,6 +58,16 @@ import org.apache.jackrabbit.oak.scalability.benchmarks.SplitOrderBySearcher;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 /**
  * Main class for running scalability/longevity tests.
@@ -141,10 +141,6 @@ public class ScalabilityRunner {
                     host.value(options), port.value(options),
                     dbName.value(options), dropDBAfterTest.value(options),
                     cacheSize * MB),
-                OakRepositoryFixture.getTar(
-                    base.value(options), 256, cacheSize, mmap.value(options)),
-                OakRepositoryFixture.getTarWithBlobStore(base.value(options), 256, cacheSize,
-                    mmap.value(options), fdsCache.value(options)),
                 OakRepositoryFixture.getSegmentTar(
                     base.value(options), 256, cacheSize, mmap.value(options)),
                 OakRepositoryFixture.getSegmentTarWithBlobStore(base.value(options), 256, cacheSize,
@@ -254,4 +250,3 @@ public class ScalabilityRunner {
         }
     }
 }
-

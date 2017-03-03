@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
@@ -25,10 +29,10 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -37,10 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Checks if hidden nodes are properly handled on checkin and restore (OAK-1219, OAK-OAK-1226).
@@ -54,7 +54,7 @@ public class HiddenNodeTest {
 
     @Before
     public void before() throws Exception {
-        store = SegmentNodeStore.builder(new MemoryStore()).build();
+        store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         repo = new Jcr(store).createRepository();
         session = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
         vMgr = session.getWorkspace().getVersionManager();

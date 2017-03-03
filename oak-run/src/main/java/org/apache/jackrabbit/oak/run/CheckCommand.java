@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
+import static org.apache.jackrabbit.oak.segment.FileStoreHelper.isValidFileStoreOrFail;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,7 +44,6 @@ class CheckCommand implements Command {
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
         OptionSpec<?> bin = parser.accepts("bin", "read the content of binary properties");
-        OptionSpec<?> segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         ArgumentAcceptingOptionSpec<String> filter = parser.accepts(
                 "filter", "comma separated content paths to be checked")
                 .withRequiredArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("/");
@@ -69,11 +68,7 @@ class CheckCommand implements Command {
                     , "A deep scan of the content tree, traversing every node, will be performed by default.");
         }
         
-        if (options.has(segment)) {
-            SegmentUtils.check(dir, journalFileName, debugLevel, options.has(bin));
-        } else {
-            SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), filterPaths, options.has(ioStatistics), out, err);
-        }
+        SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), filterPaths, options.has(ioStatistics), out, err);
     }
 
     private void printUsage(OptionParser parser, PrintWriter err, String... messages) throws IOException {

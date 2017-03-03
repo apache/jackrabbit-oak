@@ -49,7 +49,6 @@
     <module>oak-solr-osgi</module>
     <module>oak-auth-external</module>
     <module>oak-auth-ldap</module>
-    <module>oak-tarmk-standby</module>
     <module>oak-run</module>
     <module>oak-it-osgi</module>
     <module>oak-pojosr</module>
@@ -58,7 +57,6 @@
     <module>oak-exercise</module>
     <module>oak-examples</module>
     <module>oak-it</module>
-    <module>oak-segment</module>
     <module>oak-segment-tar</module>
   </modules>
 

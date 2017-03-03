@@ -21,15 +21,12 @@ import java.io.File;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 
 class RestoreCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().size() < 2) {
@@ -40,12 +37,7 @@ class RestoreCommand implements Command {
         File target = new File(options.nonOptionArguments().get(0).toString());
         File source = new File(options.nonOptionArguments().get(1).toString());
 
-        if (options.has(segment)) {
-            SegmentUtils.restore(source, target);
-        } else {
-            SegmentTarUtils.restore(source, target);
-        }
-
+        SegmentTarUtils.restore(source, target);
     }
 
 }

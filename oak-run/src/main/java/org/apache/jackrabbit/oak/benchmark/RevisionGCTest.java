@@ -27,17 +27,15 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import com.google.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import com.google.common.base.Stopwatch;
 
 /**
  * A benchmark to run RevisionGC.
@@ -119,12 +117,7 @@ public class RevisionGCTest extends Benchmark {
             return ((DocumentNodeStore) nodeStore).getVersionGarbageCollector()
                     .gc(0, TimeUnit.SECONDS).toString();
 
-        } else if (nodeStore instanceof SegmentNodeStore) {
-            Field f = SegmentNodeStore.class.getDeclaredField("store");
-            f.setAccessible(true);
-            ((SegmentStore) f.get(nodeStore)).gc();
-            return "";
-        }
+        } 
         throw new IllegalArgumentException("Unknown node store: "
                 + nodeStore.getClass().getName());
     }

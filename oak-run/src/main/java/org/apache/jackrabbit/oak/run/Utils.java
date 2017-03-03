@@ -31,33 +31,33 @@ import java.util.Properties;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
+import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import org.apache.felix.cm.file.ConfigurationHandler;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class Utils {
     
     private static final long MB = 1024 * 1024;
 
-    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException, InvalidFileStoreVersionException {
+    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException {
         //TODO add support for other NodeStore flags
         OptionParser parser = new OptionParser();
         OptionSpec<Integer> clusterId = parser
@@ -68,7 +68,6 @@ class Utils {
         OptionSpec<Integer> cacheSizeSpec = parser.
                 accepts("cacheSize", "cache size").withRequiredArg().
                 ofType(Integer.class).defaultsTo(0);         
-        OptionSpec<?> segmentTar = parser.accepts("segment-tar", "Use oak-segment-tar instead of oak-segment");
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
         OptionSpec<String> nonOption = parser
@@ -114,11 +113,7 @@ class Utils {
             return store;
         }
 
-        if (options.has(segmentTar)) {
-            return SegmentTarUtils.bootstrapNodeStore(src, closer);
-        }
-
-        return SegmentUtils.bootstrapNodeStore(src, closer);
+        return SegmentTarUtils.bootstrapNodeStore(src, closer);
     }
 
     @Nullable
@@ -157,16 +152,6 @@ class Utils {
         closer.register(Utils.asCloseable(blobStore));
 
         return blobStore;
-    }
-
-    static Closeable asCloseable(final FileStore fs) {
-        return new Closeable() {
-
-            @Override
-            public void close() throws IOException {
-                fs.close();
-            }
-        };
     }
 
     static Closeable asCloseable(final DocumentNodeStore dns) {

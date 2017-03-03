@@ -33,10 +33,6 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.sql.DataSource;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -49,9 +45,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -61,6 +54,10 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 /**
  * A tool to open a node store from command line options
@@ -74,7 +71,6 @@ public class NodeStoreOpener {
                 .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         OptionSpec<Void> readWriteOption = parser.accepts("read-write", "connect to repository in read-write mode");
         OptionSpec<String> fdsPathSpec = parser.accepts("fds-path", "Path to FDS store").withOptionalArg().defaultsTo("");
-        OptionSpec<Void> segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSpec<Void> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
     
         // RDB specific options
@@ -169,19 +165,6 @@ public class NodeStoreOpener {
                 builder.memoryCacheSize(cacheSize * MB);
             }            
             fixture = new MongoFixture(store);
-        } else if (options.has(segment)) {
-            FileStore.Builder fsBuilder = FileStore.builder(new File(nodeStore))
-                    .withMaxFileSize(256).withDefaultMemoryMapping();
-            if (blobStore != null) {
-                fsBuilder.withBlobStore(blobStore);
-            }
-            FileStore store;
-            if (readOnly) {
-                store = fsBuilder.buildReadOnly();
-            } else {
-                store = fsBuilder.build();
-            }
-            fixture = new SegmentFixture(store);
         } else {
             fixture = SegmentTarFixture.create(new File(nodeStore), readOnly, blobStore);
         }
@@ -203,27 +186,6 @@ public class NodeStoreOpener {
         @Override
         public void close() throws IOException {
             nodeStore.dispose();
-        }
-    }
-
-    @Deprecated
-    public static class SegmentFixture implements NodeStoreFixture {
-        private final SegmentStore segmentStore;
-        private final SegmentNodeStore nodeStore;
-
-        private SegmentFixture(SegmentStore segmentStore) {
-            this.segmentStore = segmentStore;
-            this.nodeStore = SegmentNodeStore.builder(segmentStore).build();
-        }
-
-        @Override
-        public NodeStore getStore() {
-            return nodeStore;
-        }
-
-        @Override
-        public void close() throws IOException {
-            segmentStore.close();
         }
     }
 

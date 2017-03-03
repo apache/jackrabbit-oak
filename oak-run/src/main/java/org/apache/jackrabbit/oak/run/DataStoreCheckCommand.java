@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
+import static com.google.common.base.Stopwatch.createStarted;
+import static com.google.common.io.Closeables.close;
+import static java.util.Arrays.asList;
+import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
@@ -28,6 +37,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
+import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -38,32 +57,12 @@ import com.google.common.io.Files;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
-import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
-import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentBlobReferenceRetriever;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-
-import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
-import static com.google.common.base.Stopwatch.createStarted;
-import static com.google.common.io.Closeables.close;
-import static java.util.Arrays.asList;
-import static org.apache.commons.io.FileUtils.forceDelete;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
 
 /**
  * Command to check data store consistency and also optionally retrieve ids
@@ -94,7 +93,6 @@ public class DataStoreCheckCommand implements Command {
             // Optional argument to specify the dump path
             ArgumentAcceptingOptionSpec<String> dump = parser.accepts("dump", "Dump Path")
                 .withRequiredArg().ofType(String.class);
-            OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
 
             // Optional argument to specify tracking
             ArgumentAcceptingOptionSpec<String> track = parser.accepts("track", "Local repository home folder")
@@ -139,10 +137,6 @@ public class DataStoreCheckCommand implements Command {
                     closer.register(Utils.asCloseable(nodeStore));
                     blobStore = (GarbageCollectableBlobStore) nodeStore.getBlobStore();
                     marker = new DocumentBlobReferenceRetriever(nodeStore);
-                } else if (options.has(segment)) {
-                    FileStore fileStore = openFileStore(source);
-                    closer.register(Utils.asCloseable(fileStore));
-                    marker = new SegmentBlobReferenceRetriever(fileStore.getTracker());
                 } else {
                     marker = SegmentTarUtils.newBlobReferenceRetriever(source, closer);
                 }

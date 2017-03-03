@@ -38,7 +38,6 @@ enum Mode {
     TIKA("tika", new TikaCommand()),
     GARBAGE("garbage", new GarbageCommand()),
     TARMKDIFF("tarmkdiff", new FileStoreDiffCommand()),
-    TARMKRECOVERY("tarmkrecovery", new FileStoreRevisionRecoveryCommand()),
     DATASTORECHECK("datastorecheck", new DataStoreCheckCommand()),
     RESETCLUSTERID("resetclusterid", new ResetClusterIdCommand()),
     PERSISTENTCACHE("persistentcache", new PersistentCacheCommand()),
