@@ -163,7 +163,7 @@ abstract class AbstractExternalTest extends AbstractTest {
     protected void beforeSuite() throws Exception {
         Set<String> autoMembership = syncConfig.user().getAutoMembership();
         if (!autoMembership.isEmpty()) {
-            Session s = loginAdministrative();
+            Session s = systemLogin();
             UserManager userManager = ((JackrabbitSession) s).getUserManager();
             for (String groupId : autoMembership) {
                 userManager.createGroup(groupId, new PrincipalImpl(groupId), PATH_PREFIX);
@@ -179,7 +179,7 @@ abstract class AbstractExternalTest extends AbstractTest {
      */
     @Override
     protected void afterSuite() throws Exception {
-        Session s = loginAdministrative();
+        Session s = systemLogin();
         for (String creationRoot : new String[] {UserConstants.DEFAULT_USER_PATH, UserConstants.DEFAULT_GROUP_PATH}) {
             String path = creationRoot + "/" + PATH_PREFIX;
             if (s.nodeExists(path)) {

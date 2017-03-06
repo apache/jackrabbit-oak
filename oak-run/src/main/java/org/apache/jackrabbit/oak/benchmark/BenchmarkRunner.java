@@ -31,6 +31,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.ListIdentitiesTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.PrincipalNameResolutionTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
@@ -430,6 +431,7 @@ public class BenchmarkRunner {
             new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options)),
             new PrincipalNameResolutionTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), roundtripDelay.value(options)),
+            new ListIdentitiesTest(numberOfUsers.value(options)),
 
             new HybridIndexTest(base.value(options), statsProvider),
             new BundlingNodeTest(),
