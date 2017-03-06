@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.13
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.14
 
 Introduction
 ------------
@@ -7,45 +7,56 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.13 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.14 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.13
+Changes in Oak 1.4.14
 ---------------------
 
 Technical task
 
-    [OAK-5554] - RDB*Store: update postgresql JDBC driver reference to 9.4.1212
-    [OAK-5555] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.73
-
+    [OAK-4951] - UpdateOp without set operation for _id: clarify, add
+    unit tests, fix DocumentStore instances
+    [OAK-5751] - RDBDocumentStore: properly handle null values for
+    system properties
 
 Bug
 
-    [OAK-5338] - Test failures: ExternalSharedStoreIT
-    [OAK-5533] - Lucene indexing of mv facets fails because of hidden persisted FacetsConfig
-    [OAK-5536] - Facets on relative properties do not work properly
-    [OAK-5557] - incomplete diffManyChildren during commitHook evaluation in a persisted branch
-
+    [OAK-5485] - Test failure: LdapDefaultLoginModuleTest address
+    already in use
+    [OAK-5542] - Test failure:
+    security.authentication.ldap.LdapProviderTest (Address already in
+    use)
+    [OAK-5561] - TestFailure:
+    org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndexTest.longRepExcerpt
+    [OAK-5601] - documentMk backgroundRead should handle missing
+    journal entries
+    [OAK-5626] - ChangeProcessor doesn't reset 'blocking' flag when
+    items from queue gets removed and commit-rate-limiter is null
+    [OAK-5668] - Test failure:
+    observation.ObservationQueueFullWarnTest.warnOnRepeatedQueueFull
+    [OAK-5738] - Potential NPE in LargeLdapProviderTest
+    [OAK-5773] - BlobCache does not implement Closeable
+    [OAK-5783] - Test failure:
+    security.authentication.ldap.LdapProviderTest.testSplitDNIntermediatePath2
 
 Improvement
 
-    [OAK-5443] - VersionGarbageCollector:measure time to sort docIds separately
-
-
-New Feature
-
-    [OAK-5593] - Backport number of facets retrieved in query configurable for LucenePropertyIndex in branch 1.4
-
+    [OAK-4361] - Reduce performance impact of observation ACFilter
 
 Task
 
-    [OAK-5451] - Make IndexTracker public to enable its use in non OSGi environment
-    [OAK-5537] - Javadoc config fixes
+    [OAK-5641] - Update AWS sdk dependency to latest version in
+    oak-blob-cloud
 
+Test
+
+    [OAK-5663] - Improve LogCutomizer to allow filtering on log
+    messages too
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
