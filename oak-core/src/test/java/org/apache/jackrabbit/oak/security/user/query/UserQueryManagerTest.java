@@ -22,9 +22,9 @@ import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +49,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        UserManager userMgr = getUserManager(root);
+        UserManagerImpl userMgr = (UserManagerImpl) getUserManager(root);
         user = getTestUser();
         queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getParameters(), root);
 

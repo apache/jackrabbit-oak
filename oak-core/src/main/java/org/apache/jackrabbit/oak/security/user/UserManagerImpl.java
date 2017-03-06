@@ -361,7 +361,7 @@ public class UserManagerImpl implements UserManager {
 
     //--------------------------------------------------------------------------
     @CheckForNull
-    Authorizable getAuthorizable(@CheckForNull Tree tree) throws RepositoryException {
+    public Authorizable getAuthorizable(@CheckForNull Tree tree) throws RepositoryException {
         if (tree == null || !tree.exists()) {
             return null;
         }

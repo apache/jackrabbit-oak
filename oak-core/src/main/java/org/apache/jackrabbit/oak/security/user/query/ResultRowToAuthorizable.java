@@ -23,10 +23,10 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
@@ -40,11 +40,11 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
 
     private static final Logger log = LoggerFactory.getLogger(ResultRowToAuthorizable.class);
 
-    private final UserManager userManager;
+    private final UserManagerImpl userManager;
     private final Root root;
     private final AuthorizableType targetType;
 
-    ResultRowToAuthorizable(@Nonnull UserManager userManager, @Nonnull Root root,
+    ResultRowToAuthorizable(@Nonnull UserManagerImpl userManager, @Nonnull Root root,
                             @Nullable AuthorizableType targetType) {
         this.userManager = userManager;
         this.root = root;
@@ -71,10 +71,7 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
                 type = UserUtil.getType(tree);
             }
             if (tree.exists() && (targetType == null || targetType == type)) {
-                String id = UserUtil.getAuthorizableId(tree);
-                if (id != null) {
-                    authorizable = userManager.getAuthorizable(id);
-                }
+                authorizable = userManager.getAuthorizable(tree);
             }
         } catch (RepositoryException e) {
             log.debug("Failed to access authorizable " + resultPath);
