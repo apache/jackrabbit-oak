@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Iterator;
 import java.util.Map;
-
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
@@ -140,7 +139,7 @@ public class DefaultSyncHandler implements SyncHandler {
     @Nonnull
     @Override
     public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
-        final Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
+        final Iterator<Authorizable> iter = userManager.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null);
         return new AbstractLazyIterator<SyncedIdentity>() {
 
             @Override
