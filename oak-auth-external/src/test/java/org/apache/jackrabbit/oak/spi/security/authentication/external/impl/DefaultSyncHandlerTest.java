@@ -252,4 +252,17 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
         }
         assertTrue(expected.isEmpty());
     }
+
+    @Test
+    public void testListIdentitiesIgnoresLocal() throws Exception {
+        sync(USER_ID, false);
+
+        Iterator<SyncedIdentity> identities = syncHandler.listIdentities(userManager);
+        while (identities.hasNext()) {
+            SyncedIdentity si = identities.next();
+            ExternalIdentityRef ref = si.getExternalIdRef();
+            assertNotNull(ref);
+            assertNotNull(ref.getProviderName());
+        }
+    }
 }
