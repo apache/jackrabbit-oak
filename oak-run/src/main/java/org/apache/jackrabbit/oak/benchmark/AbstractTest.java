@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.PrintStream;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -32,6 +35,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.ArrayUtils;
@@ -39,6 +43,7 @@ import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.util.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -575,6 +580,24 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
            throw new RuntimeException(e);
        }
    }
+
+    protected Session systemLogin() {
+        return loginSubject(SystemSubject.INSTANCE);
+    }
+
+    protected Session loginSubject(@Nonnull Subject subject) {
+        try {
+
+            return Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
+                @Override
+                public Session run() throws Exception {
+                    return getRepository().login(null, null);
+                }
+            }, null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * Logs out and removes the session from the internal pool.

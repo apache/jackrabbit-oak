@@ -16,24 +16,20 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.benchmark.AbstractTest;
-import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-
+import java.util.Random;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
-import javax.security.auth.Subject;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Random;
+
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.benchmark.AbstractTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 public class AceCreationTest extends AbstractTest {
 
@@ -131,16 +127,11 @@ public class AceCreationTest extends AbstractTest {
         }
     }
 
-    private Session createOrGetSystemSession() throws PrivilegedActionException {
+    private Session createOrGetSystemSession() {
         if(transientWrites && transientSession != null) {
             return transientSession;
         }
 
-        return (transientSession = Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
-            @Override
-            public Session run() throws Exception {
-                return getRepository().login(null, null);
-            }
-        }, null));
+        return (transientSession = systemLogin());
     }
 }
