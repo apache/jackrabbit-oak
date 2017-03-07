@@ -68,6 +68,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     /**
      * Constructor for OSGi
      */
+    @SuppressWarnings("UnusedDeclaration")
     public AuthenticationConfigurationImpl() {
         super();
     }
