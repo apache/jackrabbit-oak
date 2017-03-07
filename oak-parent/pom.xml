@@ -580,7 +580,7 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>7.0.73</version>
+        <version>7.0.75</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
