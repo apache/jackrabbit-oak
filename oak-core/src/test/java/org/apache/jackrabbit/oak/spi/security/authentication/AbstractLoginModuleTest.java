@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -65,9 +66,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-/**
- * AbstractLoginModuleTest...
- */
 public class AbstractLoginModuleTest {
 
     private static AbstractLoginModule initLoginModule(Class supportedCredentials, Map sharedState) {
@@ -449,6 +447,31 @@ public class AbstractLoginModuleTest {
         AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
 
         Set<? extends Principal> principals = loginModule.getPrincipals("userId");
+        assertTrue(principals.isEmpty());
+    }
+
+    @Test
+    public void testGetPrincipalsFromPrincipal() {
+        PrincipalProvider principalProvider = new TestPrincipalProvider();
+
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(principalProvider));
+
+        Principal principal = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).next();
+        Set<Principal> expected = new HashSet<>();
+        expected.add(principal);
+        expected.addAll(principalProvider.getGroupMembership(principal));
+
+        Set<? extends Principal> principals = loginModule.getPrincipals(principal);
+
+        assertFalse(principals.isEmpty());
+        assertEquals(expected, principals);
+    }
+
+    @Test
+    public void testGetPrincipalsFromPrincipalMissingProvider() {
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
+
+        Set<? extends Principal> principals = loginModule.getPrincipals(new PrincipalImpl("principalName"));
         assertTrue(principals.isEmpty());
     }
 

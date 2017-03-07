@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.Credentials;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
@@ -106,12 +105,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
         @Override
         public Authentication getAuthentication(@Nonnull UserConfiguration configuration, @Nonnull Root root, @Nullable String userId) {
             if (this.userId.equals(userId)) {
-                return new Authentication() {
-                    @Override
-                    public boolean authenticate(@Nullable Credentials credentials) {
-                        return true;
-                    }
-                };
+                return Mockito.mock(Authentication.class);
             } else {
                 return null;
             }
