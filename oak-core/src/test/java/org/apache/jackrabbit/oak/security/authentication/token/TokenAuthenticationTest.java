@@ -31,7 +31,6 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Before;
@@ -44,9 +43,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-/**
- * TokenAuthenticationTest...
- */
 public class TokenAuthenticationTest extends AbstractSecurityTest {
 
     TokenAuthentication authentication;
@@ -155,5 +151,29 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
         while (!info.isExpired(now)) {
             now = waitForSystemTimeIncrement(now);
         }
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetUserIdBeforeLogin() {
+        authentication.getUserId();
+    }
+
+    @Test
+    public void testGetUserId() throws LoginException {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        assertTrue(authentication.authenticate(new TokenCredentials(info.getToken())));
+        assertEquals(userId, authentication.getUserId());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetUserPrincipalBeforeLogin() {
+        authentication.getUserPrincipal();
+    }
+
+    @Test
+    public void testGetUserPrincipal() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        assertTrue(authentication.authenticate(new TokenCredentials(info.getToken())));
+        assertEquals(getTestUser().getPrincipal(), authentication.getUserPrincipal());
     }
 }

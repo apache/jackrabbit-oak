@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
@@ -224,16 +226,11 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                     root.commit(CommitMarker.asCommitAttributes());
                 }
                 return tokenInfo;
-            } catch (NoSuchAlgorithmException e) {
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
                 // error while generating login token
                 log.error(error, e.getMessage());
-            } catch (UnsupportedEncodingException e) {
-                // error while generating login token
-                log.error(error, e.getMessage());
-            } catch (CommitFailedException e) {
+            } catch (CommitFailedException | RepositoryException e) {
                 // conflict while committing changes
-                log.warn(error, e.getMessage());
-            } catch (RepositoryException e) {
                 log.warn(error, e.getMessage());
             }
         } else {
@@ -258,12 +255,16 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
         Tree tokenTree = identifierManager.getTree(nodeId);
         if (isValidTokenTree(tokenTree)) {
-            String userId = getUserId(tokenTree);
-            if (userId != null) {
-                return new TokenInfoImpl(new NodeUtil(tokenTree), token, userId);
+            try {
+                User user = getUser(tokenTree);
+                if (user != null) {
+                    return new TokenInfoImpl(new NodeUtil(tokenTree), token, user.getID(), user.getPrincipal());
+                }
+            } catch (RepositoryException e) {
+                log.debug("Cannot determine userID/principal from token: {}", e.getMessage());
             }
         }
-        // not a valid token tree or failed to extract userID
+        // invalid token tree or failed to extract user or it's id/principal
         return null;
     }
 
@@ -331,17 +332,14 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     }
 
     @CheckForNull
-    private String getUserId(@Nonnull Tree tokenTree) {
-        try {
-            String userPath = Text.getRelativeParent(tokenTree.getPath(), 2);
-            Authorizable authorizable = userManager.getAuthorizableByPath(userPath);
-            if (authorizable != null && !authorizable.isGroup() && !((User) authorizable).isDisabled()) {
-                return authorizable.getID();
-            }
-        } catch (RepositoryException e) {
-            log.debug("Cannot determine userID from token: {}", e.getMessage());
+    private User getUser(@Nonnull Tree tokenTree) throws RepositoryException {
+        String userPath = Text.getRelativeParent(tokenTree.getPath(), 2);
+        Authorizable authorizable = userManager.getAuthorizableByPath(userPath);
+        if (authorizable != null && !authorizable.isGroup() && !((User) authorizable).isDisabled()) {
+            return (User) authorizable;
+        } else {
+            return null;
         }
-        return null;
     }
 
     @CheckForNull
@@ -425,7 +423,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                 tokenNode.setString(name, attr);
             }
         }
-        return new TokenInfoImpl(tokenNode, token, id);
+        return new TokenInfoImpl(tokenNode, token, id, null);
     }
 
     //--------------------------------------------------------------------------
@@ -433,11 +431,12 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     /**
      * TokenInfo
      */
-    private final class TokenInfoImpl implements TokenInfo {
+    final class TokenInfoImpl implements TokenInfo {
 
         private final String token;
         private final String tokenPath;
         private final String userId;
+        private final Principal principal;
 
         private final long expirationTime;
         private final String key;
@@ -445,17 +444,17 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         private final Map<String, String> mandatoryAttributes;
         private final Map<String, String> publicAttributes;
 
-
-        private TokenInfoImpl(@Nonnull NodeUtil tokenNode, @Nonnull String token, @Nonnull String userId) {
+        private TokenInfoImpl(@Nonnull NodeUtil tokenNode, @Nonnull String token, @Nonnull String userId, @Nullable Principal principal) {
             this.token = token;
             this.tokenPath = tokenNode.getTree().getPath();
             this.userId = userId;
+            this.principal = principal;
 
             expirationTime = getExpirationTime(tokenNode, Long.MIN_VALUE);
             key = tokenNode.getString(TOKEN_ATTRIBUTE_KEY, null);
 
-            mandatoryAttributes = new HashMap<String, String>();
-            publicAttributes = new HashMap<String, String>();
+            mandatoryAttributes = new HashMap();
+            publicAttributes = new HashMap();
             for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue(STRING);
@@ -469,6 +468,11 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                     publicAttributes.put(name, value);
                 } // else: jcr specific property
             }
+        }
+
+        @CheckForNull
+        Principal getPrincipal() {
+            return principal;
         }
 
         //------------------------------------------------------< TokenInfo >---

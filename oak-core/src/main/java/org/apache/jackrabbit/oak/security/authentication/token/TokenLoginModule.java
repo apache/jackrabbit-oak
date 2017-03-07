@@ -120,6 +120,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     private TokenCredentials tokenCredentials;
     private TokenInfo tokenInfo;
     private String userId;
+    private Principal principal;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
@@ -136,7 +137,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
             if (authentication.authenticate(tc)) {
                 tokenCredentials = tc;
                 tokenInfo = authentication.getTokenInfo();
-                userId = tokenInfo.getUserId();
+                userId = authentication.getUserId();
+                principal = authentication.getUserPrincipal();
 
                 log.debug("Login: adding login name to shared state.");
                 sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
@@ -150,7 +152,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     @Override
     public boolean commit() throws LoginException {
         if (tokenCredentials != null && userId != null) {
-            Set<? extends Principal> principals = getPrincipals(userId);
+            Set<? extends Principal> principals = (principal != null) ? getPrincipals(principal) : getPrincipals(userId);
             updateSubject(tokenCredentials, getAuthInfo(tokenInfo, principals), principals);
             return true;
         }

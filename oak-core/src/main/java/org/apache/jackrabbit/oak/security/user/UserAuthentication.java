@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.Principal;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.CheckForNull;
@@ -79,42 +80,45 @@ class UserAuthentication implements Authentication, UserConstants {
 
     private final UserConfiguration config;
     private final Root root;
-    private final String userId;
+    private final String loginId;
 
-    UserAuthentication(@Nonnull UserConfiguration config, @Nonnull Root root, @Nullable String userId) {
+    private String userId;
+    private Principal principal;
+
+    UserAuthentication(@Nonnull UserConfiguration config, @Nonnull Root root, @Nullable String loginId) {
         this.config = config;
         this.root = root;
-        this.userId = userId;
+        this.loginId = loginId;
     }
 
     //-----------------------------------------------------< Authentication >---
     @Override
     public boolean authenticate(@Nullable Credentials credentials) throws LoginException {
-        if (credentials == null || userId == null) {
+        if (credentials == null || loginId == null) {
             return false;
         }
 
         boolean success = false;
         try {
             UserManager userManager = config.getUserManager(root, NamePathMapper.DEFAULT);
-            Authorizable authorizable = userManager.getAuthorizable(userId);
+            Authorizable authorizable = userManager.getAuthorizable(loginId);
             if (authorizable == null) {
                 return false;
             }
 
             if (authorizable.isGroup()) {
-                throw new AccountNotFoundException("Not a user " + userId);
+                throw new AccountNotFoundException("Not a user " + loginId);
             }
 
             User user = (User) authorizable;
             if (user.isDisabled()) {
-                throw new AccountLockedException("User with ID " + userId + " has been disabled: "+ user.getDisabledReason());
+                throw new AccountLockedException("User with ID " + loginId + " has been disabled: "+ user.getDisabledReason());
             }
 
             if (credentials instanceof SimpleCredentials) {
                 SimpleCredentials creds = (SimpleCredentials) credentials;
                 Credentials userCreds = user.getCredentials();
-                if (userId.equals(creds.getUserID()) && userCreds instanceof CredentialsImpl) {
+                if (loginId.equals(creds.getUserID()) && userCreds instanceof CredentialsImpl) {
                     success = PasswordUtil.isSame(((CredentialsImpl) userCreds).getPasswordHash(), creds.getPassword());
                 }
                 checkSuccess(success, "UserId/Password mismatch.");
@@ -129,17 +133,38 @@ class UserAuthentication implements Authentication, UserConstants {
             } else if (credentials instanceof ImpersonationCredentials) {
                 ImpersonationCredentials ipCreds = (ImpersonationCredentials) credentials;
                 AuthInfo info = ipCreds.getImpersonatorInfo();
-                success = equalUserId(ipCreds, userId) && impersonate(info, user);
+                success = equalUserId(ipCreds, loginId) && impersonate(info, user);
                 checkSuccess(success, "Impersonation not allowed.");
             } else {
                 // guest login is allowed if an anonymous user exists in the content (see get user above)
                 success = (credentials instanceof GuestCredentials) || credentials == PreAuthenticatedLogin.PRE_AUTHENTICATED;
             }
+            userId = user.getID();
+            principal = user.getPrincipal();
         } catch (RepositoryException e) {
             throw new LoginException(e.getMessage());
         }
         return success;
     }
+
+    @CheckForNull
+    @Override
+    public String getUserId() {
+        if (userId == null) {
+            throw new IllegalStateException("UserId can only be retrieved after successful authentication.");
+        }
+        return userId;
+    }
+
+    @CheckForNull
+    @Override
+    public Principal getUserPrincipal() {
+        if (principal == null) {
+            throw new IllegalStateException("Principal can only be retrieved after successful authentication.");
+        }
+        return principal;
+    }
+
 
     //--------------------------------------------------------------------------
     private static void checkSuccess(boolean success, String msg) throws LoginException {
@@ -160,22 +185,22 @@ class UserAuthentication implements Authentication, UserConstants {
                 if (newPasswordObject instanceof String) {
                     user.changePassword((String) newPasswordObject);
                     root.commit();
-                    log.debug("User " + userId + ": changed user password");
+                    log.debug("User " + loginId + ": changed user password");
                     return true;
                 } else {
-                    log.warn("Aborted password change for user " + userId
+                    log.warn("Aborted password change for user " + loginId
                             + ": provided new password is of incompatible type "
                             + newPasswordObject.getClass().getName());
                 }
             }
         } catch (PasswordHistoryException e) {
             credentials.setAttribute(e.getClass().getSimpleName(), e.getMessage());
-            log.error("Failed to change password for user " + userId, e.getMessage());
+            log.error("Failed to change password for user " + loginId, e.getMessage());
         } catch (RepositoryException e) {
-            log.error("Failed to change password for user " + userId, e.getMessage());
+            log.error("Failed to change password for user " + loginId, e.getMessage());
         } catch (CommitFailedException e) {
             root.refresh();
-            log.error("Failed to change password for user " + userId, e.getMessage());
+            log.error("Failed to change password for user " + loginId, e.getMessage());
         }
         return false;
     }

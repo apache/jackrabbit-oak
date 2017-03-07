@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import java.security.Principal;
 import java.util.Date;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
@@ -61,6 +63,28 @@ class TokenAuthentication implements Authentication {
         }
         // no tokenProvider or other credentials implementation -> not handled here.
         return false;
+    }
+
+    @CheckForNull
+    @Override
+    public String getUserId() {
+        if (tokenInfo == null) {
+            throw new IllegalStateException("UserId can only be retrieved after successful authentication.");
+        }
+        return tokenInfo.getUserId();
+    }
+
+    @CheckForNull
+    @Override
+    public Principal getUserPrincipal() {
+        if (tokenInfo == null) {
+            throw new IllegalStateException("Token info can only be retrieved after successful authentication.");
+        }
+        if (tokenInfo instanceof TokenProviderImpl.TokenInfoImpl) {
+            return ((TokenProviderImpl.TokenInfoImpl) tokenInfo).getPrincipal();
+        } else {
+            return null;
+        }
     }
 
     //-----------------------------------------------------------< internal >---

@@ -21,6 +21,7 @@ import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
@@ -396,11 +397,7 @@ public abstract class AbstractLoginModule implements LoginModule {
                 } else {
                     log.debug("Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
                 }
-            } catch (UnsupportedCallbackException e) {
-                log.debug(e.getMessage());
-            } catch (IOException e) {
-                log.debug(e.getMessage());
-            } catch (PrivilegedActionException e){
+            } catch (UnsupportedCallbackException | PrivilegedActionException | IOException e) {
                 log.debug(e.getMessage());
             }
         }
@@ -429,9 +426,7 @@ public abstract class AbstractLoginModule implements LoginModule {
                 UserManagerCallback userCallBack = new UserManagerCallback();
                 callbackHandler.handle(new Callback[]{userCallBack});
                 userManager = userCallBack.getUserManager();
-            } catch (IOException e) {
-                log.debug(e.getMessage());
-            } catch (UnsupportedCallbackException e) {
+            } catch (IOException | UnsupportedCallbackException e) {
                 log.debug(e.getMessage());
             }
         }
@@ -461,9 +456,7 @@ public abstract class AbstractLoginModule implements LoginModule {
                 PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
                 callbackHandler.handle(new Callback[]{principalCallBack});
                 principalProvider = principalCallBack.getPrincipalProvider();
-            } catch (IOException e) {
-                log.debug(e.getMessage());
-            } catch (UnsupportedCallbackException e) {
+            } catch (IOException | UnsupportedCallbackException e) {
                 log.debug(e.getMessage());
             }
         }
@@ -486,6 +479,20 @@ public abstract class AbstractLoginModule implements LoginModule {
             return Collections.emptySet();
         } else {
             return principalProvider.getPrincipals(userId);
+        }
+    }
+
+    @Nonnull
+    protected Set<? extends Principal> getPrincipals(@Nonnull Principal userPrincipal) {
+        PrincipalProvider principalProvider = getPrincipalProvider();
+        if (principalProvider == null) {
+            log.debug("Cannot retrieve principals. No principal provider configured.");
+            return Collections.emptySet();
+        } else {
+            Set<Principal> principals = new HashSet();
+            principals.add(userPrincipal);
+            principals.addAll(principalProvider.getGroupMembership(userPrincipal));
+            return principals;
         }
     }
 
