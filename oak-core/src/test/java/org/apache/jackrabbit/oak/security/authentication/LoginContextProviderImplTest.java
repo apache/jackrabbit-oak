@@ -18,14 +18,19 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import java.security.Principal;
 import java.security.PrivilegedAction;
+import java.util.HashMap;
+import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
@@ -93,5 +98,42 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
         // invalid configuration falls back to default configuration
         LoginContext ctx = provider.getLoginContext(new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()), null);
         ctx.login();
+    }
+
+    @Test
+    public void testGetLoginContextWithConfigurationPreset() throws Exception {
+        Configuration.setConfiguration(new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
+                return new AppConfigurationEntry[]{
+                        new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap())
+                };
+            }
+        });
+
+        LoginContextProvider provider = new LoginContextProviderImpl(AuthenticationConfiguration.DEFAULT_APP_NAME, ConfigurationParameters.EMPTY, getContentRepository(), getSecurityProvider(), new DefaultWhiteboard());
+        LoginContext ctx = provider.getLoginContext(null, null);
+        ctx.login();
+
+        assertFalse(ctx.getSubject().getPublicCredentials(GuestCredentials.class).isEmpty());
+    }
+
+    @Test
+    public void testGetLoginContextTwice() throws Exception {
+        Configuration.setConfiguration(new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
+                return new AppConfigurationEntry[]{
+                        new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap())
+                };
+            }
+        });
+
+        LoginContextProvider provider = new LoginContextProviderImpl(AuthenticationConfiguration.DEFAULT_APP_NAME, ConfigurationParameters.EMPTY, getContentRepository(), getSecurityProvider(), new DefaultWhiteboard());
+        provider.getLoginContext(null, null);
+        LoginContext ctx = provider.getLoginContext(null, null);
+
+        ctx.login();
+        assertFalse(ctx.getSubject().getPublicCredentials(GuestCredentials.class).isEmpty());
     }
 }
