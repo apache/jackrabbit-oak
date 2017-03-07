@@ -171,6 +171,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         }
 
         @Override
+        protected void collectIdToBeDeleted(String id) {
+            // nothing to do here, as we're overwriting deleteSplitDocuments()
+        }
+
+        @Override
         protected int deleteSplitDocuments() {
             DBObject query = createQuery(gcTypes, oldestRevTimeStamp);
 
