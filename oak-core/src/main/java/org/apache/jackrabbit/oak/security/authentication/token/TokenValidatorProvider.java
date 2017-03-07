@@ -95,13 +95,13 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
 
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-            String beforeName = after.getName();
-            if (TOKEN_ATTRIBUTE_KEY.equals(beforeName)) {
-                String msg = "Attempt to change reserved token property " + beforeName;
+            String propertyName = after.getName();
+            if (TOKEN_ATTRIBUTE_KEY.equals(propertyName)) {
+                String msg = "Attempt to change reserved token property " + propertyName;
                 throw constraintViolation(61, msg);
-            } else if (TOKEN_ATTRIBUTE_EXPIRY.equals(beforeName)) {
+            } else if (TOKEN_ATTRIBUTE_EXPIRY.equals(propertyName)) {
                 verifyCommitInfo();
-            } else if (JcrConstants.JCR_PRIMARYTYPE.equals(beforeName)) {
+            } else if (JcrConstants.JCR_PRIMARYTYPE.equals(propertyName)) {
                 if (TOKEN_NT_NAME.equals(after.getValue(Type.STRING))) {
                     throw constraintViolation(62, "Changing primary type of existing node to the reserved token node type.");
                 }
@@ -164,7 +164,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             verifyHierarchy(tokenTree.getPath());
 
             Tree parent = tokenTree.getParent();
-            if (!TOKENS_NODE_NAME.equals(parent.getName()) || !UserConstants.NT_REP_USER.equals(TreeUtil.getPrimaryTypeName(parent.getParent()))) {
+            if (!isTokensParent(parent) || !UserConstants.NT_REP_USER.equals(TreeUtil.getPrimaryTypeName(parent.getParent()))) {
                 throw constraintViolation(65, "Invalid location of token node.");
             }
 
