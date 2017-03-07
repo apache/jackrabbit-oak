@@ -122,6 +122,6 @@ public class DefaultSplitBlobStore implements SplitBlobStore {
 
     @Override
     public String toString() {
-        return String.format("SplitBlobStore[old={}, new={}]", oldBlobStore, newBlobStore);
+        return String.format("SplitBlobStore[old=%s, new=%s]", oldBlobStore, newBlobStore);
     }
 }
