@@ -81,7 +81,7 @@ public interface TokenInfo {
      * validated against the information stored in this instance; {@code false}
      * otherwise.
      */
-    boolean matches(TokenCredentials tokenCredentials);
+    boolean matches(@Nonnull TokenCredentials tokenCredentials);
 
     /**
      * Returns the private attributes stored with this info object.
