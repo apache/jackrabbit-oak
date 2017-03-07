@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultSplitBlobStore implements SplitBlobStore {
 
-    private static final Logger log = LoggerFactory.getLogger(BlobIdSet.class);
+    private static final Logger log = LoggerFactory.getLogger(DefaultSplitBlobStore.class);
 
     private static final String OLD_BLOBSTORE_PREFIX = "o_";
 
