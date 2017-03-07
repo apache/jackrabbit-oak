@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 
 import com.google.common.base.Function;
@@ -35,7 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 /**
 * Implements a split document cleanup.
 */
-public class SplitDocumentCleanUp {
+public class SplitDocumentCleanUp implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SplitDocumentCleanUp.class);
 
@@ -79,7 +81,7 @@ public class SplitDocumentCleanUp {
                     mainId, splitId);
             return;
         }
-        
+
         String splitDocPath = splitDoc.getPath();
         int slashIdx = splitDocPath.lastIndexOf('/');
         int height = Integer.parseInt(splitDocPath.substring(slashIdx + 1));
@@ -126,5 +128,10 @@ public class SplitDocumentCleanUp {
         UpdateOp update = new UpdateOp(main.getId(), false);
         NodeDocument.setStalePrevious(update, rev, height);
         store.findAndUpdate(NODES, update);
+    }
+
+    @Override
+    public void close() throws IOException {
+        Utils.closeIfCloseable(splitDocGarbage);
     }
 }
