@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.util.Text;
 
 final class PrivilegeContext implements Context, PrivilegeConstants {
 
@@ -39,12 +40,12 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
     //------------------------------------------------------------< Context >---
     @Override
     public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
-        return definesTree(parent) && PRIVILEGE_PROPERTY_NAMES.contains(property.getName());
+        return PRIVILEGE_PROPERTY_NAMES.contains(property.getName()) && definesTree(parent);
     }
 
     @Override
     public boolean definesContextRoot(@Nonnull Tree tree) {
-        return REP_PRIVILEGES.equals(tree.getName());
+        return REP_PRIVILEGES.equals(tree.getName()) && NT_REP_PRIVILEGES.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override
@@ -54,7 +55,7 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
 
     @Override
     public boolean definesLocation(@Nonnull TreeLocation location) {
-        return location.getPath().startsWith(PRIVILEGES_PATH);
+        return Text.isDescendantOrEqual(PRIVILEGES_PATH, location.getPath());
     }
 
     @Override
