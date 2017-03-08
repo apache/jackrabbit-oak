@@ -50,6 +50,9 @@ Consequently, implementations of the `AuthorizableAction` interface are expected
 to adhere to this rule and perform transient repository operation or validation.
 They must not force changes to be persisted by calling `org.apache.jackrabbit.oak.api.Root.commit()`.
 
+See section [Group Actions](groupaction.html) for a related extension to
+monitor group specific operations.
+
 ### Default Implementations
 
 Oak 1.0 provides the following base implementations:
