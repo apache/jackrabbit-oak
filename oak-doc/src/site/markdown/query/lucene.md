@@ -917,7 +917,7 @@ At runtime various details related to copy on read features are exposed via
 would be copied to `<index dir>/<hash of jcr path>`. To determine mapping 
 between local index directory and JCR path refer to the MBean details
 
-![CopyOnReadStats](lucene-copy-on-read.png)
+![CopyOnReadStats](lucene-index-copier-mbean.png)
   
 For more details refer to [OAK-1724][OAK-1724]. This feature can be enabled via
 [Lucene Index provider service configuration](#osgi-config)
