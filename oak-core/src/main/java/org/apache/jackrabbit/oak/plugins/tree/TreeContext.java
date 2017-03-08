@@ -44,7 +44,7 @@ public interface TreeContext {
      * Reveals if the specified {@code Tree} is the root of a subtree defined by
      * the module that exposes this {@link TreeContext} instance. Note,
      * that in contrast to {@link #definesTree(Tree)}
-     * this method will only return {@code false} for any tree located in the
+     * this method will return {@code false} for any tree located in the
      * subtree.
      *
      * @param tree The tree to be tested.
