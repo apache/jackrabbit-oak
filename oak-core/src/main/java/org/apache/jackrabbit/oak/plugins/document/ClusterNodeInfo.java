@@ -676,7 +676,7 @@ public class ClusterNodeInfo {
                 // someone else won and marked leaseCheckFailed - so we only log/throw
                 throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
             }
-            for(int i=0; i<MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE; i++) {
+            for (int i = 0; i < MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE; i++) {
                 now = getCurrentTime();
                 if (now < (leaseEndTime - leaseFailureMargin)) {
                     // if lease is OK here, then there was a race
@@ -703,13 +703,20 @@ public class ClusterNodeInfo {
                 // as the margin is 20sec and we're just reducing it by 5sec
                 // (in the un-paused case)
                 try {
-                    LOG.info("performLeaseCheck: lease within "+leaseFailureMargin+
-                            "ms of failing ("+(leaseEndTime-now)+" ms precisely) - "
-                            + "waiting 1sec to retry (up to another "+
-                            (MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE-1-i)+" times)...");
-                    wait(1000); // directly use this to sleep on - to allow renewLease() to work
+                    long difference = leaseEndTime - now;
+                    long waitForMs = 1000;
+
+                    String detail = difference >= 0
+                            ? String.format("lease within %dms of failing (%dms precisely)", leaseFailureMargin, difference)
+                            : String.format("already past lease end (%dms precisely)", -1 * difference);
+                    String retries = String.format("waiting %dms to retry (up to another %d times...)", waitForMs,
+                            MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE - 1 - i);
+                    LOG.info("performLeaseCheck: " + detail + " - " + retries);
+
+                    // directly use this to sleep on - to allow renewLease() to work
+                    wait(waitForMs);
                 } catch (InterruptedException e) {
-                    LOG.warn("performLeaseCheck: got interrupted - giving up: "+e, e);
+                    LOG.warn("performLeaseCheck: got interrupted - giving up: " + e, e);
                     break;
                 }
             }
