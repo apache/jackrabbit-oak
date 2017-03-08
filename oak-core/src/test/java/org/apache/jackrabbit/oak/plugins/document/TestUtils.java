@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 
 import static com.google.common.base.Functions.compose;
 import static com.google.common.base.Functions.constant;
@@ -91,5 +92,13 @@ public class TestUtils {
         }
         fail("Not of type DocumentNodeState " + state.getClass());
         return null;
+    }
+
+    public static void setRevisionClock(Clock c) {
+        Revision.setClock(c);
+    }
+
+    public static void resetRevisionClockToDefault() {
+        Revision.resetClockToDefault();
     }
 }
