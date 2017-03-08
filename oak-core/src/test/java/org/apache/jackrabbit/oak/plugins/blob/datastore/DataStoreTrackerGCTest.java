@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.TestUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
@@ -49,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -106,7 +108,13 @@ public class DataStoreTrackerGCTest {
     @Before
     public void setup() throws IOException, InterruptedException {
         this.clock = getTestClock();
+        TestUtils.setRevisionClock(clock);
         this.blobStoreRoot = folder.newFolder("blobstore");
+    }
+
+    @After
+    public void after() {
+        TestUtils.resetRevisionClockToDefault();
     }
 
     @Test
@@ -178,7 +186,7 @@ public class DataStoreTrackerGCTest {
         a = ds.getRoot().builder();
         a.child("cspecial" + 0).remove();
         ds.merge(a, INSTANCE, EMPTY);
-        long maxAge = 10; // hours
+        long maxAge = 10; // minutes
         // 1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(clock.getTime() + MINUTES.toMillis(maxAge));
 
@@ -347,8 +355,8 @@ public class DataStoreTrackerGCTest {
     @Test
     public void sameClusterGC() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        Cluster cluster1 = new Cluster("cluster1-1", store);
-        Cluster cluster2 = new Cluster("cluster1-2", store);
+        Cluster cluster1 = new Cluster("cluster1-1", 1, store);
+        Cluster cluster2 = new Cluster("cluster1-2", 2, store);
 
         clusterGCInternal(cluster1, cluster2, true);
     }
@@ -414,7 +422,7 @@ public class DataStoreTrackerGCTest {
             a.child("c" + id).remove();
             s.merge(a, INSTANCE, EMPTY);
         }
-        long maxAge = 10; // hours
+        long maxAge = 10; // minutes
         // 1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(clock.getTime() + MINUTES.toMillis(maxAge));
 
@@ -431,13 +439,15 @@ public class DataStoreTrackerGCTest {
         String repoId;
         BlobIdTracker tracker;
 
-        public Cluster(String clusterId) throws Exception {
-            this(clusterId, new MemoryDocumentStore());
+        public Cluster(String clusterName) throws Exception {
+            this(clusterName, 1, new MemoryDocumentStore());
         }
 
-        public Cluster(String clusterId, MemoryDocumentStore store) throws Exception {
+        public Cluster(String clusterName, int clusterId, MemoryDocumentStore store) throws Exception {
             blobStore = getBlobStore(blobStoreRoot);
             nodeStore = builderProvider.newBuilder()
+                .setClusterId(clusterId)
+                .clock(clock)
                 .setAsyncDelay(0)
                 .setDocumentStore(store)
                 .setBlobStore(blobStore)
@@ -449,7 +459,7 @@ public class DataStoreTrackerGCTest {
                 new ByteArrayInputStream(new byte[0]),
                 REPOSITORY.getNameFromId(repoId));
 
-            String trackerRoot = folder.newFolder(clusterId).getAbsolutePath();
+            String trackerRoot = folder.newFolder(clusterName).getAbsolutePath();
             tracker = new BlobIdTracker(trackerRoot,
                 repoId, 86400, (SharedDataStore) blobStore);
             // add the tracker to the blobStore
@@ -459,7 +469,7 @@ public class DataStoreTrackerGCTest {
             gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(nodeStore),
                 (GarbageCollectableBlobStore) blobStore, newSingleThreadExecutor(),
-                folder.newFolder("gc" + clusterId).getAbsolutePath(), 5, 0, repoId);
+                folder.newFolder("gc" + clusterName).getAbsolutePath(), 5, 0, repoId);
         }
 
         public void close() throws IOException {
