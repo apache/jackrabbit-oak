@@ -184,8 +184,7 @@ public class BlobIdTrackerTest {
         scheduledFuture.get();
         initAdd.addAll(offlineLoad);
 
-        assertEquals(initAdd.size(),
-            Iterators.size(FileUtils.lineIterator(tracker.store.getBlobRecordsFile())));
+        assertEquals(initAdd.size(), Iterators.size(tracker.get()));
 
         Set<String> retrieved = retrieve(tracker);
         assertEquals("Extra elements after add", initAdd, retrieved);
