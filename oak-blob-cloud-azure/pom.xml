@@ -26,8 +26,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>oak-blob-cloud</artifactId>
-    <name>Oak Cloud Blob Store</name>
+    <artifactId>oak-blob-cloud-azure</artifactId>
+    <name>Oak Azure Cloud Blob Store</name>
     <packaging>bundle</packaging>
 
     <build>
@@ -42,10 +42,13 @@
                 <configuration>
                     <instructions>
                         <Export-Package>
-                            org.apache.jackrabbit.oak.blob.cloud.aws.s3,
-                            org.apache.jackrabbit.oak.blob.cloud.s3.stats
+                            org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
                         </Export-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
+                        <Embed-Dependency>
+                            azure-storage,
+                            azure-keyvault-core
+                        </Embed-Dependency>
                     </instructions>
                 </configuration>
             </plugin>
@@ -112,20 +115,17 @@
             <artifactId>oak-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Amazon AWS dependency -->
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.11.24</version>
-        </dependency>
 
+        <!-- Azure Blob Storage dependency -->
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>azure-storage</artifactId>
+            <version>5.0.0</version>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>azure-keyvault-core</artifactId>
+            <version>0.9.7</version>
         </dependency>
 
         <!-- Test dependencies -->
