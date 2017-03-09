@@ -79,6 +79,9 @@ public class SegmentReferenceLimitTestIT {
                 .withSegmentCacheSize(0)
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
+                .withNodeDeduplicationCacheSize(1)
+                .withStringDeduplicationCacheSize(0)
+                .withTemplateDeduplicationCacheSize(0)
                 .withMemoryMapping(true)
                 .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
