@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Iterables.filter;
@@ -86,6 +87,8 @@ public class VersionGarbageCollectorIT {
 
     private Clock clock;
 
+    private DocumentMK.Builder documentMKBuilder;
+
     private DocumentNodeStore store;
 
     private VersionGarbageCollector gc;
@@ -121,12 +124,9 @@ public class VersionGarbageCollectorIT {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
-        store = new DocumentMK.Builder()
-                .clock(clock)
-                .setLeaseCheck(false)
-                .setDocumentStore(fixture.createDocumentStore())
-                .setAsyncDelay(0)
-                .getNodeStore();
+        documentMKBuilder = new DocumentMK.Builder().clock(clock).setLeaseCheck(false)
+                .setDocumentStore(fixture.createDocumentStore()).setAsyncDelay(0);
+        store = documentMKBuilder.getNodeStore();
         gc = store.getVersionGarbageCollector();
     }
 
@@ -453,8 +453,8 @@ public class VersionGarbageCollectorIT {
         final BlockingQueue<NodeDocument> docs = Queues.newSynchronousQueue();
         VersionGCSupport gcSupport = new VersionGCSupport(store.getDocumentStore()) {
             @Override
-            public Iterable<NodeDocument> getPossiblyDeletedDocs(long lastModifiedTime) {
-                return filter(super.getPossiblyDeletedDocs(lastModifiedTime),
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
+                return filter(super.getPossiblyDeletedDocs(fromModified, toModified),
                         new Predicate<NodeDocument>() {
                             @Override
                             public boolean apply(NodeDocument input) {
@@ -622,10 +622,10 @@ public class VersionGarbageCollectorIT {
         final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
         VersionGCSupport gcSupport = new VersionGCSupport(store.getDocumentStore()) {
             @Override
-            public Iterable<NodeDocument> getPossiblyDeletedDocs(long lastModifiedTime) {
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
                 // cancel as soon as it runs
                 gcRef.get().cancel();
-                return super.getPossiblyDeletedDocs(lastModifiedTime);
+                return super.getPossiblyDeletedDocs(fromModified, toModified);
             }
         };
         gcRef.set(new VersionGarbageCollector(store, gcSupport));
@@ -655,12 +655,12 @@ public class VersionGarbageCollectorIT {
         final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
         VersionGCSupport gcSupport = new VersionGCSupport(store.getDocumentStore()) {
             @Override
-            public Iterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
                 return new Iterable<NodeDocument>() {
                     @Override
                     public Iterator<NodeDocument> iterator() {
                         return new AbstractIterator<NodeDocument>() {
-                            private Iterator<NodeDocument> it = candidates(lastModifiedTime);
+                            private Iterator<NodeDocument> it = candidates(fromModified, toModified);
                             @Override
                             protected NodeDocument computeNext() {
                                 if (it.hasNext()) {
@@ -675,8 +675,8 @@ public class VersionGarbageCollectorIT {
                 };
             }
 
-            private Iterator<NodeDocument> candidates(long lastModifiedTime) {
-                return super.getPossiblyDeletedDocs(lastModifiedTime).iterator();
+            private Iterator<NodeDocument> candidates(long prevLastModifiedTime, long lastModifiedTime) {
+                return super.getPossiblyDeletedDocs(prevLastModifiedTime, lastModifiedTime).iterator();
             }
         };
         gcRef.set(new VersionGarbageCollector(store, gcSupport));
@@ -686,6 +686,59 @@ public class VersionGarbageCollectorIT {
         assertEquals(0, stats.deletedLeafDocGCCount);
         assertEquals(0, stats.intermediateSplitDocGCCount);
         assertEquals(0, stats.splitDocGCCount);
+    }
+
+    // OAK-3070
+    @Test
+    public void lowerBoundOfModifiedDocs() throws Exception {
+        Revision.setClock(clock);
+        final VersionGCSupport fixtureGCSupport = documentMKBuilder.createVersionGCSupport();
+        final AtomicInteger docCounter = new AtomicInteger();
+        VersionGCSupport nonReportingGcSupport = new VersionGCSupport(store.getDocumentStore()) {
+            @Override
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, long toModified) {
+                return filter(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified),
+                        new Predicate<NodeDocument>() {
+                            @Override
+                            public boolean apply(NodeDocument input) {
+                                docCounter.incrementAndGet();
+                                return false;// don't report any doc to be
+                                             // GC'able
+                            }
+                        });
+            }
+        };
+        final VersionGarbageCollector gc = new VersionGarbageCollector(store, nonReportingGcSupport);
+        final long maxAgeHours = 1;
+        final long clockDelta = HOURS.toMillis(maxAgeHours) + MINUTES.toMillis(5);
+
+        // create and delete node
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo1");
+        merge(store, builder);
+        builder = store.getRoot().builder();
+        builder.getChildNode("foo1").remove();
+        merge(store, builder);
+        store.runBackgroundOperations();
+
+        clock.waitUntil(clock.getTime() + clockDelta);
+        gc.gc(maxAgeHours, HOURS);
+        assertEquals("Not all deletable docs got reported on first run", 1, docCounter.get());
+
+        docCounter.set(0);
+        // create and delete another node
+        builder = store.getRoot().builder();
+        builder.child("foo2");
+        merge(store, builder);
+        builder = store.getRoot().builder();
+        builder.getChildNode("foo2").remove();
+        merge(store, builder);
+        store.runBackgroundOperations();
+
+        // wait another hour and GC in last 1 hour
+        clock.waitUntil(clock.getTime() + clockDelta);
+        gc.gc(maxAgeHours, HOURS);
+        assertEquals(1, docCounter.get());
     }
 
     private void createTestNode(String name) throws CommitFailedException {

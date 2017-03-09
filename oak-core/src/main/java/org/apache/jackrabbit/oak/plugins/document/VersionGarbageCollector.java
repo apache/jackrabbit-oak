@@ -81,11 +81,23 @@ public class VersionGarbageCollector {
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
             DEFAULT_LEAF, COMMIT_ROOT_ONLY);
 
+    /**
+     * Document id stored in settings collection that keeps info about version gc
+     */
+    private static final String SETTINGS_COLLECTION_ID = "versionGC";
+
+    /**
+     * Property name to timestamp when last gc run happened
+     */
+    private static final String SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP = "lastOldestTimeStamp";
+
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = nodeStore.getDocumentStore();
+
+        createSettingDocIfNotExist();
     }
 
     public VersionGCStats gc(long maxRevisionAge, TimeUnit unit) throws IOException {
@@ -260,8 +272,10 @@ public class VersionGarbageCollector {
             final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAgeInMillis;
             final RevisionVector headRevision = nodeStore.getHeadRevision();
 
-            log.info("Starting revision garbage collection. Revisions older than [{}] will be " +
-                    "removed", Utils.timestampToString(oldestRevTimeStamp));
+            final long lastOldestTimeStamp = getLastOldestTimeStamp();
+
+            log.info("Starting revision garbage collection. Revisions older than [{}] and newer than [{}] will be removed",
+                    Utils.timestampToString(oldestRevTimeStamp), Utils.timestampToString(lastOldestTimeStamp));
 
             //Check for any registered checkpoint which prevent the GC from running
             Revision checkpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
@@ -275,11 +289,16 @@ public class VersionGarbageCollector {
                 return phases.stats;
             }
 
-            collectDeletedDocuments(phases, headRevision, oldestRevTimeStamp);
+            collectDeletedDocuments(phases, headRevision, lastOldestTimeStamp, oldestRevTimeStamp);
             collectSplitDocuments(phases, oldestRevTimeStamp);
 
             phases.close();
             phases.stats.canceled = cancel.get();
+
+            if (!cancel.get()) {
+                setLastOldestTimeStamp(oldestRevTimeStamp);
+            }
+
             log.info("Revision garbage collection finished in {}. {}", phases.elapsed, phases.stats);
             return phases.stats;
         }
@@ -293,13 +312,14 @@ public class VersionGarbageCollector {
 
         private void collectDeletedDocuments(GCPhases phases,
                                              RevisionVector headRevision,
-                                             long oldestRevTimeStamp)
+                                             final long lastOldestTimeStamp,
+                                             final long oldestRevTimeStamp)
                 throws IOException {
             int docsTraversed = 0;
             DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel);
             try {
                 if (phases.start(GCPhase.COLLECTING))   {
-                    Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
+                    Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(lastOldestTimeStamp, oldestRevTimeStamp);
                     try {
                         for (NodeDocument doc : itr) {
                             // continue with GC?
@@ -362,6 +382,25 @@ public class VersionGarbageCollector {
             } finally {
                 gc.close();
             }
+        }
+    }
+
+    private long getLastOldestTimeStamp() {
+        Document versionGCDoc = ds.find(Collection.SETTINGS, SETTINGS_COLLECTION_ID, 0);
+        return (Long) versionGCDoc.get(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
+    }
+
+    private void setLastOldestTimeStamp(long lastGCRunTime) {
+        UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, false);
+        updateOp.set(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, lastGCRunTime);
+        ds.createOrUpdate(Collection.SETTINGS, updateOp);
+    }
+
+    private void createSettingDocIfNotExist() {
+        if (ds.find(Collection.SETTINGS, SETTINGS_COLLECTION_ID) == null) {
+            UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, true);
+            updateOp.set(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, 0);
+            ds.create(Collection.SETTINGS, Lists.newArrayList(updateOp));
         }
     }
 

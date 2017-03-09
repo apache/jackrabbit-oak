@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
@@ -39,11 +40,38 @@ public class VersionGCSupport {
         this.store = store;
     }
 
-    public Iterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
+    /**
+     * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
+     * within the given range and the {@link NodeDocument#DELETED} set to
+     * {@code true}. The two passed modified timestamps are in milliseconds
+     * since the epoch and the implementation will convert them to seconds at
+     * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
+     * then perform the comparison.
+     *
+     * @param fromModified the lower bound modified timestamp (inclusive)
+     * @param toModified the upper bound modified timestamp (exclusive)
+     * @return matching documents.
+     */
+    public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified,
+                                                         final long toModified) {
         return filter(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1), new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument input) {
-                return input.wasDeletedOnce() && !input.hasBeenModifiedSince(lastModifiedTime);
+                return input.wasDeletedOnce()
+                        && modifiedGreaterThanEquals(input, fromModified)
+                        && modifiedLessThan(input, toModified);
+            }
+
+            private boolean modifiedGreaterThanEquals(NodeDocument doc,
+                                                      long time) {
+                Long modified = doc.getModified();
+                return modified != null && modified.compareTo(getModifiedInSecs(time)) >= 0;
+            }
+
+            private boolean modifiedLessThan(NodeDocument doc,
+                                             long time) {
+                Long modified = doc.getModified();
+                return modified != null && modified.compareTo(getModifiedInSecs(time)) < 0;
             }
         });
     }

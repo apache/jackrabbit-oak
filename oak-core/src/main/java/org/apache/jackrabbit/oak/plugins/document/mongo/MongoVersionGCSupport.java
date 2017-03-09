@@ -57,11 +57,6 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 public class MongoVersionGCSupport extends VersionGCSupport {
     private static final Logger LOG = LoggerFactory.getLogger(MongoVersionGCSupport.class);
     private final MongoDocumentStore store;
-    /**
-     * Disables the index hint sent to MongoDB.
-     */
-    private final boolean disableIndexHint =
-            Boolean.getBoolean("oak.mongo.disableVersionGCIndexHint");
 
     /**
      * The batch size for the query of possibly deleted docs.
@@ -75,17 +70,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     @Override
-    public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
-        //_deletedOnce == true && _modified < lastModifiedTime
-        DBObject query =
-                start(NodeDocument.DELETED_ONCE).is(Boolean.TRUE)
-                                .put(NodeDocument.MODIFIED_IN_SECS).lessThan(NodeDocument.getModifiedInSecs(lastModifiedTime))
-                        .get();
+    public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
+        //_deletedOnce == true && _modified >= fromModified && _modified < toModified
+        DBObject query = start(NodeDocument.DELETED_ONCE).is(Boolean.TRUE).put(NodeDocument.MODIFIED_IN_SECS)
+                .greaterThanEquals(NodeDocument.getModifiedInSecs(fromModified))
+                .lessThan(NodeDocument.getModifiedInSecs(toModified)).get();
         DBCursor cursor = getNodeCollection().find(query).setReadPreference(ReadPreference.secondaryPreferred());
         cursor.batchSize(batchSize);
-        if (!disableIndexHint) {
-            cursor.hint(new BasicDBObject(NodeDocument.DELETED_ONCE, 1));
-        }
 
         return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
             @Override
