@@ -82,7 +82,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     private CountDownLatch afterExecuteLatch;
     private ScheduledExecutorService scheduledExecutor;
     private AbstractSharedCachingDataStore dataStore;
-    private TestMemoryBackend backend;
+    private AbstractSharedBackend backend;
 
     @Before
     public void setup() throws Exception {
@@ -107,11 +107,27 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
 
+        dataStore = createDataStore();
+        dataStore.setStatisticsProvider(statsProvider);
+        dataStore.setCacheSize(cacheSize);
+        dataStore.setStagingSplitPercentage(uploadSplit);
+        dataStore.listeningExecutor = listeningExecutor;
+        dataStore.schedulerExecutor = scheduledExecutor;
+        dataStore.executor = sameThreadExecutor();
+        dataStore.init(root.getAbsolutePath());
+        this.backend = dataStore.backend;
+
+        LOG.info("Finished init");
+    }
+
+    protected void closeDataStore() throws DataStoreException {
+        dataStore.close();
+    }
+
+    protected AbstractSharedCachingDataStore createDataStore() throws IOException{
         final File datastoreRoot = folder.newFolder();
         final TestMemoryBackend testBackend = new TestMemoryBackend(datastoreRoot);
-        this.backend = testBackend;
-
-        dataStore = new AbstractSharedCachingDataStore() {
+        return new AbstractSharedCachingDataStore() {
             @Override protected AbstractSharedBackend createBackend() {
                 return testBackend;
             }
@@ -120,15 +136,6 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
                 return 0;
             }
         };
-        dataStore.setStatisticsProvider(statsProvider);
-        dataStore.setCacheSize(cacheSize);
-        dataStore.setStagingSplitPercentage(uploadSplit);
-        dataStore.listeningExecutor = listeningExecutor;
-        dataStore.schedulerExecutor = scheduledExecutor;
-        dataStore.executor = sameThreadExecutor();
-        dataStore.init(root.getAbsolutePath());
-
-        LOG.info("Finished init");
     }
 
     /**
@@ -139,7 +146,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     public void zeroCacheAddGetDelete() throws Exception {
         LOG.info("Starting zeroCacheAddGetDelete");
 
-        dataStore.close();
+        closeDataStore();
         init(1, 0, 0);
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         String id = getIdForInputStream(f);
@@ -171,7 +178,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     public void zeroStagingCacheAddGetDelete() throws Exception {
         LOG.info("Starting zeroStagingCacheAddGetDelete");
 
-        dataStore.close();
+        closeDataStore();
         init(1, 64 * 1024 * 1024, 0);
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         String id = getIdForInputStream(f);
@@ -388,14 +395,12 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         DataRecord rec = dataStore.addRecord(fin);
         assertEquals(id, rec.getIdentifier().toString());
         assertFile(rec.getStream(), f, folder);
-        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
-            rec.getReference());
+        validateReferenceInBackend(rec);
 
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNotNull(rec);
         assertFile(rec.getStream(), f, folder);
-        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
-            rec.getReference());
+        validateReferenceInBackend(rec);
 
         //start & finish
         taskLatch.countDown();
@@ -406,8 +411,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNotNull(rec);
         assertFile(rec.getStream(), f, folder);
-        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
-            rec.getReference());
+        validateReferenceInBackend(rec);
 
         LOG.info("Finished reference");
     }
@@ -428,14 +432,12 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         DataRecord rec = dataStore.addRecord(fin);
         assertEquals(id, rec.getIdentifier().toString());
         assertFile(rec.getStream(), f, folder);
-        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
-            rec.getReference());
+        validateReferenceInBackend(rec);
 
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
         assertNotNull(rec);
         assertFile(rec.getStream(), f, folder);
-        assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()),
-            rec.getReference());
+        validateReferenceInBackend(rec);
 
         LOG.info("Finished referenceNoCache");
     }
@@ -485,5 +487,13 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    protected void validateReferenceInBackend(DataRecord rec) {
+        if (backend instanceof TestMemoryBackend) {
+            assertEquals(((TestMemoryBackend)backend).getReferenceFromIdentifier(rec.getIdentifier()),
+                         rec.getReference());
+        }
+
     }
 }
