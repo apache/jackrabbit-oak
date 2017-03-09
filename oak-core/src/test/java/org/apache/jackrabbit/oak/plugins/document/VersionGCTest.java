@@ -43,6 +43,9 @@ import org.junit.Test;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -132,6 +135,42 @@ public class VersionGCTest {
         gc.cancel();
         store.semaphore.release();
         assertTrue(stats.get().canceled);
+    }
+
+    @Test
+    public void cancelMustNotUpdateLastOldestTimeStamp() throws Exception {
+        // get previous entry from SETTINGS
+        String versionGCId = "versionGC";
+        String lastOldestTimeStampProp = "lastOldestTimeStamp";
+        Document statusBefore = store.find(Collection.SETTINGS, versionGCId);
+        // block gc call
+        store.semaphore.acquireUninterruptibly();
+        Future<VersionGCStats> stats = gc();
+        boolean gcBlocked = false;
+        for (int i = 0; i < 10; i ++) {
+            if (store.semaphore.hasQueuedThreads()) {
+                gcBlocked = true;
+                break;
+            }
+            Thread.sleep(100);
+        }
+        assertTrue(gcBlocked);
+        // now cancel the GC
+        gc.cancel();
+        store.semaphore.release();
+        assertTrue(stats.get().canceled);
+
+        // ensure a canceled GC doesn't update that versionGC SETTINGS entry
+        Document statusAfter = store.find(Collection.SETTINGS, "versionGC");
+        if (statusBefore == null) {
+            assertNull(statusAfter);
+        } else {
+            assertNotNull(statusAfter);
+            assertEquals(
+                    "canceled GC shouldn't change the " + lastOldestTimeStampProp + " property on " + versionGCId
+                            + " settings entry",
+                    statusBefore.get(lastOldestTimeStampProp), statusAfter.get(lastOldestTimeStampProp));
+        }
     }
 
     private Future<VersionGCStats> gc() {

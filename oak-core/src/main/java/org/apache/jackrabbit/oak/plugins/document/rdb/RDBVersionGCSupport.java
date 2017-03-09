@@ -47,10 +47,11 @@ public class RDBVersionGCSupport extends VersionGCSupport {
     }
 
     @Override
-    public Iterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
+    public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
         List<QueryCondition> conditions = new ArrayList<QueryCondition>();
         conditions.add(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1));
-        conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, "<", NodeDocument.getModifiedInSecs(lastModifiedTime)));
+        conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, "<", NodeDocument.getModifiedInSecs(toModified)));
+        conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=", NodeDocument.getModifiedInSecs(fromModified)));
         return getIterator(RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
     }
 
