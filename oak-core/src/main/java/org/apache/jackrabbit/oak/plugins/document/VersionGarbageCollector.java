@@ -140,6 +140,7 @@ public class VersionGarbageCollector {
                     ", timeToCollectDeletedDocs=" + collectDeletedDocs +
                     ", timeToCheckDeletedDocs=" + checkDeletedDocs +
                     ", timeToSortDocIds=" + sortDocIds +
+                    ", timeTakenToUpdateResurrectedDocs=" + updateResurrectedDocuments +
                     ", timeTakenToDeleteDeletedDocs=" + deleteDeletedDocs +
                     ", timeTakenToCollectAndDeleteSplitDocs=" + collectAndDeleteSplitDocs +
                     '}';
