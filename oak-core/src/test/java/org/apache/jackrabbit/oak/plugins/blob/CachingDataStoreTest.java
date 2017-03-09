@@ -434,7 +434,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         OutputStream output = null;
         try {
             in = new FileInputStream(f);
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
             output = new DigestOutputStream(new NullOutputStream(), digest);
             IOUtils.copyLarge(in, output);
             return encodeHexString(digest.digest());

@@ -82,11 +82,6 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     private static final Logger LOG = LoggerFactory.getLogger(AbstractSharedCachingDataStore.class);
 
     /**
-     * The digest algorithm used to uniquely identify records.
-     */
-    private static final String DIGEST = "SHA-1";
-
-    /**
      * The root path
      */
     private String path;
@@ -246,7 +241,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             }
 
             DataIdentifier identifier = new DataIdentifier(encodeHexString(digest.digest()));
-            LOG.debug("SHA1 of [{}], length =[{}] took [{}] ms ", identifier, length,
+            LOG.debug("SHA-256 of [{}], length =[{}] took [{}] ms ", identifier, length,
                 watch.elapsed(TimeUnit.MILLISECONDS));
 
             // asynchronously stage for upload if the size limit of staging cache permits
