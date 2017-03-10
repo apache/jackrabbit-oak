@@ -51,7 +51,7 @@ Where the configFile is json file capturing the required OSGi configuration
             "jaas.configProviderName": "FelixJaasProvider"
         },
         "org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager": {},
-        "org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService" : {}
+        "org.apache.jackrabbit.oak.segment.SegmentNodeStoreService" : {}
     }
 
 [1]: https://code.google.com/p/pojosr/
