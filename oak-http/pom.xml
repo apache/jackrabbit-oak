@@ -66,11 +66,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-segment</artifactId>
-      <version>1.6.0</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>
       <version>1.1</version>
