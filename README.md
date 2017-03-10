@@ -60,6 +60,7 @@ The build consists of the following main components:
   - oak-lucene        - Lucene-based query index
   - oak-run           - runnable jar packaging
   - oak-pojosr        - integration with PojoSR
+  - oak-segment-tar   - TarMK API and implementation
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak
   - oak-it            - integration tests
     - oak-it/osgi     - integration tests for OSGi

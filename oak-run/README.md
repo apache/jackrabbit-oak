@@ -321,16 +321,16 @@ repository backend.
 The optional fixture argument allows to specify the repository implementation
 to be used. The following fixtures are currently supported:
 
-| Fixture       | Description                                           |
-|---------------|-------------------------------------------------------|
-| Jackrabbit(*) | Jackrabbit with the default embedded Derby  bundle PM |
-| Oak-Memory    | Oak with default in-memory storage                    |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-Mongo     | Oak with the default Mongo backend                    |
-| Oak-Mongo-DS  | Oak with the default Mongo backend and DataStore      |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-Tar-DS    | Oak with the Tar backend and DataStore                |
+| Fixture              | Description                                           |
+|----------------------|-------------------------------------------------------|
+| Jackrabbit(*)        | Jackrabbit with the default embedded Derby  bundle PM |
+| Oak-Memory           | Oak with default in-memory storage                    |
+| Oak-MemoryNS         | Oak with default in-memory NodeStore                  |
+| Oak-Mongo            | Oak with the default Mongo backend                    |
+| Oak-Mongo-DS         | Oak with the default Mongo backend and DataStore      |
+| Oak-MongoNS          | Oak with the Mongo NodeStore                          |
+| Oak-Segment-Tar      | Oak with the Tar backend (aka Segment NodeStore)      |
+| Oak-Segment-Tar-DS   | Oak with the Tar backend and DataStore                |
 
 Jackrabbit fixture requires [Oak Runnable JR2 jar](#jr2)
 
@@ -351,7 +351,7 @@ Depending on the fixture the following options are available:
 Examples:
 
     $ java -jar oak-run-*.jar server
-    $ java -jar oak-run-*.jar server http://localhost:4503 Oak-Tar --base myOak
+    $ java -jar oak-run-*.jar server http://localhost:4503 Oak-Segment-Tar --base myOak
     $ java -jar oak-run-*.jar server http://localhost:4502 Oak-Mongo --db myOak --clusterIds c1,c2,c3
 
 See the documentation in the `oak-http` component for details about the available functionality.
@@ -440,8 +440,6 @@ Finally the benchmark runner supports the following repository fixtures:
 | Oak-MongoNS         | Oak with the Mongo NodeStore                                   |
 | Oak-Segment-Tar     | Oak with the Segment Tar backend                               |
 | Oak-Segment-Tar-DS  | Oak with the Segment Tar backend and DataStore                 |
-| Oak-Tar             | Oak with the Tar backend (deprecated)                          |
-| Oak-Tar-DS          | Oak with the Tar backend (deprecated) and DataStore            |
 | Oak-RDB             | Oak with the DocumentMK/RDB persistence                        |
 | Oak-RDB-DS          | Oak with the DocumentMK/RDB persistence and DataStore          |
 
@@ -609,17 +607,17 @@ suites in the scalability command line, and oak-run will execute each suite in s
 
 Finally the scalability runner supports the following repository fixtures:
 
-| Fixture       | Description                                                    |
-|---------------|----------------------------------------------------------------|
-| Oak-Memory    | Oak with default in-memory storage                             |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                           |
-| Oak-Mongo     | Oak with the default Mongo backend                             |
-| Oak-Mongo-DS  | Oak with the default Mongo backend and DataStore               |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                                   |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)               |
-| Oak-Tar-DS    | Oak with the Tar backend (aka Segment NodeStore) and DataStore |
-| Oak-RDB       | Oak with the DocumentMK/RDB persistence                        |
-| Oak-RDB-DS    | Oak with the DocumentMK/RDB persistence and DataStore          |
+| Fixture               | Description                                                    |
+|-----------------------|----------------------------------------------------------------|
+| Oak-Memory            | Oak with default in-memory storage                             |
+| Oak-MemoryNS          | Oak with default in-memory NodeStore                           |
+| Oak-Mongo             | Oak with the default Mongo backend                             |
+| Oak-Mongo-DS          | Oak with the default Mongo backend and DataStore               |
+| Oak-MongoNS           | Oak with the Mongo NodeStore                                   |
+| Oak-Segment-Tar       | Oak with the Tar backend (aka Segment NodeStore)               |
+| Oak-Segment-Tar-DS    | Oak with the Tar backend (aka Segment NodeStore) and DataStore |
+| Oak-RDB               | Oak with the DocumentMK/RDB persistence                        |
+| Oak-RDB-DS            | Oak with the DocumentMK/RDB persistence and DataStore          |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
 into oak-run, or be specified separately in the class path.)
