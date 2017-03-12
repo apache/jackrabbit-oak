@@ -22,12 +22,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import javax.annotation.Nullable;
 import javax.jcr.Node;
@@ -41,7 +43,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
@@ -142,13 +146,22 @@ public abstract class AbstractOak2OakTest {
         }
 
         NodeBuilder builder = target.getRoot().builder();
+        builder.setProperty("binary-prop", getRandomBlob(target));
         builder.setProperty("checkpoint-state", "before");
         target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         checkpointReference = target.checkpoint(60000, singletonMap("key", "123"));
 
         builder.setProperty("checkpoint-state", "after");
+        builder.setProperty("binary-prop", getRandomBlob(target));
         builder.child(":async").setProperty("test", "123");
         target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private Blob getRandomBlob(NodeStore target) throws IOException {
+        Random r = new Random();
+        byte[] buff = new byte[512 * 1024];
+        r.nextBytes(buff);
+        return target.createBlob(new ByteArrayInputStream(buff));
     }
 
     @Test

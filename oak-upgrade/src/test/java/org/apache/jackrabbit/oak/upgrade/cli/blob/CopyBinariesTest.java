@@ -65,70 +65,88 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
                 new SegmentNodeStoreContainer(blob),
                 new SegmentNodeStoreContainer(blob),
                 asList(),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
+                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES,
+                false
         });
         params.add(new Object[]{
                 "Copy references, no blobstores defined, segment-tar -> segment-tar",
                 new SegmentTarNodeStoreContainer(blob),
                 new SegmentTarNodeStoreContainer(blob),
                 asList(),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
+                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES,
+                false
+        });
+        params.add(new Object[]{
+                "Copy references, no blobstores defined, segment -> segment-tar",
+                new SegmentNodeStoreContainer(blob),
+                new SegmentTarNodeStoreContainer(blob),
+                asList(),
+                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES,
+                false
         });
         params.add(new Object[]{
                 "Copy references, no blobstores defined, document -> segment-tar",
                 new JdbcNodeStoreContainer(blob),
                 new SegmentNodeStoreContainer(blob),
                 asList("--src-user=sa", "--src-password=sa"),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
+                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES,
+                false
         });
         params.add(new Object[]{
                 "Copy references, no blobstores defined, segment-tar -> document",
                 new SegmentTarNodeStoreContainer(blob),
                 new JdbcNodeStoreContainer(blob),
                 asList("--user=sa", "--password=sa"),
-                DatastoreArguments.BlobMigrationCase.UNSUPPORTED
+                DatastoreArguments.BlobMigrationCase.UNSUPPORTED,
+                false
         });
         params.add(new Object[]{
                 "Missing source, external destination",
                 new SegmentTarNodeStoreContainer(blob),
                 new SegmentTarNodeStoreContainer(blob),
                 asList("--datastore=" + blob.getDescription()),
-                DatastoreArguments.BlobMigrationCase.UNSUPPORTED
+                DatastoreArguments.BlobMigrationCase.UNSUPPORTED,
+                false
         });
         params.add(new Object[]{
                 "Copy embedded to embedded, no blobstores defined",
                 new SegmentTarNodeStoreContainer(),
                 new SegmentTarNodeStoreContainer(),
                 asList(),
-                DatastoreArguments.BlobMigrationCase.EMBEDDED_TO_EMBEDDED
+                DatastoreArguments.BlobMigrationCase.EMBEDDED_TO_EMBEDDED,
+                true
         });
         params.add(new Object[]{
                 "Copy embedded to external, no blobstores defined",
                 new SegmentTarNodeStoreContainer(),
                 new SegmentTarNodeStoreContainer(blob),
                 asList("--datastore=" + blob.getDescription()),
-                DatastoreArguments.BlobMigrationCase.EMBEDDED_TO_EXTERNAL
+                DatastoreArguments.BlobMigrationCase.EMBEDDED_TO_EXTERNAL,
+                true
         });
         params.add(new Object[]{
                 "Copy references, src blobstore defined",
                 new SegmentTarNodeStoreContainer(blob),
                 new SegmentTarNodeStoreContainer(blob),
                 asList("--src-datastore=" + blob.getDescription()),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
+                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES,
+                true
         });
         params.add(new Object[]{
                 "Copy external to embedded, src blobstore defined",
                 new SegmentTarNodeStoreContainer(blob),
                 new SegmentTarNodeStoreContainer(),
                 asList("--copy-binaries", "--src-datastore=" + blob.getDescription()),
-                DatastoreArguments.BlobMigrationCase.EXTERNAL_TO_EMBEDDED
+                DatastoreArguments.BlobMigrationCase.EXTERNAL_TO_EMBEDDED,
+                true
         });
         params.add(new Object[]{
                 "Copy external to external, src blobstore defined",
                 new SegmentTarNodeStoreContainer(blob),
                 new SegmentTarNodeStoreContainer(blob2),
                 asList("--copy-binaries", "--src-datastore=" + blob.getDescription(), "--datastore=" + blob2.getDescription()),
-                DatastoreArguments.BlobMigrationCase.EXTERNAL_TO_EXTERNAL
+                DatastoreArguments.BlobMigrationCase.EXTERNAL_TO_EXTERNAL,
+                true
         });
         return params;
     }
@@ -141,11 +159,14 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
 
     private final DatastoreArguments.BlobMigrationCase blobMigrationCase;
 
-    public CopyBinariesTest(String name, NodeStoreContainer source, NodeStoreContainer destination, List<String> args, DatastoreArguments.BlobMigrationCase blobMigrationCase) throws IOException, CliArgumentException {
+    private final boolean supportsCheckpointMigration;
+
+    public CopyBinariesTest(String name, NodeStoreContainer source, NodeStoreContainer destination, List<String> args, DatastoreArguments.BlobMigrationCase blobMigrationCase, boolean supportsCheckpointMigration) throws IOException, CliArgumentException {
         this.source = source;
         this.destination = destination;
         this.args = args;
         this.blobMigrationCase = blobMigrationCase;
+        this.supportsCheckpointMigration = supportsCheckpointMigration;
 
         this.source.clean();
         this.destination.clean();
@@ -203,7 +224,11 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
         if (blobMigrationCase == DatastoreArguments.BlobMigrationCase.UNSUPPORTED) {
             return;
         }
-        verifyContent(session);
-        verifyBlob(session);
+        super.validateMigration();
+    }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return supportsCheckpointMigration;
     }
 }
