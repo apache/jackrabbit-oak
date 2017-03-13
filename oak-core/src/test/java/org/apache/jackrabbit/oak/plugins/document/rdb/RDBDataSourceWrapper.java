@@ -54,6 +54,7 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
 
     private final DataSource ds;
     private boolean batchResultPrecise = true;
+    private String temporaryUpdateException = null;
 
     // Logging
 
@@ -94,6 +95,14 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
 
     public boolean isBatchResultPrecise() {
         return this.batchResultPrecise;
+    }
+
+    public void setTemporaryUpdateException(String exmsg) {
+        this.temporaryUpdateException = exmsg;
+    }
+
+    public String getTemporaryUpdateException() {
+        return this.temporaryUpdateException;
     }
 
     // DataSource
