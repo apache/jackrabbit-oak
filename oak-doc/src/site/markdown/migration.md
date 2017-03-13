@@ -38,6 +38,7 @@ The `oak-upgrade` module allows to do an upgrade from the classic Jackrabbit 2.0
 The `source` and `destination` are the node store paths/URIs. Following node stores are supported:
 
 * `SegmentNodeStore` - use a path to the `repository` directory,
+* old `SegmentNodeStore` (Oak < 1.6) - use the `segment-old:` prefix and the path to the `repository` directory,
 * `DocumentNodeStore` with MongoDB - `mongodb://host:port/database`,
 * `DocumentNodeStore` with a RDB - `jdbc:...`. It requires passing user and password with separate parameters.
 
@@ -206,6 +207,19 @@ A custom `RepositoryInitializer` can be injected in a similar way.
 ### Other parameters
 
 The full list of supported parameters can be displayed using `--help` switch.
+
+### Checkpoints migration
+
+When migrating an old SegmentMK repository (pre-Oak 1.6) to the new SegmentMK (Oak >= 1.6), the checkpoints are migrated as well. This allows to avoid reindexing when the Oak is being run for the first time on the new repository. However, the checkpoints won't be migrated in following cases:
+
+* custom include-, exclude- or merge- paths are specified or
+* the binaries are copied by references, no source datastore is specified and two different checkpoints contains different binary under the same path.
+
+In the second case oak-upgrade emits following warning:
+
+    Checkpoints won't be copied, because no external datastore has been specified. This will result in the full repository reindexing on the first start.
+
+The easiest way to fix this issue is specifying the source datastore in the command line options (eg. `--src-datastore` or `--src-s3datastore`). The warning may also be ignored, but in this case the repository will be fully reindexing on the first startup, which may be a long process, especially for large instances. Repository won't be usable until the reindexing process is done.
 
 ## Online blob migration with SplitBlobStore
 
