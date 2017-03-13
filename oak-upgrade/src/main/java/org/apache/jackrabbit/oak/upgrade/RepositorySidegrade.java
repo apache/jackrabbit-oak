@@ -311,7 +311,7 @@ public class RepositorySidegrade {
             } catch(UnsupportedOperationException e) {
                 removeCheckpoints();
                 checkpointsCopied = false;
-                LOG.warn("Can't copy checkpoints without the access to the external blob store; migration will proceed");
+                LOG.warn("Checkpoints won't be copied, because no external datastore has been specified. This will result in the full repository reindexing on the first start. See https://jackrabbit.apache.org/oak/docs/migration.html#Checkpoints_migration for more info.");
             }
             if (!checkpointsCopied) {
                 LOG.info("Copying checkpoints is not supported for this combination of node stores");
