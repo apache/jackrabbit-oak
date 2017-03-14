@@ -270,6 +270,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         invalid.add(userPath);
         invalid.add(userPath + "/folder");
 
+        UserProvider up = new UserProvider(root, getUserConfiguration().getParameters());
         for (String path : invalid) {
             try {
                 Tree parent = root.getTree(path);
@@ -287,7 +288,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
                 }
                 Tree userTree = parent.addChild("testUser");
                 userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-                userTree.setProperty(JcrConstants.JCR_UUID, UserProvider.getContentID("testUser", false));
+                userTree.setProperty(JcrConstants.JCR_UUID, up.getContentID("testUser"));
                 userTree.setProperty(REP_PRINCIPAL_NAME, "testUser");
                 root.commit();
                 fail("Invalid hierarchy should be detected");

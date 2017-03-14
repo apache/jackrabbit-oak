@@ -263,7 +263,7 @@ public class L8_MembershipTest extends AbstractSecurityTest {
 
     @Test
     public void testMembersContentStructure() throws RepositoryException, CommitFailedException {
-        int size = new MembershipWriter().getMembershipSizeThreshold() * 5;
+        int size = MembershipWriter.DEFAULT_MEMBERSHIP_THRESHHOLD * 5;
 
         List<String> memberUuids = new ArrayList<String>();
         for (int i = 0; i < size; i++) {

@@ -213,7 +213,7 @@ class UserProvider extends AuthorizableBaseProvider {
 
     @CheckForNull
     Tree getAuthorizableByPath(@Nonnull String authorizableOakPath) {
-        return getByPath(authorizableOakPath);
+        return getByPath(authorizableOakPath, AuthorizableType.AUTHORIZABLE);
     }
 
     @CheckForNull
@@ -270,7 +270,7 @@ class UserProvider extends AuthorizableBaseProvider {
         String userId = Strings.nullToEmpty(root.getContentSession().getAuthInfo().getUserID());
         Tree authorizableNode = TreeUtil.addChild(folder, nodeName, ntName, typeRoot, userId);
         authorizableNode.setProperty(REP_AUTHORIZABLE_ID, authorizableId);
-        authorizableNode.setProperty(JcrConstants.JCR_UUID, getContentID(authorizableId, config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE)));
+        authorizableNode.setProperty(JcrConstants.JCR_UUID, getContentID(authorizableId));
 
         return authorizableNode;
     }

@@ -153,7 +153,7 @@ public class GroupActionTest extends AbstractSecurityTest {
 
         testGroup.addMembers(nonExisting.toArray(new String[nonExisting.size()]));
         assertFalse(groupAction.memberIds.iterator().hasNext());
-        assertTrue(Iterables.elementsEqual(nonExisting, groupAction.failedIds));
+        assertEquals(nonExisting, groupAction.failedIds);
     }
 
     @Test
@@ -179,7 +179,7 @@ public class GroupActionTest extends AbstractSecurityTest {
 
         testGroup.removeMembers(nonExisting.toArray(new String[nonExisting.size()]));
         assertFalse(groupAction.memberIds.iterator().hasNext());
-        assertTrue(Iterables.elementsEqual(nonExisting, groupAction.failedIds));
+        assertEquals(nonExisting, groupAction.failedIds);
     }
 
     class TestGroupAction extends AbstractGroupAction {

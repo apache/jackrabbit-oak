@@ -43,14 +43,12 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
  */
 public class MembershipWriter {
 
+    static final int DEFAULT_MEMBERSHIP_THRESHHOLD = 100;
+
     /**
      * size of the membership threshold after which a new overflow node is created.
      */
-    private int membershipSizeThreshold = 100;
-
-    public int getMembershipSizeThreshold() {
-        return membershipSizeThreshold;
-    }
+    private int membershipSizeThreshold = DEFAULT_MEMBERSHIP_THRESHHOLD;
 
     public void setMembershipSizeThreshold(int membershipSizeThreshold) {
         this.membershipSizeThreshold = membershipSizeThreshold;
