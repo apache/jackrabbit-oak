@@ -15,6 +15,10 @@
    limitations under the License.
   -->
 
+*NOTE*: The information in this file is outdated since [OAK-5007](https://issues.apache.org/jira/browse/OAK-5007) aligned this module's release cycle with the rest of Oak.
+
+*TODO*: Remove or update this file once we clarified the release modalities for Segment Tar wrt. Oak 1.8   
+
 # Release HOWTO
 
 This HOWTO explains how to release Oak Segment Tar. I describe the steps required to release version `$VERSION`, assuming that the latest released version is `$PREV` and the next is `$NEXT`.
