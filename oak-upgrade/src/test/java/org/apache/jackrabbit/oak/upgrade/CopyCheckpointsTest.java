@@ -14,15 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.blob;
-
-import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+package org.apache.jackrabbit.oak.upgrade;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -30,7 +22,6 @@ import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.JdbcNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
@@ -40,6 +31,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,94 +40,48 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import static java.util.Arrays.asList;
+import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
-public class CopyBinariesTest extends AbstractOak2OakTest {
+public class CopyCheckpointsTest extends AbstractOak2OakTest {
 
-    private static final Logger log = LoggerFactory.getLogger(CopyBinariesTest.class);
+    private enum Result {
+        EXCEPTION, CHECKPOINTS_MISSING, CHECKPOINTS_COPIED
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(CopyCheckpointsTest.class);
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() throws IOException {
         List<Object[]> params = new ArrayList<Object[]>();
 
         BlobStoreContainer blob = new FileDataStoreContainer();
-        BlobStoreContainer blob2 = new FileDataStoreContainer();
         params.add(new Object[]{
-                "Copy references, no blobstores defined, segment -> segment",
+                "Fails on missing blobstore",
                 new SegmentNodeStoreContainer(blob),
                 new SegmentNodeStoreContainer(blob),
                 asList(),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
+                Result.EXCEPTION
         });
         params.add(new Object[]{
-                "Copy references, no blobstores defined, segment-tar -> segment-tar",
-                new SegmentTarNodeStoreContainer(blob),
-                new SegmentTarNodeStoreContainer(blob),
-                asList(),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
-        });
-        params.add(new Object[]{
-                "Copy references, no blobstores defined, segment -> segment-tar",
+                "Suppress the warning",
                 new SegmentNodeStoreContainer(blob),
-                new SegmentTarNodeStoreContainer(blob),
-                asList(),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
-        });
-        params.add(new Object[]{
-                "Copy references, no blobstores defined, document -> segment-tar",
-                new JdbcNodeStoreContainer(blob),
                 new SegmentNodeStoreContainer(blob),
-                asList("--src-user=sa", "--src-password=sa"),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
+                asList("--skip-checkpoints"),
+                Result.CHECKPOINTS_MISSING
         });
         params.add(new Object[]{
-                "Copy references, no blobstores defined, segment-tar -> document",
-                new SegmentTarNodeStoreContainer(blob),
-                new JdbcNodeStoreContainer(blob),
-                asList("--user=sa", "--password=sa"),
-                DatastoreArguments.BlobMigrationCase.UNSUPPORTED
-        });
-        params.add(new Object[]{
-                "Missing source, external destination",
-                new SegmentTarNodeStoreContainer(blob),
-                new SegmentTarNodeStoreContainer(blob),
-                asList("--datastore=" + blob.getDescription()),
-                DatastoreArguments.BlobMigrationCase.UNSUPPORTED
-        });
-        params.add(new Object[]{
-                "Copy embedded to embedded, no blobstores defined",
-                new SegmentTarNodeStoreContainer(),
-                new SegmentTarNodeStoreContainer(),
-                asList(),
-                DatastoreArguments.BlobMigrationCase.EMBEDDED_TO_EMBEDDED
-        });
-        params.add(new Object[]{
-                "Copy embedded to external, no blobstores defined",
-                new SegmentTarNodeStoreContainer(),
-                new SegmentTarNodeStoreContainer(blob),
-                asList("--datastore=" + blob.getDescription()),
-                DatastoreArguments.BlobMigrationCase.EMBEDDED_TO_EXTERNAL
-        });
-        params.add(new Object[]{
-                "Copy references, src blobstore defined",
+                "Source data store defined, checkpoints migrated",
                 new SegmentTarNodeStoreContainer(blob),
                 new SegmentTarNodeStoreContainer(blob),
                 asList("--src-datastore=" + blob.getDescription()),
-                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
-        });
-        params.add(new Object[]{
-                "Copy external to embedded, src blobstore defined",
-                new SegmentTarNodeStoreContainer(blob),
-                new SegmentTarNodeStoreContainer(),
-                asList("--copy-binaries", "--src-datastore=" + blob.getDescription()),
-                DatastoreArguments.BlobMigrationCase.EXTERNAL_TO_EMBEDDED
-        });
-        params.add(new Object[]{
-                "Copy external to external, src blobstore defined",
-                new SegmentTarNodeStoreContainer(blob),
-                new SegmentTarNodeStoreContainer(blob2),
-                asList("--copy-binaries", "--src-datastore=" + blob.getDescription(), "--datastore=" + blob2.getDescription()),
-                DatastoreArguments.BlobMigrationCase.EXTERNAL_TO_EXTERNAL
+                Result.CHECKPOINTS_COPIED
         });
         return params;
     }
@@ -146,13 +92,13 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
 
     private final List<String> args;
 
-    private final DatastoreArguments.BlobMigrationCase blobMigrationCase;
+    private final Result expectedResult;
 
-    public CopyBinariesTest(String name, NodeStoreContainer source, NodeStoreContainer destination, List<String> args, DatastoreArguments.BlobMigrationCase blobMigrationCase) throws IOException, CliArgumentException {
+    public CopyCheckpointsTest(String name, NodeStoreContainer source, NodeStoreContainer destination, List<String> args, Result expectedResult) throws IOException, CliArgumentException {
         this.source = source;
         this.destination = destination;
         this.args = args;
-        this.blobMigrationCase = blobMigrationCase;
+        this.expectedResult = expectedResult;
 
         this.source.clean();
         this.destination.clean();
@@ -193,13 +139,15 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
             StoreArguments stores = new StoreArguments(options, cliArgs.getArguments());
             DatastoreArguments datastores = new DatastoreArguments(options, stores, stores.srcUsesEmbeddedDatastore());
             OakUpgrade.migrate(options, stores, datastores);
-            assertEquals(blobMigrationCase, datastores.getBlobMigrationCase());
-        } catch(CliArgumentException e) {
-            if (blobMigrationCase == DatastoreArguments.BlobMigrationCase.UNSUPPORTED) {
+        } catch(RuntimeException e) {
+            if (expectedResult == Result.EXCEPTION) {
                 return;
             } else {
                 throw e;
             }
+        }
+        if (expectedResult == Result.EXCEPTION) {
+            fail("Migration should fail");
         }
         createSession();
     }
@@ -207,9 +155,14 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
     @Test
     @Override
     public void validateMigration() throws RepositoryException, IOException, CliArgumentException {
-        if (blobMigrationCase == DatastoreArguments.BlobMigrationCase.UNSUPPORTED) {
-            return;
+        switch (expectedResult) {
+            case CHECKPOINTS_COPIED:
+                verifyCheckpoint();
+                break;
+
+            case CHECKPOINTS_MISSING:
+                verifyEmptyAsync();
+                break;
         }
-        super.validateMigration();
     }
 }

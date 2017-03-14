@@ -216,7 +216,7 @@ public abstract class AbstractOak2OakTest {
         }
     }
 
-    private void verifyCheckpoint() {
+    protected void verifyCheckpoint() {
         assertEquals("after", destination.getRoot().getString("checkpoint-state"));
 
         Map<String, String> info = destination.checkpointInfo(checkpointReference);
@@ -250,7 +250,7 @@ public abstract class AbstractOak2OakTest {
     }
 
     // OAK-2869
-    private void verifyEmptyAsync() {
+    protected void verifyEmptyAsync() {
         NodeState state = destination.getRoot().getChildNode(":async");
         assertFalse(state.hasProperty("test"));
     }
