@@ -383,7 +383,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            boolean result = getAzureContainer().getBlockBlobReference(key).deletesssts();
+            boolean result = getAzureContainer().getBlockBlobReference(key).deleteIfExists();
             LOG.debug("Blob {}. identifier={} duration={}",
                     result ? "deleted" : "delete requested, but it does not exist (perhaps already deleted)",
                     key, (System.currentTimeMillis() - start));
