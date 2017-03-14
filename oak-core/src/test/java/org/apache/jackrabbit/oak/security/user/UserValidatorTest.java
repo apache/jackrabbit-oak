@@ -111,7 +111,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void createWithoutPrincipalName() throws Exception {
         try {
             User user = getUserManager(root).createUser("withoutPrincipalName", "pw");
-            Tree tree = root.getTree(userPath);
+            Tree tree = root.getTree(user.getPath());
             tree.removeProperty(REP_PRINCIPAL_NAME);
             root.commit();
 
@@ -127,7 +127,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void createWithInvalidUUID() throws Exception {
         try {
             User user = getUserManager(root).createUser("withInvalidUUID", "pw");
-            Tree tree = root.getTree(userPath);
+            Tree tree = root.getTree(user.getPath());
             tree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
 
