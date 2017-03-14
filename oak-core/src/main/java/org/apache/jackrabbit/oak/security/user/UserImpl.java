@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 
@@ -52,8 +53,8 @@ class UserImpl extends AuthorizableImpl implements User {
 
     //---------------------------------------------------< AuthorizableImpl >---
     @Override
-    void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !UserUtil.isType(tree, AuthorizableType.USER)) {
+    void checkValidTree(@Nonnull Tree tree) throws RepositoryException {
+        if (!UserUtil.isType(tree, AuthorizableType.USER)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }

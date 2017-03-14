@@ -34,7 +34,7 @@ class SystemUserImpl extends UserImpl {
     }
 
     @Override
-    void checkValidTree(Tree tree) throws RepositoryException {
+    void checkValidTree(@Nonnull Tree tree) throws RepositoryException {
         super.checkValidTree(tree);
         if (!UserUtil.isSystemUser(tree)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:SystemUser expected.");
