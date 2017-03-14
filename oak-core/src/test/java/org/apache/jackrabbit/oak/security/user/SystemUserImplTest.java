@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.security.auth.login.LoginException;
 
@@ -66,7 +67,6 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     private UserManager userMgr;
     private String uid;
-    private User user;
 
     @Override
     @Before
@@ -80,6 +80,8 @@ public class SystemUserImplTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
+            root.refresh();
+            User user = userMgr.getAuthorizable(uid, User.class);
             if (user != null) {
                 user.remove();
                 root.commit();
@@ -112,22 +114,30 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testCreateSystemUser() throws Exception {
-        user = createUser(null);
+        assertTrue(createUser(null) instanceof SystemUserImpl);
+    }
 
-        assertTrue(user instanceof SystemUserImpl);
+    @Test
+    public void testIsSystemUser() throws Exception {
+        assertTrue(createUser(null).isSystemUser());
     }
 
     @Test
     public void testSystemUserTree() throws Exception {
-        user = createUser(null);
-        Tree t = root.getTree(user.getPath());
+        Tree t = root.getTree(createUser(null).getPath());
         assertFalse(t.hasProperty(UserConstants.REP_PASSWORD));
         assertEquals(UserConstants.NT_REP_SYSTEM_USER, TreeUtil.getPrimaryTypeName(t));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testCheckValidTree() throws Exception {
+        User testUser = getTestUser();
+        new SystemUserImpl(testUser.getID(), root.getTree(testUser.getPath()), (UserManagerImpl) userMgr);
+    }
+
     @Test
     public void testGetCredentials() throws Exception {
-        user = createUser(null);
+        User user = createUser(null);
 
         Credentials creds = user.getCredentials();
         assertTrue(creds instanceof UserIdCredentials);
@@ -138,35 +148,36 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testHasNoPassword() throws Exception {
-        user = createUser(null);
+        User user = createUser(null);
 
         Tree userTree = root.getTree(user.getPath());
         assertFalse(userTree.hasProperty(UserConstants.REP_PASSWORD));
     }
 
+    @Test(expected = UnsupportedRepositoryOperationException.class)
+    public void testChangePassword() throws Exception {
+        User user = createUser(null);
+        user.changePassword("pw");
+    }
+
+    @Test(expected = UnsupportedRepositoryOperationException.class)
+    public void testChangePassword2() throws Exception {
+        User user = createUser(null);
+        user.changePassword("pw", "newPw");
+    }
 
     /**
      * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may
      * not be an absolute path in OAK.
      */
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void testCreateUserWithAbsolutePath() throws Exception {
-        try {
-            user = createUser("/any/path/to/the/new/user");
-            fail("ConstraintViolationException expected");
-        } catch (ConstraintViolationException e) {
-            // success
-        }
+        createUser("/any/path/to/the/new/user");
     }
 
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void testCreateUserWithAbsolutePath2() throws Exception {
-        try {
-            user = createUser(UserConstants.DEFAULT_USER_PATH + "/any/path/to/the/new/user");
-            fail("ConstraintViolationException expected");
-        } catch (ConstraintViolationException e) {
-            // success
-        }
+        createUser(UserConstants.DEFAULT_USER_PATH + "/any/path/to/the/new/user");
     }
 
     @Test
@@ -174,23 +185,17 @@ public class SystemUserImplTest extends AbstractSecurityTest {
         String userRoot = UserConstants.DEFAULT_USER_PATH + '/' + UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
         String path = userRoot + "/any/path/to/the/new/user";
 
-        user = createUser(path);
-        assertTrue(user.getPath().startsWith(path));
+        assertTrue(createUser(path).getPath().startsWith(path));
     }
 
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void testCreateUserWithRelativePath() throws Exception {
-        try {
-            user = createUser("any/path");
-            fail("ConstraintViolationException expected");
-        }  catch (ConstraintViolationException e) {
-            // success
-        }
+        createUser("any/path");
     }
 
     @Test
     public void testCreateUserWithRelativePath2() throws Exception {
-        user = createUser(UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH + "/any/path");
+        User user = createUser(UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH + "/any/path");
 
         assertNotNull(user.getID());
         assertTrue(user.getPath().contains("any/path"));
@@ -225,7 +230,7 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testLoginAsSystemUser() throws Exception {
-        user = createUser(null);
+        createUser(null);
         try {
             login(new SimpleCredentials(uid, new char[0])).close();
             fail();
@@ -236,7 +241,7 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testLoginAsSystemUser2() throws Exception {
-        user = createUser(null);
+        User user = createUser(null);
         try {
             login(user.getCredentials()).close();
             fail();
@@ -247,7 +252,7 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testImpersonateSystemUser() throws Exception {
-        user = createUser(null);
+        createUser(null);
         ContentSession cs = login(new ImpersonationCredentials(new SimpleCredentials(uid, new char[0]), adminSession.getAuthInfo()));
         cs.close();
     }
@@ -255,7 +260,7 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testImpersonateDisabledSystemUser() throws Exception {
-        user = createUser(null);
+        User user = createUser(null);
         user.disable("disabled");
         root.commit();
         try {
@@ -269,14 +274,13 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPrincipal() throws Exception {
-        user = createUser(null);
+        User user = createUser(null);
         assertTrue(user.getPrincipal() instanceof SystemUserPrincipal);
     }
 
     @Test
     public void testAddToGroup() throws Exception {
-        user = createUser(null);
-
+        User user = createUser(null);
 
         Group g = null;
         try {
@@ -309,7 +313,7 @@ public class SystemUserImplTest extends AbstractSecurityTest {
      */
     @Test
     public void testOnCreateOmitted() throws Exception {
-        user = createUser(null);
+        User user = createUser(null);
 
         Tree t = root.getTree(user.getPath());
         assertFalse(t.hasChild(AccessControlConstants.REP_POLICY));
