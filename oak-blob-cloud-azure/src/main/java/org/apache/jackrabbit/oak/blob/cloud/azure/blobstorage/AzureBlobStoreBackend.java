@@ -383,8 +383,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            boolean result = getAzureContainer().getBlockBlobReference(key).deleteIfExists();
-            LOG.debug("Blob deleted. existed={} identifier={} duration={}", result, key, (System.currentTimeMillis() - start));
+            boolean result = getAzureContainer().getBlockBlobReference(key).deletesssts();
+            LOG.debug("Blob {}. identifier={} duration={}",
+                    result ? "deleted" : "delete requested, but it does not exist (perhaps already deleted)",
+                    key, (System.currentTimeMillis() - start));
         }
         catch (StorageException e) {
             LOG.info("Error deleting blob. identifier={}", key, e);
@@ -552,7 +554,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(addMetaKeyPrefix(name));
             boolean result = blob.deleteIfExists();
-            LOG.debug("Metadata record deleted. existed={} metadataName={} duration={}", result, name, (System.currentTimeMillis() - start));
+            LOG.debug("Metadata record {}. metadataName={} duration={}",
+                    result ? "deleted" : "delete requested, but it does not exist (perhaps already deleted)",
+                    name, (System.currentTimeMillis() - start));
             return result;
 
         }
@@ -584,11 +588,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             int total = 0;
             for (ListBlobItem item : metaDir.listBlobs(prefix)) {
                 if (item instanceof CloudBlob) {
-                    ((CloudBlob)item).deleteIfExists();
-                    total ++;
+                    if (((CloudBlob)item).deleteIfExists()) {
+                        total++;
+                    }
                 }
             }
-            LOG.debug("Metadata records deleted. recordsDeleted={}  metadataFolder={} duration={}", total,  prefix, (System.currentTimeMillis() - start));
+            LOG.debug("Metadata records deleted. recordsDeleted={} metadataFolder={} duration={}",
+                    total, prefix, (System.currentTimeMillis() - start));
 
         }
         catch (StorageException e) {
