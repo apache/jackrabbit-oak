@@ -215,11 +215,13 @@ When migrating an old SegmentMK repository (pre-Oak 1.6) to the new SegmentMK (O
 * custom include-, exclude- or merge- paths are specified or
 * the binaries are copied by references, no source datastore is specified and two different checkpoints contains different binary under the same path.
 
-In the second case oak-upgrade emits following warning:
+In the second case oak-upgrade emits following warning and breaks:
 
-    Checkpoints won't be copied, because no external datastore has been specified. This will result in the full repository reindexing on the first start.
+    Checkpoints won't be copied, because no external datastore has been specified. This will result in the full repository reindexing on the first start. Use --skip-checkpoints to force the migration or see https://jackrabbit.apache.org/oak/docs/migration.html#Checkpoints_migration for more info.
 
-The easiest way to fix this issue is specifying the source datastore in the command line options (eg. `--src-datastore` or `--src-s3datastore`). The warning may also be ignored, but in this case the repository will be fully reindexing on the first startup, which may be a long process, especially for large instances. Repository won't be usable until the reindexing process is done.
+The easiest way to fix this issue is specifying the source datastore in the command line options (eg. `--src-datastore` or `--src-s3datastore`).
+
+The warning may also be ignored, but in this case the repository will be fully reindexed on the first startup. It may be a long process, especially for the big instance. Repository won't be usable until the reindexing process is done. Use `--skip-checkpoints` option to suppress the warning. 
 
 ## Online blob migration with SplitBlobStore
 
