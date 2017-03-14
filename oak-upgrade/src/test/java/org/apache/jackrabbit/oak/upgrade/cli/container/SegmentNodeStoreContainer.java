@@ -72,7 +72,10 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void close() {
-        fs.close();
+        if (fs != null) {
+            fs.close();
+            fs = null;
+        }
     }
 
     @Override
