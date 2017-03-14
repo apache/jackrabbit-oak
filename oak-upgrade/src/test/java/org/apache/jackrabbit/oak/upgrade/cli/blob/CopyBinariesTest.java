@@ -171,7 +171,7 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
     @Override
     protected String[] getArgs() {
         List<String> result = new ArrayList<>(args);
-        result.addAll(asList("--disable-mmap", source.getDescription(), destination.getDescription()));
+        result.addAll(asList("--disable-mmap", "--skip-checkpoints", source.getDescription(), destination.getDescription()));
         return result.toArray(new String[result.size()]);
     }
 
