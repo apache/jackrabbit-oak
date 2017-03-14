@@ -65,7 +65,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         this.userManager = userManager;
     }
 
-    abstract void checkValidTree(Tree tree) throws RepositoryException;
+    abstract void checkValidTree(@Nonnull Tree tree) throws RepositoryException;
 
     static boolean isValidAuthorizableImpl(Authorizable authorizable) {
         return authorizable instanceof AuthorizableImpl;

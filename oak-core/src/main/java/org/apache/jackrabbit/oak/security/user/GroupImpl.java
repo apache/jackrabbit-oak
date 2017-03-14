@@ -54,8 +54,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     //---------------------------------------------------< AuthorizableImpl >---
     @Override
-    void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !UserUtil.isType(tree, AuthorizableType.GROUP)) {
+    void checkValidTree(@Nonnull Tree tree) throws RepositoryException {
+        if (!UserUtil.isType(tree, AuthorizableType.GROUP)) {
             throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
         }
     }
@@ -269,7 +269,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
                 if (member == null) {
                     if (ImportBehavior.ABORT == importBehavior) {
                         throw new ConstraintViolationException("Attempt to add or remove a non-existing member " + memberId);
-                    } else if (ImportBehavior.IGNORE == importBehavior) {
+                    } else {
+                        // ImportBehavior.IGNORE is default in UserUtil.getImportBehavior
                         String msg = "Attempt to add or remove non-existing member '" + getID() + "' with ImportBehavior = IGNORE.";
                         log.debug(msg);
                         continue;
