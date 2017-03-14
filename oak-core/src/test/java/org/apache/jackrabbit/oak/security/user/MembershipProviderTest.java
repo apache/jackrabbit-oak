@@ -28,7 +28,6 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Before;
@@ -300,8 +299,8 @@ public class MembershipProviderTest extends MembershipBaseTest {
         member.remove();
         root.commit();
 
-        assertFalse(mp.getMembers(getTree(g), AuthorizableType.AUTHORIZABLE, false).hasNext());
-        assertFalse(mp.getMembers(getTree(g), AuthorizableType.AUTHORIZABLE, true).hasNext());
+        assertFalse(mp.getMembers(getTree(g), false).hasNext());
+        assertFalse(mp.getMembers(getTree(g), true).hasNext());
     }
 
     @Test
@@ -312,7 +311,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         member.addMember(createUser());
         root.commit();
 
-        Iterator<String> res = mp.getMembers(getTree(g), AuthorizableType.AUTHORIZABLE, true);
+        Iterator<String> res = mp.getMembers(getTree(g), true);
         assertEquals(2, Iterators.size(res));
     }
 
@@ -327,7 +326,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         g.addMember(user);
         root.commit();
 
-        Iterator<String> res = mp.getMembers(getTree(g), AuthorizableType.AUTHORIZABLE, true);
+        Iterator<String> res = mp.getMembers(getTree(g), true);
         assertEquals(2, Iterators.size(res));
     }
 
@@ -339,7 +338,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         member.addMember(createUser());
         root.commit();
 
-        Iterator<String> res = mp.getMembers(getTree(g), AuthorizableType.AUTHORIZABLE, false);
+        Iterator<String> res = mp.getMembers(getTree(g), false);
         assertEquals(1, Iterators.size(res));
     }
 

@@ -40,15 +40,19 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     final Root root;
     final IdentifierManager identifierManager;
 
+    private final boolean usercaseMappedProfile;
+
     AuthorizableBaseProvider(@Nonnull Root root, @Nonnull ConfigurationParameters config) {
         this.root = checkNotNull(root);
         this.config = checkNotNull(config);
-        this.identifierManager = new IdentifierManager(root);
+
+        identifierManager = new IdentifierManager(root);
+        usercaseMappedProfile = config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
     }
 
     @CheckForNull
     Tree getByID(@Nonnull String authorizableId, @Nonnull AuthorizableType authorizableType) {
-        return getByContentID(getContentID(authorizableId, config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE)), authorizableType);
+        return getByContentID(getContentID(authorizableId), authorizableType);
     }
 
     @CheckForNull
@@ -62,9 +66,9 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     }
 
     @CheckForNull
-    Tree getByPath(@Nonnull String authorizableOakPath) {
+    Tree getByPath(@Nonnull String authorizableOakPath, @Nonnull AuthorizableType type) {
         Tree tree = root.getTree(authorizableOakPath);
-        if (UserUtil.isType(tree, AuthorizableType.AUTHORIZABLE)) {
+        if (UserUtil.isType(tree, type)) {
             return tree;
         } else {
             return null;
@@ -77,7 +81,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     }
 
     @Nonnull
-    static String getContentID(@Nonnull String authorizableId, boolean usercaseMappedProfile) {
+    String getContentID(@Nonnull String authorizableId) {
         String s = authorizableId.toLowerCase();
         if (usercaseMappedProfile) {
             s = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKC);

@@ -94,7 +94,7 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     @Nonnull
     @Override
     public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
-        List<AuthorizableAction> actions = Lists.newArrayList();
+        List<AuthorizableAction> actions = Lists.newArrayListWithExpectedSize(enabledActions.length);
         for (String className : enabledActions) {
             try {
                 Class<? extends AuthorizableAction> cl = SUPPORTED_ACTIONS.get(className);

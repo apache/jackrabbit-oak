@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * Note that the writing of the members is done in {@link MembershipWriter} so that the logic can be re-used by the
  * migration code.
  *
- * The current implementation uses a fixed threshold value of {@link #getMembershipSizeThreshold()} before creating
+ * The current implementation uses a fixed threshold value of {@link MembershipWriter#DEFAULT_MEMBERSHIP_THRESHHOLD} before creating
  * {@link #NT_REP_MEMBER_REFERENCES} sub nodes.
  *
  * Example Group with few members (irrelevant properties excluded):
@@ -120,14 +119,6 @@ class MembershipProvider extends AuthorizableBaseProvider {
     }
 
     /**
-     * Returns the size of the membership property threshold. This is currently only useful for testing.
-     * @return the size of the membership property threshold.
-     */
-    int getMembershipSizeThreshold() {
-        return writer.getMembershipSizeThreshold();
-    }
-
-    /**
      * Sets the size of the membership property threshold. This is currently only useful for testing.
      * @param membershipSizeThreshold the size of the membership property threshold
      */
@@ -166,19 +157,16 @@ class MembershipProvider extends AuthorizableBaseProvider {
             @Override
             protected String internalGetNext(@Nonnull String propPath) {
                 String next = null;
-                int index = propPath.indexOf('/' + REP_MEMBERS_LIST);
-                if (index < 0) {
-                    index = propPath.indexOf('/' + REP_MEMBERS);
-                }
-                if (index > 0) {
-                    String groupPath = propPath.substring(0, index);
+
+                String groupPath = getGroupPath(propPath);
+                if (groupPath != null) {
                     if (processedPaths.add(groupPath)) {
                         // we didn't see this path before, so continue
                         next = groupPath;
                         if (includeInherited) {
-                            // inject a parent iterator of the inherited memberships is needed
-                            Tree group = getByPath(groupPath);
-                            if (UserUtil.isType(group, AuthorizableType.GROUP)) {
+                            // inject a parent iterator if inherited memberships is requested
+                            Tree group = getByPath(groupPath, AuthorizableType.GROUP);
+                            if (group != null) {
                                 remember(group);
                             }
                         }
@@ -193,6 +181,20 @@ class MembershipProvider extends AuthorizableBaseProvider {
             @Override
             protected Iterator<String> getNextIterator(@Nonnull Tree groupTree) {
                 return getMembership(groupTree, true, processedPaths);
+            }
+
+            @CheckForNull
+            private String getGroupPath(@Nonnull String membersPropPath) {
+                int index = membersPropPath.indexOf('/' + REP_MEMBERS_LIST);
+                if (index < 0) {
+                    index = membersPropPath.indexOf('/' + REP_MEMBERS);
+                }
+
+                if (index > 0) {
+                    return membersPropPath.substring(0, index);
+                } else {
+                    return null;
+                }
             }
         };
     }
@@ -213,27 +215,26 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * Returns an iterator over all member paths of the given group.
      *
      * @param groupTree the group tree
-     * @param authorizableType type of authorizables to filter.
      * @param includeInherited {@code true} to include inherited members
      * @return an iterator over all member paths
      */
     @Nonnull
-    Iterator<String> getMembers(@Nonnull Tree groupTree, @Nonnull AuthorizableType authorizableType, boolean includeInherited) {
-        return getMembers(groupTree, authorizableType, includeInherited, new HashSet<String>());
+    Iterator<String> getMembers(@Nonnull Tree groupTree, boolean includeInherited) {
+        return getMembers(groupTree, includeInherited, new HashSet<String>());
     }
 
     /**
      * Returns an iterator over all member paths of the given group.
      *
      * @param groupTree the group tree
-     * @param authorizableType type of authorizables to filter.
      * @param includeInherited {@code true} to include inherited members
      * @param processedRefs helper set that contains the references that are already processed.
      * @return an iterator over all member paths
      */
     @Nonnull
-    private Iterator<String> getMembers(@Nonnull final Tree groupTree, @Nonnull final AuthorizableType authorizableType,
-                                        final boolean includeInherited, @Nonnull final Set<String> processedRefs) {
+    private Iterator<String> getMembers(@Nonnull final Tree groupTree,
+                                        final boolean includeInherited,
+                                        @Nonnull final Set<String> processedRefs) {
         MemberReferenceIterator mrit = new MemberReferenceIterator(groupTree) {
             @Override
             protected boolean hasProcessedReference(@Nonnull String value) {
@@ -247,16 +248,11 @@ class MembershipProvider extends AuthorizableBaseProvider {
             protected String internalGetNext(@Nonnull String value) {
                 String next = identifierManager.getPath(PropertyValues.newWeakReference(value));
 
-                // filter by authorizable type, and/or get inherited members
-                if (next != null && (includeInherited || authorizableType != AuthorizableType.AUTHORIZABLE)) {
-                    Tree auth = getByPath(next);
-                    AuthorizableType type = (auth == null) ? null : UserUtil.getType(auth);
-
-                    if (includeInherited && type == AuthorizableType.GROUP) {
-                        remember(auth);
-                    }
-                    if (authorizableType != AuthorizableType.AUTHORIZABLE && type != authorizableType) {
-                        next = null;
+                // eventually remember groups for including inherited members
+                if (next != null && includeInherited) {
+                    Tree gr = getByPath(next, AuthorizableType.GROUP);
+                    if (gr != null) {
+                        remember(gr);
                     }
                 }
                 return next;
@@ -265,7 +261,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             @Nonnull
             @Override
             protected Iterator<String> getNextIterator(@Nonnull Tree groupTree) {
-                return getMembers(groupTree, authorizableType, true, processedRefs);
+                return getMembers(groupTree, true, processedRefs);
             }
         };
     }
@@ -283,7 +279,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             return false;
         }
         if (pendingChanges(groupTree)) {
-            return Iterators.contains(getMembers(groupTree, AuthorizableType.AUTHORIZABLE, true), authorizableTree.getPath());
+            return Iterators.contains(getMembers(groupTree, true), authorizableTree.getPath());
         } else {
             return hasMembership(authorizableTree, groupTree.getPath());
         }

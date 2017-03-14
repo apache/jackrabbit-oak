@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Test;
@@ -126,7 +127,8 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
 
     @Test
     public void testAddByContentID() throws Exception {
-        Set<String> failed = testGroup.addMembers(AuthorizableBaseProvider.getContentID(getTestUser().getID(), false));
+        AuthorizableBaseProvider provider = new UserProvider(root, ConfigurationParameters.of(getUserConfiguration().getParameters(), ConfigurationParameters.of(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, false)));
+        Set<String> failed = testGroup.addMembers(provider.getContentID(getTestUser().getID()));
         assertTrue(failed.isEmpty());
 
         assertFalse(testGroup.isMember(getTestUser()));

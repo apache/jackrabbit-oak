@@ -127,7 +127,7 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
 
     @Nonnull
     String getContentID(@Nonnull String memberId) {
-        return userMgr.getMembershipProvider().getContentID(memberId, false);
+        return userMgr.getMembershipProvider().getContentID(memberId);
     }
 
     @CheckForNull
