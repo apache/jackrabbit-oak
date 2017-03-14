@@ -70,7 +70,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         Authorizable user = userMgr.getAuthorizable(testUser.getID());
         Authorizable group = userMgr.getAuthorizable(testGroup.getID());
 
-        Map<Authorizable, Authorizable> equalAuthorizables = new HashMap<Authorizable, Authorizable>();
+        Map<Authorizable, Authorizable> equalAuthorizables = new HashMap();
         equalAuthorizables.put(testUser, testUser);
         equalAuthorizables.put(testGroup, testGroup);
         equalAuthorizables.put(user, user);
@@ -93,7 +93,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         Authorizable user = otherUserManager.getAuthorizable(testUser.getID());
         Authorizable group = otherUserManager.getAuthorizable(testGroup.getID());
 
-        Map<Authorizable, Authorizable> notEqual = new HashMap<Authorizable, Authorizable>();
+        Map<Authorizable, Authorizable> notEqual = new HashMap();
         notEqual.put(testUser, testGroup);
         notEqual.put(user, group);
         notEqual.put(testUser, user);
