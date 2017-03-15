@@ -446,7 +446,7 @@ public class RepositorySidegrade {
             @Override
             public int compare(ChildNodeEntry o1, ChildNodeEntry o2) {
                 long c1 = o1.getNodeState().getLong("created");
-                long c2 = o1.getNodeState().getLong("created");
+                long c2 = o2.getNodeState().getLong("created");
                 return -Long.compare(c1, c2);
             }
         });
