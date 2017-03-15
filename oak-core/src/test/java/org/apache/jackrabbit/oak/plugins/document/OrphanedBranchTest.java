@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
@@ -131,6 +132,9 @@ public class OrphanedBranchTest {
             map = doc.getLocalCommitRoot();
             assertTrue("too many orphaned commit root entries: " + map.size() + " > " + limit,
                     map.size() <= limit);
+            Set<Revision> branchCommits = doc.getLocalBranchCommits();
+            assertTrue("too many orphaned branch commit entries: " + branchCommits.size() + " > " + limit,
+                    branchCommits.size() <= limit);
 
             // run garbage collector once in a while for changes on /bar
             if (numCreated % NodeDocument.NUM_REVS_THRESHOLD == 0) {
@@ -182,6 +186,7 @@ public class OrphanedBranchTest {
         // force remove branch
         NodeDocument doc = store.getDocumentStore().find(NODES, id);
         assertNotNull(doc);
+        assertFalse(doc.getLocalBranchCommits().isEmpty());
         Map<Revision, String> valueMap = doc.getLocalMap("prop");
         assertFalse(valueMap.isEmpty());
         UnmergedBranches branches = store.getBranches();
@@ -201,6 +206,7 @@ public class OrphanedBranchTest {
         }
 
         doc = store.getDocumentStore().find(NODES, id);
+        assertTrue(doc.getLocalBranchCommits().isEmpty());
         doc.getNodeAtRevision(store, store.getHeadRevision(), null);
         
         store.dispose();
