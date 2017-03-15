@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,6 +32,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public abstract class CacheConsistencyTestBase {
@@ -173,16 +176,24 @@ public abstract class CacheConsistencyTestBase {
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
                 assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
-                // make sure cache was invalidated
-                NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
-                assertNotNull(newdoc);
-                assertEquals(random, newdoc.get("_test"));
-                newdoc = ds.find(Collection.NODES, id2, 1000);
-                assertNotNull(newdoc);
-                assertEquals(random, newdoc.get("_test"));
-                newdoc = ds.find(Collection.NODES, id3, 1000);
-                assertNotNull(newdoc);
-                assertEquals(random, newdoc.get("_test"));
+
+                // expected post conditions:
+                // 1) at least one of the documents should be updated
+                // 2) for all documents: reading from cache and uncached
+                // should return the same document
+                Set<String> modifiedDocuments = Sets.newHashSet();
+
+                for (String id : new String[] { id1, id2, id3 }) {
+                    // get cached value
+                    NodeDocument newdoc = ds.find(Collection.NODES, id, 1000);
+                    if (random.equals(newdoc.get("_test"))) {
+                        modifiedDocuments.add(id);
+                    }
+                    // compare with persisted value
+                    assertEquals(newdoc.get("_test"), ds.find(Collection.NODES, id, 0).get("_test"));
+                }
+
+                assertTrue("at least one document should have been updated", !modifiedDocuments.isEmpty());
             }
         } finally {
             setTemporaryUpdateException(null);
