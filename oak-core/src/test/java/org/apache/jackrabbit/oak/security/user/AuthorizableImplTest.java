@@ -19,11 +19,15 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,6 +43,8 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
     private User testUser;
     private Group testGroup;
 
+    private AuthorizableImpl authorizable;
+
     @Override
     @Before
     public void before() throws Exception {
@@ -48,11 +54,14 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         testUser = getTestUser();
         testGroup = userMgr.createGroup("testGroup");
         root.commit();
+
+        authorizable = (AuthorizableImpl) testUser;
     }
 
     @Override
     public void after() throws Exception {
         try {
+            root.refresh();
             if (testGroup != null) {
                 testGroup.remove();
             }
@@ -113,7 +122,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         Authorizable user = userMgr.getAuthorizable(testUser.getID());
         Authorizable group = userMgr.getAuthorizable(testGroup.getID());
 
-        Map<Authorizable, Authorizable> sameHashCode = new HashMap<Authorizable, Authorizable>();
+        Map<Authorizable, Authorizable> sameHashCode = new HashMap();
         sameHashCode.put(testUser, testUser);
         sameHashCode.put(testGroup, testGroup);
         sameHashCode.put(user, user);
@@ -129,7 +138,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         user = otherUserManager.getAuthorizable(testUser.getID());
         group = otherUserManager.getAuthorizable(testGroup.getID());
 
-        Map<Authorizable, Authorizable> notSameHashCode = new HashMap<Authorizable, Authorizable>();
+        Map<Authorizable, Authorizable> notSameHashCode = new HashMap();
         notSameHashCode.put(testUser, testGroup);
         notSameHashCode.put(user, group);
         notSameHashCode.put(testUser, user);
@@ -139,4 +148,26 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
             assertFalse(entry.getKey().hashCode() == entry.getValue().hashCode());
         }
     }
-}
+
+    @Test
+    public void testGetTree() throws Exception {
+        Tree t = root.getTree(authorizable.getPath());
+        assertEquals(t.getPath(), authorizable.getTree().getPath());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetTreeNotExisting() throws Exception {
+        root.getTree(authorizable.getPath()).remove();
+
+        // getTree must throw
+        authorizable.getTree();
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testGetPrincipalNamePropertyMissing() throws Exception {
+        Tree t = root.getTree(authorizable.getPath());
+        t.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
+
+        // getPrincipalName must throw
+        authorizable.getPrincipalName();
+    }}
