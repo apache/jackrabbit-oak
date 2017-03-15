@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -62,10 +63,16 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.SET_MAP_ENTRY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -103,7 +110,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertNotNull(ns.getNode("/", RevisionVector.fromString(head)));
 
         NodeDocument prevDoc = Iterators.getOnlyElement(doc.getAllPreviousDocs());
-        assertEquals(SplitDocType.DEFAULT, prevDoc.getSplitDocType());
+        assertThat(prevDoc.getSplitDocType(), either(is(SplitDocType.DEFAULT)).or(is(SplitDocType.DEFAULT_NO_BRANCH)));
 
         mk.commit("/", "+\"baz\":{}", null, null);
         ns.setAsyncDelay(0);
@@ -999,6 +1006,71 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Iterable<UpdateOp> splitOps = store.find(NODES, id)
                 .split(ns, ns.getHeadRevision(), NO_BINARY);
         assertEquals(0, Iterables.size(splitOps));
+    }
+
+    @Test
+    public void splitWithBranchCommit() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+
+        String branch = mk.branch(null);
+        branch = mk.commit("/foo", "^\"p\":\"value\"", branch, null);
+        mk.merge(branch, null);
+
+        String id = Utils.getIdFromPath("/foo");
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        assertThat(doc.getLocalBranchCommits(), is(not(empty())));
+
+        for (int i = 0; i < 5; i++) {
+            builder = ns.getRoot().builder();
+            builder.child("foo").setProperty("p", "value-" + i);
+            merge(ns, builder);
+        }
+        ns.runBackgroundOperations();
+        doc = store.find(NODES, id);
+        for (UpdateOp op : SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 5)) {
+            store.createOrUpdate(NODES, op);
+        }
+        doc = store.find(NODES, id);
+        // must have a previous document now
+        assertThat(doc.getPreviousRanges().keySet(), hasSize(1));
+        // branch commit entry moved to previous document
+        assertThat(doc.getLocalBranchCommits(), is(empty()));
+        NodeDocument prev = doc.getAllPreviousDocs().next();
+        assertThat(prev.getLocalBranchCommits(), is(not(empty())));
+    }
+
+    @Test
+    public void splitDefaultNoBranch() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo").child("bar");
+        merge(ns, builder);
+
+        for (int i = 0; i < 5; i++) {
+            builder = ns.getRoot().builder();
+            builder.child("foo").setProperty("p", "value-" + i);
+            merge(ns, builder);
+        }
+        ns.runBackgroundOperations();
+        String id = Utils.getIdFromPath("/foo");
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        for (UpdateOp op : SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 5)) {
+            store.createOrUpdate(NODES, op);
+        }
+        doc = store.find(NODES, id);
+        // must have a previous document now
+        assertThat(doc.getPreviousRanges().keySet(), is(not(empty())));
+        Iterator<NodeDocument> it = doc.getAllPreviousDocs();
+        while (it.hasNext()) {
+            assertEquals(SplitDocType.DEFAULT_NO_BRANCH, it.next().getSplitDocType());
+        }
     }
 
     private static class TestRevisionContext implements RevisionContext {

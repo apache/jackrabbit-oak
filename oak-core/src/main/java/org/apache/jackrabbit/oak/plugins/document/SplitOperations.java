@@ -366,11 +366,15 @@ class SplitOperations {
                         // referenced anymore from from most recent changes
                         if (!mostRecentRevs.contains(r)) {
                             main.removeMapEntry(property, r);
+                            NodeDocument.removeBranchCommit(main, r);
                         }
                     } else {
                         main.removeMapEntry(property, r);
                     }
                     old.setMapEntry(property, r, entry.getValue());
+                    if (doc.getLocalBranchCommits().contains(r)) {
+                        NodeDocument.setBranchCommit(old, r);
+                    }
                 }
             }
             // check size of old document
@@ -520,6 +524,7 @@ class SplitOperations {
                 if (PROPERTY_OR_DELETED.apply(entry.getKey())) {
                     NodeDocument.removeCommitRoot(main, r);
                     NodeDocument.removeRevision(main, r);
+                    NodeDocument.removeBranchCommit(main, r);
                 }
             }
         }
@@ -554,6 +559,8 @@ class SplitOperations {
             type = SplitDocType.DEFAULT_LEAF;
         } else if (oldDoc.getLocalRevisions().isEmpty()) {
             type = SplitDocType.COMMIT_ROOT_ONLY;
+        } else if (oldDoc.getLocalBranchCommits().isEmpty()) {
+            type = SplitDocType.DEFAULT_NO_BRANCH;
         }
 
         // Copy over the hasBinary flag

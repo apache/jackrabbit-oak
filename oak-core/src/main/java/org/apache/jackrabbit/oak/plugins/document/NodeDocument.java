@@ -225,6 +225,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     private static final String STALE_PREV = "_stalePrev";
 
+    /**
+     * Contains revision entries for changes done by branch commits.
+     */
+    private static final String BRANCH_COMMITS = "_bc";
+
     //~----------------------------< Split Document Types >
 
     /**
@@ -300,6 +305,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
          * A split document which does not contain REVISIONS history.
          */
         COMMIT_ROOT_ONLY(60),
+        /**
+         * A split document which contains all types of data, but no branch
+         * commits.
+         */
+        DEFAULT_NO_BRANCH(70),
         ;
 
         final int type;
@@ -1678,6 +1688,16 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
+     * Returns the branch commit entries on this document
+     * ({@link #BRANCH_COMMITS}). This method does not consider previous
+     * documents, but only returns the entries on this document.
+     */
+    @Nonnull
+    public Set<Revision> getLocalBranchCommits() {
+        return getLocalMap(BRANCH_COMMITS).keySet();
+    }
+
+    /**
      * Resolves the commit value for the change with the given revision on this
      * document. If necessary, this method will lookup the commit value on the
      * referenced commit root document.
@@ -1827,6 +1847,17 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static void setHasBinary(@Nonnull UpdateOp op) {
         checkNotNull(op).set(HAS_BINARY_FLAG, HAS_BINARY_VAL);
+    }
+
+    public static void setBranchCommit(@Nonnull UpdateOp op,
+                                       @Nonnull Revision revision) {
+        checkNotNull(op).setMapEntry(BRANCH_COMMITS,
+                revision, String.valueOf(true));
+    }
+
+    public static void removeBranchCommit(@Nonnull UpdateOp op,
+                                          @Nonnull Revision revision) {
+        checkNotNull(op).removeMapEntry(BRANCH_COMMITS, revision);
     }
 
     //----------------------------< internal >----------------------------------

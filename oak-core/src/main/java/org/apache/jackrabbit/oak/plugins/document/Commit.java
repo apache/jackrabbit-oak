@@ -102,6 +102,9 @@ public class Commit {
             String id = Utils.getIdFromPath(path);
             op = new UpdateOp(id, false);
             NodeDocument.setModified(op, revision);
+            if (getBranch() != null) {
+                NodeDocument.setBranchCommit(op, revision);
+            }
             operations.put(path, op);
         }
         return op;

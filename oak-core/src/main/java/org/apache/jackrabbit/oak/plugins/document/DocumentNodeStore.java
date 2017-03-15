@@ -2158,6 +2158,7 @@ public final class DocumentNodeStore
             for (Revision r : b.getCommits()) {
                 r = r.asTrunkRevision();
                 NodeDocument.removeRevision(op, r);
+                NodeDocument.removeBranchCommit(op, r);
             }
             store.findAndUpdate(NODES, op);
         }
