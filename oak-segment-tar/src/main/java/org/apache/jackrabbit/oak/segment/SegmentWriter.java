@@ -326,7 +326,7 @@ public class SegmentWriter {
             @Nonnull
             @Override
             public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
-                return with(writer).writeNode(state);
+                return with(writer).writeNodeWithStats(state);
             }
         });
         return new SegmentNodeState(reader, this, nodeId);
@@ -354,7 +354,7 @@ public class SegmentWriter {
                 @Nonnull
                 @Override
                 public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
-                    return with(writer).writeNode(state);
+                    return with(writer).writeNodeWithStats(state);
                 }
             });
             return new SegmentNodeState(reader, this, nodeId);
@@ -971,16 +971,16 @@ public class SegmentWriter {
             return tid;
         }
 
-        private RecordId writeNode(@Nonnull NodeState state) throws IOException {
+        private RecordId writeNodeWithStats(@Nonnull NodeState state) throws IOException {
             this.nodeWriteStats = new NodeWriteStats();
             try {
-                return writeNode(state, 0);
+                return writeNode(state);
             } finally {
                 LOG.debug("{}", nodeWriteStats);
             }
         }
 
-        private RecordId writeNode(@Nonnull NodeState state, int depth) throws IOException {
+        private RecordId writeNode(@Nonnull NodeState state) throws IOException {
             if (cancel.get()) {
                 // Poor man's Either Monad
                 throw new CancelledWriteException();
@@ -995,7 +995,7 @@ public class SegmentWriter {
             }
 
             nodeWriteStats.writesOps++;
-            RecordId recordId = writeNodeUncached(state, depth);
+            RecordId recordId = writeNodeUncached(state);
             if (state instanceof SegmentNodeState) {
                 // This node state has been rewritten because it is from an older
                 // generation (e.g. due to compaction). Put it into the cache for
@@ -1013,7 +1013,7 @@ public class SegmentWriter {
             return (byte) (Byte.MIN_VALUE + 64 - numberOfLeadingZeros(childCount));
         }
 
-        private RecordId writeNodeUncached(@Nonnull NodeState state, int depth) throws IOException {
+        private RecordId writeNodeUncached(@Nonnull NodeState state) throws IOException {
             ModifiedNodeState after = null;
 
             if (state instanceof ModifiedNodeState) {
@@ -1052,19 +1052,19 @@ public class SegmentWriter {
                     && before.getChildNodeCount(2) > 1
                     && after.getChildNodeCount(2) > 1) {
                     base = before.getChildNodeMap();
-                    childNodes = new ChildNodeCollectorDiff(depth).diff(before, after);
+                    childNodes = new ChildNodeCollectorDiff().diff(before, after);
                 } else {
                     base = null;
                     childNodes = newHashMap();
                     for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                         childNodes.put(
                             entry.getName(),
-                            writeNode(entry.getNodeState(), depth + 1));
+                            writeNode(entry.getNodeState()));
                     }
                 }
                 ids.add(writeMap(base, childNodes));
             } else if (childName != Template.ZERO_CHILD_NODES) {
-                ids.add(writeNode(state.getChildNode(template.getChildName()), depth + 1));
+                ids.add(writeNode(state.getChildNode(template.getChildName())));
             }
 
             List<RecordId> pIds = newArrayList();
@@ -1208,13 +1208,8 @@ public class SegmentWriter {
         }
 
         private class ChildNodeCollectorDiff extends DefaultNodeStateDiff {
-            private final int depth;
             private final Map<String, RecordId> childNodes = newHashMap();
             private IOException exception;
-
-            private ChildNodeCollectorDiff(int depth) {
-                this.depth = depth;
-            }
 
             public Map<String, RecordId> diff(SegmentNodeState before, ModifiedNodeState after) throws IOException {
                 after.compareAgainstBaseState(before, this);
@@ -1228,7 +1223,7 @@ public class SegmentWriter {
             @Override
             public boolean childNodeAdded(String name, NodeState after) {
                 try {
-                    childNodes.put(name, writeNode(after, depth + 1));
+                    childNodes.put(name, writeNode(after));
                 } catch (IOException e) {
                     exception = e;
                     return false;
@@ -1240,7 +1235,7 @@ public class SegmentWriter {
             public boolean childNodeChanged(
                 String name, NodeState before, NodeState after) {
                 try {
-                    childNodes.put(name, writeNode(after, depth + 1));
+                    childNodes.put(name, writeNode(after));
                 } catch (IOException e) {
                     exception = e;
                     return false;
