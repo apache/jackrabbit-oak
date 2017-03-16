@@ -156,7 +156,7 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
                 Set<String> changedPaths = getModifiedPaths(baseState, nodeState);
                 Set<String> ignoredChangedPaths = getIgnoredPaths(changedPaths);
                 if (!ignoredChangedPaths.isEmpty()) {
-                    LOG.warn("Can't merge following read-only paths (they are configured to be ignored): {}.", ignoredChangedPaths);
+                    LOG.debug("Can't merge following read-only paths (they are configured to be ignored): {}.", ignoredChangedPaths);
                 }
                 Set<String> failingChangedPaths = difference(changedPaths, ignoredChangedPaths);
                 if (!failingChangedPaths.isEmpty()) {
