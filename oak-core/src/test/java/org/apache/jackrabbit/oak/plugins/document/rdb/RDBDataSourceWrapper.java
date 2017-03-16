@@ -53,6 +53,7 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
     // }
 
     private final DataSource ds;
+    private String temporaryUpdateException = null;
 
     // Logging
 
@@ -82,6 +83,14 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
      */
     public List<RDBLogEntry> stopLog() {
         return stopLog(Thread.currentThread());
+    }
+
+    public void setTemporaryUpdateException(String exmsg) {
+        this.temporaryUpdateException = exmsg;
+    }
+
+    public String getTemporaryUpdateException() {
+        return this.temporaryUpdateException;
     }
 
     // DataSource
