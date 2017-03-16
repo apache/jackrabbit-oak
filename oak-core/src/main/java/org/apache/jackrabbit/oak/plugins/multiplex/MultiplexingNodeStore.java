@@ -250,7 +250,6 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         return ctx.getGlobalStore().getNodeStore().checkpoint(lifetime, globalProperties);
     }
 
-
     @Override
     public String checkpoint(long lifetime) {
         return checkpoint(lifetime, Collections. <String, String> emptyMap());
@@ -275,12 +274,14 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
         nodeStates.put(ctx.getGlobalStore(), ctx.getGlobalStore().getNodeStore().retrieve(checkpoint));
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
-            String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
-            if (partialCheckpoint == null) {
-                return null;
-            } else {
-                nodeStates.put(nodeStore, nodeStore.getNodeStore().retrieve(partialCheckpoint));
+            NodeState nodeState = nodeStore.getNodeStore().retrieve(checkpoint);
+            if (nodeState == null) {
+                String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
+                if (partialCheckpoint != null) {
+                    nodeState = nodeStore.getNodeStore().retrieve(partialCheckpoint);
+                }
             }
+            nodeStates.put(nodeStore, nodeState);
         }
         if (any(nodeStates.values(), isNull())) {
             return null;
@@ -296,12 +297,14 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         }
         boolean result = ctx.getGlobalStore().getNodeStore().release(checkpoint);
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
-            String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
-            if (partialCheckpoint == null) {
-                result = false;
-            } else {
-                result = nodeStore.getNodeStore().release(partialCheckpoint) && result;
+            boolean released = nodeStore.getNodeStore().release(checkpoint);
+            if (!released) {
+                String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
+                if (partialCheckpoint != null) {
+                    released = nodeStore.getNodeStore().release(partialCheckpoint);
+                }
             }
+            result &= released;
         }
         return result;
     }
