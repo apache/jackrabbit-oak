@@ -51,6 +51,7 @@ public class RDBDataSourceWrapper implements DataSource {
     // }
 
     private final DataSource ds;
+    private String temporaryUpdateException = null;
 
     // Logging
 
@@ -80,6 +81,14 @@ public class RDBDataSourceWrapper implements DataSource {
      */
     public List<RDBLogEntry> stopLog() {
         return stopLog(Thread.currentThread());
+    }
+
+    public void setTemporaryUpdateException(String exmsg) {
+        this.temporaryUpdateException = exmsg;
+    }
+
+    public String getTemporaryUpdateException() {
+        return this.temporaryUpdateException;
     }
 
     // DataSource
