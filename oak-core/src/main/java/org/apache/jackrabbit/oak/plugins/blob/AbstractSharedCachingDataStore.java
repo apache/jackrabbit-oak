@@ -163,15 +163,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                 uploadThreads,
                 new CacheLoader<String, InputStream>() {
                     @Override public InputStream load(String key) throws Exception {
-                        InputStream is = null;
-                        boolean threw = true;
-                        try {
-                            is = backend.read(new DataIdentifier(key));
-                            threw = false;
-                        } finally {
-                            Closeables.close(is, threw);
-                        }
-                        return is;
+                        return backend.read(new DataIdentifier(key));
                     }
                 }, new StagingUploader() {
                     @Override public void write(String id, File file) throws DataStoreException {
