@@ -17,6 +17,7 @@
 
 ## Lucene Index
 
+* [New in 1.6](#new-1.6)
 * [Index Definition](#index-definition)
     * [Indexing Rules](#indexing-rules)
         * [Cost Overrides](#cost-overrides)
@@ -30,6 +31,7 @@
         * [Create analyzer via composition](#analyzer-composition)
     * [Codec](#codec)
     * [Boost and Search Relevancy](#boost)
+    * [Effective Index Definition](#stored-index-definition)
 * [LuceneIndexProvider Configuration](#osgi-config)
 * [Tika Config](#tika-config)
     * [Mime type usage](#mime-type-usage)
@@ -113,6 +115,12 @@ The Lucene index needs to be configured to index all properties
               - isRegexp = true
               - nodeScopeIndex = true
 
+### <a name="new-1.6"></a> New in 1.6
+
+Following are the new features in 1.6 release
+
+* [Effective Index Definition](#stored-index-definition)
+
 ### <a name="index-definition"></a> Index Definition
 
 Lucene index definition consist of `indexingRules`, `analyzers` ,
@@ -134,6 +142,7 @@ Below is the canonical index definition structure
       - queryPaths (string) multiple = ['/']
       - indexPath (string)
       - codec (string)
+      - refresh (boolean)
       + indexRules (nt:unstructured)
       + aggregates (nt:unstructured)
       + analyzers (nt:unstructured)
@@ -200,6 +209,10 @@ compatVersion
 
 [maxFieldLength][OAK-2469]
 : Numbers of terms indexed per field. Defaults to 10000
+
+refresh
+: Optional boolean property
+: Used to refresh the stored index definition. See [Effective Index Definition](#stored-index-definition)
 
 #### <a name="indexing-rules"></a> Indexing Rules
 
@@ -821,6 +834,44 @@ WHERE
 Would have those node (of type app:Asset) come first where _Batman_ is found in
 _jcr:title_. While those nodes where search text is found in other field
 like aggregated content would come later
+
+#### <a name="stored-index-definition"></a>Effective Index Definition 
+
+`@since Oak 1.6`
+
+Prior to Oak 1.6 index definition as defined in content was directly used for query
+execution and indexing. It was possible that index definition is modified in incompatible
+way and that would start affecting the query execution leading to inconsistent result.
+
+Since Oak 1.6 the index definitions are cloned upon reindexing and stored in a hidden structure.
+For further incremental indexing and for query plan calculation the stored index definition is used.
+So any changes done post reindex to index definition would not be applicable untill a reindex is done.
+
+There would be some cases where changes in index definition does not require a reindex. For e.g. if a new property
+is being introduced in content model and no prior content exist with such a property then its safe to index such
+a property without doing a reindex. For such cases user must follow below steps
+
+1. Make the required changes
+2. Set `refresh` property to `true` in index definition node
+3. Save the changes
+
+On next async indexing cycle this flag would be pickedup and stored index definition would be refreshed. 
+_Post this the flag would be automatically removed and a log message would be logged_. You would also see a 
+log message like below
+
+```
+LuceneIndexEditorContext - Refreshed the index definition for [/oak:index/fooLuceneIndex] 
+```
+
+To simplify troubleshooting the stored index definition can be accessed from `LuceneIndexMBean` via 
+`getStoredIndexDefinition` operation. It would dump the string representation of stored NodeState
+
+![Dump Stored Index Definition](lucene-index-mbean-dump-index.png)
+
+This feature can be disabled by setting OSGi property `disableStoredIndexDefinition` for `LuceneIndexProviderService`
+to true. Once disable any change in index definition would start effecting the query plans
+
+Refer to [OAK-4400][OAK-4400] for more details.
 
 ### <a name="osgi-config"></a>LuceneIndexProvider Configuration
 
@@ -1690,6 +1741,7 @@ such fields
 [OAK-3994]: https://issues.apache.org/jira/browse/OAK-3994
 [OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
+[OAK-4400]: https://issues.apache.org/jira/browse/OAK-4400
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
