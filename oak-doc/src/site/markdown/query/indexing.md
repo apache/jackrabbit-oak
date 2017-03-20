@@ -19,6 +19,7 @@
 
 * [Indexing](#indexing)
     * [Overview](#overview)
+        * [New in 1.6](#new-1.6)
     * [Indexing Flow](#indexing-flow)
         * [Index Definitions](#index-defnitions)
             * [oak:index node ](#oak-index-nodes)
@@ -52,6 +53,11 @@ Oak has following in built `IndexEditor`s
 2. ReferenceEditor
 3. LuceneIndexEditor
 4. SolrIndexEditor
+
+### <a name="new-1.6"></a> New in 1.6
+
+* [Multiple Async indexers setup via OSGi config](#async-index-setup)
+* [Isolating Corrupt Indexes](#corrupt-index-handling)
 
 ## <a name="indexing-flow"></a> Indexing Flow
 
@@ -196,7 +202,8 @@ Async indexers can be configure via OSGi config for `org.apache.jackrabbit.oak.p
 
 ![Async Indexing Config](async-index-config.png)
 
-Different lanes can be configured by adding more rows of _Async Indexer Configs_
+Different lanes can be configured by adding more rows of _Async Indexer Configs_. Prior to 1.6 the indexers were
+created programatically while constructing Oak.
 
 #### <a name="async-index-mbean"></a> Async Indexing MBean
 
