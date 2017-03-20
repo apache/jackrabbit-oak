@@ -126,6 +126,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.util.OakVersion;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.slf4j.Logger;
@@ -141,6 +142,8 @@ public final class DocumentNodeStore
 
     private static final PerfLogger PERFLOG = new PerfLogger(
             LoggerFactory.getLogger(DocumentNodeStore.class.getName() + ".perf"));
+
+    public static final FormatVersion VERSION = FormatVersion.V1_8;
 
     /**
      * Do not cache more than this number of children for a document.
@@ -492,6 +495,7 @@ public final class DocumentNodeStore
         } else {
             readOnlyMode = false;
         }
+        checkVersion(s, readOnlyMode);
         this.executor = builder.getExecutor();
         this.clock = builder.getClock();
 
@@ -2237,7 +2241,43 @@ public final class DocumentNodeStore
 
     //-----------------------------< internal >---------------------------------
 
-    void pushJournalEntry(Revision r) {
+    /**
+     * Checks if this node store can operate on the data in the given document
+     * store.
+     *
+     * @param store the document store.
+     * @param readOnlyMode whether this node store is in read-only mode.
+     * @throws DocumentStoreException if the versions are incompatible given the
+     *      access mode (read-write vs. read-only).
+     */
+    private static void checkVersion(DocumentStore store, boolean readOnlyMode)
+            throws DocumentStoreException {
+        FormatVersion storeVersion = FormatVersion.versionOf(store);
+        if (!VERSION.canRead(storeVersion)) {
+            throw new DocumentStoreException("Cannot open DocumentNodeStore. " +
+                    "Existing data in DocumentStore was written with more " +
+                    "recent version. Store version: " + storeVersion +
+                    ", this version: " + VERSION);
+        }
+        if (!readOnlyMode) {
+            if (storeVersion == FormatVersion.V0) {
+                // no version present. set to current version
+                VERSION.writeTo(store);
+                LOG.info("FormatVersion set to {}", VERSION);
+            } else if (!VERSION.equals(storeVersion)) {
+                // version does not match. fail the check and
+                // require a manual upgrade first
+                throw new DocumentStoreException("Cannot open DocumentNodeStore " +
+                        "in read-write mode. Existing data in DocumentStore " +
+                        "was written with older version. Store version: " +
+                        storeVersion + ", this version: " + VERSION + ". Use " +
+                        "the oak-run-" + OakVersion.getVersion() + ".jar tool " +
+                        "with the unlockUpgrade command first.");
+            }
+        }
+    }
+
+    private void pushJournalEntry(Revision r) {
         if (!changes.hasChanges()) {
             LOG.debug("Not pushing journal as there are no changes");
         } else if (store.create(JOURNAL, singletonList(changes.asUpdateOp(r)))) {

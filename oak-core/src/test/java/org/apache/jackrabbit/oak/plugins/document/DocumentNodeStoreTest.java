@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
@@ -2940,6 +2941,53 @@ public class DocumentNodeStoreTest {
         // must have created a branch commit
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
+    }
+
+    @Test
+    public void readWriteOldVersion() throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        FormatVersion.V1_0.writeTo(store);
+        try {
+            new DocumentMK.Builder().setDocumentStore(store).getNodeStore();
+            fail("must fail with " + DocumentStoreException.class.getSimpleName());
+        } catch (Exception e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void readOnlyOldVersion() throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        FormatVersion.V1_0.writeTo(store);
+        // initialize store with root node
+        Revision r = Revision.newRevision(1);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        NodeDocument.setModified(op, r);
+        NodeDocument.setDeleted(op, r, false);
+        NodeDocument.setRevision(op, r, "c");
+        NodeDocument.setLastRev(op, r);
+        store.create(NODES, Lists.newArrayList(op));
+        // initialize checkpoints document
+        op = new UpdateOp("checkpoint", true);
+        store.create(SETTINGS, Lists.newArrayList(op));
+        // initialize version GC status in settings
+        op = new UpdateOp("versionGC", true);
+        store.create(SETTINGS, Lists.newArrayList(op));
+        // now try to open in read-only mode with more recent version
+        builderProvider.newBuilder().setReadOnlyMode().setDocumentStore(store).getNodeStore();
+    }
+
+    @Test
+    public void readMoreRecentVersion() throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        FormatVersion futureVersion = FormatVersion.valueOf("999.9.9");
+        futureVersion.writeTo(store);
+        try {
+            new DocumentMK.Builder().setDocumentStore(store).getNodeStore();
+            fail("must fail with " + DocumentStoreException.class.getSimpleName());
+        } catch (DocumentStoreException e) {
+            // expected
+        }
     }
 
     private static class WriteCountingStore extends MemoryDocumentStore {
