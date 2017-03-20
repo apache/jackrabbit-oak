@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -786,7 +787,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
             return oldDoc;
         } catch (Exception e) {
-            throw DocumentStoreException.convert(e);
+            throw handleException(e, collection, updateOp.getId());
         } finally {
             if (lock != null) {
                 lock.unlock();
@@ -886,6 +887,14 @@ public class MongoDocumentStore implements DocumentStore {
                     results.put(op, oldDoc);
                 }
             }
+        } catch (MongoException e) {
+            throw handleException(e, collection, Iterables.transform(updateOps,
+                    new Function<UpdateOp, String>() {
+                @Override
+                public String apply(UpdateOp input) {
+                    return input.getId();
+                }
+            }));
         } finally {
             stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
                     collection, Lists.transform(updateOps, new Function<UpdateOp, String>() {
@@ -1169,12 +1178,7 @@ public class MongoDocumentStore implements DocumentStore {
                     }
                 }
             } catch (MongoException e) {
-                // some documents may still have been updated
-                // invalidate all documents affected by this update call
-                for (String k : keys) {
-                    nodesCache.invalidate(k);
-                }
-                throw DocumentStoreException.convert(e);
+                throw handleException(e, collection, keys);
             }
         } finally {
             stats.doneUpdate(watch.elapsed(TimeUnit.NANOSECONDS), collection, keys.size());
@@ -1580,6 +1584,23 @@ public class MongoDocumentStore implements DocumentStore {
         final long diff = midPoint - serverLocalTimeMillis;
 
         return diff;
+    }
+
+    private <T extends Document> DocumentStoreException handleException(Exception ex,
+                                                                        Collection<T> collection,
+                                                                        Iterable<String> ids) {
+        if (collection == Collection.NODES) {
+            for (String id : ids) {
+                invalidateCache(collection, id);
+            }
+        }
+        return DocumentStoreException.convert(ex);
+    }
+
+    private <T extends Document> DocumentStoreException handleException(Exception ex,
+                                                                        Collection<T> collection,
+                                                                        String id) {
+        return handleException(ex, collection, Collections.singleton(id));
     }
 
     private static class BulkUpdateResult {

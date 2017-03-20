@@ -38,6 +38,10 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
+            <Import-Package>
+              com.mongodb*;resolution:=optional,
+              *
+            </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak,
               org.apache.jackrabbit.oak.api,
@@ -344,6 +348,12 @@
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
       <version>1.1.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.fakemongo</groupId>
+      <artifactId>fongo</artifactId>
+      <version>1.6.8</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
