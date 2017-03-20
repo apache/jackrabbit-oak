@@ -346,5 +346,11 @@
       <scope>test</scope>
       <version>1.3.0</version>
     </dependency>
+    <dependency>
+      <groupId>com.github.fakemongo</groupId>
+      <artifactId>fongo</artifactId>
+      <version>1.6.8</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
