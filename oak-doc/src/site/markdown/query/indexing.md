@@ -99,6 +99,10 @@ certain interval. At time of execution the job would perform work
    (e.g. lucene) or in any remote store (e.g. solr)
 6. `AsyncIndexUpdate` would then update the last indexed checkpoint to current checkpoint and do a commit. 
 
+Such async indexes are _eventually consistent_ with the repository state and lag behind the latest repository state
+by some time. However the index content would be eventually consistent and never end up in wrong state with respect
+to repository state.
+
 #### <a name="checkpoint"></a> Checkpoint
 
 Checkpoint is a mechanism whereby a client of NodeStore can request it to ensure that repository state at that time
@@ -157,14 +161,51 @@ non clustered setup like those based on SegmentNodeStore but only [affects Docum
 
 #### <a name="async-index-lag"></a> Indexing Lag
 
+Async indexing jobs are by default configured to run at interval of 5 secs. Depending on the system load and diff size
+of content to be indexed the indexing may start lagging by longer time intervals. Due to this the indexing results would
+lag behind the repository state and may become stale i.e. new content added would show up in result after some time.
+
+`IndexStats` MBean keeps a time series and metrics stats for the indexing frequency. This can be used to track the 
+indexing state
+
+[NRT Indexing](#nrt-indexing) introduced in Oak 1.6 would help in such situations and can keep the results more upto 
+date
+
 #### <a name="async-index-setup"></a> Setup
 
 `Since 1.6`
 
+Async indexers can be configure via OSGi config for `org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService`
 
+![Async Indexing Config](async-index-config.png)
 
+Different lanes can be configured by adding more rows of _Async Indexer Configs_
 
-#### <a name="async-index-mbean"></a> Clustered Setup
+#### <a name="async-index-mbean"></a> Async Indexing MBean
+
+For each configured async indexer in the setup the indexer exposes a `IndexStatsMBean` which provides various
+stats around current indexing state. 
+
+    org.apache.jackrabbit.oak: async (IndexStats)
+    org.apache.jackrabbit.oak: fulltext-async (IndexStats)
+
+It provide details like
+
+* FailingIndexStats - Stats around indexes which are [failing and marked as corrupt](#corrupt-index-handling)
+* LastIndexedTime - Time upto which repository state has been indexed
+* Status - running, done, failing etc
+* Failing - boolean flag indicating that indexing has been failing due to some issue. This can be monitored
+  for detecting if indexer is healthy or not
+* ExecutionCount - Time series data around when number of execution for various time intervals
+
+Further it provides operations like
+
+* pause - Pauses the indexer
+* abortAndPause - Aborts any running indexing cycle and pauses the indexer. Invoke 'resume' once you are ready 
+  to resume indexing again
+* resume - Resume the indexing
+
+#### <a name="corrupt-index-handling"></a> Isolating Corrupt Indexes
 
 ## <a name="nrt-indexing"></a> Near Real Time Indexing
 
