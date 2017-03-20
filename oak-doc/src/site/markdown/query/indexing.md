@@ -133,13 +133,36 @@ own bookkeeping of checkpoint state and can be [paused and resumed](#async-index
 Prior to Oak 1.4 there was only one indexing lane `async`. In Oak 1.4 support was added to create 2 lanes `async` and 
 `fulltext-async`. With 1.6 its possible to [create multiple lanes](#async-index-setup). 
 
+#### <a name="cluster"></a> Clustered Setup
+
+In a clustered setup it needs to be ensured by the host application that async indexing jobs for specific lanes are to 
+be run as singleton in the cluster. If `AsyncIndexUpdate` for same lane gets executed concurrently on different cluster
+nodes then it can lead to race conditions where old checkpoint gets lost leading to reindexing of the indexes.
+
+Refer to [clustering](../clustering.html#scheduled-jobs) for more details on how the host application should schedule
+such indexing jobs
+
+##### <a name="async-index-lease"></a> Indexing Lease
+
+`AsyncIndexUpdate` has an inbuilt lease logic to ensure that even if the jobs gets scheduled to run on different cluster
+nodes then also only one of them runs. This is done by keeping a lease property which gets periodically updated as 
+indexing progresses. 
+
+An `AsyncIndexUpdate` run would skip indexing if current lease has not expired i.e. if the last 
+update of lease was done long ago (default 15 mins) then it would be assumed that cluster node doing indexing is not 
+available and some other node would take over.
+
+The lease logic can delay start of indexing if the system is not stopped cleanly. As of Oak 1.6 this does not affect
+non clustered setup like those based on SegmentNodeStore but only [affects DocumentNodeStore][OAK-5159] based setups 
+
 #### <a name="async-index-lag"></a> Indexing Lag
 
 #### <a name="async-index-setup"></a> Setup
 
 `Since 1.6`
 
-#### <a name="cluster"></a> Clustered Setup
+
+
 
 #### <a name="async-index-mbean"></a> Clustered Setup
 
@@ -151,6 +174,7 @@ Prior to Oak 1.4 there was only one indexing lane `async`. In Oak 1.4 support wa
 
 ### Lucene Indexes
 
+[OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
 
   
   
