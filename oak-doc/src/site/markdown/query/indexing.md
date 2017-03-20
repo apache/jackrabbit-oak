@@ -207,6 +207,35 @@ Further it provides operations like
 
 #### <a name="corrupt-index-handling"></a> Isolating Corrupt Indexes
 
+`Since 1.6`
+
+AsyncIndexerService would now mark any index which fails to update for 30 mins (configurable) as `corrupt` and 
+ignore such indexes from further indexing. 
+
+When any index is marked as corrupt following log entry would be made
+
+    2016-11-22 12:52:35,484 INFO  NA [async-index-update-fulltext-async] o.a.j.o.p.i.AsyncIndexUpdate - Marking 
+    [/oak:index/lucene] as corrupt. The index is failing since Tue Nov 22 12:51:25 IST 2016 ,1 indexing cycles, failed 
+    7 times, skipped 0 time 
+
+Post this when any new content gets indexed and any such corrupt index is skipped then following warn entry would be made
+
+    2016-11-22 12:52:35,485 WARN  NA [async-index-update-fulltext-async] o.a.j.o.p.index.IndexUpdate - Ignoring corrupt 
+    index [/oak:index/lucene] which has been marked as corrupt since [2016-11-22T12:51:25.492+05:30]. This index MUST be 
+    reindexed for indexing to work properly 
+    
+This info would also be seen in MBean
+
+![Corrupt Index stats in IndexStatsMBean](corrupt-index-mbean.png)
+    
+Later once the index is reindexed following log entry would be made
+
+    2016-11-22 12:56:25,486 INFO  NA [async-index-update-fulltext-async] o.a.j.o.p.index.IndexUpdate - Removing corrupt 
+    flag from index [/oak:index/lucene] which has been marked as corrupt since [corrupt = 2016-11-22T12:51:25.492+05:30] 
+
+This feature can be disabled by setting `failingIndexTimeoutSeconds` to 0 in AsyncIndexService config. Refer to 
+[OAK-4939][OAK-4939] for more details
+
 ## <a name="nrt-indexing"></a> Near Real Time Indexing
 
 ## Index Types
@@ -216,6 +245,7 @@ Further it provides operations like
 ### Lucene Indexes
 
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
+[OAK-4939]: https://issues.apache.org/jira/browse/OAK-4939
 
   
   
