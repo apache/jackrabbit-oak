@@ -107,9 +107,7 @@ import org.slf4j.LoggerFactory;
  * <p>This is a longevity test for revision garbage collection.</p>
  *
  * <p>The test schedules a number of readers, writers, a compactor and holds some references for a certain time.
- * All of which can be interactively modified through the accompanying
- * {@link SegmentCompactionITMBean}, the
- * {@link SegmentRevisionGC} and the
+ * All of which can be interactively modified through the accompanying {@link SegmentCompactionITMBean} and the {@link SegmentRevisionGC}.
  *
  *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
  * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
@@ -118,6 +116,10 @@ import org.slf4j.LoggerFactory;
  * <p>TODO Leverage longevity test support from OAK-2771 once we have it.</p>
  */
 public class SegmentCompactionIT {
+
+    static {
+        System.setProperty("oak.gc.backoff", "1");
+    }
 
     /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
     private static final boolean ENABLED =
@@ -143,8 +145,8 @@ public class SegmentCompactionIT {
 
     private volatile ListenableFuture<?> compactor = immediateCancelledFuture();
     private volatile ReadWriteLock compactionLock = null;
-    private volatile int maxReaders = 10;
-    private volatile int maxWriters = 10;
+    private volatile int maxReaders = Integer.getInteger("SegmentCompactionIT.maxReaders", 10);
+    private volatile int maxWriters = Integer.getInteger("SegmentCompactionIT.maxWriters", 10);
     private volatile long maxStoreSize = 200000000000L;
     private volatile int maxBlobSize = 1000000;
     private volatile int maxStringSize = 100;
