@@ -203,12 +203,12 @@ public final class DocumentNodeStore
     /**
      * The document store (might be used by multiple node stores).
      */
-    protected final DocumentStore store;
+    private final DocumentStore store;
 
     /**
      * Marker node, indicating a node does not exist at a given revision.
      */
-    protected final DocumentNodeState missing;
+    private final DocumentNodeState missing;
 
     /**
      * The commit queue to coordinate the commits.
@@ -218,29 +218,29 @@ public final class DocumentNodeStore
     /**
      * Commit queue for batch updates.
      */
-    protected final BatchCommitQueue batchCommitQueue;
+    private final BatchCommitQueue batchCommitQueue;
 
     /**
      * The change dispatcher for this node store.
      */
-    protected final ChangeDispatcher dispatcher;
+    private final ChangeDispatcher dispatcher;
 
     /**
      * The delay for asynchronous operations (delayed commit propagation and
      * cache update).
      */
-    protected int asyncDelay = 1000;
+    private int asyncDelay = 1000;
 
     /**
      * The maximum back off time in milliseconds when merges are retried. The
      * default value is twice the {@link #asyncDelay}.
      */
-    protected int maxBackOffMillis =
+    private int maxBackOffMillis =
             Integer.getInteger("oak.maxBackOffMS", asyncDelay * 2);
 
-    protected int changeSetMaxItems =  Integer.getInteger("oak.document.changeSet.maxItems", 50);
+    private int changeSetMaxItems =  Integer.getInteger("oak.document.changeSet.maxItems", 50);
 
-    protected int changeSetMaxDepth =  Integer.getInteger("oak.document.changeSet.maxDepth", 9);
+    private int changeSetMaxDepth =  Integer.getInteger("oak.document.changeSet.maxDepth", 9);
 
     /**
      * Whether this instance is disposed.

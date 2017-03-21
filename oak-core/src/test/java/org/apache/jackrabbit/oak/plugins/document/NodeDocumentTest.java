@@ -146,7 +146,7 @@ public class NodeDocumentTest {
         NodeDocument root = getRootDocument(ns.getDocumentStore());
         // remove most recent previous doc
         NodeDocument toRemove = root.getAllPreviousDocs().next();
-        int numDeleted = new SplitDocumentCleanUp(ns.store, new VersionGCStats(),
+        int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
                 Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
         numChanges -= Iterables.size(toRemove.getAllChanges());
@@ -169,7 +169,7 @@ public class NodeDocumentTest {
         NodeDocument root = getRootDocument(ns.getDocumentStore());
         // remove oldest previous doc
         NodeDocument toRemove = Iterators.getLast(root.getAllPreviousDocs());
-        int numDeleted = new SplitDocumentCleanUp(ns.store, new VersionGCStats(),
+        int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
                 Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
         numChanges -= Iterables.size(toRemove.getAllChanges());
@@ -252,7 +252,7 @@ public class NodeDocumentTest {
         int numLeaves = Iterators.size(root.getPreviousDocLeaves());
         // remove most recent previous doc
         NodeDocument toRemove = root.getAllPreviousDocs().next();
-        int numDeleted = new SplitDocumentCleanUp(ns.store, new VersionGCStats(),
+        int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
                 Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
 
@@ -276,7 +276,7 @@ public class NodeDocumentTest {
         int numLeaves = Iterators.size(root.getPreviousDocLeaves());
         // remove oldest previous doc
         NodeDocument toRemove = Iterators.getLast(root.getAllPreviousDocs());
-        int numDeleted = new SplitDocumentCleanUp(ns.store, new VersionGCStats(),
+        int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
                 Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
 
