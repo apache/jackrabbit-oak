@@ -39,6 +39,7 @@
                 * [sync](#nrt-indexing-mode-sync)
             * [Cluster Setup](#nrt-indexing-cluster-setup)
             * [Configuration](#nrt-indexing-config)
+    * [Reindexing](#reindexing)            
   
 ## <a name="overview"></a> Overview
   
@@ -74,8 +75,17 @@ diff is performed between _before_ and _after_ state and passed to `IndexUpdate`
 ### <a name="index-defnitions"></a> Index Definitions
 
 Index definitions are nodes of type `oak:QueryIndexDefinition` which are stored under a special node named `oak:index`.
-As part of diff traversal at each level `IndexUpdate` would look for `oak:index` nodes. The index definitions nodes have 
-following properties
+As part of diff traversal at each level `IndexUpdate` would look for `oak:index` nodes. Below is the canonical index 
+definition structure
+
+    /oak:index/indexName
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - type (string) mandatory
+      - async (string) multiple
+      - reindex (boolean)
+      
+
+The index definitions nodes have following properties
 
 1. `type` - It determines the _type_ of index. Based on the `type` `IndexUpdate` would look for `IndexEditor` of given 
     type from registered `IndexEditorProvider`. For out of the box Oak setup it can have one of the following value
@@ -90,6 +100,8 @@ following properties
     * `async` - Indicates that index is to be updated asynchronously. In such a case this value is used to determine
        the [indexing lane](#indexing-lane)
     * Any other value which ends in `async`. 
+3. `reindex` - If set to `true` reindexing would be performed for that index. Post which the property would be removed.
+    Refer to [reindexing](#reindexing) for more details.
     
 Based on above 2 properties `IndexUpdate` creates `IndexEditor` instances as it traverses the diff and registers them
 with itself passing on the callbacks for various changes
@@ -364,11 +376,56 @@ NRT indexing expose few configuration options as part of [LuceneIndexProviderSer
   completely
 * `hybridQueueSize` - Size of in memory queue used to hold Lucene documents for indexing in `nrt` mode. Default size is
   10000
+  
+## <a name="reindexing"></a> Reindexing
+
+Reindexing of existing indexes is required in following scenarios
+
+* Incompatible change in index definition - For example adding properties to the index which is already
+  present in repository
+* Corrupted Index - If the index is corrupt and `AsyncIndexUpdate` run fails with exception pointing to index being 
+  corrupt
+  
+Reindexing does not resolve other problems, such that queries not returning data. For such cases, it is _not_ 
+recommended to reindex (also because this can be very slow and use a lot of temporary disk space).
+If queries don't return the right data, then possibly the index is [not yet up-to-date][OAK-5159],
+or the query is incorrect, or included/excluded path settings are wrong (for Lucene indexes). Instead of reindexing, it 
+is suggested to first check the log file, modify the query so it uses a different index or traversal and run the query again.
+One case were reindexing can help is if the query engine picks a very slow index for some queries because the counter index 
+[got out of sync after adding and removing lots of nodes many times (fixed in recent version)][OAK-4065].
+For this case, it is recommended to verify the contents of the counter index first,
+and upgrade Oak before reindexing.
+
+Also note that with Oak 1.6 for Lucene indexes changes in index definition are only effective 
+[post reindexing](lucene.html#stored-index-definition)
+
+To reindex any index set the `reindex` flag to `true` in index definition
+
+    /oak:index/userIndex
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - async = ['async']
+      - reindex = true
+      
+Once changes are saved the index would be reindexed. For synchronous indexes the reindexing would be done
+as part of save (or commit) itself. While for asynchronous indexes are reindexed whenever the next async 
+indexing cycle run happens. Once reindexing starts following log entries can be seen in the log
+
+    [async-index-update-async] o.a.j.o.p.i.IndexUpdate Reindexing will be performed for following indexes: [/oak:index/userIndex]
+    [async-index-update-async] o.a.j.o.p.i.IndexUpdate Reindexing Traversed #100000 /home/user/admin 
+    [async-index-update-async] o.a.j.o.p.i.AsyncIndexUpdate [async] Reindexing completed for indexes: [/oak:index/userIndex*(4407016)] in 30 min 
+    
+In both cases once reindexing is complete the `reindex` flag would be removed.
+
+For property index you can also make use of `PropertyIndexAsyncReindexMBean`. Refer to 
+[reindeinxing property indexes](property-index.html#reindexing) section for more details on that
+
 
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
 [OAK-4939]: https://issues.apache.org/jira/browse/OAK-4939
 [OAK-4808]: https://issues.apache.org/jira/browse/OAK-4808
 [OAK-4412]: https://issues.apache.org/jira/browse/OAK-4412
+[OAK-4065]: https://issues.apache.org/jira/browse/OAK-4065
+[OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
 
   
   

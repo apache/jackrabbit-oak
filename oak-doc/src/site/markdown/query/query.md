@@ -36,27 +36,11 @@ documentation page.
 * [Solr](./solr.html)
 * [Property](./property-index.html)
 
-#### Reindexing
-
-Existing indexes need to be re-indexed if the definition is changed
-in such a way that the index is incorrect (for example adding properties to the index).
-Reindexing does not resolve other problems, such that queries not returning data.
-For such cases, it is _not_ recommended to reindex 
-(also because this can be very slow and use a lot of temporary disk space).
-If queries don't return the right data, then possibly the index is [not yet up-to-date][OAK-5159],
-or the query is incorrect, or included/excluded path settings are wrong (for Lucene indexes).
-Instead of reindexing, it is suggested to first check the log file, modify the query
-so it uses a different index or traversal and run the query again.
-One case were reindexing can help is if the query engine picks a very slow index
-for some queries because the counter index 
-[got out of sync after adding and removing lots of nodes many times (fixed in recent version)][OAK-4065].
-For this case, it is recommended to verify the contents of the counter index first,
-and upgrade Oak before reindexing.
+For more details on how indexing works and various indexing mode
+refer to [indexing](indexing.html) documentation. 
 
 ### Customisations
 
 * [Change Out-Of-The-Box Index Definitions](./ootb-index-change.html)
 
 
-[OAK-4065]: https://issues.apache.org/jira/browse/OAK-4065
-[OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
