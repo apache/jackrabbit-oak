@@ -169,13 +169,13 @@ public class NodeRecordTest {
 
             @Nonnull
             @Override
-            public RecordCache<String> getStringCache(int generation) {
+            public Cache<String, RecordId> getStringCache(int generation) {
                 return Empty.INSTANCE.getStringCache(generation);
             }
 
             @Nonnull
             @Override
-            public RecordCache<Template> getTemplateCache(int generation) {
+            public Cache<Template, RecordId> getTemplateCache(int generation) {
                 return Empty.INSTANCE.getTemplateCache(generation);
             }
 
