@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -76,11 +77,7 @@ import javax.jcr.RepositoryException;
  * For e.g. -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
  * src/test/resources/azure.properties
  */
-
-//@RunWith(PowerMockRunner.class)
-//@PrepareForTest({CloudBlobClient.class, CloudStorageAccount.class, CloudBlobContainer.class})
 public class AzureDataStoreTest {
-    protected static final Logger LOG = LoggerFactory.getLogger(AzureDataStoreTest.class);
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -90,8 +87,6 @@ public class AzureDataStoreTest {
     private AzureBlobStoreBackend backend;
     private String container;
     Random randomGen = new Random();
-
-    private CloudBlobContainer mockContainer;
 
     @BeforeClass
     public static void assumptions() {
@@ -126,14 +121,6 @@ public class AzureDataStoreTest {
                                 final DataRecord rhs)
             throws DataStoreException, IOException {
         validateRecord(record, contents, rhs.getIdentifier(), rhs.getLength(), rhs.getLastModified());
-    }
-
-    private void validateRecord(final DataRecord record,
-                                final String contents,
-                                final DataRecord rhs,
-                                boolean lastModifiedEquals)
-            throws DataStoreException, IOException {
-        validateRecord(record, contents, rhs.getIdentifier(), rhs.getLength(), rhs.getLastModified(), lastModifiedEquals);
     }
 
     private void validateRecord(final DataRecord record,
@@ -184,11 +171,6 @@ public class AzureDataStoreTest {
         return encodeHexString(digest.digest());
     }
 
-    private static int countIteratorEntries(final Iterator<?> iter) {
-        int ctr = 0;
-        while (iter.hasNext()) { iter.next(); ++ctr; }
-        return ctr;
-    }
 
     @Test
     public void testCreateAndDeleteBlobHappyPath() throws DataStoreException, IOException {
@@ -409,7 +391,7 @@ public class AzureDataStoreTest {
                 ids.add(identifier);
             }
 
-            int actualRecCount = countIteratorEntries(backend.getAllIdentifiers());
+            int actualRecCount = Iterators.size(backend.getAllIdentifiers());
 
             for (DataIdentifier identifier : ids) {
                 backend.deleteRecord(identifier);

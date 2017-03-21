@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore.LOG;
-
 import com.google.common.base.Strings;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
@@ -30,7 +28,6 @@ import com.microsoft.azure.storage.RetryPolicy;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 
@@ -48,8 +45,6 @@ import java.util.Properties;
 public final class Utils {
 
     public static final String DEFAULT_CONFIG_FILE = "azure.properties";
-
-    private static final String DELETE_CONFIG_SUFFIX = ";burn";
 
     public static final String DASH = "-";
 
@@ -128,12 +123,6 @@ public final class Utils {
      * @throws java.io.IOException if the file doesn't exist
      */
     public static Properties readConfig(String fileName) throws IOException {
-        boolean delete = false;
-        if (fileName.endsWith(DELETE_CONFIG_SUFFIX)) {
-            delete = true;
-            fileName = fileName.substring(0, fileName.length()
-                    - DELETE_CONFIG_SUFFIX.length());
-        }
         if (!new File(fileName).exists()) {
             throw new IOException("Config file not found. fileName=" + fileName);
         }
@@ -146,17 +135,7 @@ public final class Utils {
             if (in != null) {
                 in.close();
             }
-            if (delete) {
-                deleteIfPossible(new File(fileName));
-            }
         }
         return prop;
-    }
-
-    private static void deleteIfPossible(final File file) {
-        boolean deleted = file.delete();
-        if (!deleted) {
-            LOG.warn("Could not delete file. fileName=" + file.getAbsolutePath());
-        }
     }
 }

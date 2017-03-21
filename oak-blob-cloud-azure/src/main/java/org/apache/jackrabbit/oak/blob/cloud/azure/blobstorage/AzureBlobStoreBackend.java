@@ -242,7 +242,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
     }
 
-    public static boolean waitForCopy(CloudBlob blob) throws StorageException, InterruptedException {
+    private static boolean waitForCopy(CloudBlob blob) throws StorageException, InterruptedException {
         boolean continueLoop = true;
         CopyStatus status = CopyStatus.PENDING;
         while (continueLoop) {
