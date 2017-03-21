@@ -88,6 +88,7 @@ import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -252,6 +253,12 @@ public class DocumentNodeStoreService {
                     "be pre-fetched in a background thread."
     )
     public static final String PROP_PREFETCH_EXTERNAL_CHANGES = "prefetchExternalChanges";
+
+    @Property(
+            label = "NodeStoreProvider role",
+            description = "Property indicating that this component will not register as a NodeStore but as a NodeStoreProvider with given role"
+    )
+    public static final String PROP_ROLE = "role";
 
     private static enum DocumentStoreType {
         MONGO, RDB;
@@ -605,6 +612,11 @@ public class DocumentNodeStoreService {
             log.warn("registerNodeStore: got RuntimeException while trying to determine time difference to server: " + e, e);
         }
 
+        if (isNodeStoreProvider()) {
+            registerNodeStoreProvider(nodeStore);
+            return;
+        }
+
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, DocumentNodeStore.class.getName());
         props.put(DESCRIPTION, getMetadata(ds));
@@ -618,6 +630,23 @@ public class DocumentNodeStoreService {
                  Clusterable.class.getName()
             }, 
             nodeStore, props);
+    }
+
+    private boolean isNodeStoreProvider() {
+        return prop(PROP_ROLE) != null;
+    }
+
+    private void registerNodeStoreProvider(final NodeStore ns) {
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put(NodeStoreProvider.ROLE, prop(PROP_ROLE));
+        nodeStoreReg = context.getBundleContext().registerService(NodeStoreProvider.class.getName(), new NodeStoreProvider() {
+                    @Override
+                    public NodeStore getNodeStore() {
+                        return ns;
+                    }
+                },
+                props);
+        log.info("Registered NodeStoreProvider backed by DocumentNodeStore");
     }
 
     @Deactivate
