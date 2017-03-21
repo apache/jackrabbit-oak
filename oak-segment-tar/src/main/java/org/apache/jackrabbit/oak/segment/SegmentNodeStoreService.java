@@ -542,12 +542,14 @@ public class SegmentNodeStoreService {
                     GCMonitor.class,
                     monitor
             ));
-            closeables.add(registrations.registerMBean(
-                    SegmentRevisionGC.class,
-                    new SegmentRevisionGCMBean(store, gcOptions, monitor),
-                    SegmentRevisionGC.TYPE,
-                    "Segment node store revision garbage collection"
-            ));
+            if (!configuration.isStandbyInstance()) {
+                closeables.add(registrations.registerMBean(
+                        SegmentRevisionGC.class,
+                        new SegmentRevisionGCMBean(store, gcOptions, monitor),
+                        SegmentRevisionGC.TYPE,
+                        "Segment node store revision garbage collection"
+                ));
+            }
             Runnable cancelGC = new Runnable() {
 
                 @Override
