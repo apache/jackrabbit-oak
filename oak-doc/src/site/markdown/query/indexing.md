@@ -71,8 +71,13 @@ Index definitions are nodes of type `oak:QueryIndexDefinition` which are stored 
 As part of diff traversal at each level `IndexUpdate` would look for `oak:index` nodes. The index definitions nodes have 
 following properties
 
-1. `type` - It determines the _type_ of index. For e.g. it can be `property`, `lucene`, `solr` etc. Based on the `type`
-   `IndexUpdate` would look for `IndexEditor` of given type from registered `IndexEditorProvider`
+1. `type` - It determines the _type_ of index. Based on the `type` `IndexUpdate` would look for `IndexEditor` of given 
+    type from registered `IndexEditorProvider`. For out of the box Oak setup it can have one of the following value
+    * `reference` -  Configured with out of box setup
+    * `counter` - Configured with out of box setup
+    * `property`
+    * `lucene`
+    * `solr`
 2. `async` - It determines if the index is to be updated synchronously or asynchronously. It can have following values
     * `sync` - Also the default value. It indicates that index is meant to be updated as part of commit
     * `nrt`  - Indicates that index is a [near real time](#nrt-indexing) index. 
