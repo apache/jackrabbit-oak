@@ -93,7 +93,7 @@ public class StandbyStoreService {
     @Property(intValue = READ_TIMEOUT_DEFAULT)
     public static final String READ_TIMEOUT = "standby.readtimeout";
 
-    public static final boolean AUTO_CLEAN_DEFAULT = false;
+    public static final boolean AUTO_CLEAN_DEFAULT = true;
 
     @Property(boolValue = AUTO_CLEAN_DEFAULT)
     public static final String AUTO_CLEAN = "standby.autoclean";
