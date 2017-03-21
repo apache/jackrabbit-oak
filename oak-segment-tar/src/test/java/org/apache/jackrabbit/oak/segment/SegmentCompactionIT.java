@@ -78,6 +78,7 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
@@ -94,7 +95,6 @@ import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -231,7 +231,7 @@ public class SegmentCompactionIT {
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
                 .withGCOptions(gcOptions)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+                .withStatisticsProvider(new MetricStatisticsProvider(mBeanServer, executor))
                 .build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         Runnable cancelGC = new Runnable() {
