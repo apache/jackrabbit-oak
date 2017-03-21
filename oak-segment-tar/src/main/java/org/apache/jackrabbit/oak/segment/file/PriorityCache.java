@@ -66,6 +66,7 @@ public class PriorityCache<K, V> {
     private long hitCount;
     private long missCount;
     private long loadCount;
+    private long loadExceptionCount;
     private long evictionCount;
     private long size;
 
@@ -251,6 +252,7 @@ public class PriorityCache<K, V> {
             weight += weighEntry(newE);
             return true;
         } else {
+            loadExceptionCount++;
             return false;
         }
     }
@@ -328,7 +330,7 @@ public class PriorityCache<K, V> {
      */
     @Nonnull
     public CacheStats getStats() {
-        return new CacheStats(hitCount, missCount, loadCount, 0, 0, evictionCount);
+        return new CacheStats(hitCount, missCount, loadCount, loadExceptionCount, 0, evictionCount);
     }
 
     public long estimateCurrentWeight() {
