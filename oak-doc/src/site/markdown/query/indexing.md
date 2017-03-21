@@ -33,7 +33,12 @@
             * [Setup](#async-index-setup)
             * [Async Indexing MBean](#async-index-mbean)
             * [Isolating Corrupt Indexes](#corrupt-index-handling)
-    * [Near Real Time Indexing](#nrt-indexing)
+        * [Near Real Time Indexing](#nrt-indexing)
+            * [NRT Indexing Modes](#nrt-indexing-modes)
+                * [nrt](#nrt-indexing-mode-nrt)
+                * [sync](#nrt-indexing-mode-sync)
+            * [Cluster Setup](#nrt-indexing-cluster-setup)
+            * [Configuration](#nrt-indexing-config)
   
 ## <a name="overview"></a> Overview
   
@@ -56,6 +61,7 @@ Oak has following in built `IndexEditor`s
 
 ### <a name="new-1.6"></a> New in 1.6
 
+* [Near Real Time Indexing](#nrt-indexing)
 * [Multiple Async indexers setup via OSGi config](#async-index-setup)
 * [Isolating Corrupt Indexes](#corrupt-index-handling)
 
@@ -201,7 +207,7 @@ date
 
 #### <a name="async-index-setup"></a> Setup
 
-`Since 1.6`
+`@since Oak 1.6`
 
 Async indexers can be configure via OSGi config for `org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService`
 
@@ -265,16 +271,104 @@ Later once the index is reindexed following log entry would be made
 This feature can be disabled by setting `failingIndexTimeoutSeconds` to 0 in AsyncIndexService config. Refer to 
 [OAK-4939][OAK-4939] for more details
 
-## <a name="nrt-indexing"></a> Near Real Time Indexing
+### <a name="nrt-indexing"></a> Near Real Time Indexing
 
-## Index Types
+`@since Oak 1.6`
 
-### Property Indexes
+_This mode is only supported for `lucene` indexes_
 
-### Lucene Indexes
+Lucene indexes perform well for evaluating complex queries and also have the benefit of being evaluated locally with
+copy-on-read support. However they are `async` index and depending on system load can lag behind the repository state.
+For cases where such lag (of order of minutes) is not acceptable one has to use `property` indexes. For such cases
+Oak 1.6 has [added support for near real time indexing][OAK-4412]
+
+![NRT Index Flow](index-nrt.png)
+
+In this mode the indexing would happen in 2 modes and query would consult multiple indexes. The diagram above shows
+indexing flow with time. In above flow
+
+* T1, T3 and T5 - Time instances at which checkpoint is created
+* T2 and T4 - Time instance when async indexer run completed and indexes were updated
+* Persisted Index 
+    * v2 - Index version v2 which has repository state upto time T1 indexed
+    * v3 - Index version v2 which has repository state upto time T3 indexed
+* Local Index
+    * NRT1 - Local index which repository state between time T2 and T4 indexed
+    * NRT2 - Local index which repository state between time T4 and T6 indexed
+    
+As repository state changes with time Async indexer would run and index state between last known checkpoint and 
+current state when that run started. So when asyn run 1 completed the persisted index has repository state indexed
+upto time T3.
+
+Now without NRT index support if any query is performed between time T2 and T4 it would only see index result for
+repository state at time T1 as thats state which the persisted indexes have data for. Any change after that would not be
+seen untill next async indexing cycle complete (by time T4). 
+
+With NRT indexing support indexing would happen at 2 places
+
+* Persisted Index - This is the index which is updated via async indexer run. This flow would remain same i.e. it 
+  would be periodically updated by the indexer run
+* Local Index - In addition to persisted index each cluster node would also maintain a local index. This index would 
+  only keep data between 2 async indexer run. Post each run the previous index would be discarded and a new index would
+  be built (actually previous index is retained for one cycle)
+  
+Any query making use of such an index would make use of both indexes. With this new content added in repository
+after the last async index run would also show up quickly. 
+
+#### <a name="nrt-indexing-modes"></a> NRT Indexing Modes
+
+NRT indexing can be enabled for any index by configuring the `async` property
+
+    /oak:index/assetIndex
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - async = ['fulltext-async', 'nrt']
+      
+Here `async` value has been set to a multi value property where 
+
+* Indexing lane - Like `async` or `fulltext-async`
+* NRT Indexing Mode - `nrt` or `sync`
+
+##### <a name="nrt-indexing-mode-nrt"></a> nrt
+
+In this mode the local index would be updated asynchronously on that cluster nodes post commit and the index reader 
+would be refreshed after 1 sec. So any change done should should show up on that cluster node in 1-2 secs
+
+    /oak:index/userIndex
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - async = ['async', 'nrt']
+
+##### <a name="nrt-indexing-mode-sync"></a> sync
+
+In this mode the local index would be updated synchronously on that cluster nodes post commit and the index reader 
+would be refreshed immediately. This mode performs slowly compared to the "nrt" mode
+
+    /oak:index/userIndex
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - async = ['async', 'sync']
+      
+For a single node setup (like with SegmentNodeStore) this mode effectively makes async lucene index perform same as 
+synchronous property indexes. However 'nrt' mode performs better so using that would be preferable
+      
+#### <a name="nrt-indexing-cluster-setup"></a> Cluster Setup
+
+In cluster setup each cluster node would maintain its own local index for changes happening in that cluster node.
+In addition to that it would also index changes from other cluster node by relying on [Oak observation for external 
+changes][OAK-4808]. This depends on how frequently external changes are delivered. Due to this even with NRT indexing
+changes from other cluster node would take some more time to reflect in query result compared to local changes.
+
+#### <a name="nrt-indexing-config"></a> Configuration
+
+NRT indexing expose few configuration options as part of [LuceneIndexProviderService](lucene.html#osgi-config)
+
+* `enableHybridIndexing` - Boolean property defaults to `true`. Can be set to `false` to disable NRT indexing feature 
+  completely
+* `hybridQueueSize` - Size of in memory queue used to hold Lucene documents for indexing in `nrt` mode. Default size is
+  10000
 
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
 [OAK-4939]: https://issues.apache.org/jira/browse/OAK-4939
+[OAK-4808]: https://issues.apache.org/jira/browse/OAK-4808
+[OAK-4412]: https://issues.apache.org/jira/browse/OAK-4412
 
   
   
