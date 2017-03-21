@@ -1026,7 +1026,8 @@ public class ClusterNodeInfo {
                 "readWriteMode: " + readWriteMode + ",\n" +
                 "state: " + state + ",\n" +
                 "revLock: " + revRecoveryLock + ",\n" +
-                "oakVersion: " + OAK_VERSION;
+                "oakVersion: " + OAK_VERSION + ",\n" +
+                "formatVersion: " + DocumentNodeStore.VERSION;
     }
 
     /**
