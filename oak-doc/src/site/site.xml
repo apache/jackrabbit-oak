@@ -38,15 +38,23 @@ under the License.
       <item href="oak_api/overview.html" name="Oak API" />
     </menu>
     <menu name="Features and Plugins">
-      <item href="features/atomic-counter.html" name="Atomic Counter" />
+      <item href="nodestore/overview.html" name="Node Storage" collapse="false">
+        <item href="nodestore/documentmk.html" name="Document NodeStore" collapse="false">
+          <item href="nodestore/persistent-cache.html" name="Persistent Cache" />
+          <item href="clustering.html" name="Clustering" />
+        </item>
+        <item href="nodestore/segment/overview.html" name="Segment NodeStore" />
+      </item>
       <item href="plugins/blobstore.html" name="Blob Storage" />
-      <item href="clustering.html" name="Clustering" />
-      <item href="nodestore/documentmk.html" name="DocumentNodeStore" />
-      <item href="nodestore/overview.html" name="Node Storage" />
-      <item href="nodestore/persistent-cache.html" name="Persistent Cache" />
-      <item href="query/query.html" name="Query" />
+      <item href="query/query.html" name="Query" collapse="false">
+        <item href="query/query-engine.html" name="Query Engine" />
+        <item href="query/indexing.html" name="Indexing" />
+        <item href="query/lucene.html" name="Lucene Index" />
+        <item href="query/property-index.html" name="Property Index" />
+        <item href="query/solr.html" name="Solr Index" />
+      </item>
       <item href="security/overview.html" name="Security" />
-      <item href="nodestore/segment/overview.html" name="Segment Node Store" />
+      <item href="features/atomic-counter.html" name="Atomic Counter" />
     </menu>
     <menu name="Using Oak">
       <item href="use_getting_started.html" name="Getting Started" />
