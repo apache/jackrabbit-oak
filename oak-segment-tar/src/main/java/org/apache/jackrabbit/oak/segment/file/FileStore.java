@@ -75,7 +75,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -293,21 +292,6 @@ public class FileStore extends AbstractFileStore {
 
     private int getGcGeneration() {
         return revisions.getHead().getSegmentId().getGcGeneration();
-    }
-
-    @CheckForNull
-    public CacheStatsMBean getStringDeduplicationCacheStats() {
-        return segmentWriter.getStringCacheStats();
-    }
-
-    @CheckForNull
-    public CacheStatsMBean getTemplateDeduplicationCacheStats() {
-        return segmentWriter.getTemplateCacheStats();
-    }
-
-    @CheckForNull
-    public CacheStatsMBean getNodeDeduplicationCacheStats() {
-        return segmentWriter.getNodeCacheStats();
     }
 
     /**
@@ -757,7 +741,6 @@ public class FileStore extends AbstractFileStore {
     
                 if (sufficientEstimatedGain) {
                     if (!gcOptions.isPaused()) {
-                        log(segmentWriter.getNodeCacheOccupancyInfo());
                         int gen = compact();
                         if (gen > 0) {
                             fileReaper.add(cleanupOldGenerations(gen));
@@ -766,7 +749,6 @@ public class FileStore extends AbstractFileStore {
                             gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
                             fileReaper.add(cleanupGeneration(-gen));
                         }
-                        log(segmentWriter.getNodeCacheOccupancyInfo());
                     } else {
                         gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
                     }

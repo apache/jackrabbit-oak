@@ -66,7 +66,6 @@ import com.google.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
@@ -136,42 +135,8 @@ public class SegmentWriter {
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
     }
 
-    /**
-     * Get occupancy information for the node deduplication cache indicating occupancy and
-     * evictions per priority.
-     * @return  occupancy information for the node deduplication cache.
-     */
-    @CheckForNull
-    public String getNodeCacheOccupancyInfo() {
-        return cacheManager.getNodeCacheOccupancyInfo();
-    }
-
     public void flush() throws IOException {
         writeOperationHandler.flush(store);
-    }
-
-    /**
-     * @return  Statistics for the string deduplication cache or {@code null} if not available.
-     */
-    @CheckForNull
-    public CacheStatsMBean getStringCacheStats() {
-        return cacheManager.getStringCacheStats();
-    }
-
-    /**
-     * @return  Statistics for the template deduplication cache or {@code null} if not available.
-     */
-    @CheckForNull
-    public CacheStatsMBean getTemplateCacheStats() {
-        return cacheManager.getTemplateCacheStats();
-    }
-
-    /**
-     * @return  Statistics for the node deduplication cache or {@code null} if not available.
-     */
-    @CheckForNull
-    public CacheStatsMBean getNodeCacheStats() {
-        return cacheManager.getNodeCacheStats();
     }
 
     /**
@@ -437,7 +402,7 @@ public class SegmentWriter {
         private SegmentBufferWriter writer;
         private RecordCache<String> stringCache;
         private RecordCache<Template> templateCache;
-        private NodeCache nodeCache;
+        private Cache<String, RecordId> nodeCache;
 
         protected SegmentWriteOperation(@Nonnull Supplier<Boolean> cancel) {
             this.cancel = cancel;

@@ -504,7 +504,8 @@ public class SegmentNodeStoreService {
                 templateCacheStats.getName()
         ));
 
-        CacheStatsMBean stringDeduplicationCacheStats = store.getStringDeduplicationCacheStats();
+        WriterCacheManager cacheManager = builder.getCacheManager();
+        CacheStatsMBean stringDeduplicationCacheStats = cacheManager.getStringCacheStats();
         if (stringDeduplicationCacheStats != null) {
             closeables.add(registrations.registerMBean(
                     CacheStatsMBean.class,
@@ -514,7 +515,7 @@ public class SegmentNodeStoreService {
             ));
         }
 
-        CacheStatsMBean templateDeduplicationCacheStats = store.getTemplateDeduplicationCacheStats();
+        CacheStatsMBean templateDeduplicationCacheStats = cacheManager.getTemplateCacheStats();
         if (templateDeduplicationCacheStats != null) {
             closeables.add(registrations.registerMBean(
                     CacheStatsMBean.class,
@@ -524,7 +525,7 @@ public class SegmentNodeStoreService {
             ));
         }
 
-        CacheStatsMBean nodeDeduplicationCacheStats = store.getNodeDeduplicationCacheStats();
+        CacheStatsMBean nodeDeduplicationCacheStats = cacheManager.getNodeCacheStats();
         if (nodeDeduplicationCacheStats != null) {
             closeables.add(registrations.registerMBean(
                     CacheStatsMBean.class,

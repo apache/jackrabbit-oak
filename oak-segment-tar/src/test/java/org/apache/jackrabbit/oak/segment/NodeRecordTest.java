@@ -162,7 +162,7 @@ public class NodeRecordTest {
         }
     }
 
-    private WriterCacheManager nodesOnlyCache() {
+    private static WriterCacheManager nodesOnlyCache() {
         return new WriterCacheManager() {
 
             WriterCacheManager defaultCache = new WriterCacheManager.Default();
@@ -181,7 +181,7 @@ public class NodeRecordTest {
 
             @Nonnull
             @Override
-            public NodeCache getNodeCache(int generation) {
+            public Cache<String, RecordId> getNodeCache(int generation) {
                 return defaultCache.getNodeCache(generation);
             }
         };

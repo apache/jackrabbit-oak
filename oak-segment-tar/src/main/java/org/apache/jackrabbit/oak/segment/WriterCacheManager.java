@@ -105,7 +105,7 @@ public abstract class WriterCacheManager {
      * @return  cache for node records of the given {@code generation}.
      */
     @Nonnull
-    public abstract NodeCache getNodeCache(int generation);
+    public abstract Cache<String, RecordId> getNodeCache(int generation);
 
     /**
      * @return  statistics for the string cache or {@code null} if not available.
@@ -175,14 +175,19 @@ public abstract class WriterCacheManager {
         }
 
         /**
-         * @return  a {@code NodeCache} cache that is always empty
+         * @return  a {@code Cache} cache that is always empty
          */
         @Nonnull
         @Override
-        public NodeCache getNodeCache(int generation) {
-            return new NodeCache() {
+        public Cache<String, RecordId> getNodeCache(int generation) {
+            return new Cache<String, RecordId>() {
                 @Override
                 public void put(@Nonnull String stableId, @Nonnull RecordId recordId, byte cost) { }
+
+                @Override
+                public void put(@Nonnull String key, @Nonnull RecordId value) {
+                    throw new UnsupportedOperationException();
+                }
 
                 @CheckForNull
                 @Override
@@ -194,7 +199,7 @@ public abstract class WriterCacheManager {
     /**
      * This implementation of {@link WriterCacheManager} returns
      * {@link RecordCache} instances for the string and template cache
-     * and {@link NodeCache} instance for the node cache.
+     * and {@link Cache} instance for the node cache.
      */
     public static class Default extends WriterCacheManager {
         /**
@@ -261,6 +266,7 @@ public abstract class WriterCacheManager {
                 return generations.get(generation).get();
             }
 
+            @Nonnull
             @Override
             public Iterator<T> iterator() {
                 return transform(generations.values().iterator(), new Function<Supplier<T>, T>() {
@@ -293,19 +299,28 @@ public abstract class WriterCacheManager {
             return templateCaches.getGeneration(generation);
         }
 
+        private PriorityCache<String, RecordId> nodeCache() {
+            return nodeCache.get();
+        }
+
         @Override
         @Nonnull
-        public NodeCache getNodeCache(final int generation) {
-            return new NodeCache() {
+        public Cache<String, RecordId> getNodeCache(final int generation) {
+            return new Cache<String, RecordId>() {
                 @Override
                 public void put(@Nonnull String stableId, @Nonnull RecordId recordId, byte cost) {
-                    nodeCache.get().put(stableId, recordId, generation, cost);
+                    nodeCache().put(stableId, recordId, generation, cost);
+                }
+
+                @Override
+                public void put(@Nonnull String key, @Nonnull RecordId value) {
+                    throw new UnsupportedOperationException();
                 }
 
                 @CheckForNull
                 @Override
                 public RecordId get(@Nonnull String stableId) {
-                    return nodeCache.get().get(stableId, generation);
+                    return nodeCache().get(stableId, generation);
                 }
             };
         }
@@ -380,26 +395,21 @@ public abstract class WriterCacheManager {
                     new Supplier<CacheStats>() {
                         @Override
                         public CacheStats get() {
-                            return nodeCache.get().getStats();
+                            return nodeCache().getStats();
                         }
                     },
                     new Supplier<Long>() {
                         @Override
                         public Long get() {
-                            return nodeCache.get().size();
+                            return nodeCache().size();
                         }
                     },
                     new Supplier<Long>() {
                         @Override
                         public Long get() {
-                            return nodeCache.get().estimateCurrentWeight();
+                            return nodeCache().estimateCurrentWeight();
                         }
                     });
-        }
-
-        @Override
-        public String getNodeCacheOccupancyInfo() {
-            return nodeCache.get().toString();
         }
 
         /**
@@ -409,7 +419,7 @@ public abstract class WriterCacheManager {
         protected final void evictCaches(Predicate<Integer> generations) {
             stringCaches.evictGenerations(generations);
             templateCaches.evictGenerations(generations);
-            nodeCache.get().purgeGenerations(generations);
+            nodeCache().purgeGenerations(generations);
         }
     }
 }
