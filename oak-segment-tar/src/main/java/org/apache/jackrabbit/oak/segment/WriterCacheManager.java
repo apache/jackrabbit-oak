@@ -39,6 +39,9 @@ import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 
 /**
  * Instances of this class manage the deduplication caches used
@@ -91,14 +94,14 @@ public abstract class WriterCacheManager {
      * @return  cache for string records of the given {@code generation}.
      */
     @Nonnull
-    public abstract RecordCache<String> getStringCache(int generation);
+    public abstract Cache<String, RecordId> getStringCache(int generation);
 
     /**
      * @param generation
      * @return  cache for template records of the given {@code generation}.
      */
     @Nonnull
-    public abstract RecordCache<Template> getTemplateCache(int generation);
+    public abstract Cache<Template, RecordId> getTemplateCache(int generation);
 
     /**
      * @param generation
@@ -221,6 +224,13 @@ public abstract class WriterCacheManager {
         private final Supplier<PriorityCache<String, RecordId>> nodeCache;
 
         /**
+         * The {@code StatisticsProvider} instance used to expose statistics of
+         * the caches managed by this instance.
+         */
+        @Nonnull
+        private final StatisticsProvider statisticsProvider;
+
+        /**
          * New instance using the passed factories for creating cache instances.
          * The factories will be invoked exactly once when a generation of a
          * cache is requested that has not been requested before.
@@ -228,14 +238,18 @@ public abstract class WriterCacheManager {
          * @param stringCacheFactory       factory for the string cache
          * @param templateCacheFactory     factory for the template cache
          * @param nodeCacheFactory         factory for the node cache
+         * @param statisticsProvider       The {@code StatisticsProvider} instance to expose
+         *                                 statistics of the caches managed by this instance.
          */
         public Default(
                 @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
                 @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
-                @Nonnull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
+                @Nonnull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory,
+                @Nonnull StatisticsProvider statisticsProvider) {
             this.stringCaches = new Generations<>(stringCacheFactory);
             this.templateCaches = new Generations<>(templateCacheFactory);
             this.nodeCache = memoize(nodeCacheFactory);
+            this.statisticsProvider = checkNotNull(statisticsProvider);
         }
 
         /**
@@ -247,7 +261,8 @@ public abstract class WriterCacheManager {
         public Default() {
             this(RecordCache.<String>factory(DEFAULT_STRING_CACHE_SIZE),
                  RecordCache.<Template>factory(DEFAULT_TEMPLATE_CACHE_SIZE),
-                 PriorityCache.<String, RecordId>factory(DEFAULT_NODE_CACHE_SIZE));
+                 PriorityCache.<String, RecordId>factory(DEFAULT_NODE_CACHE_SIZE),
+                 StatisticsProvider.NOOP);
         }
 
         private static class Generations<T> implements Iterable<T> {
@@ -289,14 +304,16 @@ public abstract class WriterCacheManager {
 
         @Nonnull
         @Override
-        public RecordCache<String> getStringCache(int generation) {
-            return stringCaches.getGeneration(generation);
+        public Cache<String, RecordId> getStringCache(int generation) {
+            return new AccessTrackingCache<>("oak.segment.string-deduplication-cache",
+                    stringCaches.getGeneration(generation));
         }
 
         @Nonnull
         @Override
-        public RecordCache<Template> getTemplateCache(int generation) {
-            return templateCaches.getGeneration(generation);
+        public Cache<Template, RecordId> getTemplateCache(int generation) {
+            return new AccessTrackingCache<>("oak.segment.template-deduplication-cache",
+                    templateCaches.getGeneration(generation));
         }
 
         private PriorityCache<String, RecordId> nodeCache() {
@@ -306,7 +323,8 @@ public abstract class WriterCacheManager {
         @Override
         @Nonnull
         public Cache<String, RecordId> getNodeCache(final int generation) {
-            return new Cache<String, RecordId>() {
+            return new AccessTrackingCache<>("oak.segment.node-deduplication-cache",
+                    new Cache<String, RecordId>() {
                 @Override
                 public void put(@Nonnull String stableId, @Nonnull RecordId recordId, byte cost) {
                     nodeCache().put(stableId, recordId, generation, cost);
@@ -322,7 +340,7 @@ public abstract class WriterCacheManager {
                 public RecordId get(@Nonnull String stableId) {
                     return nodeCache().get(stableId, generation);
                 }
-            };
+            });
         }
 
         @CheckForNull
@@ -421,5 +439,45 @@ public abstract class WriterCacheManager {
             templateCaches.evictGenerations(generations);
             nodeCache().purgeGenerations(generations);
         }
+
+        /**
+         * {@code Cache} wrapper exposing the number of read accesses and the
+         * number of misses ot the underlying cache via the {@link #statisticsProvider}.
+         */
+        private class AccessTrackingCache<K, V> implements Cache<K,V> {
+            private final Cache<K, V> delegate;
+            private final CounterStats accessCount;
+            private final CounterStats missCount;
+
+            private AccessTrackingCache(@Nonnull String name, @Nonnull Cache<K, V> delegate) {
+                this.delegate = delegate;
+                this.accessCount = statisticsProvider.getCounterStats(
+                        name + ".access-count", StatsOptions.DEFAULT);
+                this.missCount = statisticsProvider.getCounterStats(
+                        name + ".miss-count", StatsOptions.DEFAULT);
+            }
+
+            @Override
+            public void put(@Nonnull K key, @Nonnull V value) {
+                delegate.put(key, value);
+            }
+
+            @Override
+            public void put(@Nonnull K key, @Nonnull V value, byte cost) {
+                delegate.put(key, value, cost);
+            }
+
+            @CheckForNull
+            @Override
+            public V get(@Nonnull K key) {
+                V v = delegate.get(key);
+                accessCount.inc();
+                if (v == null) {
+                    missCount.inc();
+                }
+                return v;
+            }
+        }
+
     }
 }
