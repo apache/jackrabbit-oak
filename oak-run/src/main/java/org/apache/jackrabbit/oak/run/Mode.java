@@ -30,6 +30,7 @@ enum Mode {
     COMPACT("compact", new CompactCommand()),
     SERVER("server", new ServerCommand()),
     UPGRADE("upgrade", new UpgradeCommand()),
+    UNLOCKUPGRADE("unlockUpgrade", new UnlockUpgradeCommand()),
     SCALABILITY("scalability", new ScalabilityCommand()),
     EXPLORE("explore", new ExploreCommand()),
     CHECKPOINTS("checkpoints", new CheckpointsCommand()),
