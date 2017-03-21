@@ -572,6 +572,26 @@ Further make use of the persistent cache. This reduces pressure on GC by keeping
 instances off heap with slight decrease in performance compared to keeping them
 on heap.
 
+### Unlock upgrade <a name="unlockUpgrade"/>
+
+On startup the DocumentNodeStore checks if its version is compatible with the
+format version currently in use. A read-only DocumentNodeStore can read the 
+current version as well as older versions. A read-write DocumentNodeStore on the
+other hand can only write to the DocumentStore when the format version matches 
+its own version. The DocumentNodeStore maintains this format version in the
+`settings` collection accessible to all cluster nodes.
+
+Upgrading to a newer Oak version may therefore first require an update of the
+format version before a newer version of a DocumentNodeStore can be started on
+existing data. The oak-run tools contains an `unlockUpgrade` mode to perform
+this operation. Use the oak-run tool with the version matching the target 
+upgrade version to unlock an upgrade with the following command. The below
+example unlocks an upgrade to 1.8 with a DocumentNodeStore on MongoDB:
+
+    > java -jar oak-run-1.8.0.jar unlockUpgrade mongodb://example.com:27017/oak
+
+Please note that unlocking an upgrade is only possible when all cluster nodes
+are inactive, otherwise the command will refuse to change the format version.
 
 [1]: http://docs.mongodb.org/manual/core/read-preference/
 [2]: http://docs.mongodb.org/manual/core/write-concern/

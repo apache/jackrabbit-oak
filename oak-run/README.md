@@ -27,6 +27,7 @@ The following runmodes are currently available:
     * tarmkdiff       : Show changes between revisions on TarMk
     * tarmkrecovery   : Lists candidates for head journal entries
     * tika            : Performs text extraction
+    * unlockUpgrade   : Unlock a DocumentMK upgrade to a newer version
     * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak.
     
 
@@ -906,6 +907,11 @@ Upgrades the JR2 DataStore cache by moving files to the Upload staging and the d
         --path <path> \
         --moveCache <true|false> \
         --deleteMapFile <true|false>
+
+Unlock DocumentMK upgrade
+-------------------------
+
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#unlockUpgrade).
 
 License
 -------
