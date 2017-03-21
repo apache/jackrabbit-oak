@@ -182,4 +182,23 @@ public class PriorityCacheTest {
         assertEquals(count, cache.size() + cache.getStats().evictionCount());
     }
 
+    @Test
+    public void loadExceptionCount() {
+        Random rnd = new Random();
+        PriorityCache<String, Integer> cache = new PriorityCache<>(16);
+        int success = 0;
+        int failure = 0;
+        for (int i = 0; i < 1000; i++) {
+            if (cache.put("k-" + i + "-" + rnd.nextInt(1000), i, 0, (byte) 0)) {
+                success++;
+            } else {
+                failure++;
+            }
+        }
+
+        assertEquals(0, cache.getStats().evictionCount());
+        assertEquals(success, cache.size());
+        assertEquals(failure, cache.getStats().loadExceptionCount());
+    }
+
 }
