@@ -82,7 +82,7 @@ or to simplify you can use one of the existing `IndexUtils#createIndexDefinition
       IndexUtils.createIndexDefinition(index, "myProp", true, false, ImmutableList.of("myProp"), null);
     }
 
-#### Reindexing
+#### <a name="reindexing"></a> Reindexing
 
 Usually, reindexing is only needed if the configuration of an index is changed, 
 such that the index should contain more or different data.
