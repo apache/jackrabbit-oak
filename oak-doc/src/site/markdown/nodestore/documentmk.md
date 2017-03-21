@@ -15,14 +15,38 @@
    limitations under the License.
   -->
 
-# Oak Document Storage
+# <a name="oak-document-storage"></a> Oak Document Storage
+
+* [Oak Document Storage](#oak-document-storage)
+    * [Backend implementations](#backend-implementations)
+    * [Content Model](#content-model)
+    * [Node Content Model](#node-content-model)
+    * [Revisions](#revisions)
+    * [Clock requirements](#clock-requirements)
+    * [Branches](#branches)
+    * [Previous Documents](#previous-documents)
+    * [Background Operations](#background-operations)
+        * [Renew Cluster Id Lease](#renew-cluster-id-lease)
+        * [Background Document Split](#background-document-split)
+        * [Background Writes](#background-writes)
+        * [Background Reads](#bg-read)
+    * [Pending Topics](#pending-topics)
+        * [Conflict Detection and Handling](#conflict-detection-and-handling)
+    * [Cluster Node Metadata](#cluster-node-metadata)
+        * [Specifying the Read Preference and Write Concern](#rw-preference)
+            * [Via Configuration](#via-configuration)
+            * [Changing at Runtime](#changing-at-runtime)
+    * [Caching](#cache)
+        * [Cache Invalidation](#cache-invalidation)
+        * [Cache Configuration](#cache-configuration)
+    * [Unlock upgrade ](#unlockUpgrade)
 
 One of the plugins in Oak stores data in a document oriented format. 
 The plugin implements the low level `NodeStore` interface.
 
 The document storage optionally uses the [persistent cache](persistent-cache.html) to reduce read operations on the backend storage.
 
-## Backend implementations
+## <a name="backend-implementations"></a> Backend implementations
 
 DocumentMK supports a number of backends, with a storage abstraction called `DocumentStore`:
 
@@ -32,7 +56,7 @@ DocumentMK supports a number of backends, with a storage abstraction called `Doc
 
 The remaining part of the document will focus on the `MongoDocumentStore` to explain and illustrate concepts of the DocumentMK.
 
-## Content Model
+## <a name="content-model"></a> Content Model
 
 The repository data is stored in two collections: the `nodes` collection for node data,
 and the `blobs` collection for binaries. There is a third collection, `clusterNodes`,
@@ -44,7 +68,7 @@ MongoDB shell:
     clusterNodes
     nodes
 
-## Node Content Model
+## <a name="node-content-model"></a> Node Content Model
 
 The `DocumentMK` stores each node in a separate MongoDB document and updates to
 a node are stored by adding new revision/value pairs to the document. This way
@@ -167,7 +191,7 @@ node as deleted in this revision.
 Reading the node in previous revisions is still possible, even if it is now
 marked as deleted as of revision `r13f38835063-2-1`.
 
-## Revisions
+## <a name="revisions"></a> Revisions
 
 As seen in the examples above, a revision is a String and may look like this:
 `r13f38835063-2-1`. It consists of three parts:
@@ -176,7 +200,7 @@ As seen in the examples above, a revision is a String and may look like this:
 * A counter to distinguish revisions created with the same timestamp: `-2`
 * The cluster node id where this revision was created: `-1`
 
-## Clock requirements
+## <a name="clock-requirements"></a> Clock requirements
 
 Revisions are used by the DocumentMK to identify the sequence of changes done
 on items in the repository. This is also done across cluster nodes for revisions
@@ -190,7 +214,7 @@ differences between the machines running in an Oak cluster will result in
 delayed propagation of changes between cluster nodes and warnings in the log
 files.
 
-## Branches
+## <a name="branches"></a> Branches
 
 DocumentMK implementations support branches, which allows a client to stage
 multiple commits and make them visible with a single merge call. In DocumentMK
@@ -289,7 +313,7 @@ The same logic is used for changes to other nodes that belong to a branch
 commit. DocumentMK internally resolves the commit revision for a modification
 before it decides whether a reader is able to see a given change.
 
-## Previous Documents
+## <a name="previous-documents"></a> Previous Documents
 
 Over time the size of a document grows because DocumentMK adds data to the document
 with every modification, but never deletes anything to keep the history. Old data
@@ -351,23 +375,23 @@ committed data may overlap because branch commits are not moved to previous
 documents until the branch is merged.
  
 
-## Background Operations
+## <a name="background-operations"></a> Background Operations
 
 Each DocumentMK instance connecting to same database in Mongo server performs certain background task.
 
-### Renew Cluster Id Lease
+### <a name="renew-cluster-id-lease"></a> Renew Cluster Id Lease
 
 Each cluster node uses a unique cluster node id, which is the last part of the revision id.
 Each cluster node has a lease on the cluster node id, as described in the section
 [Cluster Node Metadata](#Cluster_Node_Metadata).
 
-### Background Document Split
+### <a name="background-document-split"></a> Background Document Split
 
 DocumentMK periodically checks documents for their size and if necessary splits them up and
 moves old data to a previous document. This is done in the background by each DocumentMK
 instance for the data it created.
 
-### Background Writes
+### <a name="background-writes"></a> Background Writes
 
 While performing commits there are certain nodes which are modified but do not become part
 of commit. For example when a node under /a/b/c is updated then the `_lastRev` property
@@ -379,11 +403,11 @@ and flushed periodically through a asynchronous job.
 DocumentMK periodically picks up changes from other DocumentMK instances by polling the root node
 for changes of `_lastRev`. This happens once every second.
 
-## Pending Topics
+## <a name="pending-topics"></a> Pending Topics
 
-### Conflict Detection and Handling
+### <a name="conflict-detection-and-handling"></a> Conflict Detection and Handling
 
-## Cluster Node Metadata
+## <a name="cluster-node-metadata"></a> Cluster Node Metadata
 
 Cluster node metadata is stored in the `clusterNodes` collection. There is one entry
 for each cluster node that is running, and there are entries for cluster nodes that were
@@ -435,7 +459,7 @@ use the readPreference primary for that operation. For all other operation Mongo
 use default settings where read preference is set to `Primary` and write concern is set to `Acknowledged`. 
 Via using one of the two modes below a user can tune the default settings as per its need
 
-#### Via Configuration
+#### <a name="via-configuration"></a> Via Configuration
 
 In this mode the config is specified as part of the Mongo URI (See [configuration](../osgi_config.html#document-node-store)). 
 So if a user wants that reads from secondaries should prefer secondary with tag _dc:ny,rack:1_ 
@@ -445,7 +469,7 @@ otherwise they go to other secondary then he can specify that via following mong
 
 Refer to [Read Preference Options][3] and [Write Concern Options][4] for more details.  
  
-#### Changing at Runtime
+#### <a name="changing-at-runtime"></a> Changing at Runtime
 
 The read preference and write concern of all cluster nodes can be changed at runtime
 without having to restart the instances, by setting the property `readWriteMode` of
@@ -510,7 +534,7 @@ All the above caches are managed on heap. For the last 3 `nodeCache`,
 a much larger cache off heap and thus avoid freeing up heap memory for application
 usage.
 
-### Cache Invalidation
+### <a name="cache-invalidation"></a> Cache Invalidation
 
 `documentCache` and `docChildrenCache` are containing mutable state which requires
 consistency checks to be performed to keep them in sync with the backend persisted
@@ -536,7 +560,7 @@ to be performed for them. For that reason those caches can be backed by persiste
 cache and even having large number of entries in such caches would not be a matter
 of concern. 
 
-### Cache Configuration
+### <a name="cache-configuration"></a> Cache Configuration
 
 In a default setup the [DocumentNodeStoreService][osgi-config]
 takes a single config for `cache` which is internally distributed among the 
