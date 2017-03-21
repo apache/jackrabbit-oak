@@ -24,7 +24,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
@@ -32,27 +31,16 @@ import com.google.common.cache.CacheStats;
 import com.google.common.cache.Weigher;
 
 /**
- * Partial mapping of keys of type {@code T} to values of type {@link RecordId}. This is
+ * Partial mapping of keys of type {@code K} to values of type {@link RecordId}. This is
  * typically used for de-duplicating values that have already been persisted and thus
  * already have a {@code RecordId}.
- * @param <T>
+ * @param <K>
  */
-public abstract class RecordCache<T> {
+public abstract class RecordCache<K> implements Cache<K, RecordId> {
     private long hitCount;
     private long missCount;
     private long loadCount;
     private long evictionCount;
-
-    /**
-     * Add a mapping from {@code key} to {@code value}. Any existing mapping is replaced.
-     */
-    public abstract void put(@Nonnull T key, @Nonnull RecordId value);
-
-    /**
-     * @return  The mapping for {@code key}, or {@code null} if none.
-     */
-    @CheckForNull
-    public abstract RecordId get(@Nonnull T key);
 
     /**
      * @return number of mappings
@@ -60,6 +48,11 @@ public abstract class RecordCache<T> {
     public abstract long size();
 
     public abstract long estimateCurrentWeight();
+
+    @Override
+    public void put(@Nonnull K key, @Nonnull RecordId value, byte cost) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * @return  access statistics for this cache
@@ -147,30 +140,30 @@ public abstract class RecordCache<T> {
         }
     }
 
-    private static class Default<T> extends RecordCache<T> {
+    private static class Default<K> extends RecordCache<K> {
 
         @Nonnull
-        private final Map<T, RecordId> records;
+        private final Map<K, RecordId> records;
 
         @Nonnull
-        private final Weigher<T, RecordId> weigher;
+        private final Weigher<K, RecordId> weigher;
 
         private long weight = 0;
 
-        static final <T> Supplier<RecordCache<T>> defaultFactory(final int size, @Nonnull final Weigher<T, RecordId> weigher) {
-            return new Supplier<RecordCache<T>>() {
+        static final <K> Supplier<RecordCache<K>> defaultFactory(final int size, @Nonnull final Weigher<K, RecordId> weigher) {
+            return new Supplier<RecordCache<K>>() {
                 @Override
-                public RecordCache<T> get() {
+                public RecordCache<K> get() {
                     return new Default<>(size, checkNotNull(weigher));
                 }
             };
         }
 
-        Default(final int size, @Nonnull final Weigher<T, RecordId> weigher) {
+        Default(final int size, @Nonnull final Weigher<K, RecordId> weigher) {
             this.weigher = checkNotNull(weigher);
-            records = new LinkedHashMap<T, RecordId>(size * 4 / 3, 0.75f, true) {
+            records = new LinkedHashMap<K, RecordId>(size * 4 / 3, 0.75f, true) {
                 @Override
-                protected boolean removeEldestEntry(Map.Entry<T, RecordId> eldest) {
+                protected boolean removeEldestEntry(Map.Entry<K, RecordId> eldest) {
                     boolean remove = super.size() > size;
                     if (remove) {
                         Default.super.evictionCount++;
@@ -183,14 +176,14 @@ public abstract class RecordCache<T> {
         }
 
         @Override
-        public synchronized void put(@Nonnull T key, @Nonnull RecordId value) {
+        public synchronized void put(@Nonnull K key, @Nonnull RecordId value) {
             super.loadCount++;
             records.put(key, value);
             weight += weigher.weigh(key, value);
         }
 
         @Override
-        public synchronized RecordId get(@Nonnull T key) {
+        public synchronized RecordId get(@Nonnull K key) {
             RecordId value = records.get(key);
             if (value == null) {
                 super.missCount++;

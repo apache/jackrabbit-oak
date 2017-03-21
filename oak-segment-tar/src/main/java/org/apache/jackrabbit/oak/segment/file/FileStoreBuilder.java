@@ -419,8 +419,16 @@ public class FileStoreBuilder {
         return snfeListener;
     }
 
+    /**
+     * @return  creates or returns the {@code WriterCacheManager} this builder passes or
+     *          passed to the store on {@link #build()}.
+     *
+     * @see #withNodeDeduplicationCacheSize(int)
+     * @see #withStringDeduplicationCacheSize(int)
+     * @see #withTemplateDeduplicationCacheSize(int)
+     */
     @Nonnull
-    WriterCacheManager getCacheManager() {
+    public WriterCacheManager getCacheManager() {
         if (cacheManager == null) {
             cacheManager = new EvictingWriteCacheManager(
                     stringDeduplicationCacheSize, templateDeduplicationCacheSize, nodeDeduplicationCacheSize);
