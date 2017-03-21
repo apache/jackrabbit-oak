@@ -208,6 +208,7 @@ public class PriorityCache<K, V> {
             if (entry == Entry.NULL) {
                 // Empty slot -> use this index
                 index = i;
+                eviction = false;
                 break;
             } else if (entry.generation <= generation && key.equals(entry.key)) {
                 // Key exists and generation is greater or equal -> use this index and boost the cost
@@ -216,10 +217,12 @@ public class PriorityCache<K, V> {
                 if (initialCost < Byte.MAX_VALUE) {
                     initialCost++;
                 }
+                eviction = false;
                 break;
             } else if (entry.generation < generation) {
                 // Old generation -> use this index
                 index = i;
+                eviction = false;
                 break;
             } else if (entry.cost < cheapest) {
                 // Candidate slot, keep on searching for even cheaper slots

@@ -26,7 +26,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import java.util.Random;
+
 import com.google.common.base.Predicate;
+import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.oak.segment.CacheWeights;
 import org.junit.Test;
 
 public class PriorityCacheTest {
@@ -161,6 +165,21 @@ public class PriorityCacheTest {
         assertEquals(4, PriorityCache.nextPowerOfTwo(4));
         assertEquals(512, PriorityCache.nextPowerOfTwo(500));
         assertEquals(2147483648L, PriorityCache.nextPowerOfTwo(Integer.MAX_VALUE));
+    }
+
+    @Test
+    public void evictionCount() {
+        Random rnd = new Random();
+        Weigher<String, Integer> weigher = CacheWeights.noopWeigher();
+        PriorityCache<String, Integer> cache = new PriorityCache<>(128, 2, weigher);
+        int count = 0;
+        for (int b = Byte.MIN_VALUE; b <= Byte.MAX_VALUE; b++) {
+            if (cache.put("k-" + b + "-" + rnd.nextInt(1000), b, 0, (byte) b)) {
+                count++;
+            }
+        }
+
+        assertEquals(count, cache.size() + cache.getStats().evictionCount());
     }
 
 }
