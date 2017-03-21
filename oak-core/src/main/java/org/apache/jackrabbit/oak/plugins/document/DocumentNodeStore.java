@@ -2022,7 +2022,7 @@ public final class DocumentNodeStore
     /**
      * Perform a background read and make external changes visible.
      */
-    BackgroundReadStats backgroundRead() {
+    private BackgroundReadStats backgroundRead() {
         BackgroundReadStats stats = new BackgroundReadStats();
         long time = clock.getTime();
         String id = Utils.getIdFromPath("/");

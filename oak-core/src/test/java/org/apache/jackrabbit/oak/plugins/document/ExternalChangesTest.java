@@ -104,7 +104,7 @@ public class ExternalChangesTest {
         ns1.backgroundWrite();
 
         c2.reset();
-        ns2.backgroundRead();
+        ns2.runBackgroundReadOperations();
 
         CommitInfo ci = c2.getExternalChange();
         CommitContext cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
@@ -131,7 +131,7 @@ public class ExternalChangesTest {
         ns1.backgroundWrite();
 
         c2.reset();
-        ns2.backgroundRead();
+        ns2.runBackgroundReadOperations();
 
         CommitInfo ci = c2.getExternalChange();
         CommitContext cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
@@ -164,7 +164,7 @@ public class ExternalChangesTest {
         ns1.backgroundWrite();
 
         c2.reset();
-        ns2.backgroundRead();
+        ns2.runBackgroundReadOperations();
 
         CommitInfo ci = c2.getExternalChange();
         CommitContext cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
@@ -205,7 +205,7 @@ public class ExternalChangesTest {
         ns1.backgroundWrite();
 
         c2.reset();
-        ns2.backgroundRead();
+        ns2.runBackgroundReadOperations();
 
         CommitInfo ci = c2.getExternalChange();
         cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
