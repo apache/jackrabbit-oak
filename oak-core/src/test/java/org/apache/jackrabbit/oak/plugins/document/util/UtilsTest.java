@@ -26,18 +26,27 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -249,5 +258,30 @@ public class UtilsTest {
     @Test(expected = IllegalArgumentException.class)
     public void getDepthFromIdIllegalArgumentException2() {
         Utils.getDepthFromId("42");
+    }
+
+    @Test
+    public void alignWithExternalRevisions() throws Exception {
+        Clock c = new Clock.Virtual();
+        c.waitUntil(System.currentTimeMillis());
+        // past
+        Revision lastRev1 = new Revision(c.getTime() - 1000, 0, 1);
+        // future
+        Revision lastRev2 = new Revision(c.getTime() + 1000, 0, 2);
+
+        // create a root document
+        NodeDocument doc = new NodeDocument(new MemoryDocumentStore(), c.getTime());
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        NodeDocument.setLastRev(op, lastRev1);
+        NodeDocument.setLastRev(op, lastRev2);
+        UpdateUtils.applyChanges(doc, op);
+
+        // must not wait even if revision is in the future
+        Utils.alignWithExternalRevisions(doc, c, 2);
+        assertThat(c.getTime(), is(lessThan(lastRev2.getTimestamp())));
+
+        // must wait until after lastRev2 timestamp
+        Utils.alignWithExternalRevisions(doc, c, 1);
+        assertThat(c.getTime(), is(greaterThan(lastRev2.getTimestamp())));
     }
 }

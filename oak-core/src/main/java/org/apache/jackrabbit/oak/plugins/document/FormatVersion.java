@@ -83,6 +83,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
      * Changes introduced with this version:
      * <ul>
      *     <li>SplitDocType.DEFAULT_NO_BRANCH (OAK-5869)</li>
+     *     <li>journal entries with invalidate-only changes (OAK-5964)</li>
      * </ul>
      */
     static final FormatVersion V1_8 = new FormatVersion(1, 8, 0);
