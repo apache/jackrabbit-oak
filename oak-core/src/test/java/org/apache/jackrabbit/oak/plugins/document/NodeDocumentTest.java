@@ -859,6 +859,36 @@ public class NodeDocumentTest {
         ns2.dispose();
     }
 
+    @Test
+    public void getSweepRevisions() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        NodeDocument doc = new NodeDocument(store);
+        RevisionVector sweepRev = doc.getSweepRevisions();
+        assertNotNull(sweepRev);
+        assertEquals(0, sweepRev.getDimensions());
+
+        Revision r1 = Revision.newRevision(1);
+        Revision r2 = Revision.newRevision(2);
+
+        UpdateOp op = new UpdateOp("id", true);
+        NodeDocument.setSweepRevision(op, r1);
+        UpdateUtils.applyChanges(doc, op);
+
+        sweepRev = doc.getSweepRevisions();
+        assertNotNull(sweepRev);
+        assertEquals(1, sweepRev.getDimensions());
+        assertEquals(new RevisionVector(r1), sweepRev);
+
+        op = new UpdateOp("id", false);
+        NodeDocument.setSweepRevision(op, r2);
+        UpdateUtils.applyChanges(doc, op);
+
+        sweepRev = doc.getSweepRevisions();
+        assertNotNull(sweepRev);
+        assertEquals(2, sweepRev.getDimensions());
+        assertEquals(new RevisionVector(r1, r2), sweepRev);
+    }
+
     private DocumentNodeStore createTestStore(int numChanges) throws Exception {
         return createTestStore(new MemoryDocumentStore(), 0, numChanges);
     }
