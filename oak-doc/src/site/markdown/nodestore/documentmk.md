@@ -18,6 +18,7 @@
 # <a name="oak-document-storage"></a> Oak Document Storage
 
 * [Oak Document Storage](#oak-document-storage)
+    * [New in 1.6](#new-1.6)
     * [Backend implementations](#backend-implementations)
     * [Content Model](#content-model)
     * [Node Content Model](#node-content-model)
@@ -25,6 +26,7 @@
     * [Clock requirements](#clock-requirements)
     * [Branches](#branches)
     * [Previous Documents](#previous-documents)
+    * [Node Bundling](#node-bundling)
     * [Background Operations](#background-operations)
         * [Renew Cluster Id Lease](#renew-cluster-id-lease)
         * [Background Document Split](#background-document-split)
@@ -45,6 +47,11 @@ One of the plugins in Oak stores data in a document oriented format.
 The plugin implements the low level `NodeStore` interface.
 
 The document storage optionally uses the [persistent cache](persistent-cache.html) to reduce read operations on the backend storage.
+
+## <a name="new-1.6"></a> New in 1.6
+
+* [Node Bundling](#node-bundling)
+
 
 ## <a name="backend-implementations"></a> Backend implementations
 
@@ -373,7 +380,12 @@ Previous documents only contain immutable data, which means it only contains
 committed and merged `_revisions`. This also means the previous ranges of
 committed data may overlap because branch commits are not moved to previous
 documents until the branch is merged.
- 
+
+## <a name="node-bundling"></a> node-bundling
+
+`@since Oak 1.6`
+
+Refer to [Node Bundling](document/node-bundling.html)
 
 ## <a name="background-operations"></a> Background Operations
 
