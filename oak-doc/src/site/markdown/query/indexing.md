@@ -34,9 +34,9 @@
             * [Async Indexing MBean](#async-index-mbean)
             * [Isolating Corrupt Indexes](#corrupt-index-handling)
         * [Near Real Time Indexing](#nrt-indexing)
-            * [NRT Indexing Modes](#nrt-indexing-modes)
-                * [nrt](#nrt-indexing-mode-nrt)
-                * [sync](#nrt-indexing-mode-sync)
+            * [Usage](#nrt-indexing-usage)
+                * [NRT Indexing Mode - nrt](#nrt-indexing-mode-nrt)
+                * [NRT Indexing Mode - sync](#nrt-indexing-mode-sync)
             * [Cluster Setup](#nrt-indexing-cluster-setup)
             * [Configuration](#nrt-indexing-config)
     * [Reindexing](#reindexing)            
@@ -367,7 +367,7 @@ With NRT indexing support indexing will happen at two places:
 Any query making use of such an index will automatically make use of both the persisted and the local indexes. 
 With this, new content added in the repository after the last async index run will also show up quickly.
 
-#### <a name="nrt-indexing-modes"></a> NRT Indexing Modes
+#### <a name="nrt-indexing-usage"></a> Usage
 
 NRT (Near real time) indexing can be enabled for any index by configuring the `async` property:
 
@@ -380,7 +380,7 @@ Here, the `async` value has been set to a multi-valued property, with the
 * Indexing lane - For example `async` or `fulltext-async`,
 * NRT Indexing Mode - `nrt` or `sync`.
 
-##### <a name="nrt-indexing-mode-nrt"></a> nrt
+##### <a name="nrt-indexing-mode-nrt"></a> NRT Indexing Mode - nrt
 
 In this mode, the local index is updated asynchronously on that cluster nodes post each commit, 
 and the index reader is refreshed each second. 
@@ -390,7 +390,7 @@ So any change done should should show up on that cluster node within 1 to 2 seco
       - jcr:primaryType = "oak:QueryIndexDefinition"
       - async = ['async', 'nrt']
 
-##### <a name="nrt-indexing-mode-sync"></a> sync
+##### <a name="nrt-indexing-mode-sync"></a> NRT Indexing Mode - sync
 
 In this mode, the local index is updated synchronously on that cluster nodes post each commit,
 and the index reader is refreshed immediately. 
