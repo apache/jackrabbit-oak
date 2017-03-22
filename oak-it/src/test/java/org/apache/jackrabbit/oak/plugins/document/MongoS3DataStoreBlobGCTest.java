@@ -66,6 +66,8 @@ public class MongoS3DataStoreBlobGCTest extends MongoDataStoreBlobGCTest {
         File root = folder.newFolder();
         bucket = root.getName();
         props.setProperty(S3Constants.S3_BUCKET, bucket);
+        props.setProperty("cacheSize", "0");
+
         blobStore = new DataStoreBlobStore(
             S3DataStoreUtils.getS3DataStore(s3Class, props, root.getAbsolutePath()));
         mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB())
