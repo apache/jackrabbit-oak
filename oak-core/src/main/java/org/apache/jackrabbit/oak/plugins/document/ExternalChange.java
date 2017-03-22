@@ -50,15 +50,13 @@ abstract class ExternalChange {
 
     protected final BackgroundReadStats stats;
 
-    private final ChangeSetBuilder changeSetBuilder;
+    private ChangeSetBuilder changeSetBuilder;
 
     private final JournalPropertyHandler journalPropertyHandler;
 
     ExternalChange(DocumentNodeStore store) {
         this.store = store;
         this.stats = new BackgroundReadStats();
-        this.changeSetBuilder = new ChangeSetBuilder(
-                store.getChangeSetMaxItems(), store.getChangeSetMaxDepth());
         this.journalPropertyHandler = store.getJournalPropertyHandlerFactory().newHandler();
     }
 
@@ -112,6 +110,8 @@ abstract class ExternalChange {
 
         Map<Integer, Revision> lastRevMap = doc.getLastRev();
         try {
+            changeSetBuilder = new ChangeSetBuilder(
+                    store.getChangeSetMaxItems(), store.getChangeSetMaxDepth());
             RevisionVector headRevision = store.getHeadRevision();
             Set<Revision> externalChanges = newHashSet();
             for (Map.Entry<Integer, Revision> e : lastRevMap.entrySet()) {
