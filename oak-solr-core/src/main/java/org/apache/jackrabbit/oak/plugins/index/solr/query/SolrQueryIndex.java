@@ -90,8 +90,6 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     private static double MIN_COST = 2.3;
 
-    private static double COST_FOR_SINGLE_RESTRICTION = 10;
-
     private final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
 
     private final NodeAggregator aggregator;
