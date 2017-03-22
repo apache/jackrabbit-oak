@@ -28,6 +28,38 @@ import javax.annotation.Nonnull;
 public interface SegmentStore {
 
     /**
+     * A store that is always empty and that cannot be written to.
+     */
+    SegmentStore EMPTY_STORE = new SegmentStore() {
+
+        /**
+         * @return {@code false}
+         */
+        @Override
+        public boolean containsSegment(SegmentId id) {
+            return false;
+        }
+
+        /**
+         * @throws SegmentNotFoundException always
+         */
+        @Nonnull
+        @Override
+        public Segment readSegment(SegmentId segmentId) {
+            throw new SegmentNotFoundException(segmentId);
+        }
+
+        /**
+         * @throws IOException always
+         */
+        @Override
+        public void writeSegment(SegmentId id, byte[] bytes, int offset, int length)
+        throws IOException {
+            throw new IOException("This store is read only");
+        }
+    };
+
+    /**
      * Checks whether the identified segment exists in this store.
      *
      * @param id segment identifier
