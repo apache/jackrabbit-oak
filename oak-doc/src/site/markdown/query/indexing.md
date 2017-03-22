@@ -44,16 +44,15 @@
 ## <a name="overview"></a> Overview
   
 For queries to perform well, Oak supports indexing of content that is stored in the repository. 
-Indexing works on comparing different versions of the node data
-(technically, `Diff` between the base `NodeState` and the modified `NodeState`). 
-There are indexing modes that define
-how comparing is performed, and when the index content gets updated:
-  
+Indexing works by comparing different versions of the node data
+(technically, "diff" between the base `NodeState` and the modified `NodeState`). 
+The indexing mode defines how comparing is performed, and when the index content gets updated:
+
 1. Synchronous Indexing
 2. Asynchronous Indexing
 3. Near Real Time (NRT) Indexing
 
-Indexing makes use of [Commit Editors](../architecture/nodestate.html#commit-editors). 
+Indexing uses [Commit Editors](../architecture/nodestate.html#commit-editors). 
 Some of the editors are of type `IndexEditor`, which are responsible for updating index content 
 based on changes in main content. 
 Currently, Oak has following in built editors:
@@ -79,9 +78,9 @@ based on the _discovered_ index definitions.
 
 ### <a name="index-defnitions"></a> Index Definitions
 
-Index definitions are nodes of type `oak:QueryIndexDefinition`
+Index definitions are nodes of type `oak:QueryIndexDefinition`,
 which are stored under a special node named `oak:index`.
-As part of diff traversal, at each level `IndexUpdate` looks for `oak:index` nodes. 
+As part of diff traversal, at each level, `IndexUpdate` looks for `oak:index` nodes. 
 Below is the canonical index definition structure:
 
     /oak:index/indexName
@@ -90,12 +89,12 @@ Below is the canonical index definition structure:
       - async (string) multiple
       - reindex (boolean)
       
-The index definitions nodes have following properties:
+The index definitions nodes have the following properties:
 
-1. `type` - It determines the _type_ of index. Based on the `type`, 
+1. `type` - It determines the _type_ of index.
     `IndexUpdate` looks for an `IndexEditor` of the given 
     type from the registered `IndexEditorProvider`. 
-    For out-of-the-box Oak setup, it can have one of the following values
+    For an out-of-the-box Oak setup, it can have one of the following values:
     * `reference` -  Configured with the out-of-the-box setup
     * `counter` - Configured with the out-of-the-box setup
     * `property`
@@ -111,79 +110,79 @@ The index definitions nodes have following properties:
     * Any other value which ends in `async`. 
 3. `reindex` - If set to `true`, reindexing is performed for that index. 
     After reindexing is done, the property value is set to `false`.
-    Refer to [reindexing](#reindexing) for more details.
+    See [reindexing](#reindexing) for more details.
     
 Based on the above two properties, the `IndexUpdate` creates an `IndexEditor` instances 
-as it traverses the "diff", and registers them with itself, passing on the callbacks for various changes.
+as it traverses the "diff", and registers them with itself, passing on the callbacks for changes.
 
 #### <a name="oak-index-nodes"></a> Index Definition Location
 
 Indexing logic supports placing `oak:index` nodes at any path. 
 Depending on the location, such indexes only index content which are present under those paths. 
-So for example, if 'oak:index' is present at _'/content/oak:index'_, then indexes
+So, for example if 'oak:index' is present at _'/content/oak:index'_, then indexes
 defined under that node only index repository data present under _'/content'_.
 
 Depending on the type of the index, one can create these index definitions under the root path ('/'), 
-or non root paths. 
+or non-root paths. 
 Currently only `lucene` indexes support creating index definitions at non-root paths. 
 `property` indexes can only be created under the root path, that is, under '/'.
 
 ### <a name="sync-indexing"></a> Synchronous Indexing
 
-Under synchronous indexing, the index content gets updates as part of commit itself. 
+Under synchronous indexing, the index content gets updates as part of the commit itself. 
 Changes to both the main content, as well as the index content, are done atomically in a single commit. 
 
 This mode is currently supported by `property` and `reference` indexes.
 
 ### <a name="async-indexing"></a> Asynchronous Indexing
 
-Asynchronous indexing (also referred as async indexing) is performed using periodic scheduled jobs. 
+Asynchronous indexing (also called async indexing) is performed using periodic scheduled jobs. 
 As part of the setup, Oak schedules certain periodic jobs which perform 
-diff of the repository content, and update the index content based on that diff. 
+diff of the repository content, and update the index content based on that. 
 
-Each periodic `AsyncIndexUpdate` job, is assigned to an [indexing lane](#indexing-lane), 
+Each periodic `AsyncIndexUpdate` job is assigned to an [indexing lane](#indexing-lane), 
 and is scheduled to run at a certain interval. 
-At time of execution, the job perform its work:
+At time of execution, the job performs its work:
 
 1. Look for the last indexed state via stored checkpoint data. 
-   If such a checkpoint exist, then resolve the `NodeState` for that checkpoint. 
-   If no such state exist, or no such checkpoint is present, 
+   If such a checkpoint exists, then read the `NodeState` for that checkpoint. 
+   If no such state exists, or no such checkpoint is present, 
    then it treats it as initial indexing, in which case the base state is empty. 
    This state is considered the `before` state.
 2. Create a checkpoint for _current_ state and refer to this as `after` state.
 3. Create an `IndexUpdate` instance bound to the current _indexing lane_, 
    and trigger a diff between the `before` and the `after` state.
-4. `IndexUpdate` will then pick up index definitions which are bound to the current indexing lane, 
+4. `IndexUpdate` will then pick up index definitions that are bound to the current indexing lane, 
    will create `IndexEditor` instances for them, 
    and pass them the diff callbacks.
 5. The diff traverses in a depth-first manner, 
    and at the end of diff, the `IndexEditor` will do final changes for the current indexing run. 
-   Depending on the index implementation, the index data can be either stored in NodeStore itself
-   (for indexes of type `lucene` and `property`), or in any remote store (for type `solr`).
+   Depending on the index implementation, the index data can be either stored in the NodeStore itself
+   (for indexes of type `lucene`, `property`, and so on), or in any remote store (for type `solr`).
 6. `AsyncIndexUpdate` will then update the last indexed checkpoint to the current checkpoint 
    and do a commit. 
 
 Such async indexes are _eventually consistent_ with the repository state, 
 and lag behind the latest repository state by some time. 
-However the index content is eventually consistent, and never end up in wrong state with respect
+However, the index content is eventually consistent, and never ends up in wrong state with respect
 to repository state.
 
 #### <a name="checkpoint"></a> Checkpoint
 
-A checkpoint is a mechanism, whereby a client of `NodeStore` can request Oak to ensure 
-that the repository state (snapshot) at that time can be preserved, and not garbage collected 
+A checkpoint is a mechanism, whereby a client of the `NodeStore` can request Oak to ensure 
+that the repository state (snapshot) at that time can be preserved, and not removed 
 by the revision garbage collection process. 
 Later, that state can be retrieved from the NodeStore by passing the checkpoint. 
-You think of a checkpoint as a tag in a git repository, or as a named revision. 
+You can think of a checkpoint as a tag in a git repository, or as a named revision. 
 
 Async indexing makes use of checkpoint support to access older repository state. 
 
 #### <a name="indexing-lane"></a> Indexing Lane
 
-The term indexing lane refers to a set of indexes which are to be updated by a given async indexer.
+The term "indexing lane" refers to a set of indexes which are to be updated by a given async indexer.
 Each index definition meant for async indexing defines an `async` property, 
 whose value is the name of the indexing lane. 
-For example, consider following 2 index definitions:
+For example, consider following two index definitions:
 
     /oak:index/userIndex
       - jcr:primaryType = "oak:QueryIndexDefinition"
@@ -212,11 +211,11 @@ With 1.6, it is possible to [create multiple lanes](#async-index-setup).
 
 #### <a name="cluster"></a> Clustered Setup
 
-In a clustered setup, one needs to be ensured in the host application that 
-the async indexing jobs for specific lanes are to be run as singleton in the cluster. 
-If `AsyncIndexUpdate` for same lane gets executed concurrently on different cluster nodes,
+In a clustered setup, one needs to ensure in the host application that 
+the async indexing jobs for all lanes are run as singleton in the cluster. 
+If `AsyncIndexUpdate` for the same lane is executed concurrently on different cluster nodes,
 it leads to race conditions, where an old checkpoint gets lost, 
-leading to reindexing of the indexes.
+leading to reindexing.
 
 See also [clustering](../clustering.html#scheduled-jobs) 
 for more details on how the host application should schedule such indexing jobs.
@@ -228,13 +227,13 @@ even if the jobs gets scheduled to run on different cluster nodes, only one of t
 This is done by keeping a lease property, which gets periodically updated as 
 indexing progresses. 
 
-An `AsyncIndexUpdate` run skip indexing if the current lease has not expired.
-If the last update of the lease was done long ago (default 15 mins), 
-then it is assumed that cluster node doing indexing is not available, 
+An `AsyncIndexUpdate` run skips indexing if the current lease has not expired.
+If the last update of the lease was done too long ago (default: more than 15 minutes), 
+it is assumed that cluster node that is supposed to index is not available, 
 and some other node will take over.
 
 The lease logic can delay the start of indexing if the system is not stopped cleanly. 
-As of Oak 1.6, this does not affect non clustered setups like those based on SegmentNodeStore,
+As of Oak 1.6, this does not affect non-clustered setups like those based on SegmentNodeStore,
 but only [affects DocumentNodeStore][OAK-5159] based setups.
 
 #### <a name="async-index-lag"></a> Indexing Lag
@@ -243,7 +242,7 @@ Async indexing jobs are by default configured to run at an interval of 5 seconds
 Depending on the system load and diff size of content to be indexed, 
 the indexing may start lagging by a longer time interval. 
 Due to this, the indexing results can lag behind the repository state, 
-and may become stale, that is new content added will show up in query results after some time.
+and may become stale, that means new content added will only show up in query results after a longer time.
 
 The `IndexStats` MBean keeps a time series and metrics stats for the indexing frequency. 
 This can be used to track the indexing state.
@@ -270,7 +269,7 @@ which provides various stats around the current indexing state:
     org.apache.jackrabbit.oak: async (IndexStats)
     org.apache.jackrabbit.oak: fulltext-async (IndexStats)
 
-It provide details like
+It provide the following details:
 
 * FailingIndexStats - Stats around indexes which are [failing and marked as corrupt](#corrupt-index-handling).
 * LastIndexedTime - Time up to which the repository state has been indexed.
@@ -279,7 +278,7 @@ It provide details like
   This can be monitored for detecting if indexer is healthy or not.
 * ExecutionCount - Time series data around the number of runs for various time intervals.
 
-Further it provides operations like
+Further it provides the following operations:
 
 * pause - Pauses the indexer.
 * abortAndPause - Aborts any running indexing cycle and pauses the indexer. 
@@ -290,7 +289,7 @@ Further it provides operations like
 
 `Since 1.6`
 
-The `AsyncIndexerService` marks any index which fails to update for 30 mins 
+The `AsyncIndexerService` marks any index which fails to update for 30 minutes
 (configurable) as `corrupt`, and ignore such indexes from further indexing. 
 
 When any index is marked as corrupt, the following log entry is made:
@@ -326,56 +325,56 @@ See also [OAK-4939][OAK-4939] for more details.
 _This mode is only supported for `lucene` indexes_
 
 Lucene indexes perform well for evaluating complex queries, 
-and also have the benefit of being evaluated locally with copy-on-read support. 
+and have the benefit of being evaluated locally with copy-on-read support. 
 However, they are `async`, and depending on system load can lag behind the repository state.
-For cases where such lag (in the order of minutes) is not acceptable, 
-one has to use `property` indexes. 
-For such cases, Oak 1.6 has [added support for near real time indexing][OAK-4412]
+For cases where such lag (which can be in the order of minutes) is not acceptable, 
+one must use `property` indexes. 
+To avoid that, Oak 1.6 has [added support for near real time indexing][OAK-4412]
 
 ![NRT Index Flow](index-nrt.png)
 
 In this mode, the indexing happen in two modes, and a query will consult multiple indexes. 
-The diagram above shows the indexing flow with time. In the above flow,
+The diagram above shows the indexing flow with time. In the above flow:
 
-* T1, T3 and T5 - Time instances at which checkpoint is created
-* T2 and T4 - Time instance when async indexer runs completed and indexes were updated
-* Persisted Index 
-    * v2 - Index version v2, which has repository state up to time T1 indexed
-    * v3 - Index version v2, which has repository state up to time T3 indexed
-* Local Index
-    * NRT1 - Local index, which has repository state between time T2 and T4 indexed
-    * NRT2 - Local index, which has repository state between time T4 and T6 indexed
+* T1, T3 and T5 - Time instances at which checkpoints are created.
+* T2 and T4 - Time instance when async indexer runs completed and indexes were updated.
+* Persisted Index:
+    * v2 - Index version v2, which has repository state indexed up to T1.
+    * v3 - Index version v2, which has repository state indexed up to T3.
+* Local Index:
+    * NRT1 - Local index, which has repository state indexed between T2 and T4.
+    * NRT2 - Local index, which has repository state indexed between T4 and T6.
     
 As the repository state changes with time, the Async indexer will run and index the 
-state between last known checkpoint and current state when that run started. 
-So when asyncc run 1 completed, the persisted index has the repository state indexed up to time T3.
+changes between the last known checkpoint and current state when that run started. 
+So when async run 1 completed, the persisted index has the repository state indexed up to T3.
 
-Now without NRT index support, if any query is performed between time T2 and T4, 
-it can only see index result for repository state at time T1, 
-as thats the state where the persisted indexes have data for. 
-Any change after that can not be seen until the next async indexing cycle is complete (by time T4). 
+Now without NRT index support, if any query is performed between T2 and T4, 
+it can only see index results for the repository state at T1, 
+as that is the state where the persisted indexes have data for. 
+Any change after that cannot be seen until the next async indexing cycle is complete (at T4). 
 
-With NRT indexing support indexing will happen at two places:
+With NRT indexing support, indexing will happen at two places:
 
 * Persisted Index - This is the index which is updated via the async indexer run. 
   This flow remains the same, it will be periodically updated by the indexer run.
 * Local Index - In addition to persisted index, each cluster node will also maintain a local index. 
   This index only keeps data between two async indexer runs. 
   Post each run, the previous index is discarded, and a new index is built 
-  (actually the previous index is retained for one cycle).
+  (actually, the previous index is retained for one cycle).
   
 Any query making use of such an index will automatically make use of both the persisted and the local indexes. 
 With this, new content added in the repository after the last async index run will also show up quickly.
 
 #### <a name="nrt-indexing-usage"></a> Usage
 
-NRT (Near real time) indexing can be enabled for any index by configuring the `async` property:
+NRT (Near real time) indexing can be enabled for an index by configuring the `async` property:
 
     /oak:index/assetIndex
       - jcr:primaryType = "oak:QueryIndexDefinition"
       - async = ['fulltext-async', 'nrt']
       
-Here, the `async` value has been set to a multi-valued property, with the
+Here, `async` has been set to a multi-valued property, with the
 
 * Indexing lane - For example `async` or `fulltext-async`,
 * NRT Indexing Mode - `nrt` or `sync`.
@@ -384,7 +383,7 @@ Here, the `async` value has been set to a multi-valued property, with the
 
 In this mode, the local index is updated asynchronously on that cluster nodes post each commit, 
 and the index reader is refreshed each second. 
-So any change done should should show up on that cluster node within 1 to 2 seconds.
+So, any change done should show up on that cluster node within 1 to 2 seconds.
 
     /oak:index/userIndex
       - jcr:primaryType = "oak:QueryIndexDefinition"
@@ -394,7 +393,7 @@ So any change done should should show up on that cluster node within 1 to 2 seco
 
 In this mode, the local index is updated synchronously on that cluster nodes post each commit,
 and the index reader is refreshed immediately. 
-This mode performs more slowly compared to the "nrt" mode.
+This mode indexes more slowly compared to the "nrt" mode.
 
     /oak:index/userIndex
       - jcr:primaryType = "oak:QueryIndexDefinition"
@@ -407,7 +406,7 @@ However, the 'nrt' mode performs better, so using that is preferable.
 #### <a name="nrt-indexing-cluster-setup"></a> Cluster Setup
 
 In cluster setup, each cluster node maintains its own local index for changes happening in that cluster node.
-In addition to that, it also indexes changes from other cluster node by relying on 
+In addition to that, it also indexes changes from other cluster nodes by relying on 
 [Oak observation for external changes][OAK-4808]. 
 This depends on how frequently external changes are delivered. 
 Due to this, even with NRT indexing changes from other cluster nodes will take some more time 
@@ -419,7 +418,7 @@ NRT indexing expose a few configuration options as part of the [LuceneIndexProvi
 
 * `enableHybridIndexing` - Boolean property, defaults to `true`. 
   Can be set to `false` to disable the NRT indexing feature completely.
-* `hybridQueueSize` - The size of the in memory queue used 
+* `hybridQueueSize` - The size of the in-memory queue used 
   to hold Lucene documents for indexing in the `nrt` mode. 
   The default size is 10000.
 
@@ -428,9 +427,9 @@ NRT indexing expose a few configuration options as part of the [LuceneIndexProvi
 Reindexing of existing indexes is required in the following scenarios:
 
 * Incompatible changes in the index definition - 
-  For example adding properties to the index which is already
-  present in repository.
-* Corrupted Index - If the index is corrupt and `AsyncIndexUpdate` run fails 
+  Needed after adding a property to an index definition, 
+  if content nodes with this property are already present.
+* Corrupted Index - If the index is corrupt, and `AsyncIndexUpdate` run fails 
   with an exception pointing to index being corrupt.
   
 Reindexing does not resolve other problems, such that queries not returning data. 
@@ -439,15 +438,15 @@ If queries don't return the right data, then possibly the index is [not yet up-t
 or the query is incorrect, or included/excluded path settings are wrong (for Lucene indexes). 
 Instead of reindexing, it is suggested to first check the log file, 
 modify the query so it uses a different index or traversal and run the query again.
-One case were reindexing can help is if the query engine picks a very slow index for some queries because the counter index 
+One case where reindexing can help is if the query engine picks a very slow index for some queries because the counter index 
 [got out of sync after adding and removing lots of nodes many times (fixed in recent version)][OAK-4065].
 For this case, it is recommended to verify the contents of the counter index first,
 and upgrade Oak before reindexing.
 
-Also note that with Oak 1.6, for Lucene indexes, changes in the index definition are only effective 
+Also, note that with Oak 1.6, for Lucene indexes, changes in the index definition are only effective 
 [post reindexing](lucene.html#stored-index-definition).
 
-To reindex any index, set the `reindex` flag to `true` in index definition:
+To reindex, set the `reindex` property to `true` in the respective index definition:
 
     /oak:index/userIndex
       - jcr:primaryType = "oak:QueryIndexDefinition"
