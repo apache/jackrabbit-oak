@@ -1833,17 +1833,25 @@ public final class DocumentNodeStore
         return clusterId;
     }
 
+    @Override
     @Nonnull
     public RevisionVector getHeadRevision() {
         return root.getRootRevision();
     }
 
+    @Override
     @Nonnull
     public Revision newRevision() {
         if (simpleRevisionCounter != null) {
             return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
         }
         return Revision.newRevision(clusterId);
+    }
+
+    @Override
+    @Nonnull
+    public Clock getClock() {
+        return clock;
     }
 
     @Override
@@ -2941,10 +2949,6 @@ public final class DocumentNodeStore
 
     public DiffCache getDiffCache() {
         return diffCache;
-    }
-
-    public Clock getClock() {
-        return clock;
     }
 
     public Checkpoints getCheckpoints() {
