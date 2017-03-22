@@ -22,7 +22,7 @@
         * [New in 1.6](#new-1.6)
     * [Indexing Flow](#indexing-flow)
         * [Index Definitions](#index-defnitions)
-            * [oak:index node ](#oak-index-nodes)
+            * [Index Definition Location](#oak-index-nodes)
         * [Synchronous Indexing](#sync-indexing)
         * [Asynchronous Indexing](#async-indexing)
             * [Checkpoint](#checkpoint)
@@ -116,7 +116,7 @@ The index definitions nodes have following properties:
 Based on the above two properties, the `IndexUpdate` creates an `IndexEditor` instances 
 as it traverses the "diff", and registers them with itself, passing on the callbacks for various changes.
 
-#### <a name="oak-index-nodes"></a>oak:index node 
+#### <a name="oak-index-nodes"></a> Index Definition Location
 
 Indexing logic supports placing `oak:index` nodes at any path. 
 Depending on the location, such indexes only index content which are present under those paths. 
