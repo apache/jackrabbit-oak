@@ -159,7 +159,13 @@ class JournalDiffLoader implements DiffCache.Loader {
                 // use revision with a timestamp of zero
                 from = new Revision(0, 0, to.getClusterId());
             }
-            stats.numJournalEntries += fillExternalChanges(changes, path, from, to, ns.getDocumentStore(), null, null);
+            StringSort invalidateOnly = JournalEntry.newSorter();
+            try {
+                stats.numJournalEntries += fillExternalChanges(changes, invalidateOnly,
+                        path, from, to, ns.getDocumentStore(), null, null);
+            } finally {
+                invalidateOnly.close();
+            }
         }
         // do we need to include changes from pending local changes?
         if (!max.isRevisionNewer(localLastRev)
