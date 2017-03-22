@@ -22,11 +22,11 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -47,7 +47,6 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.SolrParams;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -314,15 +313,12 @@ public class SolrQueryIndexTest {
        assertEquals(0, plans.size());
     }
 
-    @Ignore
     @Test
     public void testSize() throws Exception {
-        NodeState root = mock(NodeState.class);
-        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        NodeState root = InitialContent.INITIAL_CONTENT;
         SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
                 " contains([jcr:content/*], 'founded')";
-        SolrServer solrServer = TestUtils.createSolrServer();
         SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
         OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
@@ -335,20 +331,21 @@ public class SolrQueryIndexTest {
 
         SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider, solrServerProvider);
         FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
-        Cursor cursor = solrQueryIndex.query(filter, root);
-        assertNotNull(cursor);
-        long sizeExact = cursor.getSize(Result.SizePrecision.EXACT, 100000);
-        long sizeApprox = cursor.getSize(Result.SizePrecision.APPROXIMATION, 100000);
-        long sizeFastApprox = cursor.getSize(Result.SizePrecision.FAST_APPROXIMATION, 100000);
-        assertTrue(Math.abs(sizeExact - sizeApprox) < 10);
-        assertTrue(Math.abs(sizeExact - sizeFastApprox) > 10000);
+        List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, null, root);
+        for (QueryIndex.IndexPlan p : plans) {
+            Cursor cursor = solrQueryIndex.query(p, root);
+            assertNotNull(cursor);
+            long sizeExact = cursor.getSize(Result.SizePrecision.EXACT, 100000);
+            long sizeApprox = cursor.getSize(Result.SizePrecision.APPROXIMATION, 100000);
+            long sizeFastApprox = cursor.getSize(Result.SizePrecision.FAST_APPROXIMATION, 100000);
+            assertTrue(Math.abs(sizeExact - sizeApprox) < 10);
+            assertTrue(Math.abs(sizeExact - sizeFastApprox) > 10000);
+        }
     }
 
-    @Ignore
     @Test
     public void testNoMoreThanThreeSolrRequests() throws Exception {
-        NodeState root = mock(NodeState.class);
-        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        NodeState root = InitialContent.INITIAL_CONTENT;
         SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
                 " contains([jcr:content/*], 'founded')";
@@ -374,13 +371,66 @@ public class SolrQueryIndexTest {
         CountingResponse response = new CountingResponse(0);
         when(solrServer.query(any(SolrParams.class))).thenReturn(response);
 
-        Cursor cursor = solrQueryIndex.query(filter, root);
-        assertNotNull(cursor);
-        while (cursor.hasNext()) {
-            IndexRow row = cursor.next();
-            assertNotNull(row);
+        List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, null, root);
+        for (QueryIndex.IndexPlan p : plans) {
+            Cursor cursor = solrQueryIndex.query(p, root);
+            assertNotNull(cursor);
+            while (cursor.hasNext()) {
+                IndexRow row = cursor.next();
+                assertNotNull(row);
+            }
+            assertEquals(3, response.getCounter());
         }
-        assertEquals(3, response.getCounter());
+    }
+
+    @Test
+    public void testNoNegativeCost() throws Exception {
+        NodeState root = InitialContent.INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+        builder.child("oak:index").child("solr")
+                .setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS)
+                .setProperty("propertyRestrictions", true)
+                .setProperty("type", "solr");
+        nodeState = builder.getNodeState();
+        SelectorImpl selector = newSelector(root, "a");
+        String query = "select * from [nt:base] as a where native('solr','select?q=searchKeywords:\"foo\"^20 text:\"foo\"^1 " +
+                "description:\"foo\"^8 something:\"foo\"^3 headline:\"foo\"^5 title:\"foo\"^10 &q.op=OR'";
+        String sqlQuery = "select * from [nt:base] a where native('solr','" + query + "'";
+        SolrServer solrServer = mock(SolrServer.class);
+        SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
+        when(solrServerProvider.getSearchingSolrServer()).thenReturn(solrServer);
+        OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+
+            @Override
+            public int getRows() {
+                return 10;
+            }
+        };
+        when(configurationProvider.getConfiguration()).thenReturn(configuration);
+
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider, solrServerProvider);
+        FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
+        filter.restrictProperty("native*solr", Operator.EQUAL, PropertyValues.newString(query));
+        CountingResponse response = new CountingResponse(0);
+        when(solrServer.query(any(SolrParams.class))).thenReturn(response);
+
+        List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, null, nodeState);
+        for (QueryIndex.IndexPlan p : plans) {
+            double costPerEntry = p.getCostPerEntry();
+            assertTrue(costPerEntry >= 0);
+            double costPerExecution = p.getCostPerExecution();
+            assertTrue(costPerExecution >= 0);
+            long estimatedEntryCount = p.getEstimatedEntryCount();
+            assertTrue(estimatedEntryCount >= 0);
+
+            double c = p.getCostPerExecution() + estimatedEntryCount * p.getCostPerEntry();
+            assertTrue(c >= 0);
+        }
     }
     
     private static SelectorImpl newSelector(NodeState root, String name) {
