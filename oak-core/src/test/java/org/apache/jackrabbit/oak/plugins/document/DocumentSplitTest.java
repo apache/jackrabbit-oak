@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -1111,6 +1112,12 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         @Override
         public Revision newRevision() {
             return rc.newRevision();
+        }
+
+        @Nonnull
+        @Override
+        public Clock getClock() {
+            return rc.getClock();
         }
 
         @Override
