@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
+import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 
 import java.util.UUID;
 
@@ -35,6 +36,11 @@ import org.slf4j.LoggerFactory;
  * segments do not.
  */
 public class SegmentId implements Comparable<SegmentId> {
+
+    /**
+     * A {@code null} segment id not representing any segment.
+     */
+    public static final SegmentId NULL = new SegmentId(EMPTY_STORE, 0, 0);
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(SegmentId.class);

@@ -34,6 +34,11 @@ import javax.annotation.Nonnull;
  */
 public final class RecordId implements Comparable<RecordId> {
 
+    /**
+     * A {@code null} record id not identifying any record.
+     */
+    public static final RecordId NULL = new RecordId(SegmentId.NULL, 0);
+
     private static final Pattern PATTERN = Pattern.compile(
             "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
             + "(:(0|[1-9][0-9]*)|\\.([0-9a-f]{8}))");
