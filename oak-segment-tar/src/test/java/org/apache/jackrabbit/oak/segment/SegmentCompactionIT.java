@@ -225,6 +225,7 @@ public class SegmentCompactionIT {
         assumeTrue(ENABLED);
 
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        MetricStatisticsProvider statisticsProvider = new MetricStatisticsProvider(mBeanServer, executor);
         SegmentGCOptions gcOptions = defaultGCOptions()
                 .setEstimationDisabled(true)
                 .setForceTimeout(3600);
@@ -233,9 +234,11 @@ public class SegmentCompactionIT {
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
                 .withGCOptions(gcOptions)
-                .withStatisticsProvider(new MetricStatisticsProvider(mBeanServer, executor))
+                .withStatisticsProvider(statisticsProvider)
                 .build();
-        nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        nodeStore = SegmentNodeStoreBuilders.builder(fileStore)
+                .withStatisticsProvider(statisticsProvider)
+                .build();
         WriterCacheManager cacheManager = builder.getCacheManager();
         Runnable cancelGC = new Runnable() {
             @Override
@@ -278,6 +281,8 @@ public class SegmentCompactionIT {
         assertNotNull(nodeDeduplicationCacheStats);
         registrations.add(registerMBean(nodeDeduplicationCacheStats,
                 new ObjectName("IT:TYPE=" + nodeDeduplicationCacheStats.getName())));
+        registrations.add(registerMBean(nodeStore.getStats(),
+                new ObjectName("IT:TYPE=" + "SegmentNodeStore statistics")));
         mBeanRegistration = new CompositeRegistration(registrations);
     }
 
