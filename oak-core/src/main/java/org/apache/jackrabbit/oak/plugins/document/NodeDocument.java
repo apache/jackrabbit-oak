@@ -230,6 +230,14 @@ public final class NodeDocument extends Document {
      */
     private static final String BRANCH_COMMITS = "_bc";
 
+    /**
+     * The revision set by the background document sweeper. The revision
+     * indicates up to which revision documents have been cleaned by the sweeper
+     * and all previous non-branch revisions by this cluster node can be
+     * considered committed.
+     */
+    private static final String SWEEP_REV = "_sweepRev";
+
     //~----------------------------< Split Document Types >
 
     /**
@@ -1699,6 +1707,24 @@ public final class NodeDocument extends Document {
         return commitRoot.getCommitValue(revision);
     }
 
+    /**
+     * Returns the sweep revisions on this document as a {@link RevisionVector}.
+     * This method will return an empty {@link RevisionVector} if this document
+     * doesn't have any sweep revisions set.
+     *
+     * @return the sweep revisions as a {@link RevisionVector}.
+     */
+    @Nonnull
+    RevisionVector getSweepRevisions() {
+        return new RevisionVector(transform(getLocalMap(SWEEP_REV).values(),
+                new Function<String, Revision>() {
+                    @Override
+                    public Revision apply(String s) {
+                        return Revision.fromString(s);
+                    }
+                }));
+    }
+
     //-------------------------< UpdateOp modifiers >---------------------------
 
     public static void setChildrenFlag(@Nonnull UpdateOp op,
@@ -1843,6 +1869,13 @@ public final class NodeDocument extends Document {
     public static void removeBranchCommit(@Nonnull UpdateOp op,
                                           @Nonnull Revision revision) {
         checkNotNull(op).removeMapEntry(BRANCH_COMMITS, revision);
+    }
+
+    public static void setSweepRevision(@Nonnull UpdateOp op,
+                                        @Nonnull Revision revision) {
+        checkNotNull(op).setMapEntry(SWEEP_REV,
+                new Revision(0, 0, revision.getClusterId()),
+                revision.toString());
     }
 
     //----------------------------< internal >----------------------------------
