@@ -120,7 +120,7 @@ public class Compact implements Runnable {
             File journal = new File(path, "journal.log");
             String head;
             try (JournalReader journalReader = new JournalReader(journal)) {
-                head = journalReader.next() + " root " + System.currentTimeMillis() + "\n";
+                head = journalReader.next().getRevision() + " root " + System.currentTimeMillis() + "\n";
             }
 
             try (RandomAccessFile journalFile = new RandomAccessFile(journal, "rw")) {
