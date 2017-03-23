@@ -221,8 +221,7 @@ public class SegmentGCOptions {
                     ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation +
                     ", retryCount=" + retryCount +
                     ", forceTimeout=" + forceTimeout +
-                    ", retainedGenerations=" + retainedGenerations +
-                    ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation + "}";
+                    ", retainedGenerations=" + retainedGenerations + "}";
         }
     }
 
