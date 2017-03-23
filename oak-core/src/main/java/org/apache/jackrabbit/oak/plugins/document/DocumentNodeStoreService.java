@@ -612,9 +612,19 @@ public class DocumentNodeStoreService {
             log.warn("registerNodeStore: got RuntimeException while trying to determine time difference to server: " + e, e);
         }
 
+        String[] serviceClasses;
         if (isNodeStoreProvider()) {
             registerNodeStoreProvider(nodeStore);
-            return;
+            serviceClasses = new String[]{
+                    DocumentNodeStore.class.getName(),
+                    Clusterable.class.getName()
+            };
+        } else {
+            serviceClasses = new String[]{
+                    NodeStore.class.getName(),
+                    DocumentNodeStore.class.getName(),
+                    Clusterable.class.getName()
+            };
         }
 
         Dictionary<String, Object> props = new Hashtable<String, Object>();
@@ -624,11 +634,7 @@ public class DocumentNodeStoreService {
         // require a service DocumentNodeStore (instead of having to do an 'instanceof')
         // the registration is now done for both NodeStore and DocumentNodeStore here.
         nodeStoreReg = context.getBundleContext().registerService(
-            new String[]{
-                 NodeStore.class.getName(), 
-                 DocumentNodeStore.class.getName(), 
-                 Clusterable.class.getName()
-            }, 
+            serviceClasses,
             nodeStore, props);
     }
 
