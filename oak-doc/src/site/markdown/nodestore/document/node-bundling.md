@@ -232,7 +232,7 @@ nodes
       "_id": "2:/test/book.jpg",
       "_commitRoot": {"r1560c1b3db8-0-1": "0"},
       "_deleted": {"r1560c1b3db8-0-1": "false"},
-      ":pattern": {
+      ":doc-pattern": {
         "r1560c1b3db8-0-1": "[\"str:jcr:content/metadata\",\"str:jcr:content/renditions\",\"str:jcr:content/renditions/**\",\"str:jcr:content\"]"
       },
       "jcr:primaryType": {"r1560c1b3db8-0-1": "\"str:app:Asset\""},
