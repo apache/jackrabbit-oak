@@ -118,6 +118,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -448,6 +449,7 @@ public class SegmentNodeStoreService {
                 .withMaxFileSize(configuration.getMaxFileSize())
                 .withMemoryMapping(configuration.getMemoryMapping())
                 .withGCMonitor(gcMonitor)
+                .withIOMonitor(new MetricsIOMonitor(statisticsProvider))
                 .withStatisticsProvider(statisticsProvider)
                 .withGCOptions(gcOptions);
 
