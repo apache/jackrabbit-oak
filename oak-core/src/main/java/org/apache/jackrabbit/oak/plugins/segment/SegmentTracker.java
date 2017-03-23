@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newIdentityHashSet;
 import static java.lang.Boolean.getBoolean;
 
 import java.security.SecureRandom;
@@ -31,8 +30,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -272,7 +269,12 @@ public class SegmentTracker {
             UUID uid = queue.remove();
             SegmentId id = getSegmentId(uid.getMostSignificantBits(),
                     uid.getLeastSignificantBits());
-            Segment segment = id.getSegment();
+            Segment segment;
+            try {
+                segment = id.getSegment();
+            } catch (SegmentNotFoundException e) {
+                continue;
+            }
             segment.collectBlobReferences(collector);
             for (SegmentId refid : segment.getReferencedIds()) {
                 UUID rid = refid.asUUID();
