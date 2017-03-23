@@ -1,0 +1,43 @@
+@startuml
+
+title Read flow for Secondary NodeStore
+autonumber
+hide footbox
+
+participant "NodeStore\nClient" as NS
+participant "Document\nNodeStore" as DNS
+database "Cache"
+database "Secondary Store" as SS
+database Mongo
+
+NS -> DNS : Read /a/b@r1
+
+DNS -> SS : Read /a/b@r1
+alt Found in Secondary Store
+  SS -> DNS
+  note over Cache
+     Secondary Store has nodes under
+     /a/b for revisions <= r1
+  end note
+  DNS -> NS : Read done from \nSecondary Store
+  note left
+      Further reads
+      of children under
+      /a/b would be done
+      from Secondary Store
+  end note
+else Not in Secondary Store
+  SS -> DNS :
+  DNS -> Cache : Try to read from cache \n else load from Mongo
+  alt Found in cache
+   Cache -> DNS    : /a/b@r1 already in cache
+   DNS -> NS       : Read done \n from memory cache
+   else Not found in cache
+    Cache -> Mongo : Read 2:/a/b from Mongo
+    Mongo -> Cache : Return 2:/a/b
+    Cache -> DNS   : Construct /a/b@r1\n and cache it
+    DNS -> NS      : Read done \n from Mongo
+    end
+end
+
+@enduml

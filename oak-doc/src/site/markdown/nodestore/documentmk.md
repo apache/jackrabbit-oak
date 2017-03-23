@@ -51,6 +51,7 @@ The document storage optionally uses the [persistent cache](persistent-cache.htm
 ## <a name="new-1.6"></a> New in 1.6
 
 * [Node Bundling](#node-bundling)
+* [Secondary Store](#secondary-store)
 
 
 ## <a name="backend-implementations"></a> Backend implementations
@@ -616,6 +617,12 @@ example unlocks an upgrade to 1.8 with a DocumentNodeStore on MongoDB:
 
 Please note that unlocking an upgrade is only possible when all cluster nodes
 are inactive, otherwise the command will refuse to change the format version.
+
+## <a name="secondary-store"></a> Secondary Store
+
+`@since Oak 1.6`
+
+Refer to [Secondary Store](document/secondary-store.html)
 
 [1]: http://docs.mongodb.org/manual/core/read-preference/
 [2]: http://docs.mongodb.org/manual/core/write-concern/

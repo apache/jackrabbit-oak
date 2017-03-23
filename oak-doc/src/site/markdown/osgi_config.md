@@ -49,7 +49,7 @@ This implementation is the newest and the only actively maintained one, and shou
 The second and last configuration, identified by `org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService`, refers to the old implementation of the Node Store provided by the `oak-segment` bundle.
 This implementation has been deprecated, will not receive any further improvements and should not be used, if possible.
 
-##### org.apache.jackrabbit.oak.segment.SegmentNodeStoreService
+##### <a name="config-SegmentNodeStoreService"></a> org.apache.jackrabbit.oak.segment.SegmentNodeStoreService
 
 repository.home (string) - repository
 : A path on the file system where repository data will be stored.
