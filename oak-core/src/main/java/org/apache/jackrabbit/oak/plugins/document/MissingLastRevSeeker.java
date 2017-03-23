@@ -91,7 +91,7 @@ public class MissingLastRevSeeker {
     }
 
     /**
-     * Get the candidates with modified time after the specified
+     * Get the candidates with modified time greater than or equal the specified
      * {@code startTime}.
      *
      * @param startTime the start time.
