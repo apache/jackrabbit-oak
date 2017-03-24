@@ -40,6 +40,7 @@
     <module>oak-commons</module>
     <module>oak-blob</module>
     <module>oak-blob-cloud</module>
+    <module>oak-blob-cloud-azure</module>
     <module>oak-core</module>
     <module>oak-jcr</module>
     <module>oak-upgrade</module>

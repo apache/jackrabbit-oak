@@ -30,13 +30,10 @@
     </appender>
 
     <logger name="org.apache.jackrabbit.core.data" level="INFO"/>
-    <logger name="org.apache.jackrabbit.oak.blob.cloud.s3" level="INFO"/>
-    <logger name="org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage" level="INFO"/>
+    <logger name="org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage" level="TRACE"/>
 
     <root level="INFO">
-        <!--
         <appender-ref ref="console"/>
-        -->
         <appender-ref ref="file"/>
     </root>
 
