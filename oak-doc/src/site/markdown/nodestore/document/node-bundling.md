@@ -14,8 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-  
-# <a name="bundling-nodes"></a> Bundling Nodes
+# Bundling Nodes
 
 * [Bundling Nodes](#bundling-nodes)
     * [Usage](#bundling-usage)
