@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
 public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
@@ -69,10 +71,11 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testRDBQueryKeyPatterns() {
         if (ds instanceof RDBDocumentStore) {
+            int cnt = 10;
             RDBDocumentStore rds = (RDBDocumentStore) ds;
             // create ten documents
             String base = this.getClass().getName() + ".testRDBQuery-";
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < cnt; i++) {
                 // every second is a "regular" path
                 String id = "1:" + (i % 2 == 1 ? "p" : "") + "/" + base + i;
                 UpdateOp up = new UpdateOp(id, true);
@@ -90,6 +93,29 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
                     assertTrue(d.getId().startsWith("1:p"));
                 }
             }
+
+            Iterable<NodeDocument> it = rds.queryAsIterable(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
+                    Arrays.asList("_:/%", "__:/%", "___:/%"), conditions, Integer.MAX_VALUE, null);
+            assertTrue(it instanceof Closeable);
+
+            int c1 = 0, c2 = 0;
+            for (NodeDocument d : it) {
+                if (base.equals(d.get("_test"))) {
+                    assertTrue(d.getId().startsWith("1:p"));
+                    c1 += 1;
+                }
+            }
+            // check that getting the iterator twice works
+            for (NodeDocument d : it) {
+                if (base.equals(d.get("_test"))) {
+                    assertTrue(d.getId().startsWith("1:p"));
+                    c2 += 1;
+                }
+            }
+            assertEquals(cnt / 2, c1);
+            assertEquals(cnt / 2, c2);
+
+            Utils.closeIfCloseable(it);
         }
     }
 }
