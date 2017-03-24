@@ -31,61 +31,84 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.google.common.base.Strings;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Extension to {@link DataStoreUtils} to enable S3 extensions for cleaning and initialization.
+ * Extension to {@link DataStoreUtils} to enable S3 / AzureBlob extensions for cleaning and initialization.
  */
 public class DataStoreUtils {
     private static final Logger log = LoggerFactory.getLogger(DataStoreUtils.class);
 
     private static Class JR2_S3 = SharedS3DataStore.class;
     private static Class S3 = S3DataStore.class;
+    private static Class AZURE = AzureDataStore.class;
 
     public static boolean isS3DataStore(String dsName) {
         return (dsName != null) && (dsName.equals(S3.getName()) || dsName.equals(JR2_S3.getName()));
     }
 
-    public static DataStore configureIfS3DataStore(String className, DataStore ds,
-        Map<String, ?> config, String bucket) throws Exception {
+    public static boolean isAzureDataStore(String dsName) {
+        return (dsName != null) &&
+               (dsName.equals(AZURE.getName()));
+    }
+
+    public static DataStore configureIfCloudDataStore(String className, DataStore ds,
+                                                      Map<String, ?> config, String bucket,
+                                                      StatisticsProvider statisticsProvider) throws Exception {
         // Add bucket info
         Properties props = new Properties();
         props.putAll(config);
-        props.setProperty(S3Constants.S3_BUCKET, bucket);
 
-        // Set the props object
-        if (S3.getName().equals(className)) {
-            ((S3DataStore) ds).setProperties(props);
-        } else
-        if (JR2_S3.getName().equals(className)) {
-            ((org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore) ds).setProperties(props);
+        log.info("Using bucket [ {} ]", bucket);
+
+        if (isS3DataStore(className)) {
+            props.setProperty(S3Constants.S3_BUCKET, bucket);
+
+            // Set the props object
+            if (S3.getName().equals(className)) {
+                ((S3DataStore) ds).setProperties(props);
+                ((S3DataStore) ds).setStatisticsProvider(statisticsProvider);
+            } else if (JR2_S3.getName().equals(className)) {
+                ((org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore) ds).setProperties(props);
+            }
+        } else if (isAzureDataStore(className)) {
+            props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, bucket);
+            ((AzureDataStore) ds).setProperties(props);
+            ((AzureDataStore) ds).setStatisticsProvider(statisticsProvider);
         }
+
 
         return ds;
     }
 
     /**
-     * Clean directory and if S3 bucket configured delete that.
+     * Clean directory and if S3 bucket/Azure container is configured delete that.
      *
      * @param storeDir the local directory
      * @param config the datastore config
+     * @param bucket the S3 bucket name / Azure container name
      * @throws Exception
      */
-    public static void cleanup(File storeDir, Map<String, ?> config) throws Exception {
+    public static void cleanup(File storeDir, Map<String, ?> config, String bucket) throws Exception {
         FileUtils.deleteQuietly(storeDir);
-        String bucket = null;
         if (config.containsKey(S3Constants.S3_BUCKET)) {
-            bucket = (String) config.get(S3Constants.S3_BUCKET);
             if (!Strings.isNullOrEmpty(bucket)) {
                 deleteBucket(bucket, config, new Date());
             }
+        } else if (config.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME)) {
+            deleteAzureContainer(config, bucket);
         }
     }
 
@@ -123,5 +146,23 @@ public class DataStoreUtils {
         }
         tmx.shutdownNow();
         s3service.shutdown();
+    }
+
+    public static void deleteAzureContainer(Map<String, ?> config, String containerName) throws Exception {
+        String accountName = (String)config.get(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME);
+        String accountKey = (String)config.get(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY);
+        if (Strings.isNullOrEmpty(containerName) ||
+                Strings.isNullOrEmpty(accountName) ||
+                Strings.isNullOrEmpty(accountKey)) {
+            return;
+        }
+        log.info("deleting container [" + containerName + "]");
+        CloudBlobContainer container = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils
+            .getBlobContainer(org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getConnectionString(accountName, accountKey), containerName);
+        if (container.deleteIfExists()) {
+            log.info("container [ " + containerName + "] deleted");
+        } else {
+            log.info("container [" + containerName + "] doesn't exists");
+        }
     }
 }
