@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeS
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.createTableName;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
@@ -61,8 +62,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
-import com.google.common.base.Function;
-import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -83,11 +82,15 @@ import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
 import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -1483,6 +1486,58 @@ public class RDBDocumentStore implements DocumentStore {
             stats.doneQuery(watch.elapsed(TimeUnit.NANOSECONDS), collection, fromKey, toKey,
                     !conditions.isEmpty(), resultSize, -1, false);
         }
+    }
+
+    private static interface MyCloseableIterable<T> extends Closeable, Iterable<T> {
+    }
+
+    protected <T extends Document> Iterable<T> queryAsIterable(final Collection<T> collection, String fromKey, String toKey,
+            final List<String> excludeKeyPatterns, final List<QueryCondition> conditions, final int limit, final String sortBy) {
+
+        final RDBTableMetaData tmd = getTable(collection);
+        for (QueryCondition cond : conditions) {
+            if (!INDEXEDPROPERTIES.contains(cond.getPropertyName())) {
+                String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond.getOperator()
+                        + "'" + cond.getValue() + "'; supported properties are " + INDEXEDPROPERTIES;
+                LOG.info(message);
+                throw new DocumentStoreException(message);
+            }
+        }
+
+        final String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
+        final String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
+
+        return new MyCloseableIterable<T>() {
+
+            Set<Iterator<RDBRow>> returned = Sets.newHashSet();
+
+            @Override
+            public Iterator<T> iterator() {
+                try {
+                    Iterator<RDBRow> res = db.queryAsIterator(ch, tmd, from, to, excludeKeyPatterns, conditions,
+                            limit, sortBy);
+                    returned.add(res);
+                    Iterator<T> tmp = Iterators.transform(res, new Function<RDBRow, T>() {
+                        @Override
+                        public T apply(RDBRow input) {
+                            return convertFromDBObject(collection, input);
+                        }
+                    });
+                    return CloseableIterator.wrap(tmp, (Closeable) res);
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                for (Iterator<RDBRow> rdbi : returned) {
+                    if (rdbi instanceof Closeable) {
+                        ((Closeable) rdbi).close();
+                    }
+                }
+            }
+        };
     }
 
     @Nonnull
