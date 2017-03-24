@@ -78,7 +78,7 @@ public class DataStoreCheckCommand implements Command {
 
         String helpStr =
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
-                + "[--s3ds <s3ds_config>|--fds <fds_config>] [--dump <path>]";
+                + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>] [--dump <path>]";
 
         Closer closer = Closer.create();
         try {
