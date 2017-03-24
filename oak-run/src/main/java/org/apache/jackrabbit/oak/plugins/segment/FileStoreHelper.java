@@ -181,7 +181,7 @@ public final class FileStoreHelper {
         if (!directory.exists()) {
             return directory;
         }
-        FileStore store = openReadOnlyFileStore(directory);
+        FileStore store = openReadOnlyFileStore(directory, false);
         try {
             SegmentVersion segmentVersion = getSegmentVersion(store);
             if (segmentVersion != LATEST_VERSION) {
@@ -223,8 +223,13 @@ public final class FileStoreHelper {
 
     public static ReadOnlyStore openReadOnlyFileStore(File directory)
             throws IOException {
+        return openReadOnlyFileStore(directory, TAR_STORAGE_MEMORY_MAPPED);
+    }
+
+    public static ReadOnlyStore openReadOnlyFileStore(File directory, boolean memoryMapped)
+            throws IOException {
         return new ReadOnlyStore(isValidFileStoreOrFail(directory),
-                TAR_SEGMENT_CACHE_SIZE, TAR_STORAGE_MEMORY_MAPPED);
+                TAR_SEGMENT_CACHE_SIZE, memoryMapped);
     }
 
     public static ReadOnlyStore openReadOnlyFileStore(File directory,
