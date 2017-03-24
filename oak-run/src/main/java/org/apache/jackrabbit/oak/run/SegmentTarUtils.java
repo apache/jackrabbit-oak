@@ -246,10 +246,11 @@ final class SegmentTarUtils {
         return fileStoreBuilder(new File(path)).build();
     }
 
-    private static ReadOnlyFileStore openReadOnlyFileStore(File path) throws IOException, InvalidFileStoreVersionException {
+    private static ReadOnlyFileStore openReadOnlyFileStore(File path, boolean memoryMapped)
+            throws IOException, InvalidFileStoreVersionException {
         return fileStoreBuilder(isValidFileStoreOrFail(path))
                 .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
-                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
+                .withMemoryMapping(memoryMapped)
                 .buildReadOnly();
     }
 
@@ -268,7 +269,7 @@ final class SegmentTarUtils {
         if (!directory.exists()) {
             return directory;
         }
-        ReadOnlyFileStore store = openReadOnlyFileStore(directory);
+        ReadOnlyFileStore store = openReadOnlyFileStore(directory, false);
         try {
             SegmentVersion segmentVersion = getSegmentVersion(store);
             if (segmentVersion != LATEST_VERSION) {
