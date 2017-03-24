@@ -14,8 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-  
-# <a name="secondary-node-store"></a> Secondary NodeStore
+# Secondary NodeStore
  
 * [Secondary NodeStore](#secondary-node-store)
    * [Read Flow](#read-flow)

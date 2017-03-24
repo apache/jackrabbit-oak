@@ -14,8 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-
-# <a name="oak-document-storage"></a> Oak Document Storage
+# Oak Document Storage
 
 * [Oak Document Storage](#oak-document-storage)
     * [New in 1.6](#new-1.6)
