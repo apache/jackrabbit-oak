@@ -2182,7 +2182,9 @@ public final class DocumentNodeStore
         return Collections.unmodifiableSet(splitCandidates.keySet());
     }
 
-    BackgroundWriteStats backgroundWrite() {
+    //-----------------------------< internal >---------------------------------
+
+    private BackgroundWriteStats backgroundWrite() {
         return unsavedLastRevisions.persist(this, new UnsavedModifications.Snapshot() {
             @Override
             public void acquiring(Revision mostRecent) {
@@ -2190,8 +2192,6 @@ public final class DocumentNodeStore
             }
         }, backgroundOperationLock.writeLock());
     }
-
-    //-----------------------------< internal >---------------------------------
 
     private static Supplier<VersionGarbageCollector> createVersionGCSupplier(
             final DocumentNodeStore ns, final VersionGCSupport gcSupport) {

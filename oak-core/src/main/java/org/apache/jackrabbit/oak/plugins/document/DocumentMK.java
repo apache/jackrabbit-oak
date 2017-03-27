@@ -160,7 +160,7 @@ public class DocumentMK {
     }
 
     void backgroundWrite() {
-        nodeStore.backgroundWrite();
+        nodeStore.runBackgroundUpdateOperations();
     }
 
     void runBackgroundOperations() {
