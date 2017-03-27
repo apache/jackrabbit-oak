@@ -21,6 +21,7 @@ import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Dictionary;
@@ -31,17 +32,12 @@ import java.util.Properties;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
-import com.google.common.collect.Maps;
-import com.google.common.io.Closer;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
-import joptsimple.ArgumentAcceptingOptionSpec;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
+import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
@@ -52,6 +48,17 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import com.google.common.collect.Maps;
+import com.google.common.io.Closer;
+import com.google.common.io.Files;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
+
+import joptsimple.ArgumentAcceptingOptionSpec;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 
 class Utils {
     
@@ -131,10 +138,13 @@ class Utils {
             parser.accepts("s3ds", "S3DataStore config").withRequiredArg().ofType(String.class);
         ArgumentAcceptingOptionSpec<String> fdsConfig =
             parser.accepts("fds", "FileDataStore config").withRequiredArg().ofType(String.class);
+        ArgumentAcceptingOptionSpec<String> azureBlobDSConfig =
+            parser.accepts("azureblobds", "AzureBlobStorageDataStore config").withRequiredArg().ofType(String.class);
+
 
         OptionSet options = parser.parse(args);
 
-        if (!options.has(s3dsConfig) && !options.has(fdsConfig)) {
+        if (!options.has(s3dsConfig) && !options.has(fdsConfig) && !options.has(azureBlobDSConfig)) {
             return null;
         }
 
@@ -146,6 +156,15 @@ class Utils {
             s3ds.setProperties(props);
             s3ds.init(null);
             delegate = s3ds;
+        } else if (options.has(azureBlobDSConfig)) {
+            AzureDataStore azureds = new AzureDataStore();
+            String cfgPath = azureBlobDSConfig.value(options);
+            Properties props = loadAndTransformProps(cfgPath);
+            azureds.setProperties(props);
+            File homeDir =  Files.createTempDir();
+            azureds.init(homeDir.getAbsolutePath());
+            closer.register(asCloseable(homeDir));
+            delegate = azureds;
         } else {
             delegate = new OakFileDataStore();
             String cfgPath = fdsConfig.value(options);
@@ -199,6 +218,16 @@ class Utils {
                 } catch (DataStoreException e) {
                     throw new IOException(e);
                 }
+            }
+        };
+    }
+
+    static Closeable asCloseable(final File dir) {
+        return new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                FileUtils.deleteDirectory(dir);
             }
         };
     }
