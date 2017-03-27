@@ -350,7 +350,8 @@ public class FileStoreBuilder {
     @Nonnull
     public ReadOnlyFileStore buildReadOnly() throws InvalidFileStoreVersionException, IOException {
         checkState(!built, "Cannot re-use builder");
-        checkState(directory.exists() && directory.isDirectory());
+        checkState(directory.exists() && directory.isDirectory(),
+                "%s does not exist or is not a directory", directory);
         built = true;
         ReadOnlyRevisions revisions = new ReadOnlyRevisions(directory);
         LOG.info("Creating file store {}", this);
