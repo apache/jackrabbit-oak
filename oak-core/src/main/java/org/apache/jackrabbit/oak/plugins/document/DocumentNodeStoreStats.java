@@ -40,6 +40,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private static final String BGW_CLEAN = "DOCUMENT_NS_BGW_CLEAN";
     private static final String BGW_SPLIT = "DOCUMENT_NS_BGW_SPLIT";
     private static final String BGW_WRITE = "DOCUMENT_NS_BGW_LOCK";
+    private static final String BGW_SWEEP = "DOCUMENT_NS_BGW_SWEEP";
     static final String BGW_NUM = "DOCUMENT_NS_BGW_NUM";
     static final String BGW_NUM_WRITES_RATE = "DOCUMENT_NS_BGW_NUM_WRITE_RATE";
     private static final String BGW_TOTAL = "DOCUMENT_NS_BGW_TOTAL_TIME";
@@ -63,6 +64,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
 
     private final TimerStats writeClean;
     private final TimerStats writeSplit;
+    private final TimerStats writeSweep;
     private final HistogramStats writeNum;
     private final TimerStats writeWrite;
     private final TimerStats writeTotal;
@@ -89,6 +91,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
 
         writeClean = sp.getTimer(BGW_CLEAN, StatsOptions.METRICS_ONLY);
         writeSplit = sp.getTimer(BGW_SPLIT, StatsOptions.METRICS_ONLY);
+        writeSweep = sp.getTimer(BGW_SWEEP, StatsOptions.METRICS_ONLY);
         writeWrite = sp.getTimer(BGW_WRITE, StatsOptions.METRICS_ONLY);
         writeTotal = sp.getTimer(BGW_TOTAL, StatsOptions.METRICS_ONLY);
         writeNum = sp.getHistogram(BGW_NUM, StatsOptions.METRICS_ONLY);
@@ -121,6 +124,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     public void doneBackgroundUpdate(BackgroundWriteStats stats) {
         writeClean.update(stats.clean, TimeUnit.MILLISECONDS);
         writeSplit.update(stats.split, TimeUnit.MILLISECONDS);
+        writeSweep.update(stats.sweep, TimeUnit.MILLISECONDS);
         writeWrite.update(stats.write, TimeUnit.MILLISECONDS);
         writeTotal.update(stats.totalWriteTime, TimeUnit.MILLISECONDS);
 
