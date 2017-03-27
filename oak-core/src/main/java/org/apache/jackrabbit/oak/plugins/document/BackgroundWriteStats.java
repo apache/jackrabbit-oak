@@ -23,6 +23,7 @@ class BackgroundWriteStats {
 
     long clean;
     long split;
+    long sweep;
     long lock;
     long write;
     long num;
@@ -32,7 +33,8 @@ class BackgroundWriteStats {
     @Override
     public String toString() {
         return "clean:" + clean +
-                ", split:" + split+
+                ", split:" + split +
+                ", sweep:" + sweep +
                 ", lock:" + lock +
                 ", write:" + write +
                 ", num:" + num +
