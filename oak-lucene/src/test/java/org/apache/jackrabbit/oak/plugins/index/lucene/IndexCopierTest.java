@@ -976,6 +976,41 @@ public class IndexCopierTest {
         executorService.shutdown();
     }
 
+    @Test
+    public void directoryContentMismatch_COR() throws Exception{
+        Directory baseDir = new CloseSafeDir();
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexCopier copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir(), true);
+
+        Directory remote = new RAMDirectory();
+        byte[] t1 = writeFile(remote, "t1");
+        byte[] t2 = writeFile(remote, "t2");
+
+        //State of remote directory should set before wrapping as later
+        //additions would not be picked up given COW assume remote directory
+        //to be read only
+        Directory local = copier.wrapForRead("/foo", defn, remote);
+
+        readAndAssert(local, "t1", t1);
+        readAndAssert(local, "t2", t2);
+
+        copier.close();
+
+        //2. Modify the same file in remote directory simulating rollback scenario
+        Directory remoteModified = new RAMDirectory();
+        t1 = writeFile(remoteModified, "t1");
+
+        //3. Reopen the copier
+        copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir(), true);
+
+        //4. Post opening local the content should be in sync with remote
+        //So t1 should be recreated matching remote
+        //t2 should be removed
+        local = copier.wrapForRead("/foo", defn, remoteModified);
+        readAndAssert(baseDir, "t1", t1);
+        assertFalse(baseDir.fileExists("t2"));
+    }
+
     private byte[] writeFile(Directory dir, String name) throws IOException {
         byte[] data = randomBytes(rnd.nextInt(maxFileSize) + 1);
         IndexOutput o = dir.createOutput(name, IOContext.DEFAULT);
