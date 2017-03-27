@@ -101,7 +101,7 @@ public class ExternalChangesTest {
         b2.setProperty("foo2", "bar");
         ns1.merge(b2, newCollectingHook(), newCommitInfo());
 
-        ns1.backgroundWrite();
+        ns1.runBackgroundUpdateOperations();
 
         c2.reset();
         ns2.runBackgroundReadOperations();
@@ -128,7 +128,7 @@ public class ExternalChangesTest {
         //Commit without ChangeSet
         ns1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        ns1.backgroundWrite();
+        ns1.runBackgroundUpdateOperations();
 
         c2.reset();
         ns2.runBackgroundReadOperations();
@@ -161,7 +161,7 @@ public class ExternalChangesTest {
         }
 
         ns1.merge(b1, newCollectingHook(), newCommitInfo());
-        ns1.backgroundWrite();
+        ns1.runBackgroundUpdateOperations();
 
         c2.reset();
         ns2.runBackgroundReadOperations();
@@ -183,7 +183,7 @@ public class ExternalChangesTest {
         NodeBuilder b0 = ns1.getRoot().builder();
         b0.child("0");
         ns1.merge(b0, newCollectingHook(), newCommitInfo());
-        ns1.backgroundWrite();
+        ns1.runBackgroundUpdateOperations();
 
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("a");
@@ -202,7 +202,7 @@ public class ExternalChangesTest {
         b3.child("c");
         ns1.merge(b3, newCollectingHook(), newCommitInfo());
 
-        ns1.backgroundWrite();
+        ns1.runBackgroundUpdateOperations();
 
         c2.reset();
         ns2.runBackgroundReadOperations();

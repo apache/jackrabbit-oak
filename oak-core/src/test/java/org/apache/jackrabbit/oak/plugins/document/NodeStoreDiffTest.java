@@ -203,8 +203,6 @@ public class NodeStoreDiffTest {
 
     private void ops(){
         ns.runBackgroundOperations();
-        //Background ops are disabled for simple revisions
-        ns.backgroundWrite();
     }
 
     private NodeState createNodes(String... paths) throws CommitFailedException {
