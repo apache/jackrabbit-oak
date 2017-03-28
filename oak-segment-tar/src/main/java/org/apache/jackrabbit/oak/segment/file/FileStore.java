@@ -63,7 +63,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -769,12 +768,6 @@ public class FileStore extends AbstractFileStore {
         synchronized GCEstimation estimateCompactionGain(Supplier<Boolean> stop) {
             return new SizeDeltaGcEstimation(gcOptions, gcJournal,
                     stats.getApproximateSize());
-        }
-
-        private void log(@CheckForNull String nodeCacheOccupancyInfo) {
-            if (nodeCacheOccupancyInfo != null) {
-                log.info("NodeCache occupancy: {}", nodeCacheOccupancyInfo);
-            }
         }
 
         private int compactionAborted(int generation) {
