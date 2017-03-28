@@ -284,4 +284,18 @@ public class UtilsTest {
         Utils.alignWithExternalRevisions(doc, c, 1);
         assertThat(c.getTime(), is(greaterThan(lastRev2.getTimestamp())));
     }
+
+    @Test
+    public void isIdFromLongPath() {
+        String path = "/test";
+        while (!Utils.isLongPath(path)) {
+            path += path;
+        }
+        String idFromLongPath = Utils.getIdFromPath(path);
+        assertTrue(Utils.isIdFromLongPath(idFromLongPath));
+        assertFalse(Utils.isIdFromLongPath("foo"));
+        assertFalse(Utils.isIdFromLongPath(NodeDocument.MIN_ID_VALUE));
+        assertFalse(Utils.isIdFromLongPath(NodeDocument.MAX_ID_VALUE));
+        assertFalse(Utils.isIdFromLongPath(":"));
+    }
 }

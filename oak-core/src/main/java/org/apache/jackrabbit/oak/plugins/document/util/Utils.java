@@ -309,7 +309,7 @@ public class Utils {
     
     public static boolean isIdFromLongPath(String id) {
         int index = id.indexOf(':');
-        return id.charAt(index + 1) == 'h';
+        return index != -1 && index < id.length() - 1 && id.charAt(index + 1) == 'h';
     }
 
     public static String getPathFromId(String id) {
