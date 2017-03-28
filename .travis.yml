@@ -23,8 +23,8 @@ env:
   - MODULE=oak-it-osgi
   - MODULE=oak-pojosr
   - MODULE=oak-upgrade
-install:  mvn --batch-mode -DskipTests install -pl :${MODULE} -am
-script:   mvn --batch-mode clean verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :${MODULE}
+install:  mvn --batch-mode -DskipTests -Dbaseline.skip=true install -pl :${MODULE} -am -nsu
+script:   mvn --batch-mode clean verify -Dbaseline.skip=true -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
 language: java
 jdk:
   - oraclejdk7
