@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.37
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.38
 
 Introduction
 ------------
@@ -8,38 +8,43 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.37 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.38 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.37
+Changes in Oak 1.0.38
 ---------------------
 
 Technical task
 
-    [OAK-5098] - improve DocumentNodeStoreService robustness for RDB configs
-    [OAK-5554] - RDB*Store: update postgresql JDBC driver reference to 9.4.1212
-    [OAK-5555] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.73
+    [OAK-4793] - Check usage of DocumentStoreException in RDBDocumentStore
+    [OAK-5627] - RDBDocumentStore: improve long query logging
+    [OAK-5751] - RDBDocumentStore: properly handle null values for system properties
+    [OAK-5852] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.75
 
 Bug
 
-    [OAK-3991] - Incorrect resultset from XPATH, multiple ORs and Lucene full-text
-    [OAK-5507] - Backport OAK-3991 (Incorrect resultset from XPATH, multiple ORs and Lucene full-text) to 1.0
-    [OAK-5541] - Build failure: JVM crash, Internal Error
-    [OAK-5568] - Test failure: ExternalSharedStoreIT
-    [OAK-5601] - documentMk backgroundRead should handle missing journal entries
-    [OAK-5608] - Test failure: org.apache.jackrabbit.mk.util.CommitGateIT.test
+    [OAK-4114] - Cached lucene index gets corrupted in case of unclean shutdown and journal rollback in SegmentNodeStore
+    [OAK-5240] - Test failure: IndexSanityCheckerTest.sizeMismatch()
+    [OAK-5485] - Test failure: LdapDefaultLoginModuleTest address already in use
+    [OAK-5542] - Test failure: security.authentication.ldap.LdapProviderTest (Address already in use)
+    [OAK-5624] - Test failure: org.apache.jackrabbit.oak.cache.ConcurrentTest.testLoaderBlock
+    [OAK-5773] - BlobCache does not implement Closeable
+    [OAK-5783] - Test failure: security.authentication.ldap.LdapProviderTest.testSplitDNIntermediatePath2
+    [OAK-5876] - SplitDocumentCleanup should implement Closeable
+    [OAK-5930] - incorrect test assumption in CacheConsistencyTestBase wrt batching
 
 Task
 
-    [OAK-5537] - Javadoc config fixes
+    [OAK-4774] - Check usage of DocumentStoreException in MongoDocumentStore
+    [OAK-5701] - Update Oak 1.0 to Jackrabbit 2.8.5
 
 Test
 
-    [OAK-5663] - Improve LogCutomizer to allow filtering on log messages too
+    [OAK-4802] - Basic cache consistency test on exception
 
 
 In addition to the above-mentioned changes, this release contains
