@@ -423,48 +423,68 @@ NRT indexing expose a few configuration options as part of the [LuceneIndexProvi
 
 ## <a name="reindexing"></a> Reindexing
 
-Reindexing of existing indexes is required in the following scenarios:
-
-* Incompatible changes in the index definition - 
-  Needed after adding a property to an index definition, 
-  if content nodes with this property are already present.
-* Corrupted Index - If the index is corrupt, and `AsyncIndexUpdate` run fails 
-  with an exception pointing to index being corrupt.
-  
-Reindexing does not resolve other problems, such that queries not returning data. 
-For such cases, it is _not_ recommended to reindex (also because this can be very slow and use a lot of temporary disk space).
+Reindexing rarely solves problems. 
+Specially, it does not typically make queries return the expected result. 
+For such cases, it is _not_ recommended to reindex,
+also because reindex can be very slow (sometimes multiple days), 
+and use a lot of temporary disk space.
+Note that removing checkpoints, and removing the hidden `:async` node
+will  cause a full reindex, so doing this is not recommended either.
 If queries don't return the right data, then possibly the index is [not yet up-to-date][OAK-5159],
 or the query is incorrect, or included/excluded path settings are wrong (for Lucene indexes). 
 Instead of reindexing, it is suggested to first check the log file, 
-modify the query so it uses a different index or traversal and run the query again.
-One case where reindexing can help is if the query engine picks a very slow index for some queries because the counter index 
-[got out of sync after adding and removing lots of nodes many times (fixed in recent version)][OAK-4065].
-For this case, it is recommended to verify the contents of the counter index first,
-and upgrade Oak before reindexing.
+modify the query so it uses a different index or traversal, and run the query again.
 
-Also, note that with Oak 1.6, for Lucene indexes, changes in the index definition are only effective 
-[post reindexing](lucene.html#stored-index-definition).
+Reindexing of existing indexes is required in the following scenarios:
+
+* A: In case a _property_ index configuration was changed,
+  such that the index is used for queries, but doesn't contain some of the nodes.
+  Nodes that existed _before_ the index configuration was changed, are not indexed.
+  A workaround is to change ('touch') the affected nodes.
+* B: Prior to Oak 1.6, in case a _Lucene_ index definition was changed (same as A).
+  In Oak 1.6 and newer, queries will use the old index definition
+  until the index is [reindexed](lucene.html#stored-index-definition).
+* C: Prior to Oak 1.6, in case the query engine picks a very slow index 
+  for some queries because the counter index 
+  [got out of sync after adding and removing lots of nodes many times][OAK-4065].
+  For this case, it is recommended to verify the contents of the counter index first,
+  and upgrade Oak before reindexing.
+  Only the `counter` index needs to be reindexed in this case.
+  The workaround (to avoid reindexing) is to manually tweak index configurations
+  using manually set `entryCount` in the index configuration.
+* D: In case a binary of a Lucene index is missing, for example
+  because the binary is not available in the datastore.
+  This can happen in case the datastore is misconfigured
+  such that garbage collection removed a binary that is still required.
+  In such cases, other binaries might be missing as well;
+  it is best to traverse all nodes of the repository to ensure this is not the case.
+* E: In case a binary of a Lucene index is corrupt.
+  If the index is corrupt, an `AsyncIndexUpdate` run will fail 
+  with an exception pointing to the index being corrupt.
+  In such a case, first verify that the following procedure doesn't resolve
+  the issue: stop Oak, remove the local copy of the Lucene index (directory `index`),
+  and restart. If the index is still corrupt after this, then reindexing is needed.
+  In such cases, please file an Oak issue.
 
 To reindex, set the `reindex` property to `true` in the respective index definition:
 
     /oak:index/userIndex
-      - jcr:primaryType = "oak:QueryIndexDefinition"
-      - async = ['async']
       - reindex = true
       
-Once changes are saved, the index is reindexed. For synchronous indexes, 
-the reindexing is done as part of save (or commit) itself. 
-While for asynchronous indexes, reindex starts with the next async indexing cycle. 
+Once changes are saved, the index is reindexed. 
+For asynchronous indexes, reindex starts with the next async indexing cycle.
+For synchronous indexes, the reindexing is done as part of save (or commit) itself.
+For a (synchronous) property index, 
+as an alternative you can use the `PropertyIndexAsyncReindexMBean`; 
+see the [reindeinxing property indexes](property-index.html#reindexing) section for more details on that.
+
 Once reindexing starts, the following log entries can be seen in the log:
 
     [async-index-update-async] o.a.j.o.p.i.IndexUpdate Reindexing will be performed for following indexes: [/oak:index/userIndex]
     [async-index-update-async] o.a.j.o.p.i.IndexUpdate Reindexing Traversed #100000 /home/user/admin 
     [async-index-update-async] o.a.j.o.p.i.AsyncIndexUpdate [async] Reindexing completed for indexes: [/oak:index/userIndex*(4407016)] in 30 min 
 
-In both cases, once reindexing is complete, the `reindex` flag is removed.
-
-For a property index, you can also make use of the `PropertyIndexAsyncReindexMBean`. 
-See also the [reindeinxing property indexes](property-index.html#reindexing) section for more details on that.
+Once reindexing is complete, the `reindex` flag is set to `false`.
 
 
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
