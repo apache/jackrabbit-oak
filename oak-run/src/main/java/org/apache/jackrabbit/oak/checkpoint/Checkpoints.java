@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -74,6 +75,26 @@ public abstract class Checkpoints {
      *          not succeed.
      */
     public abstract int remove(String cp);
+
+    /**
+     * Return checkpoint metadata
+     *
+     * @param cp a checkpoint string.
+     * @return checkpoints metadata map or null if checkpoint can't be found
+     */
+    public abstract Map<String, String> getInfo(String cp);
+
+    /**
+     * Set the property in the checkpoint metadata.
+     *
+     * @param cp a checkpoint string.
+     * @param name property name
+     * @param value new value of the property. the property will be removed if the value is {@code null}
+     * @return {@code 1} if the checkpoint was successfully remove, {@code 0} if
+     *          there is no such checkpoint or {@code -1} if the operation did
+     *          not succeed.
+     */
+    public abstract int setInfoProperty(String cp, String name, String value);
 
     @Nonnull
     static Set<String> getReferencedCheckpoints(NodeState root) {

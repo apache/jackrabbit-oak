@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.File;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -40,7 +42,7 @@ class CheckpointsCommand implements Command {
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().isEmpty()) {
-            System.out.println("usage: checkpoints {<path>|<mongo-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>] [--segment]");
+            System.out.println("usage: checkpoints {<path>|<mongo-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>|info <checkpoint>|set <checkpoint> <name> [<value>]] [--segment]");
             System.exit(1);
         }
 
@@ -51,7 +53,7 @@ class CheckpointsCommand implements Command {
             String op = "list";
             if (options.nonOptionArguments().size() >= 2) {
                 op = options.nonOptionArguments().get(1).toString();
-                if (!"list".equals(op) && !"rm-all".equals(op) && !"rm-unreferenced".equals(op) && !"rm".equals(op)) {
+                if (!"list".equals(op) && !"rm-all".equals(op) && !"rm-unreferenced".equals(op) && !"rm".equals(op) && !"info".equals(op) && !"set".equals(op)) {
                     failWith("Unknown command.");
                 }
             }
@@ -109,6 +111,45 @@ class CheckpointsCommand implements Command {
                     if (cnt != 0) {
                         if (cnt == 1) {
                             System.out.println("Removed checkpoint " + cp + " in "
+                                    + time + "ms.");
+                        } else {
+                            failWith("Failed to remove checkpoint " + cp);
+                        }
+                    } else {
+                        failWith("Checkpoint '" + cp + "' not found.");
+                    }
+                }
+            } else if ("info".equals(op)) {
+                if (options.nonOptionArguments().size() < 3) {
+                    failWith("Missing checkpoint id");
+                } else {
+                    String cp = options.nonOptionArguments().get(2).toString();
+                    Map<String, String> info = cps.getInfo(cp);
+                    if (info != null) {
+                        for (Map.Entry<String, String> e : info.entrySet()) {
+                            System.out.println(e.getKey() + '\t' + e.getValue());
+                        }
+                    } else {
+                        failWith("Checkpoint '" + cp + "' not found.");
+                    }
+                }
+            } else if ("set".equals(op)) {
+                if (options.nonOptionArguments().size() < 4) {
+                    failWith("Missing checkpoint id");
+                } else {
+                    List<?> l = options.nonOptionArguments();
+                    String cp = l.get(2).toString();
+                    String name = l.get(3).toString();
+                    String value = null;
+                    if (l.size() >= 5) {
+                        value = l.get(4).toString();
+                    }
+                    long time = System.currentTimeMillis();
+                    int cnt = cps.setInfoProperty(cp, name, value);
+                    time = System.currentTimeMillis() - time;
+                    if (cnt != 0) {
+                        if (cnt == 1) {
+                            System.out.println("Updated checkpoint " + cp + " in "
                                     + time + "ms.");
                         } else {
                             failWith("Failed to remove checkpoint " + cp);

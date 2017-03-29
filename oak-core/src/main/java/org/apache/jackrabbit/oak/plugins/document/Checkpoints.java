@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -196,6 +197,25 @@ class Checkpoints {
             rv = expand(r);
         }
         return rv;
+    }
+
+    void setInfoProperty(@Nonnull String checkpoint, @Nonnull String key, @Nullable String value) {
+        Revision r = Revision.fromString(checkNotNull(checkpoint));
+        Info info = getCheckpoints().get(r);
+        if (info == null) {
+            throw new IllegalArgumentException("No such checkpoint: " + checkpoint);
+        }
+        Map<String, String> metadata = new LinkedHashMap<>(info.get());
+        if (value == null) {
+            metadata.remove(key);
+        } else {
+            metadata.put(key, value);
+        }
+        Info newInfo = new Info(info.getExpiryTime(), info.getCheckpoint(), metadata);
+
+        UpdateOp op = new UpdateOp(Checkpoints.ID, false);
+        op.setMapEntry(PROP_CHECKPOINT, r, newInfo.toString());
+        store.findAndUpdate(Collection.SETTINGS, op);
     }
 
     int size() {

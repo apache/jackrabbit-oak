@@ -21,11 +21,15 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -109,6 +113,43 @@ class SegmentTarCheckpoints extends Checkpoints {
                 .getChildNode(cp);
         if (cpn.exists()) {
             cpn.remove();
+            if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
+                return 1;
+            } else {
+                return -1;
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    @Override
+    public Map<String, String> getInfo(String cp) {
+        SegmentNodeState head = store.getHead();
+        NodeState props = head.getChildNode("checkpoints").getChildNode(cp).getChildNode("properties");
+        if (props.exists()) {
+            Map<String, String> info = new HashMap<>();
+            for (PropertyState p : props.getProperties()) {
+                info.put(p.getName(), p.getValue(Type.STRING));
+            }
+            return info;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public int setInfoProperty(String cp, String name, String value) {
+        SegmentNodeState head = store.getHead();
+        NodeBuilder builder = head.builder();
+
+        NodeBuilder props = builder.getChildNode("checkpoints").getChildNode(cp).getChildNode("properties");
+        if (props.exists()) {
+            if (value == null) {
+                props.removeProperty(name);
+            } else {
+                props.setProperty(name, value, Type.STRING);
+            }
             if (store.getRevisions().setHead(head.getRecordId(), asSegmentNodeState(builder).getRecordId())) {
                 return 1;
             } else {
