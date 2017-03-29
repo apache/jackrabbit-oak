@@ -63,6 +63,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -848,7 +849,8 @@ public class FileStore extends AbstractFileStore {
                         Stopwatch forceWatch = Stopwatch.createStarted();
                         
                         cycles++;
-                        success = forceCompact(writer, or(cancel, timeOut(forceTimeout, SECONDS)));
+                        after = forceCompact(writer, or(cancel, timeOut(forceTimeout, SECONDS)));
+                        success = after != null;
                         if (success) {
                             gcListener.info("TarMK GC #{}: compaction succeeded to force compact remaining commits " +
                                             "after {} ({} ms).",
@@ -929,32 +931,35 @@ public class FileStore extends AbstractFileStore {
             }
         }
 
-        private boolean forceCompact(@Nonnull final SegmentWriter writer,
-                                     @Nonnull final Supplier<Boolean> cancel)
+        @CheckForNull
+        private SegmentNodeState forceCompact(@Nonnull final SegmentWriter writer,
+                                              @Nonnull final Supplier<Boolean> cancel)
         throws InterruptedException {
-            return null != revisions.
-                    setHead(new Function<RecordId, RecordId>() {
-                                @Nullable
-                                @Override
-                                public RecordId apply(RecordId base) {
-                                    try {
-                                        long t0 = currentTimeMillis();
-                                        SegmentNodeState after = compact(
-                                                segmentReader.readNode(base), writer, cancel);
-                                        if (after == null) {
-                                            gcListener.info("TarMK GC #{}: compaction cancelled after {} seconds",
-                                                    GC_COUNT, (currentTimeMillis() - t0) / 1000);
-                                            return null;
-                                        } else {
-                                            return after.getRecordId();
-                                        }
-                                    } catch (IOException e) {
-                                        gcListener.error("TarMK GC #{" + GC_COUNT + "}: Error during forced compaction.", e);
-                                        return null;
-                                    }
-                                }
-                            },
-                            timeout(gcOptions.getForceTimeout(), SECONDS));
+            RecordId compactedId = revisions.setHead(new Function<RecordId, RecordId>() {
+                @Nullable
+                @Override
+                public RecordId apply(RecordId base) {
+                    try {
+                        long t0 = currentTimeMillis();
+                        SegmentNodeState after = compact(
+                                segmentReader.readNode(base), writer, cancel);
+                        if (after == null) {
+                            gcListener.info("TarMK GC #{}: compaction cancelled after {} seconds",
+                                    GC_COUNT, (currentTimeMillis() - t0) / 1000);
+                            return null;
+                        } else {
+                            return after.getRecordId();
+                        }
+                    } catch (IOException e) {
+                        gcListener.error("TarMK GC #{" + GC_COUNT + "}: Error during forced compaction.", e);
+                        return null;
+                    }
+                }
+            },
+            timeout(gcOptions.getForceTimeout(), SECONDS));
+            return compactedId != null
+                    ? segmentReader.readNode(compactedId)
+                    : null;
         }
 
         synchronized void cleanup() throws IOException {
