@@ -932,7 +932,7 @@ public class FileStore extends AbstractFileStore {
         private boolean forceCompact(@Nonnull final SegmentWriter writer,
                                      @Nonnull final Supplier<Boolean> cancel)
         throws InterruptedException {
-            return revisions.
+            return null != revisions.
                     setHead(new Function<RecordId, RecordId>() {
                                 @Nullable
                                 @Override

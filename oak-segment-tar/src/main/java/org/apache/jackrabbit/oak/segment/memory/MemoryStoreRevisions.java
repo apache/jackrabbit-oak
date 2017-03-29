@@ -79,7 +79,7 @@ public class MemoryStoreRevisions implements Revisions {
      * @throws UnsupportedOperationException always
      */
     @Override
-    public boolean setHead(
+    public RecordId setHead(
             @Nonnull Function<RecordId, RecordId> newHead,
             @Nonnull Option... options) throws InterruptedException {
         throw new UnsupportedOperationException();

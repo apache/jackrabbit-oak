@@ -81,13 +81,13 @@ public interface Revisions {
      * @param newHead  function mapping an record id to the record id to which
      *                 the current head id should be set.
      * @param options  implementation specific options
-     * @return         {@code true} if the current head was successfully
-     *                 updated, {@code false} otherwise.
+     * @return         the record id of the root node if the current head was successfully
+     *                 updated, {@code null} otherwise.
      * @throws InterruptedException
      *                 Blocking implementations may throw this exception whe
      *                 interrupted.
      */
-    boolean setHead(@Nonnull Function<RecordId, RecordId> newHead,
+    RecordId setHead(@Nonnull Function<RecordId, RecordId> newHead,
                     @Nonnull Option... options)
     throws InterruptedException;
 }
