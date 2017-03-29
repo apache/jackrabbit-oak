@@ -156,6 +156,8 @@ The 'list' option (treated as a default when nothing is specified) will list all
 The 'rm-all' option will wipe clean the 'checkpoints' node.
 The 'rm-unreferenced' option will remove all checkpoints except the one referenced from the async indexer (/:async@async).
 The 'rm <checkpoint>' option will remove a specific checkpoint from the repository.
+The 'info <checkpoint>' option will return metadata information for the given checkpoint.
+The 'set <checkpoint> <name> \[<value>\]' option will set the metadata property. If the value is omitted, the property will be removed. 
 
 <a name="tika"></a>
 Tika
