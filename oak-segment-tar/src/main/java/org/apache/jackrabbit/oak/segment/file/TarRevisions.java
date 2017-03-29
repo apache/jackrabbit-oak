@@ -274,7 +274,7 @@ public class TarRevisions implements Revisions, Closeable {
      * @see #INFINITY
      */
     @Override
-    public boolean setHead(
+    public RecordId setHead(
             @Nonnull Function<RecordId, RecordId> newHead,
             @Nonnull Option... options)
     throws InterruptedException {
@@ -285,15 +285,15 @@ public class TarRevisions implements Revisions, Closeable {
                 RecordId after = newHead.apply(getHead());
                 if (after != null) {
                     head.set(after);
-                    return true;
+                    return after;
                 } else {
-                    return false;
+                    return null;
                 }
             } finally {
                 rwLock.writeLock().unlock();
             }
         } else {
-            return false;
+            return null;
         }
     }
 
