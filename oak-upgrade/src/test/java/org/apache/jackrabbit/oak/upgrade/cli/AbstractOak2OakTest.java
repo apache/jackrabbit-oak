@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -81,8 +82,6 @@ public abstract class AbstractOak2OakTest {
     protected Session session;
 
     private RepositoryImpl repository;
-
-    private String checkpointReference;
 
     protected abstract NodeStoreContainer getSourceContainer();
 
@@ -149,7 +148,7 @@ public abstract class AbstractOak2OakTest {
         builder.setProperty("binary-prop", getRandomBlob(target));
         builder.setProperty("checkpoint-state", "before");
         target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        checkpointReference = target.checkpoint(60000, singletonMap("key", "123"));
+        target.checkpoint(60000, singletonMap("key", "123"));
 
         builder.setProperty("checkpoint-state", "after");
         builder.setProperty("binary-prop", getRandomBlob(target));
@@ -219,6 +218,17 @@ public abstract class AbstractOak2OakTest {
     protected void verifyCheckpoint() {
         assertEquals("after", destination.getRoot().getString("checkpoint-state"));
 
+        String checkpointReference = null;
+
+        for (String c : destination.checkpoints()) {
+            if (destination.checkpointInfo(c).containsKey("key")) {
+                checkpointReference = c;
+                break;
+            }
+        }
+
+        assertNotNull(checkpointReference);
+
         Map<String, String> info = destination.checkpointInfo(checkpointReference);
         assertEquals("123", info.get("key"));
 
@@ -244,6 +254,8 @@ public abstract class AbstractOak2OakTest {
             return ((SegmentNodeState) node).getRecordId().toString();
         } else if (node instanceof org.apache.jackrabbit.oak.segment.SegmentNodeState) {
             return ((org.apache.jackrabbit.oak.segment.SegmentNodeState) node).getRecordId().toString();
+        } else if (node instanceof DocumentNodeState) {
+            return ((DocumentNodeState) node).getLastRevision().toString();
         } else {
             return null;
         }

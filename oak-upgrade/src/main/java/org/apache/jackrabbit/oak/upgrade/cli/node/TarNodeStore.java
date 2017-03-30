@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
@@ -32,10 +31,6 @@ public class TarNodeStore extends ProxyNodeStore {
         this.superRootProvider = superRootProvider;
     }
 
-    public void setSuperRoot(NodeBuilder builder) {
-        superRootProvider.setSuperRoot(builder);
-    }
-
     public NodeState getSuperRoot() {
         return superRootProvider.getSuperRoot();
     }
@@ -46,8 +41,6 @@ public class TarNodeStore extends ProxyNodeStore {
     }
 
     interface SuperRootProvider {
-
-        void setSuperRoot(NodeBuilder builder);
 
         NodeState getSuperRoot();
 

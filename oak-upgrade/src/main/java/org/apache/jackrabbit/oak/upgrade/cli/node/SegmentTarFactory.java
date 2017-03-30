@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.Closeable;
@@ -27,15 +26,12 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -172,21 +168,6 @@ public class SegmentTarFactory implements NodeStoreFactory {
         public SegmentTarSuperRootProvider(FileStore fileStore) {
             this.readOnlyFileStore = null;
             this.fileStore = fileStore;
-        }
-
-        @Override
-        public void setSuperRoot(NodeBuilder builder) {
-            if (fileStore == null) {
-                throw new IllegalStateException("setSuperRoot is not supported for read-only segment-tar");
-            }
-            checkArgument(builder instanceof SegmentNodeBuilder);
-            SegmentNodeBuilder segmentBuilder = (SegmentNodeBuilder) builder;
-            SegmentNodeState lastRoot = (SegmentNodeState) getSuperRoot();
-
-            if (!lastRoot.getRecordId().equals(((SegmentNodeState) segmentBuilder.getBaseState()).getRecordId())) {
-                throw new IllegalArgumentException("The new head is out of date");
-            }
-            fileStore.getRevisions().setHead(lastRoot.getRecordId(), segmentBuilder.getNodeState().getRecordId());
         }
 
         @Override

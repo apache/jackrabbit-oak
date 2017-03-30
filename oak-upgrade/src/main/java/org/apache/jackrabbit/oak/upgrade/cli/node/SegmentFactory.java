@@ -21,22 +21,17 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Closer;
 
 import javax.annotation.Nullable;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public class SegmentFactory implements NodeStoreFactory {
 
@@ -88,19 +83,6 @@ public class SegmentFactory implements NodeStoreFactory {
         closer.register(asCloseable(fs));
 
         return new TarNodeStore(SegmentNodeStore.builder(fs).build(), new TarNodeStore.SuperRootProvider() {
-            @Override
-            public void setSuperRoot(NodeBuilder builder) {
-                checkArgument(builder instanceof SegmentNodeBuilder);
-                SegmentNodeBuilder segmentBuilder = (SegmentNodeBuilder) builder;
-                SegmentNodeState lastRoot = (SegmentNodeState) getSuperRoot();
-
-                if (!lastRoot.getRecordId().equals(((SegmentNodeState) segmentBuilder.getBaseState()).getRecordId())) {
-                    throw new IllegalArgumentException("The new head is out of date");
-                }
-
-                fs.setHead(lastRoot, ((SegmentNodeBuilder) builder).getNodeState());
-            }
-
             @Override
             public NodeState getSuperRoot() {
                 return fs.getHead();
