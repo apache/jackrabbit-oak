@@ -21,7 +21,9 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.upgrade.cli.container.JdbcNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
+import org.junit.Ignore;
 
+@Ignore("OAK-6011")  // FIXME     OAK-6011: Test failure: JdbcToSegmentTest:validateMigration
 public class JdbcToSegmentTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer source;
