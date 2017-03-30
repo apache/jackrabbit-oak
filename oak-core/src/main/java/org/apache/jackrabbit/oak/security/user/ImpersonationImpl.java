@@ -20,6 +20,8 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.HashSet;
 import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
@@ -50,7 +52,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     private final UserImpl user;
     private final PrincipalManager principalManager;
 
-    ImpersonationImpl(UserImpl user) throws RepositoryException {
+    ImpersonationImpl(@Nonnull UserImpl user) throws RepositoryException {
         this.user = user;
         this.principalManager = user.getUserManager().getPrincipalManager();
     }
@@ -60,6 +62,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     /**
      * @see org.apache.jackrabbit.api.security.user.Impersonation#getImpersonators()
      */
+    @Nonnull
     @Override
     public PrincipalIterator getImpersonators() throws RepositoryException {
         Set<String> impersonators = getImpersonatorNames();
@@ -84,7 +87,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
      * @see org.apache.jackrabbit.api.security.user.Impersonation#grantImpersonation(Principal)
      */
     @Override
-    public boolean grantImpersonation(Principal principal) throws RepositoryException {
+    public boolean grantImpersonation(@Nonnull Principal principal) throws RepositoryException {
         if (!isValidPrincipal(principal)) {
             return false;
         }
@@ -110,7 +113,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
      * @see Impersonation#revokeImpersonation(java.security.Principal)
      */
     @Override
-    public boolean revokeImpersonation(Principal principal) throws RepositoryException {
+    public boolean revokeImpersonation(@Nonnull Principal principal) throws RepositoryException {
         String pName = principal.getName();
 
         Tree userTree = user.getTree();
@@ -127,7 +130,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
      * @see Impersonation#allows(javax.security.auth.Subject)
      */
     @Override
-    public boolean allows(Subject subject) throws RepositoryException {
+    public boolean allows(@CheckForNull Subject subject) throws RepositoryException {
         if (subject == null) {
             return false;
         }
@@ -151,11 +154,13 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     //------------------------------------------------------------< private >---
+    @Nonnull
     private Set<String> getImpersonatorNames() {
         return getImpersonatorNames(user.getTree());
     }
 
-    private Set<String> getImpersonatorNames(Tree userTree) {
+    @Nonnull
+    private Set<String> getImpersonatorNames(@Nonnull Tree userTree) {
         Set<String> princNames = new HashSet<String>();
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         if (impersonators != null) {
@@ -166,7 +171,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         return princNames;
     }
 
-    private void updateImpersonatorNames(Tree userTree, Set<String> principalNames) {
+    private void updateImpersonatorNames(@Nonnull Tree userTree, @Nonnull Set<String> principalNames) {
         if (principalNames == null || principalNames.isEmpty()) {
             userTree.removeProperty(REP_IMPERSONATORS);
         } else {
@@ -174,7 +179,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    private boolean isAdmin(Principal principal) {
+    private boolean isAdmin(@Nonnull Principal principal) {
         if (principal instanceof AdminPrincipal) {
             return true;
         } else if (principal instanceof Group) {
@@ -190,7 +195,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    private boolean isValidPrincipal(Principal principal) {
+    private boolean isValidPrincipal(@Nonnull Principal principal) {
         Principal p = null;
         // shortcut for TreeBasedPrincipal
         if (principal instanceof TreeBasedPrincipal) {
