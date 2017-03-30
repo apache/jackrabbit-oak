@@ -445,26 +445,36 @@ Reindexing of existing indexes is required in the following scenarios:
   In Oak 1.6 and newer, queries will use the old index definition
   until the index is [reindexed](lucene.html#stored-index-definition).
 * C: Prior to Oak 1.6, in case the query engine picks a very slow index 
-  for some queries because the counter index 
+  for some queries because the counter index (`/oak:index/counter`)
   [got out of sync after adding and removing lots of nodes many times][OAK-4065].
   For this case, it is recommended to verify the contents of the counter index first,
   and upgrade Oak before reindexing.
+  To view the content, use the NodeCounter JMX bean and
+  run `getEstimatedChildNodeCounts` with p1 = `/` and p2 = `2`.
+  If there is a problem, then the estimated node count of root node typically is very low,
+  more than 10 times lower than the sum of its children.
   Only the `counter` index needs to be reindexed in this case.
   The workaround (to avoid reindexing) is to manually tweak index configurations
-  using manually set `entryCount` in the index configuration.
-* D: In case a binary of a Lucene index is missing, for example
-  because the binary is not available in the datastore.
+  using manually set `entryCount` of the index that should be used to a low value
+  (as high as possible so that the index is still needed), for example to 100 or 1000.
+* D: In case a binary of a Lucene index (a Lucene index file) is missing, 
+  for example because the binary is not available in the datastore.
   This can happen in case the datastore is misconfigured
   such that garbage collection removed a binary that is still required.
   In such cases, other binaries might be missing as well;
   it is best to traverse all nodes of the repository to ensure this is not the case.
-* E: In case a binary of a Lucene index is corrupt.
+* E: In case a binary of a Lucene index (a Lucene index file) is corrupt.
   If the index is corrupt, an `AsyncIndexUpdate` run will fail 
-  with an exception pointing to the index being corrupt.
+  with an exception saying a Lucene index file is corrupt.
   In such a case, first verify that the following procedure doesn't resolve
   the issue: stop Oak, remove the local copy of the Lucene index (directory `index`),
   and restart. If the index is still corrupt after this, then reindexing is needed.
   In such cases, please file an Oak issue.
+* F: Prior to Oak 1.2.24 / 1.4.13 / 1.6.1, 
+  when using the document store (MongoDB or RDBMK)
+  in combination with a large transaction (a commit that changed or added many thousand nodes),
+  and if one of the parent nodes had more than 100 child nodes,
+  then indexes (all types) [did not see those changes in some cases][OAK-5557].
 
 To reindex, set the `reindex` property to `true` in the respective index definition:
 
@@ -493,6 +503,6 @@ Once reindexing is complete, the `reindex` flag is set to `false`.
 [OAK-4412]: https://issues.apache.org/jira/browse/OAK-4412
 [OAK-4065]: https://issues.apache.org/jira/browse/OAK-4065
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
-
+[OAK-5557]: https://issues.apache.org/jira/browse/OAK-5557
   
   
