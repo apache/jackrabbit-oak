@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,30 +45,34 @@ public class GcJournalTest {
         File directory = segmentFolder.newFolder();
         GCJournal gc = new GCJournal(directory);
 
-        gc.persist(0, 100, 1, 50);
+        gc.persist(0, 100, 1, 50, RecordId.NULL.toString10());
         GCJournalEntry e0 = gc.read();
         assertEquals(100, e0.getRepoSize());
         assertEquals(0, e0.getReclaimedSize());
         assertEquals(50, e0.getNodes());
+        assertEquals(RecordId.NULL.toString10(), e0.getRoot());
 
-        gc.persist(0, 250, 2, 75);
+        gc.persist(0, 250, 2, 75, RecordId.NULL.toString());
         GCJournalEntry e1 = gc.read();
         assertEquals(250, e1.getRepoSize());
         assertEquals(0, e1.getReclaimedSize());
         assertEquals(75, e1.getNodes());
+        assertEquals(RecordId.NULL.toString(), e1.getRoot());
 
-        gc.persist(50, 200, 3, 90);
+        gc.persist(50, 200, 3, 90, "foo");
         GCJournalEntry e2 = gc.read();
         assertEquals(200, e2.getRepoSize());
         assertEquals(50, e2.getReclaimedSize());
         assertEquals(90, e2.getNodes());
+        assertEquals("foo", e2.getRoot());
 
         // same gen
-        gc.persist(75, 300, 3, 125);
+        gc.persist(75, 300, 3, 125, "bar");
         GCJournalEntry e3 = gc.read();
         assertEquals(200, e3.getRepoSize());
         assertEquals(50, e3.getReclaimedSize());
         assertEquals(90, e3.getNodes());
+        assertEquals("foo", e2.getRoot());
 
         Collection<GCJournalEntry> all = gc.readAll();
         assertEquals(all.size(), 3);

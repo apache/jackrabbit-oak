@@ -35,8 +35,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,9 +72,10 @@ public class GCJournal {
      * @param repoSize current repo size
      * @param gcGeneration gc generation
      * @param nodes number of compacted nodes
+     * @param root  record id of the compacted root node
      */
     public synchronized void persist(long reclaimedSize, long repoSize,
-            int gcGeneration, long nodes) {
+            int gcGeneration, long nodes, @Nonnull String root) {
         GCJournalEntry current = read();
         if (current.getGcGeneration() == gcGeneration) {
             // failed compaction, only update the journal if the generation
@@ -80,7 +83,7 @@ public class GCJournal {
             return;
         }
         latest = new GCJournalEntry(repoSize, reclaimedSize,
-                System.currentTimeMillis(), gcGeneration, nodes);
+                System.currentTimeMillis(), gcGeneration, nodes, checkNotNull(root));
         Path path = new File(directory, GC_JOURNAL).toPath();
         try {
             try (BufferedWriter w = newBufferedWriter(path, UTF_8, WRITE,
@@ -134,7 +137,8 @@ public class GCJournal {
 
     public static class GCJournalEntry {
 
-        static final GCJournalEntry EMPTY = new GCJournalEntry(-1, -1, -1, -1, -1);
+        static final GCJournalEntry EMPTY = new GCJournalEntry(
+                -1, -1, -1, -1, -1, RecordId.NULL.toString10());
 
         private final long repoSize;
         private final long reclaimedSize;
@@ -142,39 +146,54 @@ public class GCJournal {
         private final int gcGeneration;
         private final long nodes;
 
+        @Nonnull
+        private final String root;
+
         public GCJournalEntry(long repoSize, long reclaimedSize, long ts,
-                int gcGeneration, long nodes) {
+                int gcGeneration, long nodes, @Nonnull String root) {
             this.repoSize = repoSize;
             this.reclaimedSize = reclaimedSize;
             this.ts = ts;
             this.gcGeneration = gcGeneration;
             this.nodes = nodes;
+            this.root = root;
         }
 
         @Override
         public String toString() {
-            return repoSize + "," + reclaimedSize + "," + ts + "," + gcGeneration + "," + nodes;
+            return repoSize + "," + reclaimedSize + "," + ts + "," + gcGeneration + "," + nodes + "," + root;
         }
 
         static GCJournalEntry fromString(String in) {
             String[] items = in.split(",");
-            long repoSize = safeParse(items, 0);
-            long reclaimedSize = safeParse(items, 1);
-            long ts = safeParse(items, 2);
-            int gcGen = (int) safeParse(items, 3);
-            long nodes = safeParse(items, 4);
-            return new GCJournalEntry(repoSize, reclaimedSize, ts, gcGen, nodes);
+            long repoSize = parseLong(items, 0);
+            long reclaimedSize = parseLong(items, 1);
+            long ts = parseLong(items, 2);
+            int gcGen = (int) parseLong(items, 3);
+            long nodes = parseLong(items, 4);
+            String root = parseString(items, 5);
+            if (root == null) {
+                root = RecordId.NULL.toString10();
+            }
+            return new GCJournalEntry(repoSize, reclaimedSize, ts, gcGen, nodes, root);
         }
 
-        private static long safeParse(String[] items, int index) {
+        @CheckForNull
+        private static String parseString(String[] items, int index) {
             if (items.length < index - 1) {
-                return -1;
+                return null;
             }
-            String in = items[index];
-            try {
-                return Long.parseLong(in);
-            } catch (NumberFormatException ex) {
-                LOG.warn("Unable to parse {} as long value.", in, ex);
+            return items[index];
+        }
+
+        private static long parseLong(String[] items, int index) {
+            String in = parseString(items, index);
+            if (in != null) {
+                try {
+                    return Long.parseLong(in);
+                } catch (NumberFormatException ex) {
+                    LOG.warn("Unable to parse {} as long value.", in, ex);
+                }
             }
             return -1;
         }
@@ -214,11 +233,20 @@ public class GCJournal {
             return nodes;
         }
 
+        /**
+         * Returns the record id of the root created by the compactor
+         */
+        @Nonnull
+        public String getRoot() {
+            return root;
+        }
+
         @Override
         public int hashCode() {
             final int prime = 31;
             int result = 1;
             result = prime * result + gcGeneration;
+            result = prime * result + root.hashCode();
             result = prime * result + (int) (nodes ^ (nodes >>> 32));
             result = prime * result + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
             result = prime * result + (int) (repoSize ^ (repoSize >>> 32));
@@ -251,6 +279,9 @@ public class GCJournal {
                 return false;
             }
             if (ts != other.ts) {
+                return false;
+            }
+            if (!root.equals(other.root)) {
                 return false;
             }
             return true;
