@@ -589,8 +589,10 @@ public class DocumentNodeStoreService {
         registerLastRevRecoveryJob(nodeStore);
         registerJournalGC(nodeStore);
 
-        observerTracker = new ObserverTracker(nodeStore);
-        observerTracker.start(context.getBundleContext());
+        if (!isNodeStoreProvider()) {
+            observerTracker = new ObserverTracker(nodeStore);
+            observerTracker.start(context.getBundleContext());
+        }
         journalPropertyHandlerFactory.start(whiteboard);
 
         DocumentStore ds = nodeStore.getDocumentStore();
