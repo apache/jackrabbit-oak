@@ -26,16 +26,18 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 /**
  * A base class for two node cluster tests with a virtual clock.
  */
+@Ignore("This base test does not have tests")
 @RunWith(Parameterized.class)
 public class AbstractTwoNodeTest {
 
-    private final DocumentStoreFixture fixture;
+    protected final DocumentStoreFixture fixture;
 
     protected DocumentStore store1;
     protected DocumentStore store2;
