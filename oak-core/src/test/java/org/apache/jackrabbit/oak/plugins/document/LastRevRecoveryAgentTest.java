@@ -19,23 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.IOException;
-import java.util.List;
-
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
@@ -44,87 +34,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-@RunWith(Parameterized.class)
-public class LastRevRecoveryAgentTest {
-    private final DocumentStoreFixture fixture;
-
-    private DocumentNodeStore ds1;
-    private DocumentNodeStore ds2;
-    private int c1Id;
-    private int c2Id;
-    private DocumentStore sharedStore;
-    private Clock clock;
+public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
 
     public LastRevRecoveryAgentTest(DocumentStoreFixture fixture) {
-        this.fixture = fixture;
+        super(fixture);
     }
-
-    //----------------------------------------< Set Up >
-
-    @Parameterized.Parameters
-    public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
-
-        DocumentStoreFixture rdb = new RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
-        if (rdb.isAvailable()) {
-            fixtures.add(new Object[] { rdb });
-        }
-
-        DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if (mongo.isAvailable()) {
-            fixtures.add(new Object[] { mongo });
-        }
-        return fixtures;
-    }
-
-    @Before
-    public void setUp() throws InterruptedException {
-        clock = new Clock.Virtual();
-
-        //Quite a bit of logic relies on timestamp converted
-        // to 5 sec resolutions
-        clock.waitUntil(System.currentTimeMillis());
-
-        ClusterNodeInfo.setClock(clock);
-        Revision.setClock(clock);
-        sharedStore = fixture.createDocumentStore();
-        DocumentStoreWrapper store = new DocumentStoreWrapper(sharedStore) {
-            @Override
-            public void dispose() {
-                // do not dispose when called by DocumentNodeStore
-            }
-        };
-        ds1 = new DocumentMK.Builder()
-                .setAsyncDelay(0)
-                .clock(clock)
-                .setDocumentStore(store)
-                .setLeaseCheck(false)
-                .setClusterId(1)
-                .getNodeStore();
-        c1Id = ds1.getClusterId();
-
-        ds2 = new DocumentMK.Builder()
-                .setAsyncDelay(0)
-                .clock(clock)
-                .setDocumentStore(store)
-                .setLeaseCheck(false)
-                .setClusterId(2)
-                .getNodeStore();
-        c2Id = ds2.getClusterId();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        ds1.dispose();
-        ds2.dispose();
-        sharedStore.dispose();
-        fixture.dispose();
-        ClusterNodeInfo.resetClockToDefault();
-        Revision.resetClockToDefault();
-    }
-
-    //~------------------------------------------< Test Case >
 
     @Test
     public void testIsRecoveryRequired() throws Exception{
