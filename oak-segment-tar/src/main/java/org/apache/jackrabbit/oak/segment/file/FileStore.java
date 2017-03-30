@@ -796,7 +796,7 @@ public class FileStore extends AbstractFileStore {
                 compactionMonitor.init(GC_COUNT.get(), gcEntry.getRepoSize(), gcEntry.getNodes(), initialSize);
 
                 SegmentNodeState before = getHead();
-                Supplier<Boolean> cancel = new CancelCompactionSupplier(FileStore.this);
+                CancelCompactionSupplier cancel = new CancelCompactionSupplier(FileStore.this);
                 SegmentWriter writer = segmentWriterBuilder("c")
                         .with(cacheManager)
                         .withGeneration(newGeneration)
@@ -852,7 +852,8 @@ public class FileStore extends AbstractFileStore {
                         Stopwatch forceWatch = Stopwatch.createStarted();
                         
                         cycles++;
-                        after = forceCompact(writer, or(cancel, timeOut(forceTimeout, SECONDS)));
+                        cancel.timeOutAfter(forceTimeout, SECONDS);
+                        after = forceCompact(writer, cancel);
                         success = after != null;
                         if (success) {
                             gcListener.info("TarMK GC #{}: compaction succeeded to force compact remaining commits " +
@@ -889,38 +890,6 @@ public class FileStore extends AbstractFileStore {
             } catch (IOException e) {
                 gcListener.error("TarMK GC #" + GC_COUNT + ": compaction encountered an error", e);
                 return compactionAborted(newGeneration);
-            }
-        }
-
-        /**
-         * @param duration
-         * @param unit
-         * @return  {@code Supplier} instance which returns true once the time specified in
-         * {@code duration} and {@code unit} has passed.
-         */
-        private Supplier<Boolean> timeOut(final long duration, @Nonnull final TimeUnit unit) {
-            return new Supplier<Boolean>() {
-                final long deadline = currentTimeMillis() + MILLISECONDS.convert(duration, unit);
-                @Override
-                public Boolean get() {
-                    return currentTimeMillis() > deadline;
-                }
-            };
-        }
-
-        /**
-         * @param supplier1
-         * @param supplier2
-         * @return {@code Supplier} instance that returns {@code true} iff {@code supplier1} returns
-         * {@code true} or otherwise {@code supplier2} returns {@code true}.
-         */
-        private Supplier<Boolean> or(
-                @Nonnull Supplier<Boolean> supplier1,
-                @Nonnull Supplier<Boolean> supplier2) {
-            if (supplier1.get()) {
-                return Suppliers.ofInstance(true);
-            } else {
-                return supplier2;
             }
         }
 
@@ -1137,15 +1106,27 @@ public class FileStore extends AbstractFileStore {
          * the space was never sufficient to begin with), compaction is considered
          * canceled. Furthermore when the file store is shutting down, compaction is
          * considered canceled.
+         * Finally the cancellation can be triggered by a timeout that can be set
+         * at any time.
          */
         private class CancelCompactionSupplier implements Supplier<Boolean> {
             private final FileStore store;
 
             private String reason;
+            private volatile long deadline;
 
             public CancelCompactionSupplier(@Nonnull FileStore store) {
                 cancelled = false;
                 this.store = store;
+            }
+
+            /**
+             * Set a timeout for cancellation. Setting a different timeout cancels
+             * a previous one that did not yet elapse. Setting a timeout after
+             * cancellation took place has no effect.
+             */
+            public void timeOutAfter(final long duration, @Nonnull final TimeUnit unit) {
+                deadline = currentTimeMillis() + MILLISECONDS.convert(duration, unit);
             }
 
             @Override
@@ -1167,6 +1148,10 @@ public class FileStore extends AbstractFileStore {
                 }
                 if (cancelled) {
                     reason = "Cancelled by user";
+                    return true;
+                }
+                if (deadline > 0 && currentTimeMillis() > deadline) {
+                    reason = "Timeout after " + deadline/1000 + " seconds";
                     return true;
                 }
                 return false;
