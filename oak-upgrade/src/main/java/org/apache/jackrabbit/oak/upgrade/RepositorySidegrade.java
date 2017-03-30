@@ -343,7 +343,7 @@ public class RepositorySidegrade {
                 copyProperties(checkpointRoot, targetRoot);
             } else {
                 LOG.info("Applying diff to {}", checkpoint.getName());
-                checkpointRoot.compareAgainstBaseState(wrapSource(previousRoot), new ApplyDiff(targetRoot));
+                checkpointRoot.compareAgainstBaseState(previousRoot, new ApplyDiff(targetRoot));
             }
             target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             previousRoot = checkpointRoot;
@@ -366,7 +366,7 @@ public class RepositorySidegrade {
             copyProperties(sourceRoot, targetRoot);
         } else {
             LOG.info("Applying diff to head");
-            sourceRoot.compareAgainstBaseState(wrapSource(previousRoot), new ApplyDiff(targetRoot));
+            sourceRoot.compareAgainstBaseState(previousRoot, new ApplyDiff(targetRoot));
         }
 
         LOG.info("Rewriting checkpoint names in /:async {}", nameToRevision);
