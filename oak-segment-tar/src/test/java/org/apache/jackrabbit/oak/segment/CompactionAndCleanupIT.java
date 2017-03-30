@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
+import org.apache.jackrabbit.oak.segment.tool.Compact;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -504,6 +505,43 @@ public class CompactionAndCleanupIT {
             fileStore.close();
         }
     }
+
+    /**
+     * Test for the Offline compaction tool (OAK-5971)
+     */
+    @Test
+    public void offlineCompactionTool() throws Exception {
+        SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
+        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withMaxFileSize(1)
+                .withGCOptions(gcOptions)
+                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+                .build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        try {
+            NodeBuilder root = nodeStore.getRoot().builder();
+            root.child("content");
+            nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+        } finally {
+            fileStore.close();
+        }
+
+        Compact.builder().withPath(getFileStoreFolder()).build().run();
+
+        fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withMaxFileSize(1)
+                .withGCOptions(gcOptions)
+                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+                .build();
+        nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        try {
+            assertTrue(nodeStore.getRoot().hasChildNode("content"));
+        } finally {
+            fileStore.close();
+        }
+     }
 
     private static void assertSize(String info, long size, long lower, long upper) {
         log.debug("File Store {} size {}, expected in interval [{},{}]",
