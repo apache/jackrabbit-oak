@@ -274,7 +274,10 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
         nodeStates.put(ctx.getGlobalStore(), ctx.getGlobalStore().getNodeStore().retrieve(checkpoint));
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
-            NodeState nodeState = nodeStore.getNodeStore().retrieve(checkpoint);
+            NodeState nodeState = null;
+            if (!nodeStore.getNodeStore().checkpointInfo(checkpoint).isEmpty()) {
+                nodeState = nodeStore.getNodeStore().retrieve(checkpoint);
+            }
             if (nodeState == null) {
                 String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
                 if (partialCheckpoint != null) {
@@ -297,7 +300,10 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         }
         boolean result = ctx.getGlobalStore().getNodeStore().release(checkpoint);
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
-            boolean released = nodeStore.getNodeStore().release(checkpoint);
+            boolean released = false;
+            if (!nodeStore.getNodeStore().checkpointInfo(checkpoint).isEmpty()) {
+                released = nodeStore.getNodeStore().release(checkpoint);
+            }
             if (!released) {
                 String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
                 if (partialCheckpoint != null) {
