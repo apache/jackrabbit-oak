@@ -59,4 +59,9 @@ public class MongoToMongoFbsTest extends AbstractOak2OakTest {
         return new String[] { "--copy-binaries", "--fileblobstore", destinationBlob.getDescription(),
                 source.getDescription(), destination.getDescription() };
     }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return true;
+    }
 }

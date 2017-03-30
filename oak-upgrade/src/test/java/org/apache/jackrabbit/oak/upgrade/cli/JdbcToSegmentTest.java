@@ -48,4 +48,9 @@ public class JdbcToSegmentTest extends AbstractOak2OakTest {
         return new String[] { "--src-user", "sa", "--src-password", "sa", source.getDescription(),
                 destination.getDescription() };
     }
+
+    @Override
+    protected boolean supportsCheckpointMigration() {
+        return true;
+    }
 }

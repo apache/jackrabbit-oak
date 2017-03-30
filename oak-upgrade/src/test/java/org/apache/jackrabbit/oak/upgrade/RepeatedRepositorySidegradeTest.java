@@ -28,12 +28,15 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -96,12 +99,14 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         try {
             final RepositorySidegrade repositoryUpgrade = new RepositorySidegrade(segmentNodeStore, target);
-            repositoryUpgrade.copy(new RepositoryInitializer() {
-                @Override
-                public void initialize(@Nonnull NodeBuilder builder) {
-                    builder.child("foo").child("bar");
-                }
-            });
+
+            NodeBuilder builder = target.getRoot().builder();
+            builder.child("foo").child("bar");
+            target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            repositoryUpgrade.copy();
+        } catch (CommitFailedException e) {
+            throw new RepositoryException(e);
         } finally {
             fileStore.close();
         }
