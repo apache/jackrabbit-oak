@@ -61,6 +61,7 @@
                             sun.security.util.*;resolution:=optional,
                             sun.security.x509.*;resolution:=optional,
                             org.apache.logging.log4j.*;resolution:=optional,
+                            org.apache.log4j.*;resolution:=optional,
                             *
                         </Import-Package>
                     </instructions>
