@@ -32,7 +32,6 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.CLEANUP;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION;
@@ -959,7 +958,11 @@ public class FileStore extends AbstractFileStore {
                 // to clear stale weak references in the SegmentTracker
                 System.gc();
 
-                collectBulkReferences(bulkRefs);
+                for (SegmentId id : tracker.getReferencedSegmentIds()) {
+                    if (id.isBulkSegmentId()) {
+                        bulkRefs.add(id.asUUID());
+                    }
+                }
 
                 for (TarReader reader : readers) {
                     cleaned.put(reader, reader);
@@ -1055,14 +1058,9 @@ public class FileStore extends AbstractFileStore {
         }
 
         private void collectBulkReferences(Set<UUID> bulkRefs) {
-            Set<UUID> refs = newHashSet();
             for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                refs.add(id.asUUID());
-            }
-            tarWriter.collectReferences(refs);
-            for (UUID ref : refs) {
-                if (!isDataSegmentId(ref.getLeastSignificantBits())) {
-                    bulkRefs.add(ref);
+                if (id.isBulkSegmentId()) {
+                    bulkRefs.add(id.asUUID());
                 }
             }
         }
