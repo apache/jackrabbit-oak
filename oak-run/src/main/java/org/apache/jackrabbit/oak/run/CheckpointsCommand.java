@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
+import org.apache.jackrabbit.oak.commons.run.Command;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 

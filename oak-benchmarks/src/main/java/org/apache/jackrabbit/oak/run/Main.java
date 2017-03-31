@@ -16,15 +16,26 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.commons.run.Modes;
 import org.apache.jackrabbit.oak.commons.run.Utils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Properties;
 
 import static java.util.Arrays.copyOfRange;
-import static org.apache.jackrabbit.oak.run.AvailableModes.MODES;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 public final class Main {
+    private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
+        "benchmark", new BenchmarkCommand(),
+        "scalability", new ScalabilityCommand()
+    ));
+
     private Main() {
         // Prevent instantiation.
     }
@@ -32,20 +43,20 @@ public final class Main {
     public static void main(String[] args) throws Exception {
         Utils.printProductInfo(
             args,
-            Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
+            Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-benchmarks/pom.properties")
+        );
 
-        Command command = MODES.getCommand("help");
-
+        Command c = MODES.getCommand("benchmark");
         if (args.length > 0) {
-            command = MODES.getCommand(args[0].toLowerCase(Locale.ENGLISH));
+            c = MODES.getCommand(args[0]);
 
-            if (command == null) {
-                command = MODES.getCommand("help");
+            if (c == null) {
+                c = MODES.getCommand("benchmark");
             }
 
             args = copyOfRange(args, 1, args.length);
         }
 
-        command.execute(args);
+        c.execute(args);
     }
 }

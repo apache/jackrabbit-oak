@@ -159,7 +159,7 @@
   <dependencies>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-segment-tar</artifactId>
+      <artifactId>oak-commons-run</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -169,111 +169,37 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-http</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.jackrabbit</groupId>
-        <artifactId>oak-remote</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-authorization-cug</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-solr-core</artifactId>
+      <artifactId>oak-blob-cloud</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-segment-tar</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.solr</groupId>
-      <artifactId>solr-solrj</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.solr</groupId>
-      <artifactId>solr-core</artifactId>
-      <version>${lucene.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-aws-ext</artifactId>
+      <version>${jackrabbit.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-auth-external</artifactId>
+      <artifactId>oak-blob-cloud-azure</artifactId>
       <version>${project.version}</version>
+      <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>org.apache.tomcat</groupId>
-      <artifactId>tomcat-jdbc</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-jcr-server</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-data</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-math</artifactId>
-      <version>2.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>1.8</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlet</artifactId>
-      <version>${jetty.version}</version>
-    </dependency>
+
     <dependency>
       <groupId>net.sf.jopt-simple</groupId>
       <artifactId>jopt-simple</artifactId>
       <version>4.6</version>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
@@ -282,19 +208,38 @@
       <classifier>indy</classifier>
     </dependency>
     <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
-      <version>2.14.2</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
-      <scope>provided</scope>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongo-java-driver</artifactId>
     </dependency>
     <dependency>
       <groupId>org.mapdb</groupId>
       <artifactId>mapdb</artifactId>
       <version>1.0.6</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.configadmin</artifactId>
+      <version>1.8.8</version>
+    </dependency>
+    <dependency>
+      <groupId>jline</groupId>
+      <artifactId>jline</artifactId>
+      <version>2.14.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -308,7 +253,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-parsers</artifactId>
@@ -318,55 +262,6 @@
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>
       <version>1.5</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-csv</artifactId>
-      <version>1.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-core</artifactId>
-      <version>3.1.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-aws-ext</artifactId>
-      <version>${jackrabbit.version}</version>
-      <optional>true</optional>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-blob-cloud</artifactId>
-      <version>${project.version}</version>
-      <optional>true</optional>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-blob-cloud-azure</artifactId>
-      <version>${project.version}</version>
-      <optional>true</optional>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.sling</groupId>
-      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.configadmin</artifactId>
-      <version>1.8.8</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-math3</artifactId>
     </dependency>
 
     <!-- Findbugs annotations -->
@@ -425,18 +320,6 @@
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-facet</artifactId>
           <version>${lucene.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.jackrabbit</groupId>
-          <artifactId>oak-solr-osgi</artifactId> <!-- this is declared here to avoid having it in the jr2 profile too -->
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.jackrabbit</groupId>
-          <artifactId>oak-commons</artifactId>
-          <version>${project.version}</version>
-          <type>test-jar</type>
-          <scope>test</scope>
         </dependency>
         <dependency>
           <groupId>org.apache.jackrabbit</groupId>

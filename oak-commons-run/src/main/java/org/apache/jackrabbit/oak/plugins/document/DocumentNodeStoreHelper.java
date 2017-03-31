@@ -125,7 +125,7 @@ public class DocumentNodeStoreHelper {
                 blobSize += size(blobs);
                 if (foundValid) {
                     garbageSize += size(blobs);
-                } else if (isCommitted(ns.getCommitValue(entry.getKey(), doc))) {
+                } else if (Utils.isCommitted(ns.getCommitValue(entry.getKey(), doc))) {
                     foundValid = true;
                 } else {
                     garbageSize += size(blobs);
@@ -150,7 +150,7 @@ public class DocumentNodeStoreHelper {
                 @Nullable
                 @Override
                 public NodeDocument apply(DBObject input) {
-                    return convertFromDBObject(mds, Collection.NODES, input);
+                    return MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input);
                 }
             });
         } else {

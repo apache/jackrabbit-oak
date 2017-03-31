@@ -21,6 +21,7 @@ import java.io.File;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import org.apache.jackrabbit.oak.commons.run.Command;
 
 class RestoreCommand implements Command {
 

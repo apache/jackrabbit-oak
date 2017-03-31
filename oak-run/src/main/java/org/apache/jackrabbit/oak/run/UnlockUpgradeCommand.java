@@ -24,6 +24,7 @@ import javax.sql.DataSource;
 
 import com.mongodb.MongoClientURI;
 
+import org.apache.jackrabbit.oak.commons.run.Command;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;

@@ -15,15 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.run;
+package org.apache.jackrabbit.oak.commons.run;
 
-import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
+public interface Command {
 
-class ScalabilityCommand implements Command {
-
-    @Override
-    public void execute(String... args) throws Exception {
-        ScalabilityRunner.main(args);
-    }
+    void execute(String... args) throws Exception;
 
 }

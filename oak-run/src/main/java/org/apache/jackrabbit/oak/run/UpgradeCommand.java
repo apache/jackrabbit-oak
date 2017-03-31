@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.run;
 
+import org.apache.jackrabbit.oak.commons.run.Command;
+
 class UpgradeCommand implements Command {
 
     @Override

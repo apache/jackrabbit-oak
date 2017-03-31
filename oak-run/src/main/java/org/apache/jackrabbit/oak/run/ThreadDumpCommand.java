@@ -41,11 +41,13 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
-import org.apache.jackrabbit.oak.benchmark.util.Profiler;
+import org.apache.jackrabbit.oak.commons.Profiler;
+import org.apache.jackrabbit.oak.commons.run.Command;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpCleaner;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpConverter;
 
 public class ThreadDumpCommand implements Command {
+    public final static String THREADDUMP = "threaddump";
 
     @SuppressWarnings("unchecked")
     @Override
@@ -70,7 +72,7 @@ public class ThreadDumpCommand implements Command {
                 "file or directory containing thread dumps").ofType(File.class);
         if (options.has(helpSpec)
                 || options.nonOptionArguments().isEmpty()) {
-            System.out.println("Mode: " + Mode.THREADDUMP);
+            System.out.println("Mode: " + THREADDUMP);
             System.out.println();
             parser.printHelpOn(System.out);
             return;
