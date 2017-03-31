@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -246,6 +246,9 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
     public String checkpoint(long lifetime, Map<String, String> properties) {
         Map<String, String> globalProperties = newHashMap(properties);
         for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
+            if (mns.getMount().isReadOnly()) {
+                continue;
+            }
             String checkpoint = mns.getNodeStore().checkpoint(lifetime, properties);
             globalProperties.put(CHECKPOINT_ID_PREFIX + mns.getMount().getName(), checkpoint);
         }
@@ -283,14 +286,11 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
         nodeStates.put(ctx.getGlobalStore(), ctx.getGlobalStore().getNodeStore().retrieve(checkpoint));
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
             NodeState nodeState = null;
-            if (checkpointExists(nodeStore.getNodeStore(), checkpoint)) {
-                nodeState = nodeStore.getNodeStore().retrieve(checkpoint);
-            }
-            if (nodeState == null) {
-                String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
-                if (partialCheckpoint != null) {
-                    nodeState = nodeStore.getNodeStore().retrieve(partialCheckpoint);
-                }
+            String partialCheckpoint = getPartialCheckpointName(nodeStore, checkpoint, props);
+            if (partialCheckpoint == null && nodeStore.getMount().isReadOnly()) {
+                nodeState = nodeStore.getNodeStore().getRoot();
+            } else if (partialCheckpoint != null) {
+                nodeState = nodeStore.getNodeStore().retrieve(partialCheckpoint);
             }
             nodeStates.put(nodeStore, nodeState);
         }
@@ -312,19 +312,40 @@ public class MultiplexingNodeStore implements NodeStore, Observable {
             result = true;
         }
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
-            boolean released = false;
-            if (checkpointExists(nodeStore.getNodeStore(), checkpoint)) {
-                released = nodeStore.getNodeStore().release(checkpoint);
+            if (nodeStore.getMount().isReadOnly()) {
+                continue;
             }
-            if (!released) {
-                String partialCheckpoint = props.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
-                if (partialCheckpoint != null) {
-                    released = nodeStore.getNodeStore().release(partialCheckpoint);
-                }
+            boolean released = false;
+            String partialCheckpoint = getPartialCheckpointName(nodeStore, checkpoint, props);
+            if (partialCheckpoint != null) {
+                released = nodeStore.getNodeStore().release(partialCheckpoint);
             }
             result &= released;
         }
         return result;
+    }
+
+    private String getPartialCheckpointName(MountedNodeStore nodeStore, String globalCheckpoint, Map<String, String> globalCheckpointProperties) {
+        Set<String> validCheckpointNames = ImmutableSet.copyOf(nodeStore.getNodeStore().checkpoints());
+        String result = globalCheckpointProperties.get(CHECKPOINT_ID_PREFIX + nodeStore.getMount().getName());
+        if (result != null && validCheckpointNames.contains(result)) {
+            return result;
+        }
+        if (globalCheckpoint != null && validCheckpointNames.contains(globalCheckpoint)) {
+            return globalCheckpoint;
+        }
+
+        String nameProp = globalCheckpointProperties.get("name");
+        if (nameProp == null) {
+            return null;
+        }
+        for (String c : validCheckpointNames) {
+            Map<String, String> partialCheckpointProperties = nodeStore.getNodeStore().checkpointInfo(c);
+            if (nameProp.equals(partialCheckpointProperties.get("name"))) {
+                return c;
+            }
+        }
+        return null;
     }
 
     private static boolean checkpointExists(NodeStore nodeStore, String checkpoint) {
