@@ -444,7 +444,7 @@ Reindexing of existing indexes is required in the following scenarios:
 * B: Prior to Oak 1.6, in case a _Lucene_ index definition was changed (same as A).
   In Oak 1.6 and newer, queries will use the old index definition
   until the index is [reindexed](lucene.html#stored-index-definition).
-* C: Prior to Oak 1.6, in case the query engine picks a very slow index 
+* C: Prior to Oak 1.2.15 / 1.4.2, in case the query engine picks a very slow index 
   for some queries because the counter index (`/oak:index/counter`)
   [got out of sync after adding and removing lots of nodes many times][OAK-4065].
   For this case, it is recommended to verify the contents of the counter index first,
