@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
+import org.apache.jackrabbit.oak.commons.run.Command;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;

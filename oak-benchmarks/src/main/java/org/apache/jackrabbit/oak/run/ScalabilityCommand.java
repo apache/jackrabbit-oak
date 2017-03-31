@@ -17,8 +17,14 @@
 
 package org.apache.jackrabbit.oak.run;
 
-interface Command {
+import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 
-    void execute(String... args) throws Exception;
+class ScalabilityCommand implements Command {
+
+    @Override
+    public void execute(String... args) throws Exception {
+        ScalabilityRunner.main(args);
+    }
 
 }

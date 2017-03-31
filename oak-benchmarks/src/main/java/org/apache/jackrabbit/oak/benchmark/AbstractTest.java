@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.PrintStream;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -41,7 +40,7 @@ import com.google.common.base.Joiner;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
-import org.apache.jackrabbit.oak.benchmark.util.Profiler;
+import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.slf4j.Logger;

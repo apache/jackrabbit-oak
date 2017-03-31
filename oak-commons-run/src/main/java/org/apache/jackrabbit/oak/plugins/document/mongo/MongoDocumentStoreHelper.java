@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -27,10 +28,7 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
 
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.*;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import static com.google.common.collect.Maps.newTreeMap;
@@ -57,11 +55,12 @@ public class MongoDocumentStoreHelper {
         Set<Revision> changes = Sets.newHashSet();
         for (String key : doc.keySet()) {
             if (Utils.isPropertyName(key) || NodeDocument.isDeletedEntry(key)) {
-                changes.addAll(getLocalMap(doc, key).keySet());
+                changes.addAll(NodeDocumentHelper.getLocalMap(doc, key).keySet());
             }
         }
 
-        SortedMap<Revision, String> commitRoot = newTreeMap(getLocalCommitRoot(doc));
+        SortedMap<Revision, String> commitRoot = Maps
+            .newTreeMap(NodeDocumentHelper.getLocalCommitRoot(doc));
         if (!commitRoot.keySet().retainAll(changes)) {
             System.out.println("Nothing to repair on " + path);
             return;
@@ -80,12 +79,12 @@ public class MongoDocumentStoreHelper {
         }
         
         DBObject update = new BasicDBObject();
-        update.put("$set", new BasicDBObject(commitRoot(), cr));
+        update.put("$set", new BasicDBObject(NodeDocumentHelper.commitRoot(), cr));
         update.put("$inc", new BasicDBObject(Document.MOD_COUNT, 1L));
                 
         WriteResult result = col.update(query, update);
         if (result.getN() == 1) {
-            int num = getLocalCommitRoot(doc).size() - commitRoot.size();
+            int num = NodeDocumentHelper.getLocalCommitRoot(doc).size() - commitRoot.size();
             System.out.println("Removed " + num + " _commitRoot entries on " + path);
         } else {
             System.out.println("Unable to repair " + path + " (concurrent update).");

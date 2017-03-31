@@ -29,6 +29,7 @@ import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.jackrabbit.oak.commons.run.Command;
 
 class CheckCommand implements Command {
 

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.jackrabbit.oak.commons.run.Command;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.type.StringDataType;
@@ -35,6 +36,7 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 public class PersistentCacheCommand implements Command {
+    public final static String PERSISTENTCACHE = "persistentcache";
 
     @SuppressWarnings("unchecked")
     @Override
@@ -63,7 +65,7 @@ public class PersistentCacheCommand implements Command {
                 "persistent cache file (required)").ofType(File.class);
         if (options.has(helpSpec)
                 || options.nonOptionArguments().isEmpty()) {
-            System.out.println("Mode: " + Mode.PERSISTENTCACHE);
+            System.out.println("Mode: " + PERSISTENTCACHE);
             System.out.println("Map names and statistic are listed if just the file name is specified.");
             System.out.println("To list all keys, just specify '/' and the file name.");
             System.out.println("To dump multiples files in one go, add multiple file names.");

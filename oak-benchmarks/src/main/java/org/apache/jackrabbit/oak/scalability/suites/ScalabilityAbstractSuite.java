@@ -44,7 +44,7 @@ import com.google.common.base.Stopwatch;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
-import org.apache.jackrabbit.oak.benchmark.util.Profiler;
+import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
