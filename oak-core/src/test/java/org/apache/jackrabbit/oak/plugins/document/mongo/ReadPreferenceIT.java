@@ -21,14 +21,21 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.ReadPreference;
 
-import org.apache.jackrabbit.oak.plugins.document.*;
+import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.replica.ReplicaSetInfo;
 import org.apache.jackrabbit.oak.plugins.document.mongo.replica.ReplicaSetInfoMock;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,18 +62,25 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
     @Override
     public void setUpConnection() throws Exception {
         clock = new Clock.Virtual();
+        setRevisionClock(clock);
+        setClusterNodeInfoClock(clock);
         mongoConnection = connectionFactory.getConnection();
+        MongoUtils.dropCollections(mongoConnection.getDB());
         replica = ReplicaSetInfoMock.create(clock);
         mk = new DocumentMK.Builder()
+                .clock(clock)
                 .setClusterId(1)
                 .setMongoDB(mongoConnection.getDB())
                 .setLeaseCheck(false)
                 .open();
         mongoDS = (MongoDocumentStore) mk.getDocumentStore();
 
+        // use a separate connection for cluster node 2
+        MongoConnection mongoConnection2 = connectionFactory.getConnection();
         mk2 = new DocumentMK.Builder()
+                .clock(clock)
                 .setClusterId(2)
-                .setMongoDB(mongoConnection.getDB())
+                .setMongoDB(mongoConnection2.getDB())
                 .setLeaseCheck(false)
                 .open();
     }
@@ -78,6 +92,13 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         primary = replica.addInstance(ReplicaSetInfo.MemberState.PRIMARY, "p1");
         secondary = replica.addInstance(ReplicaSetInfo.MemberState.SECONDARY, "s1");
         mongoDS.setReplicaInfo(replica);
+    }
+
+    @After
+    public void tearDown() {
+        // reset readWrite mode before shutting down
+        mongoDS.setReadWriteMode("");
+        mk2.dispose();
     }
 
     @Test
