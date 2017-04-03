@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,6 +75,10 @@ public class VersionGarbageCollectorLogTest {
     @After
     public void after() {
         logCustomizer.finished();
+    }
+
+    @AfterClass
+    public static void resetClock() {
         Revision.resetClockToDefault();
     }
 

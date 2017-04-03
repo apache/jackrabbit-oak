@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,10 +60,12 @@ public class JournalDiffLoaderTest {
     public void before() throws Exception {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
     }
 
-    @After
-    public void after() {
+    @AfterClass
+    public static void resetClock() {
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
     }
@@ -71,7 +73,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromCurrentJournalEntry() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+                .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -84,7 +86,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromSingleJournalEntry() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+                .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -98,7 +100,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromJournalAndCurrentEntry() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+                .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -117,7 +119,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromMultipleJournalEntries() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+                .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -142,7 +144,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void fromPartialJournalEntry() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+                .clock(clock).setAsyncDelay(0).getNodeStore();
         DocumentNodeState s1 = ns.getRoot();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
@@ -169,9 +171,9 @@ public class JournalDiffLoaderTest {
     public void fromExternalChange() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                .clock(clock).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                .clock(clock).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
 
         DocumentNodeState s1 = ns1.getRoot();
         NodeBuilder builder = ns1.getRoot().builder();
@@ -197,7 +199,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void withPath() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).getNodeStore();
+                .clock(clock).setAsyncDelay(0).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
         merge(ns, builder);
@@ -230,10 +232,6 @@ public class JournalDiffLoaderTest {
     // OAK-5228
     @Test
     public void useJournal() throws Exception {
-        // use virtual clock
-        Revision.setClock(clock);
-        ClusterNodeInfo.setClock(clock);
-
         final AtomicInteger journalQueryCounter = new AtomicInteger();
         DocumentStore ds = new MemoryDocumentStore() {
             @Nonnull
@@ -329,7 +327,7 @@ public class JournalDiffLoaderTest {
     @Test
     public void emptyBranchCommit() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
-                .setAsyncDelay(0).disableBranches().getNodeStore();
+                .clock(clock).setAsyncDelay(0).disableBranches().getNodeStore();
         DocumentStore store = ns.getDocumentStore();
         DocumentNodeState before = ns.getRoot();
         String id = Utils.getIdFromPath("/node-0");

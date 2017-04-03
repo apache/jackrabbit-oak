@@ -53,11 +53,6 @@ public class DocumentNodeStoreBranchesTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    @After
-    public void tearDown() {
-        Revision.resetClockToDefault();
-    }
-
     @BeforeClass
     public static void disableJournalDiff() {
         System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
