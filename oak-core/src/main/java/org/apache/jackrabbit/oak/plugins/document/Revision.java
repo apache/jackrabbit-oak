@@ -75,14 +75,20 @@ public final class Revision implements CacheValue {
     static void setClock(Clock c) {
         checkNotNull(c);
         clock = c;
-    }
-
-    static void resetClockToDefault(){
-        clock = Clock.SIMPLE;
         lastTimestamp = clock.getTime();
         lastRevisionTimestamp = clock.getTime();
-
     }
+
+    /**
+     * <b>
+     * Only to be used for testing.
+     * Do Not Use Otherwise
+     * </b>
+     */
+    static void resetClockToDefault() {
+        setClock(Clock.SIMPLE);
+    }
+
     public Revision(long timestamp, int counter, int clusterId) {
         this(timestamp, counter, clusterId, false);
     }
