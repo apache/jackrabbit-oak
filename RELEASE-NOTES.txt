@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.14
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.15
 
 Introduction
 ------------
@@ -7,56 +7,54 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.14 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.15 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.14
+Changes in Oak 1.4.15
 ---------------------
 
 Technical task
 
-    [OAK-4951] - UpdateOp without set operation for _id: clarify, add
-    unit tests, fix DocumentStore instances
-    [OAK-5751] - RDBDocumentStore: properly handle null values for
-    system properties
+    [OAK-4793] - Check usage of DocumentStoreException in
+    RDBDocumentStore
+    [OAK-5627] - RDBDocumentStore: improve long query logging
+    [OAK-5852] - RDB*Store: update Tomcat JDBC pool dependency to
+    7.0.75
+    [OAK-5982] - SegmentMk version check with disabled mmaping
 
 Bug
 
-    [OAK-5485] - Test failure: LdapDefaultLoginModuleTest address
-    already in use
-    [OAK-5542] - Test failure:
-    security.authentication.ldap.LdapProviderTest (Address already in
-    use)
-    [OAK-5561] - TestFailure:
-    org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndexTest.longRepExcerpt
-    [OAK-5601] - documentMk backgroundRead should handle missing
-    journal entries
-    [OAK-5626] - ChangeProcessor doesn't reset 'blocking' flag when
-    items from queue gets removed and commit-rate-limiter is null
-    [OAK-5668] - Test failure:
-    observation.ObservationQueueFullWarnTest.warnOnRepeatedQueueFull
-    [OAK-5738] - Potential NPE in LargeLdapProviderTest
-    [OAK-5773] - BlobCache does not implement Closeable
-    [OAK-5783] - Test failure:
-    security.authentication.ldap.LdapProviderTest.testSplitDNIntermediatePath2
+    [OAK-4114] - Cached lucene index gets corrupted in case of unclean
+    shutdown and journal rollback in SegmentNodeStore
+    [OAK-5263] - Test failure: LuceneSupportTest.fullTextSearch,
+    SecurityProviderRegistrationTest.testSecurityConfigurations2
+    [OAK-5528] - leaseUpdateThread might be blocked by
+    leaseUpdateCheck
+    [OAK-5705] - Negative cost calculation for native Solr query
+    [OAK-5876] - SplitDocumentCleanup should implement Closeable
+    [OAK-5930] - incorrect test assumption in CacheConsistencyTestBase
+    wrt batching
+    [OAK-5943] - oak-examples/standalone using Spring fwk version
+    referencing vulnerable version of commons-collections
+    [OAK-5992] - Lucene command does not work in 1.4 branch
 
 Improvement
 
-    [OAK-4361] - Reduce performance impact of observation ACFilter
+    [OAK-4859] - Warn if lease update is invoked with large delay
 
 Task
 
-    [OAK-5641] - Update AWS sdk dependency to latest version in
-    oak-blob-cloud
+    [OAK-4774] - Check usage of DocumentStoreException in
+    MongoDocumentStore
+    [OAK-5432] - update html unit test dependency
 
 Test
 
-    [OAK-5663] - Improve LogCutomizer to allow filtering on log
-    messages too
+    [OAK-4802] - Basic cache consistency test on exception
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
