@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,8 +74,8 @@ public class VersionGCQueryTest {
                 .setAsyncDelay(0).clock(clock).getNodeStore();
     }
 
-    @After
-    public void after() {
+    @AfterClass
+    public static void resetClock() {
         Revision.resetClockToDefault();
     }
 

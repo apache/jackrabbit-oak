@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -112,8 +113,8 @@ public class DataStoreTrackerGCTest {
         this.blobStoreRoot = folder.newFolder("blobstore");
     }
 
-    @After
-    public void after() {
+    @AfterClass
+    public static void resetClock() {
         TestUtils.resetRevisionClockToDefault();
     }
 
