@@ -26,8 +26,9 @@ to start learning about Oak.
 There is also the [Jackrabbit 3 wiki page](http://wiki.apache.org/jackrabbit/Jackrabbit%203), which
 is mostly outdated though and should only be consulted for historical research.
 
-To get started developing Oak, build the latest sources with Maven 3 and Java 6 (or higher) like
-this:
+To get started developing Oak, checkout the sources from [svn](https://svn.apache.org/repos/asf/jackrabbit/oak/trunk), 
+or [fork them](https://github.com/apache/jackrabbit-oak) on GitHub. Then build the latest sources with Maven 3 and 
+Java 7 (or higher) like this:
 
     mvn clean install
 
