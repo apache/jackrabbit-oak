@@ -297,7 +297,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 // since impersonators may be imported later on, postpone processing
                 // to the end.
                 // see -> process References
-                referenceTracker.processedReference(new Impersonators(a.getID(), propInfo.getTextValues()));
+                referenceTracker.processedReference(new Impersonators(parent.getPath(), propInfo.getTextValues()));
                 return true;
 
             } else if (REP_DISABLED.equals(propName)) {
@@ -665,20 +665,20 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      */
     private final class Impersonators {
 
-        private final String userId;
+        private final String userPath;
         private final Set<String> principalNames = new HashSet<String>();
 
-        private Impersonators(String userId, List<? extends TextValue> values) {
-            this.userId = userId;
+        private Impersonators(String userPath, List<? extends TextValue> values) {
+            this.userPath = userPath;
             for (TextValue v : values) {
                 principalNames.add(v.getString());
             }
         }
 
         private void process() throws RepositoryException {
-            Authorizable a = userManager.getAuthorizable(userId);
+            Authorizable a = userManager.getAuthorizableByOakPath(userPath);
             if (a == null || a.isGroup()) {
-                throw new RepositoryException(userId + " does not represent a valid user.");
+                throw new RepositoryException(userPath + " does not represent a valid user.");
             }
 
             Impersonation imp = checkNotNull(((User) a).getImpersonation());
