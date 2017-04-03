@@ -137,7 +137,7 @@ public class PropInfo {
     @Nonnull
     public TextValue getTextValue() throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
-            throw new RepositoryException("TODO");
+            throw new RepositoryException("Multiple import values with single-valued property definition");
         }
         return values.get(0);
     }
@@ -150,7 +150,7 @@ public class PropInfo {
     @Nonnull
     public Value getValue(int targetType) throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
-            throw new RepositoryException("TODO");
+            throw new RepositoryException("Multiple import values with single-valued property definition");
         }
         return values.get(0).getValue(targetType);
     }
