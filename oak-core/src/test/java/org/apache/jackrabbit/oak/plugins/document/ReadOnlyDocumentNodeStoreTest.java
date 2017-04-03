@@ -18,12 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -33,7 +32,6 @@ public class ReadOnlyDocumentNodeStoreTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    @Ignore("OAK-6016")
     @Test
     public void readOnlyCompare() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
@@ -63,7 +61,7 @@ public class ReadOnlyDocumentNodeStoreTest {
         s2.compareAgainstBaseState(s1, diff);
         assertThat(diff.deleted, is(empty()));
         assertThat(diff.modified, is(empty()));
-        assertThat(diff.added, contains("foo", "bar"));
+        assertThat(diff.added, containsInAnyOrder("/foo", "/bar"));
     }
 
 }
