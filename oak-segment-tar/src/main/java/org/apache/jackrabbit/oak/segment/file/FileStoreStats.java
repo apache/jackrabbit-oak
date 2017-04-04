@@ -51,6 +51,10 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
         repoSize.inc(initialSize);
     }
 
+    public void init(long initialSize) {
+        repoSize.inc(initialSize);
+    }
+
     //~-----------------------------< FileStoreMonitor >
 
     @Override

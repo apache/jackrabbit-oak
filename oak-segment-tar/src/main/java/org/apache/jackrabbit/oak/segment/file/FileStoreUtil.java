@@ -67,21 +67,30 @@ class FileStoreUtil {
         return null;
     }
 
+    static boolean containSegment(List<TarReader> readers, SegmentId id) {
+        return containSegment(readers, id.getMostSignificantBits(), id.getLeastSignificantBits());
+    }
+
     /**
      * Check if a segment is contained in one of the provided TAR files.
      *
      * @param readers A list of {@link TarReader} instances.
-     * @param id      An instance of {@link SegmentId}.
+     * @param msb     Most significant bits of the segment ID.
+     * @param lsb     Least significant bits of the segment ID.
      * @return {@code true} if the segment is contained in at least one of the
      * provided TAR files, {@code false} otherwise.
      */
-    static boolean containSegment(List<TarReader> readers, SegmentId id) {
+    static boolean containSegment(List<TarReader> readers, long msb, long lsb) {
         for (TarReader reader : readers) {
-            if (reader.containsEntry(id.getMostSignificantBits(), id.getLeastSignificantBits())) {
+            if (reader.containsEntry(msb, lsb)) {
                 return true;
             }
         }
         return false;
+    }
+
+    static ByteBuffer readEntry(List<TarReader> readers, SegmentId id) {
+        return readEntry(readers, id.getMostSignificantBits(), id.getLeastSignificantBits());
     }
 
     /**
@@ -89,18 +98,19 @@ class FileStoreUtil {
      * files.
      *
      * @param readers A list of {@link TarReader} instances.
-     * @param id      An instance of {@link SegmentId}.
+     * @param msb     Most significant bits of the segment ID.
+     * @param lsb     Least significant bits of the segment ID.
      * @return An instance of {@link ByteBuffer} if the entry for the segment
      * could be found, {@code null} otherwise.
      */
-    static ByteBuffer readEntry(List<TarReader> readers, SegmentId id) {
+    static ByteBuffer readEntry(List<TarReader> readers, long msb, long lsb) {
         for (TarReader reader : readers) {
             if (reader.isClosed()) {
                 log.debug("Skipping closed tar file {}", reader);
                 continue;
             }
             try {
-                ByteBuffer buffer = reader.readEntry(id.getMostSignificantBits(), id.getLeastSignificantBits());
+                ByteBuffer buffer = reader.readEntry(msb, lsb);
                 if (buffer != null) {
                     return buffer;
                 }
