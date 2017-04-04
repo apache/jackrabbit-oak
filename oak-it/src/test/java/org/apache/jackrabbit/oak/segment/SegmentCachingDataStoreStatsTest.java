@@ -64,7 +64,6 @@ public class SegmentCachingDataStoreStatsTest {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
     }
 
-    @Ignore("OAK-4921")
     @Test
     public void testUseCachingBlobStore() {
         ServiceRegistration delegateReg =
@@ -86,7 +85,6 @@ public class SegmentCachingDataStoreStatsTest {
         delegateReg.unregister();
     }
 
-    @Ignore("OAK-4921")
     @Test
     public void testNoCachingBlobStore() {
         expectedEx.expect(ReferenceViolationException.class);
