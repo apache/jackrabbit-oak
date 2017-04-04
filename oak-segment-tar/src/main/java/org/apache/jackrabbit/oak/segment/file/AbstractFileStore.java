@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -25,8 +26,12 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,6 +39,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.RecordType;
@@ -46,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
@@ -76,10 +83,13 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      */
     static final int CURRENT_STORE_VERSION = 1;
 
-    private static final Pattern FILE_NAME_PATTERN =
-            Pattern.compile("(data)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
-
     static final String FILE_NAME_FORMAT = "data%05d%s.tar";
+
+    protected static boolean notEmptyDirectory(File path) {
+        Collection<File> entries = FileUtils.listFiles(path, new String[] {"tar"}, false);
+        checkArgument(entries != null, "{} is not a directory, or an I/O error occurred", path);
+        return entries.size() > 0;
+    }
 
     @Nonnull
     final SegmentTracker tracker;
@@ -127,7 +137,14 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.ioMonitor = builder.getIOMonitor();
     }
 
-     File getManifestFile() {
+    static SegmentNotFoundException asSegmentNotFoundException(ExecutionException e, SegmentId id) {
+        if (e.getCause() instanceof SegmentNotFoundException) {
+            return (SegmentNotFoundException) e.getCause();
+        }
+        return new SegmentNotFoundException(id, e);
+    }
+
+    File getManifestFile() {
         return new File(directory, MANIFEST_FILE_NAME);
     }
 
@@ -180,35 +197,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     @Nonnull
     public CacheStatsMBean getTemplateCacheStats() {
         return segmentReader.getTemplateCacheStats();
-    }
-
-    static Map<Integer, Map<Character, File>> collectFiles(File directory) {
-        Map<Integer, Map<Character, File>> dataFiles = newHashMap();
-
-        for (File file : listFiles(directory)) {
-            Matcher matcher = FILE_NAME_PATTERN.matcher(file.getName());
-            if (matcher.matches()) {
-                Integer index = Integer.parseInt(matcher.group(2));
-                Map<Character, File> files = dataFiles.get(index);
-                if (files == null) {
-                    files = newHashMap();
-                    dataFiles.put(index, files);
-                }
-                Character generation = 'a';
-                if (matcher.group(4) != null) {
-                    generation = matcher.group(4).charAt(0);
-                }
-                checkState(files.put(generation, file) == null);
-            }
-        }
-
-        return dataFiles;
-    }
-
-    @Nonnull
-    private static File[] listFiles(File directory) {
-        File[] files = directory.listFiles();
-        return files == null ? new File[] {} : files;
     }
 
     @Nonnull
@@ -285,6 +273,29 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         });
     }
 
+    static Set<UUID> readReferences(Segment segment) {
+        Set<UUID> references = new HashSet<>();
+        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+            references.add(segment.getReferencedSegmentId(i));
+        }
+        return references;
+    }
+
+    static Set<String> readBinaryReferences(final Segment segment) {
+        final Set<String> binaryReferences = new HashSet<>();
+        segment.forEachRecord(new RecordConsumer() {
+
+            @Override
+            public void consume(int number, RecordType type, int offset) {
+                if (type == RecordType.BLOB_ID) {
+                    binaryReferences.add(SegmentBlob.readBlobId(segment, number));
+                }
+            }
+
+        });
+        return binaryReferences;
+    }
+
     static void closeAndLogOnFail(Closeable closeable) {
         if (closeable != null) {
             try {
@@ -294,6 +305,14 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
                 log.error(ioe.getMessage(), ioe);
             }
         }
+    }
+
+    Segment readSegmentUncached(TarFiles tarFiles, SegmentId id) {
+        ByteBuffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        if (buffer == null) {
+            throw new SegmentNotFoundException(id);
+        }
+        return new Segment(tracker, segmentReader, id, buffer);
     }
 
 }

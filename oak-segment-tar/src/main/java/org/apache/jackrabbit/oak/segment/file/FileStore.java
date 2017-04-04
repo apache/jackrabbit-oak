@@ -18,10 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Integer.getInteger;
 import static java.lang.String.format;
@@ -48,10 +44,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -59,8 +52,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -72,7 +63,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.Compactor;
@@ -86,6 +76,7 @@ import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
+import org.apache.jackrabbit.oak.segment.file.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -95,6 +86,7 @@ import org.slf4j.LoggerFactory;
  * The storage implementation for tar files.
  */
 public class FileStore extends AbstractFileStore {
+
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
 
     /**
@@ -121,9 +113,7 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final GarbageCollector garbageCollector;
 
-    private volatile List<TarReader> readers;
-
-    private volatile TarWriter tarWriter;
+    private final TarFiles tarFiles;
 
     private final RandomAccessFile lockFile;
 
@@ -160,8 +150,6 @@ public class FileStore extends AbstractFileStore {
      */
     private volatile boolean shutdown;
 
-    private final ReadWriteLock fileStoreLock = new ReentrantReadWriteLock();
-
     private final FileStoreStats stats;
 
     @Nonnull
@@ -192,30 +180,25 @@ public class FileStore extends AbstractFileStore {
         this.garbageCollector = new GarbageCollector(
                 builder.getGcOptions(), builder.getGcListener(), new GCJournal(directory), builder.getCacheManager());
 
-        Map<Integer, Map<Character, File>> map = collectFiles(directory);
-
         Manifest manifest = Manifest.empty();
 
-        if (!map.isEmpty()) {
+        if (notEmptyDirectory(directory)) {
             manifest = checkManifest(openManifest());
         }
 
         saveManifest(manifest);
 
-        this.readers = newArrayListWithCapacity(map.size());
-        Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
-        Arrays.sort(indices);
-        for (int i = indices.length - 1; i >= 0; i--) {
-            readers.add(TarReader.open(map.get(indices[i]), memoryMapping, recovery, ioMonitor));
-        }
-        this.stats = new FileStoreStats(builder.getStatsProvider(), this, size());
+        this.stats = new FileStoreStats(builder.getStatsProvider(), this, 0);
+        this.tarFiles = TarFiles.builder()
+                .withDirectory(directory)
+                .withMemoryMapping(memoryMapping)
+                .withTarRecovery(recovery)
+                .withIOMonitor(ioMonitor)
+                .withFileStoreStats(stats)
+                .withMaxFileSize(maxFileSize)
+                .build();
+        this.stats.init(this.tarFiles.size());
 
-        int writeNumber = 0;
-        if (indices.length > 0) {
-            writeNumber = indices[indices.length - 1] + 1;
-        }
-        this.tarWriter = new TarWriter(directory, stats, writeNumber, ioMonitor);
-        
         this.snfeListener = builder.getSnfeListener();
 
         fileStoreScheduler.scheduleAtFixedRate(
@@ -253,7 +236,7 @@ public class FileStore extends AbstractFileStore {
                     }
                 });
         log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
-        log.debug("TarMK readers {}", this.readers);
+        log.debug("TAR files: {}", tarFiles);
     }
 
     FileStore bind(TarRevisions revisions) throws IOException {
@@ -309,36 +292,14 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * @return the size of this store. This method shouldn't be called from
-     * a very tight loop as it contents with the {@link #fileStoreLock}.
+     * @return the size of this store.
      */
     private long size() {
-        List<TarReader> readersSnapshot;
-        long writeFileSnapshotSize;
-
-        fileStoreLock.readLock().lock();
-        try {
-            readersSnapshot = ImmutableList.copyOf(readers);
-            writeFileSnapshotSize = tarWriter != null ? tarWriter.fileLength() : 0;
-        } finally {
-            fileStoreLock.readLock().unlock();
-        }
-
-        long size = writeFileSnapshotSize;
-        for (TarReader reader : readersSnapshot) {
-            size += reader.size();
-        }
-
-        return size;
+        return tarFiles.size();
     }
 
     public int readerCount(){
-        fileStoreLock.readLock().lock();
-        try {
-            return readers.size();
-        } finally {
-            fileStoreLock.readLock().unlock();
-        }
+        return tarFiles.readerCount();
     }
 
     public FileStoreStats getStats() {
@@ -353,9 +314,8 @@ public class FileStore extends AbstractFileStore {
             @Override
             public Void call() throws Exception {
                 segmentWriter.flush();
-                tarWriter.flush();
+                tarFiles.flush();
                 stats.flushed();
-
                 return null;
             }
         });
@@ -453,27 +413,15 @@ public class FileStore extends AbstractFileStore {
 
         Closer closer = Closer.create();
         closer.register(revisions);
-        fileStoreLock.writeLock().lock();
-        try {
-            if (lock != null) {
-                try {
-                    lock.release();
-                } catch (IOException e) {
-                    log.warn("Unable to release the file lock", e);
-                }
+        if (lock != null) {
+            try {
+                lock.release();
+            } catch (IOException e) {
+                log.warn("Unable to release the file lock", e);
             }
-            closer.register(lockFile);
-
-            List<TarReader> list = readers;
-            readers = newArrayList();
-            for (TarReader reader : list) {
-                closer.register(reader);
-            }
-
-            closer.register(tarWriter);
-        } finally {
-            fileStoreLock.writeLock().unlock();
         }
+        closer.register(lockFile);
+        closer.register(tarFiles);
         closeAndLogOnFail(closer);
 
         // Try removing pending files in case the scheduler didn't have a chance to run yet
@@ -485,24 +433,7 @@ public class FileStore extends AbstractFileStore {
 
     @Override
     public boolean containsSegment(SegmentId id) {
-        if (FileStoreUtil.containSegment(readers, id)) {
-            return true;
-        }
-
-        if (tarWriter != null) {
-            fileStoreLock.readLock().lock();
-            try {
-                if (tarWriter.containsEntry(id.getMostSignificantBits(), id.getLeastSignificantBits())) {
-                    return true;
-                }
-            } finally {
-                fileStoreLock.readLock().unlock();
-            }
-        }
-
-        // the writer might have switched to a new file,
-        // so we need to re-check the readers
-        return FileStoreUtil.containSegment(readers, id);
+        return tarFiles.containsSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
     }
 
     @Override
@@ -512,38 +443,7 @@ public class FileStore extends AbstractFileStore {
             return segmentCache.getSegment(id, new Callable<Segment>() {
                 @Override
                 public Segment call() throws Exception {
-                    ByteBuffer buffer = FileStoreUtil.readEntry(readers, id);
-                    if (buffer != null) {
-                        return new Segment(tracker, segmentReader, id, buffer);
-                    }
-
-                    if (tarWriter != null) {
-                        fileStoreLock.readLock().lock();
-                        try {
-                            try {
-                                buffer = tarWriter.readEntry(id.getMostSignificantBits(), id.getLeastSignificantBits());
-                                if (buffer != null) {
-                                    return new Segment(tracker, segmentReader, id, buffer);
-                                }
-                            } catch (IOException e) {
-                                log.warn("Failed to read from tar file {}", tarWriter, e);
-                            }
-                        } finally {
-                            fileStoreLock.readLock().unlock();
-                        }
-                    }
-
-                    // The TarWriter might have become a TarReader in the
-                    // meantime. Moreover, the TarWriter that became a TarReader
-                    // might have additional entries. Because of this, we need
-                    // to check the list of TarReaders once more.
-
-                    buffer = FileStoreUtil.readEntry(readers, id);
-                    if (buffer != null) {
-                        return new Segment(tracker, segmentReader, id, buffer);
-                    }
-
-                    throw new SegmentNotFoundException(id);
+                    return readSegmentUncached(tarFiles, id);
                 }
             });
         } catch (ExecutionException e) {
@@ -551,13 +451,6 @@ public class FileStore extends AbstractFileStore {
             snfeListener.notify(id, snfe);
             throw snfe;
         }
-    }
-
-    private static SegmentNotFoundException asSegmentNotFoundException(ExecutionException e, SegmentId id) {
-        if (e.getCause() instanceof SegmentNotFoundException) {
-            return (SegmentNotFoundException) e.getCause();
-        }
-        return new SegmentNotFoundException(id, e);
     }
 
     @Override
@@ -569,6 +462,9 @@ public class FileStore extends AbstractFileStore {
         // in an in-memory cache for later use.
 
         int generation = 0;
+        Set<UUID> references = null;
+        Set<String> binaryReferences = null;
+
         if (id.isDataSegmentId()) {
             ByteBuffer data;
 
@@ -582,60 +478,23 @@ public class FileStore extends AbstractFileStore {
 
             segment = new Segment(tracker, segmentReader, id, data);
             generation = segment.getGcGeneration();
+            references = readReferences(segment);
+            binaryReferences = readBinaryReferences(segment);
         }
 
-        fileStoreLock.writeLock().lock();
-        try {
-            // Flush the segment to disk
-
-            long size = tarWriter.writeEntry(
-                    id.getMostSignificantBits(),
-                    id.getLeastSignificantBits(),
-                    buffer,
-                    offset,
-                    length,
-                    generation
-            );
-
-            // If the segment is a data segment, update the graph before
-            // (potentially) flushing the TAR file.
-
-            if (segment != null) {
-                populateTarGraph(segment, tarWriter);
-                populateTarBinaryReferences(segment, tarWriter);
-            }
-
-            // Close the TAR file if the size exceeds the maximum.
-
-            if (size >= maxFileSize) {
-                newWriter();
-            }
-        } finally {
-            fileStoreLock.writeLock().unlock();
-        }
+        tarFiles.writeSegment(
+                id.asUUID(),
+                buffer,
+                offset,
+                length,
+                generation,
+                references,
+                binaryReferences
+        );
 
         // Keep this data segment in memory as it's likely to be accessed soon.
-
         if (segment != null) {
             segmentCache.putSegment(segment);
-        }
-    }
-
-    /**
-     * Switch to a new tar writer.
-     * This method may only be called when holding the write lock of {@link #fileStoreLock}
-     * @throws IOException
-     */
-    private void newWriter() throws IOException {
-        TarWriter newWriter = tarWriter.createNextGeneration();
-        if (newWriter != tarWriter) {
-            File writeFile = tarWriter.getFile();
-            List<TarReader> list =
-                    newArrayListWithCapacity(1 + readers.size());
-            list.add(TarReader.open(writeFile, memoryMapping, ioMonitor));
-            list.addAll(readers);
-            readers = list;
-            tarWriter = newWriter;
         }
     }
 
@@ -943,99 +802,28 @@ public class FileStore extends AbstractFileStore {
         throws IOException {
             Stopwatch watch = Stopwatch.createStarted();
             Set<UUID> bulkRefs = newHashSet();
-            Map<TarReader, TarReader> cleaned = newLinkedHashMap();
 
-            long initialSize = 0;
-            fileStoreLock.writeLock().lock();
-            try {
-                gcListener.info("TarMK GC #{}: cleanup started.", GC_COUNT);
-                gcListener.updateStatus(CLEANUP.message());
+            gcListener.info("TarMK GC #{}: cleanup started.", GC_COUNT);
+            gcListener.updateStatus(CLEANUP.message());
+            segmentCache.clear();
 
-                newWriter();
-                segmentCache.clear();
+            // Suggest to the JVM that now would be a good time
+            // to clear stale weak references in the SegmentTracker
+            System.gc();
 
-                // Suggest to the JVM that now would be a good time
-                // to clear stale weak references in the SegmentTracker
-                System.gc();
-
-                for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                    if (id.isBulkSegmentId()) {
-                        bulkRefs.add(id.asUUID());
-                    }
-                }
-
-                for (TarReader reader : readers) {
-                    cleaned.put(reader, reader);
-                    initialSize += reader.size();
-                }
-            } finally {
-                fileStoreLock.writeLock().unlock();
+            for (SegmentId id : tracker.getReferencedSegmentIds()) {
+                bulkRefs.add(id.asUUID());
             }
-
-            gcListener.info("TarMK GC #{}: current repository size is {} ({} bytes)",
-                    GC_COUNT, humanReadableByteCount(initialSize), initialSize);
-
-            Set<UUID> reclaim = newHashSet();
-            for (TarReader reader : cleaned.keySet()) {
-                reader.mark(bulkRefs, reclaim, compactionResult.reclaimer());
-                log.info("{}: size of bulk references/reclaim set {}/{}",
-                        reader, bulkRefs.size(), reclaim.size());
-                if (shutdown) {
-                    gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
-                    break;
-                }
+            
+            CleanupResult cleanupResult = tarFiles.cleanup(bulkRefs, compactionResult.reclaimer());
+            if (cleanupResult.isInterrupted()) {
+                gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
             }
-            Set<UUID> reclaimed = newHashSet();
-            for (TarReader reader : cleaned.keySet()) {
-                cleaned.put(reader, reader.sweep(reclaim, reclaimed));
-                if (shutdown) {
-                    gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
-                    break;
-                }
-            }
-
-            // it doesn't account for concurrent commits that might have happened
-            long afterCleanupSize = 0;
-
-            List<TarReader> oldReaders = newArrayList();
-            fileStoreLock.writeLock().lock();
-            try {
-                // Replace current list of reader with the cleaned readers taking care not to lose
-                // any new reader that might have come in through concurrent calls to newWriter()
-                List<TarReader> sweptReaders = newArrayList();
-                for (TarReader reader : readers) {
-                    if (cleaned.containsKey(reader)) {
-                        TarReader newReader = cleaned.get(reader);
-                        if (newReader != null) {
-                            sweptReaders.add(newReader);
-                            afterCleanupSize += newReader.size();
-                        }
-                        // if these two differ, the former represents the swept version of the latter
-                        if (newReader != reader) {
-                            oldReaders.add(reader);
-                        }
-                    } else {
-                        sweptReaders.add(reader);
-                    }
-                }
-                readers = sweptReaders;
-            } finally {
-                fileStoreLock.writeLock().unlock();
-            }
-            tracker.clearSegmentIdTables(reclaimed, compactionResult.gcInfo());
-
-            // Close old readers *after* setting readers to the new readers to avoid accessing
-            // a closed reader from readSegment()
-            LinkedList<File> toRemove = newLinkedList();
-            for (TarReader oldReader : oldReaders) {
-                closeAndLogOnFail(oldReader);
-                File file = oldReader.getFile();
-                toRemove.addLast(file);
-            }
-            gcListener.info("TarMK GC #{}: cleanup marking files for deletion: {}", GC_COUNT, toFileNames(toRemove));
+            tracker.clearSegmentIdTables(cleanupResult.getReclaimedSegmentIds(), compactionResult.gcInfo());
+            gcListener.info("TarMK GC #{}: cleanup marking files for deletion: {}", GC_COUNT, toFileNames(cleanupResult.getRemovableFiles()));
 
             long finalSize = size();
-            long reclaimedSize = initialSize - afterCleanupSize;
+            long reclaimedSize = cleanupResult.getReclaimedSize();
             stats.reclaimed(reclaimedSize);
             gcJournal.persist(reclaimedSize, finalSize, getGcGeneration(),
                     compactionMonitor.getCompactedNodes(),
@@ -1046,7 +834,7 @@ public class FileStore extends AbstractFileStore {
                     GC_COUNT, watch, watch.elapsed(MILLISECONDS),
                     humanReadableByteCount(finalSize), finalSize,
                     humanReadableByteCount(reclaimedSize), reclaimedSize);
-            return toRemove;
+            return cleanupResult.getRemovableFiles();
         }
 
         private String toFileNames(@Nonnull List<File> files) {
@@ -1056,7 +844,13 @@ public class FileStore extends AbstractFileStore {
                 return Joiner.on(",").join(files);
             }
         }
-        
+
+        private void collectBulkReferences(Set<UUID> bulkRefs) {
+            for (SegmentId id : tracker.getReferencedSegmentIds()) {
+                bulkRefs.add(id.asUUID());
+            }
+        }
+
         /**
          * Finds all external blob references that are currently accessible
          * in this repository and adds them to the given collector. Useful
@@ -1071,19 +865,8 @@ public class FileStore extends AbstractFileStore {
          */
         synchronized void collectBlobReferences(ReferenceCollector collector) throws IOException {
             segmentWriter.flush();
-            List<TarReader> tarReaders = newArrayList();
-            fileStoreLock.writeLock().lock();
-            try {
-                newWriter();
-                tarReaders.addAll(FileStore.this.readers);
-            } finally {
-                fileStoreLock.writeLock().unlock();
-            }
-
             int minGeneration = getGcGeneration() - gcOptions.getRetainedGenerations() + 1;
-            for (TarReader tarReader : tarReaders) {
-                tarReader.collectBlobReferences(collector, minGeneration);
-            }
+            tarFiles.collectBlobReferences(collector, minGeneration);
         }
 
         void cancel() {
