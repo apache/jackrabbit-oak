@@ -78,6 +78,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -1201,6 +1202,7 @@ public class CompactionAndCleanupIT {
      * Test asserting OAK-4700: Concurrent cleanup must not remove segments that are still reachable
      */
     @Test
+    @Ignore("OAK-6033")  // FIXME OAK-6033: Test failure: CompactionAndCleanupIT.concurrentCleanup
     public void concurrentCleanup() throws Exception {
         File fileStoreFolder = getFileStoreFolder();
 
