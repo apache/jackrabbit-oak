@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.GroupAction;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
@@ -189,6 +190,9 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return def;
     }
 
+    NodeInfo createNodeInfo(@Nonnull String name, @Nonnull String primaryTypeName) {
+        return new NodeInfo(name, primaryTypeName, ImmutableList.<String>of(), null);
+    }
 
     //--------------------------------------------------------------------------
 

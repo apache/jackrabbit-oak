@@ -512,4 +512,65 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
         assertFalse(importer.start(repMembers));
     }
+
+    //-----------------------------------------------------< startChildInfo >---
+
+    @Test(expected = IllegalStateException.class)
+    public void testStartChildInfoIllegalState() throws Exception {
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testStartChildInfoWithoutValidStart() throws Exception {
+        init(true);
+        Tree memberRefList = root.getTree(PathUtils.ROOT_PATH).addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+        importer.start(memberRefList);
+
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+    }
+
+    @Test
+    public void testStartChildInfoWithoutRepMembersProperty() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+        Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+
+        importer.start(memberRefList);
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.<PropInfo>of());
+    }
+
+    @Test
+    public void testStartChildInfoWithRepMembersProperty() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+        Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+
+        importer.start(memberRefList);
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+    }
+
+    @Test
+    public void testStartRepMembersChildInfo() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+
+        Tree repMembers = groupTree.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+        importer.start(repMembers);
+        importer.startChildInfo(createNodeInfo("memberTree", NT_REP_MEMBERS), ImmutableList.<PropInfo>of(createPropInfo("anyProp", "memberValue")));
+    }
+
+    @Test
+    public void testStartOtherChildInfo() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+        Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+
+        importer.start(memberRefList);
+        importer.startChildInfo(createNodeInfo("memberRef", NodeTypeConstants.NT_OAK_UNSTRUCTURED), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+    }
 }
