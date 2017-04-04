@@ -432,4 +432,84 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         importer.propertiesCompleted(root.getTree(testUser.getPath()));
         testAction.checkMethods();
     }
+
+    //--------------------------------------------------------------< start >---
+    @Test
+    public void testStartUserTree() throws Exception {
+        init(true);
+        assertFalse(importer.start(createUserTree()));
+    }
+
+    @Test
+    public void testStartGroupTree() throws Exception {
+        init(true);
+        assertFalse(importer.start(createGroupTree()));
+    }
+
+    @Test
+    public void testStartMembersRefListTree() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+        Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+
+        assertTrue(importer.start(memberRefList));
+    }
+
+    @Test
+    public void testStartMembersRefListBelowUserTree() throws Exception {
+        init(true);
+        Tree userTree = createUserTree();
+        Tree memberRefList = userTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+
+        assertFalse(importer.start(memberRefList));
+    }
+
+    @Test
+    public void testStartMembersRefBelowAnyTree() throws Exception {
+        init(true);
+        Tree memberRefList = root.getTree(PathUtils.ROOT_PATH).addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+
+        assertFalse(importer.start(memberRefList));
+    }
+
+    @Test
+    public void testStartRepMembersTree() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+        Tree repMembers = groupTree.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+
+        repMembers = repMembers.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+
+        assertTrue(importer.start(repMembers));
+    }
+
+    @Test
+    public void testStartRepMembersBelowUserTree() throws Exception {
+        init(true);
+        Tree userTree = createUserTree();
+        Tree repMembers = userTree.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+
+        repMembers = repMembers.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+
+        assertFalse(importer.start(repMembers));
+    }
+
+    @Test
+    public void testStartRepMembersBelowAnyTree() throws Exception {
+        init(true);
+        Tree repMembers = root.getTree(PathUtils.ROOT_PATH).addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+
+        repMembers = repMembers.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+
+        assertFalse(importer.start(repMembers));
+    }
 }

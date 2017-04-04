@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
@@ -389,31 +390,25 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     // ---------------------------------------------< ProtectedNodeImporter >---
     @Override
     public boolean start(@Nonnull Tree protectedParent) throws RepositoryException {
+        Authorizable auth = null;
         if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
             while (isMemberNode(groupTree) && !groupTree.isRoot()) {
                 groupTree = groupTree.getParent();
             }
-            Authorizable auth = userManager.getAuthorizable(groupTree);
-            if (auth == null) {
-                log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
-                return false;
-            } else {
-                currentMembership = getMembership(auth.getPath());
-                return true;
-            }
+            auth = userManager.getAuthorizable(groupTree);
         } else if (isMemberReferencesListNode(protectedParent)) {
-            Authorizable auth = userManager.getAuthorizable(protectedParent.getParent());
-            if (auth == null) {
-                log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
-                return false;
-            } else {
-                currentMembership = getMembership(auth.getPath());
-                return true;
-            }
+            auth = userManager.getAuthorizable(protectedParent.getParent());
+
         } // else: parent node is not of type rep:Members or rep:MemberReferencesList
 
-        return false;
+        if (auth == null || !auth.isGroup()) {
+            log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Group.");
+            return false;
+        } else {
+            currentMembership = getMembership(auth.getPath());
+            return true;
+        }
     }
 
     @Override
@@ -480,18 +475,18 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         }
     }
 
-    private boolean isValid(PropertyDefinition definition, String oakNodeTypeName, boolean multipleStatus) {
+    private boolean isValid(@Nonnull PropertyDefinition definition, @Nonnull String oakNodeTypeName, boolean multipleStatus) {
         return multipleStatus == definition.isMultiple() &&
                 definition.getDeclaringNodeType().isNodeType(namePathMapper.getJcrName(oakNodeTypeName));
     }
 
-    private static boolean isMemberNode(@Nullable Tree tree) {
+    private static boolean isMemberNode(@Nonnull Tree tree) {
         //noinspection deprecation
-        return tree != null && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
+        return tree.exists() && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    private static boolean isMemberReferencesListNode(@Nullable Tree tree) {
-        return tree != null && NT_REP_MEMBER_REFERENCES_LIST.equals(TreeUtil.getPrimaryTypeName(tree));
+    private static boolean isMemberReferencesListNode(@Nonnull Tree tree) {
+        return tree.exists() && NT_REP_MEMBER_REFERENCES_LIST.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     private static boolean isPwdNode(@Nonnull Tree tree) {
