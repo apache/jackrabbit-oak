@@ -281,6 +281,38 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     }
 
     @Test
+    public void testHandleMembers() throws Exception {
+        init();
+        Tree groupTree = createGroupTree();
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, "member1", "member2"), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        // writing is postponed though
+        assertNull(groupTree.getProperty(REP_MEMBERS));
+    }
+
+    @Test
+    public void testHandleMembersOnUser() throws Exception {
+        init();
+        Tree userTree = createUserTree();
+        assertFalse(importer.handlePropInfo(userTree, createPropInfo(REP_MEMBERS, "member1"), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+    }
+
+    @Test
+    public void testHandleMembersSinglePropertyDef() throws Exception {
+        init();
+        Tree groupTree = createGroupTree();
+        assertFalse(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, "member1"), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, false)));
+        assertNull(groupTree.getProperty(REP_MEMBERS));
+    }
+
+    @Test
+    public void testHandleMembersOtherDeclNtDef() throws Exception {
+        init();
+        Tree groupTree = createGroupTree();
+        assertFalse(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, "member1"), mockPropertyDefinition(NT_REP_AUTHORIZABLE, true)));
+        assertNull(groupTree.getProperty(REP_MEMBERS));
+    }
+
+    @Test
     public void testHandleDisabled() throws Exception {
         init();
         Tree userTree = createUserTree();
