@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -686,7 +686,7 @@ public class Oak {
 
         // Register observer last to prevent sending events while initialising
         for (Observer observer : observers) {
-            regs.add(registerObserver(whiteboard, observer));
+            regs.add(whiteboard.register(Observer.class, observer, emptyMap()));
         }
 
         RepositoryManager repositoryManager = new RepositoryManager(whiteboard);
