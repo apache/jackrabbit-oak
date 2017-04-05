@@ -21,11 +21,13 @@ import java.util.List;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -39,7 +41,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
     Tree groupTree;
     Tree memberRefList;
 
-    private UserProvider userProvider;
+    UserProvider userProvider;
 
     String knownMemberContentId;
     String unknownContentId;
@@ -123,49 +125,87 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
     }
 
     @Test
-    public void testReplaceExistingProperty() throws Exception {
-//        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(unknownContentId), Type.STRINGS);
-//
-//        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
-//        importer.processReferences();
-//
-//        PropertyState impersonators = userTree.getProperty(REP_MEMBERS);
-//        assertNotNull(impersonators);
-//        assertEquals(ImmutableList.of(testUser.getPrincipal().getName()), impersonators.getValue(Type.STRINGS));
+    public void testAddMemberToNonExistingMember() throws Exception {
+        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(unknownContentId), Type.STRINGS);
+
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, knownMemberContentId), mockPropertyDefinition(NT_REP_GROUP, true)));
+        importer.processReferences();
+
+        PropertyState members = groupTree.getProperty(REP_MEMBERS);
+        assertNotNull(members);
+        assertEquals(ImmutableSet.of(unknownContentId, knownMemberContentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
+    }
+
+    @Test
+    public void testAddReplacesExistingMember() throws Exception {
+        Tree userTree = createUserTree();
+        String contentId = userProvider.getContentID(userTree);
+        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+
+        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(knownMemberContentId), Type.STRINGS);
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_GROUP, true)));
+        importer.processReferences();
+
+        PropertyState members = groupTree.getProperty(REP_MEMBERS);
+        assertNotNull(members);
+        assertEquals(ImmutableSet.of(contentId), ImmutableSet.copyOf(members.getValue(Type.STRINGS)));
     }
 
     @Test
     public void testNewMembers() throws Exception {
-//        Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
-//        Tree impersonatorTree = folder.addChild("impersonatorTree");
-//        impersonatorTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-//        impersonatorTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID("impersonator1"));
-//
-//        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1"), mockPropertyDefinition(NT_REP_USER, true)));
-//        assertTrue(importer.handlePropInfo(impersonatorTree, createPropInfo(REP_PRINCIPAL_NAME, "impersonator1"), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
-//
-//        importer.processReferences();
-//
-//        PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
-//        assertNotNull(impersonators);
-//        assertEquals(ImmutableList.of("impersonator1"), impersonators.getValue(Type.STRINGS));
+        Tree userTree = createUserTree();
+        String contentId = userProvider.getContentID(userTree);
+
+        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        importer.processReferences();
+
+        PropertyState members = groupTree.getProperty(REP_MEMBERS);
+        assertNotNull(members);
+        assertEquals(ImmutableList.of(contentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
     }
 
     @Test
     public void testNewMembers2() throws Exception {
-//        Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
-//        Tree impersonatorTree = folder.addChild("impersonatorTree");
-//        impersonatorTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-//        impersonatorTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID("impersonator1"));
-//
-//        // NOTE: reversed over of import compared to 'testNewImpersonator'
-//        assertTrue(importer.handlePropInfo(impersonatorTree, createPropInfo(REP_PRINCIPAL_NAME, "impersonator1"), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
-//        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1"), mockPropertyDefinition(NT_REP_USER, true)));
-//
-//        importer.processReferences();
-//
-//        PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
-//        assertNotNull(impersonators);
-//        assertEquals(ImmutableList.of("impersonator1"), impersonators.getValue(Type.STRINGS));
+        Tree userTree = createUserTree();
+        String contentId = userProvider.getContentID(userTree);
+
+        // NOTE: reversed over of import compared to 'testNewMembers'
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+        importer.processReferences();
+
+        PropertyState members = groupTree.getProperty(REP_MEMBERS);
+        assertNotNull(members);
+        assertEquals(ImmutableList.of(contentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
+    }
+
+    @Test
+    public void testAddSameAsMember() throws Exception {
+        String contentId = userProvider.getContentID(groupTree);
+
+        // NOTE: reversed over of import compared to 'testNewMembers'
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        importer.processReferences();
+
+        PropertyState members = groupTree.getProperty(REP_MEMBERS);
+        assertNull(members);
+    }
+
+    @Test
+    public void testNewMembersToEveryone() throws Exception {
+        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(knownMemberContentId), Type.STRINGS);
+        groupTree.setProperty(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
+
+        Tree userTree = createUserTree();
+        String contentId = userProvider.getContentID(userTree);
+
+        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        importer.processReferences();
+
+        PropertyState members = groupTree.getProperty(REP_MEMBERS);
+        assertNotNull(members);
+        assertEquals(ImmutableList.of(knownMemberContentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
     }
 }
