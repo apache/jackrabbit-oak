@@ -40,11 +40,11 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableActionProvider;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableNodeName;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardRestrictionProvider;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUserAuthenticationFactory;
+import org.apache.jackrabbit.oak.security.authorization.restriction.WhiteboardRestrictionProvider;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.osgi.framework.BundleContext;
 
 import javax.annotation.Nonnull;

@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.whiteboard;
+package org.apache.jackrabbit.oak.security.user.whiteboard;
 
 import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 
 /**
  * Dynamic {@link AuthorizableNodeName} based on the available
