@@ -801,7 +801,6 @@ public class FileStore extends AbstractFileStore {
         private List<File> cleanup(@Nonnull CompactionResult compactionResult)
         throws IOException {
             Stopwatch watch = Stopwatch.createStarted();
-            Set<UUID> bulkRefs = newHashSet();
 
             gcListener.info("TarMK GC #{}: cleanup started.", GC_COUNT);
             gcListener.updateStatus(CLEANUP.message());
@@ -811,10 +810,12 @@ public class FileStore extends AbstractFileStore {
             // to clear stale weak references in the SegmentTracker
             System.gc();
 
+            Set<UUID> bulkRefs = newHashSet();
             for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                bulkRefs.add(id.asUUID());
+                if (id.isBulkSegmentId()) {
+                    bulkRefs.add(id.asUUID());
+                }
             }
-            
             CleanupResult cleanupResult = tarFiles.cleanup(bulkRefs, compactionResult.reclaimer());
             if (cleanupResult.isInterrupted()) {
                 gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
