@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.emptyMap;
-
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
@@ -31,7 +28,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -96,13 +92,6 @@ public class WhiteboardUtils {
         } catch (MalformedObjectNameException e) {
             throw new IllegalArgumentException(e);
         }
-    }
-
-    public static Registration registerObserver(
-            @Nonnull Whiteboard whiteboard,
-            @Nonnull Observer observer) {
-        return checkNotNull(whiteboard)
-                .register(Observer.class, checkNotNull(observer), emptyMap());
     }
 
     /**
