@@ -24,13 +24,14 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -39,8 +40,9 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
-public class PrivilegeBitsTest extends AbstractSecurityTest implements PrivilegeConstants {
+public class PrivilegeBitsTest implements PrivilegeConstants {
 
     private static final long NO_PRIVILEGE = 0;
     private static final PrivilegeBits READ_NODES_PRIVILEGE_BITS = PrivilegeBits.BUILT_IN.get(REP_READ_NODES);
@@ -677,24 +679,22 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
     }
 
     @Test
-    public void testGetInstanceFromTree() {
-        Tree privRoot = root.getTree(PRIVILEGES_PATH);
-        try {
-            Tree tmp = privRoot.addChild("tmpPrivilege");
-            PrivilegeBits tmpBits = PrivilegeBits.getInstance(privRoot.getProperty(REP_NEXT));
-            tmpBits.writeTo(tmp);
+    public void testGetInstanceFromTreeCustomPriv() {
+        PrivilegeBits next = PrivilegeBits.NEXT_AFTER_BUILT_INS;
 
-            Map<Tree, PrivilegeBits> treeToBits = new HashMap<Tree, PrivilegeBits>();
-            treeToBits.put(privRoot.getChild(JCR_READ), PrivilegeBits.BUILT_IN.get(JCR_READ));
-            treeToBits.put(tmp, tmpBits);
-            treeToBits.put(privRoot, tmpBits);
+        Tree tmp = Mockito.mock(Tree.class);
+        when(tmp.getName()).thenReturn("tmpPrivilege");
+        when(tmp.getProperty(REP_BITS)).thenReturn(next.asPropertyState(REP_BITS));
 
-            for (Tree tree : treeToBits.keySet()) {
-                assertEquals(treeToBits.get(tree), PrivilegeBits.getInstance(tree));
-            }
-        } finally {
-            root.refresh();
-        }
+        assertEquals(next, PrivilegeBits.getInstance(tmp));
+    }
+
+    @Test
+    public void testGetInstanceFromTreeJcrRead() {
+        Tree readPrivTree = Mockito.mock(Tree.class);
+        when(readPrivTree.getName()).thenReturn(JCR_READ);
+
+        assertEquals(PrivilegeBits.BUILT_IN.get(JCR_READ), PrivilegeBits.getInstance(readPrivTree));
     }
 
     @Test
@@ -704,7 +704,7 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
 
     @Test
     public void testCalculatePermissions() {
-        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(root);
+        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(Mockito.mock(Root.class));
 
         Map<PrivilegeBits, Long> simple = new HashMap<PrivilegeBits, Long>();
         simple.put(PrivilegeBits.EMPTY, Permissions.NO_PERMISSION);
@@ -742,16 +742,11 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
         permissions = (Permissions.MODIFY_PROPERTY | Permissions.REMOVE_PROPERTY);
         assertTrue(permissions == PrivilegeBits.calculatePermissions(ch_rm, PrivilegeBits.EMPTY, true));
         assertTrue(permissions == PrivilegeBits.calculatePermissions(ch_rm, add_rm, true));
-
-        // jcr:add aggregate
-        PrivilegeBits all = provider.getBits(JCR_ALL);
-        assertFalse(Permissions.ALL == PrivilegeBits.calculatePermissions(all, PrivilegeBits.EMPTY, true));
-        assertTrue(Permissions.ALL == PrivilegeBits.calculatePermissions(all, all, true));
     }
 
     @Test
     public void testCalculatePermissionsParentAwareAllow() {
-        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(root);
+        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(Mockito.mock(Root.class));
 
         // parent aware permissions
         // a) jcr:addChildNodes
@@ -776,7 +771,7 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
 
     @Test
     public void testCalculatePermissionsParentAwareDeny() {
-        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(root);
+        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(Mockito.mock(Root.class));
 
         // parent aware permissions
         // a) jcr:addChildNodes
