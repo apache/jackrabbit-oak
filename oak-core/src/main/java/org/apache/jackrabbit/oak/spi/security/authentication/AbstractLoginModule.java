@@ -55,6 +55,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import aQute.bnd.annotation.ProviderType;
+
 /**
  * Abstract implementation of the {@link LoginModule} interface that can act
  * as base class for login modules that aim to authenticate subjects against
@@ -130,6 +132,7 @@ import org.slf4j.LoggerFactory;
  * on the provider exposed by {@link #getPrincipalProvider()}</li>
  * </ul>
  */
+@ProviderType
 public abstract class AbstractLoginModule implements LoginModule {
 
     /**

@@ -22,6 +22,8 @@ import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
 
+import aQute.bnd.annotation.ProviderType;
+
 /**
  * The {@code Authentication} interface defines methods to validate
  * {@link javax.jcr.Credentials Credentials} during the
@@ -38,6 +40,7 @@ import javax.security.auth.login.LoginException;
  * might be responsible for validating login token issued by the repository or
  * an external access token generation mechanism.
  */
+@ProviderType
 public interface Authentication {
 
     /**
