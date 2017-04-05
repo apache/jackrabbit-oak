@@ -65,6 +65,12 @@
                             *
                         </Import-Package>
                     </instructions>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
             <plugin>
