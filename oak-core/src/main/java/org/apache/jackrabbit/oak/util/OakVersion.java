@@ -29,6 +29,9 @@ public final class OakVersion {
 
     private static String version = null;
 
+    private OakVersion() {
+    }
+
     /**
      * Returns the version of oak-core.
      * 
