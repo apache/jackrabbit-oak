@@ -624,7 +624,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     //------------------------------------------------------------< Object >--
 
-    static boolean fastEquals(NodeState a, NodeState b) {
+    public static boolean fastEquals(NodeState a, NodeState b) {
         if (Record.fastEquals(a, b)) {
             return true;
         }

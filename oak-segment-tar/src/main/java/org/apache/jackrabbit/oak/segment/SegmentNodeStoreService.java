@@ -38,7 +38,6 @@ import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.COMPACTI
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DEFAULT_BLOB_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DEFAULT_BLOB_SNAPSHOT_INTERVAL;
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.GC_PROGRESS_LOG;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.MEMORY_THRESHOLD;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.MODE;
@@ -46,6 +45,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.NODE_DED
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.PAUSE_COMPACTION;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.PROP_BLOB_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.PROP_BLOB_SNAPSHOT_INTERVAL;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.RETAINED_GENERATIONS;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.SEGMENT_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.SIZE;
@@ -81,8 +81,6 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Supplier;
-import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -138,6 +136,9 @@ import org.osgi.framework.Constants;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Supplier;
+import com.google.common.io.Closer;
 
 /**
  * An OSGi wrapper for the segment node store.
