@@ -75,12 +75,13 @@ public interface Mount {
     String getPathFragmentName();
 
     /**
-     * Checks if this mount supports mounting nodes containing the path fragment
-     * (see {@link #getPathFragmentName()}).
+     * Checks if this mount supports mounting nodes containing the fragment
+     * (see {@link #getPathFragmentName()}) under the given path.
      *
-     * @return true if the path fragment mounts are supported
+     * @param path ancestor path
+     * @return true if the path fragment mounts are supported in the given subtree
      */
-    boolean isSupportFragment();
+    boolean isSupportFragment(String path);
 
     /**
      * Checks if given path belongs to this <code>Mount</code>

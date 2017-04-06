@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import java.io.PrintWriter;
@@ -52,17 +51,17 @@ final class MountInfo implements Mount {
     private final boolean readOnly;
     private final boolean defaultMount;
     private final String pathFragmentName;
-    private final boolean supportFragment;
+    private final NavigableSet<String> pathsSupportingFragments;
     private final NavigableSet<String> includedPaths;
 
-    public MountInfo(String name, boolean readOnly, boolean defaultMount, boolean supportFragment,
+    public MountInfo(String name, boolean readOnly, boolean defaultMount, List<String> pathsSupportingFragments,
             List<String> includedPaths) {
         this.name = checkNotNull(name, "Mount name must not be null");
         this.readOnly = readOnly;
         this.defaultMount = defaultMount;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
-        this.supportFragment = supportFragment;
+        this.pathsSupportingFragments = cleanCopy(pathsSupportingFragments);
     }
 
     @Override
@@ -81,7 +80,7 @@ final class MountInfo implements Mount {
 
     @Override
     public boolean isMounted(String path) {
-        if (supportFragment && path.contains(pathFragmentName)){
+        if (isSupportFragment(path) && path.contains(pathFragmentName)){
             return true;
         }
 
@@ -107,8 +106,10 @@ final class MountInfo implements Mount {
     }
 
     @Override
-    public boolean isSupportFragment() {
-        return supportFragment;
+    public boolean isSupportFragment(String path) {
+        path = SANITIZE_PATH.apply(path);
+        String previousPath = pathsSupportingFragments.floor(path);
+        return previousPath != null && (previousPath.equals(path) || isAncestor(previousPath, path));
     }
 
     @Override
