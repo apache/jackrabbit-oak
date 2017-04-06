@@ -42,6 +42,9 @@ public class ClusterRepositoryInfo {
     public static final String CLUSTER_CONFIG_NODE = ":clusterConfig";
     public static final String CLUSTER_ID_PROP = ":clusterId";
 
+    private ClusterRepositoryInfo() {
+    }
+
     /**
      * Gets the {# CLUSTER_ID_PROP} if available, if it doesn't it 
      * creates it and returns the newly created one (or if that
