@@ -190,6 +190,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public NodeState merge(
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
             @Nonnull CommitInfo info) throws CommitFailedException {
+        checkArgument(builder instanceof SegmentNodeBuilder);
+        checkArgument(((SegmentNodeBuilder) builder).isRootBuilder());
         return scheduler.schedule(new Commit(builder, commitHook, info));
     }
 
