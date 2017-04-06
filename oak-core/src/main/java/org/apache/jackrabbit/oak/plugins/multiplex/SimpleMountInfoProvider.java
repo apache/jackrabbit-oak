@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -110,12 +111,12 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
         private final List<Mount> mounts = Lists.newArrayListWithCapacity(1);
 
         public Builder mount(String name, String... paths) {
-            mounts.add(new MountInfo(name, false, false, true, asList(paths)));
+            mounts.add(new MountInfo(name, false, false, asList("/"), asList(paths)));
             return this;
         }
 
         public Builder readOnlyMount(String name, String... paths) {
-            mounts.add(new MountInfo(name, true, false, true, asList(paths)));
+            mounts.add(new MountInfo(name, true, false, asList("/"), asList(paths)));
             return this;
         }
 

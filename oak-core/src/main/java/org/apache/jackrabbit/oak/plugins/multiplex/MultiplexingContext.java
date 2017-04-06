@@ -52,8 +52,6 @@ class MultiplexingContext {
 
     private final Map<Mount, MountedNodeStore> nodeStoresByMount;
 
-    private final boolean pathFragmentSupport;
-
     MultiplexingContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
@@ -64,12 +62,6 @@ class MultiplexingContext {
                 return input.getMount();
             }
         }));
-        pathFragmentSupport = Iterables.tryFind(nonDefaultStores, new Predicate<MountedNodeStore>() {
-            @Override
-            public boolean apply(MountedNodeStore input) {
-                return input.getMount().isSupportFragment();
-            }
-        }).isPresent();
     }
 
     MountedNodeStore getGlobalStore() {
@@ -107,8 +99,13 @@ class MultiplexingContext {
         });
     }
 
-    boolean shouldBeMultiplexed(String path) {
-        if (pathFragmentSupport) {
+    boolean shouldBeMultiplexed(final String path) {
+        if (Iterables.tryFind(nonDefaultStores, new Predicate<MountedNodeStore>() {
+            @Override
+            public boolean apply(MountedNodeStore input) {
+                return input.getMount().isSupportFragment(path);
+            }
+        }).isPresent()) {
             return true;
         }
         return !mip.getMountsPlacedUnder(path).isEmpty();
@@ -135,7 +132,7 @@ class MultiplexingContext {
             final Mount mount = mountedNodeStore.getMount();
             if (mounts.contains(mount)) {
                 mountedStores.add(mountedNodeStore);
-            } else if (hasChildrenContainingPathFragmentName(mountedNodeStore, childrenProvider)) {
+            } else if (hasChildrenContainingPathFragmentName(mountedNodeStore, path, childrenProvider)) {
                 mountedStores.add(mountedNodeStore);
             }
         }
@@ -143,9 +140,9 @@ class MultiplexingContext {
         return mountedStores;
     }
 
-    private boolean hasChildrenContainingPathFragmentName(MountedNodeStore mns, Function<MountedNodeStore, Iterable<String>> childrenProvider) {
+    private boolean hasChildrenContainingPathFragmentName(MountedNodeStore mns, String parentPath, Function<MountedNodeStore, Iterable<String>> childrenProvider) {
         final Mount mount = mns.getMount();
-        if (!mount.isSupportFragment()) {
+        if (!mount.isSupportFragment(parentPath)) {
             return false;
         }
         return tryFind(childrenProvider.apply(mns), new Predicate<String>() {

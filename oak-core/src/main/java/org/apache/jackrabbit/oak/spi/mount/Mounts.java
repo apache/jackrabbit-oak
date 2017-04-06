@@ -102,7 +102,7 @@ public final class Mounts {
         }
 
         @Override
-        public boolean isSupportFragment() {
+        public boolean isSupportFragment(String path) {
             return false;
         }
 

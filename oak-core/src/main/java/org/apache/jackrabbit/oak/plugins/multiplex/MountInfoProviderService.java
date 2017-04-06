@@ -63,13 +63,13 @@ public class MountInfoProviderService {
     )
     private static final String PROP_MOUNT_READONLY = "readOnlyMount";
 
-    private static final boolean PROP_MOUNT_SUPPORT_FRAGMENT_DEFAULT = true;
+    private static final String[] PROP_PATHS_SUPPORTING_FRAGMENTS_DEFAULT = new String[] {"/"};
 
-    @Property(label = "Support fragment",
-            description = "If enabled then oak:mount-* nodes will be included to this mount",
-            boolValue = PROP_MOUNT_SUPPORT_FRAGMENT_DEFAULT
+    @Property(label = "Paths supporting fragments",
+            description = "oak:mount-* under this paths will be included to mounts",
+            value = {"/"}
     )
-    private static final String PROP_MOUNT_SUPPORT_FRAGMENT = "supportFragment";
+    private static final String PROP_PATHS_SUPPORTING_FRAGMENTS = "pathsSupportingFragments";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -80,15 +80,11 @@ public class MountInfoProviderService {
         String[] paths = PropertiesUtil.toStringArray(config.get(PROP_MOUNT_PATHS));
         String mountName = PropertiesUtil.toString(config.get(PROP_MOUNT_NAME), PROP_MOUNT_NAME_DEFAULT);
         boolean readOnly = PropertiesUtil.toBoolean(config.get(PROP_MOUNT_READONLY), PROP_MOUNT_READONLY_DEFAULT);
-        boolean supportFragment = PropertiesUtil.toBoolean(config.get(PROP_MOUNT_SUPPORT_FRAGMENT), PROP_MOUNT_SUPPORT_FRAGMENT_DEFAULT);
+        String[] pathsSupportingFragments = PropertiesUtil.toStringArray(PROP_PATHS_SUPPORTING_FRAGMENTS, PROP_PATHS_SUPPORTING_FRAGMENTS_DEFAULT);
 
         MountInfoProvider mip = Mounts.defaultMountInfoProvider();
         if (paths != null) {
-            List<String> trimmedPaths = new ArrayList<String>(paths.length);
-            for (String path : paths) {
-                trimmedPaths.add(path.trim());
-            }
-            Mount mi = new MountInfo(mountName.trim(), readOnly, false, supportFragment, trimmedPaths);
+            Mount mi = new MountInfo(mountName.trim(), readOnly, false, trim(pathsSupportingFragments), trim(paths));
             mip = new SimpleMountInfoProvider(Collections.singletonList(mi));
             log.info("Enabling mount for {}", mi);
         } else {
@@ -96,6 +92,14 @@ public class MountInfoProviderService {
         }
 
         reg = bundleContext.registerService(MountInfoProvider.class.getName(), mip, null);
+    }
+
+    private static List<String> trim(String[] array) {
+        List<String> result = new ArrayList<>(array.length);
+        for (String s : array) {
+            result.add(s.trim());
+        }
+        return result;
     }
 
     @Deactivate
