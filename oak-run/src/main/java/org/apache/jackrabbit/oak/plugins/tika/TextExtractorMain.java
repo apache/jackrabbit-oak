@@ -61,6 +61,9 @@ import joptsimple.OptionSpec;
 public class TextExtractorMain {
     private static final Logger log = LoggerFactory.getLogger(TextExtractorMain.class);
 
+    private TextExtractorMain() {
+    }
+
     public static void main(String[] args) throws Exception {
         Closer closer = Closer.create();
         String h = "tika [extract|report|generate]\n" +
