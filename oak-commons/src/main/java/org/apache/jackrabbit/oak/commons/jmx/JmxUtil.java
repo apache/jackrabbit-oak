@@ -27,6 +27,9 @@ import javax.management.ObjectName;
  */
 public final class JmxUtil {
 
+    private JmxUtil() {
+    }
+
     /**
      * Checks if the passed value string can be used as is as part of
      * JMX {@link javax.management.ObjectName} If it cannot be used then
