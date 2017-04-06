@@ -66,8 +66,8 @@ public class TimeDurationFormatter {
     }
 
     /**
-     * @param local
-     *            local for formatting (affects the decimal point)
+     * @param locale
+     *            locale for formatting (affects the decimal point)
      * @param threshold
      *            integral value that needs to be exceeded to switch to a
      *            certain time unit for display (e.g., specify {@code 2} to
