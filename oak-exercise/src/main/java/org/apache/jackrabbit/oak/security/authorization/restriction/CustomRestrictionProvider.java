@@ -36,9 +36,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
- * EXERCISE: complete the implemenation
+ * EXERCISE: complete the implementation
  */
-@Component(metatype = true, policy = ConfigurationPolicy.REQUIRE)
+@Component(policy = ConfigurationPolicy.REQUIRE)
 @Service({RestrictionProvider.class})
 public class CustomRestrictionProvider implements RestrictionProvider {
 
