@@ -80,7 +80,7 @@ public class MountInfoProviderService {
         String[] paths = PropertiesUtil.toStringArray(config.get(PROP_MOUNT_PATHS));
         String mountName = PropertiesUtil.toString(config.get(PROP_MOUNT_NAME), PROP_MOUNT_NAME_DEFAULT);
         boolean readOnly = PropertiesUtil.toBoolean(config.get(PROP_MOUNT_READONLY), PROP_MOUNT_READONLY_DEFAULT);
-        String[] pathsSupportingFragments = PropertiesUtil.toStringArray(PROP_PATHS_SUPPORTING_FRAGMENTS, PROP_PATHS_SUPPORTING_FRAGMENTS_DEFAULT);
+        String[] pathsSupportingFragments = PropertiesUtil.toStringArray(config.get(PROP_PATHS_SUPPORTING_FRAGMENTS), PROP_PATHS_SUPPORTING_FRAGMENTS_DEFAULT);
 
         MountInfoProvider mip = Mounts.defaultMountInfoProvider();
         if (paths != null) {
