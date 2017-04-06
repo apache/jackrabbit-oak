@@ -63,7 +63,7 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      * <li>include path /a/b/** results in additional !deep NODE_REMOVED
      * filter on /a, /a/b and /a/b/**</li>
      * <li>include path /a/b/**{@code /}*.jsp results in additional 
-     * deep NODE_REMOVED filter on /a, /a/b and /a/b/** <br/>
+     * deep NODE_REMOVED filter on /a, /a/b and /a/b/** <br>
      * Note that this and the above result in the same additional
      * include paths since all this includeAncestorsRemove flag 
      * does is include potential ancestors, it doesn't guarantee 
