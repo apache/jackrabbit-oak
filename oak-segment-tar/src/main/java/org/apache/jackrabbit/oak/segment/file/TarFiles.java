@@ -45,6 +45,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
@@ -404,7 +405,7 @@ class TarFiles implements Closeable {
         writer = newWriter;
     }
 
-    CleanupResult cleanup(Set<UUID> references, Predicate<Integer> reclaimGeneration) throws IOException {
+    CleanupResult cleanup(Supplier<Set<UUID>> referencesSupplier, Predicate<Integer> reclaimGeneration) throws IOException {
         checkReadWrite();
 
         CleanupResult result = new CleanupResult();
@@ -437,6 +438,13 @@ class TarFiles implements Closeable {
                 cleaned.put(reader, reader);
                 result.reclaimedSize += reader.size();
             }
+
+            // The set of references has to be computed while holding the lock.
+            // This prevents a time-of-check to time-of-use race condition. See
+            // OAK-6046 for further details.
+
+            Set<UUID> references = referencesSupplier.get();
+
             Set<UUID> reclaim = newHashSet();
             for (TarReader reader : cleaned.keySet()) {
                 if (shutdown) {
