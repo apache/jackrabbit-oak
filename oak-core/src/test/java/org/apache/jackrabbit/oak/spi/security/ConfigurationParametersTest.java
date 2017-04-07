@@ -288,7 +288,7 @@ public class ConfigurationParametersTest {
         assertEquals(int1000, options.getConfigValue("Int2", 10, null));
         assertEquals("1000", options.getConfigValue("Int2", "1000", null));
 
-        assertEquals(1000, options.getConfigValue("Int3", null, null));
+        assertEquals(int1000, options.getConfigValue("Int3", null, null));
         assertEquals(int1000, options.getConfigValue("Int3", 10, null));
         assertEquals("1000", options.getConfigValue("Int3", "1000", null));
     }
