@@ -60,9 +60,7 @@ public class SegmentBlob extends Record implements Blob {
     }
 
     private InputStream getInlineStream(Segment segment, int offset, int length) {
-        byte[] inline = new byte[length];
-        segment.readBytes(getRecordNumber(), offset, inline, 0, length);
-        return new SegmentStream(getRecordId(), inline);
+        return new SegmentStream(getRecordId(), segment.readBytes(getRecordNumber(), offset, length), length);
     }
 
     @Override @Nonnull
@@ -202,9 +200,7 @@ public class SegmentBlob extends Record implements Blob {
 
     private static String readShortBlobId(Segment segment, int recordNumber, byte head) {
         int length = (head & 0x0f) << 8 | (segment.readByte(recordNumber, 1) & 0xff);
-        byte[] bytes = new byte[length];
-        segment.readBytes(recordNumber, 2, bytes, 0, length);
-        return new String(bytes, UTF_8);
+        return UTF_8.decode(segment.readBytes(recordNumber, 2, length)).toString();
     }
 
     private static String readLongBlobId(Segment segment, int recordNumber) {

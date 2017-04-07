@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
@@ -72,11 +73,13 @@ public class SegmentStream extends InputStream {
         this.length = length;
     }
 
-    SegmentStream(RecordId recordId, byte[] inline) {
+    SegmentStream(RecordId recordId, ByteBuffer inline, int length) {
         this.recordId = checkNotNull(recordId);
-        this.inline = checkNotNull(inline);
+        // TODO rewrite this class to leverage the ByteBuffer apis
+        this.inline = new byte[length];
+        inline.get(this.inline);
         this.blocks = null;
-        this.length = inline.length;
+        this.length = length;
     }
 
     List<RecordId> getBlockIds() {

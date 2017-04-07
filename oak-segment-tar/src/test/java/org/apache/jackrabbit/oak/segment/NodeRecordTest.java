@@ -22,6 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.nio.ByteBuffer;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
@@ -82,9 +84,15 @@ public class NodeRecordTest {
             SegmentNodeState three = writer.writeNode(two);
             writer.flush();
 
-            assertArrayEquals(three.getStableIdBytes(), two.getStableIdBytes());
-            assertArrayEquals(two.getStableIdBytes(), one.getStableIdBytes());
+            assertArrayEquals(asByteArray(three.getStableIdBytes()), asByteArray(two.getStableIdBytes()));
+            assertArrayEquals(asByteArray(two.getStableIdBytes()), asByteArray(one.getStableIdBytes()));
         }
+    }
+
+    private static final byte[] asByteArray(ByteBuffer bytes) {
+        byte[] buffer = new byte[RecordId.SERIALIZED_RECORD_ID_BYTES];
+        bytes.get(buffer);
+        return buffer;
     }
 
     @Test
