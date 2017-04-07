@@ -155,6 +155,21 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final SegmentNotFoundExceptionListener snfeListener;
 
+    private final Supplier<Set<UUID>> referencesSupplier = new Supplier<Set<UUID>>() {
+
+        @Override
+        public Set<UUID> get() {
+            Set<UUID> references = newHashSet();
+            for (SegmentId id : tracker.getReferencedSegmentIds()) {
+                if (id.isBulkSegmentId()) {
+                    references.add(id.asUUID());
+                }
+            }
+            return references;
+        }
+
+    };
+
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
@@ -810,13 +825,7 @@ public class FileStore extends AbstractFileStore {
             // to clear stale weak references in the SegmentTracker
             System.gc();
 
-            Set<UUID> bulkRefs = newHashSet();
-            for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                if (id.isBulkSegmentId()) {
-                    bulkRefs.add(id.asUUID());
-                }
-            }
-            CleanupResult cleanupResult = tarFiles.cleanup(bulkRefs, compactionResult.reclaimer());
+            CleanupResult cleanupResult = tarFiles.cleanup(referencesSupplier, compactionResult.reclaimer());
             if (cleanupResult.isInterrupted()) {
                 gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
             }
