@@ -39,7 +39,7 @@ public class S3ToFbsTest extends AbstractOak2OakTest {
     private final NodeStoreContainer destination;
 
     public S3ToFbsTest() throws IOException {
-        Assume.assumeTrue(S3_PROPERTIES != null);
+        Assume.assumeTrue(S3_PROPERTIES != null && !S3_PROPERTIES.isEmpty());
         sourceBlob = new S3DataStoreContainer(S3_PROPERTIES);
         destinationBlob = new FileBlobStoreContainer();
         source = new SegmentTarNodeStoreContainer(sourceBlob);
