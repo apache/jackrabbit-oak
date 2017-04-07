@@ -51,6 +51,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -1026,7 +1027,9 @@ public class SegmentWriter {
 
             RecordId stableId = null;
             if (state instanceof SegmentNodeState) {
-                byte[] id = ((SegmentNodeState) state).getStableIdBytes();
+                ByteBuffer bid = ((SegmentNodeState) state).getStableIdBytes();
+                byte[] id = new byte[RecordId.SERIALIZED_RECORD_ID_BYTES];
+                bid.get(id);
                 stableId = writeBlock(id, 0, id.length);
             }
             return newNodeStateWriter(stableId, ids).write(writer, store);

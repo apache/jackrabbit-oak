@@ -117,7 +117,7 @@ public class SegmentNodeState extends Record implements NodeState {
      * @return  stable id
      */
     String getStableId() {
-        ByteBuffer buffer = ByteBuffer.wrap(getStableIdBytes());
+        ByteBuffer buffer = getStableIdBytes();
         long msb = buffer.getLong();
         long lsb = buffer.getLong();
         int offset = buffer.getInt();
@@ -132,7 +132,7 @@ public class SegmentNodeState extends Record implements NodeState {
      *
      * @return the stable ID of this node.
      */
-    byte[] getStableIdBytes() {
+    ByteBuffer getStableIdBytes() {
         // The first record id of this node points to the stable id.
         RecordId id = getSegment().readRecordId(getRecordNumber());
 
@@ -144,9 +144,7 @@ public class SegmentNodeState extends Record implements NodeState {
         } else {
             // Otherwise that id points to the serialised (msb, lsb, offset)
             // stable id.
-            byte[] buffer = new byte[RecordId.SERIALIZED_RECORD_ID_BYTES];
-            id.getSegment().readBytes(id.getRecordNumber(), buffer, 0, buffer.length);
-            return buffer;
+            return id.getSegment().readBytes(id.getRecordNumber(), 0, RecordId.SERIALIZED_RECORD_ID_BYTES);
         }
     }
 

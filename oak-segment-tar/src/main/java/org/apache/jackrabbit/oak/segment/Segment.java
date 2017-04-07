@@ -441,25 +441,16 @@ public class Segment {
         return data.getLong(pos(recordNumber, 8));
     }
 
-    /**
-     * Reads the given number of bytes starting from the given position
-     * in this segment.
-     *
-     * @param recordNumber position within segment
-     * @param buffer target buffer
-     * @param offset offset within target buffer
-     * @param length number of bytes to read
-     */
-    void readBytes(int recordNumber, byte[] buffer, int offset, int length) {
-        readBytes(recordNumber, 0, buffer, offset, length);
-    }
-
     void readBytes(int recordNumber, int position, byte[] buffer, int offset, int length) {
         checkNotNull(buffer);
         checkPositionIndexes(offset, offset + length, buffer.length);
-        ByteBuffer d = data.duplicate();
-        d.position(pos(recordNumber, position, length));
+        ByteBuffer d = readBytes(recordNumber, position, length);
         d.get(buffer, offset, length);
+    }
+
+    ByteBuffer readBytes(int recordNumber, int position, int length) {
+        int pos = pos(recordNumber, position, length);
+        return slice(pos, length);
     }
 
     @Nonnull
@@ -505,17 +496,9 @@ public class Segment {
         int pos = pos(offset, 1);
         long length = internalReadLength(pos);
         if (length < SMALL_LIMIT) {
-            byte[] bytes = new byte[(int) length];
-            ByteBuffer buffer = data.duplicate();
-            buffer.position(pos + 1);
-            buffer.get(bytes);
-            return new String(bytes, Charsets.UTF_8);
+            return Charsets.UTF_8.decode(slice(pos + 1, (int) length)).toString();
         } else if (length < MEDIUM_LIMIT) {
-            byte[] bytes = new byte[(int) length];
-            ByteBuffer buffer = data.duplicate();
-            buffer.position(pos + 2);
-            buffer.get(bytes);
-            return new String(bytes, Charsets.UTF_8);
+            return Charsets.UTF_8.decode(slice(pos + 2, (int) length)).toString();
         } else if (length < Integer.MAX_VALUE) {
             int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
             ListRecord list = new ListRecord(internalReadRecordId(pos + 8), size);
@@ -525,6 +508,13 @@ public class Segment {
         } else {
             throw new IllegalStateException("String is too long: " + length);
         }
+    }
+
+    private ByteBuffer slice(int pos, int length) {
+        ByteBuffer buffer = data.duplicate();
+        buffer.position(pos);
+        buffer.limit(pos + length);
+        return buffer.slice();
     }
 
     @Nonnull
