@@ -25,6 +25,8 @@ import org.junit.Test;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.util.concurrent.TimeUnit;
+
 public class VersionGCInitTest {
 
     @Rule
@@ -43,7 +45,7 @@ public class VersionGCInitTest {
         Document vgc = store.find(Collection.SETTINGS, "versionGC");
         assertNull(vgc);
 
-        ns.getVersionGarbageCollector();
+        ns.getVersionGarbageCollector().gc(1, TimeUnit.DAYS);
 
         vgc = store.find(Collection.SETTINGS, "versionGC");
         assertNotNull(vgc);

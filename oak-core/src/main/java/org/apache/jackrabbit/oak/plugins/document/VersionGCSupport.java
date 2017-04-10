@@ -29,10 +29,15 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 
 public class VersionGCSupport {
+
+    private static final Logger LOG = LoggerFactory.getLogger(VersionGCSupport.class);
 
     private final DocumentStore store;
 
@@ -104,5 +109,42 @@ public class VersionGCSupport {
                         && doc.hasAllRevisionLessThan(oldestRevTimeStamp);
             }
         });
+    }
+
+    /**
+     * Retrieve the time of the oldest document marked as 'deletedOnce'.
+     *
+     * @param precisionMs the exact time may vary by given precision
+     * @return the timestamp of the oldest document marked with 'deletecOnce',
+     *          module given prevision. If no such document exists, returns the
+     *          max time inspected (close to current time).
+     */
+    public long getOldestDeletedOnceTimestamp(Clock clock, long precisionMs) {
+        long ts = 0;
+        long now = clock.getTime();
+        long duration =  (now - ts) / 2;
+        Iterable<NodeDocument> docs;
+
+        while (duration > precisionMs) {
+            // check for delete candidates in [ ts, ts + duration]
+            LOG.debug("find oldest _deletedOnce, check < {}", Utils.timestampToString(ts + duration));
+            docs = getPossiblyDeletedDocs(ts, ts + duration);
+            if (docs.iterator().hasNext()) {
+                // look if there are still nodes to be found in the lower half
+                duration /= 2;
+            }
+            else {
+                // so, there are no delete candidates older than "ts + duration"
+                ts = ts + duration;
+                duration /= 2;
+            }
+            Utils.closeIfCloseable(docs);
+        }
+        LOG.debug("find oldest _deletedOnce to be {}", Utils.timestampToString(ts));
+        return ts;
+    }
+
+    public long getDeletedOnceCount() throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("getDeletedOnceCount()");
     }
 }
