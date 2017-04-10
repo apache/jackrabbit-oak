@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
@@ -441,7 +440,7 @@ public final class DocumentNodeStore
 
     private final Checkpoints checkpoints;
 
-    private final Supplier<VersionGarbageCollector> versionGarbageCollectorSupplier;
+    private final VersionGarbageCollector versionGarbageCollector;
 
     private final JournalGarbageCollector journalGarbageCollector;
 
@@ -527,7 +526,7 @@ public final class DocumentNodeStore
         this.clusterId = cid;
         this.branches = new UnmergedBranches();
         this.asyncDelay = builder.getAsyncDelay();
-        this.versionGarbageCollectorSupplier = createVersionGCSupplier(
+        this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport());
         this.journalGarbageCollector = new JournalGarbageCollector(this);
         this.referencedBlobs = builder.createReferencedBlobs(this);
@@ -2193,16 +2192,6 @@ public final class DocumentNodeStore
         }, backgroundOperationLock.writeLock());
     }
 
-    private static Supplier<VersionGarbageCollector> createVersionGCSupplier(
-            final DocumentNodeStore ns, final VersionGCSupport gcSupport) {
-        return memoize(new Supplier<VersionGarbageCollector>() {
-            @Override
-            public VersionGarbageCollector get() {
-                return new VersionGarbageCollector(ns, gcSupport);
-            }
-        });
-    }
-
     /**
      * Checks if this node store can operate on the data in the given document
      * store.
@@ -2957,7 +2946,7 @@ public final class DocumentNodeStore
 
     @Nonnull
     public VersionGarbageCollector getVersionGarbageCollector() {
-        return versionGarbageCollectorSupplier.get();
+        return versionGarbageCollector;
     }
 
     @Nonnull
