@@ -855,12 +855,6 @@ public class FileStore extends AbstractFileStore {
             }
         }
 
-        private void collectBulkReferences(Set<UUID> bulkRefs) {
-            for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                bulkRefs.add(id.asUUID());
-            }
-        }
-
         /**
          * Finds all external blob references that are currently accessible
          * in this repository and adds them to the given collector. Useful
