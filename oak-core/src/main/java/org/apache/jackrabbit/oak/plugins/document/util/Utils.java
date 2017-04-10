@@ -862,4 +862,20 @@ public class Utils {
             clock.waitUntil(externalTime + 1);
         }
     }
+
+    /**
+     * Calls {@link Thread#join()} on each of the passed threads and catches
+     * any potentially thrown {@link InterruptedException}.
+     *
+     * @param threads the threads to join.
+     */
+    public static void joinQuietly(Thread... threads) {
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                // ignore
+            }
+        }
+    }
 }

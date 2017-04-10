@@ -66,6 +66,7 @@ public class Commit {
     private final HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
     private final Set<Revision> collisions = new LinkedHashSet<Revision>();
     private Branch b;
+    private boolean rollbackFailed;
 
     /**
      * List of all node paths which have been modified in this commit. In addition to the nodes
@@ -173,11 +174,20 @@ public class Commit {
     }
 
     /**
+     * @return {@code true} if this commit did not succeed and the rollback
+     *      was unable to revert all changes; otherwise {@code false}.
+     */
+    boolean rollbackFailed() {
+        return rollbackFailed;
+    }
+
+    /**
      * Applies this commit to the store.
      *
+     * @throws ConflictException if the commit failed because of a conflict.
      * @throws DocumentStoreException if the commit cannot be applied.
      */
-    void apply() throws DocumentStoreException {
+    void apply() throws ConflictException, DocumentStoreException {
         boolean success = false;
         RevisionVector baseRev = getBaseRevision();
         boolean isBranch = baseRev != null && baseRev.isBranch();
@@ -249,8 +259,16 @@ public class Commit {
      *
      * @param baseBranchRevision the base revision of this commit. Currently only
      *                     used for branch commits.
+     * @throws DocumentStoreException if an error occurs while writing to the
+     *          underlying store.
      */
-    private void applyToDocumentStore(RevisionVector baseBranchRevision) {
+    private void applyToDocumentStore(RevisionVector baseBranchRevision)
+            throws DocumentStoreException {
+        // initially set the rollbackFailed flag to true
+        // the flag will be set to false at the end of the method
+        // when the commit succeeds
+        rollbackFailed = true;
+
         // the value in _revisions.<revision> property of the commit root node
         // regular commits use "c", which makes the commit visible to
         // other readers. branch commits use the base revision to indicate
@@ -369,12 +387,17 @@ public class Commit {
             } else {
                 try {
                     rollback(opLog, commitRoot);
-                } catch (Exception ex) {
+                    rollbackFailed = false;
+                } catch (Throwable ex) {
                     // catch any exception caused by the rollback, log it
                     // and throw the original exception
                     LOG.warn("Rollback failed", ex);
                 }
                 throw e;
+            }
+        } finally {
+            if (success) {
+                rollbackFailed = false;
             }
         }
     }

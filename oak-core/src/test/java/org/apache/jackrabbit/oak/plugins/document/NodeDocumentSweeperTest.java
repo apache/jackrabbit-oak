@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
 
@@ -28,7 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +37,6 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModifie
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.REMOVE_MAP_ENTRY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -68,8 +64,8 @@ public class NodeDocumentSweeperTest {
         seeker = builder.createMissingLastRevSeeker();
     }
 
-    @After
-    public void after() {
+    @AfterClass
+    public static void resetClock() {
         Revision.resetClockToDefault();
     }
 
@@ -121,6 +117,7 @@ public class NodeDocumentSweeperTest {
         Revision nextSweepStart = sweep(ops);
 
         assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
+        // must not sweep change newer than head
         assertEquals(0, ops.size());
     }
 
@@ -164,25 +161,11 @@ public class NodeDocumentSweeperTest {
     }
 
     private Revision sweep(final List<UpdateOp> ops) throws Exception {
-        // sweeper only runs once every 5 seconds
-        // make sure it does run
-        clock.waitUntil(clock.getTime() + NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 1000);
-        // now perform the sweep
-        NodeDocumentSweeper sweeper = new NodeDocumentSweeper(ns) {
-            @Nonnull
-            @Override
-            protected NodeDocument getRoot() throws DocumentStoreException {
-                return getRootDocument(store);
-            }
-
-            @Nonnull
-            @Override
-            protected Iterable<NodeDocument> getDocuments(long modifiedInSecs)
-                    throws DocumentStoreException {
-                return seeker.getCandidates(TimeUnit.SECONDS.toMillis(modifiedInSecs));
-            }
-        };
-        return sweeper.sweep(new NodeDocumentSweepListener() {
+        NodeDocumentSweeper sweeper = new NodeDocumentSweeper(ns, false);
+        Revision startRev = ns.getSweepRevisions().getRevision(ns.getClusterId());
+        assertNotNull(startRev);
+        Iterable<NodeDocument> docs = seeker.getCandidates(startRev.getTimestamp());
+        return sweeper.sweep(docs, new NodeDocumentSweepListener() {
             @Override
             public void sweepUpdate(Map<String, UpdateOp> updates)
                     throws DocumentStoreException {

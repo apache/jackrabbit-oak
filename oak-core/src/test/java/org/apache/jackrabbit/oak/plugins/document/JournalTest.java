@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -390,7 +390,7 @@ public class JournalTest extends AbstractJournalTest {
 
         if (!testConcurrency) {
             //Do not pass y1 but still y1 should be updated
-            recovery.recover(Iterators.forArray(x1,z1), c2Id);
+            recovery.recover(Lists.newArrayList(x1,z1), c2Id);
     
             //Post recovery the lastRev should be updated for /x/y and /x
             assertEquals(head2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
@@ -403,7 +403,7 @@ public class JournalTest extends AbstractJournalTest {
             
             // just some no-ops:
             recovery.recover(c2Id);
-            recovery.recover(Iterators.<NodeDocument>emptyIterator(), c2Id);
+            recovery.recover(Collections.<NodeDocument>emptyList(), c2Id);
             assertJournalEntries(ds1, change1); // unchanged
             assertJournalEntries(ds2, change2, change2b);
 
@@ -423,7 +423,7 @@ public class JournalTest extends AbstractJournalTest {
                         try {
                             ready.countDown();
                             start.await();
-                            recovery.recover(Iterators.forArray(x1,z1), c2Id);
+                            recovery.recover(Lists.newArrayList(x1,z1), c2Id);
                         } catch (Exception e) {
                             exceptions.add(e);
                         } finally {
