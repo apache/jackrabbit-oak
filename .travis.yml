@@ -27,7 +27,7 @@ install:  mvn --batch-mode -DskipTests -Dbaseline.skip=true install -pl :${MODUL
 script:   mvn --batch-mode clean verify -Dbaseline.skip=true -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
 language: java
 jdk:
-  - oraclejdk7
+  - oraclejdk8
 cache:
   directories:
     - $HOME/.m2
