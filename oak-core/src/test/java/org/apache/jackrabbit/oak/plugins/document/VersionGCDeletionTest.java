@@ -199,7 +199,7 @@ public class VersionGCDeletionTest {
         //3. Check that deleted doc does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
-        gc.setOverflowToDiskThreshold(100);
+        gc.setOptions(gc.getOptions().withOverflowToDiskThreshold(100));
 
         VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
@@ -245,7 +245,7 @@ public class VersionGCDeletionTest {
         //3. Check that deleted doc does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
-        gc.setOverflowToDiskThreshold(100);
+        gc.setOptions(gc.getOptions().withOverflowToDiskThreshold(100));
 
         VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
