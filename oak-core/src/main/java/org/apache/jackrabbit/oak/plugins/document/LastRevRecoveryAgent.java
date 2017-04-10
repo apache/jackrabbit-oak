@@ -16,23 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -46,9 +49,10 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
- * Utility class for recovering potential missing _lastRev updates of nodes due to crash of a node.
+ * Utility class for recovering potential missing _lastRev updates of nodes due
+ * to crash of a node. The recovery agent is also responsible for document
+ * sweeping (reverting uncommitted changes).
  */
 public class LastRevRecoveryAgent {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -111,10 +115,11 @@ public class LastRevRecoveryAgent {
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);
+                Revision sweepRev = root.getSweepRevisions().getRevision(clusterId);
 
                 // start time is the _lastRev timestamp of the cluster node
-                final long startTime;
-                final String reason;
+                long startTime;
+                String reason;
                 //lastRev can be null if other cluster node did not got
                 //chance to perform lastRev rollup even once
                 if (lastRev != null) {
@@ -125,6 +130,18 @@ public class LastRevRecoveryAgent {
                     reason = String.format(
                             "no lastRev for root, using timestamp based on leaseEnd %d - leaseTime %d - asyncDelay %d", leaseEnd,
                             leaseTime, asyncDelay);
+                }
+                if (sweepRev == null) {
+                    // no sweep ever done for this cluster node. this is
+                    // quite unusual and means an upgrade happened for a
+                    // cluster node from 1.6 or older and then crashed
+                    // we need to scan the entire collection
+                    startTime = 0;
+                    reason = "no sweepRevision for cluster node " + clusterId +
+                            ", using timestamp 0 (scanning the entire collection)";
+                } else if (sweepRev.getTimestamp() < startTime) {
+                    startTime = sweepRev.getTimestamp();
+                    reason = "sweepRev: " + sweepRev.toString();
                 }
 
                 return recoverCandidates(nodeInfo, startTime, waitUntil, reason);
@@ -154,7 +171,7 @@ public class LastRevRecoveryAgent {
      * @param clusterId the cluster id for which _lastRev recovery needed
      * @return the number of documents that required recovery.
      */
-    public int recover(Iterator<NodeDocument> suspects, int clusterId) {
+    public int recover(Iterable<NodeDocument> suspects, int clusterId) {
         return recover(suspects, clusterId, false);
     }
 
@@ -169,19 +186,59 @@ public class LastRevRecoveryAgent {
      *          returns the number of the affected documents even if
      *          {@code dryRun} is set true and no document was changed.
      */
-    public int recover(Iterator<NodeDocument> suspects,
-                       int clusterId, boolean dryRun) {
+    public int recover(final Iterable<NodeDocument> suspects,
+                       final int clusterId, final boolean dryRun)
+            throws DocumentStoreException {
+        final DocumentStore docStore = nodeStore.getDocumentStore();
+
+        // first run a sweep
+        final AtomicReference<Revision> sweepRev = new AtomicReference<>();
+        final RevisionContext context = new InactiveRevisionContext(
+                Utils.getRootDocument(docStore), nodeStore, clusterId);
+        final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
+        sweeper.sweep(suspects, new NodeDocumentSweepListener() {
+            @Override
+            public void sweepUpdate(Map<String, UpdateOp> updates)
+                    throws DocumentStoreException {
+                if (dryRun) {
+                    log.info("Dry run of sweeper identified [{}] documents for " +
+                            "cluster node [{}]: {}", updates.size(), clusterId,
+                            updates.values());
+                    return;
+                }
+                // create an invalidate entry
+                JournalEntry inv = JOURNAL.newDocument(docStore);
+                inv.modified(updates.keySet());
+                Revision r = context.newRevision().asBranchRevision();
+                UpdateOp invOp = inv.asUpdateOp(r);
+                // and reference it from a regular entry
+                JournalEntry entry = JOURNAL.newDocument(docStore);
+                entry.invalidate(Collections.singleton(r));
+                Revision jRev = context.newRevision();
+                UpdateOp jOp = entry.asUpdateOp(jRev);
+                if (!docStore.create(JOURNAL, newArrayList(invOp, jOp))) {
+                    String msg = "Unable to create journal entries for " +
+                            "document invalidation.";
+                    throw new DocumentStoreException(msg);
+                }
+                sweepRev.set(Utils.max(sweepRev.get(), jRev));
+                // now that journal entry is in place, perform the actual
+                // updates on the documents
+                docStore.createOrUpdate(NODES, newArrayList(updates.values()));
+                log.info("Sweeper updated {}", updates.keySet());
+            }
+        });
+
+        // now deal with missing _lastRev updates
         UnsavedModifications unsaved = new UnsavedModifications();
         UnsavedModifications unsavedParents = new UnsavedModifications();
 
         //Map of known last rev of checked paths
         Map<String, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
-        final DocumentStore docStore = nodeStore.getDocumentStore();
         final JournalEntry changes = JOURNAL.newDocument(docStore);
 
         long count = 0;
-        while (suspects.hasNext()) {
-            NodeDocument doc = suspects.next();
+        for (NodeDocument doc : suspects) {
             count++;
             if (count % 100000 == 0) {
                 log.info("Scanned {} suspects so far...", count);
@@ -248,8 +305,12 @@ public class LastRevRecoveryAgent {
             }
         }
 
+        if (sweepRev.get() != null) {
+            unsaved.put(ROOT_PATH, sweepRev.get());
+        }
+
         // take the root's lastRev
-        final Revision lastRootRev = unsaved.get("/");
+        final Revision lastRootRev = unsaved.get(ROOT_PATH);
 
         //Note the size before persist as persist operation
         //would empty the internal state
@@ -368,7 +429,7 @@ public class LastRevRecoveryAgent {
             Iterable<NodeDocument> suspects = missingLastRevUtil.getCandidates(startTime);
             try {
                 log.info("Performing Last Revision Recovery for clusterNodeId {}", clusterId);
-                int num = recover(suspects.iterator(), clusterId);
+                int num = recover(suspects, clusterId);
                 success = true;
                 return num;
             } finally {
@@ -471,6 +532,67 @@ public class LastRevRecoveryAgent {
         @Override
         public boolean apply(Revision input) {
             return clusterId == input.getClusterId();
+        }
+    }
+
+    /**
+     * A revision context that represents an inactive cluster node for which
+     * recovery is performed.
+     */
+    private static class InactiveRevisionContext implements RevisionContext {
+
+        private final NodeDocument root;
+        private final RevisionContext context;
+        private final int clusterId;
+
+        InactiveRevisionContext(NodeDocument root,
+                                RevisionContext context,
+                                int clusterId) {
+            this.root = root;
+            this.context = context;
+            this.clusterId = clusterId;
+        }
+
+        @Override
+        public UnmergedBranches getBranches() {
+            // an inactive cluster node does not have active unmerged branches
+            return new UnmergedBranches();
+        }
+
+        @Override
+        public UnsavedModifications getPendingModifications() {
+            // an inactive cluster node does not have
+            // pending in-memory _lastRev updates
+            return new UnsavedModifications();
+        }
+
+        @Override
+        public int getClusterId() {
+            return clusterId;
+        }
+
+        @Nonnull
+        @Override
+        public RevisionVector getHeadRevision() {
+            return new RevisionVector(root.getLastRev().values());
+        }
+
+        @Nonnull
+        @Override
+        public Revision newRevision() {
+            return Revision.newRevision(clusterId);
+        }
+
+        @Nonnull
+        @Override
+        public Clock getClock() {
+            return context.getClock();
+        }
+
+        @Override
+        public String getCommitValue(@Nonnull Revision changeRevision,
+                                     @Nonnull NodeDocument doc) {
+            return context.getCommitValue(changeRevision, doc);
         }
     }
 }

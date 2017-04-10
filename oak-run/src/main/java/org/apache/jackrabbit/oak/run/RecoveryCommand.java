@@ -56,7 +56,7 @@ class RecoveryCommand implements Command {
             CloseableIterable<NodeDocument> docs = seeker.getCandidates(0);
             closer.register(docs);
             boolean dryRun = Arrays.asList(args).contains("dryRun");
-            agent.recover(docs.iterator(), dns.getClusterId(), dryRun);
+            agent.recover(docs, dns.getClusterId(), dryRun);
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +25,6 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
-import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +35,6 @@ import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.immutableEntry;
 import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeRevision;
@@ -47,21 +43,11 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_
 
 /**
  * The {@code NodeDocumentSweeper} is responsible for removing uncommitted
- * changes from {@code NodeDocument}s for a given clusterId. The sweeper scans
- * through documents modified after a given timestamp. This timestamp is derived
- * from the sweep revisions available on the root document
- * ({@link NodeDocument#getSweepRevisions()}). If no sweep revision is present
- * for the current clusterId, the sweeper scans through the entire nodes
- * collection. This is usually a one-time operation when the repository is
- * upgraded from a version older than 1.8.
- * <p>
- * The sweeper can read from an eventually consistent store and does not require
- * that it sees the most up-to-date state of the store. That is, running it off
- * a MongoDB Secondary is fine and even recommended.
+ * changes from {@code NodeDocument}s for a given clusterId.
  * <p>
  * This class is not thread-safe.
  */
-abstract class NodeDocumentSweeper {
+final class NodeDocumentSweeper {
 
     private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentSweeper.class);
 
@@ -71,47 +57,41 @@ abstract class NodeDocumentSweeper {
 
     private final int clusterId;
 
-    private Revision headRevision;
+    private final RevisionVector headRevision;
+
+    private final boolean sweepNewerThanHead;
+
+    private Revision head;
 
     /**
-     * Creates a new sweeper for the given context.
+     * Creates a new sweeper for the given context. The sweeper is initialized
+     * in the constructor with the head revision provided by the revision
+     * context. This is the head revision used later when the documents are
+     * check for uncommitted changes in
+     * {@link #sweep(Iterable, NodeDocumentSweepListener)}.
+     * <p>
+     * In combination with {@code sweepNewerThanHead == false}, the revision
+     * context may return a head revision that is not up-to-date, as long as it
+     * is consistent with documents passed to the {@code sweep()} method. That
+     * is, the documents must reflect all changes visible from the provided head
+     * revision. The sweeper will then only revert uncommitted changes up to the
+     * head revision. With {@code sweepNewerThanHead == true}, the sweeper will
+     * also revert uncommitted changes that are newer than the head revision.
+     * This is usually only useful during recovery of a cluster node, when it is
+     * guaranteed that there are no in-progress commits newer than the current
+     * head revision.
      *
-     *  @param context the revision context.
-     *
+     * @param context the revision context.
+     * @param sweepNewerThanHead whether uncommitted changes newer than the head
+     *                 revision should be reverted.
      */
-    NodeDocumentSweeper(RevisionContext context) {
+    NodeDocumentSweeper(RevisionContext context,
+                        boolean sweepNewerThanHead) {
         this.context = checkNotNull(context);
         this.clusterId = context.getClusterId();
+        this.headRevision= context.getHeadRevision();
+        this.sweepNewerThanHead = sweepNewerThanHead;
     }
-
-    /**
-     * Must be implemented by sub-class and return the current root document
-     * in the nodes collection. An implementation is permitted to return a root
-     * document that is not up-to-date, as long as it is consistency with
-     * {@link #getDocuments(long)}.
-     *
-     * @return the root document.
-     * @throws DocumentStoreException if an exception occurs reading the
-     *          document.
-     */
-    @Nonnull
-    protected abstract NodeDocument getRoot() throws DocumentStoreException;
-
-    /**
-     * Returns all documents that have a {@link NodeDocument#MODIFIED_IN_SECS}
-     * field equal or greater than {@code modifiedInSecs}. An implementation is
-     * permitted to return documents that are not up-to-date, as long as they
-     * are consistent with {@link #getRoot()}.
-     * <p>
-     * See also {@link NodeDocument#getModifiedInSecs(long)}.
-     *
-     * @param modifiedInSecs a timestamp in seconds.
-     * @return matching documents.
-     * @throws DocumentStoreException if an exception occurs reading documents.
-     */
-    @Nonnull
-    protected abstract Iterable<NodeDocument> getDocuments(long modifiedInSecs)
-            throws DocumentStoreException;
 
     /**
      * Performs a sweep and reports the required updates to the given sweep
@@ -119,72 +99,57 @@ abstract class NodeDocumentSweeper {
      * clusterId associated with the revision context used to create this
      * sweeper. The caller is responsible for storing the returned sweep
      * revision on the root document. This method returns {@code null} if no
-     * update was needed or possible.
+     * update was possible.
      *
+     * @param documents the documents to sweep
      * @param listener the listener to receive required sweep update operations.
      * @return the new sweep revision or {@code null} if no updates were done.
      * @throws DocumentStoreException if reading from the store or writing to
      *          the store failed.
      */
     @CheckForNull
-    Revision sweep(NodeDocumentSweepListener listener)
+    Revision sweep(@Nonnull Iterable<NodeDocument> documents,
+                   @Nonnull NodeDocumentSweepListener listener)
             throws DocumentStoreException {
-        return performSweep(listener);
+        return performSweep(documents, checkNotNull(listener));
+    }
+
+    /**
+     * @return the head revision vector in use by this sweeper.
+     */
+    RevisionVector getHeadRevision() {
+        return headRevision;
     }
 
     //----------------------------< internal >----------------------------------
 
     @CheckForNull
-    private Revision performSweep(NodeDocumentSweepListener listener)
+    private Revision performSweep(Iterable<NodeDocument> documents,
+                                  NodeDocumentSweepListener listener)
             throws DocumentStoreException {
-        NodeDocument rootDoc = getRoot();
-        RevisionVector head = getHeadRevision(rootDoc);
-        headRevision = head.getRevision(clusterId);
-        if (headRevision == null) {
-            LOG.warn("Head revision {} does not have an entry for " +
+        head = headRevision.getRevision(clusterId);
+        if (head == null) {
+            LOG.warn("Head revision does not have an entry for " +
                             "clusterId {}. Sweeping of documents is skipped.",
-                    head, clusterId);
-            return null;
-        }
-        RevisionVector sweepRevs = rootDoc.getSweepRevisions();
-        Revision lastSweepHead = sweepRevs.getRevision(clusterId);
-        if (lastSweepHead == null) {
-            // sweep all
-            lastSweepHead = new Revision(0, 0, clusterId);
-        }
-        // only sweep documents when the _modified time changed
-        long lastSweepTick = getModifiedInSecs(lastSweepHead.getTimestamp());
-        long currentTick = getModifiedInSecs(context.getClock().getTime());
-        if (lastSweepTick == currentTick) {
+                    clusterId);
             return null;
         }
 
-        LOG.debug("Starting document sweep. Head: {}, starting at {}",
-                headRevision, lastSweepHead);
-
-        CloseableIterable<Map.Entry<String, UpdateOp>> ops = sweepOperations(lastSweepTick);
-        try {
-            for (List<Map.Entry<String, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
-                Map<String, UpdateOp> updates = newHashMap();
-                for (Map.Entry<String, UpdateOp> entry : batch) {
-                    updates.put(entry.getKey(), entry.getValue());
-                }
-                listener.sweepUpdate(updates);
+        Iterable<Map.Entry<String, UpdateOp>> ops = sweepOperations(documents);
+        for (List<Map.Entry<String, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
+            Map<String, UpdateOp> updates = newHashMap();
+            for (Map.Entry<String, UpdateOp> entry : batch) {
+                updates.put(entry.getKey(), entry.getValue());
             }
-        } finally {
-            try {
-                ops.close();
-            } catch (IOException e) {
-                LOG.warn("Failed to close sweep operations", e);
-            }
+            listener.sweepUpdate(updates);
         }
         LOG.debug("Document sweep finished");
-        return headRevision;
+        return head;
     }
 
-    private CloseableIterable<Map.Entry<String, UpdateOp>> sweepOperations(long modifiedInSecs) {
-        final Iterable<NodeDocument> docs = getDocuments(modifiedInSecs);
-        return CloseableIterable.wrap(filter(transform(docs,
+    private Iterable<Map.Entry<String, UpdateOp>> sweepOperations(
+            final Iterable<NodeDocument> docs) {
+        return filter(transform(docs,
                 new Function<NodeDocument, Map.Entry<String, UpdateOp>>() {
             @Override
             public Map.Entry<String, UpdateOp> apply(NodeDocument doc) {
@@ -195,17 +160,7 @@ abstract class NodeDocumentSweeper {
             public boolean apply(Map.Entry<String, UpdateOp> input) {
                 return input.getValue() != null;
             }
-        }), new Closeable() {
-            @Override
-            public void close() throws IOException {
-                Utils.closeIfCloseable(docs);
-            }
         });
-    }
-
-    @Nonnull
-    private RevisionVector getHeadRevision(NodeDocument rootDoc) {
-        return new RevisionVector(rootDoc.getLastRev().values());
     }
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {
@@ -235,9 +190,13 @@ abstract class NodeDocumentSweeper {
                              String property,
                              Revision rev,
                              UpdateOp op) {
-        if (headRevision.compareRevisionTime(rev) < 0) {
+        if (head.compareRevisionTime(rev) < 0 && !sweepNewerThanHead) {
             // ignore changes that happen after the
             // head we are currently looking at
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Uncommitted change on {}, {} @ {} newer than head {} ",
+                        op.getId(), property, rev, head);
+            }
             return;
         }
         if (isV18BranchCommit(rev, doc)) {
@@ -300,7 +259,7 @@ abstract class NodeDocumentSweeper {
                                  Revision rev,
                                  Revision cRev,
                                  UpdateOp op) {
-        boolean newerThanHead = cRev.compareRevisionTime(headRevision) > 0;
+        boolean newerThanHead = cRev.compareRevisionTime(head) > 0;
         if (LOG.isDebugEnabled()) {
             String msg = newerThanHead ? " (newer than head)" : "";
             LOG.debug("Committed branch change on {}, {} @ {}/{}{}",

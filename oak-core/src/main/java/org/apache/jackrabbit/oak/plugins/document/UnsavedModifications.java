@@ -131,8 +131,8 @@ class UnsavedModifications {
 
     /**
      * Persist the pending changes to _lastRev to the given store. This method
-     * will persist a snapshot of the pending revisions by acquiring the passed
-     * lock for a short period of time.
+     * will persist a snapshot of the pending revisions and current sweep
+     * revision by acquiring the passed lock for a short period of time.
      *
      * @param store the document node store.
      * @param snapshot callback when the snapshot of the pending changes is
@@ -158,11 +158,13 @@ class UnsavedModifications {
         lock.lock();
         stats.lock = clock.getTime() - time;
         time = clock.getTime();
+        RevisionVector sweepRevisions;
         Map<String, Revision> pending;
         try {
             snapshot.acquiring(getMostRecentRevision());
             pending = Maps.newTreeMap(PathComparator.INSTANCE);
             pending.putAll(map);
+            sweepRevisions = store.getSweepRevisions();
         } finally {
             lock.unlock();
         }
@@ -196,7 +198,14 @@ class UnsavedModifications {
         // finally update remaining root document
         Revision rootRev = pending.get(ROOT_PATH);
         if (rootRev != null) {
-            store.getDocumentStore().findAndUpdate(NODES, newUpdateOp(store, ROOT_PATH, rootRev));
+            UpdateOp rootUpdate = newUpdateOp(store, ROOT_PATH, rootRev);
+            // also update to most recent sweep revision
+            Revision sweep = sweepRevisions.getRevision(store.getClusterId());
+            if (sweep != null) {
+                NodeDocument.setSweepRevision(rootUpdate, sweep);
+                LOG.debug("Updating _sweepRev to {}", sweep);
+            }
+            store.getDocumentStore().findAndUpdate(NODES, rootUpdate);
             stats.calls++;
             map.remove(ROOT_PATH, rootRev);
             LOG.debug("Updated _lastRev to {} on {}", rootRev, ROOT_PATH);

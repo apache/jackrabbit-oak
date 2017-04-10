@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -134,7 +134,7 @@ public class LastRevRecoveryTest {
         LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ds1);
 
         //Do not pass y1 but still y1 should be updated
-        recovery.recover(Iterators.forArray(x1,z1), c2Id);
+        recovery.recover(Lists.newArrayList(x1, z1), c2Id);
 
         //Post recovery the lastRev should be updated for /x/y and /x
         assertEquals(head2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));

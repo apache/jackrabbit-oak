@@ -25,12 +25,16 @@ import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
@@ -49,12 +53,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -75,6 +79,7 @@ import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -325,6 +330,23 @@ public final class DocumentNodeStore
     private Thread clusterUpdateThread;
 
     /**
+     * Monitor object to synchronize background sweeps.
+     */
+    private final Object backgroundSweepMonitor = new Object();
+
+    /**
+     * Sweep thread cleaning up uncommitted changes.
+     */
+    private Thread backgroundSweepThread;
+
+    /**
+     * The sweep revision vector. Revisions for trunk commits older than this
+     * can safely be considered committed without looking up the commit value
+     * on the commit root document.
+     */
+    private RevisionVector sweepRevisions = new RevisionVector();
+
+    /**
      * Read/Write lock for background operations. Regular commits will acquire
      * a shared lock, while a background write acquires an exclusive lock.
      */
@@ -448,6 +470,8 @@ public final class DocumentNodeStore
     
     private final Executor executor;
 
+    private final MissingLastRevSeeker lastRevSeeker;
+
     private final LastRevRecoveryAgent lastRevRecoveryAgent;
 
     private final boolean disableBranches;
@@ -473,6 +497,21 @@ public final class DocumentNodeStore
     private final JournalPropertyHandlerFactory journalPropertyHandlerFactory;
 
     private final int updateLimit;
+
+    /**
+     * A set of non-branch commit revisions that are currently in progress. A
+     * revision is added to this set when {@link #newTrunkCommit(RevisionVector)}
+     * is called and removed when the commit either:
+     * <ul>
+     *     <li>Succeeds with {@link #done(Commit, boolean, CommitInfo)}</li>
+     *     <li>Fails with {@link #canceled(Commit)} and the commit does *not*
+     *      have the {@link Commit#rollbackFailed()} flag set.</li>
+     * </ul>
+     * The {@link NodeDocumentSweeper} periodically goes through this set and
+     * reverts changes done by commits in the set that are older than the
+     * current head revision.
+     */
+    private final Set<Revision> inDoubtTrunkCommits = Sets.newConcurrentHashSet();
 
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.updateLimit = builder.getUpdateLimit();
@@ -530,8 +569,8 @@ public final class DocumentNodeStore
                 this, builder.createVersionGCSupport());
         this.journalGarbageCollector = new JournalGarbageCollector(this);
         this.referencedBlobs = builder.createReferencedBlobs(this);
-        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this,
-                builder.createMissingLastRevSeeker());
+        this.lastRevSeeker = builder.createMissingLastRevSeeker();
+        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this, lastRevSeeker);
         this.disableBranches = builder.isDisableBranches();
         this.missing = new DocumentNodeState(this, "MISSING",
                 new RevisionVector(new Revision(0, 0, 0))) {
@@ -565,6 +604,7 @@ public final class DocumentNodeStore
             commit.addNode(n);
             commit.applyToDocumentStore();
             unsavedLastRevisions.put("/", commitRev);
+            sweepRevisions = sweepRevisions.pmax(new RevisionVector(commitRev));
             setRoot(head);
             // make sure _lastRev is written back to store
             backgroundWrite();
@@ -587,6 +627,8 @@ public final class DocumentNodeStore
             }
         }
 
+        sweepRevisions = sweepRevisions.pmax(rootDoc.getSweepRevisions());
+
         // Renew the lease because it may have been stale
         renewClusterIdLease();
 
@@ -604,13 +646,21 @@ public final class DocumentNodeStore
                 "DocumentNodeStore background read thread " + threadNamePostfix);
         backgroundReadThread.setDaemon(true);
         backgroundUpdateThread = new Thread(
-                new BackgroundOperation(this, isDisposed),
+                new BackgroundUpdateOperation(this, isDisposed),
                 "DocumentNodeStore background update thread " + threadNamePostfix);
         backgroundUpdateThread.setDaemon(true);
+        backgroundSweepThread = new Thread(
+                new BackgroundSweepOperation(this, isDisposed),
+                "DocumentNodeStore background sweep thread " + threadNamePostfix);
+        backgroundSweepThread.setDaemon(true);
 
         backgroundReadThread.start();
         if (!readOnlyMode) {
+            // perform an initial document sweep if needed
+            backgroundSweep();
+
             backgroundUpdateThread.start();
+            backgroundSweepThread.start();
         }
 
         leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
@@ -683,65 +733,73 @@ public final class DocumentNodeStore
             return;
         }
 
+        // notify background threads waiting on isDisposed
+        synchronized (isDisposed) {
+            isDisposed.notifyAll();
+        }
+
+        Utils.joinQuietly(backgroundReadThread,
+                backgroundUpdateThread,
+                backgroundSweepThread);
+
+        // create a tombstone commit revision after isDisposed is set to true.
+        // commits created earlier than this revision will be able to finish
+        // and we'll get a headOfQueue() callback when they are done
+        // after this call there are no more pending trunk commits and
+        // the commit queue is empty and stays empty
+        Revision tombstone = commitQueue.createRevision();
+        commitQueue.done(tombstone, new CommitQueue.Callback() {
+            @Override
+            public void headOfQueue(@Nonnull Revision revision) {
+                setRoot(getHeadRevision().update(revision));
+                unsavedLastRevisions.put(ROOT_PATH, revision);
+            }
+        });
+
         try {
             bundlingConfigHandler.close();
         } catch (IOException e) {
             LOG.warn("Error closing bundlingConfigHandler", bundlingConfigHandler, e);
         }
 
-        // notify background threads waiting on isDisposed
-        synchronized (isDisposed) {
-            isDisposed.notifyAll();
-        }
-        try {
-            backgroundReadThread.join();
-        } catch (InterruptedException e) {
-            // ignore
-        }
-        try {
-            backgroundUpdateThread.join();
-        } catch (InterruptedException e) {
-            // ignore
-        }
-
+        DocumentStoreException ex = null;
         // do a final round of background operations after
         // the background thread stopped
         if (!readOnlyMode) {
             try {
+                // force a final background sweep to ensure there are
+                // no uncommitted changes up to the current head revision
+                internalRunBackgroundSweepOperation();
+                // push final changes to store, after this there must not
+                // be any more changes to documents in the nodes collection
                 internalRunBackgroundUpdateOperations();
-            } catch (AssertionError ae) {
+            } catch (DocumentStoreException e) {
                 // OAK-3250 : when a lease check fails, subsequent modifying requests
-                // to the DocumentStore will throw an AssertionError. Since as a result
+                // to the DocumentStore will throw an DocumentStoreException. Since as a result
                 // of a failing lease check a bundle.stop is done and thus a dispose of the
                 // DocumentNodeStore happens, it is very likely that in that case
-                // you run into an AssertionError. We should still continue with disposing
+                // you run into an Exception. We should still continue with disposing
                 // though - thus catching and logging..
-                LOG.error("dispose: an AssertionError happened during dispose's last background ops: " + ae, ae);
+                LOG.error("dispose: a DocumentStoreException happened during dispose's last background ops: " + e, e);
+                ex = e;
             }
         }
 
-        try {
-            clusterUpdateThread.join();
-        } catch (InterruptedException e) {
-            // ignore
-        }
+        Utils.joinQuietly(clusterUpdateThread, leaseUpdateThread);
 
-        try {
-            leaseUpdateThread.join();
-        } catch (InterruptedException e) {
-            // ignore
+        // now mark this cluster node as inactive by disposing the
+        // clusterNodeInfo, but only if final background operations
+        // were successful
+        if (ex == null) {
+            clusterNodeInfo.dispose();
         }
-
-        // now mark this cluster node as inactive by
-        // disposing the clusterNodeInfo
-        clusterNodeInfo.dispose();
         store.dispose();
 
         if (blobStore instanceof Closeable) {
             try {
                 ((Closeable) blobStore).close();
-            } catch (IOException ex) {
-                LOG.debug("Error closing blob store " + blobStore, ex);
+            } catch (IOException e) {
+                LOG.debug("Error closing blob store " + blobStore, e);
             }
         }
         if (persistentCache != null) {
@@ -750,7 +808,15 @@ public final class DocumentNodeStore
         if (journalCache != null) {
             journalCache.close();
         }
-        LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
+        String result = "(successful)";
+        if (ex != null) {
+            result = "(with exception: " + ex.toString() + ")";
+        }
+        LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}, {}",
+                clusterId, result);
+        if (ex != null) {
+            throw ex;
+        }
     }
 
     private String getClusterNodeInfoDisplayString() {
@@ -827,6 +893,7 @@ public final class DocumentNodeStore
     RevisionVector done(final @Nonnull Commit c, boolean isBranch, final @Nonnull CommitInfo info) {
         if (commitQueue.contains(c.getRevision())) {
             try {
+                inDoubtTrunkCommits.remove(c.getRevision());
                 final RevisionVector[] newHead = new RevisionVector[1];
                 commitQueue.done(c.getRevision(), new CommitQueue.Callback() {
                     @Override
@@ -866,6 +933,9 @@ public final class DocumentNodeStore
     void canceled(Commit c) {
         if (commitQueue.contains(c.getRevision())) {
             try {
+                if (!c.rollbackFailed() || c.isEmpty()) {
+                    inDoubtTrunkCommits.remove(c.getRevision());
+                }
                 commitQueue.canceled(c.getRevision());
             } finally {
                 backgroundOperationLock.readLock().unlock();
@@ -1871,6 +1941,7 @@ public final class DocumentNodeStore
 
     /** Used for testing only */
     public void runBackgroundOperations() {
+        runBackgroundSweepOperation();
         runBackgroundUpdateOperations();
         runBackgroundReadOperations();
     }
@@ -1884,9 +1955,9 @@ public final class DocumentNodeStore
             internalRunBackgroundUpdateOperations();
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
-                LOG.warn("Background update operation failed (will be retried with next run): " + e.toString(), e);
                 return;
             }
+            LOG.warn("Background update operation failed (will be retried with next run): " + e.toString(), e);
             throw e;
         }
     }
@@ -1927,9 +1998,9 @@ public final class DocumentNodeStore
             internalRunBackgroundReadOperations();
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
-                LOG.warn("Background read operation failed: " + e.toString(), e);
                 return;
             }
+            LOG.warn("Background read operation failed: " + e.toString(), e);
             throw e;
         }
     }
@@ -1948,6 +2019,36 @@ public final class DocumentNodeStore
         nodeStoreStatsCollector.doneBackgroundRead(readStats);
     }
 
+    //----------------------< background sweep operation >----------------------
+
+    void runBackgroundSweepOperation() {
+        if (readOnlyMode || isDisposed.get()) {
+            return;
+        }
+        try {
+            internalRunBackgroundSweepOperation();
+        } catch (RuntimeException e) {
+            if (isDisposed.get()) {
+                return;
+            }
+            LOG.warn("Background sweep operation failed (will be retried with next run): " + e.toString(), e);
+            throw e;
+        }
+    }
+
+    private void internalRunBackgroundSweepOperation()
+            throws DocumentStoreException {
+        BackgroundWriteStats stats = new BackgroundWriteStats();
+        synchronized (backgroundSweepMonitor) {
+            long start = clock.getTime();
+            stats.num = backgroundSweep();
+            stats.sweep = clock.getTime() - start;
+            String msg = "Background sweep operation stats ({})";
+            logBackgroundOperation(start, msg, stats);
+        }
+        nodeStoreStatsCollector.doneBackgroundUpdate(stats);
+    }
+
     /**
      * Log a background operation with the given {@code startTime}. The
      * {@code message} is logged at INFO if more than 10 seconds passed since
@@ -1960,7 +2061,7 @@ public final class DocumentNodeStore
     private void logBackgroundOperation(long startTime,
                                         String message,
                                         Object... arguments) {
-        if (clock.getTime() - startTime > TimeUnit.SECONDS.toMillis(10)) {
+        if (clock.getTime() - startTime > SECONDS.toMillis(10)) {
             // log as info if it took more than 10 seconds
             LOG.info(message, arguments);
         } else {
@@ -2181,6 +2282,11 @@ public final class DocumentNodeStore
         return Collections.unmodifiableSet(splitCandidates.keySet());
     }
 
+    @Nonnull
+    RevisionVector getSweepRevisions() {
+        return sweepRevisions;
+    }
+
     //-----------------------------< internal >---------------------------------
 
     private BackgroundWriteStats backgroundWrite() {
@@ -2190,6 +2296,129 @@ public final class DocumentNodeStore
                 pushJournalEntry(mostRecent);
             }
         }, backgroundOperationLock.writeLock());
+    }
+
+    private int backgroundSweep() throws DocumentStoreException {
+        // decide if it needs to run
+        Revision head = getHeadRevision().getRevision(clusterId);
+        if (head == null) {
+            // should never happen because the head revision vector
+            // always contains an element for the current clusterId,
+            // unless we are in read-only mode
+            return 0;
+        }
+        // are there in-doubt commit revisions that are older than
+        // the current head revision?
+        SortedSet<Revision> garbage = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
+        for (Revision r : inDoubtTrunkCommits) {
+            if (r.compareRevisionTime(head) < 0) {
+                garbage.add(r);
+            }
+        }
+        // skip if there is no garbage and we have at least some sweep
+        // revision for the local clusterId. A sweep is needed even
+        // without garbage when an upgrade happened and no sweep revision
+        // exists for the local clusterId
+        if (garbage.isEmpty() && sweepRevisions.getRevision(clusterId) != null) {
+            updateSweepRevision(head);
+            return 0;
+        }
+
+        Revision startRev = new Revision(0, 0, clusterId);
+        if (!garbage.isEmpty()) {
+            startRev = garbage.first();
+        }
+
+        int num = forceBackgroundSweep(startRev);
+        inDoubtTrunkCommits.removeAll(garbage);
+        return num;
+    }
+
+    private int forceBackgroundSweep(Revision startRev) throws DocumentStoreException {
+        NodeDocumentSweeper sweeper = new NodeDocumentSweeper(this, false);
+        LOG.debug("Starting document sweep. Head: {}, starting at {}",
+                sweeper.getHeadRevision(), startRev);
+        long lastSweepTick = getModifiedInSecs(startRev.getTimestamp());
+        Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(lastSweepTick);
+        try {
+            final AtomicInteger numUpdates = new AtomicInteger();
+
+            Revision newSweepRev = sweeper.sweep(docs, new NodeDocumentSweepListener() {
+                @Override
+                public void sweepUpdate(final Map<String, UpdateOp> updates)
+                        throws DocumentStoreException {
+                    // create a synthetic commit. this commit does not have any
+                    // changes, we just use it to create a journal entry for
+                    // cache invalidation and apply the sweep updates
+                    backgroundOperationLock.readLock().lock();
+                    try {
+                        boolean success = false;
+                        Revision r = commitQueue.createRevision();
+                        try {
+                            commitQueue.done(r, new CommitQueue.Callback() {
+                                @Override
+                                public void headOfQueue(@Nonnull Revision revision) {
+                                    writeUpdates(updates, revision);
+                                }
+                            });
+                            success = true;
+                        } finally {
+                            if (!success && commitQueue.contains(r)) {
+                                commitQueue.canceled(r);
+                            }
+                        }
+                    } finally {
+                        backgroundOperationLock.readLock().unlock();
+                    }
+                }
+
+                private void writeUpdates(Map<String, UpdateOp> updates,
+                                          Revision revision)
+                        throws DocumentStoreException {
+                    // create journal entry
+                    JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
+                    entry.modified(updates.keySet());
+                    Revision r = newRevision().asBranchRevision();
+                    if (!store.create(JOURNAL, singletonList(entry.asUpdateOp(r)))) {
+                        String msg = "Unable to create journal entry for " +
+                                "document invalidation. Will be retried with " +
+                                "next background sweep operation.";
+                        throw new DocumentStoreException(msg);
+                    }
+                    changes.invalidate(Collections.singleton(r));
+                    unsavedLastRevisions.put(ROOT_PATH, revision);
+                    RevisionVector newHead = getHeadRevision().update(revision);
+                    setRoot(newHead);
+                    commitQueue.headRevisionChanged();
+
+                    store.createOrUpdate(NODES, Lists.newArrayList(updates.values()));
+                    numUpdates.addAndGet(updates.size());
+                    LOG.debug("Background sweep updated {}", updates.keySet());
+                }
+            });
+
+            if (newSweepRev != null) {
+                updateSweepRevision(newSweepRev);
+            }
+            return numUpdates.get();
+        } finally {
+            Utils.closeIfCloseable(docs);
+        }
+    }
+
+    /**
+     * Updates the local sweep revision.
+     *
+     * @param newSweepRevision the new sweep revision for this document node
+     *                         store instance.
+     */
+    private void updateSweepRevision(Revision newSweepRevision) {
+        backgroundOperationLock.readLock().lock();
+        try {
+            sweepRevisions = sweepRevisions.pmax(new RevisionVector(newSweepRevision));
+        } finally {
+            backgroundOperationLock.readLock().unlock();
+        }
     }
 
     /**
@@ -2297,12 +2526,13 @@ public final class DocumentNodeStore
         checkArgument(!checkNotNull(base).isBranch(),
                 "base must not be a branch revision: " + base);
 
-        backgroundOperationLock.readLock().lock();
         boolean success = false;
         Commit c;
+        backgroundOperationLock.readLock().lock();
         try {
             checkOpen();
             c = new Commit(this, commitQueue.createRevision(), base);
+            inDoubtTrunkCommits.add(c.getRevision());
             success = true;
         } finally {
             if (!success) {
@@ -2618,7 +2848,7 @@ public final class DocumentNodeStore
                         new DocumentBlobReferenceRetriever(this),
                             (GarbageCollectableBlobStore) blobStore,
                         executor,
-                        TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
+                        SECONDS.toMillis(blobGcMaxAgeInSecs),
                         repositoryId);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while initializing " +
@@ -2776,7 +3006,7 @@ public final class DocumentNodeStore
         }
     }
 
-    static abstract class NodeStoreTask implements Runnable {
+    private static abstract class NodeStoreTask implements Runnable {
         final WeakReference<DocumentNodeStore> ref;
         private final AtomicBoolean isDisposed;
         private final Supplier<Integer> delaySupplier;
@@ -2840,12 +3070,12 @@ public final class DocumentNodeStore
     }
 
     /**
-     * Background operations.
+     * Background update operations.
      */
-    static class BackgroundOperation extends NodeStoreTask {
+    static class BackgroundUpdateOperation extends NodeStoreTask {
 
-        BackgroundOperation(DocumentNodeStore nodeStore,
-                            AtomicBoolean isDisposed) {
+        BackgroundUpdateOperation(DocumentNodeStore nodeStore,
+                                  AtomicBoolean isDisposed) {
             super(nodeStore, isDisposed);
         }
 
@@ -2871,7 +3101,31 @@ public final class DocumentNodeStore
         }
     }
 
-    static class BackgroundLeaseUpdate extends NodeStoreTask {
+    /**
+     * Background sweep operation.
+     */
+    private static class BackgroundSweepOperation extends NodeStoreTask {
+
+        BackgroundSweepOperation(DocumentNodeStore nodeStore,
+                                 AtomicBoolean isDisposed) {
+            super(nodeStore, isDisposed, getDelay(nodeStore));
+        }
+
+        @Override
+        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+            nodeStore.backgroundSweep();
+        }
+
+        private static Supplier<Integer> getDelay(DocumentNodeStore ns) {
+            int delay = 0;
+            if (ns.getAsyncDelay() != 0) {
+                delay = (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
+            }
+            return Suppliers.ofInstance(delay);
+        }
+    }
+
+    private static class BackgroundLeaseUpdate extends NodeStoreTask {
 
         /** OAK-4859 : log if time between two renewClusterIdLease calls is too long **/
         private long lastRenewClusterIdLeaseCall = -1;
@@ -2900,7 +3154,7 @@ public final class DocumentNodeStore
         }
     }
 
-    static class BackgroundClusterUpdate extends NodeStoreTask {
+    private static class BackgroundClusterUpdate extends NodeStoreTask {
 
         BackgroundClusterUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
