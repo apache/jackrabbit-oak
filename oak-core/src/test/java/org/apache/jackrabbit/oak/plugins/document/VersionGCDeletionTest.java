@@ -65,6 +65,9 @@ public class VersionGCDeletionTest {
     @Before
     public void setUp() throws InterruptedException {
         clock = new Clock.Virtual();
+        // baseline the clock
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
     }
 
     @After
@@ -83,9 +86,6 @@ public class VersionGCDeletionTest {
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
-
-        //Baseline the clock
-        clock.waitUntil(Revision.getCurrentTimestamp());
 
         NodeBuilder b1 = store.getRoot().builder();
         b1.child("x").child("y");
@@ -130,9 +130,6 @@ public class VersionGCDeletionTest {
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
-
-        //Baseline the clock
-        clock.waitUntil(Revision.getCurrentTimestamp());
 
         String id = Utils.getIdFromPath("/x");
 
@@ -182,9 +179,6 @@ public class VersionGCDeletionTest {
                 .setAsyncDelay(0)
                 .getNodeStore();
 
-        //Baseline the clock
-        clock.waitUntil(Revision.getCurrentTimestamp());
-
         NodeBuilder b1 = store.getRoot().builder();
         NodeBuilder xb = b1.child("x");
         for (int i = 0; i < noOfDocsToDelete; i++){
@@ -230,9 +224,6 @@ public class VersionGCDeletionTest {
                 .setAsyncDelay(0)
                 .getNodeStore();
 
-        //Baseline the clock
-        clock.waitUntil(Revision.getCurrentTimestamp());
-
         NodeBuilder b1 = store.getRoot().builder();
         NodeBuilder xb = b1.child("x");
         for (int i = 0; i < noOfDocsToDelete - 1; i++){
@@ -269,9 +260,6 @@ public class VersionGCDeletionTest {
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
-
-        //Baseline the clock
-        clock.waitUntil(Revision.getCurrentTimestamp());
 
         NodeBuilder b1;
         NodeBuilder xb;
@@ -320,9 +308,6 @@ public class VersionGCDeletionTest {
     // OAK-2420
     @Test
     public void queryWhileDocsAreRemoved() throws Exception {
-        //Baseline the clock
-        clock.waitUntil(Revision.getCurrentTimestamp());
-
         final Thread currentThread = Thread.currentThread();
         final Semaphore queries = new Semaphore(0);
         final CountDownLatch ready = new CountDownLatch(1);
