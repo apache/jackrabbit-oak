@@ -266,6 +266,11 @@ class TarFiles implements Closeable {
      * the linked list is immutable. Thus, you need to to hold {@link #lock}
      * while reading the value of the reference, but you can release it before
      * iterating through the list.
+     * <p>
+     * Please note that while the linked list is immutable, the pointer to it
+     * (namely this instance variable) is not itself immutable. This reference
+     * must be kept consistent with {@link #writer}, and this is the reason why
+     * it's necessary to hold a lock while accessing this variable.
      */
     private Node readers;
 
