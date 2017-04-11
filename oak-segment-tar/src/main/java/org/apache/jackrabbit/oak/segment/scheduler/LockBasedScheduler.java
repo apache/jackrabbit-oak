@@ -130,7 +130,7 @@ public class LockBasedScheduler implements Scheduler {
      * Sets the number of seconds to wait for the attempt to grab the lock to
      * create a checkpoint
      */
-    private int checkpointsLockWaitTime = Integer.getInteger("oak.checkpoints.lockWaitTime", 10);
+    private final int checkpointsLockWaitTime = Integer.getInteger("oak.checkpoints.lockWaitTime", 10);
 
     static final String ROOT = "root";
 
