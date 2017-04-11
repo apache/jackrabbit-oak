@@ -40,6 +40,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
+import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponseEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetHeadResponseEncoder;
@@ -126,8 +127,8 @@ class StandbyServer implements AutoCloseable {
             sslContext = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
         }
 
-        bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup();
+        bossGroup = new NioEventLoopGroup(1, new NamedThreadFactory("primary-run"));
+        workerGroup = new NioEventLoopGroup(0, new NamedThreadFactory("primary"));
 
         b = new ServerBootstrap();
         b.group(bossGroup, workerGroup);
