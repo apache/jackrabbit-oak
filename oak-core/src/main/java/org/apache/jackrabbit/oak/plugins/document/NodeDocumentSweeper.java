@@ -179,7 +179,7 @@ final class NodeDocumentSweeper {
                 } else if (cRev.equals(rev)) {
                     committed(property, rev, op);
                 } else {
-                    committedBranch(property, rev, cRev, op);
+                    committedBranch(doc, property, rev, cRev, op);
                 }
             }
         }
@@ -255,7 +255,8 @@ final class NodeDocumentSweeper {
         }
     }
 
-    private void committedBranch(String property,
+    private void committedBranch(NodeDocument doc,
+                                 String property,
                                  Revision rev,
                                  Revision cRev,
                                  UpdateOp op) {
@@ -264,6 +265,9 @@ final class NodeDocumentSweeper {
             String msg = newerThanHead ? " (newer than head)" : "";
             LOG.debug("Committed branch change on {}, {} @ {}/{}{}",
                     op.getId(), property, rev, cRev, msg);
+        }
+        if (!isV18BranchCommit(rev, doc)) {
+            NodeDocument.setBranchCommit(op, rev);
         }
     }
 

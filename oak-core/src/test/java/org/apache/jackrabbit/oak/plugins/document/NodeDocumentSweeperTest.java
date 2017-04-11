@@ -36,6 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setCommitR
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.REMOVE_MAP_ENTRY;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.SET_MAP_ENTRY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -158,6 +159,36 @@ public class NodeDocumentSweeperTest {
 
         assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
         assertEquals(0, ops.size());
+    }
+
+    @Test
+    public void updatePre18Branch() throws Exception {
+        String branchRev = mk.branch(null);
+        branchRev = mk.commit("/", "+\"foo\":{}", branchRev, null);
+        mk.merge(branchRev, null);
+        ns.runBackgroundUpdateOperations();
+
+        // simulate a pre 1.8 branch commit by removing the branch commit entry
+        NodeDocument doc = store.find(NODES, getIdFromPath("/foo"));
+        assertNotNull(doc);
+        assertEquals(1, doc.getLocalBranchCommits().size());
+        UpdateOp op = new UpdateOp(doc.getId(), false);
+        for (Revision r : doc.getLocalBranchCommits()) {
+            NodeDocument.removeBranchCommit(op, r);
+        }
+        assertNotNull(store.findAndUpdate(NODES, op));
+
+        List<UpdateOp> ops = Lists.newArrayList();
+        Revision nextSweepStart = sweep(ops);
+
+        assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
+        assertEquals(1, ops.size());
+        op = ops.get(0);
+        Map<Key, Operation> changes = op.getChanges();
+        assertEquals(1, changes.size());
+        Key k = changes.keySet().iterator().next();
+        assertEquals("_bc", k.getName());
+        assertEquals(SET_MAP_ENTRY, changes.get(k).type);
     }
 
     private Revision sweep(final List<UpdateOp> ops) throws Exception {
