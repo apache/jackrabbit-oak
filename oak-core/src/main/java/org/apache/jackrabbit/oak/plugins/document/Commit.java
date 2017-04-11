@@ -165,7 +165,11 @@ public class Commit {
             LOG.error(msg);
             throw new DocumentStoreException(msg);
         }
-        operations.put(path, n.asOperation(revision));
+        UpdateOp op = n.asOperation(revision);
+        if (getBranch() != null) {
+            NodeDocument.setBranchCommit(op, revision);
+        }
+        operations.put(path, op);
         addedNodes.add(path);
     }
 
