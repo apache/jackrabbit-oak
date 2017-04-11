@@ -116,6 +116,10 @@ class TarFiles implements Closeable {
 
         private boolean readOnly;
 
+        private Builder() {
+            // Prevent external instantiation.
+        }
+
         Builder withDirectory(File directory) {
             this.directory = checkNotNull(directory);
             return this;
