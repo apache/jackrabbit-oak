@@ -218,12 +218,29 @@ class TarFiles implements Closeable {
 
     private final IOMonitor ioMonitor;
 
+    /**
+     * Guards access to the {@link #readers} and {@link #writer} references.
+     */
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
+    /**
+     * Points to the first node of the linked list of TAR readers. Every node in
+     * the linked list is immutable. Thus, you need to to hold {@link #lock}
+     * while reading the value of the reference, but you can release it before
+     * iterating through the list.
+     */
     private Node readers;
 
+    /**
+     * The currently used TAR writer. Its access is protected by {@link #lock}.
+     */
     private TarWriter writer;
 
+    /**
+     * If {@code true}, a user requested this instance to close. This flag is
+     * used in long running, background operations - like {@link
+     * #cleanup(Supplier, Predicate)} - to be responsive to termination.
+     */
     private volatile boolean shutdown;
 
     private TarFiles(Builder builder) throws IOException {
@@ -233,6 +250,12 @@ class TarFiles implements Closeable {
         Map<Integer, Map<Character, File>> map = collectFiles(builder.directory);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
+
+        // TAR readers are stored in descending index order. The following loop
+        // iterates the indices in ascending order, but prepends - instead of
+        // appending - the corresponding TAR readers to the linked list. This
+        // results in a properly ordered linked list.
+
         for (Integer index : indices) {
             TarReader r;
             if (builder.readOnly) {
@@ -451,6 +474,16 @@ class TarFiles implements Closeable {
         }
     }
 
+    /**
+     * Creates a new TAR writer with a higher index number, reopens the previous
+     * TAR writer as a TAR reader, and adds the TAR reader to the linked list.
+     * <p>
+     * This method must be invoked while holding {@link #lock} in write mode,
+     * because it modifies the references {@link #writer} and {@link #readers}.
+     *
+     * @throws IOException If an error occurs while operating on the TAR readers
+     *                     or the TAR writer.
+     */
     private void newWriter() throws IOException {
         TarWriter newWriter = writer.createNextGeneration();
         if (newWriter == writer) {
@@ -521,22 +554,65 @@ class TarFiles implements Closeable {
 
             Node swept = null;
             Node n = readers;
+
+            // The following loops creates a modified version of `readers` and
+            // saves it into `swept`. Some TAR readers in `readers` have been
+            // swept by the previous code and must be replaced with a slimmer
+            // TAR reader with the same index but a higher generation.
+
             while (n != null) {
                 if (cleaned.containsKey(n.reader)) {
+
+                    // We distinguish three cases. First, the original TAR
+                    // reader is unmodified. This happens with no content or not
+                    // enough content could be swept from the original TAR
+                    // reader. Second, some content could be swept from the
+                    // original TAR reader and a new TAR reader with the same
+                    // index and a higher generation was created. Third, all the
+                    // content from the original TAR reader could be swept.
+
                     TarReader r = cleaned.get(n.reader);
+
                     if (r != null) {
+
+                        // We are either in the first or in the second case.
+                        // Save the TAR reader (either the original or the one
+                        // with a higher generation) in the resulting linked list.
+
                         swept = new Node(r, swept);
                         reclaimed += r.size();
                     }
+
                     if (r != n.reader) {
+
+                        // We are either in the second or third case. Save the
+                        // original TAR reader in a list of TAR readers that
+                        // will be closed at the end of this methods.
+
                         closeables = new Node(n.reader, closeables);
                     }
                 } else {
+
+                    // This reader was not involved in the mark-and-sweep. This
+                    // might happen in iterations of this loop successive to the
+                    // first, when we re-read `readers` and recompute `swept`
+                    // all over again.
+
                     swept = new Node(n.reader, swept);
                 }
                 n = n.next;
             }
+
+            // `swept` is in the reverse order because we prepended new nodes
+            // to it. We have to reverse it before we save it into `readers`.
+
             swept = reverse(swept);
+
+            // Following is a compare-and-set operation. We based the
+            // computation of `swept` of a specific value of `readers`. If
+            // `readers` is still the same as the one we started with, we just
+            // update `readers` and exit from the loop. Otherwise, we read the
+            // value of `readers` and recompute `swept` based on this value.
 
             lock.writeLock().lock();
             try {
