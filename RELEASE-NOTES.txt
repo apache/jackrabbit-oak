@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.24
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.25
 
 Introduction
 ------------
@@ -7,52 +7,46 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.24 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.25 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.24
+Changes in Oak 1.2.25
 ---------------------
 
 Technical task
 
-    [OAK-5098] - improve DocumentNodeStoreService robustness for RDB configs
-    [OAK-5554] - RDB*Store: update postgresql JDBC driver reference to 9.4.1212
-    [OAK-5555] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.73
-    [OAK-5751] - RDBDocumentStore: properly handle null values for system properties
+    [OAK-4793] - Check usage of DocumentStoreException in RDBDocumentStore
+    [OAK-5627] - RDBDocumentStore: improve long query logging
+    [OAK-5852] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.75
 
 
 Bug
 
-    [OAK-3689] - OakOSGiRepositoryFactory shutting down the repository twice
-    [OAK-5485] - Test failure: LdapDefaultLoginModuleTest address already in use
-    [OAK-5542] - Test failure: security.authentication.ldap.LdapProviderTest (Address already in use)
-    [OAK-5557] - incomplete diffManyChildren during commitHook evaluation in a persisted branch
-    [OAK-5601] - documentMk backgroundRead should handle missing journal entries
-    [OAK-5608] - Test failure: org.apache.jackrabbit.mk.util.CommitGateIT.test
-    [OAK-5626] - ChangeProcessor doesn't reset 'blocking' flag when items from queue gets removed and commit-rate-limiter is null
-    [OAK-5668] - Test failure: observation.ObservationQueueFullWarnTest.warnOnRepeatedQueueFull
-    [OAK-5738] - Potential NPE in LargeLdapProviderTest
-    [OAK-5773] - BlobCache does not implement Closeable
-    [OAK-5783] - Test failure: security.authentication.ldap.LdapProviderTest.testSplitDNIntermediatePath2
+    [OAK-4114] - Cached lucene index gets corrupted in case of unclean shutdown and journal rollback in SegmentNodeStore
+    [OAK-4548] - SegmentDataStoreBlobGCIT failures
+    [OAK-5876] - SplitDocumentCleanup should implement Closeable
+    [OAK-5930] - incorrect test assumption in CacheConsistencyTestBase wrt batching
 
 
 Task
 
-    [OAK-4132] - JaasConfigSpiTest fails intermittently with missing LoginModule exception
-    [OAK-5537] - Javadoc config fixes
+    [OAK-4774] - Check usage of DocumentStoreException in MongoDocumentStore
+    [OAK-5997] - Update Oak 1.2 and 1.4 to Jackrabbit 2.12.7
+
 
 
 Test
 
-    [OAK-5663] - Improve LogCutomizer to allow filtering on log messages too
+    [OAK-4802] - Basic cache consistency test on exception
+
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.23 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.24 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
