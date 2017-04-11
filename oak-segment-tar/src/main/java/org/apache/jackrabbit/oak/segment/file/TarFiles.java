@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.file;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.listFiles;
@@ -32,9 +33,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -44,6 +47,7 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.slf4j.Logger;
@@ -61,6 +65,7 @@ class TarFiles implements Closeable {
             this.reader = reader;
             this.next = next;
         }
+
     }
 
     static class CleanupResult {
@@ -171,6 +176,41 @@ class TarFiles implements Closeable {
         return r;
     }
 
+    private static Iterable<TarReader> iterable(final Node head) {
+        return new Iterable<TarReader>() {
+
+            @Override
+            public Iterator<TarReader> iterator() {
+                return new Iterator<TarReader>() {
+
+                    private Node next = head;
+
+                    @Override
+                    public boolean hasNext() {
+                        return next != null;
+                    }
+
+                    @Override
+                    public TarReader next() {
+                        if (!hasNext()) {
+                            throw new NoSuchElementException();
+                        }
+                        Node current = next;
+                        next = current.next;
+                        return current.reader;
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException("not implemented");
+                    }
+
+                };
+            }
+
+        };
+    }
+
     private static Map<Integer, Map<Character, File>> collectFiles(File directory) {
         Map<Integer, Map<Character, File>> dataFiles = newHashMap();
         for (File file : listFiles(directory, null, false)) {
@@ -196,13 +236,11 @@ class TarFiles implements Closeable {
         Set<UUID> references = newHashSet(referencedIds);
         do {
             // Add direct forward references
-            Node n = head;
-            while (n != null) {
-                n.reader.calculateForwardReferences(references);
+            for (TarReader reader : iterable(head)) {
+                reader.calculateForwardReferences(references);
                 if (references.isEmpty()) {
                     break; // Optimisation: bail out if no references left
                 }
-                n = n.next;
             }
             // ... as long as new forward references are found.
         } while (referencedIds.addAll(references));
@@ -279,30 +317,30 @@ class TarFiles implements Closeable {
     public void close() throws IOException {
         shutdown = true;
 
-        TarWriter writer;
-        Node n;
+        TarWriter w;
+        Node head;
 
         lock.writeLock().lock();
         try {
-            writer = this.writer;
-            n = this.readers;
+            w = writer;
+            head = readers;
         } finally {
             lock.writeLock().unlock();
         }
 
         IOException exception = null;
 
-        if (writer != null) {
+        if (w != null) {
             try {
-                writer.close();
+                w.close();
             } catch (IOException e) {
                 exception = e;
             }
         }
 
-        while (n != null) {
+        for (TarReader reader : iterable(head)) {
             try {
-                n.reader.close();
+                reader.close();
             } catch (IOException e) {
                 if (exception == null) {
                     exception = e;
@@ -310,7 +348,6 @@ class TarFiles implements Closeable {
                     exception.addSuppressed(e);
                 }
             }
-            n = n.next;
         }
 
         if (exception != null) {
@@ -321,64 +358,52 @@ class TarFiles implements Closeable {
     @Override
     public String toString() {
         String w = null;
-        Node n;
+        Node head;
 
         lock.readLock().lock();
         try {
             if (writer != null) {
                 w = writer.toString();
             }
-            n = readers;
+            head = readers;
         } finally {
             lock.readLock().unlock();
         }
 
-        List<TarReader> rs = new ArrayList<>();
-        while (n != null) {
-            rs.add(n.reader);
-            n = n.next;
-        }
-        return String.format("TarFiles{readers=%s,writer=%s", rs, w);
+        return String.format("TarFiles{readers=%s,writer=%s}", newArrayList(iterable(head)), w);
     }
 
     long size() {
         long size = 0;
-        Node readers;
+        Node head;
 
         lock.readLock().lock();
         try {
             if (writer != null) {
                 size = writer.fileLength();
             }
-            readers = this.readers;
+            head = readers;
         } finally {
             lock.readLock().unlock();
         }
 
-        Node n = readers;
-        while (n != null) {
-            size += n.reader.size();
-            n = n.next;
+        for (TarReader reader : iterable(head)) {
+            size += reader.size();
         }
         return size;
     }
 
     int readerCount() {
-        Node n;
+        Node head;
 
         lock.readLock().lock();
         try {
-            n = readers;
+            head = readers;
         } finally {
             lock.readLock().unlock();
         }
 
-        int count = 0;
-        while (n != null) {
-            count++;
-            n = n.next;
-        }
-        return count;
+        return Iterables.size(iterable(head));
     }
 
     void flush() throws IOException {
@@ -391,7 +416,7 @@ class TarFiles implements Closeable {
     }
 
     boolean containsSegment(long msb, long lsb) {
-        Node n;
+        Node head;
 
         lock.readLock().lock();
         try {
@@ -400,23 +425,22 @@ class TarFiles implements Closeable {
                     return true;
                 }
             }
-            n = this.readers;
+            head = readers;
         } finally {
             lock.readLock().unlock();
         }
 
-        while (n != null) {
-            if (n.reader.containsEntry(msb, lsb)) {
+        for (TarReader reader : iterable(head)) {
+            if (reader.containsEntry(msb, lsb)) {
                 return true;
             }
-            n = n.next;
         }
         return false;
     }
 
     ByteBuffer readSegment(long msb, long lsb) {
         try {
-            Node n;
+            Node head;
 
             lock.readLock().lock();
             try {
@@ -426,17 +450,16 @@ class TarFiles implements Closeable {
                         return b;
                     }
                 }
-                n = readers;
+                head = readers;
             } finally {
                 lock.readLock().unlock();
             }
 
-            while (n != null) {
-                ByteBuffer b = n.reader.readEntry(msb, lsb);
+            for (TarReader reader : iterable(head)) {
+                ByteBuffer b = reader.readEntry(msb, lsb);
                 if (b != null) {
                     return b;
                 }
-                n = n.next;
             }
         } catch (IOException e) {
             log.warn("Unable to read from TAR file", e);
@@ -499,18 +522,17 @@ class TarFiles implements Closeable {
         result.reclaimedSegmentIds = new HashSet<>();
 
         Set<UUID> references;
-        Node readers;
+        Node head;
 
         lock.writeLock().lock();
         lock.readLock().lock();
-        ;
         try {
             try {
                 newWriter();
             } finally {
                 lock.writeLock().unlock();
             }
-            readers = this.readers;
+            head = readers;
             references = referencesSupplier.get();
         } finally {
             lock.readLock().unlock();
@@ -518,13 +540,9 @@ class TarFiles implements Closeable {
 
         Map<TarReader, TarReader> cleaned = new LinkedHashMap<>();
 
-        {
-            Node n = readers;
-            while (n != null) {
-                cleaned.put(n.reader, n.reader);
-                result.reclaimedSize += n.reader.size();
-                n = n.next;
-            }
+        for (TarReader reader : iterable(head)) {
+            cleaned.put(reader, reader);
+            result.reclaimedSize += reader.size();
         }
 
         Set<UUID> reclaim = newHashSet();
@@ -553,15 +571,14 @@ class TarFiles implements Closeable {
             reclaimed = 0;
 
             Node swept = null;
-            Node n = readers;
 
             // The following loops creates a modified version of `readers` and
             // saves it into `swept`. Some TAR readers in `readers` have been
             // swept by the previous code and must be replaced with a slimmer
             // TAR reader with the same index but a higher generation.
 
-            while (n != null) {
-                if (cleaned.containsKey(n.reader)) {
+            for (TarReader reader : iterable(head)) {
+                if (cleaned.containsKey(reader)) {
 
                     // We distinguish three cases. First, the original TAR
                     // reader is unmodified. This happens with no content or not
@@ -571,25 +588,24 @@ class TarFiles implements Closeable {
                     // index and a higher generation was created. Third, all the
                     // content from the original TAR reader could be swept.
 
-                    TarReader r = cleaned.get(n.reader);
-
-                    if (r != null) {
+                    TarReader cleandedReader = cleaned.get(reader);
+                    if (cleandedReader != null) {
 
                         // We are either in the first or in the second case.
                         // Save the TAR reader (either the original or the one
                         // with a higher generation) in the resulting linked list.
 
-                        swept = new Node(r, swept);
-                        reclaimed += r.size();
+                        swept = new Node(cleandedReader, swept);
+                        reclaimed += cleandedReader.size();
                     }
 
-                    if (r != n.reader) {
+                    if (cleandedReader != reader) {
 
                         // We are either in the second or third case. Save the
                         // original TAR reader in a list of TAR readers that
                         // will be closed at the end of this methods.
 
-                        closeables = new Node(n.reader, closeables);
+                        closeables = new Node(reader, closeables);
                     }
                 } else {
 
@@ -598,9 +614,8 @@ class TarFiles implements Closeable {
                     // first, when we re-read `readers` and recompute `swept`
                     // all over again.
 
-                    swept = new Node(n.reader, swept);
+                    swept = new Node(reader, swept);
                 }
-                n = n.next;
             }
 
             // `swept` is in the reverse order because we prepended new nodes
@@ -616,11 +631,11 @@ class TarFiles implements Closeable {
 
             lock.writeLock().lock();
             try {
-                if (this.readers == readers) {
-                    this.readers = swept;
+                if (readers == head) {
+                    readers = swept;
                     break;
                 } else {
-                    readers = this.readers;
+                    head = readers;
                 }
             } finally {
                 lock.writeLock().unlock();
@@ -629,65 +644,59 @@ class TarFiles implements Closeable {
 
         result.reclaimedSize -= reclaimed;
 
-        {
-            Node n = closeables;
-            while (n != null) {
-                try {
-                    n.reader.close();
-                } catch (IOException e) {
-                    log.warn("Unable to close swept TAR reader", e);
-                }
-                result.removableFiles.add(n.reader.getFile());
-                n = n.next;
+        for (TarReader closeable : iterable(closeables)) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                log.warn("Unable to close swept TAR reader", e);
             }
+            result.removableFiles.add(closeable.getFile());
         }
 
         return result;
     }
 
     void collectBlobReferences(ReferenceCollector collector, int minGeneration) throws IOException {
-        Node n;
+        Node head;
 
         lock.writeLock().lock();
         try {
             if (writer != null) {
                 newWriter();
             }
-            n = readers;
+            head = readers;
         } finally {
             lock.writeLock().unlock();
         }
 
-        while (n != null) {
-            n.reader.collectBlobReferences(collector, minGeneration);
-            n = n.next;
+        for (TarReader reader : iterable(head)) {
+            reader.collectBlobReferences(collector, minGeneration);
         }
     }
 
     Iterable<UUID> getSegmentIds() {
-        Node n;
+        Node head;
 
         lock.readLock().lock();
         try {
-            n = readers;
+            head = readers;
         } finally {
             lock.readLock().unlock();
         }
 
         List<UUID> ids = new ArrayList<>();
-        while (n != null) {
-            ids.addAll(n.reader.getUUIDs());
-            n = n.next;
+        for (TarReader reader : iterable(head)) {
+            ids.addAll(reader.getUUIDs());
         }
         return ids;
     }
 
     Map<UUID, List<UUID>> getGraph(String fileName) throws IOException {
-        Node n;
+        Node head;
 
         lock.readLock().lock();
         try {
-            n = readers;
+            head = readers;
         } finally {
             lock.readLock().unlock();
         }
@@ -695,14 +704,12 @@ class TarFiles implements Closeable {
         Set<UUID> index = null;
         Map<UUID, List<UUID>> graph = null;
 
-        while (n != null) {
-            TarReader r = n.reader;
-            if (fileName.equals(r.getFile().getName())) {
-                index = r.getUUIDs();
-                graph = r.getGraph(false);
+        for (TarReader reader : iterable(head)) {
+            if (fileName.equals(reader.getFile().getName())) {
+                index = reader.getUUIDs();
+                graph = reader.getGraph(false);
                 break;
             }
-            n = n.next;
         }
 
         Map<UUID, List<UUID>> result = new HashMap<>();
@@ -718,37 +725,35 @@ class TarFiles implements Closeable {
     }
 
     Map<String, Set<UUID>> getIndices() {
-        Node n;
+        Node head;
 
         lock.readLock().lock();
         try {
-            n = readers;
+            head = readers;
         } finally {
             lock.readLock().unlock();
         }
 
         Map<String, Set<UUID>> index = new HashMap<>();
-        while (n != null) {
-            index.put(n.reader.getFile().getAbsolutePath(), n.reader.getUUIDs());
-            n = n.next;
+        for (TarReader reader : iterable(head)) {
+            index.put(reader.getFile().getAbsolutePath(), reader.getUUIDs());
         }
         return index;
     }
 
     void traverseSegmentGraph(Set<UUID> roots, SegmentGraphVisitor visitor) throws IOException {
-        Node n;
+        Node head;
 
         lock.readLock().lock();
         try {
-            n = readers;
+            head = readers;
         } finally {
             lock.readLock().unlock();
         }
 
-        includeForwardReferences(n, roots);
-        while (n != null) {
-            n.reader.traverseSegmentGraph(roots, visitor);
-            n = n.next;
+        includeForwardReferences(head, roots);
+        for (TarReader reader : iterable(head)) {
+            reader.traverseSegmentGraph(roots, visitor);
         }
     }
 
