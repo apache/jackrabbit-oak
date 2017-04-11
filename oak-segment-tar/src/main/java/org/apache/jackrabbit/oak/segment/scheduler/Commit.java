@@ -91,10 +91,12 @@ public class Commit {
     }
 
     /**
-     * Checks if the commit contains any changes.
+     * Checks if the commit contains any changes. This is a shallow check, with
+     * the same semantics as
+     * {@link SegmentNodeState#fastEquals(NodeState, NodeState)}, which cannot
+     * guarantee against false negatives.
      * 
-     * @return {@code true}, if the commit has changes, {@code false},
-     *         otherwise.
+     * @return {@code true}, if the commit has changes.
      */
     public boolean hasChanges() {
         return !SegmentNodeState.fastEquals(changes.getBaseState(), changes.getNodeState());
