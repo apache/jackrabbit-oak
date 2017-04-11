@@ -23,9 +23,9 @@ import groovy.transform.TypeCheckingMode
 import jline.Terminal
 import jline.TerminalFactory
 import jline.console.history.FileHistory
+import org.apache.jackrabbit.oak.commons.run.Utils
 import org.apache.jackrabbit.oak.console.commands.*
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
-import org.apache.jackrabbit.oak.run.Main
 import org.codehaus.groovy.runtime.StackTraceUtils
 import org.codehaus.groovy.tools.shell.*
 import org.codehaus.groovy.tools.shell.Command as ShellCommand
@@ -254,7 +254,7 @@ class GroovyConsole {
                             width = 80
                         }
 
-                        io.out.println("@|green Jackrabbit Oak Shell|@ (${Main.getProductInfo()}, " +
+                        io.out.println("@|green Jackrabbit Oak Shell|@ (${getProductInfo()}, " +
                                 "JVM: ${System.properties['java.version']})")
                         io.out.println("Type '@|bold :help|@' or '@|bold :h|@' for help.")
                         io.out.println('-' * (width - 1))
@@ -283,5 +283,10 @@ class GroovyConsole {
             return code
         }
 
+    }
+
+    private static String getProductInfo(){
+        return Utils.getProductInfo(
+                GroovyConsole.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
     }
 }
