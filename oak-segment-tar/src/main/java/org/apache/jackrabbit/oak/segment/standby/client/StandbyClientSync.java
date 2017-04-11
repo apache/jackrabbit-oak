@@ -25,6 +25,7 @@ import java.lang.management.ManagementFactory;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.management.MBeanServer;
@@ -33,6 +34,7 @@ import javax.management.StandardMBean;
 
 import com.google.common.base.Supplier;
 import io.netty.channel.nio.NioEventLoopGroup;
+import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ClientStandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
@@ -45,6 +47,8 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
     public static final String CLIENT_ID_PROPERTY_NAME = "standbyID";
 
     private static final Logger log = LoggerFactory.getLogger(StandbyClientSync.class);
+
+    private static final AtomicInteger standbyRunCounter = new AtomicInteger();
 
     private final String host;
 
@@ -92,7 +96,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.fileStore = store;
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
         this.observer = new CommunicationObserver((s == null || s.isEmpty()) ? UUID.randomUUID().toString() : s);
-        group = new NioEventLoopGroup();
+        group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
@@ -123,46 +127,54 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     @Override
     public void run() {
-        if (!isRunning()) {
-            // manually stopped
-            return;
-        }
-
-        state = STATUS_STARTING;
-
-        synchronized (sync) {
-            if (active) {
-                return;
-            }
-            state = STATUS_RUNNING;
-            active = true;
-        }
+        String name = Thread.currentThread().getName();
 
         try {
-            long startTimestamp = System.currentTimeMillis();
-            try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs)) {
-                client.connect(host, port);
+            Thread.currentThread().setName("standby-run-" + standbyRunCounter.incrementAndGet());
 
-                int genBefore = headGeneration(fileStore);
-                new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
-                int genAfter = headGeneration(fileStore);
+            if (!isRunning()) {
+                // manually stopped
+                return;
+            }
 
-                if (autoClean && (genAfter > genBefore)) {
-                    log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
-                    cleanupAndRemove();
+            state = STATUS_STARTING;
+
+            synchronized (sync) {
+                if (active) {
+                    return;
+                }
+                state = STATUS_RUNNING;
+                active = true;
+            }
+
+            try {
+                long startTimestamp = System.currentTimeMillis();
+                try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs)) {
+                    client.connect(host, port);
+
+                    int genBefore = headGeneration(fileStore);
+                    new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
+                    int genAfter = headGeneration(fileStore);
+
+                    if (autoClean && (genAfter > genBefore)) {
+                        log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
+                        cleanupAndRemove();
+                    }
+                }
+                this.failedRequests = 0;
+                this.syncStartTimestamp = startTimestamp;
+                this.syncEndTimestamp = System.currentTimeMillis();
+                this.lastSuccessfulRequest = syncEndTimestamp / 1000;
+            } catch (Exception e) {
+                this.failedRequests++;
+                log.error("Failed synchronizing state.", e);
+            } finally {
+                synchronized (this.sync) {
+                    this.active = false;
                 }
             }
-            this.failedRequests = 0;
-            this.syncStartTimestamp = startTimestamp;
-            this.syncEndTimestamp = System.currentTimeMillis();
-            this.lastSuccessfulRequest = syncEndTimestamp / 1000;
-        } catch (Exception e) {
-            this.failedRequests++;
-            log.error("Failed synchronizing state.", e);
         } finally {
-            synchronized (this.sync) {
-                this.active = false;
-            }
+            Thread.currentThread().setName(name);
         }
     }
 
