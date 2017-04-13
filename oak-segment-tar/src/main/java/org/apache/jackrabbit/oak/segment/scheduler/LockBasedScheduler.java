@@ -356,8 +356,17 @@ public class LockBasedScheduler implements Scheduler {
         String name = UUID.randomUUID().toString();
         try {
             CPCreator cpc = new CPCreator(name, lifetime, properties);
-            if (locked(cpc, checkpointsLockWaitTime, TimeUnit.SECONDS)) {
-                return name;
+            if (commitSemaphore.tryAcquire(checkpointsLockWaitTime, TimeUnit.SECONDS)) {
+                try {
+                    if (cpc.call()) {
+                        return name;
+                    }
+                } finally {
+                    // Explicitly give up reference to the previous root state
+                    // otherwise they would block cleanup. See OAK-3347
+                    refreshHead(true);
+                    commitSemaphore.release();
+                }
             }
             log.warn("Failed to create checkpoint {} in {} seconds.", name, checkpointsLockWaitTime);
         } catch (InterruptedException e) {
@@ -367,34 +376,6 @@ public class LockBasedScheduler implements Scheduler {
             log.error("Failed to create checkpoint {}.", name, e);
         }
         return name;
-    }
-
-    /**
-     * Execute the passed callable with trying to acquire this store's commit
-     * lock.
-     * 
-     * @param timeout
-     *            the maximum time to wait for the store's commit lock
-     * @param unit
-     *            the time unit of the {@code timeout} argument
-     * @param c
-     *            callable to execute
-     * @return {@code false} if the store's commit lock cannot be acquired, the
-     *         result of {@code c.call()} otherwise.
-     * @throws Exception
-     */
-    private boolean locked(Callable<Boolean> c, long timeout, TimeUnit unit) throws Exception {
-        if (commitSemaphore.tryAcquire(timeout, unit)) {
-            try {
-                return c.call();
-            } finally {
-                // Explicitly give up reference to the previous root state
-                // otherwise they would block cleanup. See OAK-3347
-                refreshHead(true);
-                commitSemaphore.release();
-            }
-        }
-        return false;
     }
 
     @Override
