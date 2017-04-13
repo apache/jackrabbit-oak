@@ -36,7 +36,10 @@ public class ApproximateCounter {
     public static final int COUNT_MAX = 10000000;
 
     private static final Random RANDOM = new Random();
-    
+
+    private ApproximateCounter() {
+    }
+
     /**
      * Calculate the approximate offset from a given offset. The offset is the
      * number of added or removed entries. The result is 0 in most of the cases,
