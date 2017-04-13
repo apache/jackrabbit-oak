@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
@@ -62,9 +62,9 @@ public class MergeTest {
         assertTrue(store.getRoot().hasProperty("foo"));
         assertTrue(store.getRoot().hasProperty("bar"));
     }
-
+    
     @Test
-    public void testOptimisticMerge() throws CommitFailedException, IOException {
+    public void testSequentialMergeWithRebase() throws CommitFailedException, IOException {
         NodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
 
         NodeBuilder a = store.getRoot().builder();
@@ -141,5 +141,4 @@ public class MergeTest {
         running.set(false);
         background.join();
     }
-
 }
