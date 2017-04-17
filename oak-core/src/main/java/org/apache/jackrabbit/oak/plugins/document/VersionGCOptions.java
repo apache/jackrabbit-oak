@@ -114,7 +114,7 @@ public class VersionGCOptions {
      * to the database by a garbage collector. 0, e.g. no delay, is the default. This is recommended
      * when garbage collection is done during a maintenance time when other system load is low.
      * <p>
-     * For factory > 0, the actual delay is the duration of the last batch modification times
+     * For factory &gt; 0, the actual delay is the duration of the last batch modification times
      * the factor. Example: 0.25 would result in a 25% delay, e.g. a batch modification running
      * 10 seconds would be followed by a sleep of 2.5 seconds.
      *
