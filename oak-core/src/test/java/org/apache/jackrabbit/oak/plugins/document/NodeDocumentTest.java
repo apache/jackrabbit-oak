@@ -42,9 +42,11 @@ import org.junit.Test;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.Matchers.lessThan;
@@ -889,15 +891,60 @@ public class NodeDocumentTest {
         assertEquals(new RevisionVector(r1, r2), sweepRev);
     }
 
+    @Test
+    public void noPreviousDocAccessAfterSweep() throws Exception {
+        final Set<String> findCalls = newHashSet();
+        DocumentStore ds = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                findCalls.add(key);
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore ns = createTestStore(ds, 0, 0, 0);
+        // create test nodes with the root document as commit root
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        builder.child("bar");
+        merge(ns, builder);
+        // now add many changes to the root document, which will
+        // move the commit information to a previous document
+        createTestData(singletonList(ns), new Random(), 200);
+        ns.runBackgroundUpdateOperations();
+
+        NodeDocument doc = ds.find(NODES, getIdFromPath("/foo"));
+        assertNotNull(doc);
+        findCalls.clear();
+        doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
+        // with an old sweep revision, there will be find calls
+        // to look up the commit root document
+        assertTrue(findCalls.size() > 0);
+
+        // run sweeper
+        ns.runBackgroundSweepOperation();
+
+        // now number of find calls must be zero
+        doc = ds.find(NODES, getIdFromPath("/foo"));
+        assertNotNull(doc);
+        findCalls.clear();
+        doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
+        assertEquals(0, findCalls.size());
+
+        ns.dispose();
+    }
+
     private DocumentNodeStore createTestStore(int numChanges) throws Exception {
         return createTestStore(new MemoryDocumentStore(), 0, numChanges);
     }
 
     private DocumentNodeStore createTestStore(DocumentStore store,
                                               int clusterId,
-                                              int numChanges) throws Exception {
+                                              int numChanges,
+                                              int commitValueCacheSize)
+            throws Exception {
         DocumentNodeStore ns = new DocumentMK.Builder()
-                .setDocumentStore(store)
+                .setDocumentStore(store).setCommitValueCacheSize(commitValueCacheSize)
                 .setAsyncDelay(0).setClusterId(clusterId).getNodeStore();
         for (int i = 0; i < numChanges; i++) {
             NodeBuilder builder = ns.getRoot().builder();
@@ -915,6 +962,12 @@ public class NodeDocumentTest {
         return ns;
     }
 
+    private DocumentNodeStore createTestStore(DocumentStore store,
+                                              int clusterId,
+                                              int numChanges) throws Exception {
+        return createTestStore(store, clusterId, numChanges, 10000);
+    }
+
     private List<RevisionVector> createTestData(List<DocumentNodeStore> nodeStores,
                                                 Random random,
                                                 int numChanges)
@@ -930,12 +983,14 @@ public class NodeDocumentTest {
         List<RevisionVector> headRevisions = Lists.newArrayList();
         for (int i = startValue; i < numChanges + startValue; i++) {
             DocumentNodeStore ns = nodeStores.get(random.nextInt(nodeStores.size()));
-            ns.runBackgroundOperations();
+            ns.runBackgroundUpdateOperations();
+            ns.runBackgroundReadOperations();
             NodeBuilder builder = ns.getRoot().builder();
             builder.setProperty("p", i);
             merge(ns, builder);
             headRevisions.add(ns.getHeadRevision());
-            ns.runBackgroundOperations();
+            ns.runBackgroundUpdateOperations();
+            ns.runBackgroundReadOperations();
             if (random.nextDouble() < 0.2) {
                 DocumentStore store = ns.getDocumentStore();
                 RevisionVector head = ns.getHeadRevision();

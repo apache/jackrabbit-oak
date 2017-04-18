@@ -877,6 +877,14 @@ public final class NodeDocument extends Document {
         if (validRevisions.containsKey(rev)) {
             return true;
         }
+        if (Utils.isCommitted(commitValue) && !readRevision.isBranch()) {
+            // no need to load commit root document, we can simply
+            // tell by looking at the commit revision whether the
+            // revision is valid/visible
+            Revision commitRev = Utils.resolveCommitRevision(rev, commitValue);
+            return !readRevision.isRevisionNewer(commitRev);
+        }
+
         NodeDocument doc = getCommitRoot(rev);
         if (doc == null) {
             return false;
