@@ -86,7 +86,6 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -390,10 +389,9 @@ public final class DocumentNodeStore
     private final DiffCache diffCache;
 
     /**
-     * A fixed size cache for commit values.
+     * The commit value resolver for this node store.
      */
-    private final Cache<Revision, String> commitValueCache
-            = new CacheLIRS<Revision, String>(10000);
+    private final CommitValueResolver commitValueResolver;
 
     /**
      * The blob store.
@@ -515,6 +513,13 @@ public final class DocumentNodeStore
 
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.updateLimit = builder.getUpdateLimit();
+        this.commitValueResolver = new CommitValueResolver(builder.getCommitValueCacheSize(),
+                new Supplier<RevisionVector>() {
+            @Override
+            public RevisionVector get() {
+                return getSweepRevisions();
+            }
+        });
         this.blobStore = builder.getBlobStore();
         this.statisticsProvider = builder.getStatisticsProvider();
         this.nodeStoreStatsCollector = builder.getNodeStoreStatsCollector();
@@ -1926,15 +1931,7 @@ public final class DocumentNodeStore
     @Override
     public String getCommitValue(@Nonnull Revision changeRevision,
                                  @Nonnull NodeDocument doc) {
-        String value = commitValueCache.getIfPresent(changeRevision);
-        if (value != null) {
-            return value;
-        }
-        value = doc.resolveCommitValue(changeRevision);
-        if (Utils.isCommitted(value)) {
-            commitValueCache.put(changeRevision, value);
-        }
-        return value;
+        return commitValueResolver.resolve(changeRevision, doc);
     }
 
     //----------------------< background operations >---------------------------

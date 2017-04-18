@@ -592,6 +592,7 @@ public class DocumentMK {
         private JournalPropertyHandlerFactory journalPropertyHandlerFactory =
                 new JournalPropertyHandlerFactory();
         private int updateLimit = UPDATE_LIMIT;
+        private int commitValueCacheSize = 10000;
 
         public Builder() {
         }
@@ -1110,6 +1111,15 @@ public class DocumentMK {
 
         public int getUpdateLimit() {
             return updateLimit;
+        }
+
+        public Builder setCommitValueCacheSize(int cacheSize) {
+            this.commitValueCacheSize = cacheSize;
+            return this;
+        }
+
+        public int getCommitValueCacheSize() {
+            return commitValueCacheSize;
         }
 
         VersionGCSupport createVersionGCSupport() {
