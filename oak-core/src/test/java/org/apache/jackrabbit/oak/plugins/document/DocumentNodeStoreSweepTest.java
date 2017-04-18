@@ -28,7 +28,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
@@ -154,7 +153,13 @@ public class DocumentNodeStoreSweepTest {
         store.fail().never();
 
         // store must now contain uncommitted changes
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/node-0"));
+        NodeDocument doc = null;
+        for (NodeDocument d : Utils.getAllDocuments(store)) {
+            if (d.getPath().startsWith("/node-")) {
+                doc = d;
+                break;
+            }
+        }
         assertNotNull(doc);
         assertNull(doc.getNodeAtRevision(ns, ns.getHeadRevision(), null));
         SortedMap<Revision, String> deleted = doc.getLocalDeleted();
