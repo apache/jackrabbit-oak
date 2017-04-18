@@ -1540,6 +1540,48 @@ public class RDBDocumentStore implements DocumentStore {
         };
     }
 
+    protected <T extends Document> long queryCount(final Collection<T> collection, String fromKey, String toKey,
+            final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
+
+        return internalGetAggregate(collection, "COUNT", "*", fromKey, toKey, excludeKeyPatterns, conditions);
+    }
+
+    protected <T extends Document> long getMinValue(final Collection<T> collection, String field, String fromKey, String toKey,
+            final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
+
+        return internalGetAggregate(collection, "MIN", field, fromKey, toKey, excludeKeyPatterns, conditions);
+    }
+
+    private <T extends Document> long internalGetAggregate(final Collection<T> collection, final String aggregrate, String field,
+            String fromKey, String toKey, final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
+
+        final RDBTableMetaData tmd = getTable(collection);
+        for (QueryCondition cond : conditions) {
+            if (!INDEXEDPROPERTIES.contains(cond.getPropertyName())) {
+                String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond.getOperator()
+                        + "'" + cond.getValue() + "'; supported properties are " + INDEXEDPROPERTIES;
+                LOG.info(message);
+                throw new DocumentStoreException(message);
+            }
+        }
+
+        final String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
+        final String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
+
+        Connection connection = null;
+        try {
+            connection = ch.getROConnection();
+            long result = db.getLong(connection, tmd, aggregrate, field, from, to, excludeKeyPatterns, conditions);
+            connection.commit();
+            return result;
+        } catch (SQLException ex) {
+            LOG.error("SQL exception on query", ex);
+            throw new DocumentStoreException(ex);
+        } finally {
+            this.ch.closeConnection(connection);
+        }
+    }
+
     @Nonnull
     protected <T extends Document> RDBTableMetaData getTable(Collection<T> collection) {
         RDBTableMetaData tmd = this.tableMeta.get(collection);
