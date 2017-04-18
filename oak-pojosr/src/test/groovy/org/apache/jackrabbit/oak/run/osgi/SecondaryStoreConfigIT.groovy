@@ -76,6 +76,8 @@ class SecondaryStoreConfigIT extends AbstractRepositoryFactoryTest{
     }
 
     private mongoCheck() {
+        // FIXME: OAK-6094
+        assumeTrue(false)
         //Somehow in Groovy assumeNotNull cause issue as Groovy probably
         //does away with null array causing a NPE
         assumeTrue(MongoUtils.isAvailable())
