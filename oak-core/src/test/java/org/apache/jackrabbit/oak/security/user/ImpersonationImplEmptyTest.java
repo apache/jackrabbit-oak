@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Enumeration;
 import java.util.UUID;
 
-import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import com.google.common.collect.ImmutableSet;

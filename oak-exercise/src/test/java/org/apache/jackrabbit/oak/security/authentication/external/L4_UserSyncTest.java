@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.external;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <pre>

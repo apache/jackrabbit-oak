@@ -17,10 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.util.Iterator;
-import javax.jcr.LoginException;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
