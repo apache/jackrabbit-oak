@@ -59,6 +59,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -143,6 +144,11 @@ public final class DocumentNodeStore
 
     private static final PerfLogger PERFLOG = new PerfLogger(
             LoggerFactory.getLogger(DocumentNodeStore.class.getName() + ".perf"));
+
+    /**
+     * Number of milliseconds in one minute.
+     */
+    private static final long ONE_MINUTE_MS = TimeUnit.MINUTES.toMillis(1);
 
     public static final FormatVersion VERSION = FormatVersion.V1_8;
 
@@ -1972,6 +1978,7 @@ public final class DocumentNodeStore
             // split documents (does not create new revisions)
             backgroundSplit();
             long splitTime = clock.getTime() - time;
+            maybeRefreshHeadRevision();
             // write back pending updates to _lastRev
             stats = backgroundWrite();
             stats.split = splitTime;
@@ -2293,6 +2300,31 @@ public final class DocumentNodeStore
                 pushJournalEntry(mostRecent);
             }
         }, backgroundOperationLock.writeLock());
+    }
+
+    private void maybeRefreshHeadRevision() {
+        if (isDisposed.get()) {
+            return;
+        }
+        // check if local head revision is outdated and needs an update
+        // this ensures the head and sweep revisions are recent and the
+        // revision garbage collector can remove old documents
+        Revision head = getHeadRevision().getRevision(clusterId);
+        if (head != null && head.getTimestamp() + ONE_MINUTE_MS < clock.getTime()) {
+            // head was not updated for more than a minute
+            // create an empty commit that updates the head
+            boolean success = false;
+            Commit c = newTrunkCommit(getHeadRevision());
+            try {
+                done(c, false, CommitInfo.EMPTY);
+                success = true;
+            } finally {
+                if (!success) {
+                    canceled(c);
+                }
+            }
+        }
+
     }
 
     private int backgroundSweep() throws DocumentStoreException {

@@ -104,8 +104,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -2996,6 +2994,33 @@ public class DocumentNodeStoreTest {
         } catch (DocumentStoreException e) {
             // expected
         }
+    }
+
+    @Test
+    public void updateHeadWhenIdle() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .clock(clock).setAsyncDelay(0).getNodeStore();
+        doSomeChange(ns);
+        ns.runBackgroundOperations();
+        Revision head1 = ns.getHeadRevision().getRevision(ns.getClusterId());
+        assertNotNull(head1);
+
+        clock.waitUntil(clock.getTimeIncreasing() + TimeUnit.SECONDS.toMillis(30));
+        // background operations must not update head yet
+        ns.runBackgroundOperations();
+        Revision head2 = ns.getHeadRevision().getRevision(ns.getClusterId());
+        assertNotNull(head2);
+        assertEquals(head1, head2);
+
+        clock.waitUntil(clock.getTimeIncreasing() + TimeUnit.SECONDS.toMillis(30));
+        // next run of background operations must update head
+        ns.runBackgroundOperations();
+        Revision head3 = ns.getHeadRevision().getRevision(ns.getClusterId());
+        assertNotNull(head3);
+        assertTrue(head1.compareRevisionTime(head3) < 0);
     }
 
     private static class WriteCountingStore extends MemoryDocumentStore {
