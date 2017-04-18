@@ -519,12 +519,13 @@ public class RDBDocumentStoreJDBC {
         return result;
     }
 
-    public long getLong(Connection connection, RDBTableMetaData tmd, String selector, String minId, String maxId,
+    public long getLong(Connection connection, RDBTableMetaData tmd, String aggregate, String field, String minId, String maxId,
             List<String> excludeKeyPatterns, List<QueryCondition> conditions) throws SQLException {
         PreparedStatement stmt = null;
         ResultSet rs = null;
         long start = System.currentTimeMillis();
         long result = -1;
+        String selector = aggregate + "(" + ("*".equals(field) ? "*" : INDEXED_PROP_MAPPING.get(field)) + ")";
         try {
             stmt = prepareQuery(connection, tmd, selector, minId, maxId, excludeKeyPatterns, conditions, Integer.MAX_VALUE, null);
             rs = stmt.executeQuery();
@@ -538,8 +539,8 @@ public class RDBDocumentStoreJDBC {
                 long elapsed = System.currentTimeMillis() - start;
                 String params = String.format("params minid '%s' maxid '%s' excludeKeyPatterns %s conditions %s.", minId, maxId,
                         excludeKeyPatterns, conditions);
-                LOG.debug("Aggregate query " + selector + " on " + tmd.getName() + " with " + params + " -> " + result + ", took " + elapsed
-                        + "ms");
+                LOG.debug("Aggregate query " + selector + " on " + tmd.getName() + " with " + params + " -> " + result + ", took "
+                        + elapsed + "ms");
             }
         }
     }

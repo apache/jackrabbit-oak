@@ -26,11 +26,16 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 
@@ -39,6 +44,8 @@ import com.google.common.base.Predicate;
  * interface to fetch required {@link NodeDocument}s.
  */
 public class RDBVersionGCSupport extends VersionGCSupport {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RDBVersionGCSupport.class);
 
     private RDBDocumentStore store;
 
@@ -70,5 +77,33 @@ public class RDBVersionGCSupport extends VersionGCSupport {
                 return gcTypes.contains(doc.getSplitDocType()) && doc.hasAllRevisionLessThan(oldestRevTimeStamp);
             }
         }), (Closeable) it);
+    }
+
+    @Override
+    public long getOldestDeletedOnceTimestamp(Clock clock, long precisionMs) {
+        long modifiedMs = Long.MIN_VALUE;
+
+        LOG.debug("getOldestDeletedOnceTimestamp() <- start");
+        try {
+            modifiedMs = store.getMinValue(Collection.NODES, NodeDocument.MODIFIED_IN_SECS, null, null,
+                    RDBDocumentStore.EMPTY_KEY_PATTERN,
+                    Collections.singletonList(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1)));
+        } catch (DocumentStoreException ex) {
+            LOG.debug("getMinValue(MODIFIED)", ex);
+        }
+
+        if (modifiedMs > 0) {
+            LOG.debug("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
+            return modifiedMs;
+        } else {
+            LOG.debug("getOldestDeletedOnceTimestamp() -> none found, return current time");
+            return clock.getTime();
+        }
+    }
+
+    @Override
+    public long getDeletedOnceCount() {
+        return store.queryCount(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN,
+                Collections.singletonList(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1)));
     }
 }

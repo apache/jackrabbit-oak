@@ -389,7 +389,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             con.setReadOnly(true);
             RDBTableMetaData tmd = ((RDBDocumentStore) super.ds).getTable(Collection.NODES);
             List<QueryCondition> conditions = Collections.emptyList();
-            long cnt = jdbc.getLong(con, tmd, "count(*)", null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
+            long cnt = jdbc.getLong(con, tmd, "count", "*", null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
             assertTrue(cnt > 0);
         } finally {
             con.close();
@@ -436,9 +436,8 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(op)));
         removeMe.add(baseName5ModifiedNoDeletedOnce);
 
-        String selector = "min(MODIFIED)";
         LogCustomizer customLogs = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.DEBUG)
-                .contains("Aggregate query").contains(selector).create();
+                .contains("Aggregate query").contains("min(MODIFIED)").create();
         customLogs.starting();
         Connection con = super.rdbDataSource.getConnection();
         try {
@@ -446,7 +445,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             RDBTableMetaData tmd = ((RDBDocumentStore) super.ds).getTable(Collection.NODES);
             List<QueryCondition> conditions = new ArrayList<QueryCondition>();
             conditions.add(new QueryCondition(RDBDocumentStore.COLLISIONSMODCOUNT, "=", magicValue));
-            long min = jdbc.getLong(con, tmd, selector, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
+            long min = jdbc.getLong(con, tmd, "min", "_modified", null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
             assertEquals(5, min);
             con.commit();
         } finally {
@@ -463,7 +462,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             List<QueryCondition> conditions = new ArrayList<QueryCondition>();
             conditions.add(new QueryCondition(RDBDocumentStore.COLLISIONSMODCOUNT, "=", magicValue));
             conditions.add(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1));
-            long min = jdbc.getLong(con, tmd, selector, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
+            long min = jdbc.getLong(con, tmd, "min", "_modified", null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
             assertEquals(10, min);
             con.commit();
         } finally {
