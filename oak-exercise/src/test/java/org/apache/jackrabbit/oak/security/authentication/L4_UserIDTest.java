@@ -26,7 +26,6 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.oak.security.authentication.UserIDTestLoginModule;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**

@@ -31,8 +31,6 @@ import org.osgi.service.http.HttpService;
 
 import java.util.Map;
 
-import static org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE;
-
 @Component(
         metatype = true,
         immediate = true,

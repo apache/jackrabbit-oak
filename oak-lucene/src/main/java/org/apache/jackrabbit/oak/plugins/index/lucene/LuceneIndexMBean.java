@@ -23,8 +23,8 @@ import java.io.IOException;
 
 import javax.management.openmbean.TabularData;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
-import org.apache.jackrabbit.oak.commons.jmx.Name;
+import org.apache.jackrabbit.oak.api.jmx.Description;
+import org.apache.jackrabbit.oak.api.jmx.Name;
 
 public interface LuceneIndexMBean {
     String TYPE = "LuceneIndex";

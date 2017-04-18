@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
-import org.apache.jackrabbit.oak.commons.jmx.Name;
+import org.apache.jackrabbit.oak.api.jmx.Description;
+import org.apache.jackrabbit.oak.api.jmx.Name;
 
 @SuppressWarnings("UnusedDeclaration")
 public interface DocumentNodeStoreMBean {

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.jmx;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
+import org.apache.jackrabbit.oak.api.jmx.Description;
 
 public interface StandbyStatusMBean {
     String JMX_NAME = "org.apache.jackrabbit.oak:name=Status,type=\"Standby\"";

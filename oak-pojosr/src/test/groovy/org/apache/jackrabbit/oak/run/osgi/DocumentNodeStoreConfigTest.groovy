@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.h2.jdbcx.JdbcDataSource
 import org.junit.After
-import org.junit.Ignore
 import org.junit.Test
 import org.osgi.framework.ServiceEvent
 import org.osgi.framework.ServiceReference

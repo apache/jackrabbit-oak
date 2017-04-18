@@ -35,6 +35,7 @@
         <include>org.apache.jackrabbit:jackrabbit-api</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:jackrabbit-data</include>
+        <include>org.apache.jackrabbit:oak-api</include>
         <include>org.apache.jackrabbit:oak-commons</include>
         <include>org.apache.jackrabbit:oak-core</include>
         <include>org.apache.jackrabbit:oak-segment-tar</include>
@@ -42,6 +43,9 @@
         <include>org.apache.jackrabbit:oak-lucene</include>
         <include>org.apache.tika:tika-core</include>
         <include>org.apache.jackrabbit:oak-blob</include>
+        <include>org.apache.jackrabbit:oak-core-spi</include>
+        <include>org.apache.jackrabbit:oak-store-spi</include>
+        <include>org.apache.jackrabbit:oak-blob-plugins</include>
       </includes>
     </dependencySet>
   </dependencySets>

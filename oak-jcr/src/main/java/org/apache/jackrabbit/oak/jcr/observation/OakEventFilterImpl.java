@@ -50,7 +50,6 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathHelper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implements OakEventFilter which is an extension to the JackrabbitEventFilter

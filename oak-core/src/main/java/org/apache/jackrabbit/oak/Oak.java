@@ -108,7 +108,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.apache.jackrabbit.oak.util.AggregatingDescriptors;
+import org.apache.jackrabbit.oak.spi.descriptors.AggregatingDescriptors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

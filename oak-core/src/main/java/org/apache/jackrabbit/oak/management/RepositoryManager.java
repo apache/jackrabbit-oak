@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.management;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.failed;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.fromCompositeData;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.succeeded;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.toTabularData;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.unavailable;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.fromCompositeData;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.succeeded;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.toTabularData;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.unavailable;
 
 import java.util.List;
 

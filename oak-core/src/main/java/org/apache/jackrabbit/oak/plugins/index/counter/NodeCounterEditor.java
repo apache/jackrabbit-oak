@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.ApproximateCounter;
-import org.apache.jackrabbit.oak.util.SipHash;
+import org.apache.jackrabbit.oak.commons.hash.SipHash;
 
 /**
  * An approximate descendant node counter mechanism.

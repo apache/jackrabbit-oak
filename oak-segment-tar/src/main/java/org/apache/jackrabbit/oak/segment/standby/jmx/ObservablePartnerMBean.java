@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.standby.jmx;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
+import org.apache.jackrabbit.oak.api.jmx.Description;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;

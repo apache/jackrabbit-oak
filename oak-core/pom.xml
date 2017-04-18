@@ -44,18 +44,10 @@
             </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak,
-              org.apache.jackrabbit.oak.api,
-              org.apache.jackrabbit.oak.api.jmx,
-              org.apache.jackrabbit.oak.cache,
-              org.apache.jackrabbit.oak.stats,
-              org.apache.jackrabbit.oak.json,
               org.apache.jackrabbit.oak.management,
               org.apache.jackrabbit.oak.util,
               org.apache.jackrabbit.oak.namepath,
-              org.apache.jackrabbit.oak.osgi,
               org.apache.jackrabbit.oak.plugins.atomic,
-              org.apache.jackrabbit.oak.plugins.blob,
-              org.apache.jackrabbit.oak.plugins.blob.datastore,
               org.apache.jackrabbit.oak.plugins.commit,
               org.apache.jackrabbit.oak.plugins.document.spi,
               org.apache.jackrabbit.oak.plugins.identifier,
@@ -69,19 +61,14 @@
               org.apache.jackrabbit.oak.plugins.index.reference,
               org.apache.jackrabbit.oak.plugins.itemsave,
               org.apache.jackrabbit.oak.plugins.lock,
-              org.apache.jackrabbit.oak.plugins.memory,
               org.apache.jackrabbit.oak.plugins.name,
               org.apache.jackrabbit.oak.plugins.nodetype,
               org.apache.jackrabbit.oak.plugins.nodetype.write,
               org.apache.jackrabbit.oak.plugins.observation,
               org.apache.jackrabbit.oak.plugins.observation.filter,
               org.apache.jackrabbit.oak.plugins.tree,
-              org.apache.jackrabbit.oak.plugins.value,
+              org.apache.jackrabbit.oak.plugins.value.jcr,
               org.apache.jackrabbit.oak.plugins.version,
-              org.apache.jackrabbit.oak.spi.commit,
-              org.apache.jackrabbit.oak.spi.gc,
-              org.apache.jackrabbit.oak.spi.lifecycle,
-              org.apache.jackrabbit.oak.spi.mount,
               org.apache.jackrabbit.oak.spi.query,
               org.apache.jackrabbit.oak.spi.security,
               org.apache.jackrabbit.oak.spi.security.authentication,
@@ -97,10 +84,7 @@
               org.apache.jackrabbit.oak.spi.security.user,
               org.apache.jackrabbit.oak.spi.security.user.action,
               org.apache.jackrabbit.oak.spi.security.user.util,
-              org.apache.jackrabbit.oak.spi.state,
-              org.apache.jackrabbit.oak.spi.whiteboard,
               org.apache.jackrabbit.oak.spi.xml,
-              org.apache.jackrabbit.oak.stats,
               org.apache.jackrabbit.oak.query,
               org.apache.jackrabbit.oak.query.fulltext,
               org.apache.jackrabbit.oak.query.facet,
@@ -170,6 +154,16 @@
     <!-- Dependencies to other Oak components -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-core-spi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -183,6 +177,16 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-blob</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-plugins</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-spi</artifactId>
       <version>${project.version}</version>
     </dependency>
     <!-- General utility libraries -->
@@ -203,12 +207,6 @@
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
       <version>3.1.0</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-aws-ext</artifactId>
-      <version>${jackrabbit.version}</version>
       <optional>true</optional>
     </dependency>
 
@@ -321,6 +319,13 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-blob</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-plugins</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
