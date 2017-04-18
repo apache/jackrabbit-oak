@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.value;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * TODO: document

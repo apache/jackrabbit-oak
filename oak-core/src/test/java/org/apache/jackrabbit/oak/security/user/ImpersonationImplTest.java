@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import com.google.common.collect.ImmutableList;
@@ -35,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;

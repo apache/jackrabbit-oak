@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.nodetype.ConstraintViolationException;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;

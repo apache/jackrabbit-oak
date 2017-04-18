@@ -16,23 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.ImportUUIDBehavior;
-import javax.jcr.Session;
-
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
-
 public class UserImporterWorkspaceTest extends UserImporterTest {
 
     @Override

@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.nodetype.ConstraintViolationException;
-
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

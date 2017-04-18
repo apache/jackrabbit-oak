@@ -25,8 +25,6 @@ import javax.jcr.Credentials;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Dummy implementation of {@link CredentialsSupport} that only supports

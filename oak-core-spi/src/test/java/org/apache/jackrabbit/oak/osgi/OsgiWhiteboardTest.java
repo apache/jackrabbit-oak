@@ -26,8 +26,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
