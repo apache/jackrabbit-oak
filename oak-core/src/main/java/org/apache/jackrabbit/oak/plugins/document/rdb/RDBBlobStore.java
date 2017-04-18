@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
-import org.apache.jackrabbit.oak.util.OakVersion;
+import org.apache.jackrabbit.oak.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

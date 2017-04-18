@@ -23,8 +23,8 @@ import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.OpenDataException;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
-import org.apache.jackrabbit.oak.commons.jmx.Name;
+import org.apache.jackrabbit.oak.api.jmx.Description;
+import org.apache.jackrabbit.oak.api.jmx.Name;
 
 public interface BlobMigrationMBean {
 

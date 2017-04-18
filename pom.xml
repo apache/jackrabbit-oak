@@ -38,11 +38,17 @@
   <modules>
     <module>oak-parent</module>
     <module>oak-commons</module>
+    <module>oak-api</module>
+    <module>oak-core-spi</module>
+    <module>oak-store-spi</module>
+
+    <module>oak-blob-plugins</module>
     <module>oak-blob</module>
     <module>oak-blob-cloud</module>
     <module>oak-blob-cloud-azure</module>
     <module>oak-core</module>
     <module>oak-jcr</module>
+
     <module>oak-upgrade</module>
     <module>oak-http</module>
     <module>oak-lucene</module>

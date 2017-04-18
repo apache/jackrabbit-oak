@@ -45,7 +45,6 @@ import javax.jcr.nodetype.NodeType;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.EvictingQueue;
-import org.apache.commons.collections.buffer.CircularFifoBuffer;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;

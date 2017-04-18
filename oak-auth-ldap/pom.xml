@@ -137,7 +137,6 @@
             <version>2.7.7</version>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>biz.aQute.bnd</groupId>
             <artifactId>bndlib</artifactId>
@@ -149,6 +148,19 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- JCR and Jackrabbit dependencies -->
+        <dependency>
+            <groupId>javax.jcr</groupId>
+            <artifactId>jcr</artifactId>
+            <version>2.0</version>
+        </dependency>
+
+        <!-- Dependencies to other Oak components -->
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
@@ -165,16 +177,10 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- General utility libraries -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-        </dependency>
-
-        <!-- JCR and Jackrabbit dependencies -->
-        <dependency>
-            <groupId>javax.jcr</groupId>
-            <artifactId>jcr</artifactId>
-            <version>2.0</version>
         </dependency>
 
         <!-- Logging -->

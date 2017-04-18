@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.AbstractCheckpointMBean;
+import org.apache.jackrabbit.oak.commons.jmx.AbstractCheckpointMBean;
 
 /**
  * {@code CheckpointMBean} implementation for the {@code SegmentNodeStore}.

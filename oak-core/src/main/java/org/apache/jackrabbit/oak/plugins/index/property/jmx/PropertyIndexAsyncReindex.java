@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -29,7 +29,7 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.oak.management.ManagementOperation;
+import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 
 /**

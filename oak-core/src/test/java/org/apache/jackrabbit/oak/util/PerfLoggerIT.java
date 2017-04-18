@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.counter.jmx;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
-import org.apache.jackrabbit.oak.commons.jmx.Name;
+import org.apache.jackrabbit.oak.api.jmx.Description;
+import org.apache.jackrabbit.oak.api.jmx.Name;
 
 /**
  * An MBean that provides an approximate node count for a given path.

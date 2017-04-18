@@ -52,7 +52,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.util.OakVersion;
+import org.apache.jackrabbit.oak.OakVersion;
 
 /**
  * Utility for dumping contents from {@link RDBDocumentStore}'s tables.

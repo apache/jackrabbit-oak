@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.blob.migration;
 
 import static java.lang.System.nanoTime;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.util.HashMap;
@@ -45,7 +45,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.management.ManagementOperation;
+import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;

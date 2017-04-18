@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.BlobByteSource;
 import org.apache.lucene.document.Field;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.metadata.Metadata;

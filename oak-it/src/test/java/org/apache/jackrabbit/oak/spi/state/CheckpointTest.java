@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.spi.state;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -40,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CheckpointTest extends OakBaseTest {

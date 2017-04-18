@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
 
@@ -35,7 +34,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
