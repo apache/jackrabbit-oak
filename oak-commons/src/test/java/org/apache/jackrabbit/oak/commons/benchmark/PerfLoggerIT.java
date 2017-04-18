@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.util;
+package org.apache.jackrabbit.oak.commons.benchmark;
 
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
