@@ -34,7 +34,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
 
 public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
 
@@ -65,36 +64,36 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
 
     @Test
     public void invalidateAfterSelfRecovery() throws Exception {
-        createUncommittedChanges(ds1, store1);
+        String path = createUncommittedChanges(ds1, store1);
 
         // cluster node 2 must see uncommitted change
-        assertFalse(isClean(ds2, "/node-0"));
+        assertFalse(isClean(ds2, path));
 
         // crash and restart cluster node 1, this will run recovery
         // and revert uncommitted changes
         ds1 = crashAndRestart(ds1, store1);
 
         // must see uncommitted change, because no background read occurred
-        assertFalse(isClean(ds2, "/node-0"));
+        assertFalse(isClean(ds2, path));
 
         ds2.runBackgroundReadOperations();
 
         // now cache must reflect the up-to-date document
-        assertTrue(isClean(ds2, "/node-0"));
+        assertTrue(isClean(ds2, path));
     }
 
     @Test
     public void invalidateAfterRecovery() throws Exception {
-        createUncommittedChanges(ds1, store1);
+        String path = createUncommittedChanges(ds1, store1);
 
         // cluster node 2 must see uncommitted change
-        assertFalse(isClean(ds2, "/node-0"));
+        assertFalse(isClean(ds2, path));
 
         // crash cluster node 1
         crash(ds1, store1);
 
         // must still see uncommitted change
-        assertFalse(isClean(ds2, "/node-0"));
+        assertFalse(isClean(ds2, path));
 
         // wait for lease to expire
         clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
@@ -102,7 +101,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
         assertTrue(ds2.getLastRevRecoveryAgent().recover(c1Id) > 0);
 
         // now cache must reflect the up-to-date document
-        assertTrue(isClean(ds2, "/node-0"));
+        assertTrue(isClean(ds2, path));
     }
 
 
@@ -145,7 +144,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
         store.fail().never();
     }
 
-    private void createUncommittedChanges(DocumentNodeStore ns,
+    private String createUncommittedChanges(DocumentNodeStore ns,
                                           FailingDocumentStore store) throws Exception {
         ns.setMaxBackOffMillis(0);
         NodeBuilder builder = ns.getRoot().builder();
@@ -163,12 +162,20 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
         store.fail().never();
 
         // store must now contain uncommitted changes
-        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/node-0"));
+        NodeDocument doc = null;
+        for (NodeDocument d : Utils.getAllDocuments(store)) {
+            if (d.getPath().startsWith("/node-")) {
+                doc = d;
+                break;
+            }
+        }
         assertNotNull(doc);
         assertNull(doc.getNodeAtRevision(ns, ns.getHeadRevision(), null));
         SortedMap<Revision, String> deleted = doc.getLocalDeleted();
         assertEquals(1, deleted.size());
         assertNull(ns.getCommitValue(deleted.firstKey(), doc));
+
+        return doc.getPath();
     }
 
 }
