@@ -231,7 +231,7 @@
         <!-- add the jar created by maven-antrun-plugin in our artifacts -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.9</version>
+        <version>3.0.0</version>
         <executions>
           <execution>
             <id>attach-artifacts</id>
