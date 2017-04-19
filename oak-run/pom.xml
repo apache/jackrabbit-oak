@@ -143,16 +143,6 @@
           </sourceFiles>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.rat</groupId>
-        <artifactId>apache-rat-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>**/deepTree.xml</exclude>
-            <exclude>**/deepTree_everyone.xml</exclude>
-          </excludes>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 
