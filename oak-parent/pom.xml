@@ -77,6 +77,10 @@
     <surefire.skip.ut>false</surefire.skip.ut>
   </properties>
 
+  <prerequisites>
+    <maven>3.2.1</maven>
+  </prerequisites>
+
   <issueManagement>
     <system>Jira</system>
     <url>http://issues.apache.org/jira/browse/OAK</url>
@@ -85,7 +89,7 @@
   <url>http://jackrabbit.apache.org/</url>
   <inceptionYear>2012</inceptionYear>
   <description>
-    The goal of the Oak effort within the Apache Jackrabbitâ„¢ project is
+    The goal of the Oak effort within the Apache Jackrabbit™ project is
     to implement a scalable and performant hierarchical content repository
     for use as the foundation of modern world-class web sites and other
     demanding content applications.
