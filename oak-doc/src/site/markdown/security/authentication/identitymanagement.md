@@ -84,6 +84,6 @@ OSGi environment, please make sure it gets properly referenced by the
 [ExternalUser]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalUser.html
 [ExternalGroup]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalGroup.html
 [ExternalIdentityRef]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityRef.html
-[CustomExternalIdentityProvider]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/security/authentication/external/CustomExternalIdentityProvider.java
+[CustomExternalIdentityProvider]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/exercise/security/authentication/external/CustomExternalIdentityProvider.java
 [PrincipalNameResolver]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/PrincipalNameResolver.html
 [OAK-5210]: https://issues.apache.org/jira/browse/OAK-5210
