@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.util.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

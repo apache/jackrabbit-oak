@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.oak.util;
+package org.apache.jackrabbit.oak.commons;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.util.TimeDurationFormatter;
 import org.junit.Test;
 
 public class TimeDurationFormatterTest {
