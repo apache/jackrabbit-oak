@@ -476,12 +476,13 @@ Reindexing of existing indexes is required in the following scenarios:
   and if one of the parent nodes had more than 100 child nodes,
   then indexes (all types) [did not see those changes in some cases][OAK-5557].
 
-To reindex, set the `reindex` property to `true` in the respective index definition:
+New indexes are built automatically once the index definition is stored.
+To reindex an _existing_ index (when needed), set the `reindex` property to `true` in the respective index definition:
 
     /oak:index/userIndex
       - reindex = true
       
-Once changes are saved, the index is reindexed. 
+Once changes are saved, the index is reindexed.
 For asynchronous indexes, reindex starts with the next async indexing cycle.
 For synchronous indexes, the reindexing is done as part of save (or commit) itself.
 For a (synchronous) property index, 
@@ -494,8 +495,22 @@ Once reindexing starts, the following log entries can be seen in the log:
     [async-index-update-async] o.a.j.o.p.i.IndexUpdate Reindexing Traversed #100000 /home/user/admin 
     [async-index-update-async] o.a.j.o.p.i.AsyncIndexUpdate [async] Reindexing completed for indexes: [/oak:index/userIndex*(4407016)] in 30 min 
 
-Once reindexing is complete, the `reindex` flag is set to `false`.
+Once reindexing is complete, the `reindex` flag is set to `false` automatically.
 
+### How to Abort Reindexing
+
+Building an index can be slow. It can be aborted (stopped before it is finished),
+for example if you detect there is an error in the index definition.
+Reindexing and building a new index can be aborted 
+when using asynchronous indexes.
+For synchronous indexes, it can be stopped if it was started using the `PropertyIndexAsyncReindexMBean`.
+To do this, use the respective `IndexStats` JMX bean 
+(for example, `async`, `fulltext-async`, or `async-reindex`), 
+and call the operation `abortAndPause()`.
+Then, either set the `reindex` flag to `false` (for an existing index), 
+remove the index definition (for a new index),
+or change the index type to `disabled`. Store the change. Finally, call the operation `resume()`
+so that regular indexing operations can continue.
 
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
 [OAK-4939]: https://issues.apache.org/jira/browse/OAK-4939
