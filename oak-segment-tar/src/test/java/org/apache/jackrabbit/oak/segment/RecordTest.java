@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
+import static java.lang.Math.min;
 import static java.util.Collections.singletonList;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.fail;
@@ -179,19 +180,26 @@ public class RecordTest {
 
         Blob value = writer.writeStream(new ByteArrayInputStream(source));
         InputStream stream = value.getNewStream();
-        try {
+        checkBlob(source, value, 0);
+        checkBlob(source, value, 1);
+        checkBlob(source, value, 42);
+        checkBlob(source, value, 16387);
+        checkBlob(source, value, Integer.MAX_VALUE);
+    }
+
+    private static void checkBlob(byte[] expected, Blob actual, int skip) throws IOException {
+        try (InputStream stream = actual.getNewStream()) {
+            stream.skip(skip);
             byte[] b = new byte[349]; // prime number
-            int offset = 0;
+            int offset = min(skip, expected.length);
             for (int n = stream.read(b); n != -1; n = stream.read(b)) {
                 for (int i = 0; i < n; i++) {
-                    assertEquals(source[offset + i], b[i]);
+                    assertEquals(expected[offset + i], b[i]);
                 }
                 offset += n;
             }
-            assertEquals(offset, size);
+            assertEquals(offset, expected.length);
             assertEquals(-1, stream.read());
-        } finally {
-            stream.close();
         }
     }
 
