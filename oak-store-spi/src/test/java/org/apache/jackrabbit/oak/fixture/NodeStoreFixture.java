@@ -19,12 +19,6 @@
 
 package org.apache.jackrabbit.oak.fixture;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**

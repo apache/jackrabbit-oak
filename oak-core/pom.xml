@@ -189,6 +189,13 @@
       <artifactId>oak-store-spi</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-spi</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
     <!-- General utility libraries -->
     <dependency>
       <groupId>com.google.guava</groupId>
