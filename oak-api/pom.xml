@@ -12,7 +12,7 @@
   <artifactId>oak-api</artifactId>
   <packaging>bundle</packaging>
 
-  <name>Oak Api</name>
+  <name>Oak API</name>
 
   <build>
     <plugins>
