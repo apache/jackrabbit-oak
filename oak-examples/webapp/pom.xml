@@ -193,7 +193,7 @@
       <plugin>
          <groupId>org.eclipse.jetty</groupId>
          <artifactId>jetty-maven-plugin</artifactId>
-         <version>9.2.8.v20150217</version>
+         <version>9.4.3.v20170317</version>
          <configuration>
            <scanIntervalSeconds>0</scanIntervalSeconds>
            <connectors>
