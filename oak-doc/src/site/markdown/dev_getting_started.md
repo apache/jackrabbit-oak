@@ -58,25 +58,49 @@ Note that the configured test databases will be *dropped* by the test cases.
 Components
 ----------
 
-The build consists of the following main components:
+The build consists of the following components:
 
   - oak-parent        - parent POM
   - oak-doc           - Oak documentation
   - oak-commons       - shared utility code
-  - [oak-core][1]     - Oak repository API and implementation
+  
+  - [oak-api][1]      - Oak repository API   
+  - oak-core          - Oak repository implementation
+  - oak-core-spi      - Oak repository extensions
+  
   - oak-jcr           - JCR binding for the Oak repository
-  - oak-sling         - integration with Apache Sling
+
   - oak-solr-core     - Apache Solr indexing and search
-  - oak-solr-embedded - Apache Solr on an embedded Solr instance
-  - oak-solr-remote   - Apache Solr on an remote (HTTP) Solr instance
-  - oak-http          - HTTP binding for Oak
+  - oak-solr-osgi
   - oak-lucene        - Lucene-based query index
+  
+  - oak-auth-external - External authentication support
+  - oak-auth-ldap     - LDAP implementation of external authentication
+  - oak-authorization-cug - Authorization model for closed user groups (CUG)
+     
+  - oak-blob          - Oak Blob Store API
+  - oak-blob-plugins  - Oak Blob : Extensions and Base Implementations
+  - oak-blob-cloud    - S3 cloud blob store implementation
+  - oak-blob-cloud-azure - Azure cloud blob store implementation 
+
+  - oak-store-spi     - Oak NodeStore and Commit SPI 
+  - oak-segment-tar   - TarMK API and nodestore implementation
+
+  - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak and sidegrading Oak to Oak
+   
   - oak-run           - runnable jar packaging
-  - oak-segment-tar   - TarMK API and implementation
-  - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak
+  - oak-run-commons   - utilities shared by oak-run and oak-benchmarks
+  
+  - oak-benchmarks    - benchmark tests
   - oak-it            - integration tests
-    - oak-it/osgi     - integration tests for OSGi
+  - oak-it-osgi       - integration tests for OSGi
+  
+  - oak-http          - HTTP binding for Oak
+  - oak-pojosr  
+  - oak-remote 
+  
   - [oak-exercise][3] - Oak training material
+  - oak-examples      - Oak examples (webapp and standalone)
 
 
 Archive

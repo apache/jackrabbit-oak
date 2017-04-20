@@ -1,8 +1,5 @@
-Oak Core
-========
-
 Oak API
--------
+=======
 
 The API for accessing core Oak functionality is located in the
 `org.apache.jackrabbit.oak.api` package and consists of the following
