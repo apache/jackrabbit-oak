@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.util;
+package org.apache.jackrabbit.oak.plugins.index.counter;
 
 import java.util.Random;
 import java.util.UUID;

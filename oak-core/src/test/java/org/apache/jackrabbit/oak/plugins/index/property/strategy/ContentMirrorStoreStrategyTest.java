@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_P
 import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.DEFAULT_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.util.ApproximateCounter.COUNT_PROPERTY_PREFIX;
+import static org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter.COUNT_PROPERTY_PREFIX;
 
 import java.util.Collections;
 import java.util.Set;

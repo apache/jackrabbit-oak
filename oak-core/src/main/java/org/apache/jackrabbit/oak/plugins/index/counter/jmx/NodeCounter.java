@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.util.ApproximateCounter;
+import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 
 /**
  * A mechanism to retrieve node counter data.
