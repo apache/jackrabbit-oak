@@ -27,21 +27,23 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
-
-import org.apache.jackrabbit.oak.plugins.document.*;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocumentHelper;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
-import static com.google.common.collect.Maps.newTreeMap;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocumentHelper.commitRoot;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocumentHelper.getLocalCommitRoot;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocumentHelper.getLocalMap;
 
 /**
  * Helper class to access package private methods on MongoDocumentStore.
  */
 public class MongoDocumentStoreHelper {
-    
+
+    private MongoDocumentStoreHelper() {
+    }
+
     public static void repair(MongoDocumentStore store, String path) {
         DBCollection col = store.getDBCollection(NODES);
         String id = Utils.getIdFromPath(path);

@@ -25,6 +25,10 @@ import java.util.Arrays;
 import java.util.Properties;
 
 public class Utils {
+
+    private Utils() {
+    }
+
     public static String getProductInfo(InputStream pom){
         String version = getProductVersion(pom);
 

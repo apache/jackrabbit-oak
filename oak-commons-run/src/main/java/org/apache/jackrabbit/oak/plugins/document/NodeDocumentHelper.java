@@ -24,7 +24,10 @@ import javax.annotation.Nonnull;
  * Helper class to access package private methods on NodeDocument.
  */
 public class NodeDocumentHelper {
-    
+
+    private NodeDocumentHelper() {
+    }
+
     @Nonnull
     public static SortedMap<Revision, String> getLocalMap(
             NodeDocument doc, String key) {

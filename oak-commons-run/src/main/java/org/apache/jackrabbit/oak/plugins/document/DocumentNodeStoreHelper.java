@@ -23,7 +23,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
@@ -36,7 +35,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -47,14 +45,14 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper.convertFromDBObject;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
-
 /**
  * Helper class to access package private method of DocumentNodeStore and other
  * classes in this package.
  */
 public class DocumentNodeStoreHelper {
+
+    private DocumentNodeStoreHelper() {
+    }
 
     public static Cache<PathRev, DocumentNodeState> getNodesCache(DocumentNodeStore dns) {
         return dns.getNodeCache();
