@@ -34,7 +34,7 @@
   <packaging>pom</packaging>
 
   <properties>
-    <test.opts.memory>-Xmx512m -XX:MaxPermSize=64m</test.opts.memory>
+    <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
     <skip.coverage>true</skip.coverage>
@@ -63,8 +63,8 @@
     <h2.version>1.4.194</h2.version>
     <findbugs.version>3.0.4</findbugs.version>
     <derby.version>10.12.1.1</derby.version>
-    <java.version>1.7</java.version>
-    <java.version.signature>java17</java.version.signature>
+    <java.version>1.8</java.version>
+    <java.version.signature>java18</java.version.signature>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
