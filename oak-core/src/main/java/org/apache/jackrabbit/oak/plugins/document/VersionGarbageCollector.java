@@ -175,10 +175,14 @@ public class VersionGarbageCollector {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         long now = nodeStore.getClock().getTime();
         Recommendations rec = new Recommendations(maxRevisionAgeInMillis, options);
+        int estimatedIterations = -1;
+        if (rec.suggestedIntervalMs > 0) {
+            estimatedIterations = (int)Math.ceil(
+                    (now - rec.scope.toMs) / rec.suggestedIntervalMs);
+        }
         return new VersionGCInfo(rec.lastOldestTimestamp, rec.scope.fromMs,
                 rec.deleteCandidateCount, rec.maxCollect,
-                rec.suggestedIntervalMs, rec.scope.toMs,
-                (int)Math.ceil((now - rec.scope.toMs) / rec.suggestedIntervalMs));
+                rec.suggestedIntervalMs, rec.scope.toMs, estimatedIterations);
     }
 
     public static class VersionGCInfo {
