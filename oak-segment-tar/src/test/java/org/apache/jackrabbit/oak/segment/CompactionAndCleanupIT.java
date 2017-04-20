@@ -339,10 +339,31 @@ public class CompactionAndCleanupIT {
         }
     }
 
-    /**
-     * Create 2 binary nodes with same content but not same reference. Verify
-     * de-duplication capabilities of compaction.
-     */
+    @Test
+    public void equalContentAfterOC() throws Exception {
+        SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
+        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
+
+        try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(gcOptions)
+                .build()) {
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+            // Add initial content
+            NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+            addNodes(rootBuilder, 8, "p");
+            addProperties(rootBuilder, 3);
+            nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            NodeState initialRoot = nodeStore.getRoot();
+            assertTrue(fileStore.compact());
+            NodeState compactedRoot = nodeStore.getRoot();
+
+            assertTrue(initialRoot != compactedRoot);
+            assertEquals(initialRoot, compactedRoot);
+        }
+    }
+
     @Test
     public void offlineCompactionBinC1() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
@@ -644,6 +665,15 @@ public class CompactionAndCleanupIT {
             addNodes(child1, depth - 1, prefix);
             NodeBuilder child2 = builder.setChildNode(prefix + "2");
             addNodes(child2, depth - 1, prefix);
+        }
+    }
+
+    private static void addProperties(NodeBuilder builder, int count) {
+        for (int c = 0; c < count; c++) {
+            builder.setProperty("p-" + c, "v-" + c);
+        }
+        for (String child : builder.getChildNodeNames()) {
+            addProperties(builder.getChildNode(child), count);
         }
     }
 

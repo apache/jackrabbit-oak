@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.segment;
 
 import static java.lang.Integer.getInteger;
 import static java.lang.System.getProperty;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -69,6 +71,7 @@ public class ManyChildNodesIT {
                 .withStringDeduplicationCacheSize(0)
                 .withTemplateDeduplicationCacheSize(0)
                 .withNodeDeduplicationCacheSize(1)
+                .withGCOptions(defaultGCOptions().setOffline())
                 .build();
     }
 
@@ -91,6 +94,20 @@ public class ManyChildNodesIT {
             NodeBuilder root = nodeStore.getRoot().builder();
             addManyNodes(root.setChildNode("a").setChildNode("b"));
             nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+    }
+
+    /**
+     * Offline compaction should be able to deal with many child nodes in constant memory.
+     */
+    @Test
+    public void manyChildNodesOC() throws Exception {
+        try (FileStore fileStore = createFileStore()) {
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            NodeBuilder root = nodeStore.getRoot().builder();
+            addManyNodes(root);
+            nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            assertTrue(fileStore.compact());
         }
     }
 
