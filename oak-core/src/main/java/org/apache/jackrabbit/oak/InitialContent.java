@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.nodetype.write;
+package org.apache.jackrabbit.oak;
 
+import java.io.IOException;
+import java.io.InputStream;
 import javax.annotation.Nonnull;
 
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -28,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VER
 import com.google.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -38,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -49,8 +53,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * {@code InitialContent} implements a {@link RepositoryInitializer} and
- * registers built-in node types when the micro kernel becomes available.
+ * {@code InitialContent} implements a {@link RepositoryInitializer} the creates
+ * the initial JCR/Oak repository structure. This includes creating
+ *
+ * <pre>
+ * - the root node
+ * - jcr:system node and it subtree
+ *      - version storage
+ *      - activities
+ *      - built-in node types
+ *      - built-in namespaces
+ * - some basic index definitions required for a functional JCR repository
+ * </pre>
  */
 public class InitialContent implements RepositoryInitializer, NodeTypeConstants {
 
@@ -120,10 +134,10 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         // squeeze node state before it is passed to store (OAK-2411)
         NodeState base = squeeze(builder.getNodeState());
         NodeStore store = new MemoryNodeStore(base);
-        NodeTypeRegistry.registerBuiltIn(RootFactory.createSystemRoot(
+        registerBuiltIn(RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(
-                new NamespaceEditorProvider(),
-                new TypeEditorProvider())), null, null, null, null));
+                        new NamespaceEditorProvider(),
+                        new TypeEditorProvider())), null, null, null, null));
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }
@@ -163,5 +177,23 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
             c.setProperty(JCR_PRIMARYTYPE, REP_VERSIONSTORAGE, Type.NAME);
         }
         return c;
+    }
+
+    /**
+     * Registers built in node types using the given {@link Root}.
+     *
+     * @param root the {@link Root} instance.
+     */
+    private static void registerBuiltIn(final Root root) {
+        try {
+            InputStream stream = InitialContent.class.getResourceAsStream("builtin_nodetypes.cnd");
+            try {
+                NodeTypeRegistry.register(root, stream, "built-in node types");
+            } finally {
+                stream.close();
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to read built-in node types", e);
+        }
     }
 }
