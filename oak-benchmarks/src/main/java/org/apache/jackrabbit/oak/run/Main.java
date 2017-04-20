@@ -17,15 +17,9 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.commons.run.Command;
-import org.apache.jackrabbit.oak.commons.run.Modes;
-import org.apache.jackrabbit.oak.commons.run.Utils;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Properties;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.run.commons.Modes;
+import org.apache.jackrabbit.oak.run.commons.Utils;
 
 import static java.util.Arrays.copyOfRange;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;

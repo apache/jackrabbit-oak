@@ -20,8 +20,8 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.commons.run.Command;
-import org.apache.jackrabbit.oak.commons.run.Modes;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.run.commons.Modes;
 
 public final class AvailableModes {
     // list of available Modes for the tool

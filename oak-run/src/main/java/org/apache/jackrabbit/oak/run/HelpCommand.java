@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.base.Joiner;
-import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
 import static org.apache.jackrabbit.oak.run.AvailableModes.MODES;
 

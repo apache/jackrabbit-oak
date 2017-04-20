@@ -23,7 +23,7 @@ import groovy.transform.TypeCheckingMode
 import jline.Terminal
 import jline.TerminalFactory
 import jline.console.history.FileHistory
-import org.apache.jackrabbit.oak.commons.run.Utils
+import org.apache.jackrabbit.oak.run.commons.Utils
 import org.apache.jackrabbit.oak.console.commands.*
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
 import org.codehaus.groovy.runtime.StackTraceUtils
