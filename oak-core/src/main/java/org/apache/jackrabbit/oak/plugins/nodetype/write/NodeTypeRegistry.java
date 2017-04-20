@@ -75,24 +75,6 @@ public final class NodeTypeRegistry {
     }
 
     /**
-     * Registers built in node types using the given {@link Root}.
-     *
-     * @param root the {@link Root} instance.
-     */
-    static void registerBuiltIn(final Root root) {
-        try {
-            InputStream stream = NodeTypeRegistry.class.getResourceAsStream("builtin_nodetypes.cnd");
-            try {
-                register(root, stream, "built-in node types");
-            } finally {
-                stream.close();
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to read built-in node types", e);
-        }
-    }
-
-    /**
      * Register the node type definitions contained in the specified {@code input}
      * using the given {@link Root}.
      *

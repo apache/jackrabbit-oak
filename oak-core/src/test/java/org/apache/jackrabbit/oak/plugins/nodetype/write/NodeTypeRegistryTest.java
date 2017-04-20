@@ -44,6 +44,7 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Strings;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -126,7 +127,7 @@ public class NodeTypeRegistryTest {
 
     @Test
     public void oakResource() throws Exception{
-        registerNodeType(root, "builtin_nodetypes.cnd");
+        registerNodeType(root, "oak4567.cnd");
         Tree typeRoot = root.getTree(NODE_TYPES_PATH);
         Tree test1 = TreeUtil.addChild(root.getTree("/"), "test1", NT_FILE, typeRoot, "admin");
         Tree content1 = TreeUtil.addChild(test1, JCR_CONTENT, NT_OAK_RESOURCE, typeRoot, "admin");
