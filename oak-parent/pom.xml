@@ -89,7 +89,7 @@
   <url>http://jackrabbit.apache.org/</url>
   <inceptionYear>2012</inceptionYear>
   <description>
-    The goal of the Oak effort within the Apache Jackrabbit™ project is
+    The goal of the Oak effort within the Apache Jackrabbit project is
     to implement a scalable and performant hierarchical content repository
     for use as the foundation of modern world-class web sites and other
     demanding content applications.
@@ -290,7 +290,6 @@
               <mongo.port>${mongo.port}</mongo.port>
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
-              <mongo.url>${mongo.url}</mongo.url>
               <segment.db>${segment.db}</segment.db>
               <nsfixtures>${fixtures}</nsfixtures>
               <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
