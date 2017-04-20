@@ -108,7 +108,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
-            <artifactId>oak-commons-run</artifactId>
+            <artifactId>oak-run-commons</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
