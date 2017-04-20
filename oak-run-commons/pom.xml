@@ -29,7 +29,7 @@
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>oak-commons-run</artifactId>
+    <artifactId>oak-run-commons</artifactId>
     <name>Oak Commons for Runnable modules</name>
     <packaging>bundle</packaging>
 
