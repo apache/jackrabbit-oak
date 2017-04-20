@@ -250,7 +250,7 @@ public class Compactor {
                 if (eagerFlush) {
                     child = builder.setChildNode(name);
                 } else {
-                    child = EMPTY_NODE.builder();
+                    child = writer.writeNode(EMPTY_NODE).builder();
                 }
                 boolean success = new CompactDiff(child, path, name).diff(
                         EMPTY_NODE, after);
