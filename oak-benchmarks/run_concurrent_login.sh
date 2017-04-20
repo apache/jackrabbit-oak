@@ -55,8 +55,8 @@ for bm in $BENCH
             echo "Executing benchmarks as user: $USER with $noGroups groups (nested = $USE_NESTED_GROUPS) on $fix" | tee -a $LOG
         echo "-----------------------------------------------------------" | tee -a $LOG
             rm -rf target/Jackrabbit-* target/Oak-Tar-*
-            # cmd="java -Xmx2048m -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005 -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=10 -jar target/oak-run-*-SNAPSHOT.jar benchmark --noIterations $HASH_ITERATIONS --runWithToken $USE_TOKEN --expiration $EXPIRATION --numberOfGroups $noGroups --nestedGroups $USE_NESTED_GROUPS --csvFile $LOG --concurrency $THREADS --runAsUser $USER --report false $bm $fix"
-            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=10 -jar target/oak-run-*-SNAPSHOT.jar benchmark --noIterations $HASH_ITERATIONS --runWithToken $USE_TOKEN --expiration $EXPIRATION --numberOfGroups $noGroups --nestedGroups $USE_NESTED_GROUPS --csvFile $LOG --concurrency $THREADS --runAsUser $USER --report false $bm $fix"
+            # cmd="java -Xmx2048m -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005 -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=10 -jar target/oak-benchmarks-*-SNAPSHOT.jar benchmark --noIterations $HASH_ITERATIONS --runWithToken $USE_TOKEN --expiration $EXPIRATION --numberOfGroups $noGroups --nestedGroups $USE_NESTED_GROUPS --csvFile $LOG --concurrency $THREADS --runAsUser $USER --report false $bm $fix"
+            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=10 -jar target/oak-benchmarks-*-SNAPSHOT.jar benchmark --noIterations $HASH_ITERATIONS --runWithToken $USE_TOKEN --expiration $EXPIRATION --numberOfGroups $noGroups --nestedGroups $USE_NESTED_GROUPS --csvFile $LOG --concurrency $THREADS --runAsUser $USER --report false $bm $fix"
             echo $cmd
             $cmd
         done

@@ -47,7 +47,7 @@ for bm in $BENCH
             echo "Executing benchmarks with $noMembers members with batchsize $batchsize on $importBehavior" | tee -a $LOG
         echo "-----------------------------------------------------------" | tee -a $LOG
             rm -rf target/Jackrabbit-* target/Oak-Tar-*
-            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=1 -jar target/oak-run-*-SNAPSHOT.jar benchmark --batchSize $batchsize --importBehavior $IMPORT_BEHAVIOR --numberOfUsers $noMembers --csvFile $LOG --concurrency $THREADS --report false $bm $FIXS"
+            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=1 -jar target/oak-benchmarks-*-SNAPSHOT.jar benchmark --batchSize $batchsize --importBehavior $IMPORT_BEHAVIOR --numberOfUsers $noMembers --csvFile $LOG --concurrency $THREADS --report false $bm $FIXS"
             echo $cmd
             $cmd
         done

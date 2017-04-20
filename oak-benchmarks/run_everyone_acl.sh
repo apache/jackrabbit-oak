@@ -46,7 +46,7 @@ for bm in $BENCH
             echo "Executing benchmarks as admin: $user on $fix" | tee -a $LOG
         echo "-----------------------------------------------------------" | tee -a $LOG
             rm -rf target/Jackrabbit-* target/Oak-Tar-*
-            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=5 -jar target/oak-run-*-SNAPSHOT.jar benchmark --itemsToRead $NUM_ITEMS --csvFile $LOG --concurrency $THREADS --runAsAdmin $user --report false --randomUser $RANDOM_USER $bm $fix"
+            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=5 -jar target/oak-benchmarks-*-SNAPSHOT.jar benchmark --itemsToRead $NUM_ITEMS --csvFile $LOG --concurrency $THREADS --runAsAdmin $user --report false --randomUser $RANDOM_USER $bm $fix"
             echo $cmd
             $cmd
         done
