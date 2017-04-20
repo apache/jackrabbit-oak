@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.blob.index;
+package org.apache.jackrabbit.oak.plugins.index.datastore;
 
 import java.io.BufferedWriter;
 import java.io.Closeable;
