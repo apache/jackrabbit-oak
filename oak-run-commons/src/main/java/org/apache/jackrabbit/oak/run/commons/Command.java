@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.commons.run;
+package org.apache.jackrabbit.oak.run.commons;
 
 public interface Command {
 

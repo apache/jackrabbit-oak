@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
 class UpgradeCommand implements Command {
 

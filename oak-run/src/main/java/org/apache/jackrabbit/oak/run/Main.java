@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.commons.run.Command;
-import org.apache.jackrabbit.oak.commons.run.Utils;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.run.commons.Utils;
 
 import java.util.Locale;
 

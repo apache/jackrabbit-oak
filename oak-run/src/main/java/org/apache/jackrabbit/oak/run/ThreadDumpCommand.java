@@ -42,7 +42,7 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.Profiler;
-import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpCleaner;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpConverter;
 

@@ -54,7 +54,7 @@ import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.console.NodeStoreFixture;
 import org.apache.jackrabbit.oak.console.NodeStoreOpener;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;

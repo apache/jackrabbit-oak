@@ -32,7 +32,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 
 import com.google.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
 class CompactCommand implements Command {
 

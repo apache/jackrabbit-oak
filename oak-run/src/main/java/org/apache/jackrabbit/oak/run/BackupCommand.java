@@ -21,7 +21,7 @@ import java.io.File;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
 class BackupCommand implements Command {
 

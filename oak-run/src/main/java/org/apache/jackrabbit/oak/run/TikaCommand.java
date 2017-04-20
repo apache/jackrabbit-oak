@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.commons.run.Command;
+import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 
 class TikaCommand implements Command {
