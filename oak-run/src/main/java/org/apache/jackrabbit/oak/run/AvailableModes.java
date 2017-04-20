@@ -42,6 +42,7 @@ public final class AvailableModes {
             .put("history", new HistoryCommand())
             .put(IndexCommand.INDEX, new IndexCommand())
             .put(PersistentCacheCommand.PERSISTENTCACHE, new PersistentCacheCommand())
+            .put("revisions", new RevisionsCommand())
             .put("recovery", new RecoveryCommand())
             .put("repair", new RepairCommand())
             .put("resetclusterid", new ResetClusterIdCommand())
