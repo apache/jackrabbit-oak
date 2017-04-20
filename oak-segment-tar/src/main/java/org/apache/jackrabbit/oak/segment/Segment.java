@@ -255,25 +255,31 @@ public class Segment {
 
         final int referencedSegmentIdCount = getReferencedSegmentIdCount();
         final int refOffset = data.position() + HEADER_SIZE;
-        final SegmentId[] refIds = new SegmentId[referencedSegmentIdCount];
+
+        // lazily populated cache of msbs and lsbs of the referenced segments ids.
+        // DO NOT keep references to the SegmentIds here as this will overflow the heap.
+        // See OAK-4949.
+        final long[] ids = new long[2 * referencedSegmentIdCount];
         return new SegmentReferences() {
             @Override
             public SegmentId getSegmentId(int reference) {
                 checkArgument(reference <= referencedSegmentIdCount, "Segment reference out of bounds");
-                SegmentId id = refIds[reference - 1];
-                if (id == null) {
-                    synchronized(refIds) {
-                        id = refIds[reference - 1];
-                        if (id == null) {
+                long msb = ids[2*(reference - 1)];
+                long lsb = ids[2*(reference - 1) + 1];
+                if (lsb == 0 && msb == 0) {
+                    synchronized(ids) {
+                        msb = ids[2*(reference - 1)];
+                        lsb = ids[2*(reference - 1) + 1];
+                        if (lsb == 0 && msb == 0) {
                             int position = refOffset + (reference - 1) * SEGMENT_REFERENCE_SIZE;
-                            long msb = data.getLong(position);
-                            long lsb = data.getLong(position + 8);
-                            id = idProvider.newSegmentId(msb, lsb);
-                            refIds[reference - 1] = id;
+                            msb = data.getLong(position);
+                            lsb = data.getLong(position + 8);
+                            ids[2*(reference - 1)] = msb;
+                            ids[2*(reference - 1) + 1] = lsb;
                         }
                     }
                 }
-                return id;
+                return idProvider.newSegmentId(msb, lsb);
             }
 
             @Nonnull
