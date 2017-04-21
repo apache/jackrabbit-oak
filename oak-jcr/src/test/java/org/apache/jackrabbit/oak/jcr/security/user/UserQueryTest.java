@@ -112,6 +112,7 @@ public class UserQueryTest extends AbstractUserTest {
         addMembers(insects, ant, bee, fly);
 
         User jackrabbit = createUser("jackrabbit", "carrots", 2500, true);
+        User backslash = createUser("foo\\bar", "characters", 2500, false);
         User deer = createUser("deer", "leaves", 120000, true);
         User opossum = createUser("opossum", "fruit", 1200, true);
         kangaroo = createUser("kangaroo", "grass", 90000, true);
@@ -160,6 +161,7 @@ public class UserQueryTest extends AbstractUserTest {
         setProperty("continent", vf.createValue("America"), opossum);
 
         elephant.getImpersonation().grantImpersonation(jackrabbit.getPrincipal());
+        elephant.getImpersonation().grantImpersonation(backslash.getPrincipal());
 
         authorizables.addAll(users);
         authorizables.addAll(groups);
@@ -661,6 +663,20 @@ public class UserQueryTest extends AbstractUserTest {
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         impersonates("jackrabbit"));
+            }
+        });
+
+        Iterator<User> expected = Iterators.singletonIterator(elephant);
+        assertTrue(result.hasNext());
+        assertSameElements(expected, result);
+    }
+
+    @Test
+    public void testImpersonationWithBackslash() throws RepositoryException {
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.
+                        impersonates("foo\\bar"));
             }
         });
 
