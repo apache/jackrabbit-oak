@@ -178,6 +178,13 @@ public class VersionGCTest {
         }
     }
 
+    @Test
+    public void getInfo() throws Exception {
+        gc.gc(1, TimeUnit.HOURS);
+
+        gc.getInfo(1, TimeUnit.HOURS);
+    }
+
     private Future<VersionGCStats> gc() {
         // run gc in a separate thread
         return execService.submit(new Callable<VersionGCStats>() {

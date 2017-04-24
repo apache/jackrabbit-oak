@@ -134,6 +134,7 @@ public class VersionGCQueryTest {
             ns.runBackgroundOperations();
         }
         int numPrevDocs = Iterators.size(store.find(Collection.NODES, id).getAllPreviousDocs());
+        assertEquals(1, Iterators.size(Utils.getRootDocument(store).getAllPreviousDocs()));
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
@@ -142,9 +143,12 @@ public class VersionGCQueryTest {
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(1, stats.deletedDocGCCount);
-        assertEquals(numPrevDocs, stats.splitDocGCCount);
+        // GC also cleans up the previous doc on root
+        assertEquals(numPrevDocs + 1, stats.splitDocGCCount);
+        // but only does find calls for previous docs of /test
         assertEquals(numPrevDocs, prevDocIds.size());
-        assertEquals(2, Iterables.size(Utils.getAllDocuments(store)));
+        // at the end only the root document remains
+        assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
     }
 
     private NodeState merge(NodeBuilder builder) throws CommitFailedException {

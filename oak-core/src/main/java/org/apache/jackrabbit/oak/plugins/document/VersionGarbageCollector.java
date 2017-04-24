@@ -64,6 +64,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
 
 public class VersionGarbageCollector {
@@ -79,7 +80,7 @@ public class VersionGarbageCollector {
      * Split document types which can be safely garbage collected
      */
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
-            DEFAULT_LEAF, COMMIT_ROOT_ONLY);
+            DEFAULT_LEAF, COMMIT_ROOT_ONLY, DEFAULT_NO_BRANCH);
 
     /**
      * Document id stored in settings collection that keeps info about version gc
@@ -408,10 +409,11 @@ public class VersionGarbageCollector {
                     cancel.set(true);
                 } else {
                     final RevisionVector headRevision = nodeStore.getHeadRevision();
+                    final RevisionVector sweepRevisions = nodeStore.getSweepRevisions();
                     log.info("Looking at revisions in {}", rec.scope);
 
                     collectDeletedDocuments(phases, headRevision, rec);
-                    collectSplitDocuments(phases, rec);
+                    collectSplitDocuments(phases, sweepRevisions, rec);
                 }
             } catch (LimitExceededException ex) {
                 stats.limitExceeded = true;
@@ -427,9 +429,11 @@ public class VersionGarbageCollector {
             return stats;
         }
 
-        private void collectSplitDocuments(GCPhases phases, Recommendations rec) {
+        private void collectSplitDocuments(GCPhases phases,
+                                           RevisionVector sweepRevisions,
+                                           Recommendations rec) {
             if (phases.start(GCPhase.SPLITS_CLEANUP)) {
-                versionStore.deleteSplitDocuments(GC_TYPES, rec.scope.toMs, phases.stats);
+                versionStore.deleteSplitDocuments(GC_TYPES, sweepRevisions, rec.scope.toMs, phases.stats);
                 phases.stop(GCPhase.SPLITS_CLEANUP);
             }
         }
