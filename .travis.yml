@@ -37,6 +37,7 @@ addons:
       - mongodb-upstart
     packages:
       - mongodb-org-server
+      - oracle-java8-installer
 notifications:
   email: false
   webhooks:
