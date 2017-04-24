@@ -82,6 +82,8 @@ public class AbstractTwoNodeTest {
 
     @Before
     public void setUp() throws InterruptedException {
+        MongoUtils.dropCollections(MongoUtils.DB);
+
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
 

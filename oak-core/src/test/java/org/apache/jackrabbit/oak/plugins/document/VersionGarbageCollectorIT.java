@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nonnull;
+
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -242,25 +244,38 @@ public class VersionGarbageCollectorIT {
         }
         store.runBackgroundOperations();
 
+        // perform a change to make sure the sweep rev will be newer than
+        // the split revs, otherwise revision GC won't remove the split doc
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("qux");
+        merge(store, builder);
+        store.runBackgroundOperations();
+
         List<NodeDocument> previousDocTestFoo =
                 ImmutableList.copyOf(getDoc("/test/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocTestFoo2 =
                 ImmutableList.copyOf(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
+        List<NodeDocument> previousDocRoot =
+                ImmutableList.copyOf(getDoc("/").getAllPreviousDocs());
 
         assertEquals(1, previousDocTestFoo.size());
         assertEquals(1, previousDocTestFoo2.size());
+        assertEquals(1, previousDocRoot.size());
 
         assertEquals(SplitDocType.COMMIT_ROOT_ONLY, previousDocTestFoo.get(0).getSplitDocType());
         assertEquals(SplitDocType.DEFAULT_LEAF, previousDocTestFoo2.get(0).getSplitDocType());
+        assertEquals(SplitDocType.DEFAULT_NO_BRANCH, previousDocRoot.get(0).getSplitDocType());
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
-        assertEquals(2, stats.splitDocGCCount);
+        assertEquals(3, stats.splitDocGCCount);
         assertEquals(0, stats.deletedLeafDocGCCount);
 
         //Previous doc should be removed
         assertNull(getDoc(previousDocTestFoo.get(0).getPath()));
         assertNull(getDoc(previousDocTestFoo2.get(0).getPath()));
+        assertNull(getDoc(previousDocRoot.get(0).getPath()));
 
         //Following would not work for Mongo as the delete happened on the server side
         //And entries from cache are not evicted
@@ -375,10 +390,19 @@ public class VersionGarbageCollectorIT {
 
         store.runBackgroundOperations();
 
+        // perform a change to make sure the sweep rev will be newer than
+        // the split revs, otherwise revision GC won't remove the split doc
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("qux");
+        merge(store, builder);
+        store.runBackgroundOperations();
+
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
         VersionGCStats stats = gc.gc(maxAge, HOURS);
-        assertEquals(2, stats.splitDocGCCount);
+        // one split doc each on: /foo, /bar and root document
+        assertEquals(3, stats.splitDocGCCount);
         assertEquals(0, stats.deletedLeafDocGCCount);
 
         NodeDocument doc = getDoc("/foo");
@@ -657,6 +681,7 @@ public class VersionGarbageCollectorIT {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
                 return new Iterable<NodeDocument>() {
+                    @Nonnull
                     @Override
                     public Iterator<NodeDocument> iterator() {
                         return new AbstractIterator<NodeDocument>() {
@@ -739,6 +764,103 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + clockDelta);
         gc.gc(maxAgeHours, HOURS);
         assertEquals(1, docCounter.get());
+    }
+
+    @Test
+    public void gcDefaultNoBranchSplitDoc() throws Exception {
+        long maxAge = 1; //hrs
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo").child("bar");
+        merge(store, builder);
+        String value = "";
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            builder = store.getRoot().builder();
+            value = "v" + i;
+            builder.child("foo").setProperty("prop", value);
+            merge(store, builder);
+        }
+        store.runBackgroundOperations();
+
+        // perform a change to make sure the sweep rev will be newer than
+        // the split revs, otherwise revision GC won't remove the split doc
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        builder = store.getRoot().builder();
+        builder.child("qux");
+        merge(store, builder);
+        store.runBackgroundOperations();
+
+        NodeDocument doc = getDoc("/foo");
+        assertNotNull(doc);
+        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        assertEquals(1, prevDocs.size());
+        assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
+
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(1, stats.splitDocGCCount);
+
+        doc = getDoc("/foo");
+        assertNotNull(doc);
+        prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        assertEquals(0, prevDocs.size());
+
+        assertEquals(value, store.getRoot().getChildNode("foo").getString("prop"));
+    }
+
+    @Test
+    public void gcWithOldSweepRev() throws Exception {
+        long maxAge = 1; //hrs
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo").child("bar");
+        merge(store, builder);
+        String value = "";
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            builder = store.getRoot().builder();
+            value = "v" + i;
+            builder.child("foo").setProperty("prop", value);
+            merge(store, builder);
+        }
+
+        // trigger split of /foo
+        store.runBackgroundUpdateOperations();
+
+        // now /foo must have previous docs
+        NodeDocument doc = getDoc("/foo");
+        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        assertEquals(1, prevDocs.size());
+        assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
+
+        // revision gc must not collect previous doc because sweep did not run
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(0, stats.splitDocGCCount);
+
+        // write something to make sure sweep rev is after the split revs
+        // otherwise GC won't collect the split doc
+        builder = store.getRoot().builder();
+        builder.child("qux");
+        merge(store, builder);
+
+        // run full background operations with sweep
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(NodeDocument.MODIFIED_IN_SECS_RESOLUTION * 2));
+        store.runBackgroundOperations();
+
+        // now sweep rev must be updated and revision GC can collect prev doc
+        stats = gc.gc(maxAge, HOURS);
+        assertEquals(1, stats.splitDocGCCount);
+
+        doc = getDoc("/foo");
+        assertNotNull(doc);
+        prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        assertEquals(0, prevDocs.size());
+        // check value
+        assertEquals(value, store.getRoot().getChildNode("foo").getString("prop"));
     }
 
     private void createTestNode(String name) throws CommitFailedException {

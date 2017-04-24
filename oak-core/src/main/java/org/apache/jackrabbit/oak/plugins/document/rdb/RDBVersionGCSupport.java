@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
@@ -64,7 +65,9 @@ public class RDBVersionGCSupport extends VersionGCSupport {
     }
 
     @Override
-    protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes, final long oldestRevTimeStamp) {
+    protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
+                                                     final RevisionVector sweepRevs,
+                                                     final long oldestRevTimeStamp) {
         List<QueryCondition> conditions = Collections.emptyList();
         // absent support for SDTYPE as indexed property: exclude those
         // documents from the query which definitively aren't split documents
@@ -74,7 +77,9 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         return CloseableIterable.wrap(filter(it, new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument doc) {
-                return gcTypes.contains(doc.getSplitDocType()) && doc.hasAllRevisionLessThan(oldestRevTimeStamp);
+                return gcTypes.contains(doc.getSplitDocType())
+                        && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
+                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
             }
         }), (Closeable) it);
     }

@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 public class VersionGCSupport {
 
@@ -81,10 +82,11 @@ public class VersionGCSupport {
         });
     }
 
-    public void deleteSplitDocuments(Set<SplitDocType> gcTypes,
-                                     long oldestRevTimeStamp,
-                                     VersionGCStats stats) {
-        SplitDocumentCleanUp cu = createCleanUp(gcTypes, oldestRevTimeStamp, stats);
+    void deleteSplitDocuments(Set<SplitDocType> gcTypes,
+                              RevisionVector sweepRevs,
+                              long oldestRevTimeStamp,
+                              VersionGCStats stats) {
+        SplitDocumentCleanUp cu = createCleanUp(gcTypes, sweepRevs, oldestRevTimeStamp, stats);
         try {
             stats.splitDocGCCount += cu.disconnect().deleteSplitDocuments();
         }
@@ -94,19 +96,22 @@ public class VersionGCSupport {
     }
 
     protected SplitDocumentCleanUp createCleanUp(Set<SplitDocType> gcTypes,
+                                                 RevisionVector sweepRevs,
                                                  long oldestRevTimeStamp,
                                                  VersionGCStats stats) {
         return new SplitDocumentCleanUp(store, stats,
-                identifyGarbage(gcTypes, oldestRevTimeStamp));
+                identifyGarbage(gcTypes, sweepRevs, oldestRevTimeStamp));
     }
 
     protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
+                                                     final RevisionVector sweepRevs,
                                                      final long oldestRevTimeStamp) {
         return filter(getAllDocuments(store), new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument doc) {
                 return gcTypes.contains(doc.getSplitDocType())
-                        && doc.hasAllRevisionLessThan(oldestRevTimeStamp);
+                        && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
+                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
             }
         });
     }
@@ -146,5 +151,24 @@ public class VersionGCSupport {
 
     public long getDeletedOnceCount() throws UnsupportedOperationException {
         throw new UnsupportedOperationException("getDeletedOnceCount()");
+    }
+
+    /**
+     * Returns {@code true} if the given document is of type
+     * {@link SplitDocType#DEFAULT_NO_BRANCH} and the most recent change on the
+     * document is newer than the {@code sweepRevs}.
+     *
+     * @param doc the document to check.
+     * @param sweepRevs the current sweep revisions.
+     * @return {@code true} if the document is a {@link SplitDocType#DEFAULT_NO_BRANCH}
+     *      and it is newer than {@code sweepRevs}; {@code false} otherwise.
+     */
+    protected static boolean isDefaultNoBranchSplitNewerThan(NodeDocument doc,
+                                                             RevisionVector sweepRevs) {
+        if (doc.getSplitDocType() != SplitDocType.DEFAULT_NO_BRANCH) {
+            return false;
+        }
+        Revision r = Iterables.getFirst(doc.getAllChanges(), null);
+        return r != null && sweepRevs.isRevisionNewer(r);
     }
 }
