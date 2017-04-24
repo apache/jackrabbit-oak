@@ -21,6 +21,7 @@ The following runmodes are currently available:
     * recovery        : Run a _lastRev recovery on a MongoMK repository
     * resetclusterid  : Resets the cluster id
     * restore         : Restore a backup of an Oak repository.
+    * revisions       : Revision GC on a DocumentMK
     * server          : Run the Oak Server.
     * tarmkdiff       : Show changes between revisions on TarMk
     * tarmkrecovery   : Lists candidates for head journal entries
@@ -527,6 +528,11 @@ Unlock DocumentMK upgrade
 -------------------------
 
 See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#unlockUpgrade).
+
+Revisions
+---------
+
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revisionGC).
 
 License
 -------

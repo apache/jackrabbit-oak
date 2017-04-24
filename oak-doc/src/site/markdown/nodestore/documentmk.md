@@ -40,7 +40,8 @@
     * [Caching](#cache)
         * [Cache Invalidation](#cache-invalidation)
         * [Cache Configuration](#cache-configuration)
-    * [Unlock upgrade ](#unlockUpgrade)
+    * [Unlock upgrade](#unlockUpgrade)
+    * [Revision Garbage Collection](#revisionGC)
 
 One of the plugins in Oak stores data in a document oriented format. 
 The plugin implements the low level `NodeStore` interface.
@@ -622,6 +623,51 @@ are inactive, otherwise the command will refuse to change the format version.
 `@since Oak 1.6`
 
 Refer to [Secondary Store](document/secondary-store.html)
+
+## <a name="revision-gc"></a> Revision Garbage Collection 
+
+As described in the section [Node Content Model](#node-content-model), the
+DocumentNodeStore does not overwrite existing data but adds it to an existing
+document when a property is updated. Cleaning up old data, which is not needed
+anymore is done with a process called `Revision Garbage Collection`. This
+process does not run automatically and must be triggered periodically by the
+application. The garbage collection process adds some pressure on the system,
+so the application should trigger it when it is most convenient. E.g. at night,
+when systems are usually not that busy. It is usually sufficient to run it once
+a day. There are several ways how the revision garbage collection can be
+triggered:
+
+* Call `startRevisionGC()` on the [RepositoryManagementMBean](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/api/jmx/RepositoryManagementMBean.html)
+* Call [gc()](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/VersionGarbageCollector.html#gc-long-java.util.concurrent.TimeUnit-) on the `VersionGarbageCollector` obtained from the `DocumentNodeStore` instance
+* Use the oak-run runnable jar file with the `revisions` run mode (`@since Oak 1.8`).
+
+The first two options are not described in more detail, because both of them
+are simple method calls. The third option comes with some sub commands as
+described below when oak-run with the `revisions` run mode is invoked without
+parameters or options:
+
+    revisions mongodb://host:port/database <sub-command> [options]
+    where sub-command is one of
+      info     give information about the revisions state without performing
+               any modifications
+      collect  perform garbage collection
+      reset    clear all persisted metadata
+    
+    Option                 Description
+    ------                 -----------
+    -?, -h, --help         show help
+    --cacheSize <Integer>  cache size (default: 0)
+    --clusterId <Integer>  MongoMK clusterId (default: 0)
+    --delay <Double>       introduce delays to reduce impact on
+                             system (default: 0.0)
+    --disableBranches      disable branches
+    --limit <Integer>      collect at most limit documents
+                             (default: -1)
+    --olderThan <Long>     collect only docs older than n seconds
+                             (default: 86400)
+    --once                 only 1 iteration
+    --timeLimit <Long>     cancel garbage collection after n
+                             seconds (default: -1)
 
 [1]: http://docs.mongodb.org/manual/core/read-preference/
 [2]: http://docs.mongodb.org/manual/core/write-concern/
