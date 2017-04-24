@@ -47,6 +47,9 @@
   <!-- Display information messages from oak-run check (oak-segment-tar) -->
   <logger name="org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker" level="DEBUG"/>
 
+  <!-- Display information messages from DocumentNodeStore VersionGC -->
+  <logger name="org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector" level="INFO"/>
+
   <root level="warn">
     <appender-ref ref="STDERR" />
   </root>
