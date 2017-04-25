@@ -666,6 +666,8 @@ parameters or options:
     --olderThan <Long>     collect only docs older than n seconds
                              (default: 86400)
     --once                 only 1 iteration
+    --rdbjdbcpasswd        RDB JDBC password (default: )
+    --rdbjdbcuser          RDB JDBC user (default: )
     --timeLimit <Long>     cancel garbage collection after n
                              seconds (default: -1)
 

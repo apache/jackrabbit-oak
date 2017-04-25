@@ -31,8 +31,10 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
@@ -44,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -66,6 +69,8 @@ class Utils {
     public static class NodeStoreOptions {
 
         public final OptionParser parser;
+        public final OptionSpec<String> rdbjdbcuser;
+        public final OptionSpec<String> rdbjdbcpasswd;
         public final OptionSpec<Integer> clusterId;
         public final OptionSpec<Void> disableBranchesSpec;
         public final OptionSpec<Integer> cacheSizeSpec;
@@ -76,14 +81,20 @@ class Utils {
 
         public NodeStoreOptions(String usage) {
             parser = new OptionParser();
+            rdbjdbcuser = parser
+                    .accepts("rdbjdbcuser", "RDB JDBC user")
+                    .withOptionalArg().defaultsTo("");
+            rdbjdbcpasswd = parser
+                    .accepts("rdbjdbcpasswd", "RDB JDBC password")
+                    .withOptionalArg().defaultsTo("");
             clusterId = parser
-                    .accepts("clusterId", "MongoMK clusterId").withRequiredArg()
-                    .ofType(Integer.class).defaultsTo(0);
+                    .accepts("clusterId", "MongoMK clusterId")
+                    .withRequiredArg().ofType(Integer.class).defaultsTo(0);
             disableBranchesSpec = parser.
                     accepts("disableBranches", "disable branches");
             cacheSizeSpec = parser.
-                    accepts("cacheSize", "cache size").withRequiredArg().
-                    ofType(Integer.class).defaultsTo(0);
+                    accepts("cacheSize", "cache size")
+                    .withRequiredArg().ofType(Integer.class).defaultsTo(0);
             help = parser.acceptsAll(asList("h", "?", "help"),"show help").forHelp();
             nonOption = parser.nonOptions(usage);
         }
@@ -123,6 +134,14 @@ class Utils {
         public int getCacheSize() {
             return cacheSizeSpec.value(options);
         }
+
+        public String getRDBJDBCUser() {
+            return rdbjdbcuser.value(options);
+        }
+
+        public String getRDBJDBCPassword() {
+            return rdbjdbcpasswd.value(options);
+        }
     }
 
     public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException {
@@ -136,6 +155,28 @@ class Utils {
             System.exit(1);
         }
 
+        if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
+            DocumentMK.Builder builder = createDocumentMKBuilder(options, closer);
+            if (builder != null) {
+                DocumentNodeStore store = builder.getNodeStore();
+                closer.register(asCloseable(store));
+                return store;
+            }
+        }
+
+        return SegmentTarUtils.bootstrapNodeStore(src, closer);
+    }
+
+    @CheckForNull
+    static DocumentMK.Builder createDocumentMKBuilder(NodeStoreOptions options,
+                                                      Closer closer)
+            throws IOException {
+        String src = options.getStoreArg();
+        if (src == null || src.length() == 0) {
+            options.printHelpOn(System.err);
+            System.exit(1);
+        }
+        DocumentMK.Builder builder = new DocumentMK.Builder();
         if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(src);
             if (uri.getDatabase() == null) {
@@ -145,24 +186,25 @@ class Utils {
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
             closer.register(asCloseable(mongo));
-            DocumentMK.Builder builder = new DocumentMK.Builder();
-            builder.
-                    setMongoDB(mongo.getDB()).
-                    setLeaseCheck(false).
-                    setClusterId(options.getClusterId());
-            if (options.disableBranchesSpec()) {
-                builder.disableBranches();
-            }
-            int cacheSize = options.getCacheSize();
-            if (cacheSize != 0) {
-                builder.memoryCacheSize(cacheSize * MB);
-            }
-            DocumentNodeStore store = builder.getNodeStore();
-            closer.register(asCloseable(store));
-            return store;
+            builder.setMongoDB(mongo.getDB());
+        } else if (src.startsWith("jdbc")) {
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(src,
+                    options.getRDBJDBCUser(), options.getRDBJDBCPassword());
+            builder.setRDBConnection(ds);
+        } else {
+            return null;
         }
-
-        return SegmentTarUtils.bootstrapNodeStore(src, closer);
+        builder.
+                setLeaseCheck(false).
+                setClusterId(options.getClusterId());
+        if (options.disableBranchesSpec()) {
+            builder.disableBranches();
+        }
+        int cacheSize = options.getCacheSize();
+        if (cacheSize != 0) {
+            builder.memoryCacheSize(cacheSize * MB);
+        }
+        return builder;
     }
 
     @Nullable

@@ -33,16 +33,22 @@ import java.util.concurrent.TimeoutException;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
+import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGCSupport;
+import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
+import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 
 /**
  * Gives information about current node revisions state.
@@ -50,7 +56,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToS
 public class RevisionsCommand implements Command {
 
     private static final String USAGE = Joiner.on(System.lineSeparator()).join(
-            "revisions mongodb://host:port/database <sub-command> [options]",
+            "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
             "where sub-command is one of",
             "  info     give information about the revisions state without performing",
             "           any modifications",
@@ -148,13 +154,28 @@ public class RevisionsCommand implements Command {
     private VersionGarbageCollector bootstrapVGC(RevisionsOptions options,
                                                  Closer closer)
             throws IOException {
-        NodeStore store = Utils.bootstrapNodeStore(options, closer);
-        if (!(store instanceof DocumentNodeStore)) {
+        DocumentMK.Builder builder = createDocumentMKBuilder(options, closer);
+        if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
             System.exit(1);
         }
-        DocumentNodeStore dns = (DocumentNodeStore) store;
-        VersionGarbageCollector gc = dns.getVersionGarbageCollector();
+        // create a VersionGCSupport while builder is read-write
+        VersionGCSupport gcSupport = createVersionGCSupport(builder);
+        // check for matching format version
+        FormatVersion version = versionOf(gcSupport.getDocumentStore());
+        if (!DocumentNodeStore.VERSION.equals(version)) {
+            System.err.println("Incompatible versions. This oak-run is " +
+                    DocumentNodeStore.VERSION + ", while the store is " +
+                    version);
+            System.exit(1);
+        }
+        // set it read-only before the DocumentNodeStore is created
+        // this prevents the DocumentNodeStore from writing a new
+        // clusterId to the clusterNodes and nodes collections
+        builder.setReadOnlyMode();
+        // create a version GC that operates on a read-only DocumentNodeStore
+        // and a GC support with a writable DocumentStore
+        VersionGarbageCollector gc = createVersionGC(builder.getNodeStore(), gcSupport);
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
