@@ -20,16 +20,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.util.Map;
 import java.util.UUID;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import com.google.common.collect.Maps;
+
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,6 +43,7 @@ public class ValidNamesTest extends AbstractRepositoryTest {
 
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
+    private static final Map<NodeStoreFixture, NodeStore> STORES = Maps.newConcurrentMap();
 
     private Node testNode;
 
@@ -50,7 +57,8 @@ public class ValidNamesTest extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws RepositoryException {
-        Session session = getAdminSession();
+        Repository repo = createRepository(fixture);
+        Session session = repo.login(getAdminCredentials());
         Node root = session.getRootNode();
         testNode = root.addNode(TEST_NODE);
         session.save();
@@ -84,6 +92,17 @@ public class ValidNamesTest extends AbstractRepositoryTest {
         Session s = testNode.getSession();
         s.removeItem(TEST_PATH);
         s.save();
+        Repository r = s.getRepository();
+        s.logout();
+        dispose(r);
+    }
+
+    @AfterClass
+    public static void disposeStores() throws Exception {
+        for (Map.Entry<NodeStoreFixture, NodeStore> e : STORES.entrySet()) {
+            e.getKey().dispose(e.getValue());
+        }
+        STORES.clear();
     }
 
     @Test
@@ -285,5 +304,20 @@ public class ValidNamesTest extends AbstractRepositoryTest {
             fail(ex.getMessage());
             return null;
         }
+    }
+
+    private Repository createRepository(NodeStoreFixture fixture)
+            throws RepositoryException {
+        NodeStore ns = null;
+        for (Map.Entry<NodeStoreFixture, NodeStore> e : STORES.entrySet()) {
+            if (e.getKey().getClass().equals(fixture.getClass())) {
+                ns = e.getValue();
+            }
+        }
+        if (ns == null) {
+            ns = createNodeStore(fixture);
+            STORES.put(fixture, ns);
+        }
+        return createRepository(ns);
     }
 }
