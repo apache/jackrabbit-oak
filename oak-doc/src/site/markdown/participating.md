@@ -27,10 +27,19 @@ or patches. To subscribe to issue notifications, send a message to [oak-issues@]
 (mailto:oak-issues-subscribe@jackrabbit.apache.org). 
 
 The latest Oak sources are available for checkout from [svn][1] and can also be browsed using the 
-[ViewVC][3] interface. You can also [fork them][2] on GitHub. To subscribe to commit notifications, send a message to [oak-commits@]
-(mailto:oak-commits-subscribe@jackrabbit.apache.org).
+[ViewVC][3] interface. You can also [fork them][2] on GitHub. To subscribe to commit notifications, 
+send a message to [oak-commits@] (mailto:oak-commits-subscribe@jackrabbit.apache.org).
 
 For more details related to various mailing list have a look at http://jackrabbit.apache.org/mailing-lists.html
+
+We generally follow a [CTR](https://www.apache.org/foundation/glossary.html#CommitThenReview) policy. 
+However it is up to each individual committer to pro-actively ask for a review of a patch on 
+oak-dev@ or to even call for a [RTC](https://www.apache.org/foundation/glossary.html#ReviewThenCommit). 
+Special care should be taken with backports to maintenance branches. Back ports bear a certain risk 
+of introducing regressions to otherwise stable branches. Each back ported change should be carefully 
+evaluated for its potential impact, risk and possible mitigation. It is the responsibility of each 
+committer to asses these and ask for advise or reviewing on oak-dev@ if uncertain. Whether using 
+RTC or CTR is up to the committer.
  
 [1]: https://svn.apache.org/repos/asf/jackrabbit/oak/trunk
 [2]: https://github.com/apache/jackrabbit-oak
