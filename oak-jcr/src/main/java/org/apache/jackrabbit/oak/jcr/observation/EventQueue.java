@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 
@@ -52,7 +53,7 @@ class EventQueue implements EventIterator {
             @Nonnull NamePathMapper mapper, CommitInfo info,
             @Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull Iterable<String> basePaths, @Nonnull EventFilter filter,
-            @Nonnull EventAggregator aggregator) {
+            @Nullable EventAggregator aggregator) {
         this.generator = new EventGenerator();
         EventFactory factory = new EventFactory(mapper, info);
         EventHandler handler = new FilteredHandler(
