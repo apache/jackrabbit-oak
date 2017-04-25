@@ -107,7 +107,7 @@ public class VersionGarbageCollector {
                             VersionGCSupport gcSupport) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
-        this.ds = nodeStore.getDocumentStore();
+        this.ds = gcSupport.getDocumentStore();
         this.options = new VersionGCOptions();
     }
 

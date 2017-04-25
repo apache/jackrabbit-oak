@@ -26,6 +26,8 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedD
 
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -80,6 +82,16 @@ public class VersionGCSupport {
                 return modified != null && modified.compareTo(getModifiedInSecs(time)) < 0;
             }
         });
+    }
+
+    /**
+     * Returns the underlying document store.
+     *
+     * @return the underlying document store.
+     */
+    @Nonnull
+    public DocumentStore getDocumentStore() {
+        return store;
     }
 
     void deleteSplitDocuments(Set<SplitDocType> gcTypes,
