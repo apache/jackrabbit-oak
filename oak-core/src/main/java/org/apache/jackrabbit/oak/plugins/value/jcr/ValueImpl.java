@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Implementation of {@link Value} based on {@code PropertyState}.
  */
-public class ValueImpl implements JackrabbitValue, OakValue {
+class ValueImpl implements JackrabbitValue, OakValue {
     private static final Logger LOG = LoggerFactory.getLogger(ValueImpl.class);
 
     private final PropertyState propertyState;
