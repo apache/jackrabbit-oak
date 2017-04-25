@@ -69,9 +69,10 @@ public interface FilterProvider extends ChangeSetFilter {
     FilterConfigMBean getConfigMBean();
 
     /**
-     * Allows providers to supply an EventAggregator that
+     * Allows providers to supply an optional EventAggregator that
      * is used to adjust (aggregate) the event identifier before event
      * creation (ie after event filtering).
      */
+    @CheckForNull
     EventAggregator getEventAggregator();
 }
