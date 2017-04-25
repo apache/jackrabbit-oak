@@ -65,7 +65,6 @@ public class ManyChildNodesIT {
     @Nonnull
     private FileStore createFileStore() throws InvalidFileStoreVersionException, IOException {
         return fileStoreBuilder(folder.getRoot())
-                .withSegmentCacheSize(0)
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
                 .withStringDeduplicationCacheSize(0)

@@ -256,30 +256,33 @@ public class Segment {
         final int referencedSegmentIdCount = getReferencedSegmentIdCount();
         final int refOffset = data.position() + HEADER_SIZE;
 
-        // lazily populated cache of msbs and lsbs of the referenced segments ids.
-        // DO NOT keep references to the SegmentIds here as this will overflow the heap.
-        // See OAK-4949.
-        final long[] ids = new long[2 * referencedSegmentIdCount];
+        // We need to keep SegmentId references (as opposed to e.g. UUIDs)
+        // here as frequently resolving the segment ids via the segment id
+        // tables is prohibitively expensive.
+        // These SegmentId references are not a problem wrt. heap usage as
+        // their individual memoised references to their underlying segment
+        // is managed via the SegmentCache. It is the size of that cache that
+        // keeps overall heap usage by Segment instances bounded.
+        // See OAK-6106.
+        final SegmentId[] refIds = new SegmentId[referencedSegmentIdCount];
         return new SegmentReferences() {
             @Override
             public SegmentId getSegmentId(int reference) {
                 checkArgument(reference <= referencedSegmentIdCount, "Segment reference out of bounds");
-                long msb = ids[2*(reference - 1)];
-                long lsb = ids[2*(reference - 1) + 1];
-                if (lsb == 0 && msb == 0) {
-                    synchronized(ids) {
-                        msb = ids[2*(reference - 1)];
-                        lsb = ids[2*(reference - 1) + 1];
-                        if (lsb == 0 && msb == 0) {
+                SegmentId id = refIds[reference - 1];
+                if (id == null) {
+                    synchronized(refIds) {
+                        id = refIds[reference - 1];
+                        if (id == null) {
                             int position = refOffset + (reference - 1) * SEGMENT_REFERENCE_SIZE;
-                            msb = data.getLong(position);
-                            lsb = data.getLong(position + 8);
-                            ids[2*(reference - 1)] = msb;
-                            ids[2*(reference - 1) + 1] = lsb;
+                            long msb = data.getLong(position);
+                            long lsb = data.getLong(position + 8);
+                            id = idProvider.newSegmentId(msb, lsb);
+                            refIds[reference - 1] = id;
                         }
                     }
                 }
-                return idProvider.newSegmentId(msb, lsb);
+                return id;
             }
 
             @Nonnull
