@@ -957,15 +957,6 @@
       </dependencies>
     </profile>
     <profile>
-      <id>java8</id>
-      <activation>
-        <jdk>[1.8,)</jdk>
-      </activation>
-      <properties>
-        <test.opts.memory>-Xmx512m</test.opts.memory>
-      </properties>
-    </profile>
-    <profile>
       <id>coverage</id>
       <properties>
         <skip.coverage>false</skip.coverage>
