@@ -104,7 +104,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      */
     @Nonnull
     protected NamePathMapper getNamePathMapper() {
-        return NamePathMapperImpl.DEFAULT;
+        return NamePathMapper.DEFAULT;
     }
 
     //--------------------------------------------------------------------------
