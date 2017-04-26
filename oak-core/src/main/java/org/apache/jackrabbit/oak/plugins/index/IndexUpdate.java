@@ -332,6 +332,7 @@ public class IndexUpdate implements Editor {
         if (parent == null){
             if (rootState.isReindexingPerformed()){
                 log.info(rootState.getReport());
+                log.info("Reindexing completed");
             } else if (log.isDebugEnabled() && rootState.somethingIndexed()){
                 log.debug(rootState.getReport());
             }
