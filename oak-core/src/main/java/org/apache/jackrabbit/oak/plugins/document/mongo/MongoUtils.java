@@ -84,6 +84,31 @@ class MongoUtils {
     }
 
     /**
+     * Forces creation of a partial index on a set of fields, if one does not
+     * already exist.
+     *
+     * @param collection the collection.
+     * @param fields the name of the fields.
+     * @param ascending {@code true} for an ascending, {@code false} for a
+     *                              descending index.
+     * @param filter the filter expression for the partial index.
+     * @throws MongoException if the operation fails.
+     */
+    static void createPartialIndex(DBCollection collection,
+                                   String[] fields,
+                                   boolean[] ascending,
+                                   String filter) throws MongoException {
+        checkArgument(fields.length == ascending.length);
+        DBObject index = new BasicDBObject();
+        for (int i = 0; i < fields.length; i++) {
+            index.put(fields[i], ascending[i] ? 1 : -1);
+        }
+        DBObject options = new BasicDBObject();
+        options.put("partialFilterExpression", BasicDBObject.parse(filter));
+        collection.createIndex(index, options);
+    }
+
+    /**
      * Returns {@code true} if there is an index on the given fields,
      * {@code false} otherwise. If multiple fields are passed, this method
      * check if there a compound index on those field. This method does not
