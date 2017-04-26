@@ -220,7 +220,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     @Nonnull
     Iterator<String> getMembers(@Nonnull Tree groupTree, boolean includeInherited) {
-        return getMembers(groupTree, includeInherited, new HashSet<String>());
+        return getMembers(groupTree, getContentID(groupTree), includeInherited, new HashSet<String>());
     }
 
     /**
@@ -233,11 +233,16 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     @Nonnull
     private Iterator<String> getMembers(@Nonnull final Tree groupTree,
+                                        @Nonnull final String groupContentId,
                                         final boolean includeInherited,
                                         @Nonnull final Set<String> processedRefs) {
         MemberReferenceIterator mrit = new MemberReferenceIterator(groupTree) {
             @Override
             protected boolean hasProcessedReference(@Nonnull String value) {
+                if (groupContentId.equals(value)) {
+                    log.warn("Cyclic group membership detected for contentId " + groupContentId);
+                    return false;
+                }
                 return processedRefs.add(value);
             }
         };
@@ -261,7 +266,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             @Nonnull
             @Override
             protected Iterator<String> getNextIterator(@Nonnull Tree groupTree) {
-                return getMembers(groupTree, true, processedRefs);
+                return getMembers(groupTree, groupContentId, true, processedRefs);
             }
         };
     }

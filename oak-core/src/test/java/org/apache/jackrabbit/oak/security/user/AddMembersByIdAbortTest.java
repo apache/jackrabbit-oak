@@ -16,13 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Set;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AddMembersByIdAbortTest extends AbstractAddMembersByIdTest {
 
@@ -42,5 +48,24 @@ public class AddMembersByIdAbortTest extends AbstractAddMembersByIdTest {
     @Test(expected = ConstraintViolationException.class)
     public void testExistingMemberWithoutAccess() throws Exception {
         addExistingMemberWithoutAccess();
+    }
+
+    @Test
+    public void testCyclicMembership() throws Exception {
+        memberGroup.addMember(testGroup);
+        root.commit();
+
+        try {
+            Set<String> failed = testGroup.addMembers(memberGroup.getID());
+            assertTrue(failed.isEmpty());
+            root.commit();
+            fail("cyclic group membership must be detected latest upon commit");
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isConstraintViolation());
+            assertEquals(31, e.getCode());
+        }  catch (ConstraintViolationException e) {
+            // success
+        }
     }
 }

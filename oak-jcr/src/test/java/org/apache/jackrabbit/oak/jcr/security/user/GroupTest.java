@@ -644,8 +644,10 @@ public class GroupTest extends AbstractUserTest {
 
     private static void assertCyclicCommitFailed(RepositoryException e) {
         Throwable th = e.getCause();
-        assertTrue(th instanceof CommitFailedException);
-        assertEquals(31, ((CommitFailedException) th).getCode());
+        if (th != null) {
+            assertTrue(th instanceof CommitFailedException);
+            assertEquals(31, ((CommitFailedException) th).getCode());
+        }
     }
 
     @Test

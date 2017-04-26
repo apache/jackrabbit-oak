@@ -31,7 +31,6 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -48,7 +47,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
 
@@ -237,16 +235,8 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         root.commit();
 
         Set<String> failed = testGroup.addMembers(memberGroup.getID());
-        assertTrue(failed.isEmpty());
-
-        try {
-            root.commit();
-            fail("cyclic group membership must be detected upon commit");
-        } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(31, e.getCode());
-        }
+        assertFalse(failed.isEmpty());
+        assertTrue(failed.contains(memberGroup.getID()));
     }
 
     @Test
