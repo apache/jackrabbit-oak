@@ -54,7 +54,7 @@ public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
         final NodeStore targetNodeStore = new MemoryNodeStore();
         final RepositorySidegrade sidegrade = new RepositorySidegrade(sourceNodeStore, targetNodeStore);
         setup.setup(sidegrade.versionCopyConfiguration);
-        sidegrade.copy(null);
+        sidegrade.copy();
 
         repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
         Session s = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);

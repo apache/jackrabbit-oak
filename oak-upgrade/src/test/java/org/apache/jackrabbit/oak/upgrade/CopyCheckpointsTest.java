@@ -24,14 +24,12 @@ import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,8 +76,8 @@ public class CopyCheckpointsTest extends AbstractOak2OakTest {
         });
         params.add(new Object[]{
                 "Source data store defined, checkpoints migrated",
-                new SegmentTarNodeStoreContainer(blob),
-                new SegmentTarNodeStoreContainer(blob),
+                new SegmentNodeStoreContainer(blob),
+                new SegmentNodeStoreContainer(blob),
                 asList("--src-datastore=" + blob.getDescription()),
                 Result.CHECKPOINTS_COPIED
         });
