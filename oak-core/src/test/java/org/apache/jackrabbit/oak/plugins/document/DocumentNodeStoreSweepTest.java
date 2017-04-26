@@ -16,18 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.List;
 import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
@@ -118,6 +123,61 @@ public class DocumentNodeStoreSweepTest {
     }
 
     @Test
+    public void recoveryAfterGC() throws Exception {
+        int clusterId = ns.getClusterId();
+
+        for (int i = 0; i < 5; i++) {
+            NodeBuilder builder = ns.getRoot().builder();
+            builder.child("foo").child("node-" + i);
+            merge(ns, builder);
+            // root document must contain a revisions entry for this commit
+            Revision r = ns.getHeadRevision().getRevision(clusterId);
+            assertNotNull(r);
+            assertTrue(getRootDocument(store).getLocalRevisions().containsKey(r));
+        }
+        // split the root
+        NodeDocument doc = getRootDocument(store);
+        List<UpdateOp> ops = SplitOperations.forDocument(doc, ns,
+                ns.getHeadRevision(), NO_BINARY, 2);
+        String prevId = null;
+        for (UpdateOp op : ops) {
+            if (Utils.isPreviousDocId(op.getId())) {
+                prevId = op.getId();
+            }
+        }
+        // there must be an operation for a split doc
+        assertNotNull(prevId);
+        store.createOrUpdate(Collection.NODES, ops);
+        ns.runBackgroundOperations();
+
+        // wait an hour
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
+
+        // do some other changes not followed by background update
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo").child("node-0").child("bar");
+        merge(ns, builder);
+
+        // run GC
+        ns.getVersionGarbageCollector().gc(30, TimeUnit.MINUTES);
+        // now the split document must be gone
+        assertNull(store.find(Collection.NODES, prevId));
+
+        // simulate a crashed node store
+        crashDocumentNodeStore();
+
+        // store must be clean after restart
+        ns = createDocumentNodeStore(clusterId);
+        assertCleanStore();
+
+        // and nodes must still exist
+        for (int i = 0; i < 5; i++) {
+            assertNodeExists("/foo/node-" + i);
+            assertNodeExists("/foo/node-0/bar");
+        }
+    }
+
+    @Test
     public void otherClusterNodeRecovery() throws Exception {
         int clusterId = ns.getClusterId();
         createUncommittedChanges();
@@ -134,6 +194,14 @@ public class DocumentNodeStoreSweepTest {
         assertTrue(ns.getLastRevRecoveryAgent().recover(clusterId) > 0);
         // now the store must be clean
         assertCleanStore();
+    }
+
+    private void assertNodeExists(String path) {
+        NodeState n = ns.getRoot();
+        for (String name : PathUtils.elements(path)) {
+            n = n.getChildNode(name);
+            assertTrue(name + " does not exist", n.exists());
+        }
     }
 
     private void createUncommittedChanges() throws Exception {

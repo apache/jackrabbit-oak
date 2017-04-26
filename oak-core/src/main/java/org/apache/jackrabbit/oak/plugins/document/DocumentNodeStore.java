@@ -625,6 +625,7 @@ public final class DocumentNodeStore
                 throw new IllegalStateException("Root document does not exist");
             }
         } else {
+            sweepRevisions = sweepRevisions.pmax(rootDoc.getSweepRevisions());
             if (!readOnlyMode) {
                 checkLastRevRecovery();
             }
@@ -637,8 +638,6 @@ public final class DocumentNodeStore
                 }
             }
         }
-
-        sweepRevisions = sweepRevisions.pmax(rootDoc.getSweepRevisions());
 
         // Renew the lease because it may have been stale
         renewClusterIdLease();
