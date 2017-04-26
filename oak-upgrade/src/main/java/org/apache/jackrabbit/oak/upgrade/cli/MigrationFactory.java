@@ -116,6 +116,7 @@ public class MigrationFactory {
         sidegrade.setFilterLongNames(stores.getSrcType().isSupportLongNames() && !stores.getDstType().isSupportLongNames());
         sidegrade.setVerify(options.isVerify());
         sidegrade.setOnlyVerify(options.isOnlyVerify());
+        sidegrade.setSkipCheckpoints(options.isSkipCheckpoints());
         return sidegrade;
     }
 

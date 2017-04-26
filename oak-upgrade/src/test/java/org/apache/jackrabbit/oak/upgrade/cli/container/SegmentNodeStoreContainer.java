@@ -66,6 +66,7 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
     public void close() {
         if (fs != null) {
             fs.close();
+            fs = null;
         }
     }
 
