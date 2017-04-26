@@ -671,6 +671,14 @@ parameters or options:
     --timeLimit <Long>     cancel garbage collection after n
                              seconds (default: -1)
 
+A revision garbage collection can be invoked while the system is online and
+running. Using the oak-run runnable jar, a revision GC on a system using the
+MongoDB backend can be initiated with:
+
+    java -jar oak-run-1.8.0.jar revisions mongodb://localhost:27017/oak collect
+    
+This will collect changes identified as garbage, which is older than 24 hours.
+
 [1]: http://docs.mongodb.org/manual/core/read-preference/
 [2]: http://docs.mongodb.org/manual/core/write-concern/
 [3]: http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
