@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -160,6 +161,26 @@ public class JournalDiffLoaderTest {
 
         DocumentNodeState s2 = ns1.getRoot();
         assertEquals(newHashSet("foo", "bar", "baz"), changeChildNodes(ns1, s1, s2));
+    }
+
+    @Test
+    public void emptyBranchCommit() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(0).disableBranches().getNodeStore();
+        DocumentStore store = ns.getDocumentStore();
+        DocumentNodeState before = ns.getRoot();
+        String id = Utils.getIdFromPath("/node-0");
+        NodeBuilder builder = ns.getRoot().builder();
+        int i = 0;
+        while (store.find(Collection.NODES, id) == null) {
+            NodeBuilder child = builder.child("node-" + i++);
+            for (int j = 0; j < 20; j++) {
+                child.setProperty("p-" + j, "value");
+            }
+        }
+        merge(ns, builder);
+        DocumentNodeState after = ns.getRoot();
+        new JournalDiffLoader(before, after, ns).call();
     }
 
     private static Set<String> changeChildNodes(DocumentNodeStore store,

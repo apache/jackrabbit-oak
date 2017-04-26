@@ -63,7 +63,7 @@ public final class JournalEntry extends Document {
 
     private static final String CHANGES = "_c";
 
-    private static final String BRANCH_COMMITS = "_bc";
+    static final String BRANCH_COMMITS = "_bc";
 
     public static final String MODIFIED = "_modified";
 
@@ -274,6 +274,9 @@ public final class JournalEntry extends Document {
     }
 
     void branchCommit(@Nonnull Iterable<Revision> revisions) {
+        if (!revisions.iterator().hasNext()) {
+            return;
+        }
         String branchCommits = (String) get(BRANCH_COMMITS);
         if (branchCommits == null) {
             branchCommits = "";
@@ -336,7 +339,9 @@ public final class JournalEntry extends Document {
         String bc = (String) get(BRANCH_COMMITS);
         if (bc != null) {
             for (String id : bc.split(",")) {
-                ids.add(id);
+                if (id.length() != 0) {
+                    ids.add(id);
+                }
             }
         }
         return new Iterable<JournalEntry>() {
