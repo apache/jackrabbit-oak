@@ -61,6 +61,8 @@ public class MigrationOptions {
 
     private final boolean onlyVerify;
 
+    private final boolean skipCheckpoints;
+
     private final String srcUser;
 
     private final String srcPassword;
@@ -118,6 +120,7 @@ public class MigrationOptions {
         this.ignoreMissingBinaries = args.hasOption(OptionParserFactory.IGNORE_MISSING_BINARIES);
         this.verify = args.hasOption(OptionParserFactory.VERIFY);
         this.onlyVerify = args.hasOption(OptionParserFactory.ONLY_VERIFY);
+        this.skipCheckpoints = args.hasOption(OptionParserFactory.SKIP_CHECKPOINTS);
 
         this.srcUser = args.getOption(OptionParserFactory.SRC_USER);
         this.srcPassword = args.getOption(OptionParserFactory.SRC_USER);
@@ -200,6 +203,10 @@ public class MigrationOptions {
 
     public boolean isOnlyVerify() {
         return onlyVerify;
+    }
+
+    public boolean isSkipCheckpoints() {
+        return skipCheckpoints;
     }
 
     public String getSrcUser() {
@@ -329,6 +336,10 @@ public class MigrationOptions {
 
         if (srcExternalBlobs != null) {
             log.info("Source DataStore external blobs: {}", srcExternalBlobs);
+        }
+
+        if (skipCheckpoints) {
+            log.info("Checkpoints won't be migrated");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);
