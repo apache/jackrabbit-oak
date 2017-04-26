@@ -475,6 +475,11 @@ Reindexing of existing indexes is required in the following scenarios:
   in combination with a large transaction (a commit that changed or added many thousand nodes),
   and if one of the parent nodes had more than 100 child nodes,
   then indexes (all types) [did not see those changes in some cases][OAK-5557].
+* G: Prior to Oak 1.4.7, when repository sidegrade was used to do _partial_ migrations,
+  that is migrating data without migrating related indexes.
+  In this case, the property indexes need to be either fully rebuilt,
+  or (as an alternative) copy or migrate the content again using a newer version of Oak.
+  See also [OAK-4684][OAK-4684].
 
 New indexes are built automatically once the index definition is stored.
 To reindex an _existing_ index (when needed), set the `reindex` property to `true` in the respective index definition:
@@ -512,12 +517,12 @@ remove the index definition (for a new index),
 or change the index type to `disabled`. Store the change. Finally, call the operation `resume()`
 so that regular indexing operations can continue.
 
-[OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
-[OAK-4939]: https://issues.apache.org/jira/browse/OAK-4939
-[OAK-4808]: https://issues.apache.org/jira/browse/OAK-4808
-[OAK-4412]: https://issues.apache.org/jira/browse/OAK-4412
 [OAK-4065]: https://issues.apache.org/jira/browse/OAK-4065
+[OAK-4412]: https://issues.apache.org/jira/browse/OAK-4412
+[OAK-4684]: https://issues.apache.org/jira/browse/OAK-4684
+[OAK-4808]: https://issues.apache.org/jira/browse/OAK-4808
+[OAK-4939]: https://issues.apache.org/jira/browse/OAK-4939
 [OAK-5159]: https://issues.apache.org/jira/browse/OAK-5159
 [OAK-5557]: https://issues.apache.org/jira/browse/OAK-5557
-  
+
   
