@@ -1084,6 +1084,9 @@ public class QueryImpl implements Query {
             }
             String message = "Traversal query (query without index): " + statement + "; consider creating an index";
             switch (traversal) {
+            case DEFAULT:
+                // not possible (changed to either FAIL or WARN above)
+                throw new AssertionError();
             case OK:
                 break;
             case WARN:
