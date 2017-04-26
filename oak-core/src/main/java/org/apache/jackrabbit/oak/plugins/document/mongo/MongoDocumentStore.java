@@ -108,9 +108,12 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Sets.difference;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
 /**
@@ -277,7 +280,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         createIndex(nodes, NodeDocument.HAS_BINARY_FLAG, true, false, true);
 
         // index on _deleted for fast lookup of potentially garbage
-        createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
+        // depending on the MongoDB version, create a partial index
+        if (mongoStatus.isVersion(3, 2)
+                && initialDocsCount == 0) {
+            createPartialIndex(nodes, new String[]{DELETED_ONCE, MODIFIED_IN_SECS},
+                    new boolean[]{true, true}, "{" + DELETED_ONCE + ":true}");
+        } else {
+            createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
+        }
 
         // compound index on _sdType and _sdMaxRevTime
         if (initialDocsCount == 0) {

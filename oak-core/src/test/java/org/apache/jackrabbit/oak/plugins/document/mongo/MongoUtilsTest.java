@@ -28,6 +28,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.document.MongoUtils.isAvailable;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -71,6 +72,37 @@ public class MongoUtilsTest {
                 assertEquals(2, key.keySet().size());
                 assertEquals(1, key.get("baz"));
                 assertEquals(-1, key.get("qux"));
+            }
+        }
+
+        c.getDB().dropDatabase();
+    }
+
+    @Test
+    public void createPartialIndex() {
+        MongoConnection c = connectionFactory.getConnection();
+        c.getDB().dropDatabase();
+        MongoStatus status = new MongoStatus(c.getDB());
+        assumeTrue(status.isVersion(3, 2));
+
+        DBCollection collection = c.getDB().getCollection("test");
+
+        MongoUtils.createPartialIndex(collection, new String[]{"foo", "bar"},
+                new boolean[]{true, true}, "{foo:true}");
+        assertTrue(MongoUtils.hasIndex(collection, "_id"));
+        assertTrue(MongoUtils.hasIndex(collection, "foo", "bar"));
+
+        assertEquals(2, collection.getIndexInfo().size());
+        for (DBObject info : collection.getIndexInfo()) {
+            DBObject key = (DBObject) info.get("key");
+            assertNotNull(key);
+            if (key.keySet().contains("foo")) {
+                assertEquals(2, key.keySet().size());
+                assertEquals(1, key.get("foo"));
+                assertEquals(1, key.get("bar"));
+                DBObject filter = (DBObject) info.get("partialFilterExpression");
+                assertNotNull(filter);
+                assertEquals(Boolean.TRUE, filter.get("foo"));
             }
         }
 
