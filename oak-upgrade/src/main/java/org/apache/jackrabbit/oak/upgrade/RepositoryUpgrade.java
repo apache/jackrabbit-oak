@@ -157,8 +157,6 @@ public class RepositoryUpgrade {
 
     private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
-    private static final Set<String> INDEXES_TO_REBUILD = ImmutableSet.of("counter", "uuid");
-
     public static final Set<String> DEFAULT_INCLUDE_PATHS = ALL;
 
     public static final Set<String> DEFAULT_EXCLUDE_PATHS = NONE;
@@ -546,8 +544,6 @@ public class RepositoryUpgrade {
                 hooks.addAll(customCommitHooks);
             }
 
-            markIndexesToBeRebuilt(targetBuilder);
-
             // type validation, reference and indexing hooks
             hooks.add(new EditorHook(new CompositeEditorProvider(
                 createTypeEditorProvider(),
@@ -559,21 +555,6 @@ public class RepositoryUpgrade {
             logger.debug("Repository upgrade completed.");
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
-        }
-    }
-
-    static void markIndexesToBeRebuilt(NodeBuilder targetRoot) {
-        NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(targetRoot);
-        for (String indexName : INDEXES_TO_REBUILD) {
-            final NodeBuilder indexDef = oakIndex.getChildNode(indexName);
-            if (!indexDef.exists()) {
-                continue;
-            }
-            final PropertyState reindex = indexDef.getProperty(REINDEX_PROPERTY_NAME);
-            logger.info("Marking {} to be reindexed", indexName);
-            if (reindex == null || !reindex.getValue(Type.BOOLEAN)) {
-                indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
-            }
         }
     }
 
@@ -1022,10 +1003,6 @@ public class RepositoryUpgrade {
         private boolean started = false;
         private final boolean earlyShutdown;
         private final RepositoryContext source;
-
-        public LoggingCompositeHook(Collection<CommitHook> hooks) {
-          this(hooks, null, false);
-      }
 
         public LoggingCompositeHook(Collection<CommitHook> hooks,
                   RepositoryContext source, boolean earlyShutdown) {
