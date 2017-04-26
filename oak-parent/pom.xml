@@ -856,7 +856,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>9.4.1212.jre6</version>
+          <version>42.0.0.jre7</version>
         </dependency>
       </dependencies>
     </profile>
