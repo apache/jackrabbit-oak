@@ -36,6 +36,35 @@ public class XPathTest {
     
     @Test
     public void queryOptions() throws ParseException {
+        verify("(/jcr:root/a//* | /jcr:root/b//*) order by @jcr:score", 
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where isdescendantnode(a, '/a') " +
+                "/* xpath: /jcr:root/a//* \n" +
+                "order by @jcr:score */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where isdescendantnode(a, '/b') " +
+                "/* xpath: /jcr:root/b//* " +
+                "order by @jcr:score */ " +
+                "order by [jcr:score]");         
+        verify("(/jcr:root/a//* | /jcr:root/b//* | /jcr:root/c//*) order by @jcr:score", 
+                "select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where isdescendantnode(a, '/a') " +
+                "/* xpath: /jcr:root/a//* \n" +
+                "order by @jcr:score */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where isdescendantnode(a, '/b') " +
+                "/* xpath: /jcr:root/b//* \n" +
+                "order by @jcr:score */ " +
+                "union select [jcr:path], [jcr:score], * " +
+                "from [nt:base] as a " +
+                "where isdescendantnode(a, '/c') " +
+                "/* xpath: /jcr:root/c//* " +
+                "order by @jcr:score */ " +
+                "order by [jcr:score]"); 
         verify("//(element(*, nt:address))", 
                 "select [jcr:path], [jcr:score], * " +
                 "from [nt:address] as a " +
@@ -261,7 +290,7 @@ public class XPathTest {
     }
     
     static String formatSQL(String sql) {
-        sql = sql.replace("\n", " ");
+        sql = sql.replace('\n', ' ');
         sql = sql.replaceAll(" from ", "\nfrom ");
         sql = sql.replaceAll(" where ", "\nwhere ");
         sql = sql.replaceAll(" and ", "\nand ");
