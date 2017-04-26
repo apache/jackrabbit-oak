@@ -51,7 +51,8 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
     @Test
     public void defaultIndexes() {
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), Document.ID));
-        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE));
+        assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE));
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS));
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.HAS_BINARY_FLAG));
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS, Document.ID));

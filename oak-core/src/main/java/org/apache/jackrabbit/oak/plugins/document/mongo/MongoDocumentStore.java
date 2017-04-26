@@ -108,6 +108,8 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Sets.difference;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
@@ -257,8 +259,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         // indexes:
         // the _id field is the primary key, so we don't need to define it
 
+        long initialDocsCount = nodes.count();
         // compound index on _modified and _id
-        if (nodes.count() == 0) {
+        if (initialDocsCount == 0) {
             // this is an empty store, create a compound index
             // on _modified and _id (OAK-3071)
             createIndex(nodes, new String[]{NodeDocument.MODIFIED_IN_SECS, Document.ID},
@@ -276,8 +279,18 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         // index on _deleted for fast lookup of potentially garbage
         createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
 
-        // index on _sdType for fast lookup of split documents
-        createIndex(nodes, NodeDocument.SD_TYPE, true, false, true);
+        // compound index on _sdType and _sdMaxRevTime
+        if (initialDocsCount == 0) {
+            // this is an empty store, create compound index
+            // on _sdType and _sdMaxRevTime (OAK-6129)
+            createIndex(nodes, new String[]{SD_TYPE, SD_MAX_REV_TIME_IN_SECS},
+                    new boolean[]{true, true}, false, true);
+        } else if (!hasIndex(nodes, SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
+            LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
+                    "Revision GC performance it is recommended to create a " +
+                    "sparse compound index for the 'nodes' collection on " +
+                    "{_sdType:1, _sdMaxRevTime:1}.");
+        }
 
         // index on _modified for journal entries
         createIndex(journal, JournalEntry.MODIFIED, true, false, false);
