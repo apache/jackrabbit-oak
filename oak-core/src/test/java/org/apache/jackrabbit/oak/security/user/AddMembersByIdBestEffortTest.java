@@ -23,9 +23,10 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -38,7 +39,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
 
@@ -143,21 +143,43 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
         assertTrue(testGroup.isMember(memberGroup));
     }
 
+    /**
+     * @since Oak 1.8 : for performance reasons cyclic membership is only check
+     * within GroupImpl and those import-behaviours that actually resolve the id to a user/group
+     */
+    @Override
+    @Test
+    public void testCyclicMembership() throws Exception {
+        memberGroup.addMember(testGroup);
+        root.commit();
+
+        Set<String> failed = testGroup.addMembers(memberGroup.getID());
+        assertTrue(failed.isEmpty());
+
+        root.commit();
+
+        // cyclic membership must be spotted upon membership resolution
+        assertEquals(1, Iterators.size(memberGroup.getMembers()));
+        assertEquals(1, Iterators.size(testGroup.getMembers()));
+    }
+
+    /**
+     * @since Oak 1.8 : for performance reasons cyclic membership is only check
+     * within GroupImpl and those import-behaviours that actually resolve the id to a user/group
+     */
     @Test
     public void testCyclicWithoutAccess() throws Exception {
         memberGroup.addMember(testGroup);
         root.commit();
 
-        try {
-            Set<String> failed = addExistingMemberWithoutAccess();
-            fail("CommitFailedException expected");
-        } catch (CommitFailedException e) {
-            assertTrue(e.isConstraintViolation());
-            assertEquals(31, e.getCode());
-        } finally {
-            root.refresh();
-            assertFalse(testGroup.isMember(memberGroup));
-        }
+        Set<String> failed = addExistingMemberWithoutAccess();
+        assertTrue(failed.isEmpty());
+
+        // cyclic membership must be spotted upon membership resolution
+        root.refresh();
+        UserManager uMgr = getUserManager(root);
+        assertEquals(1, Iterators.size(uMgr.getAuthorizable(memberGroup.getID(), Group.class).getMembers()));
+        assertEquals(1, Iterators.size(uMgr.getAuthorizable(testGroup.getID(), Group.class).getMembers()));
     }
 
     @Test

@@ -148,11 +148,11 @@ group membership by specifying the member id(s) (see [JCR-3880] and [OAK-3170]).
 The following details are worth mentioning:
 
 - a `null` or empty String id will immediately fail the operation with `ConstraintViolationException`; changes already made will not be reverted,
-- an attemt to make the same group member of itself will list that id in the return value but will not fail the operation,
+- an attempt to make the same group member of itself will list that id in the return value but will not fail the operation,
 - duplicate ids in the parameter list will be silently ignored,
-- cyclic membership validation is postponed to the validator called upon `Root.commit`
+- <s>cyclic membership validation is postponed to the validator called upon `Root.commit`
   and will only fail at that point; the cyclic membership then needs to be manually
-  resolved by the application,
+  resolved by the application</s> (see [OAK-3170] and below)
 - whether or not a non-existing (or not accessible) authorizable can be added or
   removed depends on the configured `ImportBehavior`:
     - ABORT: each id is resolved to the corresponding authorizable; if it doesn't
@@ -164,13 +164,47 @@ The following details are worth mentioning:
     - IGNORE: each id is resolved to the corresponding authorizable; if it doesn't
       exist it will be returned as _failed_ in the return value.
 
+#### Invalid Membership
+
+##### Invalid Authorizable
+
+Adding a different implementation of `Authorizable` is not allowed. This is always 
+verified when calling `Group.addMember(Authorizable)`.
+
+##### Same Group as Member
+
+Adding the target group as member of itself will not succeed. When adding 
+members by ID (`Group.addMembers(String...)`) the violation is spotted by 
+simple ID comparison.
+
+##### Everyone Group and Everyone as Member
+
+The group representing the `EveryonePrincipal` is specially handled. Due to 
+it's dynamic nature adding members to this group is not allowed and adding it 
+as a member to any other group would cause a cyclic membership.
+
+Note however, that this validation is omitted in case of `Group.addMembers(String...)`
+with `ImportBehavior.BESTEFFORT` (see above).
+
+##### Cyclic Membership
+
+Since Oak 1.7.0 the explicit check for cyclic group membership has been 
+moved from the `Validator` to the `Group` implementation. As before cyclic 
+membership might not be spotted and the membership resolution will log the 
+cycle upon collection of all members/groups.
+
+The following scenarios may leave the cycle unnoticed upon adding members:
+- `Group.addMember(Authorizable)` when the editing `Session` cannot read all groups included in the cycle.
+- `Group.addMembers(String...)` with `ImportBehavior.BESTEFFORT` where the member ID is not resolved.
+
+See [OAK-3170] for additional information. 
+
 ### Configuration
 
 Note that as of Oak 1.0 the implementation is responsible for defining the
 content structure and will expand the multi-valued `rep:members` property accordingly.
 Consequently, the following configuration option `groupMembershipSplitSize` present
 with Jackrabbit 2.x is not supported anymore.
-
 
 <!-- hidden references -->
 [org.apache.jackrabbit.api.security.user.Group]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Group.java

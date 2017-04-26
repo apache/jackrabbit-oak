@@ -111,7 +111,10 @@ class GroupImpl extends AuthorizableImpl implements Group {
                 log.debug(msg);
                 return false;
             }
-            // NOTE: detection of circular membership is postponed to the commit (=> UserValidator)
+            if (isCyclicMembership((Group) authorizable)) {
+                String msg = "Cyclic group membership detected for group " + getID() + " and member " + authorizable.getID();
+                throw new ConstraintViolationException(msg);
+            }
         }
 
         boolean success = getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
@@ -266,18 +269,25 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
             if (ImportBehavior.BESTEFFORT != importBehavior) {
                 Authorizable member = getUserManager().getAuthorizable(memberId);
+                String msg = null;
                 if (member == null) {
+                    msg = "Attempt to add or remove a non-existing member '" + memberId + "' with ImportBehavior = " + ImportBehavior.nameFromValue(importBehavior);
+                } else if (member.isGroup()) {
+                    if (((AuthorizableImpl) member).isEveryone()) {
+                        log.debug("Attempt to add everyone group as member.");
+                        continue;
+                    } else if (isCyclicMembership((Group) member)) {
+                        msg = "Cyclic group membership detected for group " + getID() + " and member " + member.getID();
+                    }
+                }
+                if (msg != null) {
                     if (ImportBehavior.ABORT == importBehavior) {
-                        throw new ConstraintViolationException("Attempt to add or remove a non-existing member " + memberId);
+                        throw new ConstraintViolationException(msg);
                     } else {
                         // ImportBehavior.IGNORE is default in UserUtil.getImportBehavior
-                        String msg = "Attempt to add or remove non-existing member '" + getID() + "' with ImportBehavior = IGNORE.";
                         log.debug(msg);
                         continue;
                     }
-                } else if (member.isGroup() && ((AuthorizableImpl) member).isEveryone()) {
-                    log.debug("Attempt to add everyone group as member.");
-                    continue;
                 }
             }
 
@@ -300,6 +310,10 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
         getUserManager().onGroupUpdate(this, isRemove, false, processedIds, failedIds);
         return failedIds;
+    }
+
+    private boolean isCyclicMembership(@Nonnull Group member) throws RepositoryException {
+        return member.isMember(this);
     }
 
     /**
