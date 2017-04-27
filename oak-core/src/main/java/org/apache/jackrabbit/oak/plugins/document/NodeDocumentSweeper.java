@@ -63,6 +63,8 @@ final class NodeDocumentSweeper {
 
     private Revision head;
 
+    private long documentCount;
+
     /**
      * Creates a new sweeper for the given context. The sweeper is initialized
      * in the constructor with the head revision provided by the revision
@@ -128,6 +130,7 @@ final class NodeDocumentSweeper {
                                   NodeDocumentSweepListener listener)
             throws DocumentStoreException {
         head = headRevision.getRevision(clusterId);
+        documentCount = 0;
         if (head == null) {
             LOG.warn("Head revision does not have an entry for " +
                             "clusterId {}. Sweeping of documents is skipped.",
@@ -182,6 +185,9 @@ final class NodeDocumentSweeper {
                     committedBranch(doc, property, rev, cRev, op);
                 }
             }
+        }
+        if (++documentCount % 100000 == 0) {
+            LOG.info("Checked {} documents so far", documentCount);
         }
         return op.hasChanges() ? op : null;
     }
