@@ -150,7 +150,7 @@ public class LockBasedScheduler implements Scheduler {
         this.revisions = builder.revisions;
         this.head = new AtomicReference<SegmentNodeState>(reader.readHeadState(revisions));
         if (builder.dispatchChanges) {
-            this.changeDispatcher = new ChangeDispatcher(getHeadNodeState().getChildNode(ROOT));
+            this.changeDispatcher = new ChangeDispatcher(head.get().getChildNode(ROOT));
         } else {
             this.changeDispatcher = null;
         }
