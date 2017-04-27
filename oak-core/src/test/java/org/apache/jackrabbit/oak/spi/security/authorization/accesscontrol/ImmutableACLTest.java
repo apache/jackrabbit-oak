@@ -16,16 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
@@ -35,30 +30,44 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
 /**
  * Test for {@code ImmutableACL}
  */
 public class ImmutableACLTest extends AbstractAccessControlListTest {
 
-    private Principal testPrincipal;
     private Privilege[] testPrivileges;
 
-    @Override
     @Before
     public void before() throws Exception {
-        super.before();
-
-        testPrincipal = getTestPrincipal();
         testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
     }
 
-    @Override
-    protected ImmutableACL createACL(String jcrPath, List<ACE> entries,
-                                     NamePathMapper namePathMapper, RestrictionProvider restrictionProvider) {
+    private static Privilege[] privilegesFromNames(String... privNames) {
+        Privilege[] p = new Privilege[privNames.length];
+        for (int i = 0; i < privNames.length; i++) {
+            Privilege privilege = Mockito.mock(Privilege.class);
+            when(privilege.getName()).thenReturn(privNames[i]);
+            p[i] = privilege;
+        }
+        return p;
+    }
+
+    protected ImmutableACL createACL(@Nullable String jcrPath,
+                                     @Nonnull List<JackrabbitAccessControlEntry> entries,
+                                     @Nonnull NamePathMapper namePathMapper,
+                                     @Nonnull RestrictionProvider restrictionProvider) {
         String oakPath = (jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath);
         return new ImmutableACL(oakPath, entries, restrictionProvider, namePathMapper);
     }
@@ -123,9 +132,9 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
 
     @Test
     public void testImmutable() throws Exception {
-        List<ACE> entries = new ArrayList<ACE>();
-        entries.add(createEntry(testPrincipal, testPrivileges, true));
-        entries.add(createEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false));
+        List<JackrabbitAccessControlEntry> entries = new ArrayList();
+        entries.add(createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        entries.add(createEntry(false, PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT));
 
         JackrabbitAccessControlList acl = createACL(entries);
         assertFalse(acl.isEmpty());
@@ -150,17 +159,17 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         JackrabbitAccessControlList acl = createEmptyACL();
 
         assertEquals(acl, createEmptyACL());
-        ACE entry = createEntry(testPrincipal, testPrivileges, true);
+        ACE entry = createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
         assertFalse(acl.equals(createACL(entry)));
-        assertFalse(acl.equals(new TestACL(getTestPath(), getRestrictionProvider(), Collections.<JackrabbitAccessControlEntry>emptyList())));
+        assertFalse(acl.equals(new TestACL(getTestPath(), getRestrictionProvider(), getNamePathMapper(), Collections.<JackrabbitAccessControlEntry>emptyList())));
     }
 
     @Test
     public void testEquals() throws Exception {
         RestrictionProvider rp = getRestrictionProvider();
-        ACE ace1 = createEntry(testPrincipal, false, null, PrivilegeConstants.JCR_VERSION_MANAGEMENT);
-        ACE ace2 = createEntry(testPrincipal, testPrivileges, true);
-        ACE ace2b = createEntry(testPrincipal, getAggregatedPrivileges(testPrivileges), true);
+        ACE ace1 = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false);
+        ACE ace2 = createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        ACE ace2b = createEntry(true, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES, PrivilegeConstants.JCR_ADD_CHILD_NODES);
 
         JackrabbitAccessControlList acl = createACL(ace1, ace2);
         assertTrue(acl instanceof ImmutableACL);
@@ -179,18 +188,18 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         assertFalse(acl.equals(repoAcl));
         assertFalse(acl.equals(createEmptyACL()));
         assertFalse(acl.equals(createACL("/anotherPath", ace1, ace2)));
-        assertFalse(acl.equals(new TestACL("/anotherPath", rp, ace1, ace2)));
-        assertFalse(acl.equals(new TestACL("/anotherPath", rp, ace1, ace2)));
-        assertFalse(acl.equals(new TestACL("/anotherPath", rp)));
-        assertFalse(acl.equals(new TestACL(getTestPath(), rp, ace1, ace2)));
+        assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2)));
+        assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2)));
+        assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper())));
+        assertFalse(acl.equals(new TestACL(getTestPath(), rp, getNamePathMapper(), ace1, ace2)));
     }
 
     @Test
     public void testHashCode() throws Exception {
         RestrictionProvider rp = getRestrictionProvider();
-        ACE ace1 = createEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false);
-        ACE ace2 = createEntry(testPrincipal, testPrivileges, true);
-        ACE ace2b = createEntry(testPrincipal, getAggregatedPrivileges(testPrivileges), true);
+        ACE ace1 = createEntry(false, PrivilegeConstants.JCR_VERSION_MANAGEMENT);
+        ACE ace2 = createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        ACE ace2b = createEntry(true, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES, PrivilegeConstants.JCR_ADD_CHILD_NODES);
 
         JackrabbitAccessControlList acl = createACL(ace1, ace2);
         JackrabbitAccessControlList repoAcl = createACL((String) null, ace1, ace2);
@@ -205,9 +214,9 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         assertFalse(hc == repoAcl.hashCode());
         assertFalse(hc == createEmptyACL().hashCode());
         assertFalse(hc == createACL("/anotherPath", ace1, ace2).hashCode());
-        assertFalse(hc == new TestACL("/anotherPath", rp, ace1, ace2).hashCode());
-        assertFalse(hc == new TestACL("/anotherPath", rp, ace1, ace2).hashCode());
-        assertFalse(hc == new TestACL("/anotherPath", rp).hashCode());
-        assertFalse(hc == new TestACL(getTestPath(), rp, ace1, ace2).hashCode());
+        assertFalse(hc == new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2).hashCode());
+        assertFalse(hc == new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2).hashCode());
+        assertFalse(hc == new TestACL("/anotherPath", rp, getNamePathMapper()).hashCode());
+        assertFalse(hc == new TestACL(getTestPath(), rp, getNamePathMapper(), ace1, ace2).hashCode());
     }
 }

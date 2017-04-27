@@ -27,11 +27,11 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositePattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -51,7 +51,7 @@ import static org.junit.Assert.fail;
 /**
  * Tests for {@link RestrictionProviderImpl}
  */
-public class RestrictionProviderImplTest extends AbstractAccessControlTest implements AccessControlConstants {
+public class RestrictionProviderImplTest extends AbstractSecurityTest implements AccessControlConstants {
 
     private RestrictionProviderImpl provider;
 
@@ -184,7 +184,7 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
                 "*********************");
         for (String glob : globs) {
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
-            acl.addEntry(getTestPrincipal(),
+            acl.addEntry(getTestUser().getPrincipal(),
                     AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ),
                     true, Collections.singletonMap(REP_GLOB, getValueFactory().createValue(glob)));
             acMgr.setPolicy(path, acl);
