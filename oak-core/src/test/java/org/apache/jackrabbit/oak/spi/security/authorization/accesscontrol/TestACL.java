@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
@@ -40,16 +41,20 @@ public final class TestACL extends AbstractAccessControlList {
     private final List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
     private final RestrictionProvider restrictionProvider;
 
-    public TestACL(String jcrPath, RestrictionProvider restrictionProvider,
-                   List<JackrabbitAccessControlEntry> entries) {
-        super(jcrPath, NamePathMapper.DEFAULT);
+    public TestACL(@Nullable String jcrPath,
+                   @Nonnull RestrictionProvider restrictionProvider,
+                   @Nonnull NamePathMapper namePathMapper,
+                   @Nonnull List<JackrabbitAccessControlEntry> entries) {
+        super((jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath), namePathMapper);
         this.entries.addAll(entries);
         this.restrictionProvider = restrictionProvider;
     }
 
-    public TestACL(String jcrPath, RestrictionProvider restrictionProvider,
-                   JackrabbitAccessControlEntry... entry) {
-        this(jcrPath, restrictionProvider, Lists.newArrayList(entry));
+    public TestACL(@Nullable String jcrPath,
+                   @Nonnull RestrictionProvider restrictionProvider,
+                   @Nonnull NamePathMapper namePathMapper,
+                   @Nonnull JackrabbitAccessControlEntry... entry) {
+        this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
     }
 
     @Override
@@ -76,11 +81,6 @@ public final class TestACL extends AbstractAccessControlList {
     @Override
     public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public AccessControlEntry[] getAccessControlEntries() {
-        return entries.toArray(new AccessControlEntry[entries.size()]);
     }
 
     @Override

@@ -28,13 +28,13 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -52,7 +52,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class AccessControlValidatorTest extends AbstractAccessControlTest implements AccessControlConstants {
+public class AccessControlValidatorTest extends AbstractSecurityTest implements AccessControlConstants {
 
     private final String testName = "testRoot";
     private final String testPath = '/' + testName;
@@ -69,7 +69,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
         root.commit();
 
-        testPrincipal = getTestPrincipal();
+        testPrincipal = getTestUser().getPrincipal();
     }
 
     @After

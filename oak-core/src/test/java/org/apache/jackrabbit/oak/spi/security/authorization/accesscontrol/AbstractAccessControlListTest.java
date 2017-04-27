@@ -20,30 +20,34 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.AbstractRestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
@@ -55,65 +59,79 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests for functionality provided by {@link AbstractAccessControlList}.
  */
-public abstract class AbstractAccessControlListTest extends AbstractAccessControlTest {
+public class AbstractAccessControlListTest extends AbstractAccessControlTest {
 
     protected String getTestPath() {
         return "/testPath";
     }
 
+    protected NamePathMapper getNamePathMapper() {
+        return NamePathMapper.DEFAULT;
+    }
+
+    protected RestrictionProvider getRestrictionProvider() {
+        Map<String, RestrictionDefinition> rDefs = new HashMap();
+        rDefs.put("r1", new RestrictionDefinitionImpl("r1", Type.STRING, true));
+        rDefs.put("r2", new RestrictionDefinitionImpl("r2", Type.LONGS, false));
+
+        return new AbstractRestrictionProvider(rDefs) {
+            @Nonnull
+            @Override
+            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Nonnull
+            @Override
+            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
     protected AbstractAccessControlList createEmptyACL() {
-        return createACL(getTestPath(), Collections.<ACE>emptyList(), namePathMapper);
+        return createACL(getTestPath(), Collections.<JackrabbitAccessControlEntry>emptyList(), getNamePathMapper());
     }
 
-    protected AbstractAccessControlList createACL(@Nonnull ACE... entries) {
-        return createACL(getTestPath(), Lists.newArrayList(entries), namePathMapper);
+    protected AbstractAccessControlList createACL(@Nonnull JackrabbitAccessControlEntry... entries) {
+        return createACL(getTestPath(), Lists.newArrayList(entries), getNamePathMapper());
     }
 
-    protected AbstractAccessControlList createACL(@Nonnull List<ACE> entries) {
-        return createACL(getTestPath(), entries, namePathMapper);
+    protected AbstractAccessControlList createACL(@Nonnull List<JackrabbitAccessControlEntry> entries) {
+        return createACL(getTestPath(), entries, getNamePathMapper());
     }
 
     protected AbstractAccessControlList createACL(@Nullable String jcrPath,
                                                   @Nonnull ACE... entries) {
-        return createACL(jcrPath, Lists.newArrayList(entries), namePathMapper);
+        return createACL(jcrPath, Lists.newArrayList(entries), getNamePathMapper());
     }
 
     protected AbstractAccessControlList createACL(@Nullable String jcrPath,
-                                                  @Nonnull List<ACE> entries,
+                                                  @Nonnull List<JackrabbitAccessControlEntry> entries,
                                                   @Nonnull NamePathMapper namePathMapper) {
         return createACL(jcrPath, entries, namePathMapper, getRestrictionProvider());
     }
 
-    protected abstract AbstractAccessControlList createACL(@Nullable String jcrPath,
-                                                           @Nonnull List<ACE> entries,
-                                                           @Nonnull NamePathMapper namePathMapper,
-                                                           @Nonnull RestrictionProvider restrictionProvider);
+    protected AbstractAccessControlList createACL(@Nullable String jcrPath,
+                                                  @Nonnull List<JackrabbitAccessControlEntry> entries,
+                                                  @Nonnull NamePathMapper namePathMapper,
+                                                  @Nonnull RestrictionProvider restrictionProvider) {
+        return new TestACL(jcrPath, restrictionProvider, namePathMapper, entries);
+    }
 
-    protected List<ACE> createTestEntries() throws RepositoryException {
-        List<ACE> entries = new ArrayList<ACE>(3);
+    protected List<JackrabbitAccessControlEntry> createTestEntries() throws RepositoryException {
+        List<JackrabbitAccessControlEntry> entries = new ArrayList(3);
         for (int i = 0; i < 3; i++) {
             entries.add(createEntry(
-                    new PrincipalImpl("testPrincipal" + i), true, null, PrivilegeConstants.JCR_READ));
+                    new PrincipalImpl("testPrincipal" + i), PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true));
         }
         return entries;
     }
 
-    protected static Privilege[] getAggregatedPrivileges(Privilege... privileges) {
-        Set<Privilege> aggr = new HashSet<Privilege>();
-        for (Privilege p : privileges) {
-            if (p.isAggregate()) {
-                aggr.addAll(Arrays.asList(p.getAggregatePrivileges()));
-            } else {
-                aggr.add(p);
-            }
-        }
-        return aggr.toArray(new Privilege[aggr.size()]);
-    }
-
     @Test
     public void testGetNamePathMapper() throws Exception {
-        assertSame(namePathMapper, createEmptyACL().getNamePathMapper());
-        assertSame(NamePathMapper.DEFAULT, createACL(getTestPath(), ImmutableList.<ACE>of(), NamePathMapper.DEFAULT).getNamePathMapper());
+        assertSame(getNamePathMapper(), createEmptyACL().getNamePathMapper());
+        assertSame(NamePathMapper.DEFAULT, createACL(getTestPath(), ImmutableList.<JackrabbitAccessControlEntry>of(), NamePathMapper.DEFAULT).getNamePathMapper());
     }
 
     @Test
@@ -131,7 +149,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
         paths.put("/{http://jackrabbit.apache.org}testPath", "/jr:testPath");
 
         for (String path : paths.keySet()) {
-            AbstractAccessControlList acl = createACL(path, Collections.<ACE>emptyList(), npMapper);
+            AbstractAccessControlList acl = createACL(path, Collections.<JackrabbitAccessControlEntry>emptyList(), npMapper);
             assertEquals(paths.get(path), acl.getPath());
         }
     }
@@ -154,7 +172,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
 
         // test if oak-path is properly set.
         for (String path : paths.keySet()) {
-            AbstractAccessControlList acl = createACL(path, Collections.<ACE>emptyList(), npMapper);
+            AbstractAccessControlList acl = createACL(path, Collections.<JackrabbitAccessControlEntry>emptyList(), npMapper);
             assertEquals(paths.get(path), acl.getOakPath());
         }
     }
@@ -186,7 +204,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
 
     @Test
     public void testGetEntries() throws RepositoryException {
-        List<ACE> aces = createTestEntries();
+        List<JackrabbitAccessControlEntry> aces = createTestEntries();
         AbstractAccessControlList acl = createACL(aces);
 
         assertNotNull(acl.getEntries());
@@ -206,7 +224,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
         assertNotNull(restrNames);
         List<String> names = Lists.newArrayList(restrNames);
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getTestPath())) {
-            assertTrue(names.remove(namePathMapper.getJcrName(def.getName())));
+            assertTrue(names.remove(getNamePathMapper().getJcrName(def.getName())));
         }
         assertTrue(names.isEmpty());
     }
@@ -215,7 +233,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
     public void testGetRestrictionType() throws RepositoryException {
         AbstractAccessControlList acl = createEmptyACL();
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getTestPath())) {
-            int reqType = acl.getRestrictionType(namePathMapper.getJcrName(def.getName()));
+            int reqType = acl.getRestrictionType(getNamePathMapper().getJcrName(def.getName()));
 
             assertTrue(reqType > PropertyType.UNDEFINED);
             assertEquals(def.getRequiredType().tag(), reqType);
