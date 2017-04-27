@@ -652,7 +652,8 @@ parameters or options:
                any modifications
       collect  perform garbage collection
       reset    clear all persisted metadata
-    
+      sweep    clean up uncommitted changes                                 
+
     Option                 Description
     ------                 -----------
     -?, -h, --help         show help

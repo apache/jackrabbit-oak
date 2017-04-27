@@ -33,9 +33,14 @@ import java.util.concurrent.TimeoutException;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
+import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
+import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -47,7 +52,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGCSupport;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
+import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 
 /**
@@ -61,7 +68,8 @@ public class RevisionsCommand implements Command {
             "  info     give information about the revisions state without performing",
             "           any modifications",
             "  collect  perform garbage collection",
-            "  reset    clear all persisted metadata"
+            "  reset    clear all persisted metadata",
+            "  sweep    clean up uncommitted changes"
     );
 
     private static class RevisionsOptions extends Utils.NodeStoreOptions {
@@ -69,6 +77,7 @@ public class RevisionsCommand implements Command {
         static final String CMD_INFO = "info";
         static final String CMD_COLLECT = "collect";
         static final String CMD_RESET = "reset";
+        static final String CMD_SWEEP = "sweep";
 
         final OptionSpec<?> once;
         final OptionSpec<Integer> limit;
@@ -132,15 +141,16 @@ public class RevisionsCommand implements Command {
         Closer closer = Closer.create();
         try {
             RevisionsOptions options = new RevisionsOptions(USAGE).parse(args);
-            VersionGarbageCollector gc = bootstrapVGC(options, closer);
 
             String subCmd = options.getSubCmd();
             if (RevisionsOptions.CMD_INFO.equals(subCmd)) {
-                info(gc, options.getOlderThan());
+                info(options, closer);
             } else if (RevisionsOptions.CMD_COLLECT.equals(subCmd)) {
-                collect(gc, options.getOlderThan(), options.getTimeLimit());
+                collect(options, closer);
             } else if (RevisionsOptions.CMD_RESET.equals(subCmd)) {
-                reset(gc);
+                reset(options, closer);
+            } else if (RevisionsOptions.CMD_SWEEP.equals(subCmd)) {
+                sweep(options, closer);
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
             }
@@ -189,10 +199,11 @@ public class RevisionsCommand implements Command {
         return gc;
     }
 
-    private void info(VersionGarbageCollector gc, long olderThanSec)
+    private void info(RevisionsOptions options, Closer closer)
             throws IOException {
+        VersionGarbageCollector gc = bootstrapVGC(options, closer);
         System.out.println("retrieving gc info");
-        VersionGCInfo info = gc.getInfo(olderThanSec, SECONDS);
+        VersionGCInfo info = gc.getInfo(options.getOlderThan(), SECONDS);
 
         System.out.printf(Locale.US, "%21s  %s%n", "Last Successful Run:",
                 info.lastSuccess > 0? fmtTimestamp(info.lastSuccess) : "<unknown>");
@@ -210,10 +221,9 @@ public class RevisionsCommand implements Command {
                 info.estimatedIterations);
     }
 
-    private void collect(final VersionGarbageCollector gc,
-                         final long olderThanSec,
-                         final long timeLimit)
+    private void collect(final RevisionsOptions options, Closer closer)
             throws IOException {
+        VersionGarbageCollector gc = bootstrapVGC(options, closer);
         long started = System.currentTimeMillis();
         System.out.println("starting gc collect");
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -221,12 +231,12 @@ public class RevisionsCommand implements Command {
             Future<VersionGCStats> f = executor.submit(new Callable<VersionGCStats>() {
                 @Override
                 public VersionGCStats call() throws Exception {
-                    return gc.gc(olderThanSec, SECONDS);
+                    return gc.gc(options.getOlderThan(), SECONDS);
                 }
             });
-            if (timeLimit >= 0) {
+            if (options.getTimeLimit() >= 0) {
                 try {
-                    f.get(timeLimit, SECONDS);
+                    f.get(options.getTimeLimit(), SECONDS);
                 } catch (TimeoutException e) {
                     // cancel the gc
                     gc.cancel();
@@ -254,9 +264,46 @@ public class RevisionsCommand implements Command {
         }
     }
 
-    private void reset(VersionGarbageCollector gc) {
+    private void reset(RevisionsOptions options, Closer closer)
+            throws IOException {
+        VersionGarbageCollector gc = bootstrapVGC(options, closer);
         System.out.println("resetting recommendations and statistics");
         gc.reset();
+    }
+
+    private void sweep(RevisionsOptions options, Closer closer)
+            throws IOException {
+        int clusterId = options.getClusterId();
+        if (clusterId <= 0) {
+            System.err.println("clusterId option is required for " +
+                    RevisionsOptions.CMD_SWEEP + " command");
+            return;
+        }
+        DocumentMK.Builder builder = createDocumentMKBuilder(options, closer);
+        if (builder == null) {
+            System.err.println("revisions mode only available for DocumentNodeStore");
+            return;
+        }
+        DocumentStore store = builder.getDocumentStore();
+        // cluster node must be inactive
+        for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(store)) {
+            if (doc.getClusterId() == clusterId && doc.isActive()) {
+                System.err.println("cannot sweep revisions for active " +
+                        "clusterId " + clusterId);
+                return;
+            }
+        }
+        // the root document must have a _lastRev entry for the clusterId
+        if (!getRootDocument(store).getLastRev().containsKey(clusterId)) {
+            System.err.println("store does not have changes with " +
+                    "clusterId " + clusterId);
+            return;
+        }
+        builder.setReadOnlyMode();
+        DocumentNodeStore ns = builder.getNodeStore();
+        closer.register(asCloseable(ns));
+        MissingLastRevSeeker seeker = builder.createMissingLastRevSeeker();
+        SweepHelper.sweep(store, new RevisionContextWrapper(ns, clusterId), seeker);
     }
 
     private String fmtTimestamp(long ts) {
