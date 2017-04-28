@@ -445,7 +445,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
         this.lastRevision = lastRevision;
     }
 
-    Revision getLastRevision() {
+    public Revision getLastRevision() {
         return lastRevision;
     }
 
