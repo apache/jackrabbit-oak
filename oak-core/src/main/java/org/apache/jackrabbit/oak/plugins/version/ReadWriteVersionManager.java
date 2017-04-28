@@ -73,14 +73,14 @@ import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION
 /**
  * TODO document
  */
-class ReadWriteVersionManager extends ReadOnlyVersionManager {
+public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     private final NodeBuilder versionStorageNode;
     private final NodeBuilder workspaceRoot;
     private ReadOnlyNodeTypeManager ntMgr;
 
-    ReadWriteVersionManager(NodeBuilder versionStorageNode,
-                            NodeBuilder workspaceRoot) {
+    public ReadWriteVersionManager(NodeBuilder versionStorageNode,
+                                   NodeBuilder workspaceRoot) {
         this.versionStorageNode = checkNotNull(versionStorageNode);
         this.workspaceRoot = checkNotNull(workspaceRoot);
     }
@@ -118,7 +118,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
      *                                  {@code jcr:uuid} property.
      */
     @Nonnull
-    NodeBuilder getOrCreateVersionHistory(@Nonnull NodeBuilder versionable, @Nonnull Map<String, Object> infoMap)
+    public NodeBuilder getOrCreateVersionHistory(@Nonnull NodeBuilder versionable, @Nonnull Map<String, Object> infoMap)
             throws CommitFailedException {
         checkNotNull(versionable);
         String vUUID = uuidFromNode(versionable);
@@ -249,7 +249,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
                             " does not have a Version with UUID: " + versionUUID);
         }
         VersionableState versionableState = VersionableState.forRestore(
-                version, history, versionable, this, ntMgr);
+                version, history, versionable, this, getNodeTypeManager());
         versionableState.restore(selector);
     }
 
@@ -414,7 +414,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
         // jcr:frozenNode of created version
         VersionableState versionableState = VersionableState.fromVersion(
-                version, vHistory, versionable, this, ntMgr);
+                version, vHistory, versionable, this, getNodeTypeManager());
         if (!isRootVersion) {
             versionableState.create();
         }
