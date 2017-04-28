@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.cleanup;
-import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.configureIfS3DataStore;
+import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.configureIfCloudDataStore;
 
 public abstract class BlobStoreFixture implements Closeable{
     private final String name;
@@ -85,7 +85,7 @@ public abstract class BlobStoreFixture implements Closeable{
 
         String className = System.getProperty("dataStore");
         if (className != null) {
-            return getDataStore(basedir, fdsCacheInMB);
+            return getDataStore(basedir, fdsCacheInMB, statisticsProvider);
         }
 
         String blobStore = System.getProperty("blobStoreType");
@@ -178,7 +178,8 @@ public abstract class BlobStoreFixture implements Closeable{
         };
     }
 
-    public static BlobStoreFixture getDataStore(final File basedir, final int fdsCacheInMB) {
+    public static BlobStoreFixture getDataStore(final File basedir, final int fdsCacheInMB,
+                                                final StatisticsProvider statisticsProvider) {
         return new BlobStoreFixture("DS") {
             private DataStore dataStore;
             private BlobStore blobStore;
@@ -193,7 +194,8 @@ public abstract class BlobStoreFixture implements Closeable{
                     dataStore = Class.forName(className).asSubclass(DataStore.class).newInstance();
                     config = getConfig();
                     configure(dataStore, config);
-                    dataStore = configureIfS3DataStore(className, dataStore, config, unique.toLowerCase());
+
+                    dataStore = configureIfCloudDataStore(className, dataStore, config, unique.toLowerCase(), statisticsProvider);
                     storeDir = new File(basedir, unique);
                     dataStore.init(storeDir.getAbsolutePath());
                     blobStore = new DataStoreBlobStore(dataStore, true, fdsCacheInMB);
@@ -209,7 +211,7 @@ public abstract class BlobStoreFixture implements Closeable{
                 if (blobStore instanceof DataStoreBlobStore) {
                     try {
                         ((DataStoreBlobStore) blobStore).close();
-                        cleanup(storeDir, config);
+                        cleanup(storeDir, config, unique.toLowerCase());
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }

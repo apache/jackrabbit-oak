@@ -78,6 +78,7 @@ Further Oak ships with multiple BlobStore implementations
 4. `S3DataStore` (with wrapper) - Stores the file in Amazon S3
 5. `RDBBlobStore` - Store the file contents in chunks in a relational databases. Typically used with
    `DocumentNodeStore`when using a relational DB persistence
+6. `AzureDataStore` (with wrapper) - Stores the file in Microsoft Azure Blob storage
 
 In addition there are some more implementations which are considered **experimental**
 
@@ -98,6 +99,7 @@ can be used
 * FileDataStore - This should be used if the blobs/binaries have to be shared between multiple
   repositories. This would also be used when a JR2 repository is migrated to Oak
 * S3DataStore - This should be used when binaries are stored in Amazon S3 
+* AzureDataStore - This should be used when binaries are stored in Microsoft Azure Blob storage
 
 #### DocumentNodeStore
 
@@ -112,7 +114,7 @@ one of the following can be used
 
 #### Caching DataStore
 
-The DataStore implementations `S3DataStore` and `CachingFileDataStore` support local file system caching for the 
+The DataStore implementations `S3DataStore`,`CachingFileDataStore` and `AzureDataStore` support local file system caching for the 
 files/blobs and extend the `AbstractSharedCachingDataStore` class which implements the caching functionality. The 
 `CachingFileDataStore` is useful when the DataStore is on nfs.
 The cache has a size limit and is configured by the `cacheSize` parameter.
@@ -198,6 +200,7 @@ Blob Garbage Collection(GC) is applicable for the following blob stores:
     * FileDataStore
     * S3DataStore
     * SharedS3DataStore (since Oak 1.2.0)
+    * AzureDataStore
 
 Oak implements a Mark and Sweep based Garbage Collection logic. 
  
@@ -224,7 +227,7 @@ The garbage collection can be triggered by calling:
 <a name="blobid-tracker"></a>  
 #### Caching of Blob ids locally (Oak 1.6.x)
 
-For the `FileDataStore` and `S3DataStore` the blob ids are cached locally on the disk when they are created which 
+For the `FileDataStore`, `S3DataStore` and `AzureDataStore` the blob ids are cached locally on the disk when they are created which 
 speeds up the 'Mark BlobStore' phase. The locally tracked ids are synchronized with the data store periodically to enable 
 other cluster nodes or different repositories sharing the datastore to get a consolidated list of all blob ids. The 
 interval of synchronization is defined by the OSGi configuration parameter `blobTrackSnapshotIntervalInSecs` for the 
@@ -249,13 +252,14 @@ following should be executed.
 
 ##### Registration
 
-On start of a repository configured to use a shared DataStore (same path or S3 bucket), a unique repository id is 
+On start of a repository configured to use a shared DataStore (same path, S3 bucket or Azure container), a unique repository id is 
 generated and registered in the NodeStore as well as the DataStore. 
 In the DataStore this repository id is registered as an empty file with the format `repository-[repository-id]` 
 (e.g. repository-988373a0-3efb-451e-ab4c-f7e794189273). This empty file is created under:
 
 * FileDataStore - Under the root directory configured for the datastore.
 * S3DataStore - Under `META` folder in the S3 bucket configured.
+* AzureDataStore - Under `META` folder in the Azure container configured.
 
 On start/configuration of all the repositories sharing the data store it should be confirmed that the unique 
 repositoryId per repository is registered in the DataStore. Refer the section below on [Checking Shared GC status](#check-shared-datastore-gc).
@@ -387,6 +391,7 @@ the steps:
 * Remove the corresponding registered repository file (`repository-[repositoryId]`) from the DataStore
     * FileDataStore - Remove the file from the data store root directory.
     * S3DataStore - Remove the file from the `META` folder of the S3 bucket.
+    * AzureDataStore - Remove the file from the `META` folder of the Azure container.
 * Remove other files corresponding to the particular repositoryId e.g. `markedTimestamp-[repositoryId]` or 
 `references-[repositoryId]`.
 
