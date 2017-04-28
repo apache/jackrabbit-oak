@@ -17,10 +17,9 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.multiplex;
+package org.apache.jackrabbit.oak.spi.mount;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -36,13 +35,13 @@ import static java.util.Arrays.asList;
 /**
  * A simple and inefficient implementation to manage mount points
  */
-public class SimpleMountInfoProvider implements MountInfoProvider {
+final class SimpleMountInfoProvider implements MountInfoProvider {
 
     private final Map<String, Mount> mounts;
     private final Mount defMount;
     private final boolean hasMounts;
 
-    public SimpleMountInfoProvider(List<Mount> mountInfos) {
+    SimpleMountInfoProvider(List<Mount> mountInfos) {
         this.mounts = getMounts(mountInfos);
         this.hasMounts = !this.mounts.isEmpty();
         this.defMount = defaultMount(this.mounts);
@@ -102,28 +101,6 @@ public class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     //~----------------------------------------< builder >
-
-    public static Builder newBuilder(){
-        return new Builder();
-    }
-
-    public static final class Builder {
-        private final List<Mount> mounts = Lists.newArrayListWithCapacity(1);
-
-        public Builder mount(String name, String... paths) {
-            mounts.add(new MountInfo(name, false, false, asList("/"), asList(paths)));
-            return this;
-        }
-
-        public Builder readOnlyMount(String name, String... paths) {
-            mounts.add(new MountInfo(name, true, false, asList("/"), asList(paths)));
-            return this;
-        }
-
-        public SimpleMountInfoProvider build() {
-            return new SimpleMountInfoProvider(mounts);
-        }
-    }
 
     //~----------------------------------------< private >
 

@@ -189,7 +189,7 @@ public class PrivateStoreValidatorProviderTest {
     private MountInfoProvider createMountInfoProvider(String... readOnlyPaths) {
         MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
         if (readOnlyPaths.length > 0) {
-            mountInfoProvider = SimpleMountInfoProvider.newBuilder().readOnlyMount("readOnly", readOnlyPaths).build();
+            mountInfoProvider = Mounts.newBuilder().readOnlyMount("readOnly", readOnlyPaths).build();
         }
         return mountInfoProvider;
     }

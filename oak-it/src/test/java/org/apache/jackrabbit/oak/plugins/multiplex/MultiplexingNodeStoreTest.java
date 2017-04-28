@@ -65,6 +65,7 @@ import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -112,7 +113,7 @@ public class MultiplexingNodeStoreTest {
 
     @Before
     public void initStore() throws Exception {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("temp", "/tmp")
                 .mount("deep", "/libs/mount")
                 .mount("empty", "/nowhere")

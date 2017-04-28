@@ -19,15 +19,21 @@
 
 package org.apache.jackrabbit.oak.spi.mount;
 
+import com.google.common.collect.Lists;
+
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 
 public final class Mounts {
 
     private Mounts() {
     }
 
-    static final MountInfoProvider DEFAULT_PROVIDER = new MountInfoProvider() {
+    private static final MountInfoProvider DEFAULT_PROVIDER = new MountInfoProvider() {
         @Override
         public Mount getMountByPath(String path) {
             return DEFAULT_MOUNT;
@@ -147,5 +153,35 @@ public final class Mounts {
 
     public static Mount defaultMount(Collection<Mount> mounts) {
         return new DefaultMount(mounts);
+    }
+
+    public static Builder newBuilder(){
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private final List<Mount> mounts = Lists.newArrayListWithCapacity(1);
+
+        private Builder() {
+        }
+
+        public Builder mount(String name, String... paths) {
+            mounts.add(new MountInfo(name, false, singletonList("/"), asList(paths)));
+            return this;
+        }
+
+        public Builder readOnlyMount(String name, String... paths) {
+            mounts.add(new MountInfo(name, true, singletonList("/"), asList(paths)));
+            return this;
+        }
+
+        public Builder mount(String name, boolean readOnly, List<String> pathsSupportingFragments, List<String> paths) {
+            mounts.add(new MountInfo(name, readOnly, pathsSupportingFragments, paths));
+            return this;
+        }
+
+        public MountInfoProvider build() {
+            return new SimpleMountInfoProvider(mounts);
+        }
     }
 }

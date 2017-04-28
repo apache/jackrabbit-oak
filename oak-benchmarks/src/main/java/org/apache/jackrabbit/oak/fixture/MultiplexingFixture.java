@@ -17,21 +17,17 @@
 
 package org.apache.jackrabbit.oak.fixture;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Range;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.multiplex.MultiplexingNodeStore;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 
@@ -82,7 +78,7 @@ class MultiplexingFixture extends OakFixture {
     @Override
     public Oak getOak(int clusterId) throws Exception {
         NodeStore nodeStore = getNodeStore();
-        SimpleMountInfoProvider.Builder mip = new SimpleMountInfoProvider.Builder();
+        Mounts.Builder mip = Mounts.newBuilder();
         for (int i = 0; i < mounts; i++) {
             String[] paths = new String[pathsPerMount];
             for (int j = 0; j < pathsPerMount; j++) {

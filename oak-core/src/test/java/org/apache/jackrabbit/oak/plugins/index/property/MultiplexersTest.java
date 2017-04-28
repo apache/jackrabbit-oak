@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.index.property.Multiplexers.getI
 import static org.apache.jackrabbit.oak.plugins.index.property.Multiplexers.getNodeForMount;
 import static org.junit.Assert.assertEquals;
 
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -44,7 +43,7 @@ public class MultiplexersTest {
 
     @Test
     public void customNodeName() throws Exception {
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a", "/b").build();
 
         Mount m = mip.getMountByName("foo");

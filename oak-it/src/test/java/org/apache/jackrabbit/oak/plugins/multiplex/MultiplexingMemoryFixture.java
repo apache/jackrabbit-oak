@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class MultiplexingMemoryFixture extends NodeStoreFixture {
@@ -29,7 +30,7 @@ public class MultiplexingMemoryFixture extends NodeStoreFixture {
 
     @Override
     public NodeStore createNodeStore() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .readOnlyMount("temp", MOUNT_PATH)
                 .build();
 

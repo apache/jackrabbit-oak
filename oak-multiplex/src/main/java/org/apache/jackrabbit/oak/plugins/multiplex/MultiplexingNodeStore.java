@@ -64,7 +64,7 @@ import static org.apache.jackrabbit.oak.plugins.multiplex.ModifiedPathDiff.getMo
 
 /**
  * A {@link NodeStore} implementation that multiplexes other {@link NodeStore} instances
- * mounted under paths defined by {@link MountInfo}.
+ * mounted under paths defined by {@link Mount}.
  *
  * <p>The main objective of this implementation is to multiplex operations working on
  * at most single read-write store with any number of read-only stores. While the
