@@ -1,0 +1,99 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+Usage: ${command} [options] jcr2_source [destination]
+       (to upgrade a JCR 2 repository)
+
+       ${command} [options] source destination
+       (to migrate an Oak repository)
+
+# jcr2_source
+
+It's a path to the repository directory and optionally the repository.xml file,
+for instance:
+
+  crx-quickstart/repository
+  my-instance/repository somewhere-else/repository.xml
+
+If there is no destination, repository will be converted to a segment node store
+in-place. Old files will be moved to the repository/crx2 directory.
+
+# source / destination
+
+An descriptor of the Oak node store. Possible options:
+
+  * path to the segment-tar store
+  * segment-old:/path/to/classic/segment
+  * jdbc:... (requires passing username and password as separate parameters)
+  * mongodb://host:port/database
+
+# node store options
+
+--cache <int>             Cache size in MB (default: 256)
+--disable-mmap            Disable memory mapped file access for Segment Store
+
+--src-password            Source rdb password
+--src-user                Source rdb user
+--user                    Target rdb user
+--password                Target rdb password
+
+# migration options
+
+--copy-binaries           Copy binary content. Use this to disable use of
+                            existing DataStore in new repo
+--early-shutdown          Shutdown the source JCR2 repository after nodes are
+                            copied and before the commit hooks are applied
+--fail-on-error           Fail completely if nodes can't be read from the
+                            source repo
+--ignore-missing-binaries Proceed with the migration even if the binaries
+                            are missing
+
+# version store options
+
+--copy-orphaned-versions  Allows to skip copying orphaned versions. Parameters:
+                            { true | false | yyyy-mm-dd }. Defaults to true.
+--copy-versions           Copy the version storage. Parameters:
+                            { true | false | yyyy-mm-dd }. Defaults to true.
+
+# paths options
+
+--include-paths           Comma-separated list of paths to include during copy.
+--merge-paths             Comma-separated list of paths to merge during copy.
+--exclude-paths           Comma-separated list of paths to exclude during copy.
+
+# source blob store options
+
+--src-datastore           Datastore directory to be used as a source
+                            FileDataStore
+--src-fileblobstore       Datastore directory to be used as a source
+                            FileBlobStore
+--src-s3datastore         Datastore directory to be used for the source S3
+--src-s3config            Configuration file for the source S3DataStore
+
+# destination blob store options
+
+--datastore               Datastore directory to be used as a target
+                            FileDataStore
+--fileblobstore           Datastore directory to be used as a target
+                            FileBlobStore
+--s3datastore             Datastore directory to be used for the target S3
+--s3config                Configuration file for the target S3DataStore
+
+# other options
+
+-?, -h, --help            Show help
+--skip-init               Don't initialize the destination repository
+--skip-name-check         Don't look for long-named nodes at the beginning of
+                          the migration
