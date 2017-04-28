@@ -31,7 +31,6 @@ import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
@@ -73,97 +72,89 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected void createSourceContent(Repository repository) throws Exception {
-        Session session = repository.login(CREDENTIALS);
+    protected void createSourceContent(Session session) throws Exception {
+        JackrabbitWorkspace workspace = (JackrabbitWorkspace) session.getWorkspace();
+
+        NamespaceRegistry registry = workspace.getNamespaceRegistry();
+        registry.registerNamespace("test", "http://www.example.org/");
+
+        NodeTypeManager nodeTypeManager = workspace.getNodeTypeManager();
+        NodeTypeTemplate template = nodeTypeManager.createNodeTypeTemplate();
+        template.setName("test:unstructured");
+        template.setDeclaredSuperTypeNames(new String[] { "nt:unstructured" });
+        PropertyDefinitionTemplate pDef1 = nodeTypeManager.createPropertyDefinitionTemplate();
+        pDef1.setName("defaultString");
+        pDef1.setRequiredType(PropertyType.STRING);
+        Value stringValue = session.getValueFactory().createValue("stringValue");
+        pDef1.setDefaultValues(new Value[] { stringValue });
+        template.getPropertyDefinitionTemplates().add(pDef1);
+
+        PropertyDefinitionTemplate pDef2 = nodeTypeManager.createPropertyDefinitionTemplate();
+        pDef2.setName("defaultPath");
+        pDef2.setRequiredType(PropertyType.PATH);
+        Value pathValue = session.getValueFactory().createValue("/jcr:path/nt:value", PropertyType.PATH);
+        pDef2.setDefaultValues(new Value[] { pathValue });
+        template.getPropertyDefinitionTemplates().add(pDef2);
+
+        nodeTypeManager.registerNodeType(template, false);
+
+        template = nodeTypeManager.createNodeTypeTemplate();
+        template.setName("test:referenceable");
+        template.setDeclaredSuperTypeNames(new String[] { "nt:unstructured", "mix:referenceable" });
+        nodeTypeManager.registerNodeType(template, false);
+
+        Node root = session.getRootNode();
+
+        Node referenceable = root.addNode("referenceable", "test:unstructured");
+        referenceable.addMixin(NodeType.MIX_REFERENCEABLE);
+        Node versionable = root.addNode("versionable", NT_UNSTRUCTURED);
+        versionable.addMixin(MIX_VERSIONABLE);
+        Node child = versionable.addNode("child", "test:referenceable");
+        child.addNode("child2", NT_UNSTRUCTURED);
+        session.save();
+
+        Node sns = root.addNode("sns");
+        sns.addNode("sibling");
+        sns.addNode("sibling");
+        sns.addNode("sibling");
+
+        session.getWorkspace().getVersionManager().checkin("/versionable");
+
+        Node properties = root.addNode("properties", "test:unstructured");
+        properties.setProperty("boolean", true);
+        Binary binary = session.getValueFactory().createBinary(new ByteArrayInputStream(BINARY));
         try {
-            JackrabbitWorkspace workspace =
-                    (JackrabbitWorkspace) session.getWorkspace();
+            properties.setProperty("binary", binary);
+        } finally {
+            binary.dispose();
+        }
+        properties.setProperty("date", DATE);
+        properties.setProperty("decimal", new BigDecimal(123));
+        properties.setProperty("double", Math.PI);
+        properties.setProperty("long", 9876543210L);
+        properties.setProperty("reference", referenceable);
+        properties.setProperty("weak_reference", session.getValueFactory().createValue(referenceable, true));
+        properties.setProperty("mv_reference",
+                new Value[] { session.getValueFactory().createValue(versionable, false) });
+        properties.setProperty("mv_weak_reference",
+                new Value[] { session.getValueFactory().createValue(versionable, true) });
+        properties.setProperty("string", "test");
+        properties.setProperty("multiple", "a,b,c".split(","));
+        session.save();
 
-            NamespaceRegistry registry = workspace.getNamespaceRegistry();
-            registry.registerNamespace("test", "http://www.example.org/");
-
-            NodeTypeManager nodeTypeManager = workspace.getNodeTypeManager();
-            NodeTypeTemplate template = nodeTypeManager.createNodeTypeTemplate();
-            template.setName("test:unstructured");
-            template.setDeclaredSuperTypeNames(
-                    new String[] {"nt:unstructured"});
-            PropertyDefinitionTemplate pDef1 = nodeTypeManager.createPropertyDefinitionTemplate();
-            pDef1.setName("defaultString");
-            pDef1.setRequiredType(PropertyType.STRING);
-            Value stringValue = session.getValueFactory().createValue("stringValue");
-            pDef1.setDefaultValues(new Value[] {stringValue});
-            template.getPropertyDefinitionTemplates().add(pDef1);
-
-            PropertyDefinitionTemplate pDef2 = nodeTypeManager.createPropertyDefinitionTemplate();
-            pDef2.setName("defaultPath");
-            pDef2.setRequiredType(PropertyType.PATH);
-            Value pathValue = session.getValueFactory().createValue("/jcr:path/nt:value", PropertyType.PATH);
-            pDef2.setDefaultValues(new Value[] {pathValue});
-            template.getPropertyDefinitionTemplates().add(pDef2);
-
-            nodeTypeManager.registerNodeType(template, false);
-
-            template = nodeTypeManager.createNodeTypeTemplate();
-            template.setName("test:referenceable");
-            template.setDeclaredSuperTypeNames(
-                    new String[] {"nt:unstructured", "mix:referenceable"});
-            nodeTypeManager.registerNodeType(template, false);
-
-            Node root = session.getRootNode();
-
-            Node referenceable =
-                root.addNode("referenceable", "test:unstructured");
-            referenceable.addMixin(NodeType.MIX_REFERENCEABLE);
-            Node versionable = root.addNode("versionable", NT_UNSTRUCTURED);
-            versionable.addMixin(MIX_VERSIONABLE);
-            Node child = versionable.addNode("child", "test:referenceable");
-            child.addNode("child2", NT_UNSTRUCTURED);
-            session.save();
-
-            Node sns = root.addNode("sns");
-            sns.addNode("sibling");
-            sns.addNode("sibling");
-            sns.addNode("sibling");
-
-            session.getWorkspace().getVersionManager().checkin("/versionable");
-
-            Node properties = root.addNode("properties", "test:unstructured");
-            properties.setProperty("boolean", true);
-            Binary binary = session.getValueFactory().createBinary(
-                    new ByteArrayInputStream(BINARY));
+        binary = properties.getProperty("binary").getBinary();
+        try {
+            InputStream stream = binary.getStream();
             try {
-                properties.setProperty("binary", binary);
-            } finally {
-                binary.dispose();
-            }
-            properties.setProperty("date", DATE);
-            properties.setProperty("decimal", new BigDecimal(123));
-            properties.setProperty("double", Math.PI);
-            properties.setProperty("long", 9876543210L);
-            properties.setProperty("reference", referenceable);
-            properties.setProperty("weak_reference", session.getValueFactory().createValue(referenceable, true));
-            properties.setProperty("mv_reference", new Value[]{session.getValueFactory().createValue(versionable, false)});
-            properties.setProperty("mv_weak_reference", new Value[]{session.getValueFactory().createValue(versionable, true)});
-            properties.setProperty("string", "test");
-            properties.setProperty("multiple", "a,b,c".split(","));
-            session.save();
-
-            binary = properties.getProperty("binary").getBinary();
-            try {
-                InputStream stream = binary.getStream();
-                try {
-                    for (byte aBINARY : BINARY) {
-                        assertEquals(aBINARY, (byte) stream.read());
-                    }
-                    assertEquals(-1, stream.read());
-                } finally {
-                    stream.close();
+                for (byte aBINARY : BINARY) {
+                    assertEquals(aBINARY, (byte) stream.read());
                 }
+                assertEquals(-1, stream.read());
             } finally {
-                binary.dispose();
+                stream.close();
             }
         } finally {
-            session.logout();
+            binary.dispose();
         }
     }
 

@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.upgrade.blob;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,7 +32,7 @@ import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Random;
 
-import com.google.common.io.ByteStreams;
+import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
 import com.google.common.io.InputSupplier;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -39,14 +43,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public class LengthCachingDataStoreTest {
 
     @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
+    public final TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
 
     @Test
     public void mappingFileData() throws Exception {
@@ -106,7 +106,7 @@ public class LengthCachingDataStoreTest {
         assertEquals(dr, dr2);
 
         assertEquals(dr.getLength(), dr2.getLength());
-        assertTrue(ByteStreams.equal(supplier(dr), supplier(dr2)));
+        assertTrue(supplier(dr).contentEquals(supplier(dr2)));
     }
 
     @Test
@@ -181,10 +181,10 @@ public class LengthCachingDataStoreTest {
         return data;
     }
 
-    private static InputSupplier<InputStream> supplier(final DataRecord dr) {
-        return new InputSupplier<InputStream>() {
+    private static ByteSource supplier(final DataRecord dr) {
+        return new ByteSource() {
             @Override
-            public InputStream getInput() throws IOException {
+            public InputStream openStream() throws IOException {
                 try {
                     return dr.getStream();
                 } catch (DataStoreException e) {

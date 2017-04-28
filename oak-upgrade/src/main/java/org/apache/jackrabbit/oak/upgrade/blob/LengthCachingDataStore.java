@@ -57,27 +57,26 @@ import static com.google.common.base.Preconditions.checkState;
 /**
  * A DelegatingDataStore can avoid performing expensive file system access by making
  * use of pre computed data related to files in DataStore.
- * <p/>
- * <p>During repository migration actual blob content is not accessed and instead
+ * <p>
+ * During repository migration actual blob content is not accessed and instead
  * only the blob length and blob references are accessed. DelegatingDataStore can be
  * configured with a mapping file which would be used to determine the length of given
- * blob reference.</p>
- * <p/>
+ * blob reference.
+ * <p>
  * Mapping file format
- * <pre><![CDATA[
+ * <pre>{@code
  *     #< length >| < identifier >
  *     4432|dd10bca036f3134352c63e534d4568a3d2ac2fdc
  *     32167|dd10bca036f3134567c63e534d4568a3d2ac2fdc
- * ]]></pre>
- * <p/>
+ * }</pre>
+ * <p>
  * The Configuration:
- * <p/>
- * <pre><![CDATA[
+ * <pre>{@code
  *  <DataStore class="org.apache.jackrabbit.oak.upgrade.blob.LengthCachingDataStore">
  *      <param name="mappingFilePath" value="/path/to/mapping/file" />
  *      <param name="delegateClass" value="org.apache.jackrabbit.core.data.FileDataStore" />
  *  </DataStore>
- * ]]></pre>
+ * }</pre>
  */
 public class LengthCachingDataStore extends AbstractDataStore {
     private static final Logger log = LoggerFactory.getLogger(LengthCachingDataStore.class);
@@ -210,6 +209,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
             this.mapping = recordSizeMapping;
         }
 
+        @Override
         public long getLength() throws DataStoreException {
             Long size = mapping.get(getIdentifier().toString());
             if (size == null) {
@@ -291,7 +291,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
             InputStream is = null;
             try {
                 Properties props = new Properties();
-                is = Files.newInputStreamSupplier(configFile).getInput();
+                is = Files.asByteSource(configFile).openStream();
                 props.load(is);
                 PropertiesUtil.populate(delegate, propsToMap(props), false);
                 log.info("Configured the delegating DataStore via {}", configFile.getAbsolutePath());
