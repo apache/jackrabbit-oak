@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +29,6 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.osgi.framework.BundleContext;
@@ -84,9 +82,10 @@ public class MountInfoProviderService {
 
         MountInfoProvider mip = Mounts.defaultMountInfoProvider();
         if (paths != null) {
-            Mount mi = new MountInfo(mountName.trim(), readOnly, false, trim(pathsSupportingFragments), trim(paths));
-            mip = new SimpleMountInfoProvider(Collections.singletonList(mi));
-            log.info("Enabling mount for {}", mi);
+            mip = Mounts.newBuilder()
+                    .mount(mountName.trim(), readOnly, trim(pathsSupportingFragments), trim(paths))
+                    .build();
+            log.info("Enabling mount for {}", mip);
         } else {
             log.info("No mount config provided. Mounting would be disabled");
         }

@@ -17,12 +17,13 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.multiplex;
+package org.apache.jackrabbit.oak.spi.mount;
 
 import static com.google.common.collect.ImmutableList.of;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.spi.mount.MountInfo;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -31,7 +32,7 @@ public class MountInfoTest {
 
     @Test
     public void testIsMounted() throws Exception{
-        MountInfo md = new MountInfo("foo", false, false, of("/x/y"), of("/a", "/b"));
+        MountInfo md = new MountInfo("foo", false, of("/x/y"), of("/a", "/b"));
         assertTrue(md.isMounted("/a"));
         assertTrue(md.isMounted("/b"));
         assertTrue(md.isMounted("/b/c/d"));
@@ -44,7 +45,7 @@ public class MountInfoTest {
 
     @Test
     public void testIsUnder() {
-        MountInfo md = new MountInfo("foo", false, false, Collections.<String>emptyList(), of("/apps", "/etc/config", "/content/my/site", "/var"));
+        MountInfo md = new MountInfo("foo", false, Collections.<String>emptyList(), of("/apps", "/etc/config", "/content/my/site", "/var"));
         assertTrue(md.isUnder("/etc"));
         assertTrue(md.isUnder("/content"));
         assertTrue(md.isUnder("/content/my"));
@@ -55,7 +56,7 @@ public class MountInfoTest {
 
     @Test
     public void testIsDirectlyUnder() {
-        MountInfo md = new MountInfo("foo", false, false, Collections.<String>emptyList(), of("/apps", "/etc/my/config", "/var"));
+        MountInfo md = new MountInfo("foo", false, Collections.<String>emptyList(), of("/apps", "/etc/my/config", "/var"));
         assertFalse(md.isDirectlyUnder("/etc"));
         assertTrue(md.isDirectlyUnder("/etc/my"));
         assertFalse(md.isDirectlyUnder("/etc/my/config"));

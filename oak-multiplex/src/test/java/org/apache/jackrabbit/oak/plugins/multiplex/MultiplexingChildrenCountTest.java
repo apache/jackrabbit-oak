@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -55,7 +56,7 @@ public class MultiplexingChildrenCountTest {
 
     @Test
     public void singleContributingStore() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder().build();
+        MountInfoProvider mip = Mounts.newBuilder().build();
         NodeStore globalStore = new MemoryNodeStore();
         MultiplexingNodeStore multiplexingNodeStore = new MultiplexingNodeStore.Builder(mip, globalStore).build();
 
@@ -69,7 +70,7 @@ public class MultiplexingChildrenCountTest {
 
     @Test
     public void multipleContributingStores() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
@@ -120,7 +121,7 @@ public class MultiplexingChildrenCountTest {
 
     @Test
     public void contributingStoreReturnsInfinity() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 

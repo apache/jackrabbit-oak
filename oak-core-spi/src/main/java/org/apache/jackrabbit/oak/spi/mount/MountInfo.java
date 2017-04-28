@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.multiplex;
+package org.apache.jackrabbit.oak.spi.mount;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -26,8 +26,6 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 
 import com.google.common.base.Function;
-
-import org.apache.jackrabbit.oak.spi.mount.Mount;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
@@ -49,16 +47,14 @@ final class MountInfo implements Mount {
 
     private final String name;
     private final boolean readOnly;
-    private final boolean defaultMount;
     private final String pathFragmentName;
     private final NavigableSet<String> pathsSupportingFragments;
     private final NavigableSet<String> includedPaths;
 
-    public MountInfo(String name, boolean readOnly, boolean defaultMount, List<String> pathsSupportingFragments,
-            List<String> includedPaths) {
+    MountInfo(String name, boolean readOnly, List<String> pathsSupportingFragments,
+              List<String> includedPaths) {
         this.name = checkNotNull(name, "Mount name must not be null");
         this.readOnly = readOnly;
-        this.defaultMount = defaultMount;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
         this.pathsSupportingFragments = cleanCopy(pathsSupportingFragments);
@@ -102,7 +98,7 @@ final class MountInfo implements Mount {
 
     @Override
     public boolean isDefault() {
-        return defaultMount;
+        return false;
     }
 
     @Override
@@ -127,8 +123,7 @@ final class MountInfo implements Mount {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         String readAttr = readOnly ? "r" : "rw";
-        String displayName = defaultMount ? "default" : name;
-        pw.print(displayName + "(" + readAttr + ")");
+        pw.print(name + "(" + readAttr + ")");
         for (String path : includedPaths) {
             pw.printf("\t%s%n", path);
         }

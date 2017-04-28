@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -45,7 +46,7 @@ public class MultiplexingCompareTest {
 
     @Test
     public void reportedNodesAreWrapped() {
-        SimpleMountInfoProvider.Builder mipBuilder = new SimpleMountInfoProvider.Builder();
+        Mounts.Builder mipBuilder = Mounts.newBuilder();
         mipBuilder.readOnlyMount("libs", "/libs");
         MountInfoProvider mip = mipBuilder.build();
 
@@ -96,7 +97,7 @@ public class MultiplexingCompareTest {
 
     @Test
     public void onlyPropertiesOnMainNodesAreCompared() throws CommitFailedException {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("libs", "/libs").build();
+        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
@@ -131,7 +132,7 @@ public class MultiplexingCompareTest {
 
     @Test
     public void nodesOutsideTheMountsAreIgnored() throws CommitFailedException {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder().mount("libs", "/libs").build();
+        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 

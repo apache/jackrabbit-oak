@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class MultiplexingSegmentFixture extends NodeStoreFixture {
@@ -33,7 +34,7 @@ public class MultiplexingSegmentFixture extends NodeStoreFixture {
     @Override
     public NodeStore createNodeStore() {
         try {
-            MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+            MountInfoProvider mip = Mounts.newBuilder()
                     .readOnlyMount("temp", MOUNT_PATH)
                     .build();
 

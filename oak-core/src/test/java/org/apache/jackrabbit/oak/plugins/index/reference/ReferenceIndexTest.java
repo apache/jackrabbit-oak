@@ -26,7 +26,6 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -97,7 +97,7 @@ public class ReferenceIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a")
                 .build();
 

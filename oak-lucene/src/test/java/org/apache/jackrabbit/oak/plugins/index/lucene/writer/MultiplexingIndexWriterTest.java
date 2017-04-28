@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -61,7 +60,7 @@ public class MultiplexingIndexWriterTest {
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
     private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
-    private MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+    private MountInfoProvider mip = Mounts.newBuilder()
             .mount("foo", "/libs", "/apps").build();
 
     private Mount fooMount;
@@ -167,7 +166,7 @@ public class MultiplexingIndexWriterTest {
 
     @Test
     public void deleteIncludingMount() throws Exception{
-        mip = SimpleMountInfoProvider.newBuilder()
+        mip = Mounts.newBuilder()
                 .mount("foo", "/content/remote").build();
         initializeMounts();
         LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);

@@ -50,6 +50,7 @@
     <module>oak-jcr</module>
 
     <module>oak-upgrade</module>
+    <module>oak-multiplex</module>
     <module>oak-http</module>
     <module>oak-lucene</module>
     <module>oak-solr-core</module>

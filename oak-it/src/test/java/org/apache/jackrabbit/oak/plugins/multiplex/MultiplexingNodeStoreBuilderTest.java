@@ -20,13 +20,14 @@ package org.apache.jackrabbit.oak.plugins.multiplex;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.junit.Test;
 
 public class MultiplexingNodeStoreBuilderTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void builderRejectsTooManyReadWriteStores_oneExtra() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("temp", "/tmp")
                 .build();
 
@@ -37,7 +38,7 @@ public class MultiplexingNodeStoreBuilderTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void builderRejectsTooManyReadWriteStores_mixed() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("temp", "/tmp")
                 .readOnlyMount("readOnly", "/readOnly")
                 .build();
@@ -50,7 +51,7 @@ public class MultiplexingNodeStoreBuilderTest {
 
     @Test
     public void builderAcceptsMultipleReadOnlyStores() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .readOnlyMount("readOnly", "/readOnly")
                 .readOnlyMount("readOnly2", "/readOnly2")
                 .build();
@@ -63,7 +64,7 @@ public class MultiplexingNodeStoreBuilderTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void mismatchBetweenMountsAndStoresIsRejected() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("temp", "/tmp")
                 .build();
 
@@ -73,7 +74,7 @@ public class MultiplexingNodeStoreBuilderTest {
 
     @Test(expected = NullPointerException.class)
     public void mismatchBetweenMountNameAndStoreName() {
-        MountInfoProvider mip = new SimpleMountInfoProvider.Builder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("temp", "/tmp")
                 .build();
 

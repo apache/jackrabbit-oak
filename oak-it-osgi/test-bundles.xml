@@ -38,6 +38,7 @@
         <include>org.apache.jackrabbit:oak-api</include>
         <include>org.apache.jackrabbit:oak-commons</include>
         <include>org.apache.jackrabbit:oak-core</include>
+        <include>org.apache.jackrabbit:oak-multiplex</include>
         <include>org.apache.jackrabbit:oak-segment-tar</include>
         <include>org.apache.jackrabbit:oak-jcr</include>
         <include>org.apache.jackrabbit:oak-lucene</include>

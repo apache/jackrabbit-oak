@@ -17,13 +17,15 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.multiplex;
+package org.apache.jackrabbit.oak.spi.mount;
 
 import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.mount.SimpleMountInfoProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -44,7 +46,7 @@ public class SimpleMountInfoProviderTest {
 
     @Test
     public void basicMounting() throws Exception {
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a", "/b")
                 .mount("bar", "/x", "/y")
                 .build();
@@ -58,7 +60,7 @@ public class SimpleMountInfoProviderTest {
 
     @Test
     public void nonDefaultMounts() throws Exception{
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a", "/b")
                 .mount("bar", "/x", "/y")
                 .build();
@@ -74,7 +76,7 @@ public class SimpleMountInfoProviderTest {
 
     @Test
     public void readOnlyMounting() throws Exception{
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a", "/b")
                 .readOnlyMount("bar", "/x", "/y")
                 .build();
@@ -86,7 +88,7 @@ public class SimpleMountInfoProviderTest {
     @Test
     public void mountsPlacedUnder() {
         
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("first", "/b")
                 .mount("second", "/d", "/b/a")
                 .mount("third", "/h", "/b/c")
