@@ -18,9 +18,8 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.addAll;
-import static com.google.common.collect.Iterables.skip;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
@@ -32,13 +31,15 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
+import static org.apache.jackrabbit.core.RepositoryImpl.ACTIVITIES_NODE_ID;
+import static org.apache.jackrabbit.core.RepositoryImpl.ROOT_NODE_ID;
+import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -48,15 +49,21 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.id.NodeId;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.core.persistence.util.NodePropBundle;
@@ -87,16 +94,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     private static final Logger log =
             LoggerFactory.getLogger(JackrabbitNodeState.class);
 
-    private static long count = 0;
-
-    private static void logNewNode(JackrabbitNodeState state) {
-        count++;
-        if (count % 10000 == 0) {
-            log.info("Migrating node #" + count + ": " + state.getPath());
-        }
-    }
-
-    private final JackrabbitNodeState parent;
+    private JackrabbitNodeState parent;
 
     private final String name;
 
@@ -107,6 +105,10 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final BundleLoader loader;
 
+    /**
+     * Workspace name used for versionable paths. This is null
+     * for the jcr:versionStorage and jcr:activities nodes.
+     */
     private final String workspaceName;
 
     private final TypePredicate isReferenceable;
@@ -126,17 +128,60 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final Map<String, String> uriToPrefix;
 
-    private final Map<String, String> versionablePaths;
-
     private final boolean useBinaryReferences;
 
     private final Map<String, NodeId> nodes;
 
     private final Map<String, PropertyState> properties;
 
+    private final Map<NodeId, JackrabbitNodeState> mountPoints;
+
+    private final Map<NodeId, JackrabbitNodeState> nodeStateCache;
+
+    private final List<String> ignoredPaths = ImmutableList.of("/jcr:system/jcr:nodeTypes");
+
+    public static JackrabbitNodeState createRootNodeState(
+            RepositoryContext context,
+            String workspaceName,
+            NodeState root,
+            Map<String, String> uriToPrefix,
+            boolean copyBinariesByReference,
+            boolean skipOnError
+    ) throws RepositoryException {
+
+        final Map<NodeId, JackrabbitNodeState> emptyMountPoints = ImmutableMap.of();
+        final PersistenceManager versionPM = context.getInternalVersionManager().getPersistenceManager();
+        final JackrabbitNodeState versionStorage = new JackrabbitNodeState(
+                versionPM, root, uriToPrefix,
+                VERSION_STORAGE_NODE_ID, "/jcr:system/jcr:versionStorage",
+                null,
+                emptyMountPoints,
+                copyBinariesByReference,
+                skipOnError
+        );
+
+        final JackrabbitNodeState activities = new JackrabbitNodeState(
+                versionPM, root, uriToPrefix,
+                ACTIVITIES_NODE_ID, "/jcr:system/jcr:activities",
+                null,
+                emptyMountPoints,
+                copyBinariesByReference,
+                skipOnError
+        );
+
+
+        PersistenceManager pm = context.getWorkspaceInfo(workspaceName).getPersistenceManager();
+        final Map<NodeId, JackrabbitNodeState> mountPoints = ImmutableMap.of(
+                VERSION_STORAGE_NODE_ID, versionStorage,
+                ACTIVITIES_NODE_ID, activities
+        );
+        return new JackrabbitNodeState(
+                pm, root, uriToPrefix, ROOT_NODE_ID, "/",
+                workspaceName, mountPoints, copyBinariesByReference, skipOnError);
+    }
+
     private JackrabbitNodeState(
-            JackrabbitNodeState parent, String name, NodePropBundle bundle,
-            boolean skipOnError) {
+            JackrabbitNodeState parent, String name, NodePropBundle bundle) {
         this.parent = parent;
         this.name = name;
         this.path = null;
@@ -148,24 +193,24 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.isVersionHistory = parent.isVersionHistory;
         this.isFrozenNode = parent.isFrozenNode;
         this.uriToPrefix = parent.uriToPrefix;
-        this.versionablePaths = parent.versionablePaths;
         this.useBinaryReferences = parent.useBinaryReferences;
         this.properties = createProperties(bundle);
         this.nodes = createNodes(bundle);
-        this.skipOnError = skipOnError;
+        this.skipOnError = parent.skipOnError;
+        this.mountPoints = parent.mountPoints;
+        this.nodeStateCache = parent.nodeStateCache;
         setChildOrder();
-        setVersionablePaths();
         fixFrozenUuid();
-        logNewNode(this);
     }
 
     JackrabbitNodeState(
             PersistenceManager source, NodeState root,
             Map<String, String> uriToPrefix, NodeId id, String path,
-            String workspaceName, Map<String, String> versionablePaths,
+            String workspaceName,
+            Map<NodeId, JackrabbitNodeState> mountPoints,
             boolean useBinaryReferences, boolean skipOnError) {
         this.parent = null;
-        this.name = null;
+        this.name = PathUtils.getName(path);
         this.path = path;
         this.loader = new BundleLoader(source);
         this.workspaceName = workspaceName;
@@ -175,7 +220,14 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.isVersionHistory = new TypePredicate(root, NT_VERSIONHISTORY);
         this.isFrozenNode = new TypePredicate(root, NT_FROZENNODE);
         this.uriToPrefix = uriToPrefix;
-        this.versionablePaths = versionablePaths;
+        this.mountPoints = mountPoints;
+        final int cacheSize = 50; // cache size 50 results in > 25% cache hits during version copy
+        this.nodeStateCache = new LinkedHashMap<NodeId, JackrabbitNodeState>(cacheSize, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<NodeId, JackrabbitNodeState> eldest) {
+                return size() >= cacheSize;
+            }
+        };
         this.useBinaryReferences = useBinaryReferences;
         this.skipOnError = skipOnError;
         try {
@@ -186,7 +238,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         } catch (ItemStateException e) {
             throw new IllegalStateException("Unable to access node " + id, e);
         }
-        logNewNode(this);
     }
 
     @Override
@@ -207,15 +258,16 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return properties.containsKey(name);
     }
 
     @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         return properties.get(name);
     }
 
+    @Nonnull
     @Override
     public Iterable<PropertyState> getProperties() {
         return properties.values();
@@ -227,30 +279,20 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         return nodes.containsKey(name);
     }
 
+    @Nonnull
     @Override
-    public NodeState getChildNode(String name) {
+    public NodeState getChildNode(@Nonnull String name) {
         NodeId id = nodes.get(name);
+        NodeState state = null;
         if (id != null) {
-            try {
-                return new JackrabbitNodeState(
-                        this, name, loader.loadBundle(id), skipOnError);
-            } catch (ItemStateException e) {
-                if (!skipOnError) {
-                    throw new IllegalStateException(
-                            "Unable to access child node " + name, e);
-                }
-                warn("Skipping broken child node entry " + name + " and changing the primary type to nt:unstructured", e);
-                properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
-                        JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
-
-            }
+            state = createChildNodeState(id, name);
         }
         checkValidName(name);
-        return EmptyNodeState.MISSING_NODE;
+        return state != null ? state : EmptyNodeState.MISSING_NODE;
     }
 
     @Override
@@ -258,22 +300,21 @@ class JackrabbitNodeState extends AbstractNodeState {
         return nodes.keySet();
     }
 
+    @Nonnull
     @Override
     public Iterable<MemoryChildNodeEntry> getChildNodeEntries() {
-        List<MemoryChildNodeEntry> entries = newArrayList();
+        List<MemoryChildNodeEntry> entries = newArrayListWithCapacity(nodes.size());
         for (Map.Entry<String, NodeId> entry : nodes.entrySet()) {
             String name = entry.getKey();
-            try {
-                JackrabbitNodeState child = new JackrabbitNodeState(
-                        this, name, loader.loadBundle(entry.getValue()), skipOnError);
+            final NodeState child = createChildNodeState(entry.getValue(), name);
+            if (child != null) {
                 entries.add(new MemoryChildNodeEntry(name, child));
-            } catch (ItemStateException e) {
-                warn("Skipping broken child node entry " + name, e);
             }
         }
         return entries;
     }
 
+    @Nonnull
     @Override
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
@@ -281,25 +322,44 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     //-----------------------------------------------------------< private >--
 
+    @CheckForNull
+    private JackrabbitNodeState createChildNodeState(NodeId id, String name) {
+        if (mountPoints.containsKey(id)) {
+            final JackrabbitNodeState nodeState = mountPoints.get(id);
+            checkState(name.equals(nodeState.name),
+                    "Expected mounted node " + id + " to be called " + nodeState.name +
+                            " instead of " + name);
+            nodeState.parent = this;
+            return nodeState;
+        }
+
+        JackrabbitNodeState state = nodeStateCache.get(id);
+        if (state == null) {
+            try {
+                state = new JackrabbitNodeState(this, name, loader.loadBundle(id));
+                nodeStateCache.put(id, state);
+            } catch (ItemStateException e) {
+                handleBundleLoadingException(name, e);
+            } catch (NullPointerException e) {
+                handleBundleLoadingException(name, e);
+            }
+        }
+        return state;
+    }
+
+    private void handleBundleLoadingException(final @Nonnull String name, final Exception e) {
+        if (!skipOnError) {
+            throw new IllegalStateException("Unable to access child node " + name + " of " + getPath(), e);
+        }
+        warn("Skipping broken child node entry " + name + " and changing the primary type to nt:unstructured", e);
+        properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
+                JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
+    }
+
     private void setChildOrder() {
         if (isOrderable.apply(this)) {
             properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
                     OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
-        }
-    }
-
-    private void setVersionablePaths() {
-        if (isVersionable.apply(this)) {
-            String uuid = getString(JCR_VERSIONHISTORY);
-            if (uuid != null) {
-                versionablePaths.put(uuid, getPath());
-            }
-        } else if (isVersionHistory.apply(this)) {
-            String uuid = getString(JCR_UUID);
-            String path = versionablePaths.get(uuid);
-            if (path != null) {
-                properties.put(workspaceName, PropertyStates.createProperty(workspaceName, path, Type.PATH));
-            }
         }
     }
 
@@ -311,7 +371,10 @@ class JackrabbitNodeState extends AbstractNodeState {
             for (int i = 2; children.containsKey(name); i++) {
                 name = base + '[' + i + ']';
             }
-            children.put(name, entry.getId());
+
+            if (!ignoredPaths.contains(PathUtils.concat(getPath(), name))) {
+                children.put(name, entry.getId());
+            }
         }
         return children;
     }
@@ -351,6 +414,11 @@ class JackrabbitNodeState extends AbstractNodeState {
                 mixins.add(createName(mixin));
             }
         }
+
+        if (mixins.remove("mix:simpleVersionable")) {
+            mixins.add(MIX_VERSIONABLE);
+        }
+
         if (!mixins.isEmpty()) {
             properties.put(JCR_MIXINTYPES, PropertyStates.createProperty(
                     JCR_MIXINTYPES, mixins, Type.NAMES));
@@ -533,6 +601,8 @@ class JackrabbitNodeState extends AbstractNodeState {
                     return 0;
                 }
             }
+
+            @Nonnull
             @Override
             public InputStream getNewStream() {
                 try {
@@ -542,6 +612,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                     return new ByteArrayInputStream(new byte[0]);
                 }
             }
+
             @Override
             public String getReference() {
                 if (!useBinaryReferences) {
@@ -562,6 +633,22 @@ class JackrabbitNodeState extends AbstractNodeState {
                     warn("Unable to get blob reference", e);
                     return null;
                 }
+            }
+
+            @Override
+            public String getContentIdentity() {
+                final String reference = getReference();
+                if (reference != null) {
+                    final int pos = reference.indexOf(":");
+                    final String blobHash;
+                    if (pos > -1) {
+                        blobHash = reference.substring(0, pos);
+                    } else {
+                        blobHash = reference;
+                    }
+                    return blobHash + "#" + length();
+                }
+                return super.getContentIdentity();
             }
         };
     }

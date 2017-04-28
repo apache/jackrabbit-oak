@@ -108,7 +108,7 @@ class GroupEditor extends DefaultEditor {
 
     @Override
     public Editor childNodeChanged(String name, NodeState before, NodeState after) {
-        throw new IllegalStateException("changed node during upgrade copy not expected: " + state.path + "/" + name);
+        return null;
     }
 
     @Override
