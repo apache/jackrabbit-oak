@@ -74,7 +74,9 @@ class PropertyIndexEditor implements IndexEditor {
     /** Root node state */
     private final NodeState root;
 
-     private final Set<String> propertyNames;
+    private final Set<String> propertyNames;
+    
+    private final ValuePattern valuePattern;
 
     /** Type predicate, or {@code null} if there are no type restrictions */
     private final Predicate<NodeState> typePredicate;
@@ -128,6 +130,7 @@ class PropertyIndexEditor implements IndexEditor {
         } else {
             this.propertyNames = newHashSet(names.getValue(NAMES));
         }
+        this.valuePattern = new ValuePattern(definition.getString(IndexConstants.VALUE_PATTERN));
 
         // get declaring types, and all their subtypes
         // TODO: should we reindex when type definitions change?
@@ -155,6 +158,7 @@ class PropertyIndexEditor implements IndexEditor {
         this.definition = parent.definition;
         this.root = parent.root;
         this.propertyNames = parent.getPropertyNames();
+        this.valuePattern = parent.valuePattern;
         this.typePredicate = parent.typePredicate;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
         this.updateCallback = parent.updateCallback;
@@ -193,24 +197,24 @@ class PropertyIndexEditor implements IndexEditor {
      * @return set of encoded values, possibly initialized
      */
     private static Set<String> addValueKeys(
-            Set<String> keys, PropertyState property) {
+            Set<String> keys, PropertyState property, ValuePattern pattern) {
         if (property.getType().tag() != PropertyType.BINARY
                 && property.count() > 0) {
             if (keys == null) {
                 keys = newHashSet();
             }
-            keys.addAll(encode(PropertyValues.create(property)));
+            keys.addAll(encode(PropertyValues.create(property), pattern));
         }
         return keys;
     }
 
     private static Set<String> getMatchingKeys(
-            NodeState state, Iterable<String> propertyNames) {
+            NodeState state, Iterable<String> propertyNames, ValuePattern pattern) {
         Set<String> keys = null;
         for (String propertyName : propertyNames) {
             PropertyState property = state.getProperty(propertyName);
             if (property != null) {
-                keys = addValueKeys(keys, property);
+                keys = addValueKeys(keys, property, pattern);
             }
         }
         return keys;
@@ -248,8 +252,8 @@ class PropertyIndexEditor implements IndexEditor {
             if (typeChanged) {
                 // possible type change, so ignore diff results and
                 // just load all matching values from both states
-                beforeKeys = getMatchingKeys(before, getPropertyNames());
-                afterKeys = getMatchingKeys(after, getPropertyNames());
+                beforeKeys = getMatchingKeys(before, getPropertyNames(), valuePattern);
+                afterKeys = getMatchingKeys(after, getPropertyNames(), valuePattern);
             }
             if (beforeKeys != null && !typePredicate.apply(before)) {
                 // the before state doesn't match the type, so clear its values
@@ -375,7 +379,7 @@ class PropertyIndexEditor implements IndexEditor {
         String name = after.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            afterKeys = addValueKeys(afterKeys, after);
+            afterKeys = addValueKeys(afterKeys, after, valuePattern);
         }
     }
 
@@ -384,8 +388,8 @@ class PropertyIndexEditor implements IndexEditor {
         String name = after.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            beforeKeys = addValueKeys(beforeKeys, before);
-            afterKeys = addValueKeys(afterKeys, after);
+            beforeKeys = addValueKeys(beforeKeys, before, valuePattern);
+            afterKeys = addValueKeys(afterKeys, after, valuePattern);
         }
     }
 
@@ -394,7 +398,7 @@ class PropertyIndexEditor implements IndexEditor {
         String name = before.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            beforeKeys = addValueKeys(beforeKeys, before);
+            beforeKeys = addValueKeys(beforeKeys, before, valuePattern);
         }
     }
 

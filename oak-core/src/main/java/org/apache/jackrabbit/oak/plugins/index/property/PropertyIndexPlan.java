@@ -84,6 +84,8 @@ public class PropertyIndexPlan {
     private final PathFilter pathFilter;
 
     private final boolean unique;
+    
+    private final ValuePattern valuePattern;
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
@@ -96,6 +98,7 @@ public class PropertyIndexPlan {
         this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
         this.properties = newHashSet(definition.getNames(PROPERTY_NAMES));
+        this.valuePattern = new ValuePattern(definition.getString(IndexConstants.VALUE_PATTERN));
         pathFilter = PathFilter.from(definition.builder());
         this.strategies = getStrategies(definition, mountInfoProvider);
         this.filter = filter;
@@ -142,7 +145,28 @@ public class PropertyIndexPlan {
                         // of the child node (well, we could, for some node types)
                         continue;
                     }
-                    Set<String> values = getValues(restriction);
+                    Set<String> values = getValues(restriction, new ValuePattern(null));
+                    if (valuePattern.matchesAll()) {
+                        // matches all values: not a problem
+                    } else if (values == null) {
+                        // "is not null" condition, but we have a value pattern
+                        // that doesn't match everything
+                        // so we can't use that index
+                        continue;
+                    } else {
+                        boolean allValuesMatches = true;
+                        for (String v : values) {
+                            if (!valuePattern.matches(v)) {
+                                allValuesMatches = false;
+                                break;
+                            }
+                        }
+                        // we have a value pattern, for example (a|b),
+                        // but we search (also) for 'c': can't match
+                        if (!allValuesMatches) {
+                            continue;
+                        }
+                    }
                     double cost = strategies.isEmpty() ? MAX_COST : 0;
                     for (IndexStoreStrategy strategy : strategies) {
                         cost += strategy.count(filter, root, definition,
@@ -172,18 +196,18 @@ public class PropertyIndexPlan {
         this.cost = COST_OVERHEAD + bestCost;
     }
 
-    private static Set<String> getValues(PropertyRestriction restriction) {
+    private static Set<String> getValues(PropertyRestriction restriction, ValuePattern pattern) {
         if (restriction.firstIncluding
                 && restriction.lastIncluding
                 && restriction.first != null
                 && restriction.first.equals(restriction.last)) {
             // "[property] = $value"
-            return encode(restriction.first);
+            return encode(restriction.first, pattern);
         } else if (restriction.list != null) {
             // "[property] IN (...)
             Set<String> values = newLinkedHashSet(); // keep order for testing
             for (PropertyValue value : restriction.list) {
-                values.addAll(encode(value));
+                values.addAll(encode(value, pattern));
             }
             return values;
         } else {
