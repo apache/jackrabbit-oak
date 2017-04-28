@@ -1091,7 +1091,7 @@ public class QueryImpl implements Query {
                 break;
             case WARN:
                 if (!potentiallySlowTraversalQueryLogged) {
-                    LOG.info(message);
+                    LOG.warn(message);
                     potentiallySlowTraversalQueryLogged = true;
                 }
                 break;
