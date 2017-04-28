@@ -110,7 +110,7 @@ class PropertyIndex implements QueryIndex {
         this.mountInfoProvider = mountInfoProvider;
     }
 
-    static Set<String> encode(PropertyValue value) {
+    static Set<String> encode(PropertyValue value, ValuePattern pattern) {
         if (value == null) {
             return null;
         }
@@ -119,6 +119,9 @@ class PropertyIndex implements QueryIndex {
             try {
                 if (v.length() > MAX_STRING_LENGTH) {
                     v = v.substring(0, MAX_STRING_LENGTH);
+                }
+                if (!pattern.matches(v)) {
+                    continue;
                 }
                 if (v.isEmpty()) {
                     v = EMPTY_TOKEN;

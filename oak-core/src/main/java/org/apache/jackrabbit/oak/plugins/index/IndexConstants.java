@@ -46,6 +46,11 @@ public interface IndexConstants {
     String ENTRY_COUNT_PROPERTY_NAME = "entryCount";
 
     String KEY_COUNT_PROPERTY_NAME = "keyCount";
+    
+    /**
+     * The regular expression pattern of the values to be indexes.
+     */
+    String VALUE_PATTERN = "valuePattern";
 
     /**
      * Marks a unique property index.

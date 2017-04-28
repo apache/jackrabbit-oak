@@ -36,11 +36,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -454,6 +457,64 @@ public class PropertyIndexTest {
             // expected: no index for "pqr"
         }
     }
+    
+    @Test
+    public void valuePattern() throws Exception {
+        NodeState root = EMPTY_NODE;
+
+        // Add index definitions
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder indexDef = createIndexDefinition(
+                index, "fooIndex", true, false,
+                ImmutableSet.of("foo"), null);
+        indexDef.setProperty(IndexConstants.VALUE_PATTERN, "(a.*|b)");
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("a")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "a");
+        builder.child("a1")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "a1");
+        builder.child("b")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "b");
+        builder.child("c")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "c");
+        NodeState after = builder.getNodeState();
+
+        // Add an index
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
+
+        // Query the index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(ImmutableSet.of("a"), find(lookup, "foo", "a", f));
+        assertEquals(ImmutableSet.of("a1"), find(lookup, "foo", "a1", f));
+        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "b", f));
+
+        // expected: no index for "is not null"
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+        
+        ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
+        list.add(PropertyValues.newString("c"));
+        f.restrictPropertyAsList("foo", list);
+        // expected: no index for value c
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+
+        f = createFilter(after, NT_UNSTRUCTURED);
+        list = new ArrayList<PropertyValue>();
+        list.add(PropertyValues.newString("a"));
+        f.restrictPropertyAsList("foo", list);
+        // expected: no index for value a
+        assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
+
+    }    
 
     @Test(expected = CommitFailedException.class)
     public void testUnique() throws Exception {
