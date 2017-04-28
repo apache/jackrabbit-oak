@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import javax.jcr.Node;
-import javax.jcr.Repository;
+import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -59,27 +59,23 @@ public class RepositoryGroupMemberUpgradeTest extends AbstractRepositoryUpgradeT
         return 2;
     }
 
-    protected void createSourceContent(Repository repository) throws Exception {
-        JackrabbitSession session = (JackrabbitSession) repository.login(CREDENTIALS);
-        try {
-            UserManager userMgr = session.getUserManager();
-            userMgr.autoSave(false);
-            User users[] = new User[getNumUsers()];
-            for (int i = 0; i < users.length; i++) {
-                String userId = TEST_USER_PREFIX + i;
-                users[i] = userMgr.createUser(userId, userId);
-            }
-
-            for (int i = 0; i < getNumGroups(); i++) {
-                Group g = userMgr.createGroup(TEST_GROUP_PREFIX + i);
-                for (User user : users) {
-                    g.addMember(user);
-                }
-            }
-            session.save();
-        } finally {
-            session.logout();
+    @Override
+    protected void createSourceContent(Session session) throws Exception {
+        UserManager userMgr = ((JackrabbitSession) session).getUserManager();
+        userMgr.autoSave(false);
+        User users[] = new User[getNumUsers()];
+        for (int i = 0; i < users.length; i++) {
+            String userId = TEST_USER_PREFIX + i;
+            users[i] = userMgr.createUser(userId, userId);
         }
+
+        for (int i = 0; i < getNumGroups(); i++) {
+            Group g = userMgr.createGroup(TEST_GROUP_PREFIX + i);
+            for (User user : users) {
+                g.addMember(user);
+            }
+        }
+        session.save();
     }
 
     @Test
