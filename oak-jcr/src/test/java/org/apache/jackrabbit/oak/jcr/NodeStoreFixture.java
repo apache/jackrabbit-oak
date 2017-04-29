@@ -22,7 +22,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
@@ -61,7 +60,7 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            String prefix = "T" + UUID.randomUUID().toString().replace("-", "");
+            String prefix =  "T" + Long.toHexString(System.currentTimeMillis());
             RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
             this.jdbcUrl = pUrl.replace("{fname}", fname);
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, pUser, pPasswd);
