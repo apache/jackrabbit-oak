@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.io.File;
-import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -57,7 +56,8 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
     }
 
     protected DocumentMK.Builder newBuilder(DataSource db) throws Exception {
-        RDBOptions opt = new RDBOptions().tablePrefix("T" + UUID.randomUUID().toString().replace("-", "")).dropTablesOnClose(true);
+        String prefix = "T" + Long.toHexString(System.currentTimeMillis());
+        RDBOptions opt = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
         return new DocumentMK.Builder().clock(getTestClock()).setRDBConnection(dataSource, opt);
     }
 
