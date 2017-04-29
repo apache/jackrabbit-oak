@@ -22,7 +22,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.UUID;
+
 
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -76,7 +76,7 @@ public class OakDocumentRDBRepositoryStub extends RepositoryStub {
         Session session = null;
         final DocumentNodeStore m;
         try {
-            String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
+            String prefix = "T" + Long.toHexString(System.currentTimeMillis());
             RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
             m = new DocumentMK.Builder().
                     setClusterId(1).
