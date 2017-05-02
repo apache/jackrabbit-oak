@@ -81,6 +81,13 @@ public class SegmentCache {
                 }).build();
     }
 
+    private void put(@Nonnull SegmentId id, Segment segment) {
+        // Call loaded *before* putting the segment into the cache as the latter
+        // might cause it to get evicted right away again.
+        id.loaded(segment);
+        cache.put(id, segment);
+    }
+
     /**
      * Retrieve an segment from the cache or load it and cache it if not yet in the cache.
      * @param id        the id of the segment
@@ -97,8 +104,7 @@ public class SegmentCache {
                 return segment;
             }
 
-            cache.put(id, segment);
-            id.loaded(segment);
+            put(id, segment);
             return segment;
         } catch (Exception e) {
             throw new ExecutionException(e);
@@ -115,8 +121,7 @@ public class SegmentCache {
             return;
         }
 
-        cache.put(segmentId, segment);
-        segmentId.loaded(segment);
+        put(segmentId, segment);
     }
 
     /**
