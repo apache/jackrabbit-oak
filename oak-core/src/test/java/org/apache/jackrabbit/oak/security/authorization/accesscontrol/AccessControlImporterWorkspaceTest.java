@@ -14,22 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+public class AccessControlImporterWorkspaceTest extends AccessControlImporterAbortTest{
 
-import javax.jcr.security.AccessControlException;
-
-import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-import org.junit.Test;
-
-public class ImportAbortTest extends ImportIgnoreTest {
-
-    protected String getImportBehavior() {
-        return ImportBehavior.NAME_ABORT;
-    }
-
-    @Test(expected = AccessControlException.class)
-    public void testImportUnknownPrincipal() throws Exception {
-        runImport();
+    @Override
+    boolean isWorkspaceImport() {
+        return true;
     }
 }
