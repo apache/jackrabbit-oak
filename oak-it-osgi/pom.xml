@@ -113,7 +113,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-multiplex</artifactId>
+      <artifactId>oak-store-federated</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

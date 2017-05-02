@@ -49,8 +49,8 @@ public abstract class OakFixture {
     public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
     public static final String OAK_SEGMENT_TAR_DS = "Oak-Segment-Tar-DS";
 
-    public static final String OAK_MULTIPLEXING = "Oak-Multiplexing";
-    public static final String OAK_MULTIPLEXING_MEMORY = "Oak-Multiplexing-Memory";
+    public static final String OAK_FEDERATED_STORE = "Oak-Federated";
+    public static final String OAK_FEDERATED_MEMORY_STORE = "Oak-Federated-Memory";
 
 
     private final String name;
@@ -262,14 +262,14 @@ public abstract class OakFixture {
         return new SegmentTarFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore, dsCacheInMB);
     }
 
-    public static OakFixture getMultiplexing(final String name, final File base,
-                                             final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
-                                             final int mounts, final int pathsPerMount) {
-        return new MultiplexingFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount);
+    public static OakFixture getFederatedStore(final String name, final File base,
+                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
+                                               final int mounts, final int pathsPerMount) {
+        return new FederatedFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount);
     }
 
-    public static OakFixture getMultiplexingInMemory(final String name, final int mounts, final int pathsPerMount) {
-        return new MultiplexingFixture(name, mounts, pathsPerMount);
+    public static OakFixture getFederatedMemoryStore(final String name, final int mounts, final int pathsPerMount) {
+        return new FederatedFixture(name, mounts, pathsPerMount);
     }
 
     public static class MongoFixture extends OakFixture {
