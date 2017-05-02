@@ -59,9 +59,6 @@ import org.mockito.Mockito;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
-/**
- * UserImporterBaseTest... TODO
- */
 public abstract class UserImporterBaseTest extends AbstractSecurityTest implements UserConstants {
 
     static final String TEST_USER_ID = "uid";
@@ -126,7 +123,6 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
     boolean isWorkspaceImport() {
         return false;
     }
-
 
     boolean init() throws Exception {
         return init(false);

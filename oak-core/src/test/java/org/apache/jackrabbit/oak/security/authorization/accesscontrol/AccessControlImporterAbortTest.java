@@ -14,22 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.security.authorization;
-
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import javax.jcr.security.AccessControlException;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
 
-public class ImportAbortTest extends ImportIgnoreTest {
+public class AccessControlImporterAbortTest extends AccessControlImporterBaseTest{
 
-    protected String getImportBehavior() {
+    @Override
+    String getImportBehavior() {
         return ImportBehavior.NAME_ABORT;
     }
 
     @Test(expected = AccessControlException.class)
-    public void testImportUnknownPrincipal() throws Exception {
-        runImport();
+    public void testStartAceChildInfoUnknownPrincipal() throws Exception {
+        init();
+        importer.start(aclTree);
+        importer.startChildInfo(aceInfo, ImmutableList.of(unknownPrincipalInfo));
     }
 }

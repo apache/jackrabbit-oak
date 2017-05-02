@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,6 +29,7 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
@@ -89,6 +89,9 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
+        }
+        if (!(session instanceof JackrabbitSession)) {
+            return false;
         }
         try {
             AuthorizationConfiguration config = securityProvider.getConfiguration(AuthorizationConfiguration.class);
@@ -239,7 +242,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         private final boolean isAllow;
 
         private Principal principal;
-        private List<Privilege> privileges;
+        private List<Privilege> privileges = new ArrayList();
         private Map<String, Value> restrictions = new HashMap<String, Value>();
 
         private boolean ignore;
@@ -248,7 +251,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             this.isAllow = isAllow;
         }
 
-        private void setPrincipal(TextValue txtValue) {
+        private void setPrincipal(TextValue txtValue) throws AccessControlException {
             String principalName = txtValue.getString();
             principal = principalManager.getPrincipal(principalName);
             if (principal == null) {
@@ -266,7 +269,6 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         }
 
         private void setPrivilegeNames(List<? extends TextValue> txtValues) throws RepositoryException {
-            privileges = new ArrayList<Privilege>();
             for (TextValue value : txtValues) {
                 Value privilegeName = value.getValue(PropertyType.NAME);
                 privileges.add(acMgr.privilegeFromName(privilegeName.getString()));
