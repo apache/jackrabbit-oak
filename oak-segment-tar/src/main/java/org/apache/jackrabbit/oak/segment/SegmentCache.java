@@ -93,6 +93,10 @@ public class SegmentCache {
     throws ExecutionException {
         try {
             Segment segment = loader.call();
+            if (id.isBulkSegmentId()) {
+                return segment;
+            }
+
             cache.put(id, segment);
             id.loaded(segment);
             return segment;
@@ -107,6 +111,10 @@ public class SegmentCache {
      */
     public void putSegment(@Nonnull Segment segment) {
         SegmentId segmentId = segment.getSegmentId();
+        if (segmentId.isBulkSegmentId()) {
+            return;
+        }
+
         cache.put(segmentId, segment);
         segmentId.loaded(segment);
     }
