@@ -236,8 +236,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      *
      * @see <a href="https://issues.apache.org/jira/browse/OAK-1292">OAK-1292</a>
      */
-    protected static class AsyncUpdateCallback implements IndexUpdateCallback {
-
+    protected static class AsyncUpdateCallback implements IndexUpdateCallback, NodeTraversalCallback {
+        /**
+         * Interval in terms of number of nodes traversed after which
+         * time would be checked for lease expiry
+         */
+        public static final int LEASE_CHECK_INTERVAL = 10;
         private final NodeStore store;
 
         /** The base checkpoint */
@@ -288,7 +292,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             NodeState root = store.getRoot();
             NodeState async = root.getChildNode(ASYNC);
             if(isLeaseCheckEnabled(leaseTimeOut)) {
-                long now = System.currentTimeMillis();
+                long now = getTime();
                 this.lease = now + 2 * leaseTimeOut;
                 long beforeLease = async.getLong(leaseName);
                 if (beforeLease > now) {
@@ -324,7 +328,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             mergeWithConcurrencyCheck(store, validatorProviders, builder, checkpoint, lease, name);
 
             // reset updates counter
-            indexStats.resetUpdates();
+            indexStats.reset();
         }
 
         private void updateTempCheckpoints(NodeBuilder async,
@@ -367,13 +371,16 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         @Override
         public void indexUpdate() throws CommitFailedException {
-            if (forcedStop.get()){
-                forcedStop.set(false);
-                throw INTERRUPTED;
-            }
+            checkIfStopped();
+            indexStats.incUpdates();
+        }
 
-            if (indexStats.incUpdates() % 100 == 0 && isLeaseCheckEnabled(leaseTimeOut)) {
-                long now = System.currentTimeMillis();
+        @Override
+        public void traversedNode() throws CommitFailedException{
+            checkIfStopped();
+
+            if (indexStats.incTraversal() % LEASE_CHECK_INTERVAL == 0 && isLeaseCheckEnabled(leaseTimeOut)) {
+                long now = getTime();
                 if (now + leaseTimeOut > lease) {
                     long newLease = now + 2 * leaseTimeOut;
                     NodeBuilder builder = store.getRoot().builder();
@@ -384,12 +391,23 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
         }
 
+        protected long getTime() {
+            return System.currentTimeMillis();
+        }
+
         public void setCheckpoint(String checkpoint) {
             this.checkpoint = checkpoint;
         }
 
         public void setValidatorProviders(List<ValidatorProvider> validatorProviders) {
             this.validatorProviders = checkNotNull(validatorProviders);
+        }
+
+        private void checkIfStopped() throws CommitFailedException {
+            if (forcedStop.get()){
+                forcedStop.set(false);
+                throw INTERRUPTED;
+            }
         }
     }
 
@@ -689,7 +707,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             markFailingIndexesAsCorrupt(builder);
 
             indexUpdate =
-                    new IndexUpdate(provider, name, after, builder, callback, CommitInfo.EMPTY, corruptIndexHandler)
+                    new IndexUpdate(provider, name, after, builder, callback, callback, CommitInfo.EMPTY, corruptIndexHandler)
                     .withMissingProviderStrategy(missingStrategy);
             CommitFailedException exception =
                     EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
@@ -888,6 +906,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         private volatile boolean isPaused;
         private volatile long updates;
+        private volatile long nodesRead;
         private final Stopwatch watch = Stopwatch.createUnstarted();
         private final ExecutionStats execStats;
 
@@ -1034,18 +1053,27 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             return this.isPaused;
         }
 
-        void resetUpdates() {
+        void reset() {
             this.updates = 0;
+            this.nodesRead = 0;
         }
 
         long incUpdates() {
-            updates++;
-            return updates;
+            return ++updates;
+        }
+
+        long incTraversal() {
+            return ++nodesRead;
         }
 
         @Override
         public long getUpdates() {
             return updates;
+        }
+
+        @Override
+        public long getNodesReadCount(){
+            return nodesRead;
         }
 
         void setReferenceCheckpoint(String checkpoint) {

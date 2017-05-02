@@ -133,17 +133,18 @@ public class IndexUpdate implements Editor {
             IndexEditorProvider provider, String async,
             NodeState root, NodeBuilder builder,
             IndexUpdateCallback updateCallback, CommitInfo commitInfo) {
-        this(provider, async, root, builder, updateCallback, commitInfo, CorruptIndexHandler.NOOP);
+        this(provider, async, root, builder, updateCallback, NodeTraversalCallback.NOOP, commitInfo, CorruptIndexHandler.NOOP);
     }
 
     public IndexUpdate(
             IndexEditorProvider provider, String async,
             NodeState root, NodeBuilder builder,
-            IndexUpdateCallback updateCallback, CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
+            IndexUpdateCallback updateCallback, NodeTraversalCallback traversalCallback,
+            CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.rootState = new IndexUpdateRootState(provider, async, root, updateCallback, commitInfo, corruptIndexHandler);
+        this.rootState = new IndexUpdateRootState(provider, async, root, updateCallback, traversalCallback, commitInfo, corruptIndexHandler);
         this.builder = checkNotNull(builder);
     }
 
@@ -157,6 +158,7 @@ public class IndexUpdate implements Editor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
+        rootState.nodeRead();
         collectIndexEditors(builder.getChildNode(INDEX_DEFINITIONS_NAME), before);
 
         if (!reindex.isEmpty()) {
@@ -369,7 +371,6 @@ public class IndexUpdate implements Editor {
     @Override @Nonnull
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        rootState.nodeRead(name);
         List<Editor> children = newArrayListWithCapacity(1 + editors.size());
         children.add(new IndexUpdate(this, name));
         for (Editor editor : editors) {
@@ -385,7 +386,6 @@ public class IndexUpdate implements Editor {
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
-        rootState.nodeRead(name);
         List<Editor> children = newArrayListWithCapacity(1 + editors.size());
         children.add(new IndexUpdate(this, name));
         for (Editor editor : editors) {
@@ -498,6 +498,7 @@ public class IndexUpdate implements Editor {
          * Callback for the update events of the indexing job
          */
         final IndexUpdateCallback updateCallback;
+        final NodeTraversalCallback traversalCallback;
         final Set<String> reindexedIndexes = Sets.newHashSet();
         final Map<String, CountingCallback> callbacks = Maps.newHashMap();
         final CorruptIndexHandler corruptIndexHandler;
@@ -506,13 +507,15 @@ public class IndexUpdate implements Editor {
         private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
-                                     IndexUpdateCallback updateCallback, CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
+                                     IndexUpdateCallback updateCallback, NodeTraversalCallback traversalCallback,
+                                     CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
             this.provider = checkNotNull(provider);
             this.async = async;
             this.root = checkNotNull(root);
             this.updateCallback = checkNotNull(updateCallback);
             this.commitInfo = commitInfo;
             this.corruptIndexHandler = corruptIndexHandler;
+            this.traversalCallback = traversalCallback;
         }
 
         public IndexUpdateCallback newCallback(String indexPath, boolean reindex) {
@@ -571,8 +574,9 @@ public class IndexUpdate implements Editor {
             return !reindexedIndexes.isEmpty();
         }
 
-        public void nodeRead(String name){
+        public void nodeRead() throws CommitFailedException {
             changedNodeCount++;
+            traversalCallback.traversedNode();
         }
 
         public void propertyChanged(String name){

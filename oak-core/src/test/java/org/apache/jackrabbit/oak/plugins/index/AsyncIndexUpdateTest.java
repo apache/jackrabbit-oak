@@ -1773,6 +1773,47 @@ public class AsyncIndexUpdateTest {
         }
     }
 
+    @Test
+    public void traversalCount() throws Exception{
+        MemoryNodeStore store = new MemoryNodeStore();
+        PropertyIndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+
+        //Get rid of changes in index nodes i.e. /oak:index/rootIndex
+        async.run();
+
+        //Do a run without any index property change
+        builder = store.getRoot().builder();
+        builder.child("a").child("b");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+
+        AsyncIndexStats stats = async.getIndexStats();
+        assertEquals(3, stats.getNodesReadCount());
+        assertEquals(0, stats.getUpdates());
+
+        //Do a run with a index property change
+        builder = store.getRoot().builder();
+        builder.child("a").child("b").setProperty("foo", "bar");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+
+        stats = async.getIndexStats();
+        assertEquals(3, stats.getNodesReadCount());
+        assertEquals(1, stats.getUpdates());
+    }
+
     private static class TestIndexEditorProvider extends PropertyIndexEditorProvider {
         private String indexPathToFail;
         @Override

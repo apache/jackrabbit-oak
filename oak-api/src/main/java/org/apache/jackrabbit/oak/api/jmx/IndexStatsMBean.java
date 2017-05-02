@@ -104,6 +104,15 @@ public interface IndexStatsMBean {
     long getUpdates();
 
     /**
+     * Returns the number of which have been read so far. This value is
+     * kept until the next cycle begins.
+     *
+     * @return the number of node read from the current run cycle. This value is
+     *         kept until the next cycle begins.
+     */
+    long getNodesReadCount();
+
+    /**
      * Returns the current reference checkpoint used by the async indexer
      * 
      * @return the reference checkpoint
