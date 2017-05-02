@@ -68,7 +68,7 @@ public class IndexUpdateProvider implements EditorProvider {
             NodeState before, NodeState after,
             NodeBuilder builder, CommitInfo info) {
 
-        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, info, corruptIndexHandler)
+        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, NodeTraversalCallback.NOOP, info, corruptIndexHandler)
                 .withMissingProviderStrategy(missingStrategy);
         editor.setIgnoreReindexFlags(ignoreReindexFlags);
         return VisibleEditor.wrap(editor);
