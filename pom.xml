@@ -41,6 +41,7 @@
     <module>oak-api</module>
     <module>oak-core-spi</module>
     <module>oak-store-spi</module>
+    <module>oak-store-federated</module>
 
     <module>oak-blob-plugins</module>
     <module>oak-blob</module>
@@ -50,7 +51,6 @@
     <module>oak-jcr</module>
 
     <module>oak-upgrade</module>
-    <module>oak-multiplex</module>
     <module>oak-http</module>
     <module>oak-lucene</module>
     <module>oak-solr-core</module>

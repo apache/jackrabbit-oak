@@ -43,7 +43,7 @@ public final class FixturesHelper {
      * default fixtures when no {@code nsfixtures} is provided
      */
     public enum Fixture {
-       DOCUMENT_NS, @Deprecated SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS, DOCUMENT_MEM, SEGMENT_TAR, MULTIPLEXED_SEGMENT, MULTIPLEXED_MEM
+       DOCUMENT_NS, @Deprecated SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS, DOCUMENT_MEM, SEGMENT_TAR, FEDERATED_SEGMENT, FEDERATED_MEM
     }
 
     private static final Set<Fixture> FIXTURES;

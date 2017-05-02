@@ -108,14 +108,14 @@ public class OakRepositoryFixture implements RepositoryFixture {
                 memoryMapping, true, dsCacheInMB));
     }
 
-    public static RepositoryFixture getMultiplexing(File base, int maxFileSizeMB, int cacheSizeMB,
-                                                    final boolean memoryMapping, int mounts, int pathsPerMount) {
-        return new OakRepositoryFixture(OakFixture.getMultiplexing(OakFixture.OAK_MULTIPLEXING,
+    public static RepositoryFixture getFederatedStore(File base, int maxFileSizeMB, int cacheSizeMB,
+                                                      final boolean memoryMapping, int mounts, int pathsPerMount) {
+        return new OakRepositoryFixture(OakFixture.getFederatedStore(OakFixture.OAK_FEDERATED_STORE,
                 base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount));
     }
 
-    public static RepositoryFixture getMultiplexingInMemory(int mounts, int pathsPerMount) {
-        return new OakRepositoryFixture(OakFixture.getMultiplexingInMemory(OakFixture.OAK_MULTIPLEXING_MEMORY, mounts, pathsPerMount));
+    public static RepositoryFixture getFederatedMemoryStore(int mounts, int pathsPerMount) {
+        return new OakRepositoryFixture(OakFixture.getFederatedMemoryStore(OakFixture.OAK_FEDERATED_MEMORY_STORE, mounts, pathsPerMount));
     }
 
     private final OakFixture oakFixture;
