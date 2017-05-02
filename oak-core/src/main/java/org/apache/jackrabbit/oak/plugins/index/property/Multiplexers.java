@@ -40,6 +40,9 @@ public class Multiplexers {
 
     static boolean RO_PRIVATE_UNIQUE_INDEX;
 
+    private Multiplexers() {
+    }
+
     static {
         // TODO OAK-4645 set default to true once the code is stable
         String ro = System.getProperty(

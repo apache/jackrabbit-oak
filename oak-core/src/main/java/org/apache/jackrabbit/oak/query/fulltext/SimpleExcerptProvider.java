@@ -49,6 +49,9 @@ public class SimpleExcerptProvider {
 
     private static int maxFragmentSize = 150;
 
+    private SimpleExcerptProvider() {
+    }
+
     public static String getExcerpt(String path, String columnName,
                                     Query query, boolean highlight) {
         if (path == null) {
