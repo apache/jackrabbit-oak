@@ -27,8 +27,9 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import com.google.common.base.Supplier;
 import org.apache.commons.lang.RandomStringUtils;
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
@@ -38,8 +39,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Supplier;
 
 /**
  * Test/Utility class to measure size in memory for common segment-tar objects.
@@ -320,7 +319,7 @@ public class CacheWeightsTest {
                     Segment segment = randomSegment(bufferSize);
                     cache.putSegment(segment);
                 }
-                CacheStats stats = cache.getCacheStats();
+                AbstractCacheStats stats = cache.getCacheStats();
                 long elements = stats.getElementCount();
                 long weight = stats.estimateCurrentWeight();
                 return new SimpleImmutableEntry<Object, Long[]>(cache,

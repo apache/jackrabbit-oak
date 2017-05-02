@@ -19,8 +19,6 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
 
 import java.io.Closeable;
 import java.io.File;
@@ -28,12 +26,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -122,7 +117,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.tracker = new SegmentTracker(new SegmentIdFactory() {
             @Override @Nonnull
             public SegmentId newSegmentId(long msb, long lsb) {
-                return new SegmentId(AbstractFileStore.this, msb, lsb);
+                return new SegmentId(AbstractFileStore.this, msb, lsb, segmentCache::recordHit);
             }
         });
         this.blobStore = builder.getBlobStore();

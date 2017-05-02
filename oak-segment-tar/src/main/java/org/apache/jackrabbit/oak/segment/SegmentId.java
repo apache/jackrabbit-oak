@@ -63,6 +63,9 @@ public class SegmentId implements Comparable<SegmentId> {
 
     private final long creationTime;
 
+    /** Callback called whenever an underlying and locally memoised segment is accessed */
+    private final Runnable onAccess;
+
     /**
      * The gc generation of this segment or -1 if unknown.
      */
@@ -80,11 +83,29 @@ public class SegmentId implements Comparable<SegmentId> {
      */
     private volatile Segment segment;
 
-    public SegmentId(@Nonnull SegmentStore store, long msb, long lsb) {
+    /**
+     * Create a new segment id with access tracking.
+     * @param store  store this is belongs to
+     * @param msb    most significant bits of this id
+     * @param lsb    least significant bits of this id
+     * @param onAccess  callback called whenever an underlying and locally memoised segment is accessed.
+     */
+    public SegmentId(@Nonnull SegmentStore store, long msb, long lsb, @Nonnull Runnable onAccess) {
         this.store = store;
         this.msb = msb;
         this.lsb = lsb;
+        this.onAccess = onAccess;
         this.creationTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Create a new segment id without access tracking.
+     * @param store  store this is belongs to
+     * @param msb    most significant bits of this id
+     * @param lsb    least significant bits of this id
+     */
+    public SegmentId(@Nonnull SegmentStore store, long msb, long lsb) {
+        this(store, msb, lsb, () -> {});
     }
 
     /**
@@ -128,10 +149,11 @@ public class SegmentId implements Comparable<SegmentId> {
                 segment = this.segment;
                 if (segment == null) {
                     log.debug("Loading segment {}", this);
-                    segment = store.readSegment(this);
+                    return store.readSegment(this);
                 }
             }
         }
+        onAccess.run();
         return segment;
     }
 
