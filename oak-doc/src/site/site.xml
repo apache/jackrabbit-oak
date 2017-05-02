@@ -51,6 +51,7 @@ under the License.
       <item href="plugins/blobstore.html" name="Blob Storage" />
       <item href="query/query.html" name="Query" collapse="false">
         <item href="query/query-engine.html" name="Query Engine" />
+        <item href="query/query-troubleshooting.html" name="Troubleshooting" />
         <item href="query/indexing.html" name="Indexing" />
         <item href="query/lucene.html" name="Lucene Index" />
         <item href="query/property-index.html" name="Property Index" />
@@ -89,12 +90,12 @@ under the License.
   <skin>
     <groupId>org.apache.maven.skins</groupId>
     <artifactId>maven-fluido-skin</artifactId>
-    <version>1.3.0</version>
+    <version>1.6</version>
   </skin>
 
   <custom>
     <fluidoSkin>
-      <sourceLineNumbersEnabled>true</sourceLineNumbersEnabled>
+      <sourceLineNumbersEnabled>false</sourceLineNumbersEnabled>
       <topBarEnabled>true</topBarEnabled>
       <topBarIcon>
         <name>Oak logo</name>
