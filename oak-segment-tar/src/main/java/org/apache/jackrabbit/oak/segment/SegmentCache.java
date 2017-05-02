@@ -21,43 +21,47 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
 
 /**
- * A cache for {@link Segment} instances by their {@link SegmentId}.
+ * A cache for {@link SegmentId#isDataSegmentId() data} {@link Segment} instances by their
+ * {@link SegmentId}. This cache ignores {@link SegmentId#isBulkSegmentId() bulk} segments.
  * <p>
  * Conceptually this cache serves as a 2nd level cache for segments. The 1st level cache is
  * implemented by memoising the segment in its id (see {@link SegmentId#segment}. Every time
  * an segment is evicted from this cache the memoised segment is discarded (see
- * {@link SegmentId#unloaded()}).
- * <p>
- * As a consequence this cache is actually only queried for segments it does not contain,
- * which are then loaded through the loader passed to {@link #getSegment(SegmentId, Callable)}.
- * This behaviour is eventually reflected in the cache statistics (see {@link #getCacheStats()}),
- * which always reports a {@link CacheStats#getHitRate()} () miss rate} of 1.
+ * {@link SegmentId#unloaded()}) and {@link SegmentId#onAccess}.
  */
 public class SegmentCache {
+    /** Default maximum weight of this cache in MB */
     public static final int DEFAULT_SEGMENT_CACHE_MB = 256;
 
+    /** Weigher to determine the current weight of all items in this cache */
     private final Weigher<SegmentId, Segment> weigher = new SegmentCacheWeigher();
 
+    /** Maximum weight of the items in this cache */
     private final long maximumWeight;
 
-    /**
-     * Cache of recently accessed segments
-     */
+    /** Cache of recently accessed segments */
     @Nonnull
     private final Cache<SegmentId, Segment> cache;
+
+    /**
+     * Statistics of this cache. Do to the special access patter (see class comment), we cannot
+     * rely on {@link Cache#stats()}.
+     */
+    @Nonnull
+    private final Stats stats = new Stats("Segment Cache");
 
     /**
      * Create a new segment cache of the given size.
@@ -67,25 +71,43 @@ public class SegmentCache {
         this.maximumWeight = cacheSizeMB * 1024 * 1024;
         this.cache = CacheBuilder.newBuilder()
                 .concurrencyLevel(16)
-                .recordStats()
                 .maximumWeight(maximumWeight)
                 .weigher(weigher)
-                .removalListener(new RemovalListener<SegmentId, Segment>() {
-                    @Override
-                    public void onRemoval(@Nonnull RemovalNotification<SegmentId, Segment> notification) {
-                        SegmentId id = notification.getKey();
-                        if (id != null) {
-                            id.unloaded();
-                        }
-                    }
-                }).build();
+                .removalListener(this::onRemove)
+                .build();
     }
 
-    private void put(@Nonnull SegmentId id, Segment segment) {
+    /**
+     * Create a new segment cache with the {@link #DEFAULT_SEGMENT_CACHE_MB default size}.
+     */
+    public SegmentCache() {
+        this(DEFAULT_SEGMENT_CACHE_MB);
+    }
+
+    /**
+     * Removal handler called whenever an item is evicted from the cache. Propagates
+     * to {@link SegmentId#unloaded()}.
+     */
+    private void onRemove(@Nonnull RemovalNotification<SegmentId, Segment> notification) {
+        SegmentId id = notification.getKey();
+        if (id != null) {
+            Segment segment = notification.getValue();
+            if (segment != null) {
+                stats.currentWeight.addAndGet(-weigher.weigh(id, segment));
+            }
+            stats.evictionCount.incrementAndGet();
+            id.unloaded();
+        }
+    }
+
+    /** Unconditionally put an item in the cache */
+    private Segment put(@Nonnull SegmentId id, @Nonnull Segment segment) {
         // Call loaded *before* putting the segment into the cache as the latter
         // might cause it to get evicted right away again.
         id.loaded(segment);
         cache.put(id, segment);
+        stats.currentWeight.addAndGet(weigher.weigh(id, segment));
+        return segment;
     }
 
     /**
@@ -98,30 +120,40 @@ public class SegmentCache {
     @Nonnull
     public Segment getSegment(@Nonnull final SegmentId id, @Nonnull final Callable<Segment> loader)
     throws ExecutionException {
+        // Load bulk segment directly without putting it in cache
         try {
-            Segment segment = loader.call();
             if (id.isBulkSegmentId()) {
-                return segment;
+                return loader.call();
             }
-
-            put(id, segment);
-            return segment;
         } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+
+        // Load data segment and put it in the cache
+        try {
+            long t0 = System.nanoTime();
+            Segment segment = loader.call();
+            stats.loadSuccessCount.incrementAndGet();
+            stats.loadTime.addAndGet(System.nanoTime() - t0);
+            stats.missCount.incrementAndGet();
+
+            return put(id, segment);
+        } catch (Exception e) {
+            stats.loadExceptionCount.incrementAndGet();
             throw new ExecutionException(e);
         }
     }
 
     /**
-     * Put a segment into the cache
+     * Put a segment into the cache. This method does nothing for
+     * {@link SegmentId#isBulkSegmentId() bulk} segments.
      * @param segment  the segment to cache
      */
     public void putSegment(@Nonnull Segment segment) {
-        SegmentId segmentId = segment.getSegmentId();
-        if (segmentId.isBulkSegmentId()) {
-            return;
+        SegmentId id = segment.getSegmentId();
+        if (!id.isBulkSegmentId()) {
+            put(id, segment);
         }
-
-        put(segmentId, segment);
     }
 
     /**
@@ -132,11 +164,75 @@ public class SegmentCache {
     }
 
     /**
-     * See the class comment regarding some peculiarities of this cache's statistics
-     * @return  statistics for this cache.
+     * @return  Statistics for this cache.
      */
     @Nonnull
-    public CacheStats getCacheStats() {
-        return new CacheStats(cache, "Segment Cache", weigher, maximumWeight);
+    public AbstractCacheStats getCacheStats() {
+        return stats;
     }
+
+    /**
+     * Record a hit in this cache's underlying statistics.
+     * @see SegmentId#onAccess
+     */
+    public void recordHit() {
+        stats.hitCount.incrementAndGet();
+    }
+
+    /** We cannot rely on the statistics of the underlying Guava cache as all cache hits
+     * are taken by {@link SegmentId#getSegment()} and thus never seen by the cache.
+     */
+    private class Stats extends AbstractCacheStats {
+        @Nonnull
+        final AtomicLong currentWeight = new AtomicLong();
+
+        @Nonnull
+        final AtomicLong loadSuccessCount = new AtomicLong();
+
+        @Nonnull
+        final AtomicInteger loadExceptionCount = new AtomicInteger();
+
+        @Nonnull
+        final AtomicLong loadTime = new AtomicLong();
+
+        @Nonnull
+        final AtomicLong evictionCount = new AtomicLong();
+
+        @Nonnull
+        final AtomicLong hitCount = new AtomicLong();
+
+        @Nonnull
+        final AtomicLong missCount = new AtomicLong();
+
+        protected Stats(@Nonnull String name) {
+            super(name);
+        }
+
+        @Override
+        protected com.google.common.cache.CacheStats getCurrentStats() {
+            return new com.google.common.cache.CacheStats(
+                    hitCount.get(),
+                    missCount.get(),
+                    loadSuccessCount.get(),
+                    loadExceptionCount.get(),
+                    loadTime.get(),
+                    evictionCount.get());
+        }
+
+        @Override
+        public long getElementCount() {
+            return cache.size();
+        }
+
+        @Override
+        public long getMaxTotalWeight() {
+            return maximumWeight;
+        }
+
+        @Override
+        public long estimateCurrentWeight() {
+            return currentWeight.get();
+        }
+    }
+
 }
