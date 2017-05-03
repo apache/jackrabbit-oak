@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -61,7 +60,6 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_A
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
-@Ignore("OAK-6149")
 public class AtomicCounterIT {
 
     @Rule
