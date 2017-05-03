@@ -34,6 +34,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -72,6 +73,20 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
         principalManager = getPrincipalManager(root);
 
         acl = createEmptyACL();
+    }
+
+    @Override
+    public void after() throws Exception {
+        try {
+            root.refresh();
+            Tree t = root.getTree(TEST_PATH);
+            if (t.exists()) {
+                t.remove();
+                root.commit();
+            }
+        } finally {
+            super.after();
+        }
     }
 
     RestrictionProvider getRestrictionProvider() {
