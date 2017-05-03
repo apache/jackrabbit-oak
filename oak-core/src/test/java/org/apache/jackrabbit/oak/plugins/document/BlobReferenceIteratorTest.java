@@ -49,14 +49,19 @@ public class BlobReferenceIteratorTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
-            fixtures.add(new Object[]{mongo});
+            fixtures.add(new Object[] { mongo });
+        }
+
+        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture();
+        if (rdb.isAvailable()) {
+            fixtures.add(new Object[] { rdb });
         }
         return fixtures;
     }
@@ -67,7 +72,6 @@ public class BlobReferenceIteratorTest {
                 .setDocumentStore(fixture.createDocumentStore())
                 .setAsyncDelay(0)
                 .getNodeStore();
-
     }
 
     @After
@@ -75,16 +79,16 @@ public class BlobReferenceIteratorTest {
         store.dispose();
         fixture.dispose();
     }
-    
+
     @Test
-    public void testBlobIterator() throws Exception{
+    public void testBlobIterator() throws Exception {
         List<ReferencedBlob> blobs = Lists.newArrayList();
 
-        //1. Set some single value Binary property
-        for(int i = 0; i < 10; i++){
+        // 1. Set some single value Binary property
+        for (int i = 0; i < 10; i++) {
             NodeBuilder b1 = store.getRoot().builder();
             Blob b = store.createBlob(randomStream(i, 4096));
-            b1.child("x").child("y"+1).setProperty("b" + i, b);
+            b1.child("x").child("y" + 1).setProperty("b" + i, b);
             blobs.add(new ReferencedBlob(b, "/x/y" + 1));
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
