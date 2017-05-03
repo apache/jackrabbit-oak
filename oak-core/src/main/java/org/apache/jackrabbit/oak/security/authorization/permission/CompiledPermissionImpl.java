@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
@@ -165,6 +166,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         }
         if (parentPermission instanceof VersionTreePermission) {
             return ((VersionTreePermission) parentPermission).createChildPermission(tree);
+        } else if (parentPermission instanceof RepoPolicyTreePermission) {
+            return ((RepoPolicyTreePermission)parentPermission).getChildPermission();
         }
         switch (type) {
             case HIDDEN:
@@ -189,6 +192,12 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         }
                         return new VersionTreePermission(tree, buildVersionDelegatee(versionableTree));
                     }
+                }
+            case ACCESS_CONTROL:
+                if (AccessControlConstants.REP_REPO_POLICY.equals(tree.getName())) {
+                     return new RepoPolicyTreePermission(getRepositoryPermission());
+                } else {
+                     return new TreePermissionImpl(tree, type, parentPermission);
                 }
             case INTERNAL:
                 return EMPTY;
@@ -432,6 +441,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             return TreeType.DEFAULT;
         } else if (parentPermission instanceof VersionTreePermission) {
             return TreeType.VERSION;
+        } else if (parentPermission instanceof RepoPolicyTreePermission) {
+            return TreeType.ACCESS_CONTROL;
         } else {
             throw new IllegalArgumentException("Illegal TreePermission implementation.");
         }
