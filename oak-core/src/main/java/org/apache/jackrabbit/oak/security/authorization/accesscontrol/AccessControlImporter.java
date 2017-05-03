@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -206,7 +207,8 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             Tree parent = tree.getParent();
             if (AccessControlConstants.REP_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)) {
-                acList = getACL(parent.getPath());
+                String path = parent.getPath();
+                acList = getACL(path);
             } else if (AccessControlConstants.REP_REPO_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)
                     && parent.isRoot()) {
@@ -225,7 +227,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     }
 
     @CheckForNull
-    private JackrabbitAccessControlList getACL(String path) throws RepositoryException {
+    private JackrabbitAccessControlList getACL(@Nullable String path) throws RepositoryException {
         JackrabbitAccessControlList acList = null;
         for (AccessControlPolicy p : acMgr.getPolicies(path)) {
             if (p instanceof JackrabbitAccessControlList) {
@@ -243,7 +245,8 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
 
         private Principal principal;
         private List<Privilege> privileges = new ArrayList();
-        private Map<String, Value> restrictions = new HashMap<String, Value>();
+        private Map<String, Value> restrictions = new HashMap();
+        private Map<String, Value[]> mvRestrictions = new HashMap();
 
         private boolean ignore;
 
@@ -278,7 +281,12 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         private void addRestriction(PropInfo propInfo) throws RepositoryException {
             String restrictionName = propInfo.getName();
             int targetType = acl.getRestrictionType(restrictionName);
-            restrictions.put(propInfo.getName(), propInfo.getValue(targetType));
+            List<Value> values = propInfo.getValues(targetType);
+            if (values.size() == 1) {
+                restrictions.put(propInfo.getName(), values.get(0));
+            } else {
+                mvRestrictions.put(propInfo.getName(), values.toArray(new Value[values.size()]));
+            }
         }
 
         private void addRestrictions(List<PropInfo> propInfos) throws RepositoryException {
@@ -290,7 +298,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         private void applyTo(JackrabbitAccessControlList acl) throws RepositoryException {
             checkNotNull(acl);
             if (!ignore) {
-                acl.addEntry(principal, privileges.toArray(new Privilege[privileges.size()]), isAllow, restrictions);
+                acl.addEntry(principal, privileges.toArray(new Privilege[privileges.size()]), isAllow, restrictions, mvRestrictions);
             } else {
                 log.debug("Unknown principal: Ignore ACE based on ImportBehavior.IGNORE configuration.");
             }

@@ -29,6 +29,8 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -52,6 +54,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -70,7 +73,6 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     @Override
     public void before() throws Exception {
         super.before();
-
 
         Tree t = root.getTree(PathUtils.ROOT_PATH).addChild("testNode");
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
@@ -351,4 +353,89 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         assertFalse(aclTree.getChildren().iterator().hasNext());
     }
 
+    //------------------------------------------------< complete acl import >---
+    @Test
+    public void testImportSimple() throws Exception {
+        String principalName = getTestUser().getPrincipal().getName();
+        PropInfo principalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue(principalName));
+        PropInfo privInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
+
+        init();
+        importer.start(aclTree);
+        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.endChildInfo();
+        importer.end(aclTree);
+
+        assertTrue(aclTree.getChildren().iterator().hasNext());
+        Tree aceTree = aclTree.getChildren().iterator().next();
+
+        assertEquals(principalName, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
+        assertEquals(
+                ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
+                ImmutableSet.copyOf(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
+        assertFalse(aceTree.hasChild(REP_RESTRICTIONS));
+    }
+
+    @Test
+    public void testImportWithRestrictions() throws Exception {
+        String principalName = getTestUser().getPrincipal().getName();
+
+        PropInfo principalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue(principalName));
+        PropInfo privInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        // single value restriction
+        PropInfo globInfo = new PropInfo(REP_GLOB, PropertyType.STRING, createTextValue("/*"));
+        // mv restriction
+        PropInfo ntNamesInfo = new PropInfo(REP_NT_NAMES, PropertyType.NAME, createTextValues(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE));
+        // mv restriction with singular value
+        PropInfo itemNamesInfo = new PropInfo(REP_ITEM_NAMES, PropertyType.NAME, createTextValue("itemName"));
+
+        init();
+        importer.start(aclTree);
+        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo, globInfo, ntNamesInfo, itemNamesInfo));
+        importer.endChildInfo();
+        importer.end(aclTree);
+
+        assertImport(aclTree, principalName);
+    }
+
+    @Test
+    public void testImportWithRestrictionNodeInfo() throws Exception {
+        String principalName = getTestUser().getPrincipal().getName();
+
+        PropInfo principalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue(principalName));
+        PropInfo privInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        // single value restriction
+        PropInfo globInfo = new PropInfo(REP_GLOB, PropertyType.STRING, createTextValue("/*"));
+        // mv restriction
+        PropInfo ntNamesInfo = new PropInfo(REP_NT_NAMES, PropertyType.NAME, createTextValues(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE));
+        // mv restriction with singular value
+        PropInfo itemNamesInfo = new PropInfo(REP_ITEM_NAMES, PropertyType.NAME, createTextValue("itemName"));
+
+        init();
+        importer.start(aclTree);
+        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.startChildInfo(restrInfo, ImmutableList.of(globInfo, ntNamesInfo, itemNamesInfo));
+        importer.endChildInfo();
+        importer.endChildInfo();
+        importer.end(aclTree);
+
+        assertImport(aclTree, principalName);
+    }
+
+    private static void assertImport(@Nonnull Tree aclTree, @Nonnull String principalName) {
+        assertTrue(aclTree.getChildren().iterator().hasNext());
+        Tree aceTree = aclTree.getChildren().iterator().next();
+
+        assertEquals(principalName, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
+        assertEquals(
+                ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
+                ImmutableSet.copyOf(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
+
+        assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
+
+        Tree restrTree = aceTree.getChild(REP_RESTRICTIONS);
+        assertEquals("/*", TreeUtil.getString(restrTree, REP_GLOB));
+        assertEquals(Lists.newArrayList(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE), restrTree.getProperty(REP_NT_NAMES).getValue(Type.NAMES));
+        assertEquals(Lists.newArrayList("itemName"), restrTree.getProperty(REP_ITEM_NAMES).getValue(Type.NAMES));
+    }
 }
