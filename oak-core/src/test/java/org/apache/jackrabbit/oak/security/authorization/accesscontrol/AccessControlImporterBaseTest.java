@@ -24,6 +24,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
@@ -70,6 +71,10 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
     AccessControlImporter importer;
 
+    private String principalName;
+    private PropInfo principalInfo;
+    private PropInfo privInfo;
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -87,6 +92,10 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         aclTree = accessControlledTree.getChild(REP_POLICY);
 
         importer = new AccessControlImporter();
+
+        principalName = getTestUser().getPrincipal().getName();
+        principalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue(principalName));
+        privInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
     }
 
     @Override
@@ -354,12 +363,34 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     }
 
     //------------------------------------------------< complete acl import >---
+    @Test(expected = AccessControlException.class)
+    public void testInvalidRestriction() throws Exception {
+        init();
+        importer.start(aclTree);
+        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
+
+        PropInfo invalidRestrProp = new PropInfo(REP_GLOB, PropertyType.NAME, createTextValues("glob1", "glob2"), PropInfo.MultipleStatus.MULTIPLE);
+        importer.startChildInfo(restrInfo, ImmutableList.of(invalidRestrProp));
+        importer.endChildInfo();
+        importer.endChildInfo();
+        importer.end(aclTree);
+    }
+
+    @Test(expected = ValueFormatException.class)
+    public void testUnknownRestriction() throws Exception {
+        init();
+        importer.start(aclTree);
+        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
+
+        PropInfo invalidRestrProp = new PropInfo("unknown", PropertyType.STRING, createTextValue("val"));
+        importer.startChildInfo(restrInfo, ImmutableList.of(invalidRestrProp));
+        importer.endChildInfo();
+        importer.endChildInfo();
+        importer.end(aclTree);
+    }
+
     @Test
     public void testImportSimple() throws Exception {
-        String principalName = getTestUser().getPrincipal().getName();
-        PropInfo principalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue(principalName));
-        PropInfo privInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
-
         init();
         importer.start(aclTree);
         importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
@@ -378,10 +409,6 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
     @Test
     public void testImportWithRestrictions() throws Exception {
-        String principalName = getTestUser().getPrincipal().getName();
-
-        PropInfo principalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue(principalName));
-        PropInfo privInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
         // single value restriction
         PropInfo globInfo = new PropInfo(REP_GLOB, PropertyType.STRING, createTextValue("/*"));
         // mv restriction
@@ -400,10 +427,6 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
     @Test
     public void testImportWithRestrictionNodeInfo() throws Exception {
-        String principalName = getTestUser().getPrincipal().getName();
-
-        PropInfo principalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue(principalName));
-        PropInfo privInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
         // single value restriction
         PropInfo globInfo = new PropInfo(REP_GLOB, PropertyType.STRING, createTextValue("/*"));
         // mv restriction
