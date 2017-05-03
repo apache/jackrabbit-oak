@@ -49,6 +49,7 @@ import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
 import com.mongodb.MongoClientURI;
 
@@ -88,6 +89,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
@@ -552,6 +554,13 @@ public class DocumentNodeStoreService {
         }
 
         mkBuilder.setExecutor(executor);
+
+        // attach GCMonitor
+        final GCMonitorTracker gcMonitor = new GCMonitorTracker();
+        gcMonitor.start(whiteboard);
+        closer.register(asCloseable(gcMonitor));
+        mkBuilder.setGCMonitor(gcMonitor);
+
         nodeStore = mkBuilder.getNodeStore();
 
         // ensure a clusterId is initialized 
@@ -892,7 +901,13 @@ public class DocumentNodeStoreService {
                 store.getVersionGarbageCollector().cancel();
             }
         };
-        RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, executor);
+        Supplier<String> status = new Supplier<String>() {
+            @Override
+            public String get() {
+                return store.getVersionGarbageCollector().getStatus();
+            }
+        };
+        RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, status, executor);
         addRegistration(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
 

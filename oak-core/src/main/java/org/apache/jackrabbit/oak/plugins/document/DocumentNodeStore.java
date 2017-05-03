@@ -578,8 +578,10 @@ public final class DocumentNodeStore
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport());
+        this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
         this.journalGarbageCollector = new JournalGarbageCollector(this);
-        this.referencedBlobs = builder.createReferencedBlobs(this);
+        this.referencedBlobs =
+                builder.createReferencedBlobs(this);
         this.lastRevSeeker = builder.createMissingLastRevSeeker();
         this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this, lastRevSeeker);
         this.disableBranches = builder.isDisableBranches();

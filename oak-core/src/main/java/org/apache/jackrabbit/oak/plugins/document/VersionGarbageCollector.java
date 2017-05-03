@@ -37,6 +37,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -47,6 +48,8 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.slf4j.Logger;
@@ -66,6 +69,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
+import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 public class VersionGarbageCollector {
 
@@ -74,6 +78,8 @@ public class VersionGarbageCollector {
     private static final int UPDATE_BATCH_SIZE = 450;
     private static final int PROGRESS_BATCH_SIZE = 10000;
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
+    private static final String STATUS_IDLE = "IDLE";
+    private static final String STATUS_INITIALIZING = "INITIALIZING";
     private static final Logger log = LoggerFactory.getLogger(VersionGarbageCollector.class);
 
     /**
@@ -102,6 +108,7 @@ public class VersionGarbageCollector {
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
+    private GCMonitor gcMonitor = GCMonitor.EMPTY;
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport) {
@@ -117,7 +124,7 @@ public class VersionGarbageCollector {
         if (options.maxDurationMs > 0) {
             maxRunTime = maxRunTime.startAndDuration(options.maxDurationMs);
         }
-        GCJob job = new GCJob(maxRevisionAgeInMillis, options);
+        GCJob job = new GCJob(maxRevisionAgeInMillis, options, gcMonitor);
         if (collector.compareAndSet(null, job)) {
             VersionGCStats overall = new VersionGCStats();
             overall.active.start();
@@ -157,6 +164,19 @@ public class VersionGarbageCollector {
         if (job != null) {
             job.cancel();
         }
+    }
+
+    public String getStatus() {
+        GCJob job = collector.get();
+        if (job == null) {
+            return STATUS_IDLE;
+        } else {
+            return job.getStatus();
+        }
+    }
+
+    public void setGCMonitor(@Nonnull GCMonitor gcMonitor) {
+        this.gcMonitor = checkNotNull(gcMonitor);
     }
 
     public VersionGCOptions getOptions() {
@@ -306,12 +326,14 @@ public class VersionGarbageCollector {
 
         final VersionGCStats stats;
         final Stopwatch elapsed;
+        private final GCMonitor monitor;
         private final List<GCPhase> phases = Lists.newArrayList();
         private final Map<GCPhase, Stopwatch> watches = Maps.newHashMap();
         private final AtomicBoolean canceled;
 
-        GCPhases(AtomicBoolean canceled, VersionGCStats stats) {
+        GCPhases(AtomicBoolean canceled, VersionGCStats stats, GCMonitor monitor) {
             this.stats = stats;
+            this.monitor = monitor;
             this.elapsed = Stopwatch.createStarted();
             this.watches.put(GCPhase.NONE, Stopwatch.createStarted());
             this.watches.put(GCPhase.COLLECTING, stats.collectDeletedDocs);
@@ -337,6 +359,7 @@ public class VersionGarbageCollector {
             }
             suspend(currentWatch());
             this.phases.add(started);
+            updateStatus();
             resume(currentWatch());
             return true;
         }
@@ -345,6 +368,7 @@ public class VersionGarbageCollector {
             if (!phases.isEmpty() && phase == phases.get(phases.size() - 1)) {
                 suspend(currentWatch());
                 phases.remove(phases.size() - 1);
+                updateStatus();
                 resume(currentWatch());
             }
         }
@@ -353,6 +377,7 @@ public class VersionGarbageCollector {
             while (!phases.isEmpty()) {
                 suspend(currentWatch());
                 phases.remove(phases.size() - 1);
+                updateStatus();
             }
             this.elapsed.stop();
         }
@@ -376,41 +401,65 @@ public class VersionGarbageCollector {
                 w.stop();
             }
         }
+
+        private void updateStatus() {
+            GCPhase p = current();
+            if (p != GCPhase.NONE) {
+                monitor.updateStatus(p.name());
+            }
+        }
     }
 
     private class GCJob {
 
         private final long maxRevisionAgeMillis;
         private final VersionGCOptions options;
-        private AtomicBoolean cancel = new AtomicBoolean();
+        private final AtomicBoolean cancel = new AtomicBoolean();
+        private final GCMonitor monitor;
+        private final Supplier<String> status;
 
-        GCJob(long maxRevisionAgeMillis, VersionGCOptions options) {
+        GCJob(long maxRevisionAgeMillis,
+              VersionGCOptions options,
+              GCMonitor gcMonitor) {
             this.maxRevisionAgeMillis = maxRevisionAgeMillis;
             this.options = options;
+            VersionGCMonitor vgcm = new VersionGCMonitor();
+            this.status = vgcm;
+            this.monitor = new DelegatingGCMonitor(Lists.newArrayList(vgcm, gcMonitor));
+            this.monitor.updateStatus(STATUS_INITIALIZING);
         }
 
         VersionGCStats run() throws IOException {
-            return gc(maxRevisionAgeMillis);
+            try {
+                return gc(maxRevisionAgeMillis);
+            } finally {
+                monitor.updateStatus(STATUS_IDLE);
+            }
         }
 
         void cancel() {
-            log.info("Canceling revision garbage collection.");
+            monitor.info("Canceling revision garbage collection.");
             cancel.set(true);
+        }
+
+        String getStatus() {
+            return status.get();
         }
 
         private VersionGCStats gc(long maxRevisionAgeInMillis) throws IOException {
             VersionGCStats stats = new VersionGCStats();
             stats.active.start();
             Recommendations rec = new Recommendations(maxRevisionAgeInMillis, options);
-            GCPhases phases = new GCPhases(cancel, stats);
+            GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
             try {
                 if (rec.ignoreDueToCheckPoint) {
                     phases.stats.ignoredGCDueToCheckPoint = true;
+                    monitor.skipped("Checkpoint prevented revision garbage collection");
                     cancel.set(true);
                 } else {
                     final RevisionVector headRevision = nodeStore.getHeadRevision();
                     final RevisionVector sweepRevisions = nodeStore.getSweepRevisions();
-                    log.info("Looking at revisions in {}", rec.scope);
+                    monitor.info("Looking at revisions in {}", rec.scope);
 
                     collectDeletedDocuments(phases, headRevision, rec);
                     collectSplitDocuments(phases, sweepRevisions, rec);
@@ -423,7 +472,7 @@ public class VersionGarbageCollector {
             }
 
             rec.evaluate(stats);
-            log.info("Revision garbage collection finished in {}. {}",
+            monitor.info("Revision garbage collection finished in {}. {}",
                     TimeDurationFormatter.forLogging().format(phases.elapsed.elapsed(MICROSECONDS), MICROSECONDS), stats);
             stats.active.stop();
             return stats;
@@ -443,7 +492,7 @@ public class VersionGarbageCollector {
                                              Recommendations rec)
                 throws IOException, LimitExceededException {
             int docsTraversed = 0;
-            DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel, options);
+            DeletedDocsGC gc = new DeletedDocsGC(headRevision, cancel, options, monitor);
             try {
                 if (phases.start(GCPhase.COLLECTING)) {
                     Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(rec.scope.fromMs, rec.scope.toMs);
@@ -459,7 +508,7 @@ public class VersionGarbageCollector {
                             // So deleting it is safe
                             docsTraversed++;
                             if (docsTraversed % PROGRESS_BATCH_SIZE == 0) {
-                                log.info("Iterated through {} documents so far. {} found to be deleted",
+                                monitor.info("Iterated through {} documents so far. {} found to be deleted",
                                         docsTraversed, gc.getNumDocuments());
                             }
                             if (phases.start(GCPhase.CHECKING)) {
@@ -530,14 +579,17 @@ public class VersionGarbageCollector {
         private boolean sorted = false;
         private final Stopwatch timer;
         private final VersionGCOptions options;
+        private final GCMonitor monitor;
 
         public DeletedDocsGC(@Nonnull RevisionVector headRevision,
                              @Nonnull AtomicBoolean cancel,
-                             @Nonnull VersionGCOptions options) {
+                             @Nonnull VersionGCOptions options,
+                             @Nonnull GCMonitor monitor) {
             this.headRevision = checkNotNull(headRevision);
             this.cancel = checkNotNull(cancel);
             this.timer = Stopwatch.createUnstarted();
             this.options = options;
+            this.monitor = monitor;
             this.docIdsToDelete = newStringSort(options);
             this.prevDocIdsToDelete = newStringSort(options);
         }
@@ -570,7 +622,7 @@ public class VersionGarbageCollector {
             try {
                 Utils.getDepthFromId(id);
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid GC id {} for document {}", id, doc);
+                monitor.warn("Invalid GC id {} for document {}", id, doc);
                 return false;
             }
             if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
@@ -631,12 +683,12 @@ public class VersionGarbageCollector {
             try {
                 docIdsToDelete.close();
             } catch (IOException e) {
-                log.warn("Failed to close docIdsToDelete", e);
+                monitor.warn("Failed to close docIdsToDelete: {}", e);
             }
             try {
                 prevDocIdsToDelete.close();
             } catch (IOException e) {
-                log.warn("Failed to close prevDocIdsToDelete", e);
+                monitor.warn("Failed to close prevDocIdsToDelete: {}", e);
             }
         }
 
@@ -744,7 +796,7 @@ public class VersionGarbageCollector {
         private int removeDeletedDocuments(Iterator<String> docIdsToDelete,
                                            long numDocuments,
                                            String label) throws IOException {
-            log.info("Proceeding to delete [{}] documents [{}]", numDocuments, label);
+            monitor.info("Proceeding to delete [{}] documents [{}]", numDocuments, label);
 
             Iterator<List<String>> idListItr = partition(docIdsToDelete, DELETE_BATCH_SIZE);
             int deletedCount = 0;
@@ -757,7 +809,7 @@ public class VersionGarbageCollector {
                     try {
                         parsed = parseEntry(s);
                     } catch (IllegalArgumentException e) {
-                        log.warn("Invalid _modified suffix for {}", s);
+                        monitor.warn("Invalid _modified suffix for {}", s);
                         continue;
                     }
                     deletionBatch.put(parsed.getKey(), singletonMap(KEY_MODIFIED, newEqualsCondition(parsed.getValue())));
@@ -792,7 +844,7 @@ public class VersionGarbageCollector {
                         lastLoggedCount = deletedCount + recreatedCount;
                         double progress = lastLoggedCount * 1.0 / getNumDocuments() * 100;
                         String msg = String.format("Deleted %d (%1.2f%%) documents so far", deletedCount, progress);
-                        log.info(msg);
+                        monitor.info(msg);
                     }
                 } finally {
                     delayOnModifications(timer.stop().elapsed(TimeUnit.MILLISECONDS));
@@ -802,7 +854,7 @@ public class VersionGarbageCollector {
         }
 
         private int resetDeletedOnce(List<String> resurrectedDocuments) throws IOException {
-            log.info("Proceeding to reset [{}] _deletedOnce flags", resurrectedDocuments.size());
+            monitor.info("Proceeding to reset [{}] _deletedOnce flags", resurrectedDocuments.size());
 
             int updateCount = 0;
             timer.reset().start();
@@ -819,9 +871,9 @@ public class VersionGarbageCollector {
                                 updateCount += 1;
                             }
                         } catch (IllegalArgumentException ex) {
-                            log.warn("Invalid _modified suffix for {}", s);
+                            monitor.warn("Invalid _modified suffix for {}", s);
                         } catch (DocumentStoreException ex) {
-                            log.warn("updating {}: {}", s, ex.getMessage());
+                            monitor.warn("updating {}: {}", s, ex.getMessage());
                         }
                     }
                 }
@@ -833,7 +885,7 @@ public class VersionGarbageCollector {
         }
 
         private int removeDeletedPreviousDocuments() throws IOException {
-            log.info("Proceeding to delete [{}] previous documents", getNumPreviousDocuments());
+            monitor.info("Proceeding to delete [{}] previous documents", getNumPreviousDocuments());
 
             int deletedCount = 0;
             int lastLoggedCount = 0;
@@ -857,7 +909,7 @@ public class VersionGarbageCollector {
                     lastLoggedCount = deletedCount;
                     double progress = deletedCount * 1.0 / (prevDocIdsToDelete.getSize() - exclude.size()) * 100;
                     String msg = String.format("Deleted %d (%1.2f%%) previous documents so far", deletedCount, progress);
-                    log.info(msg);
+                    monitor.info(msg);
                 }
             }
             return deletedCount;
@@ -1072,6 +1124,41 @@ public class VersionGarbageCollector {
                     (ds.find(Collection.SETTINGS, SETTINGS_COLLECTION_ID) == null));
             updateOp.set(propName, val);
             ds.createOrUpdate(Collection.SETTINGS, updateOp);
+        }
+    }
+
+    /**
+     * VersionGCMonitor is a partial implementation of GCMonitor because some
+     * methods are specific to segment-tar. We use it primarily to keep track
+     * of the last message issued by the GC job.
+     */
+    private static class VersionGCMonitor
+            extends GCMonitor.Empty
+            implements Supplier<String> {
+
+        private volatile String lastMessage = STATUS_INITIALIZING;
+
+        @Override
+        public void info(String message, Object... arguments) {
+            log.info(message, arguments);
+            lastMessage = arrayFormat(message, arguments).getMessage();
+        }
+
+        @Override
+        public void warn(String message, Object... arguments) {
+            log.warn(message, arguments);
+            lastMessage = arrayFormat(message, arguments).getMessage();
+        }
+
+        @Override
+        public void error(String message, Exception e) {
+            log.error(message, e);
+            lastMessage = message + " (" + e.getMessage() + ")";
+        }
+
+        @Override
+        public String get() {
+            return lastMessage;
         }
     }
 
