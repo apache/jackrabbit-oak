@@ -51,6 +51,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
@@ -243,13 +244,22 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 acl = new NodeACL(path);
             }
 
-            Map<String, Value> restrictions = new HashMap<String, Value>();
-            for (String name : ace.getRestrictionNames()) {
-                if (!REP_NODE_PATH.equals(name)) {
+            // calculate single and mv restriction and drop the rep:nodePath restriction
+            // present with the principal-based-entries.
+            Map<String, Value> restrictions = new HashMap();
+            Map<String, Value[]> mvRestrictions = new HashMap();
+            for (Restriction r : ace.getRestrictions()) {
+                String name = r.getDefinition().getName();
+                if (REP_NODE_PATH.equals(name)) {
+                    continue;
+                }
+                if (r.getDefinition().getRequiredType().isArray()) {
+                    mvRestrictions.put(name, ace.getRestrictions(name));
+                } else {
                     restrictions.put(name, ace.getRestriction(name));
                 }
             }
-            acl.addEntry(ace.getPrincipal(), ace.getPrivileges(), ace.isAllow(), restrictions);
+            acl.addEntry(ace.getPrincipal(), ace.getPrivileges(), ace.isAllow(), restrictions, mvRestrictions);
             setNodeBasedAcl(path, tree, acl);
         }
 
@@ -260,7 +270,18 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
             ACL acl = (ACL) createACL(path, tree, false);
             if (acl != null) {
-                acl.removeAccessControlEntry(ace);
+                // remove rep:nodePath restriction before removing the entry from
+                // the node-based policy (see above for adding entries without
+                // this special restriction).
+                Set<Restriction> rstr = Sets.newHashSet(ace.getRestrictions());
+                Iterator<Restriction> it = rstr.iterator();
+                while (it.hasNext()) {
+                    Restriction r = it.next();
+                    if (REP_NODE_PATH.equals(r.getDefinition().getName())) {
+                        it.remove();
+                    }
+                }
+                acl.removeAccessControlEntry(new Entry(ace.getPrincipal(), ace.getPrivilegeBits(), ace.isAllow(), rstr, getNamePathMapper()));
                 setNodeBasedAcl(path, tree, acl);
             } else {
                 log.debug("Missing ACL at {}; cannot remove entry {}", path, ace);
@@ -720,7 +741,8 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
             if (obj instanceof PrincipalACL) {
                 PrincipalACL other = (PrincipalACL) obj;
-                return Objects.equal(getOakPath(), other.getOakPath())
+                return principal.equals(other.principal)
+                        && Objects.equal(getOakPath(), other.getOakPath())
                         && getEntries().equals(other.getEntries());
             }
             return false;

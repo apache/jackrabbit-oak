@@ -1579,6 +1579,19 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         assertArrayEquals(new String[]{"allow", "allow1", "deny2", "deny3"}, aceNodeNames);
     }
 
+    @Test
+    public void testSetPolicyWithExistingMixins() throws Exception {
+        TreeUtil.addMixin(root.getTree(testPath), JcrConstants.MIX_LOCKABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+
+        ACL acl = getApplicablePolicy(testPath);
+        assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
+        acMgr.setPolicy(testPath, acl);
+        root.commit();
+
+        assertEquals(ImmutableSet.of(JcrConstants.MIX_LOCKABLE, MIX_REP_ACCESS_CONTROLLABLE),
+                ImmutableSet.copyOf(TreeUtil.getNames(root.getTree(testPath), JcrConstants.JCR_MIXINTYPES)));
+    }
+
     //--------------------------< removePolicy(String, AccessControlPolicy) >---
     @Test
     public void testRemovePolicy() throws Exception {
@@ -1676,16 +1689,20 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         }
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testRemovePolicyAtDifferentPath() throws Exception {
-        try {
-            setupPolicy(testPath);
-            ACL acl = getApplicablePolicy("/");
-            acMgr.removePolicy(testPath, acl);
-            fail("Removing access control policy at a different node path must fail");
-        } catch (AccessControlException e) {
-            // success
-        }
+        setupPolicy(testPath);
+        ACL acl = getApplicablePolicy("/");
+        acMgr.removePolicy(testPath, acl);
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testRemovePolicyNodeRemoved() throws Exception {
+        setupPolicy(testPath);
+        AccessControlPolicy acl = acMgr.getPolicies(testPath)[0];
+        root.getTree(testPath + "/" + REP_POLICY).remove();
+
+        acMgr.removePolicy(testPath, acl);
     }
 
     //-----------------------------------< getApplicablePolicies(Principal) >---
@@ -2221,11 +2238,8 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         root.commit();
 
         JackrabbitAccessControlPolicy[] policies = acMgr.getPolicies(testPrincipal);
-        assertNotNull(policies);
-        assertEquals(1, policies.length);
-        assertTrue(policies[0] instanceof ACL);
-
         ACL acl = (ACL) policies[0];
+
         Map<String, Value> restrictions = new HashMap<String, Value>();
         restrictions.put(REP_NODE_PATH, getValueFactory().createValue(testPath, PropertyType.PATH));
 
@@ -2236,6 +2250,64 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
 
         acMgr.setPolicy(acl.getPath(), acl);
         assertEquals(2, ((ACL) acMgr.getPolicies(testPath)[0]).getAccessControlEntries().length);
+    }
+
+    @Test
+    public void testSetPrincipalPolicyWithNewMvRestriction() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        JackrabbitAccessControlPolicy[] policies = acMgr.getPolicies(testPrincipal);
+        ACL acl = (ACL) policies[0];
+
+        Map<String, Value> restrictions = new HashMap();
+        restrictions.put(REP_NODE_PATH, getValueFactory().createValue(testPath, PropertyType.PATH));
+
+        Map<String, Value[]> mvRestrictions = new HashMap();
+        ValueFactory vf = getValueFactory(root);
+        Value[] restrValues = new Value[] {vf.createValue("itemname", PropertyType.NAME), vf.createValue("propName", PropertyType.NAME)};
+        mvRestrictions.put(REP_ITEM_NAMES, restrValues);
+
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, restrictions, mvRestrictions));
+
+        acMgr.setPolicy(acl.getPath(), acl);
+        AccessControlEntry[] entries = ((ACL) acMgr.getPolicies(testPath)[0]).getAccessControlEntries();
+        assertEquals(2, entries.length);
+        ACE newEntry = (ACE) entries[1];
+        assertEquals(1, newEntry.getRestrictions().size());
+        assertArrayEquals(restrValues, newEntry.getRestrictions(REP_ITEM_NAMES));
+    }
+
+    @Test
+    public void testSetPrincipalPolicyRemovesEntries() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        ACL acl = (ACL) acMgr.getPolicies(testPrincipal)[0];
+        acl.getEntries().clear();
+        acMgr.setPolicy(acl.getPath(), acl);
+
+        assertEquals(0, ((ACL) acMgr.getPolicies(testPath)[0]).getAccessControlEntries().length);
+    }
+
+    @Test
+    public void testSetPrincipalPolicyRemovedACL() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        AccessControlPolicy nodeBased = acMgr.getPolicies(testPath)[0];
+
+        ACL acl = (ACL) acMgr.getPolicies(testPrincipal)[0];
+        acl.getEntries().clear();
+
+        // remove policy at test-path before writing back the principal-based policy
+        acMgr.removePolicy(testPath, nodeBased);
+
+        // now write it back
+        acMgr.setPolicy(acl.getPath(), acl);
+
+        // ... which must not have an effect and the policy must not be re-added.
+        assertEquals(0, acMgr.getPolicies(testPath).length);
     }
 
     //--------------------------------------------< removePrincipalPolicy() >---
@@ -2278,5 +2350,21 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
 
         policies = acMgr.getPolicies(testPrincipal);
         assertEquals(0, policies.length);
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testRemovePrincipalPolicyRemovedACL() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        AccessControlPolicy nodeBased = acMgr.getPolicies(testPath)[0];
+
+        ACL acl = (ACL) acMgr.getPolicies(testPrincipal)[0];
+
+        // remove policy at test-path before writing back the principal-based policy
+        acMgr.removePolicy(testPath, nodeBased);
+
+        // now try to write it back, which is expected to throw AccessControlException
+        acMgr.removePolicy(acl.getPath(), acl);
     }
 }
