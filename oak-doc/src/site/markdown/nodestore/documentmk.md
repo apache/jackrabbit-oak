@@ -652,13 +652,14 @@ parameters or options:
                any modifications
       collect  perform garbage collection
       reset    clear all persisted metadata
-      sweep    clean up uncommitted changes                                 
+      sweep    clean up uncommitted changes
 
     Option                 Description
     ------                 -----------
     -?, -h, --help         show help
     --cacheSize <Integer>  cache size (default: 0)
     --clusterId <Integer>  MongoMK clusterId (default: 0)
+    --continuous           run continuously (collect only)
     --delay <Double>       introduce delays to reduce impact on
                              system (default: 0.0)
     --disableBranches      disable branches
@@ -671,6 +672,7 @@ parameters or options:
     --rdbjdbcuser          RDB JDBC user (default: )
     --timeLimit <Long>     cancel garbage collection after n
                              seconds (default: -1)
+    --verbose              print INFO messages to the console
 
 A revision garbage collection can be invoked while the system is online and
 running. Using the oak-run runnable jar, a revision GC on a system using the
