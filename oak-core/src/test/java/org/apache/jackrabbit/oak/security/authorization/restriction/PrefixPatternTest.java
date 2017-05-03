@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.List;
 import java.util.Set;
+import javax.jcr.NamespaceRegistry;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -33,33 +34,36 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-public class ItemNamePatternTest extends AbstractSecurityTest {
+public class PrefixPatternTest extends AbstractSecurityTest {
 
-    private final Set<String> names = ImmutableSet.of("a", "b", "c");
-    private final ItemNamePattern pattern = new ItemNamePattern(names);
+    private final Set<String> prefixes = ImmutableSet.of(NamespaceRegistry.PREFIX_JCR);
+
+    private final PrefixPattern pattern = new PrefixPattern(prefixes);
 
     @Test
     public void testMatchesItem() throws Exception {
 
         NodeUtil rootTree = new NodeUtil(root.getTree("/"));
-        List<String> matching = ImmutableList.of("a", "b", "c", "d/e/a", "a/b/c/d/b", "test/c");
-        for (String relPath : matching) {
-            Tree testTree = rootTree.getOrAddTree(relPath, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
+        for (String prefix : prefixes) {
+            Tree testTree = rootTree.addChild(prefix + ":name", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
 
             assertTrue(pattern.matches(testTree, null));
-            assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
-            assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
+            assertTrue(pattern.matches(testTree, PropertyStates.createProperty(prefix + ":f", "anyval")));
+
+            assertFalse(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
 
             testTree.remove();
         }
 
-        List<String> notMatching = ImmutableList.of("d", "b/d", "d/e/f", "c/b/abc");
-        for (String relPath : notMatching) {
-            Tree testTree = rootTree.getOrAddTree(relPath, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
+        List<String> notMatching = ImmutableList.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_MIX, "any");
+        for (String prefix : notMatching) {
+            String name = (prefix.isEmpty()) ? "name" : prefix + ":name";
+            Tree testTree = rootTree.addChild(name, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
 
             assertFalse(pattern.matches(testTree, null));
-            assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
             assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
+
+            assertTrue(pattern.matches(testTree, PropertyStates.createProperty("jcr:a", Boolean.FALSE)));
 
             testTree.remove();
         }
@@ -67,12 +71,7 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testMatchesPath() {
-        List<String> matching = ImmutableList.of("/a", "/b", "/c", "/d/e/a", "/a/b/c/d/b", "/test/c");
-        for (String p : matching) {
-            assertTrue(pattern.matches(p));
-        }
-
-        List<String> notMatching = ImmutableList.of("/", "/d", "/b/d", "/d/e/f", "/c/b/abc");
+        List<String> notMatching = ImmutableList.of("/", "/a", "/jcr:b", "/d/jcr:e/a", "/a/b/c/d/jcr:b");
         for (String p : notMatching) {
             assertFalse(pattern.matches(p));
         }
@@ -85,23 +84,26 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testToString() {
-        assertEquals(names.toString(), pattern.toString());
+        assertEquals(prefixes.toString(), pattern.toString());
     }
 
     @Test
     public void testHashCode() {
-        assertEquals(names.hashCode(), pattern.hashCode());
+        assertEquals(prefixes.hashCode(), pattern.hashCode());
     }
 
     @Test
     public void testEquals() {
         assertEquals(pattern, pattern);
-        assertEquals(pattern, new ItemNamePattern(names));
+        assertEquals(pattern, new PrefixPattern(prefixes));
     }
 
     @Test
     public void testNotEquals() {
-        assertNotEquals(pattern, new ItemNamePattern(ImmutableSet.of("a", "b")));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("a", "b", "c")));
+        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY)));
+        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_JCR)));
+        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("oak")));
+        assertNotEquals(pattern, new ItemNamePattern(prefixes));
     }
+
 }
