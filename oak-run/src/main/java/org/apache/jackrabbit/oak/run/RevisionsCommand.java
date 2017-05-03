@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 
 import java.io.IOException;
@@ -27,9 +28,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
@@ -47,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.Versio
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
+import org.slf4j.LoggerFactory;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
@@ -72,6 +78,11 @@ public class RevisionsCommand implements Command {
             "  sweep    clean up uncommitted changes"
     );
 
+    private static final ImmutableList<String> LOGGER_NAMES = ImmutableList.of(
+            "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector",
+            "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper"
+    );
+
     private static class RevisionsOptions extends Utils.NodeStoreOptions {
 
         static final String CMD_INFO = "info";
@@ -84,6 +95,8 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Long> timeLimit;
         final OptionSpec<Long> olderThan;
         final OptionSpec<Double> delay;
+        final OptionSpec<?> continuous;
+        final OptionSpec<?> verbose;
 
         RevisionsOptions(String usage) {
             super(usage);
@@ -100,6 +113,10 @@ public class RevisionsCommand implements Command {
             timeLimit = parser
                     .accepts("timeLimit", "cancel garbage collection after n seconds").withRequiredArg()
                     .ofType(Long.class).defaultsTo(-1L);
+            continuous = parser
+                    .accepts("continuous", "run continuously (collect only)");
+            verbose = parser
+                    .accepts("verbose", "print INFO messages to the console");
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -134,6 +151,14 @@ public class RevisionsCommand implements Command {
         long getTimeLimit() {
             return timeLimit.value(options);
         }
+
+        boolean isContinuous() {
+            return options.has(continuous);
+        }
+
+        boolean isVerbose() {
+            return options.has(verbose);
+        }
     }
 
     @Override
@@ -141,6 +166,7 @@ public class RevisionsCommand implements Command {
         Closer closer = Closer.create();
         try {
             RevisionsOptions options = new RevisionsOptions(USAGE).parse(args);
+            setupLoggers(options.isVerbose());
 
             String subCmd = options.getSubCmd();
             if (RevisionsOptions.CMD_INFO.equals(subCmd)) {
@@ -158,6 +184,16 @@ public class RevisionsCommand implements Command {
             throw closer.rethrow(e);
         } finally {
             closer.close();
+        }
+    }
+
+    private void setupLoggers(boolean verbose) {
+        if (!verbose) {
+            return;
+        }
+        LoggerContext ctxt = (LoggerContext) LoggerFactory.getILoggerFactory();
+        for (String name : LOGGER_NAMES) {
+            ctxt.getLogger(name).setLevel(Level.INFO);
         }
     }
 
@@ -224,43 +260,85 @@ public class RevisionsCommand implements Command {
     private void collect(final RevisionsOptions options, Closer closer)
             throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer);
-        long started = System.currentTimeMillis();
-        System.out.println("starting gc collect");
         ExecutorService executor = Executors.newSingleThreadExecutor();
+        final Semaphore finished = new Semaphore(0);
         try {
-            Future<VersionGCStats> f = executor.submit(new Callable<VersionGCStats>() {
-                @Override
-                public VersionGCStats call() throws Exception {
-                    return gc.gc(options.getOlderThan(), SECONDS);
+            if (options.isContinuous()) {
+                // collect until shutdown hook is called
+                final AtomicBoolean running = new AtomicBoolean(true);
+                Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        System.out.println("Detected QUIT signal.");
+                        System.out.println("Stopping Revision GC...");
+                        running.set(false);
+                        finished.acquireUninterruptibly();
+                        System.out.println("Stopped Revision GC.");
+                    }
+                }));
+                while (running.get()) {
+                    long lastRun = System.currentTimeMillis();
+                    collectOnce(gc, options, executor);
+                    waitWhile(running, lastRun + 5000);
                 }
-            });
-            if (options.getTimeLimit() >= 0) {
-                try {
-                    f.get(options.getTimeLimit(), SECONDS);
-                } catch (TimeoutException e) {
-                    // cancel the gc
-                    gc.cancel();
-                } catch (ExecutionException e) {
-                    // re-throw any other exception
-                    throw new IOException(e.getCause());
-                } catch (Exception e) {
-                    throw new IOException(e);
-                }
-            }
-            try {
-                VersionGCStats stats = f.get();
-                long ended = System.currentTimeMillis();
-                System.out.printf(Locale.US, "%21s  %s%n", "Started:", fmtTimestamp(started));
-                System.out.printf(Locale.US, "%21s  %s%n", "Ended:", fmtTimestamp(ended));
-                System.out.printf(Locale.US, "%21s  %s%n", "Duration:", fmtDuration(ended - started));
-                System.out.printf(Locale.US, "%21s  %s%n", "Stats:", stats.toString());
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            } catch (ExecutionException e) {
-                throw new IOException(e.getCause());
+            } else {
+                collectOnce(gc, options, executor);
             }
         } finally {
+            finished.release();
             executor.shutdownNow();
+        }
+    }
+
+    private void collectOnce(VersionGarbageCollector gc,
+                             RevisionsOptions options,
+                             ExecutorService executor) throws IOException {
+        long started = System.currentTimeMillis();
+        System.out.println("starting gc collect");
+        Future<VersionGCStats> f = executor.submit(new Callable<VersionGCStats>() {
+            @Override
+            public VersionGCStats call() throws Exception {
+                return gc.gc(options.getOlderThan(), SECONDS);
+            }
+        });
+        if (options.getTimeLimit() >= 0) {
+            try {
+                f.get(options.getTimeLimit(), SECONDS);
+            } catch (TimeoutException e) {
+                // cancel the gc
+                gc.cancel();
+            } catch (ExecutionException e) {
+                // re-throw any other exception
+                throw new IOException(e.getCause());
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+        }
+        try {
+            VersionGCStats stats = f.get();
+            long ended = System.currentTimeMillis();
+            System.out.printf(Locale.US, "%21s  %s%n", "Started:", fmtTimestamp(started));
+            System.out.printf(Locale.US, "%21s  %s%n", "Ended:", fmtTimestamp(ended));
+            System.out.printf(Locale.US, "%21s  %s%n", "Duration:", fmtDuration(ended - started));
+            System.out.printf(Locale.US, "%21s  %s%n", "Stats:", stats.toString());
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        } catch (ExecutionException e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    private static void waitWhile(AtomicBoolean condition, long until) {
+        long now = System.currentTimeMillis();
+        while (now < until) {
+            if (condition.get()) {
+                try {
+                    Thread.sleep(Math.min(1000, until - now));
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+            now = System.currentTimeMillis();
         }
     }
 
