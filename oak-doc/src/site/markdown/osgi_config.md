@@ -433,6 +433,7 @@ All the above data stores enable local file system caching with the following pa
 * _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.SharedS3DataStore`_
 * _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore`_
 * _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore`_
+* _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.AzureDataStore`_
 
 cacheSize
 : Default - 68719476736
