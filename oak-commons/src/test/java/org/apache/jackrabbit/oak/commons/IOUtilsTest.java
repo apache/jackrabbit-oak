@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import junit.framework.TestCase;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
@@ -26,6 +24,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.common.collect.Lists;
+import junit.framework.TestCase;
 
 /**
  * Test the utility classes.
@@ -215,6 +216,40 @@ public class IOUtilsTest extends TestCase {
         }
     }
 
+    public void testLong() throws IOException {
+        testLong(Long.MIN_VALUE);
+        testLong(Long.MAX_VALUE);
+        testLong(0x0L);
+        for (long l : Lists.newArrayList(0x01L, 0x08L)) {
+            for (long x = l; x != 0; x = (x << 4)) {
+                testLong(x);
+            }
+        }
+        long loopMax = (Long.MAX_VALUE >> 4) + 1;
+        for (long l : Lists.newArrayList(0x07L, 0x0FL)) {
+            for (long x = l; x <= loopMax; x = ((x << 4) | 0x0FL)) {
+                testLong(x);
+            }
+        }
+    }
+
+    public void testInt() throws IOException {
+        testInt(Integer.MIN_VALUE);
+        testInt(Integer.MAX_VALUE);
+        testInt(0x0);
+        for (int i : Lists.newArrayList(0x01, 0x08)) {
+            for (int x = i; x != 0; x = (x << 4)) {
+                testInt(x);
+            }
+        }
+        int loopMax = (Integer.MAX_VALUE >> 4) + 1;
+        for (int i : Lists.newArrayList(0x07, 0x0F)) {
+            for (int x = i; x <= loopMax; x = ((x << 4) | 0x0F)) {
+                testInt(x);
+            }
+        }
+    }
+
     private static void testVarInt(int x, int expectedLen) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         IOUtils.writeVarInt(out, x);
@@ -239,6 +274,28 @@ public class IOUtilsTest extends TestCase {
         }
         ByteArrayInputStream in = new ByteArrayInputStream(data);
         long x2 = IOUtils.readVarLong(in);
+        assertEquals(x, x2);
+        assertEquals(-1, in.read());
+    }
+
+    private static void testLong(long x) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        IOUtils.writeLong(out, x);
+        byte[] data = out.toByteArray();
+        assertTrue(data.length == Long.BYTES);
+        ByteArrayInputStream in = new ByteArrayInputStream(data);
+        long x2 = IOUtils.readLong(in);
+        assertEquals(x, x2);
+        assertEquals(-1, in.read());
+    }
+
+    private static void testInt(int x) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        IOUtils.writeInt(out, x);
+        byte[] data = out.toByteArray();
+        assertTrue(data.length == Integer.BYTES);
+        ByteArrayInputStream in = new ByteArrayInputStream(data);
+        int x2 = IOUtils.readInt(in);
         assertEquals(x, x2);
         assertEquals(-1, in.read());
     }
