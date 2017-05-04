@@ -63,6 +63,7 @@ public class IndexConsistencyChecker {
     private final NodeState rootState;
     private final String indexPath;
     private final File workDirRoot;
+    private File workDir;
 
     public enum Level {
         /**
@@ -137,6 +138,16 @@ public class IndexConsistencyChecker {
         }
     }
 
+    /**
+     * Checks the index at given path for consistency
+     *
+     * @param rootState root state of repository
+     * @param indexPath path of index which needs to be checked
+     * @param workDirRoot directory which would be used for copying the index file locally to perform
+     *                    check. File would be created in a subdirectory. If the index is valid
+     *                    then the files would be removed otherwise whatever files have been copied
+     *                    would be left as is
+     */
     public IndexConsistencyChecker(NodeState rootState, String indexPath, File workDirRoot) {
         this.rootState = checkNotNull(rootState);
         this.indexPath = checkNotNull(indexPath);
@@ -158,17 +169,20 @@ public class IndexConsistencyChecker {
 
         if (result.clean){
             log.info("[] No problems were detected with this index. Time taken {}", indexPath, watch);
+            FileUtils.deleteQuietly(workDir);
         } else {
-            log.info("[] Problems detected with this index. Time taken {}", indexPath, watch);
+            log.warn("[] Problems detected with this index. Time taken {}", indexPath, watch);
+            if (workDir != null) {
+                log.warn("[] Index files are copied to {}", indexPath, workDir.getAbsolutePath());
+            }
         }
-
         return result;
     }
 
     private void checkIndex(Result result) throws IOException {
         NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
         IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx, indexPath).build();
-        File workDir = createWorkDir(workDirRoot, PathUtils.getName(indexPath));
+        workDir = createWorkDir(workDirRoot, PathUtils.getName(indexPath));
 
         for (String dirName : idx.getChildNodeNames()){
             //TODO Check for SuggestionDirectory Pending
