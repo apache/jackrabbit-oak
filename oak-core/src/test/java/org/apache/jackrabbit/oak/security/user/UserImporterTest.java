@@ -388,6 +388,14 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     }
 
     @Test
+    public void testPropertiesCompletedNewSystemUser() throws Exception {
+        init(true);
+        importer.propertiesCompleted(createSystemUserTree());
+        // create-actions must not be called for system users
+        testAction.checkMethods();
+    }
+
+    @Test
     public void testPropertiesCompletedNewGroup() throws Exception {
         Tree groupTree = createGroupTree();
 

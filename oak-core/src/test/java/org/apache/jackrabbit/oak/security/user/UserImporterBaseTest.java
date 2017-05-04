@@ -143,6 +143,14 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return userTree;
     }
 
+    Tree createSystemUserTree() {
+        Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
+        Tree userTree = folder.addChild("systemUserTree");
+        userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_SYSTEM_USER, Type.NAME);
+        userTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_USER_ID));
+        return userTree;
+    }
+
     Tree createGroupTree() throws Exception {
         String groupPath = getUserConfiguration().getParameters().getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
 
