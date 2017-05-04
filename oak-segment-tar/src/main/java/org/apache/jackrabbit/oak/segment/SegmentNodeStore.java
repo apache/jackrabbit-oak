@@ -177,7 +177,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override
     public Closeable addObserver(Observer observer) {
-        return scheduler.addObserver(observer);
+        if (scheduler instanceof Observable) {
+            return ((Observable) scheduler).addObserver(observer);
+        }
+        
+        return () -> {};
     }
 
     @Override @Nonnull

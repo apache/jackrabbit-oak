@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.segment.SegmentOverflowException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -50,14 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LockBasedScheduler implements Scheduler {
-    private static final Closeable NOOP = new Closeable() {
-
-        @Override
-        public void close() {
-            // This method was intentionally left blank.
-        }
-
-    };
 
     public static class LockBasedSchedulerBuilder {
         @Nonnull
@@ -97,7 +90,11 @@ public class LockBasedScheduler implements Scheduler {
 
         @Nonnull
         public LockBasedScheduler build() {
-            return new LockBasedScheduler(this);
+            if (dispatchChanges) {
+                return new ObservableLockBasedScheduler(this);
+            } else {
+                return new LockBasedScheduler(this);
+            }
         }
 
     }
@@ -135,9 +132,7 @@ public class LockBasedScheduler implements Scheduler {
     @Nonnull
     private final Revisions revisions;
 
-    private final AtomicReference<SegmentNodeState> head;
-
-    private final ChangeDispatcher changeDispatcher;
+    protected final AtomicReference<SegmentNodeState> head;
 
     private final SegmentNodeStoreStats stats;
 
@@ -149,21 +144,8 @@ public class LockBasedScheduler implements Scheduler {
         this.reader = builder.reader;
         this.revisions = builder.revisions;
         this.head = new AtomicReference<SegmentNodeState>(reader.readHeadState(revisions));
-        if (builder.dispatchChanges) {
-            this.changeDispatcher = new ChangeDispatcher(head.get().getChildNode(ROOT));
-        } else {
-            this.changeDispatcher = null;
-        }
 
         this.stats = new SegmentNodeStoreStats(builder.statsProvider);
-    }
-
-    @Override
-    public Closeable addObserver(Observer observer) {
-        if (changeDispatcher != null) {
-            return changeDispatcher.addObserver(observer);
-        }
-        return NOOP;
     }
 
     @Override
@@ -195,10 +177,8 @@ public class LockBasedScheduler implements Scheduler {
         }
     }
 
-    private void contentChanged(NodeState root, CommitInfo info) {
-        if (changeDispatcher != null) {
-            changeDispatcher.contentChanged(root, info);
-        }
+    protected void contentChanged(NodeState root, CommitInfo info) {
+        // do nothing without a change dispatcher
     }
 
     @Override
@@ -317,6 +297,25 @@ public class LockBasedScheduler implements Scheduler {
             }
         }
         return false;
+    }
+
+    private static class ObservableLockBasedScheduler extends LockBasedScheduler implements Observable {
+        private final ChangeDispatcher changeDispatcher;
+        
+        public ObservableLockBasedScheduler(LockBasedSchedulerBuilder builder) {
+            super(builder);
+            this.changeDispatcher = new ChangeDispatcher(head.get().getChildNode(ROOT));
+        }
+
+        @Override
+        protected void contentChanged(NodeState root, CommitInfo info) {
+            changeDispatcher.contentChanged(root, info);
+        }
+        
+        @Override
+        public Closeable addObserver(Observer observer) {
+            return changeDispatcher.addObserver(observer);
+        }
     }
 
     private final class CPCreator implements Callable<Boolean> {
