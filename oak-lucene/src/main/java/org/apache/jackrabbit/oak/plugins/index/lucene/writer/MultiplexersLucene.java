@@ -29,9 +29,9 @@ public final class MultiplexersLucene {
     /**
      * Prefix used to decorate mount names to represent index directory
      */
-    private static final String INDEX_DIR_SUFFIX = "-index-data";
+    public static final String INDEX_DIR_SUFFIX = "-index-data";
 
-    private static final String SUGGEST_DIR_SUFFIX = "-suggest-data";
+    public static final String SUGGEST_DIR_SUFFIX = "-suggest-data";
 
     public static String getIndexDirName(Mount mount) {
         if (mount.isDefault()){
