@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
@@ -54,35 +53,35 @@ class GroupPredicate implements Predicate<Authorizable> {
 
     @Override
     public boolean apply(@Nullable Authorizable authorizable) {
-        if (authorizable != null) {
-            try {
-                String id = authorizable.getID();
-                if (memberIds.contains(id)) {
-                    return true;
-                } else {
-                    while (membersIterator.hasNext()) {
-                        String memberId = saveGetId(membersIterator.next());
-                        if (memberId != null) {
-                            memberIds.add(memberId);
-                            if (memberId.equals(id)) {
-                                return true;
-                            }
+        String id = saveGetId(authorizable);
+        if (id != null) {
+            if (memberIds.contains(id)) {
+                return true;
+            } else {
+                // not contained in ids that have already been processed => look
+                // for occurrence in the remaining iterator entries.
+                while (membersIterator.hasNext()) {
+                    String memberId = saveGetId(membersIterator.next());
+                    if (memberId != null) {
+                        memberIds.add(memberId);
+                        if (memberId.equals(id)) {
+                            return true;
                         }
                     }
                 }
-            } catch (RepositoryException e) {
-                log.debug("Cannot determine group membership for {}", authorizable, e);
             }
         }
         return false;
     }
 
     @CheckForNull
-    private String saveGetId(@Nonnull Authorizable authorizable) {
-        try {
-            return authorizable.getID();
-        } catch (RepositoryException e) {
-            log.debug("Error while retrieving ID for authorizable {}", authorizable, e);
+    private String saveGetId(@CheckForNull Authorizable authorizable) {
+        if (authorizable != null) {
+            try {
+                return authorizable.getID();
+            } catch (RepositoryException e) {
+                log.debug("Error while retrieving ID for authorizable {}", authorizable, e);
+            }
         }
         return null;
     }

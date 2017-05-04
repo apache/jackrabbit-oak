@@ -117,7 +117,7 @@ public class UserQueryManager {
             // filtering by group name included in query -> enforce offset
             // and limit on the result set.
             Iterator<Authorizable> result = findAuthorizables(statement, Long.MAX_VALUE, 0, null);
-            Predicate groupFilter = new GroupPredicate(userManager,
+            Predicate<Authorizable> groupFilter = new GroupPredicate(userManager,
                     groupId,
                     builder.isDeclaredMembersOnly());
             return ResultIterator.create(builder.getOffset(), builder.getMaxCount(),
@@ -327,7 +327,7 @@ public class UserQueryManager {
      */
     private static final class UniqueResultPredicate implements Predicate<Authorizable> {
 
-        private final Set<String> authorizableIds = new HashSet<String>();
+        private final Set<String> authorizableIds = new HashSet();
 
         @Override
         public boolean apply(@Nullable Authorizable input) {
