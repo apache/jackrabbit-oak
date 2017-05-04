@@ -17,13 +17,11 @@
 
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import java.io.Closeable;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -90,13 +88,4 @@ public interface Scheduler {
      * @return the latest state.
      */
     NodeState getHeadNodeState();
-    
-    /**
-     * Register a new {@code Observer}. Clients need to call {@link Closeable#close()} 
-     * to stop getting notifications on the registered observer and to free up any resources
-     * associated with the registration.
-     * 
-     * @return a {@code Closeable} instance.
-     */
-    Closeable addObserver(Observer observer); 
 }
