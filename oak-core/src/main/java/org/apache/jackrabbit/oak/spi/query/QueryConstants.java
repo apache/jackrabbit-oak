@@ -50,4 +50,5 @@ public abstract class QueryConstants {
      */
     public static final String FUNCTION_RESTRICTION_PREFIX = "function*";
 
+    public static final String SEARCH_ROOT_PATH = "/jcr:root";
 }
