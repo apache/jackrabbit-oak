@@ -16,11 +16,24 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import java.util.List;
 import java.util.Map;
-
 import javax.annotation.Nonnull;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.oak.commons.QueryUtils;
+import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
+import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -28,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 public class QueryUtilTest {
 
@@ -123,5 +137,65 @@ public class QueryUtilTest {
         for (AuthorizableType type : ntNames.keySet()) {
             assertEquals(ntNames.get(type), QueryUtil.getNodeTypeName(type));
         }
+    }
+
+    @Test
+    public void testEscapeNodeName() {
+        List<String> names = ImmutableList.of("name", JcrConstants.JCR_CREATED, "%name", "a%name", "name%");
+        for (String name : names) {
+            assertEquals(QueryUtils.escapeNodeName(name), QueryUtil.escapeNodeName(name));
+        }
+    }
+
+    @Test
+    public void testFormatString() throws Exception {
+        String value = "'string\\value";
+        assertEquals("'"+QueryUtils.escapeForQuery(value)+"'", QueryUtil.format(ValueFactoryImpl.createValue(PropertyValues.newString(value), NamePathMapper.DEFAULT)));
+    }
+
+    @Test
+    public void testFormatBoolean() throws Exception {
+        assertEquals("'"+Boolean.TRUE.toString()+"'", QueryUtil.format(ValueFactoryImpl.createValue(PropertyValues.newBoolean(true), NamePathMapper.DEFAULT)));
+
+    }
+
+    @Test
+    public void testFormatLong() throws Exception {
+        Value longV = ValueFactoryImpl.createValue(PropertyValues.newLong(Long.MAX_VALUE), NamePathMapper.DEFAULT);
+        assertEquals(String.valueOf(Long.MAX_VALUE), QueryUtil.format(longV));
+    }
+
+    @Test
+    public void testFormatDouble() throws Exception {
+        Value doubleV = ValueFactoryImpl.createValue(PropertyValues.newDouble(Double.valueOf(2.3)), NamePathMapper.DEFAULT);
+        assertEquals(String.valueOf(2.3), QueryUtil.format(doubleV));
+    }
+
+    @Test
+    public void testFormatDate() throws Exception {
+        Value dateV = ValueFactoryImpl.createValue(PropertyValues.newDate("dateString"), NamePathMapper.DEFAULT);
+        assertEquals("xs:dateTime('dateString')", QueryUtil.format(dateV));
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testFormatOtherTypes() throws Exception {
+        Value nameValue = ValueFactoryImpl.createValue(PropertyValues.newName(JcrConstants.JCR_CREATED), NamePathMapper.DEFAULT);
+        QueryUtil.format(nameValue);
+    }
+
+    @Test
+    public void testEscapeForQuery() throws Exception {
+        NamePathMapper namePathMapper = new NamePathMapperImpl(new LocalNameMapper(
+                ImmutableMap.of(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR),
+                ImmutableMap.of("myPrefix", NamespaceRegistry.NAMESPACE_JCR)));
+
+        String value = "'string\\value";
+        assertEquals(QueryUtils.escapeForQuery("myPrefix:"+value), QueryUtil.escapeForQuery("jcr:"+value, namePathMapper));
+    }
+
+    @Test
+    public void testGetCollation() throws Exception {
+        assertSame(RelationOp.LT, QueryUtil.getCollation(QueryBuilder.Direction.DESCENDING));
+        assertSame(RelationOp.GT, QueryUtil.getCollation(QueryBuilder.Direction.ASCENDING));
     }
 }
