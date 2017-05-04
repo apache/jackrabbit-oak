@@ -63,8 +63,10 @@ public class UserQueryManager {
     private final ConfigurationParameters config;
     private final Root root;
 
-    public UserQueryManager(UserManagerImpl userManager, NamePathMapper namePathMapper,
-                            ConfigurationParameters config, Root root) {
+    public UserQueryManager(@Nonnull UserManagerImpl userManager,
+                            @Nonnull NamePathMapper namePathMapper,
+                            @Nonnull ConfigurationParameters config,
+                            @Nonnull Root root) {
         this.userManager = userManager;
         this.namePathMapper = namePathMapper;
         this.config = config;
@@ -79,7 +81,7 @@ public class UserQueryManager {
      * @throws RepositoryException If an error occurs.
      */
     @Nonnull
-    public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@Nonnull Query query) throws RepositoryException {
         XPathQueryBuilder builder = new XPathQueryBuilder();
         query.build(builder);
 
