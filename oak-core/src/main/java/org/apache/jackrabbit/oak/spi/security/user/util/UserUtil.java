@@ -112,7 +112,7 @@ public final class UserUtil implements UserConstants {
                 default:
                     path = parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
                     String groupRoot = parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
-                    while (!Text.isDescendant(path, groupRoot)) {
+                    while (!Text.isDescendantOrEqual(path, groupRoot)) {
                         path = Text.getRelativeParent(path, 1);
                     }
             }
