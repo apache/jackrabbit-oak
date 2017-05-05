@@ -40,16 +40,20 @@ import javax.management.openmbean.TabularType;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
+import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex.PathStoredFieldVisitor;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Result;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
@@ -68,6 +72,7 @@ import org.apache.lucene.store.IOContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
@@ -77,10 +82,14 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.Directory
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
+    private final NodeStore nodeStore;
+    private final File workDir;
 
-    public LuceneIndexMBeanImpl(IndexTracker indexTracker) {
+    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, File workDir) {
         super(LuceneIndexMBean.class);
-        this.indexTracker = indexTracker;
+        this.indexTracker = checkNotNull(indexTracker);
+        this.nodeStore = checkNotNull(nodeStore);
+        this.workDir = checkNotNull(workDir);
     }
 
     @Override
@@ -239,6 +248,20 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             return JsopBuilder.prettyPrint(diff.toString());
         }
         return "No stored index definition found at given path";
+    }
+
+    @Override
+    public String checkConsistency(String indexPath, boolean fullCheck) throws IOException {
+        NodeState indexState = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
+        checkArgument(indexState.exists(), "No node exist at path [%s]", indexPath);
+        return getConsistencyCheckResult(indexPath, fullCheck).toString();
+    }
+
+    private Result getConsistencyCheckResult(String indexPath, boolean fullCheck) throws IOException {
+        NodeState root = nodeStore.getRoot();
+        Level level = fullCheck ? Level.FULL : Level.BLOBS_ONLY;
+        IndexConsistencyChecker checker = new IndexConsistencyChecker(root, indexPath, workDir);
+        return checker.check(level);
     }
 
     public void dumpIndexContent(String sourcePath, String destPath) throws IOException {
