@@ -100,13 +100,15 @@ public class IndexConsistencyChecker {
 
         public List<DirectoryStatus> dirStatus = new ArrayList<>();
 
+        private Stopwatch watch;
+
         public void dump(PrintWriter pw){
             if (clean) {
                 pw.printf("%s => VALID%n", indexPath);
             } else {
                 pw.printf("%s => INVALID%n", indexPath);
             }
-            pw.printf("\t Size : %s%n", humanReadableByteCount(binaryPropSize));
+            pw.printf("\tSize : %s%n", humanReadableByteCount(binaryPropSize));
 
             if (!missingBlobIds.isEmpty()){
                 pw.println("Missing blobs");
@@ -125,6 +127,8 @@ public class IndexConsistencyChecker {
             for (DirectoryStatus dirStatus : dirStatus) {
                 dirStatus.dump(pw);
             }
+
+            pw.printf("Time taken : %s%n", watch);
         }
     }
 
@@ -149,13 +153,13 @@ public class IndexConsistencyChecker {
 
         public void dump(PrintWriter pw) {
             pw.println("Directory : " +  dirName);
-            pw.printf("\t Size     : %s%n", humanReadableByteCount(size));
-            pw.printf("\t Num docs : %d%n", numDocs);
+            pw.printf("\tSize     : %s%n", humanReadableByteCount(size));
+            pw.printf("\tNum docs : %d%n", numDocs);
 
             if (!missingFiles.isEmpty()){
-                pw.println("Missing Files");
+                pw.println("\tMissing Files");
                 for (String file : missingFiles) {
-                    pw.println("\t - " + file);
+                    pw.println("\t\t- " + file);
                 }
             }
 
@@ -208,10 +212,15 @@ public class IndexConsistencyChecker {
     }
 
     public Result check(Level level) throws IOException {
+        return check(level, true);
+    }
+
+    public Result check(Level level, boolean cleanWorkDir) throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         Result result = new Result();
         result.indexPath = indexPath;
         result.clean = true;
+        result.watch = watch;
 
         log.debug("[{}] Starting check", indexPath);
 
@@ -222,13 +231,18 @@ public class IndexConsistencyChecker {
 
         if (result.clean){
             log.info("[] No problems were detected with this index. Time taken {}", indexPath, watch);
-            FileUtils.deleteQuietly(workDir);
+
         } else {
             log.warn("[] Problems detected with this index. Time taken {}", indexPath, watch);
-            if (workDir != null) {
-                log.warn("[] Index files are copied to {}", indexPath, workDir.getAbsolutePath());
-            }
         }
+
+        if (cleanWorkDir){
+            FileUtils.deleteQuietly(workDir);
+        } else if (workDir != null){
+            log.info("[] Index files are copied to {}", indexPath, workDir.getAbsolutePath());
+        }
+
+        watch.stop();
         return result;
     }
 
