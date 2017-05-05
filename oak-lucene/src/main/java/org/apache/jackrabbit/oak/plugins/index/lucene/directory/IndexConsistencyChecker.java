@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,6 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 public class IndexConsistencyChecker {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -97,6 +99,33 @@ public class IndexConsistencyChecker {
         public List<String> missingBlobIds = new ArrayList<>();
 
         public List<DirectoryStatus> dirStatus = new ArrayList<>();
+
+        public void dump(PrintWriter pw){
+            if (clean) {
+                pw.printf("%s => VALID%n", indexPath);
+            } else {
+                pw.printf("%s => INVALID%n", indexPath);
+            }
+            pw.printf("\t Size : %s%n", humanReadableByteCount(binaryPropSize));
+
+            if (!missingBlobIds.isEmpty()){
+                pw.println("Missing blobs");
+                for (String id : missingBlobIds) {
+                    pw.println("\t - " + id);
+                }
+            }
+
+            if (!invalidBlobIds.isEmpty()){
+                pw.println("Invalid blobs");
+                for (FileSizeStatus status : invalidBlobIds) {
+                    pw.println("\t - " + status);
+                }
+            }
+
+            for (DirectoryStatus dirStatus : dirStatus) {
+                dirStatus.dump(pw);
+            }
+        }
     }
 
     public static class DirectoryStatus {
@@ -116,6 +145,30 @@ public class IndexConsistencyChecker {
 
         public DirectoryStatus(String dirName) {
             this.dirName = dirName;
+        }
+
+        public void dump(PrintWriter pw) {
+            pw.println("Directory : " +  dirName);
+            pw.printf("\t Size     : %s%n", humanReadableByteCount(size));
+            pw.printf("\t Num docs : %d%n", numDocs);
+
+            if (!missingFiles.isEmpty()){
+                pw.println("Missing Files");
+                for (String file : missingFiles) {
+                    pw.println("\t - " + file);
+                }
+            }
+
+            if (!filesWithSizeMismatch.isEmpty()){
+                pw.println("Invalid files");
+                for (FileSizeStatus status : filesWithSizeMismatch) {
+                    pw.println("\t - " + status);
+                }
+            }
+
+            if (status != null){
+                pw.printf("\tCheckIndex status : %s%n", status.clean);
+            }
         }
     }
 
