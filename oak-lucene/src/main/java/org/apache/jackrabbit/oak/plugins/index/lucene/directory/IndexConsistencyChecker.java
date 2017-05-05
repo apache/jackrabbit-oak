@@ -239,16 +239,16 @@ public class IndexConsistencyChecker {
         }
 
         if (result.clean){
-            log.info("[] No problems were detected with this index. Time taken {}", indexPath, watch);
+            log.info("[{}] No problems were detected with this index. Time taken {}", indexPath, watch);
 
         } else {
-            log.warn("[] Problems detected with this index. Time taken {}", indexPath, watch);
+            log.warn("[{}] Problems detected with this index. Time taken {}", indexPath, watch);
         }
 
         if (cleanWorkDir){
             FileUtils.deleteQuietly(workDir);
         } else if (workDir != null){
-            log.info("[] Index files are copied to {}", indexPath, workDir.getAbsolutePath());
+            log.info("[{}] Index files are copied to {}", indexPath, workDir.getAbsolutePath());
         }
 
         watch.stop();
@@ -265,7 +265,7 @@ public class IndexConsistencyChecker {
             if (NodeStateUtils.isHidden(dirName) && MultiplexersLucene.isIndexDirName(dirName)){
                 DirectoryStatus dirStatus = new DirectoryStatus(dirName);
                 result.dirStatus.add(dirStatus);
-                log.warn("[{}] Checking directory {}", indexPath, dirName);
+                log.info("[{}] Checking directory {}", indexPath, dirName);
                 try {
                     checkIndexDirectory(dirStatus, idx, defn, workDir, dirName);
                 } catch (IOException e){
