@@ -207,7 +207,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
                             @Nonnull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
         this.name = checkValidName(name);
-        this.lastIndexedTo = name + "-LastIndexedTo";
+        this.lastIndexedTo = lastIndexedTo(name);
         this.store = checkNotNull(store);
         this.provider = checkNotNull(provider);
         this.switchOnSync = switchOnSync;
@@ -228,6 +228,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         checkArgument(asyncName.endsWith("async"), "async name [%s] does not confirm to " +
                 "naming pattern of ending with 'async'", asyncName);
         return asyncName;
+    }
+
+    public static boolean isAsyncLaneName(String asyncName){
+        return IndexConstants.ASYNC_REINDEX_VALUE.equals(asyncName) || asyncName.endsWith("async");
     }
 
     /**
@@ -779,6 +783,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     static String leasify(String name) {
         return name + "-lease";
+    }
+
+    static String lastIndexedTo(String name) {
+        return name + "-LastIndexedTo";
     }
 
     private static String getTempCpName(String name) {
