@@ -999,6 +999,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
         public String getStart() {
             return start;
         }
