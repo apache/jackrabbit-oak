@@ -84,7 +84,8 @@ public interface LuceneIndexMBean {
                                                 "check if all blobs referred in index files are present in BlobStore")
                                                 boolean fullCheck) throws IOException;
 
-    @Description("Performs consistency check for all Lucene indexes")
+    @Description("Performs consistency check for all Lucene indexes and reports true if all indexes are found " +
+            "to be valid. False if any one of them was not found to be valid")
     boolean checkConsistencyOfAllIndexes(@Name("fullCheck")
                                           @Description("If set to true a full check would be performed which can be slow as " +
                                                   "it reads all index files. If set to false a quick check is performed to " +
