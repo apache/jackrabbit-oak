@@ -231,7 +231,7 @@ public class IndexConsistencyChecker {
         result.clean = true;
         result.watch = watch;
 
-        log.debug("[{}] Starting check", indexPath);
+        log.info("[{}] Starting check", indexPath);
 
         checkBlobs(result);
         if (level == Level.FULL && result.clean){
@@ -265,7 +265,7 @@ public class IndexConsistencyChecker {
             if (NodeStateUtils.isHidden(dirName) && MultiplexersLucene.isIndexDirName(dirName)){
                 DirectoryStatus dirStatus = new DirectoryStatus(dirName);
                 result.dirStatus.add(dirStatus);
-                log.info("[{}] Checking directory {}", indexPath, dirName);
+                log.debug("[{}] Checking directory {}", indexPath, dirName);
                 try {
                     checkIndexDirectory(dirStatus, idx, defn, workDir, dirName);
                 } catch (IOException e){
