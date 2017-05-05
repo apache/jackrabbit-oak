@@ -293,7 +293,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
             result = queries.iterator().next();
             result.prepare();
             result.verifyNotPotentiallySlow();
-            LOG.debug("No alternatives found. Query: {}", result);
+            LOG.trace("No alternatives found. Query: {}", result);
         } else {
             double bestCost = Double.POSITIVE_INFINITY;
             
