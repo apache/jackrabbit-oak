@@ -1113,24 +1113,28 @@ public class XPathToSQL2Converter {
         parts.add(or);        
         String end = partList.substring(parseIndex);
         Statement result = null;
+        ArrayList<Order> orderList = null;
+        QueryOptions queryOptions = null;
         for(String p : parts) {
             String q = begin + p + end;
             converter = new XPathToSQL2Converter();
             Statement stat = converter.convertToStatement(q);
-            if (result == null) {
-                result = stat;
-            } else {
-                UnionStatement union = new UnionStatement(result, stat);
-                union.orderList = stat.orderList;
-                union.queryOptions = stat.queryOptions;
-                result = union;
-            }
+            orderList = stat.orderList;
+            queryOptions = stat.queryOptions;
             // reset fields that are used in the union,
             // but no longer in the individual statements
             // (can not use clear, because it is shared)
             stat.orderList = new ArrayList<Order>();
             stat.queryOptions = new QueryOptions();
+            if (result == null) {
+                result = stat;
+            } else {
+                UnionStatement union = new UnionStatement(result, stat);
+                result = union;
+            }
         }
+        result.orderList = orderList;
+        result.queryOptions = queryOptions;
         return result;
     }
 
