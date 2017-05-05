@@ -208,10 +208,7 @@ public class IndexConsistencyCheckerTest {
     }
 
     private static void dumpResult(Result result) {
-        StringWriter sw = new StringWriter();
-        result.dump(new PrintWriter(sw));
-
-        System.out.println(sw);
+        System.out.println(result);
     }
 
     private static class FailingBlob extends ArrayBasedBlob {
