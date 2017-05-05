@@ -68,9 +68,6 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     @Test
     public void conditionalRead() throws SQLException {
 
-        // this tests functionality that relies on case statements
-        assumeTrue(dbInfo.allowsCaseInSelect());
-
         String id = this.getClass().getName() + ".conditionalRead";
         super.ds.remove(Collection.NODES, id);
         UpdateOp op = new UpdateOp(id, true);
