@@ -69,4 +69,12 @@ public interface LuceneIndexMBean {
             "string form")
     String diffStoredIndexDefinition(@Name("indexPath") String indexPath);
 
+    @Description("Performs consistency check on given index")
+    String checkConsistency(@Name("indexPath") String indexPath,
+                            @Name("fullCheck")
+                            @Description("If set to true a full check would be performed which can be slow as " +
+                                    "it reads all index files. If set to false a quick check is performed to " +
+                                    "check if all blobs referred in index files are present in BlobStore")
+                                    boolean fullCheck) throws IOException;
+
 }

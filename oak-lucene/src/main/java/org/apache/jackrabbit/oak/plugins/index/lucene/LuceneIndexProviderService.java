@@ -310,7 +310,7 @@ public class LuceneIndexProviderService {
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
-                new LuceneIndexMBeanImpl(indexProvider.getTracker()),
+                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, new File(indexDir, "indexCheckDir")),
                 LuceneIndexMBean.TYPE,
                 "Lucene Index statistics"));
         registerGCMonitor(whiteboard, indexProvider.getTracker());
