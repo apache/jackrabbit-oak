@@ -37,6 +37,7 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
@@ -45,6 +46,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
@@ -83,12 +86,14 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
     private final NodeStore nodeStore;
+    private final IndexPathService indexPathService;
     private final File workDir;
 
-    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, File workDir) {
+    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir) {
         super(LuceneIndexMBean.class);
         this.indexTracker = checkNotNull(indexTracker);
         this.nodeStore = checkNotNull(nodeStore);
+        this.indexPathService = indexPathService;
         this.workDir = checkNotNull(workDir);
     }
 
@@ -255,6 +260,45 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         NodeState indexState = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
         checkArgument(indexState.exists(), "No node exist at path [%s]", indexPath);
         return getConsistencyCheckResult(indexPath, fullCheck).toString();
+    }
+
+    @Override
+    public String[] checkAndReportConsistencyOfAllIndexes(boolean fullCheck) throws IOException {
+        Stopwatch watch = Stopwatch.createStarted();
+        List<String> results = new ArrayList<>();
+        NodeState root = nodeStore.getRoot();
+        for (String indexPath : indexPathService.getIndexPaths()) {
+            NodeState idxState = NodeStateUtils.getNode(root, indexPath);
+            if (LuceneIndexConstants.TYPE_LUCENE.equals(idxState.getString(IndexConstants.TYPE_PROPERTY_NAME))) {
+                Result result = getConsistencyCheckResult(indexPath, fullCheck);
+                String msg = "OK";
+                if (!result.clean) {
+                    msg = "NOT OK";
+                }
+                results.add(String.format("%s : %s", indexPath, msg));
+            }
+        }
+        log.info("Checked index consistency in {}. Check result {}", watch, results);
+        return Iterables.toArray(results, String.class);
+    }
+
+    @Override
+    public boolean checkConsistencyOfAllIndexes(boolean fullCheck) throws IOException {
+        Stopwatch watch = Stopwatch.createStarted();
+        NodeState root = nodeStore.getRoot();
+        boolean clean = true;
+        for (String indexPath : indexPathService.getIndexPaths()) {
+            NodeState idxState = NodeStateUtils.getNode(root, indexPath);
+            if (LuceneIndexConstants.TYPE_LUCENE.equals(idxState.getString(IndexConstants.TYPE_PROPERTY_NAME))) {
+                Result result = getConsistencyCheckResult(indexPath, fullCheck);
+                if (!result.clean) {
+                    clean = false;
+                    break;
+                }
+            }
+        }
+        log.info("Checked index consistency in {}. Check result {}", watch, clean);
+        return clean;
     }
 
     private Result getConsistencyCheckResult(String indexPath, boolean fullCheck) throws IOException {

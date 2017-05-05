@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
@@ -256,6 +257,9 @@ public class LuceneIndexProviderService {
     @Reference
     private NodeStore nodeStore;
 
+    @Reference
+    private IndexPathService indexPathService;
+
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
         policyOption = ReferencePolicyOption.GREEDY,
         policy = ReferencePolicy.DYNAMIC
@@ -310,7 +314,7 @@ public class LuceneIndexProviderService {
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
-                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, new File(indexDir, "indexCheckDir")),
+                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, indexPathService, new File(indexDir, "indexCheckDir")),
                 LuceneIndexMBean.TYPE,
                 "Lucene Index statistics"));
         registerGCMonitor(whiteboard, indexProvider.getTracker());
