@@ -1,0 +1,123 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.jackrabbit.oak.plugins.index;
+
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.util.ISO8601;
+
+@Component
+@Service
+public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
+
+    @Reference(policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+            policyOption = ReferencePolicyOption.GREEDY,
+            referenceInterface = IndexStatsMBean.class
+    )
+    private final Map<String, IndexStatsMBean> statsMBeans = new ConcurrentHashMap<>();
+
+    @Reference
+    private NodeStore nodeStore;
+
+    public AsyncIndexInfoServiceImpl() {
+
+    }
+
+    public AsyncIndexInfoServiceImpl(NodeStore nodeStore) {
+        this.nodeStore = nodeStore;
+    }
+
+    @Override
+    public Iterable<String> getAsyncLanes() {
+        return getAsyncLanes(nodeStore.getRoot());
+    }
+
+    @Override
+    public Iterable<String> getAsyncLanes(NodeState root) {
+        NodeState async = getAsyncState(root);
+        Set<String> names = new HashSet<>();
+        for (PropertyState ps : async.getProperties()) {
+            String name = ps.getName();
+            if (AsyncIndexUpdate.isAsyncLaneName(name)) {
+                names.add(name);
+            }
+        }
+        return names;
+    }
+
+    @Override
+    public AsyncIndexInfo getInfo(String name) {
+        return getInfo(name, nodeStore.getRoot());
+    }
+
+    @Override
+    public AsyncIndexInfo getInfo(String name, NodeState root) {
+        NodeState async = getAsyncState(root);
+        if (async.hasProperty(name)) {
+            long lastIndexedTo = getDateAsMillis(async.getProperty(AsyncIndexUpdate.lastIndexedTo(name)));
+            long leaseEnd = -1;
+            boolean running = false;
+            if (async.hasProperty(AsyncIndexUpdate.leasify(name))) {
+                running = true;
+                leaseEnd = async.getLong(AsyncIndexUpdate.leasify(name));
+            }
+            IndexStatsMBean mbean = statsMBeans.get(name);
+            return new AsyncIndexInfo(name, lastIndexedTo, leaseEnd, running, mbean);
+        }
+        return null;
+    }
+
+    private NodeState getAsyncState(NodeState root) {
+        return root.getChildNode(AsyncIndexUpdate.ASYNC);
+    }
+
+    protected void bindStatsMBeans(IndexStatsMBean mBean) {
+        statsMBeans.put(mBean.getName(), mBean);
+    }
+
+    protected void unbindStatsMBeans(IndexStatsMBean mBean) {
+        statsMBeans.remove(mBean.getName());
+    }
+
+    private static long getDateAsMillis(PropertyState ps) {
+        if (ps == null) {
+            return -1;
+        }
+        String date = ps.getValue(Type.DATE);
+        Calendar cal = ISO8601.parse(date);
+        return cal.getTimeInMillis();
+    }
+}
