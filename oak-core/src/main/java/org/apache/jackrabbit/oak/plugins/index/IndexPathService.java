@@ -19,13 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.Iterator;
 
 public interface IndexPathService {
 
     /**
      * Returns all index definitions paths present in the repository
      */
-    Iterator<String> getIndexPaths();
+    Iterable<String> getIndexPaths();
 
 }

@@ -74,7 +74,7 @@ public class IndexPathServiceImpl implements IndexPathService {
     }
 
     @Override
-    public Iterator<String> getIndexPaths() {
+    public Iterable<String> getIndexPaths() {
         NodeState nodeType = NodeStateUtils.getNode(nodeStore.getRoot(), "/oak:index/nodetype");
 
         checkState("property".equals(nodeType.getString("type")), "nodetype index at " +
@@ -85,14 +85,18 @@ public class IndexPathServiceImpl implements IndexPathService {
         checkState(indxDefnTypeIndexed, INDEX_DEFINITIONS_NODE_TYPE + " is not found to be indexed as part of " +
                 "nodetype index. Cannot determine the paths of all indexes");
 
-        Iterator<IndexRow> itr = getIndex().query(createFilter(INDEX_DEFINITIONS_NODE_TYPE), nodeStore.getRoot());
-        return Iterators.transform(itr, new Function<IndexRow, String>() {
+        return new Iterable<String>() {
             @Override
-            public String apply(IndexRow input) {
-                return input.getPath();
+            public Iterator<String> iterator() {
+                Iterator<IndexRow> itr = getIndex().query(createFilter(INDEX_DEFINITIONS_NODE_TYPE), nodeStore.getRoot());
+                return Iterators.transform(itr, new Function<IndexRow, String>() {
+                    @Override
+                    public String apply(IndexRow input) {
+                        return input.getPath();
+                    }
+                });
             }
-        });
-
+        };
     }
 
     private FilterImpl createFilter(String nodeTypeName) {
