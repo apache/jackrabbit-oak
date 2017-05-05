@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -251,6 +252,9 @@ public class LuceneIndexProviderService {
 
     @Reference
     private MountInfoProvider mountInfoProvider;
+
+    @Reference
+    private NodeStore nodeStore;
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
         policyOption = ReferencePolicyOption.GREEDY,
