@@ -38,6 +38,11 @@ public interface IndexStatsMBean {
     String STATUS_INTERRUPTED = "interrupted";
 
     /**
+     * Name of the async indexing lane
+     */
+    String getName();
+
+    /**
      * @return The time the indexing job stared at, or {@code ""} if it is
      *         not currently running.
      */

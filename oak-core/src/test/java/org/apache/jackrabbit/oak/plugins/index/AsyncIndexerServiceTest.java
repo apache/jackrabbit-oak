@@ -27,6 +27,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdateTest.CommitInfoCollector;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService.AsyncConfig;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -70,6 +71,10 @@ public class AsyncIndexerServiceTest {
         assertEquals(TimeUnit.MINUTES.toMillis(15), getIndexUpdate("async").getLeaseTimeOut());
 
         AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
+
+        IndexStatsMBean mbean = context.getService(IndexStatsMBean.class);
+        assertNotNull(mbean);
+        assertEquals("async", mbean.getName());
 
         MockOsgi.deactivate(service);
         assertNull(context.getService(Runnable.class));
