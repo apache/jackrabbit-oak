@@ -286,6 +286,31 @@ public class IOUtilsTest extends TestCase {
         }
     }
 
+    public void testHumanReadableByteCount() {
+        assertEquals("0 B", IOUtils.humanReadableByteCount(0L));
+        assertEquals("1 B", IOUtils.humanReadableByteCount(1L));
+        assertEquals("999 B", IOUtils.humanReadableByteCount(999L));
+        assertEquals("1.0 kB", IOUtils.humanReadableByteCount(1000L));
+        assertEquals("1.0 kB", IOUtils.humanReadableByteCount(1001L));
+        assertEquals("1.1 kB", IOUtils.humanReadableByteCount(1100L));
+        assertEquals("2.0 kB", IOUtils.humanReadableByteCount(2000L));
+        assertEquals("1000.0 kB", IOUtils.humanReadableByteCount(999999L));
+        assertEquals("1.0 MB", IOUtils.humanReadableByteCount(1000000L));
+        assertEquals("1.0 MB", IOUtils.humanReadableByteCount(1010000L));
+        assertEquals("1.1 MB", IOUtils.humanReadableByteCount(1100000L));
+        assertEquals("2.0 MB", IOUtils.humanReadableByteCount(2000000L));
+        assertEquals("2.1 GB", IOUtils.humanReadableByteCount(Integer.MAX_VALUE));
+        assertEquals("54.3 GB", IOUtils.humanReadableByteCount(54320000000L));
+        assertEquals("20.6 TB", IOUtils.humanReadableByteCount(20560000000000L));
+        assertEquals("377.5 PB", IOUtils.humanReadableByteCount(377500000000000000L));
+        assertEquals("1.0 EB", IOUtils.humanReadableByteCount(1000000000000000000L));
+        assertEquals("9.2 EB", IOUtils.humanReadableByteCount(Long.MAX_VALUE));
+        assertEquals("0 B", IOUtils.humanReadableByteCount(-0L));
+        assertEquals("0", IOUtils.humanReadableByteCount(-1L));
+        assertEquals("0", IOUtils.humanReadableByteCount(Integer.MIN_VALUE));
+        assertEquals("0", IOUtils.humanReadableByteCount(Long.MIN_VALUE));
+    }
+
     private static void testVarInt(int x, int expectedLen) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         IOUtils.writeVarInt(out, x);
