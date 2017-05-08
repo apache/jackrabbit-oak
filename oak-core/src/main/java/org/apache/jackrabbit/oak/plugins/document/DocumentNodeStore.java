@@ -3211,9 +3211,8 @@ public final class DocumentNodeStore
      * Returns an iterator for all the blob present in the store.
      *
      * <p>In some cases the iterator might implement {@link java.io.Closeable}. So
-     * callers should check for such iterator and close them</p>
+     * callers should check for such iterator and close them.
      *
-     * @see org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator
      * @return an iterator for all the blobs
      */
     public Iterator<ReferencedBlob> getReferencedBlobsIterator() {

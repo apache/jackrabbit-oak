@@ -77,6 +77,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.EvictionListener;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
@@ -1150,10 +1151,13 @@ public class DocumentMK {
             return new Iterable<ReferencedBlob>() {
                 @Override
                 public Iterator<ReferencedBlob> iterator() {
-                    if(store instanceof MongoDocumentStore){
+                    if (store instanceof MongoDocumentStore) {
                         return new MongoBlobReferenceIterator(ns, (MongoDocumentStore) store);
+                    } else if (store instanceof RDBDocumentStore) {
+                        return new RDBBlobReferenceIterator(ns, (RDBDocumentStore) store);
+                    } else {
+                        return new BlobReferenceIterator(ns);
                     }
-                    return new BlobReferenceIterator(ns);
                 }
             };
         }
