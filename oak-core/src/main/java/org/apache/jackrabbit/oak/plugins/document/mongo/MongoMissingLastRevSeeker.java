@@ -60,7 +60,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
                 start(NodeDocument.MODIFIED_IN_SECS).greaterThanEquals(
                                 NodeDocument.getModifiedInSecs(startTime))
                         .get();
-        DBObject sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
+        DBObject sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
 
         DBCursor cursor =
                 getNodeCollection().find(query)
