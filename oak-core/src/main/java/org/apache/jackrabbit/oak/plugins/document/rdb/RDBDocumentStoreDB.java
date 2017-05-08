@@ -67,11 +67,6 @@ public enum RDBDocumentStoreDB {
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 11, description);
         }
-
-        @Override
-        public boolean allowsCaseInSelect() {
-            return false;
-        }
     },
 
     POSTGRES("PostgreSQL") {
@@ -401,13 +396,6 @@ public enum RDBDocumentStoreDB {
      */
     public String checkVersion(DatabaseMetaData md) throws SQLException {
         return "Unknown database type: " + md.getDatabaseProductName();
-    }
-
-    /**
-     * Allows case in select. Default true.
-     */
-    public boolean allowsCaseInSelect() {
-        return true;
     }
 
     /**
