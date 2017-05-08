@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.Closeable;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,30 +43,29 @@ public class DocumentBlobReferenceRetriever implements BlobReferenceRetriever {
     @Override
     public void collectReferences(ReferenceCollector collector) {
         int referencesFound = 0;
-        Iterator<ReferencedBlob> blobIterator = nodeStore.getReferencedBlobsIterator();
+        Iterator<ReferencedBlob> blobIterator = null;
         try {
+            blobIterator = nodeStore.getReferencedBlobsIterator();
             while (blobIterator.hasNext()) {
                 ReferencedBlob refBlob = blobIterator.next();
                 Blob blob = refBlob.getBlob();
                 referencesFound++;
 
-                //TODO this mode would also add in memory blobId
-                //Would that be an issue
+                // TODO this mode would also add in memory blobId
+                // Would that be an issue
 
                 if (blob instanceof BlobStoreBlob) {
                     collector.addReference(((BlobStoreBlob) blob).getBlobId(), refBlob.getId());
                 } else {
-                    //TODO Should not rely on toString. Instead obtain
-                    //secure reference and convert that to blobId using
-                    //blobStore
+                    // TODO Should not rely on toString. Instead obtain
+                    // secure reference and convert that to blobId using
+                    // blobStore
 
                     collector.addReference(blob.toString(), refBlob.getId());
                 }
             }
-        }finally{
-            if(blobIterator instanceof Closeable){
-                IOUtils.closeQuietly((Closeable) blobIterator);
-            }
+        } finally {
+            Utils.closeIfCloseable(blobIterator);
         }
         log.debug("Total blob references found (including chunk resolution) [{}]", referencesFound);
     }
