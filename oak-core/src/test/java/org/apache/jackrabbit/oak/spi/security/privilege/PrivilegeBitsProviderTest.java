@@ -16,29 +16,54 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
-public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements PrivilegeConstants {
+public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
+    private static final String KNOWN_PRIV_NAME = "prefix:known";
+
+    private final PropertyState ps = PropertyStates.createProperty(REP_BITS, Long.valueOf(5000), Type.LONG);
+    private final PrivilegeBits bits = PrivilegeBits.getInstance(ps);
+
+    private Tree privTree;
+    private Tree pTree;
+    private Root root;
     private PrivilegeBitsProvider bitsProvider;
 
-    @Override
+    @Before
     public void before() throws Exception {
-        super.before();
+        privTree = Mockito.mock(Tree.class);
+
+        root = Mockito.mock(Root.class);
+        when(root.getTree(PRIVILEGES_PATH)).thenReturn(privTree);
+
+        pTree = Mockito.mock(Tree.class);
+        when(pTree.getName()).thenReturn(KNOWN_PRIV_NAME);
+        when(pTree.getProperty(REP_BITS)).thenReturn(ps);
 
         bitsProvider = new PrivilegeBitsProvider(root);
     }
@@ -46,11 +71,52 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
     @Test
     public void testGetPrivilegesTree() {
         assertNotNull(bitsProvider.getPrivilegesTree());
-        assertEquals(PRIVILEGES_PATH, bitsProvider.getPrivilegesTree().getPath());
     }
 
     @Test
-    public void testGetBits() {
+    public void testGetBitsNonExistingPrivilegesTree() {
+        when(privTree.exists()).thenReturn(false);
+        assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits(KNOWN_PRIV_NAME));
+    }
+
+    @Test
+    public void testGetBitsEmptyNames() {
+        assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits());
+    }
+
+    @Test
+    public void testGetBitsEmptyArray() {
+        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits(new String[0]));
+    }
+
+    @Test
+    public void testGetBitsEmptyString() {
+        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits(""));
+    }
+
+    @Test
+    public void testGetBitsEmptyIterable() {
+        assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits(ImmutableList.of()));
+    }
+
+    @Test
+    public void testGetBitsBuiltInSingleName() {
+        PrivilegeBits bits = bitsProvider.getBits(JCR_LOCK_MANAGEMENT);
+        assertFalse(bits.isEmpty());
+
+        assertEquals(PrivilegeBits.BUILT_IN.get(JCR_LOCK_MANAGEMENT), bits);
+    }
+
+    @Test
+    public void testGetBitsBuiltInSingleton() {
+        PrivilegeBits bits = bitsProvider.getBits(ImmutableList.of(JCR_LOCK_MANAGEMENT));
+        assertFalse(bits.isEmpty());
+
+        assertEquals(PrivilegeBits.BUILT_IN.get(JCR_LOCK_MANAGEMENT), bits);
+    }
+
+    @Test
+    public void testGetBitsBuiltInNames() {
         PrivilegeBits bits = bitsProvider.getBits(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES);
         assertFalse(bits.isEmpty());
 
@@ -59,94 +125,247 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
     }
 
     @Test
-    public void testGetBitsFromInvalidPrivilege() {
-        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits("invalid1", "invalid2"));
+    public void testGetBitsBuiltInIterable() {
+        PrivilegeBits bits = bitsProvider.getBits(ImmutableList.of(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES));
+        assertFalse(bits.isEmpty());
+
+        PrivilegeBits mod = PrivilegeBits.getInstance(bitsProvider.getBits(JCR_ADD_CHILD_NODES)).add(bitsProvider.getBits(JCR_REMOVE_CHILD_NODES));
+        assertEquals(bits, mod.unmodifiable());
     }
 
     @Test
-    public void testGetBitsFromEmpty() {
-        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits());
-        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits(new String[0]));
-        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits(""));
+    public void testGetBitsNonExistingTree() {
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.hasChild(KNOWN_PRIV_NAME)).thenReturn(false);
+        // privilegesTree has no child for KNOWN_PRIV_NAME
+        assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits(KNOWN_PRIV_NAME));
     }
 
     @Test
-    public void testGetPrivilegeNames() throws RepositoryException {
-        PrivilegeBits bits = bitsProvider.getBits(JCR_READ_ACCESS_CONTROL);
+    public void testGetBitsKnownPrivName() {
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.hasChild(KNOWN_PRIV_NAME)).thenReturn(true);
+        when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
+
+        assertEquals(bits.unmodifiable(), bitsProvider.getBits(KNOWN_PRIV_NAME));
+    }
+
+    @Test
+    public void testGetBitsFromEmptyPrivileges() {
+        assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits(new Privilege[0], NamePathMapper.DEFAULT));
+    }
+
+    @Test
+    public void testGetBitsFromPrivilegesInvalidMapping() {
+        Privilege p = Mockito.mock(Privilege.class);
+        when(p.getName()).thenReturn("name");
+
+        NamePathMapper mapper = new NamePathMapper.Default() {
+            @Nonnull
+            @Override
+            public String getOakName(@Nonnull String jcrName) throws RepositoryException {
+                throw new RepositoryException();
+            }
+        };
+        assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits(new Privilege[] {p}, mapper));
+    }
+
+
+    @Test
+    public void testGetPrivilegeNamesFromEmpty() {
+        Set<String> names = bitsProvider.getPrivilegeNames(PrivilegeBits.EMPTY);
+        assertTrue(names.isEmpty());
+    }
+
+    @Test
+    public void testGetPrivilegeNamesFromNull() {
+        Set<String> names = bitsProvider.getPrivilegeNames(null);
+        assertTrue(names.isEmpty());
+    }
+
+    @Test
+    public void testGetPrivilegeNamesNonExistingPrivilegesTree() {
+        when(privTree.exists()).thenReturn(false);
+
         Set<String> names = bitsProvider.getPrivilegeNames(bits);
-
-        assertEquals(1, names.size());
-        assertEquals(JCR_READ_ACCESS_CONTROL, names.iterator().next());
+        assertTrue(names.isEmpty());
     }
 
     @Test
-    public void testAggregation() throws RepositoryException {
-        PrivilegeBits writeBits = bitsProvider.getBits(JCR_ADD_CHILD_NODES,
-                JCR_REMOVE_CHILD_NODES,
-                JCR_REMOVE_NODE,
-                JCR_MODIFY_PROPERTIES);
-        Set<String> names = bitsProvider.getPrivilegeNames(writeBits);
-        assertEquals(1, names.size());
-        assertEquals(JCR_WRITE, names.iterator().next());
-    }
+    public void testGetPrivilegeNames() {
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree));
 
-    @Test
-    public void testUnknownAggregation() throws RepositoryException {
-        PrivilegeBits bits = bitsProvider.getBits(REP_WRITE, JCR_LIFECYCLE_MANAGEMENT);
         Set<String> names = bitsProvider.getPrivilegeNames(bits);
-
-        assertEquals(2, names.size());
+        assertFalse(names.isEmpty());
+        assertEquals(ImmutableSet.of(KNOWN_PRIV_NAME), names);
     }
 
     @Test
-    public void testRedundantAggregation() throws RepositoryException {
-        PrivilegeBits writeBits = bitsProvider.getBits(REP_WRITE);
-        Set<String> names = bitsProvider.getPrivilegeNames(writeBits);
+    public void testGetPrivilegeNamesFromCache() {
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree));
 
-        assertEquals(1, names.size());
-        assertEquals(REP_WRITE, names.iterator().next());
-
-        writeBits = bitsProvider.getBits(REP_WRITE, JCR_WRITE);
-        names = bitsProvider.getPrivilegeNames(writeBits);
-
-        assertEquals(1, names.size());
-        assertEquals(REP_WRITE, names.iterator().next());
+        Set<String> names = bitsProvider.getPrivilegeNames(bits);
+        assertSame(names, bitsProvider.getPrivilegeNames(bits));
     }
 
     @Test
-    public void testGetAggregatedNames() throws Exception {
-        assertFalse(bitsProvider.getAggregatedPrivilegeNames().iterator().hasNext());
-        assertFalse(bitsProvider.getAggregatedPrivilegeNames("unknown").iterator().hasNext());
+    public void testGetPrivilegeNamesWithAggregation() {
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree));
 
-        for (String nonAggregate : PrivilegeConstants.NON_AGGREGATE_PRIVILEGES) {
-            assertEquals(Collections.singleton(nonAggregate), bitsProvider.getAggregatedPrivilegeNames(nonAggregate));
+        Tree anotherPriv = Mockito.mock(Tree.class);
+        when(anotherPriv.exists()).thenReturn(true);
+        when(anotherPriv.getName()).thenReturn("name2");
+        when(anotherPriv.hasProperty(REP_AGGREGATES)).thenReturn(true);
+        when(anotherPriv.getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(KNOWN_PRIV_NAME), Type.NAMES));
+        PropertyState bits2 = PropertyStates.createProperty(REP_BITS, Long.valueOf(7500));
+        when(anotherPriv.getProperty(REP_BITS)).thenReturn(bits2);
+
+        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree, anotherPriv));
+
+        // aggregation must be removed from the result set
+        Set<String> expected = ImmutableSet.of("name2");
+        Set<String> result = bitsProvider.getPrivilegeNames(PrivilegeBits.getInstance(PrivilegeBits.getInstance(bits), PrivilegeBits.getInstance(bits2)));
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesEmpty() {
+        assertTrue(Iterables.isEmpty(bitsProvider.getAggregatedPrivilegeNames()));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesEmptyArray() {
+        assertTrue(Iterables.isEmpty(bitsProvider.getAggregatedPrivilegeNames(new String[0])));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesSingleNonAggregates() {
+        for (String name : NON_AGGREGATE_PRIVILEGES) {
+            assertEquals(ImmutableSet.of(name), bitsProvider.getAggregatedPrivilegeNames(name));
         }
+    }
 
-        Map<String[], Set<String>> testMap = Maps.newHashMap();
-        testMap.put(new String[] {JCR_READ}, ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES));
-        testMap.put(new String[] {JCR_MODIFY_PROPERTIES}, ImmutableSet.of(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES));
-        testMap.put(new String[] {JCR_WRITE}, ImmutableSet.of(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES));
-        testMap.put(new String[] {REP_WRITE}, ImmutableSet.of(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES, JCR_NODE_TYPE_MANAGEMENT));
-        testMap.put(new String[] {JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL}, ImmutableSet.of(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL));
-        testMap.put(new String[] {JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL}, ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL));
-        testMap.put(new String[] {JCR_ALL}, NON_AGGREGATE_PRIVILEGES);
-        testMap.put(new String[] {JCR_READ, JCR_WRITE, JCR_ALL}, NON_AGGREGATE_PRIVILEGES);
+    @Test
+    public void testGetAggregatedPrivilegeNamesNonAggregates() {
+        assertEquals(
+                ImmutableSet.of(REP_READ_NODES, JCR_LIFECYCLE_MANAGEMENT, JCR_READ_ACCESS_CONTROL),
+                bitsProvider.getAggregatedPrivilegeNames(REP_READ_NODES, JCR_LIFECYCLE_MANAGEMENT, JCR_READ_ACCESS_CONTROL));
+    }
 
-        for (String[] prvNames : testMap.keySet()) {
-            Set<String> expected = testMap.get(prvNames);
-            assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(prvNames)));
-            assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(prvNames)));
-        }
+    @Test
+    public void testGetAggregatedPrivilegeNamesJcrRead() {
+        assertEquals(ImmutableSet.copyOf(AGGREGATE_PRIVILEGES.get(JCR_READ)), ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_READ)));
+    }
 
-        PrivilegeManager pMgr = getPrivilegeManager(root);
-        pMgr.registerPrivilege("test1", true, null);
+    @Test
+    public void testGetAggregatedPrivilegeNamesJcrWrite() {
+        // nested aggregated privileges in this case
+        Set<String> result = ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_WRITE));
+        assertNotEquals(ImmutableSet.copyOf(AGGREGATE_PRIVILEGES.get(JCR_WRITE)), result);
 
-        assertEquals(ImmutableSet.of("test1"), ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames("test1")));
+        String[] expected = new String[] {
+                JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
+                REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES
+        };
+        assertEquals(ImmutableSet.copyOf(expected), result);
+    }
 
-        Set<String> expected = Sets.newHashSet(NON_AGGREGATE_PRIVILEGES);
-        expected.add("test1");
-        assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
-        assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+    @Test
+    public void testGetAggregatedPrivilegeNamesBuiltInTwice() {
+        Iterable<String> agg = bitsProvider.getAggregatedPrivilegeNames(JCR_READ);
+        assertSame(agg, bitsProvider.getAggregatedPrivilegeNames(JCR_READ));
+    }
 
+    @Test
+    public void testGetAggregatedPrivilegeNamesMultipleBuiltIn() {
+        Iterable<String> expected = ImmutableSet.copyOf(Iterables.concat(
+                bitsProvider.getAggregatedPrivilegeNames(JCR_READ),
+                bitsProvider.getAggregatedPrivilegeNames(JCR_WRITE)));
+
+        // create new to avoid reading from cache
+        PrivilegeBitsProvider bp = new PrivilegeBitsProvider(root);
+        Iterable<String> result = bp.getAggregatedPrivilegeNames(JCR_READ, JCR_WRITE);
+        assertEquals(expected, ImmutableSet.copyOf(result));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesMultipleBuiltIn2() {
+        Iterable<String> expected = ImmutableSet.copyOf(Iterables.concat(
+                bitsProvider.getAggregatedPrivilegeNames(JCR_READ),
+                bitsProvider.getAggregatedPrivilegeNames(JCR_WRITE)));
+
+        // read with same provider (i.e. reading from cache)
+        Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(JCR_READ, JCR_WRITE);
+        assertEquals(expected, ImmutableSet.copyOf(result));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesMixedBuiltIn() {
+        Iterable<String> expected = ImmutableSet.copyOf(Iterables.concat(
+                ImmutableSet.of(JCR_LOCK_MANAGEMENT),
+                bitsProvider.getAggregatedPrivilegeNames(JCR_WRITE)));
+
+        Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(JCR_LOCK_MANAGEMENT, JCR_WRITE);
+        assertEquals(expected, ImmutableSet.copyOf(result));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesNonExistingTree() {
+        ImmutableSet<String> names = ImmutableSet.of(JCR_LOCK_MANAGEMENT, JCR_READ_ACCESS_CONTROL);
+        when(pTree.getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, names, Type.NAMES));
+        when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
+
+        Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
+        assertTrue(Iterables.isEmpty(result));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesMissingAggProperty() {
+        when(pTree.exists()).thenReturn(true);
+        when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
+
+        Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
+        assertTrue(Iterables.elementsEqual(ImmutableList.of(KNOWN_PRIV_NAME), result));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNames() {
+        ImmutableSet<String> expected = ImmutableSet.of(JCR_LOCK_MANAGEMENT, JCR_READ_ACCESS_CONTROL);
+        when(pTree.getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, expected, Type.NAMES));
+        when(pTree.exists()).thenReturn(true);
+        when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
+
+        Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
+        assertEquals(expected, ImmutableSet.copyOf(result));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesNested() {
+        ImmutableSet<String> values = ImmutableSet.of(JCR_READ, JCR_ADD_CHILD_NODES);
+        when(pTree.getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, values, Type.NAMES));
+        when(pTree.exists()).thenReturn(true);
+        when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
+
+        Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
+        ImmutableSet<String> expected = ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES, JCR_ADD_CHILD_NODES);
+        assertEquals(expected, ImmutableSet.copyOf(result));
+    }
+
+    @Test
+    public void testGetAggregatedPrivilegeNamesNestedWithCache() {
+        ImmutableSet<String> values = ImmutableSet.of(JCR_READ, JCR_ADD_CHILD_NODES);
+        when(pTree.getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, values, Type.NAMES));
+        when(pTree.exists()).thenReturn(true);
+        when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
+
+        Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
+        Set<String> expected = ImmutableSet.copyOf(Iterables.concat(
+                ImmutableSet.of(JCR_ADD_CHILD_NODES),
+                bitsProvider.getAggregatedPrivilegeNames(JCR_READ)));
+
+        assertEquals(expected, ImmutableSet.copyOf(result));
     }
 }
