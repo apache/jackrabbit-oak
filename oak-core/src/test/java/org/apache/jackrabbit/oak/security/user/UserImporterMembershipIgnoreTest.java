@@ -89,7 +89,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
     @Test
     public void testKnownMemberThresholdReached() throws Exception {
         List<String> memberIds = new ArrayList();
-        for (int i = 0; i <= MembershipWriter.DEFAULT_MEMBERSHIP_THRESHHOLD; i++) {
+        for (int i = 0; i <= MembershipWriter.DEFAULT_MEMBERSHIP_THRESHOLD; i++) {
             memberIds.add(userProvider.getContentID("m"+i));
         }
         groupTree.setProperty(REP_MEMBERS, memberIds, Type.STRINGS);

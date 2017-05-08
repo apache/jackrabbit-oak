@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 
 import com.google.common.collect.Iterators;
@@ -43,12 +42,12 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
  */
 public class MembershipWriter {
 
-    static final int DEFAULT_MEMBERSHIP_THRESHHOLD = 100;
+    public static final int DEFAULT_MEMBERSHIP_THRESHOLD = 100;
 
     /**
      * size of the membership threshold after which a new overflow node is created.
      */
-    private int membershipSizeThreshold = DEFAULT_MEMBERSHIP_THRESHHOLD;
+    private int membershipSizeThreshold = DEFAULT_MEMBERSHIP_THRESHOLD;
 
     public void setMembershipSizeThreshold(int membershipSizeThreshold) {
         this.membershipSizeThreshold = membershipSizeThreshold;
@@ -138,8 +137,8 @@ public class MembershipWriter {
             // for simplicity this is achieved by introducing new tree(s)
             if ((propCnt + memberIds.size()) > membershipSizeThreshold) {
                 while (!memberIds.isEmpty()) {
-                    Set s = new HashSet();
-                    Iterator it = memberIds.keySet().iterator();
+                    Set<String> s = new HashSet<String>();
+                    Iterator<String> it = memberIds.keySet().iterator();
                     while (propCnt < membershipSizeThreshold && it.hasNext()) {
                         s.add(it.next());
                         it.remove();
@@ -234,46 +233,5 @@ public class MembershipWriter {
             }
         }
         return Sets.newHashSet(memberIds.values());
-    }
-
-    /**
-     * Sets the given set of members to the specified group. this method is only used by the migration code.
-     *
-     * @param group node builder of group
-     * @param members set of content ids to set
-     */
-    public void setMembers(@Nonnull NodeBuilder group, @Nonnull Set<String> members) {
-        group.removeProperty(UserConstants.REP_MEMBERS);
-        if (group.hasChildNode(UserConstants.REP_MEMBERS)) {
-            group.getChildNode(UserConstants.REP_MEMBERS).remove();
-        }
-
-        PropertyBuilder<String> prop = null;
-        NodeBuilder refList = null;
-        NodeBuilder node = group;
-
-        int count = 0;
-        int numNodes = 0;
-        for (String ref : members) {
-            if (prop == null) {
-                prop = PropertyBuilder.array(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS);
-            }
-            prop.addValue(ref);
-            count++;
-            if (count > membershipSizeThreshold) {
-                node.setProperty(prop.getPropertyState());
-                prop = null;
-                if (refList == null) {
-                    // create intermediate structure
-                    refList = group.child(UserConstants.REP_MEMBERS_LIST);
-                    refList.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
-                }
-                node = refList.child(String.valueOf(numNodes++));
-                node.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES, NAME);
-            }
-        }
-        if (prop != null) {
-            node.setProperty(prop.getPropertyState());
-        }
     }
 }
