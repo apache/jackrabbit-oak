@@ -274,6 +274,18 @@ public class IOUtilsTest extends TestCase {
         assertEquals(1L, IOUtils.nextPowerOf2(Integer.MIN_VALUE));
     }
 
+    public void testCopyStream() throws IOException {
+        final Random r = new Random(1);
+        for (int length : Lists.newArrayList(0, 1, 1000, 4096, 4097, 1024*1024)) {
+            byte[] inData = new byte[length];
+            r.nextBytes(inData);
+            ByteArrayInputStream in = new ByteArrayInputStream(inData);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            IOUtils.copy(in, out);
+            assertEquals(inData, out.toByteArray());
+        }
+    }
+
     private static void testVarInt(int x, int expectedLen) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         IOUtils.writeVarInt(out, x);
