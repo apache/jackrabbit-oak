@@ -569,6 +569,9 @@ public class Utils {
         return c.compare(a, b) <= 0 ? a : b;
     }
 
+    // default batch size for paging through a document store
+    private static final int DEFAULT_BATCH_SIZE = 100;
+
     /**
      * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
      * store. The returned {@linkplain Iterable} does not guarantee a consistent
@@ -580,7 +583,7 @@ public class Utils {
      * @return an {@link Iterable} over all documents in the store.
      */
     public static Iterable<NodeDocument> getAllDocuments(final DocumentStore store) {
-        return internalGetSelectedDocuments(store, null, 0);
+        return internalGetSelectedDocuments(store, null, 0, DEFAULT_BATCH_SIZE);
     }
 
     /**
@@ -616,23 +619,35 @@ public class Utils {
      * @param indexedProperty the name of the indexed property.
      * @param startValue the lower bound value for the indexed property
      *                   (inclusive).
+     * @param batchSize number of documents to fetch at once
      * @return an {@link Iterable} over all documents in the store matching the
      *         condition
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue, int batchSize) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, batchSize);
+    }
+
+    /**
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
+     * a default {@code batchSize}.
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue) {
-        return internalGetSelectedDocuments(store, indexedProperty, startValue);
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, DEFAULT_BATCH_SIZE);
     }
 
     private static Iterable<NodeDocument> internalGetSelectedDocuments(
             final DocumentStore store, final String indexedProperty,
-            final long startValue) {
+            final long startValue, final int batchSize) {
+        if (batchSize < 2) {
+            throw new IllegalArgumentException("batchSize must be > 1");
+        }
         return new Iterable<NodeDocument>() {
             @Override
             public Iterator<NodeDocument> iterator() {
                 return new AbstractIterator<NodeDocument>() {
 
-                    private static final int BATCH_SIZE = 100;
                     private String startId = NodeDocument.MIN_ID_VALUE;
 
                     private Iterator<NodeDocument> batch = nextBatch();
@@ -657,8 +672,8 @@ public class Utils {
 
                     private Iterator<NodeDocument> nextBatch() {
                         List<NodeDocument> result = indexedProperty == null ? store.query(Collection.NODES, startId,
-                                NodeDocument.MAX_ID_VALUE, BATCH_SIZE) : store.query(Collection.NODES, startId,
-                                NodeDocument.MAX_ID_VALUE, indexedProperty, startValue, BATCH_SIZE);
+                                NodeDocument.MAX_ID_VALUE, batchSize) : store.query(Collection.NODES, startId,
+                                NodeDocument.MAX_ID_VALUE, indexedProperty, startValue, batchSize);
                         return result.iterator();
                     }
                 };
