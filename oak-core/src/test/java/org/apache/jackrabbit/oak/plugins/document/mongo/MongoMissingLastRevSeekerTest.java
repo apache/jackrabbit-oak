@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -79,7 +78,6 @@ public class MongoMissingLastRevSeekerTest {
         assertTrue(builder.createMissingLastRevSeeker() instanceof MongoMissingLastRevSeeker);
     }
 
-    @Ignore("OAK-6181")
     @Test
     public void completeResult() throws Exception {
         final int NUM_DOCS = 200;
