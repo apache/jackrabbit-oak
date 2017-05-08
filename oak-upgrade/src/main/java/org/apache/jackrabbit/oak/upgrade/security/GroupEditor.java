@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.security.user.MembershipWriter;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 
 class GroupEditor extends DefaultEditor {
 
@@ -46,7 +48,7 @@ class GroupEditor extends DefaultEditor {
 
     private EditorGroup currentGroup;
 
-    private final MembershipWriter writer = new MembershipWriter();
+    private final UpgradeMembershipWriter writer = new UpgradeMembershipWriter();
 
     GroupEditor(@Nonnull NodeBuilder builder, @Nonnull String groupsPath) {
         this.state = new State(builder);
@@ -174,6 +176,50 @@ class GroupEditor extends DefaultEditor {
                 if (prop.getType() == Type.WEAKREFERENCE) {
                     members.add(prop.getValue(Type.WEAKREFERENCE));
                 }
+            }
+        }
+    }
+
+    private static class UpgradeMembershipWriter {
+
+        /**
+         * Sets the given set of members to the specified group. this method is only used by the migration code.
+         *
+         * @param group node builder of group
+         * @param members set of content ids to set
+         */
+        public void setMembers(@Nonnull NodeBuilder group, @Nonnull Set<String> members) {
+            group.removeProperty(UserConstants.REP_MEMBERS);
+            if (group.hasChildNode(UserConstants.REP_MEMBERS)) {
+                group.getChildNode(UserConstants.REP_MEMBERS).remove();
+            }
+
+            PropertyBuilder<String> prop = null;
+            NodeBuilder refList = null;
+            NodeBuilder node = group;
+
+            int count = 0;
+            int numNodes = 0;
+            for (String ref : members) {
+                if (prop == null) {
+                    prop = PropertyBuilder.array(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS);
+                }
+                prop.addValue(ref);
+                count++;
+                if (count > MembershipWriter.DEFAULT_MEMBERSHIP_THRESHOLD) {
+                    node.setProperty(prop.getPropertyState());
+                    prop = null;
+                    if (refList == null) {
+                        // create intermediate structure
+                        refList = group.child(UserConstants.REP_MEMBERS_LIST);
+                        refList.setProperty(JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
+                    }
+                    node = refList.child(String.valueOf(numNodes++));
+                    node.setProperty(JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES, NAME);
+                }
+            }
+            if (prop != null) {
+                node.setProperty(prop.getPropertyState());
             }
         }
     }
