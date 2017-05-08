@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.Versio
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -67,6 +68,8 @@ import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
  * Gives information about current node revisions state.
  */
 public class RevisionsCommand implements Command {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RevisionsCommand.class);
 
     private static final String USAGE = Joiner.on(System.lineSeparator()).join(
             "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
@@ -181,6 +184,7 @@ public class RevisionsCommand implements Command {
                 System.err.println("unknown revisions command: " + subCmd);
             }
         } catch (Throwable e) {
+            LOG.error("Command failed", e);
             throw closer.rethrow(e);
         } finally {
             closer.close();
