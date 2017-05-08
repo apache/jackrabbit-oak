@@ -200,10 +200,11 @@ public class VersionGCTest {
         };
         gc.setGCMonitor(monitor);
 
-        gc.gc(1, TimeUnit.HOURS);
+        gc.gc(30, TimeUnit.MINUTES);
 
         List<String> expected = Lists.newArrayList("INITIALIZING",
-                "COLLECTING", "UPDATING", "SPLITS_CLEANUP", "IDLE");
+                "COLLECTING", "CHECKING", "COLLECTING", "DELETING", "SORTING",
+                "DELETING", "UPDATING", "SPLITS_CLEANUP", "IDLE");
         assertEquals(expected, statusMessages);
     }
 
