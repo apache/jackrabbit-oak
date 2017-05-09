@@ -86,6 +86,8 @@ public class OptionParserFactory {
 
     public static final String SKIP_CHECKPOINTS = "skip-checkpoints";
 
+    public static final String FORCE_CHECKPOINTS = "force-checkpoints";
+
     public static OptionParser create() {
         OptionParser op = new OptionParser();
         addUsageOptions(op);
@@ -160,5 +162,6 @@ public class OptionParserFactory {
         op.accepts(VERIFY, "After the sidegrade check whether the source repository is exactly the same as destination");
         op.accepts(ONLY_VERIFY, "Performs only --" + VERIFY + ", without copying content");
         op.accepts(SKIP_CHECKPOINTS, "Don't copy checkpoints on the full segment->segment migration");
+        op.accepts(FORCE_CHECKPOINTS, "Copy checkpoints even if the --include,exclude,merge-paths option is specified");
     }
 }

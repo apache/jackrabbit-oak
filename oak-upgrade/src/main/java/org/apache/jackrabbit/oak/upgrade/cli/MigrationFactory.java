@@ -124,6 +124,7 @@ public class MigrationFactory {
         sidegrade.setVerify(options.isVerify());
         sidegrade.setOnlyVerify(options.isOnlyVerify());
         sidegrade.setSkipCheckpoints(options.isSkipCheckpoints());
+        sidegrade.setForceCheckpoints(options.isForceCheckpoints());
         return sidegrade;
     }
 
