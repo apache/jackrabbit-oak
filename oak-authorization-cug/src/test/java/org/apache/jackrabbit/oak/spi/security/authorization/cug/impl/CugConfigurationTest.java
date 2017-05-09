@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
@@ -155,5 +157,19 @@ public class CugConfigurationTest extends AbstractSecurityTest {
 
             assertSame(EmptyPermissionProvider.getInstance(), pp);
         }
+    }
+
+    @Test
+    public void testActivate() throws Exception {
+        CugConfiguration cugConfiguration = new CugConfiguration(getSecurityProvider());
+        cugConfiguration.activate(ImmutableMap.of(
+                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {"/content", "/anotherContent"}
+        ));
+        assertSupportedPaths(cugConfiguration, "/content", "/anotherContent");
+    }
+
+    private static void assertSupportedPaths(@Nonnull CugConfiguration configuration, @Nonnull String... paths) throws Exception {
+        Set<String> expected = ImmutableSet.copyOf(paths);
+        assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
     }
 }
