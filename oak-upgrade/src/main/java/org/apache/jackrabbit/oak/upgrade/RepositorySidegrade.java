@@ -66,6 +66,7 @@ import static org.apache.jackrabbit.oak.spi.security.authorization.permission.Pe
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_FRAGMENTS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_FRAGMENT_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
@@ -99,6 +100,11 @@ public class RepositorySidegrade {
      * Paths to exclude during the copy process. Empty by default.
      */
     private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
+
+    /**
+     * Paths supporting fragments during the copy process. Empty by default.
+     */
+    private Set<String> fragmentPaths = DEFAULT_FRAGMENT_PATHS;
 
     /**
      * Fragments to exclude during the copy process. Empty by default.
@@ -212,6 +218,15 @@ public class RepositorySidegrade {
      */
     public void setExcludes(@Nonnull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
+    }
+
+    /**
+     * Sets the paths that should support the fragments.
+     *
+     * @param fragmentPaths Paths that should support fragments.
+     */
+    public void setFragmentPaths(@Nonnull String... fragmentPaths) {
+        this.fragmentPaths = copyOf(checkNotNull(fragmentPaths));
     }
 
     /**
@@ -361,7 +376,7 @@ public class RepositorySidegrade {
         for (CheckpointRetriever.Checkpoint checkpoint : checkpoints) {
             NodeState checkpointRoot = source.retrieve(checkpoint.getName());
             if (!isCompleteMigration()) {
-                checkpointRoot = FilteringNodeState.wrap("/", checkpointRoot, includePaths, excludePaths, excludeFragments);
+                checkpointRoot = FilteringNodeState.wrap("/", checkpointRoot, includePaths, excludePaths, fragmentPaths, excludeFragments);
             }
             if (previousRoot == EmptyNodeState.EMPTY_NODE) {
                 LOG.info("Migrating first checkpoint: {}", checkpoint.getName());
@@ -383,7 +398,7 @@ public class RepositorySidegrade {
 
         NodeState sourceRoot = source.getRoot();
         if (!isCompleteMigration()) {
-            sourceRoot = FilteringNodeState.wrap("/", sourceRoot, includePaths, excludePaths, excludeFragments);
+            sourceRoot = FilteringNodeState.wrap("/", sourceRoot, includePaths, excludePaths, fragmentPaths, excludeFragments);
         }
         if (previousRoot == EmptyNodeState.EMPTY_NODE) {
             LOG.info("No checkpoints found; migrating head");
@@ -416,7 +431,7 @@ public class RepositorySidegrade {
     }
 
     private boolean isCompleteMigration() {
-        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && excludeFragments.equals(DEFAULT_EXCLUDE_FRAGMENTS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
+        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && excludeFragments.equals(DEFAULT_EXCLUDE_FRAGMENTS) && mergePaths.equals(DEFAULT_MERGE_PATHS) && fragmentPaths.equals(DEFAULT_FRAGMENT_PATHS);
     }
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
@@ -432,6 +447,7 @@ public class RepositorySidegrade {
         NodeStateCopier.builder()
             .include(includes)
             .exclude(excludes)
+            .supportFragment(fragmentPaths)
             .excludeFragments(excludeFragments)
             .merge(merges)
             .copy(sourceRoot, targetRoot);

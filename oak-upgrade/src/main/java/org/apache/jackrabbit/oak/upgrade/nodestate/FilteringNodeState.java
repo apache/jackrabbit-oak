@@ -67,6 +67,8 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
 
     private final Set<String> excludedPaths;
 
+    private final Set<String> fragmentPaths;
+
     private final Set<String> excludedFragments;
 
     /**
@@ -77,6 +79,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param delegate The node-state to decorate.
      * @param includePaths A Set of paths that should be visible. Defaults to ["/"] if {@code null}.
      * @param excludePaths A Set of paths that should be hidden. Empty if {@code null}.
+     * @param fragmentPaths A Set of paths that should support the fragments (see below). Empty if {@code null}.
      * @param excludedFragments A Set of name fragments that should be hidden. Empty if {@code null}.
      * @return The decorated node-state if required, the original node-state if decoration is unnecessary.
      */
@@ -86,13 +89,15 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
             @Nonnull final NodeState delegate,
             @Nullable final Set<String> includePaths,
             @Nullable final Set<String> excludePaths,
+            @Nullable final Set<String> fragmentPaths,
             @Nullable final Set<String> excludedFragments
     ) {
         final Set<String> includes = defaultIfEmpty(includePaths, ALL);
         final Set<String> excludes = defaultIfEmpty(excludePaths, NONE);
+        final Set<String> safeFragmentPaths = defaultIfEmpty(fragmentPaths, NONE);
         final Set<String> safeExcludedFragments = defaultIfEmpty(excludedFragments, NONE);
-        if (hasHiddenDescendants(path, includes, excludes, safeExcludedFragments)) {
-            return new FilteringNodeState(path, delegate, includes, excludes, safeExcludedFragments);
+        if (hasHiddenDescendants(path, includes, excludes, safeFragmentPaths, safeExcludedFragments)) {
+            return new FilteringNodeState(path, delegate, includes, excludes, fragmentPaths, safeExcludedFragments);
         }
         return delegate;
     }
@@ -102,12 +107,14 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
             @Nonnull final NodeState delegate,
             @Nonnull final Set<String> includedPaths,
             @Nonnull final Set<String> excludedPaths,
+            @Nonnull final Set<String> fragmentPaths,
             @Nonnull final Set<String> excludedFragments
     ) {
         super(delegate);
         this.path = path;
         this.includedPaths = includedPaths;
         this.excludedPaths = excludedPaths;
+        this.fragmentPaths = fragmentPaths;
         this.excludedFragments = excludedFragments;
     }
 
@@ -115,7 +122,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
     @Override
     protected NodeState decorateChild(@Nonnull final String name, @Nonnull final NodeState child) {
         final String childPath = PathUtils.concat(path, name);
-        return wrap(childPath, child, includedPaths, excludedPaths, excludedFragments);
+        return wrap(childPath, child, includedPaths, excludedPaths, fragmentPaths, excludedFragments);
     }
 
     @Override
@@ -161,10 +168,13 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
             @Nonnull final String path,
             @Nonnull final Set<String> includePaths,
             @Nonnull final Set<String> excludePaths,
+            @Nonnull final Set<String> fragmentPaths,
             @Nonnull final Set<String> excludedFragments
     ) {
-        return !excludedFragments.isEmpty()
-                || isHidden(path, includePaths, excludePaths, excludedFragments)
+        return isHidden(path, includePaths, excludePaths, excludedFragments)
+                || isAncestorOfAnyPath(path, fragmentPaths)
+                || isDescendantOfAnyPath(path, fragmentPaths)
+                || fragmentPaths.contains(path)
                 || isAncestorOfAnyPath(path, excludePaths)
                 || isAncestorOfAnyPath(path, includePaths);
     }

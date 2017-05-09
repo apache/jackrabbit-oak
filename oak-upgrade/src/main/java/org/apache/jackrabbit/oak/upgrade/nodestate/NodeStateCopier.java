@@ -80,13 +80,16 @@ public class NodeStateCopier {
 
     private final Set<String> excludePaths;
 
+    private final Set<String> fragmentPaths;
+
     private final Set<String> excludeFragments;
 
     private final Set<String> mergePaths;
 
-    private NodeStateCopier(Set<String> includePaths, Set<String> excludePaths, Set<String> excludeFragments, Set<String> mergePaths) {
+    private NodeStateCopier(Set<String> includePaths, Set<String> excludePaths, Set<String> fragmentPaths, Set<String> excludeFragments, Set<String> mergePaths) {
         this.includePaths = includePaths;
         this.excludePaths = excludePaths;
+        this.fragmentPaths = fragmentPaths;
         this.excludeFragments = excludeFragments;
         this.mergePaths = mergePaths;
     }
@@ -147,7 +150,7 @@ public class NodeStateCopier {
     }
 
     private boolean copyNodeState(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
-        final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths, this.excludePaths, this.excludeFragments);
+        final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths, this.excludePaths, this.fragmentPaths, this.excludeFragments);
         boolean hasChanges = false;
         for (String includePath : this.includePaths) {
             hasChanges = copyMissingAncestors(sourceRoot, targetRoot, includePath) || hasChanges;
@@ -300,6 +303,8 @@ public class NodeStateCopier {
 
         private Set<String> excludePaths = emptySet();
 
+        private Set<String> fragmentPaths = emptySet();
+
         private Set<String> excludeFragments = emptySet();
 
         private Set<String> mergePaths = emptySet();
@@ -312,7 +317,7 @@ public class NodeStateCopier {
          *
          * @param paths include paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
         @Nonnull
         public Builder include(@Nonnull Set<String> paths) {
@@ -327,7 +332,7 @@ public class NodeStateCopier {
          *
          * @param paths include paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
         @Nonnull
         public Builder include(@Nonnull String... paths) {
@@ -339,7 +344,7 @@ public class NodeStateCopier {
          *
          * @param paths exclude paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
         @Nonnull
         public Builder exclude(@Nonnull Set<String> paths) {
@@ -354,7 +359,7 @@ public class NodeStateCopier {
          *
          * @param paths exclude paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
         @Nonnull
         public Builder exclude(@Nonnull String... paths) {
@@ -362,11 +367,38 @@ public class NodeStateCopier {
         }
 
         /**
+         * Set fragment paths.
+         *
+         * @param paths fragment paths
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         */
+        @Nonnull
+        public Builder supportFragment(@Nonnull Set<String> paths) {
+            if (!checkNotNull(paths).isEmpty()) {
+                this.fragmentPaths = copyOf(paths);
+            }
+            return this;
+        }
+
+        /**
+         * Convenience wrapper for {@link #supportFragment(Set)}.
+         *
+         * @param paths fragment paths
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         */
+        @Nonnull
+        public Builder supportFragment(@Nonnull String... paths) {
+            return supportFragment(copyOf(checkNotNull(paths)));
+        }
+
+        /**
          * Set exclude fragments.
          *
          * @param fragments exclude fragments
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
         @Nonnull
         public Builder excludeFragments(@Nonnull Set<String> fragments) {
@@ -381,7 +413,7 @@ public class NodeStateCopier {
          *
          * @param fragments exclude fragments
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
         @Nonnull
         public Builder excludeFragments(@Nonnull String... fragments) {
@@ -393,7 +425,7 @@ public class NodeStateCopier {
          *
          * @param paths merge paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
         @Nonnull
         public Builder merge(@Nonnull Set<String> paths) {
@@ -408,7 +440,7 @@ public class NodeStateCopier {
          *
          * @param paths merge paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
         @Nonnull
         public Builder merge(@Nonnull String... paths) {
@@ -429,7 +461,7 @@ public class NodeStateCopier {
          *         the same content
          */
         public boolean copy(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
-            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, excludeFragments, mergePaths);
+            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths, excludeFragments, mergePaths);
             return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
         }
 
