@@ -24,7 +24,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlException;
 
-import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -48,7 +47,7 @@ class CugPolicyImpl implements CugPolicy {
     private final PrincipalManager principalManager;
     private final int importBehavior;
 
-    private final Set<Principal> principals = new HashSet<Principal>();
+    private final Set<Principal> principals = new HashSet<>();
 
     CugPolicyImpl(@Nonnull String oakPath, @Nonnull NamePathMapper namePathMapper,
                   @Nonnull PrincipalManager principalManager, int importBehavior) {
@@ -102,12 +101,7 @@ class CugPolicyImpl implements CugPolicy {
 
     //--------------------------------------------------------------------------
     Iterable<String> getPrincipalNames() {
-        return Iterables.transform(principals, new Function<Principal, String>() {
-            @Override
-            public String apply(Principal principal) {
-                return principal.getName();
-            }
-        });
+        return Iterables.transform(principals, Principal::getName);
     }
 
     //--------------------------------------------------------------------------
