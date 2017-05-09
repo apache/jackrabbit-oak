@@ -2150,6 +2150,7 @@ public final class DocumentNodeStore
 
             @Override
             void updateHead(@Nonnull Set<Revision> externalChanges,
+                            @Nonnull RevisionVector sweepRevs,
                             @Nullable Iterable<String> changedPaths) {
                 long time = clock.getTime();
                 // make sure no local commit is in progress
@@ -2163,6 +2164,9 @@ public final class DocumentNodeStore
                         newHead = newHead.update(r);
                     }
                     setRoot(newHead);
+                    // update sweep revisions
+                    sweepRevisions = sweepRevisions.pmax(sweepRevs);
+
                     commitQueue.headRevisionChanged();
                     time = clock.getTime();
                     if (changedPaths != null) {

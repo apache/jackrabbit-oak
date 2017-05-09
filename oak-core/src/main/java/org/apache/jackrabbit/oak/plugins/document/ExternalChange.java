@@ -79,10 +79,12 @@ abstract class ExternalChange {
      *
      * @param externalChanges the head revision of other cluster nodes that
      *                        changed and should now be considered visible.
+     * @param sweepRevisions the current sweep revisions.
      * @param changedPaths paths of nodes that are affected by those external
      *                     changes.
      */
     abstract void updateHead(@Nonnull Set<Revision> externalChanges,
+                             @Nonnull RevisionVector sweepRevisions,
                              @Nullable Iterable<String> changedPaths);
 
     /**
@@ -174,7 +176,7 @@ abstract class ExternalChange {
 
             // update head
             if (!externalChanges.isEmpty()) {
-                updateHead(externalChanges, externalSort);
+                updateHead(externalChanges, doc.getSweepRevisions(), externalSort);
             }
         } finally {
             closeQuietly(externalSort);
