@@ -96,7 +96,7 @@ public class Segment {
      * The number of bytes (or bits of address space) to use for the
      * alignment boundary of segment records.
      */
-    public static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
+    static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
 
     /**
      * Maximum segment size. Record identifiers are stored as three-byte
@@ -105,7 +105,7 @@ public class Segment {
      * at four-byte boundaries, the two bytes can address up to 256kB of
      * record data.
      */
-    public static final int MAX_SEGMENT_SIZE = 1 << (16 + RECORD_ALIGN_BITS); // 256kB
+    static final int MAX_SEGMENT_SIZE = 1 << (16 + RECORD_ALIGN_BITS); // 256kB
 
     /**
      * The size limit for small values. The variable length of small values
@@ -121,7 +121,7 @@ public class Segment {
      * value. And since small values are never stored as medium ones, we can
      * extend the size range to cover that many longer values.
      */
-    public static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
+    static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
 
     /**
      * Maximum size of small blob IDs. A small blob ID is stored in a value
@@ -130,13 +130,13 @@ public class Segment {
      * and the actual length of the blob ID, a maximum of 2^12 values can be
      * stored in the length field.
      */
-    public static final int BLOB_ID_SMALL_LIMIT = 1 << 12;
+    static final int BLOB_ID_SMALL_LIMIT = 1 << 12;
 
-    public static final int GC_GENERATION_OFFSET = 10;
+    static final int GC_GENERATION_OFFSET = 10;
 
-    public static final int REFERENCED_SEGMENT_ID_COUNT_OFFSET = 14;
+    static final int REFERENCED_SEGMENT_ID_COUNT_OFFSET = 14;
 
-    public static final int RECORD_NUMBER_COUNT_OFFSET = 18;
+    static final int RECORD_NUMBER_COUNT_OFFSET = 18;
 
     @Nonnull
     private final SegmentReader reader;
@@ -171,7 +171,7 @@ public class Segment {
      * @return  {@code n = address + a} such that {@code n % boundary == 0} and
      *          {@code 0 <= a < boundary}.
      */
-    public static int align(int address, int boundary) {
+    static int align(int address, int boundary) {
         return (address + boundary - 1) & ~(boundary - 1);
     }
 
@@ -366,7 +366,7 @@ public class Segment {
         return data.getInt(REFERENCED_SEGMENT_ID_COUNT_OFFSET);
     }
 
-    public int getRecordNumberCount() {
+    private int getRecordNumberCount() {
         return data.getInt(RECORD_NUMBER_COUNT_OFFSET);
     }
 
@@ -415,7 +415,7 @@ public class Segment {
      * @return the segment meta data
      */
     @CheckForNull
-    public String getSegmentInfo() {
+    String getSegmentInfo() {
         if (info == null && id.isDataSegmentId()) {
             info = readString(recordNumbers.iterator().next().getRecordNumber());
         }
@@ -719,7 +719,7 @@ public class Segment {
      * Estimate of how much memory this instance would occupy in the segment
      * cache.
      */
-    public int estimateMemoryUsage() {
+    int estimateMemoryUsage() {
         int size = OBJECT_HEADER_SIZE + 76;
         size += 56; // 7 refs x 8 bytes
 
