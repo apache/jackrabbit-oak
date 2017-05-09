@@ -90,7 +90,7 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     @Override
     public boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo protectedPropInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
         if (CugUtil.definesCug(parent) && isValid(protectedPropInfo, def) && CugUtil.isSupportedPath(parent.getPath(), config)) {
-            Set<String> principalNames = new HashSet<String>();
+            Set<String> principalNames = new HashSet<>();
             for (TextValue txtValue : protectedPropInfo.getTextValues()) {
                 String principalName = txtValue.getString();
                 Principal principal = principalManager.getPrincipal(principalName);

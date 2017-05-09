@@ -66,7 +66,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPerm
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -142,19 +141,16 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @Nonnull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
-        return new RepositoryInitializer() {
-            @Override
-            public void initialize(@Nonnull NodeBuilder builder) {
-                NodeState base = builder.getNodeState();
-                NodeStore store = new MemoryNodeStore(base);
+        return builder -> {
+            NodeState base = builder.getNodeState();
+            NodeStore store = new MemoryNodeStore(base);
 
-                Root root = RootFactory.createSystemRoot(store,
-                        new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
-                        null, null, null, null);
-                if (registerCugNodeTypes(root)) {
-                    NodeState target = store.getRoot();
-                    target.compareAgainstBaseState(base, new ApplyDiff(builder));
-                }
+            Root root = RootFactory.createSystemRoot(store,
+                    new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
+                    null, null, null, null);
+            if (registerCugNodeTypes(root)) {
+                NodeState target = store.getRoot();
+                target.compareAgainstBaseState(base, new ApplyDiff(builder));
             }
         };
     }
@@ -205,17 +201,12 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
                 }
             };
             if (!ntMgr.hasNodeType(NT_REP_CUG_POLICY)) {
-                InputStream stream = CugConfiguration.class.getResourceAsStream("cug_nodetypes.cnd");
-                try {
+                try (InputStream stream = CugConfiguration.class.getResourceAsStream("cug_nodetypes.cnd")) {
                     NodeTypeRegistry.register(root, stream, "cug node types");
                     return true;
-                } finally {
-                    stream.close();
                 }
             }
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to read cug node types", e);
-        } catch (RepositoryException e) {
+        } catch (IOException | RepositoryException e) {
             throw new IllegalStateException("Unable to read cug node types", e);
         }
         return false;

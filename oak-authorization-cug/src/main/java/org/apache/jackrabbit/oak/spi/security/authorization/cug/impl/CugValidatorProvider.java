@@ -71,7 +71,7 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
         private final String parentName;
         private final boolean isNodetypeTree;
 
-        private CugValidator(@Nonnull String parentName, @Nonnull NodeState parentAfter, @Nonnull boolean isNodetypeTree) {
+        private CugValidator(@Nonnull String parentName, @Nonnull NodeState parentAfter, boolean isNodetypeTree) {
             this.parentAfter = parentAfter;
             this.parentName = parentName;
             this.isNodetypeTree = isNodetypeTree;

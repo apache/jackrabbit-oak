@@ -80,7 +80,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
 
     private static long addNestedCugPath(@Nonnull NodeBuilder parentBuilder, @Nonnull NodeBuilder builder, @Nonnull String pathWithNewCug) {
         PropertyState ps = parentBuilder.getProperty(HIDDEN_NESTED_CUGS);
-        PropertyBuilder pb = getHiddenPropertyBuilder(ps);
+        PropertyBuilder<String> pb = getHiddenPropertyBuilder(ps);
         if (ps != null) {
             List<String> moveToNestedCug = Lists.newArrayList();
             for (String p : ps.getValue(Type.STRINGS)) {
@@ -94,7 +94,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
                 }
             }
             if (!moveToNestedCug.isEmpty()) {
-                PropertyBuilder pb2 = getHiddenPropertyBuilder(builder.getProperty(HIDDEN_NESTED_CUGS));
+                PropertyBuilder<String> pb2 = getHiddenPropertyBuilder(builder.getProperty(HIDDEN_NESTED_CUGS));
                 pb2.addValues(moveToNestedCug);
                 builder.setProperty(pb2.getPropertyState());
             }
@@ -108,7 +108,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
 
     private static int removeNestedCugPath(@Nonnull NodeBuilder parentBuilder, @Nonnull String toRemove, @Nonnull Iterable<String> toReconnect) {
         PropertyState ps = parentBuilder.getProperty(HIDDEN_NESTED_CUGS);
-        PropertyBuilder pb = getHiddenPropertyBuilder(ps);
+        PropertyBuilder<String> pb = getHiddenPropertyBuilder(ps);
         if (pb.hasValue(toRemove)) {
             pb.removeValue(toRemove);
             pb.addValues(toReconnect);
@@ -125,7 +125,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
         }
     }
 
-    private static PropertyBuilder getHiddenPropertyBuilder(@Nullable PropertyState ps) {
+    private static PropertyBuilder<String> getHiddenPropertyBuilder(@Nullable PropertyState ps) {
         return PropertyBuilder.copy(Type.STRING, ps).setName(HIDDEN_NESTED_CUGS).setArray();
     }
 
@@ -210,7 +210,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
             if (!NodeStateUtils.isHidden(name)) {
                 if (CugUtil.definesCug(name, before)) {
                     deletedCUGs.add(path);
-                    // reconnect information about nested cugs at a parent if
+                    // reconnect information about nested CUGs at a parent if
                     // only the CUG got removed but the whole subtree including CUGs
                     // are still present.
                     Set<String> reconnect = Sets.newHashSet();
