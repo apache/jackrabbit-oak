@@ -329,6 +329,10 @@ public class MigrationOptions {
             log.info("paths to exclude: {}", (Object) excludePaths);
         }
 
+        if (excludeFragments != null) {
+            log.info("fragments to exclude: {}", (Object) excludeFragments);
+        }
+
         if (failOnError) {
             log.info("Unreadable nodes will cause failure of the entire transaction");
         }

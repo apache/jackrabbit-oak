@@ -163,7 +163,8 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
             @Nonnull final Set<String> excludePaths,
             @Nonnull final Set<String> excludedFragments
     ) {
-        return isHidden(path, includePaths, excludePaths, excludedFragments)
+        return !excludedFragments.isEmpty()
+                || isHidden(path, includePaths, excludePaths, excludedFragments)
                 || isAncestorOfAnyPath(path, excludePaths)
                 || isAncestorOfAnyPath(path, includePaths);
     }
