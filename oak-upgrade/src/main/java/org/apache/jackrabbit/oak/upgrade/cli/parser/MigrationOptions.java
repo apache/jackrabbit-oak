@@ -68,6 +68,8 @@ public class MigrationOptions {
 
     private final boolean skipCheckpoints;
 
+    private final boolean forceCheckpoints;
+
     private final String srcUser;
 
     private final String srcPassword;
@@ -128,6 +130,7 @@ public class MigrationOptions {
         this.verify = args.hasOption(OptionParserFactory.VERIFY);
         this.onlyVerify = args.hasOption(OptionParserFactory.ONLY_VERIFY);
         this.skipCheckpoints = args.hasOption(OptionParserFactory.SKIP_CHECKPOINTS);
+        this.forceCheckpoints = args.hasOption(OptionParserFactory.FORCE_CHECKPOINTS);
 
         this.srcUser = args.getOption(OptionParserFactory.SRC_USER);
         this.srcPassword = args.getOption(OptionParserFactory.SRC_USER);
@@ -222,6 +225,10 @@ public class MigrationOptions {
 
     public boolean isSkipCheckpoints() {
         return skipCheckpoints;
+    }
+
+    public boolean isForceCheckpoints() {
+        return forceCheckpoints;
     }
 
     public String getSrcUser() {
@@ -363,6 +370,10 @@ public class MigrationOptions {
 
         if (skipCheckpoints) {
             log.info("Checkpoints won't be migrated");
+        }
+
+        if (forceCheckpoints) {
+            log.info("Checkpoints will be migrated even with the custom paths specified");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);
