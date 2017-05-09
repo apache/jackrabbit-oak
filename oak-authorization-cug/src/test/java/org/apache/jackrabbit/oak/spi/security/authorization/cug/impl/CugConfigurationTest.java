@@ -52,6 +52,11 @@ public class CugConfigurationTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testEmptyConstructor() {
+        assertEquals(ConfigurationParameters.EMPTY, new CugConfiguration().getParameters());
+    }
+
+    @Test
     public void testGetName() {
         assertEquals(AuthorizationConfiguration.NAME, createConfiguration(ConfigurationParameters.EMPTY).getName());
     }
@@ -163,13 +168,27 @@ public class CugConfigurationTest extends AbstractSecurityTest {
     public void testActivate() throws Exception {
         CugConfiguration cugConfiguration = new CugConfiguration(getSecurityProvider());
         cugConfiguration.activate(ImmutableMap.of(
+                CugConstants.PARAM_CUG_ENABLED, false,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {"/content", "/anotherContent"}
         ));
         assertSupportedPaths(cugConfiguration, "/content", "/anotherContent");
     }
 
+    @Test
+    public void testModified() throws Exception {
+        CugConfiguration cugConfiguration = new CugConfiguration(getSecurityProvider());
+        cugConfiguration.modified(ImmutableMap.of(
+                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/changed"}
+        ));
+        assertSupportedPaths(cugConfiguration, "/changed");
+    }
+
     private static void assertSupportedPaths(@Nonnull CugConfiguration configuration, @Nonnull String... paths) throws Exception {
         Set<String> expected = ImmutableSet.copyOf(paths);
-        assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
+                assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
+        
+        Field f = CugConfiguration.class.getDeclaredField("supportedPaths");
+        f.setAccessible(true);
+        assertEquals(expected, ((Set) f.get(configuration)));
     }
 }

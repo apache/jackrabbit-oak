@@ -65,7 +65,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     public void before() throws Exception {
         super.before();
 
-        cugAccessControlManager = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider());
+        cugAccessControlManager = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS));
     }
 
     private CugPolicy createCug(@Nonnull String path) {
@@ -224,7 +224,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
                     CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS,
                     CugConstants.PARAM_CUG_ENABLED, false));
-        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, new CugSecurityProvider(config));
+        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, new CugSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS));
         AccessControlPolicy[] policies = acMgr.getEffectivePolicies(SUPPORTED_PATH);
         assertEquals(0, policies.length);
 

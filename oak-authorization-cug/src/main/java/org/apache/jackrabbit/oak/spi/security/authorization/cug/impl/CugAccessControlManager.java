@@ -69,11 +69,17 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     private static final Logger log = LoggerFactory.getLogger(CugAccessControlManager.class);
 
+    private final Set<String> supportedPaths;
     private final ConfigurationParameters config;
     private final PrincipalManager principalManager;
 
-    public CugAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper, @Nonnull SecurityProvider securityProvider) {
+    public CugAccessControlManager(@Nonnull Root root,
+                                   @Nonnull NamePathMapper namePathMapper,
+                                   @Nonnull SecurityProvider securityProvider,
+                                   @Nonnull Set<String> supportedPaths) {
         super(root, namePathMapper, securityProvider);
+
+        this.supportedPaths = supportedPaths;
 
         config = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters();
         principalManager = securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
@@ -224,7 +230,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     private boolean isSupportedPath(@Nullable String oakPath) throws RepositoryException {
         checkValidPath(oakPath);
-        return CugUtil.isSupportedPath(oakPath, config);
+        return CugUtil.isSupportedPath(oakPath, supportedPaths);
     }
 
     private void checkValidPath(@Nullable String oakPath) throws RepositoryException {
