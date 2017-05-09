@@ -372,6 +372,9 @@ public class BenchmarkRunner {
             new AddMemberTest(
                     numberOfUsers.value(options),
                     batchSize.value(options)),
+            new AddUniqueMembersTest(
+                    numberOfUsers.value(options),
+                    batchSize.value(options)),
 
             // benchmarks removing multiple or single members
             new RemoveMembersTest(

@@ -68,7 +68,7 @@ public class AddMembersTest extends AbstractTest {
     final int batchSize;
     private final String importBehavior;
 
-    private final List<String> groupPaths = new ArrayList(GROUP_CNT);
+    private final List<String> groupPaths = new ArrayList<>(GROUP_CNT);
 
     public AddMembersTest(int numberOfMembers, int batchSize, @Nonnull String importBehavior) {
         this.numberOfMembers = numberOfMembers;
