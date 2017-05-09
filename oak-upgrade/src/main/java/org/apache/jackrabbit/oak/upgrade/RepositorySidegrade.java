@@ -31,6 +31,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.LoggingCompositeHook;
 import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
 import org.apache.jackrabbit.oak.upgrade.cli.node.TarNodeStore;
+import org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
@@ -62,6 +64,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_FRAGMENTS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
@@ -98,11 +101,18 @@ public class RepositorySidegrade {
     private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
 
     /**
+     * Fragments to exclude during the copy process. Empty by default.
+     */
+    private Set<String> excludeFragments = DEFAULT_EXCLUDE_FRAGMENTS;
+
+    /**
      * Paths to merge during the copy process. Empty by default.
      */
     private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
 
     private boolean skipCheckpoints = false;
+
+    private boolean forceCheckpoints = false;
 
     private boolean includeIndex = false;
 
@@ -204,6 +214,16 @@ public class RepositorySidegrade {
         this.excludePaths = copyOf(checkNotNull(excludes));
     }
 
+    /**
+     * Sets the name fragments that should be excluded when the source repository
+     * is copied to the target repository.
+     *
+     * @param excludes Name fragments to be excluded from the copy.
+     */
+    public void setExcludeFragments(@Nonnull String... excludes) {
+        this.excludeFragments = copyOf(checkNotNull(excludes));
+    }
+
     public void setIncludeIndex(boolean includeIndex) {
         this.includeIndex = includeIndex;
     }
@@ -232,6 +252,10 @@ public class RepositorySidegrade {
 
     public void setSkipCheckpoints(boolean skipCheckpoints) {
         this.skipCheckpoints = skipCheckpoints;
+    }
+
+    public void setForceCheckpoints(boolean forceCheckpoints) {
+        this.forceCheckpoints = forceCheckpoints;
     }
 
     /**
@@ -277,7 +301,7 @@ public class RepositorySidegrade {
         }
 
         boolean migrateCheckpoints = true;
-        if (!isCompleteMigration()) {
+        if (!isCompleteMigration() && !forceCheckpoints) {
             LOG.info("Checkpoints won't be migrated because of the specified paths");
             migrateCheckpoints = false;
         }
@@ -287,6 +311,10 @@ public class RepositorySidegrade {
         }
         if (skipCheckpoints) {
             LOG.info("Checkpoints won't be migrated because of the --skip-checkpoints options");
+            migrateCheckpoints = false;
+        }
+        if (targetExists()) {
+            LOG.info("Checkpoints won't be migrated because the destination repository exists");
             migrateCheckpoints = false;
         }
         if (migrateCheckpoints) {
@@ -328,17 +356,16 @@ public class RepositorySidegrade {
 
         Map<String, String> nameToRevision = new LinkedHashMap<>();
         Map<String, String> checkpointSegmentToDoc = new LinkedHashMap<>();
-        NodeState previousRoot = null;
+        NodeState previousRoot = EmptyNodeState.EMPTY_NODE;
         NodeBuilder targetRoot = target.getRoot().builder();
         for (CheckpointRetriever.Checkpoint checkpoint : checkpoints) {
             NodeState checkpointRoot = source.retrieve(checkpoint.getName());
-            if (previousRoot == null) {
+            if (!isCompleteMigration()) {
+                checkpointRoot = FilteringNodeState.wrap("/", checkpointRoot, includePaths, excludePaths, excludeFragments);
+            }
+            if (previousRoot == EmptyNodeState.EMPTY_NODE) {
                 LOG.info("Migrating first checkpoint: {}", checkpoint.getName());
-                NodeStateCopier.builder()
-                        .include(calculateEffectiveIncludePaths(DEFAULT_INCLUDE_PATHS, checkpointRoot))
-                        .merge(of("/jcr:system"))
-                        .copy(wrapSource(checkpointRoot), targetRoot);
-                copyProperties(checkpointRoot, targetRoot);
+                wrapSource(checkpointRoot).compareAgainstBaseState(previousRoot, new ApplyDiff(targetRoot));
             } else {
                 LOG.info("Applying diff to {}", checkpoint.getName());
                 checkpointRoot.compareAgainstBaseState(previousRoot, new ApplyDiff(targetRoot));
@@ -355,13 +382,12 @@ public class RepositorySidegrade {
         }
 
         NodeState sourceRoot = source.getRoot();
-        if (previousRoot == null) {
+        if (!isCompleteMigration()) {
+            sourceRoot = FilteringNodeState.wrap("/", sourceRoot, includePaths, excludePaths, excludeFragments);
+        }
+        if (previousRoot == EmptyNodeState.EMPTY_NODE) {
             LOG.info("No checkpoints found; migrating head");
-            NodeStateCopier.builder()
-                    .include(calculateEffectiveIncludePaths(DEFAULT_INCLUDE_PATHS, sourceRoot))
-                    .merge(of("/jcr:system"))
-                    .copy(wrapSource(sourceRoot), targetRoot);
-            copyProperties(sourceRoot, targetRoot);
+            wrapSource(sourceRoot).compareAgainstBaseState(previousRoot, new ApplyDiff(targetRoot));
         } else {
             LOG.info("Applying diff to head");
             sourceRoot.compareAgainstBaseState(previousRoot, new ApplyDiff(targetRoot));
@@ -390,7 +416,7 @@ public class RepositorySidegrade {
     }
 
     private boolean isCompleteMigration() {
-        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
+        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && excludeFragments.equals(DEFAULT_EXCLUDE_FRAGMENTS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
     }
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
@@ -406,6 +432,7 @@ public class RepositorySidegrade {
         NodeStateCopier.builder()
             .include(includes)
             .exclude(excludes)
+            .excludeFragments(excludeFragments)
             .merge(merges)
             .copy(sourceRoot, targetRoot);
 
@@ -480,5 +507,9 @@ public class RepositorySidegrade {
             sourceRoot = reportingSourceRoot;
         }
         return sourceRoot;
+    }
+
+    private boolean targetExists() {
+        return target.getRoot().getChildNodeEntries().iterator().hasNext();
     }
 }

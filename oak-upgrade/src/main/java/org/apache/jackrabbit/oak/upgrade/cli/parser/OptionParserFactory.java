@@ -70,6 +70,8 @@ public class OptionParserFactory {
 
     public static final String EXCLUDE_PATHS = "exclude-paths";
 
+    public static final String EXCLUDE_FRAGMENTS = "exclude-fragments";
+
     public static final String MERGE_PATHS = "merge-paths";
 
     public static final String SKIP_INIT = "skip-init";
@@ -83,6 +85,8 @@ public class OptionParserFactory {
     public static final String ONLY_VERIFY = "only-verify";
 
     public static final String SKIP_CHECKPOINTS = "skip-checkpoints";
+
+    public static final String FORCE_CHECKPOINTS = "force-checkpoints";
 
     public static OptionParser create() {
         OptionParser op = new OptionParser();
@@ -131,6 +135,8 @@ public class OptionParserFactory {
                 .ofType(String.class);
         op.accepts(EXCLUDE_PATHS, "Comma-separated list of paths to exclude during copy.").withRequiredArg()
                 .ofType(String.class);
+        op.accepts(EXCLUDE_FRAGMENTS, "Comma-separated list of fragments to exclude during copy.").withRequiredArg()
+                .ofType(String.class);
         op.accepts(MERGE_PATHS, "Comma-separated list of paths to merge during copy.").withRequiredArg()
                 .ofType(String.class);
         op.accepts(INCLUDE_INDEX, "Copy index data for paths specified in the " + INCLUDE_PATHS + " option");
@@ -156,5 +162,6 @@ public class OptionParserFactory {
         op.accepts(VERIFY, "After the sidegrade check whether the source repository is exactly the same as destination");
         op.accepts(ONLY_VERIFY, "Performs only --" + VERIFY + ", without copying content");
         op.accepts(SKIP_CHECKPOINTS, "Don't copy checkpoints on the full segment->segment migration");
+        op.accepts(FORCE_CHECKPOINTS, "Copy checkpoints even if the --include,exclude,merge-paths option is specified");
     }
 }

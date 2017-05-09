@@ -30,7 +30,6 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -112,7 +111,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         boolean enabled = config.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
         if (enabled) {
             Root r = getRoot().getContentSession().getLatestRoot();
-            List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
+            List<AccessControlPolicy> effective = new ArrayList<>();
             while (oakPath != null) {
                 if (isSupportedPath(oakPath)) {
                     CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath));
@@ -254,16 +253,13 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         if (property == null) {
             return Collections.emptySet();
         } else {
-            return ImmutableSet.copyOf(Iterables.transform(property.getValue(Type.STRINGS), new Function<String, Principal>() {
-                @Override
-                public Principal apply(String principalName) {
-                    Principal principal = principalManager.getPrincipal(principalName);
-                    if (principal == null) {
-                        log.debug("Unknown principal " + principalName);
-                        principal = new PrincipalImpl(principalName);
-                    }
-                    return principal;
+            return ImmutableSet.copyOf(Iterables.transform(property.getValue(Type.STRINGS), principalName -> {
+                Principal principal = principalManager.getPrincipal(principalName);
+                if (principal == null) {
+                    log.debug("Unknown principal " + principalName);
+                    principal = new PrincipalImpl(principalName);
                 }
+                return principal;
             }));
         }
     }

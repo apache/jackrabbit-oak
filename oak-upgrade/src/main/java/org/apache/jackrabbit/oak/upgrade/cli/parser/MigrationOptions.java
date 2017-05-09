@@ -46,6 +46,8 @@ public class MigrationOptions {
 
     private final String[] excludePaths;
 
+    private final String[] excludeFragments;
+
     private final String[] mergePaths;
 
     private final boolean includeIndex;
@@ -65,6 +67,8 @@ public class MigrationOptions {
     private final boolean onlyVerify;
 
     private final boolean skipCheckpoints;
+
+    private final boolean forceCheckpoints;
 
     private final String srcUser;
 
@@ -115,6 +119,7 @@ public class MigrationOptions {
         }
         this.includePaths = checkPaths(args.getOptionList(OptionParserFactory.INCLUDE_PATHS));
         this.excludePaths = checkPaths(args.getOptionList(OptionParserFactory.EXCLUDE_PATHS));
+        this.excludeFragments = args.getOptionList(OptionParserFactory.EXCLUDE_FRAGMENTS);
         this.mergePaths = checkPaths(args.getOptionList(OptionParserFactory.MERGE_PATHS));
         this.includeIndex = args.hasOption(OptionParserFactory.INCLUDE_INDEX);
         this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
@@ -125,6 +130,7 @@ public class MigrationOptions {
         this.verify = args.hasOption(OptionParserFactory.VERIFY);
         this.onlyVerify = args.hasOption(OptionParserFactory.ONLY_VERIFY);
         this.skipCheckpoints = args.hasOption(OptionParserFactory.SKIP_CHECKPOINTS);
+        this.forceCheckpoints = args.hasOption(OptionParserFactory.FORCE_CHECKPOINTS);
 
         this.srcUser = args.getOption(OptionParserFactory.SRC_USER);
         this.srcPassword = args.getOption(OptionParserFactory.SRC_USER);
@@ -177,6 +183,10 @@ public class MigrationOptions {
         return excludePaths;
     }
 
+    public String[] getExcludeFragments() {
+        return excludeFragments;
+    }
+
     public String[] getMergePaths() {
         return mergePaths;
     }
@@ -215,6 +225,10 @@ public class MigrationOptions {
 
     public boolean isSkipCheckpoints() {
         return skipCheckpoints;
+    }
+
+    public boolean isForceCheckpoints() {
+        return forceCheckpoints;
     }
 
     public String getSrcUser() {
@@ -322,6 +336,10 @@ public class MigrationOptions {
             log.info("paths to exclude: {}", (Object) excludePaths);
         }
 
+        if (excludeFragments != null) {
+            log.info("fragments to exclude: {}", (Object) excludeFragments);
+        }
+
         if (failOnError) {
             log.info("Unreadable nodes will cause failure of the entire transaction");
         }
@@ -352,6 +370,10 @@ public class MigrationOptions {
 
         if (skipCheckpoints) {
             log.info("Checkpoints won't be migrated");
+        }
+
+        if (forceCheckpoints) {
+            log.info("Checkpoints will be migrated even with the custom paths specified");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);

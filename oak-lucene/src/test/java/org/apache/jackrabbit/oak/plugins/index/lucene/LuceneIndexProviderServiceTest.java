@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
@@ -86,6 +87,7 @@ public class LuceneIndexProviderServiceTest {
         context.registerService(IndexAugmentorFactory.class, mock(IndexAugmentorFactory.class));
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(IndexPathService.class, mock(IndexPathService.class));
+        context.registerService(AsyncIndexInfoService.class, mock(AsyncIndexInfoService.class));
         MockOsgi.injectServices(service, context.bundleContext());
     }
 

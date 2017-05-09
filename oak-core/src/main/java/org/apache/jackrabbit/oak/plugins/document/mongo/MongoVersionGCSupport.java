@@ -173,15 +173,17 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     private DBObject createQuery(Set<SplitDocType> gcTypes,
                                  RevisionVector sweepRevs,
                                  long oldestRevTimeStamp) {
+        List<Integer> gcTypeCodes = Lists.newArrayList();
         QueryBuilder orClause = start();
         for(SplitDocType type : gcTypes) {
+            gcTypeCodes.add(type.typeCode());
             for (DBObject query : queriesForType(type, sweepRevs)) {
                 orClause.or(query);
             }
         }
         return start()
                 .and(
-                        start(SD_TYPE).exists(true).get(),
+                        start(SD_TYPE).in(gcTypeCodes).get(),
                         orClause.get(),
                         start(NodeDocument.SD_MAX_REV_TIME_IN_SECS)
                                 .lessThan(NodeDocument.getModifiedInSecs(oldestRevTimeStamp))
@@ -194,8 +196,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         if (type != DEFAULT_NO_BRANCH) {
             return singletonList(start(SD_TYPE).is(type.typeCode()).get());
         }
-        // default split type is special because we can only remove those
-        // older than sweep rev
+        // default_no_branch split type is special because we can
+        // only remove those older than sweep rev
         List<DBObject> queries = Lists.newArrayList();
         for (Revision r : sweepRevs) {
             String idSuffix = Utils.getPreviousIdFor("/", r, 0);
