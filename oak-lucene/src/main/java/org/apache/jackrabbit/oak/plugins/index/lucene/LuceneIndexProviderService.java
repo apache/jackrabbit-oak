@@ -51,7 +51,9 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -260,6 +262,9 @@ public class LuceneIndexProviderService {
     @Reference
     private IndexPathService indexPathService;
 
+    @Reference
+    private AsyncIndexInfoService asyncIndexInfoService;
+
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
         policyOption = ReferencePolicyOption.GREEDY,
         policy = ReferencePolicy.DYNAMIC
@@ -311,13 +316,18 @@ public class LuceneIndexProviderService {
         registerObserver(bundleContext, config);
         registerLocalIndexObserver(bundleContext, tracker, config);
         registerIndexEditor(bundleContext, tracker, config);
+        registerIndexInfoProvider(bundleContext);
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
-                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, indexPathService, new File(indexDir, "indexCheckDir")),
+                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, indexPathService, getIndexCheckDir()),
                 LuceneIndexMBean.TYPE,
                 "Lucene Index statistics"));
         registerGCMonitor(whiteboard, indexProvider.getTracker());
+    }
+
+    private File getIndexCheckDir() {
+        return new File(checkNotNull(indexDir), "indexCheckDir");
     }
 
     @Deactivate
@@ -659,6 +669,11 @@ public class LuceneIndexProviderService {
             }
             editorProvider.setBlobStore(blobStore);
         }
+    }
+
+    private void registerIndexInfoProvider(BundleContext bundleContext) {
+        IndexInfoProvider infoProvider = new LuceneIndexInfoProvider(nodeStore, asyncIndexInfoService, getIndexCheckDir());
+        regs.add(bundleContext.registerService(IndexInfoProvider.class.getName(), infoProvider, null));
     }
 
     protected void bindNodeAggregator(NodeAggregator aggregator) {
