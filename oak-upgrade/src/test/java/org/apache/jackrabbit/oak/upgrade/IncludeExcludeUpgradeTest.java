@@ -46,7 +46,10 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
         JcrUtils.getOrCreateByPath("/content/assets/foo/2011", "nt:folder", session);
         JcrUtils.getOrCreateByPath("/content/assets/foo/2010", "nt:folder", session);
         JcrUtils.getOrCreateByPath("/content/assets/foo/2010/12", "nt:folder", session);
-        JcrUtils.getOrCreateByPath("/content/assets/foo/2010/11", "nt:folder", session);
+        JcrUtils.getOrCreateByPath("/content/assets/foo/oak-mount-libs-xyz/node1", "nt:folder", session);
+        JcrUtils.getOrCreateByPath("/content/assets/foo/oak-mount-libs-xyz/node2", "nt:folder", session);
+        JcrUtils.getOrCreateByPath("/content/assets/foo/oak-mount-apps-abc/node3", "nt:folder", session);
+        JcrUtils.getOrCreateByPath("/content/assets/foo/oak-mount-apps-abc/node4", "nt:folder", session);
         session.save();
     }
 
@@ -66,6 +69,9 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
                     "/content/assets/foo/2011",
                     "/content/assets/foo/2010"
             );
+            upgrade.setExcludeFragments(
+                    "oak-mount-libs-xyz"
+            );
             upgrade.copy(null);
         } finally {
             context.getRepository().shutdown();
@@ -78,7 +84,9 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
                 "/content/foo/en",
                 "/content/assets/foo/2015/02",
                 "/content/assets/foo/2015/01",
-                "/content/assets/foo/2014"
+                "/content/assets/foo/2014",
+                "/content/assets/foo/oak-mount-apps-abc/node3",
+                "/content/assets/foo/oak-mount-apps-abc/node4"
         );
     }
 
@@ -97,7 +105,9 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
                 "/content/assets/foo/2013",
                 "/content/assets/foo/2012",
                 "/content/assets/foo/2011",
-                "/content/assets/foo/2010"
+                "/content/assets/foo/2010",
+                "/content/assets/foo/oak-mount-libs-xyz/node1",
+                "/content/assets/foo/oak-mount-libs-xyz/node2"
         );
     }
 }

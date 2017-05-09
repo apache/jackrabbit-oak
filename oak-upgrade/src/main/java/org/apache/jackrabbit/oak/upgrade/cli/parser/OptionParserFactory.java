@@ -70,6 +70,8 @@ public class OptionParserFactory {
 
     public static final String EXCLUDE_PATHS = "exclude-paths";
 
+    public static final String EXCLUDE_FRAGMENTS = "exclude-fragments";
+
     public static final String MERGE_PATHS = "merge-paths";
 
     public static final String SKIP_INIT = "skip-init";
@@ -130,6 +132,8 @@ public class OptionParserFactory {
         op.accepts(INCLUDE_PATHS, "Comma-separated list of paths to include during copy.").withRequiredArg()
                 .ofType(String.class);
         op.accepts(EXCLUDE_PATHS, "Comma-separated list of paths to exclude during copy.").withRequiredArg()
+                .ofType(String.class);
+        op.accepts(EXCLUDE_FRAGMENTS, "Comma-separated list of fragments to exclude during copy.").withRequiredArg()
                 .ofType(String.class);
         op.accepts(MERGE_PATHS, "Comma-separated list of paths to merge during copy.").withRequiredArg()
                 .ofType(String.class);

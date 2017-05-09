@@ -154,6 +154,8 @@ public class RepositoryUpgrade {
 
     public static final Set<String> DEFAULT_EXCLUDE_PATHS = NONE;
 
+    public static final Set<String> DEFAULT_EXCLUDE_FRAGMENTS = NONE;
+
     public static final Set<String> DEFAULT_MERGE_PATHS = NONE;
 
     /**
@@ -175,6 +177,11 @@ public class RepositoryUpgrade {
      * Paths to exclude during the copy process. Empty by default.
      */
     private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
+
+    /**
+     * Fragments to exclude during the copy process. Empty by default.
+     */
+    private Set<String> excludeFragments = DEFAULT_EXCLUDE_FRAGMENTS;
 
     /**
      * Paths to merge during the copy process. Empty by default.
@@ -330,6 +337,16 @@ public class RepositoryUpgrade {
      */
     public void setExcludes(@Nonnull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
+    }
+
+    /**
+     * Sets the name fragments that should be excluded when the source repository
+     * is copied to the target repository.
+     *
+     * @param excludes Name fragments to be excluded from the copy.
+     */
+    public void setExcludeFragments(@Nonnull String... excludes) {
+        this.excludeFragments = copyOf(checkNotNull(excludes));
     }
 
     /**
@@ -931,6 +948,7 @@ public class RepositoryUpgrade {
         NodeStateCopier.builder()
                 .include(includes)
                 .exclude(excludes)
+                .excludeFragments(excludeFragments)
                 .merge(merges)
                 .copy(sourceRoot, targetRoot);
 
