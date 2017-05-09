@@ -85,6 +85,9 @@ public class MigrationFactory {
         if (options.getExcludePaths() != null) {
             upgrade.setExcludes(options.getExcludePaths());
         }
+        if (options.getExcludeFragments() != null) {
+            upgrade.setExcludeFragments(options.getExcludeFragments());
+        }
         if (options.getMergePaths() != null) {
             upgrade.setMerges(options.getMergePaths());
         }
@@ -109,6 +112,9 @@ public class MigrationFactory {
         }
         if (options.getExcludePaths() != null) {
             sidegrade.setExcludes(options.getExcludePaths());
+        }
+        if (options.getExcludeFragments() != null) {
+            sidegrade.setExcludeFragments(options.getExcludeFragments());
         }
         if (options.getMergePaths() != null) {
             sidegrade.setMerges(options.getMergePaths());

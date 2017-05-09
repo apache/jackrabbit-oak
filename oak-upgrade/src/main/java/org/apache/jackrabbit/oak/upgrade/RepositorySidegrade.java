@@ -62,6 +62,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_FRAGMENTS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
@@ -96,6 +97,11 @@ public class RepositorySidegrade {
      * Paths to exclude during the copy process. Empty by default.
      */
     private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
+
+    /**
+     * Fragments to exclude during the copy process. Empty by default.
+     */
+    private Set<String> excludeFragments = DEFAULT_EXCLUDE_FRAGMENTS;
 
     /**
      * Paths to merge during the copy process. Empty by default.
@@ -202,6 +208,16 @@ public class RepositorySidegrade {
      */
     public void setExcludes(@Nonnull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
+    }
+
+    /**
+     * Sets the name fragments that should be excluded when the source repository
+     * is copied to the target repository.
+     *
+     * @param excludes Name fragments to be excluded from the copy.
+     */
+    public void setExcludeFragments(@Nonnull String... excludes) {
+        this.excludeFragments = copyOf(checkNotNull(excludes));
     }
 
     public void setIncludeIndex(boolean includeIndex) {
@@ -390,7 +406,7 @@ public class RepositorySidegrade {
     }
 
     private boolean isCompleteMigration() {
-        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
+        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && excludeFragments.equals(DEFAULT_EXCLUDE_FRAGMENTS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
     }
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
@@ -406,6 +422,7 @@ public class RepositorySidegrade {
         NodeStateCopier.builder()
             .include(includes)
             .exclude(excludes)
+            .excludeFragments(excludeFragments)
             .merge(merges)
             .copy(sourceRoot, targetRoot);
 

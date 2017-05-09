@@ -81,6 +81,9 @@ public class IncludeExcludeSidegradeTest extends IncludeExcludeUpgradeTest {
                     "/content/assets/foo/2011",
                     "/content/assets/foo/2010"
             );
+            sidegrade.setExcludeFragments(
+                    "oak-mount-libs-xyz"
+            );
             sidegrade.copy();
         } finally {
             fileStore.close();
