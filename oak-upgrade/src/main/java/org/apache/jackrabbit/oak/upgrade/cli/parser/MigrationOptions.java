@@ -46,6 +46,8 @@ public class MigrationOptions {
 
     private final String[] excludePaths;
 
+    private final String[] fragmentPaths;
+
     private final String[] excludeFragments;
 
     private final String[] mergePaths;
@@ -119,6 +121,7 @@ public class MigrationOptions {
         }
         this.includePaths = checkPaths(args.getOptionList(OptionParserFactory.INCLUDE_PATHS));
         this.excludePaths = checkPaths(args.getOptionList(OptionParserFactory.EXCLUDE_PATHS));
+        this.fragmentPaths = checkPaths(args.getOptionList(OptionParserFactory.FRAGMENT_PATHS));
         this.excludeFragments = args.getOptionList(OptionParserFactory.EXCLUDE_FRAGMENTS);
         this.mergePaths = checkPaths(args.getOptionList(OptionParserFactory.MERGE_PATHS));
         this.includeIndex = args.hasOption(OptionParserFactory.INCLUDE_INDEX);
@@ -181,6 +184,10 @@ public class MigrationOptions {
 
     public String[] getExcludePaths() {
         return excludePaths;
+    }
+
+    public String[] getFragmentPaths() {
+        return fragmentPaths;
     }
 
     public String[] getExcludeFragments() {
@@ -334,6 +341,10 @@ public class MigrationOptions {
 
         if (excludePaths != null) {
             log.info("paths to exclude: {}", (Object) excludePaths);
+        }
+
+        if (fragmentPaths != null) {
+            log.info("paths supporting fragments: {}", (Object) fragmentPaths);
         }
 
         if (excludeFragments != null) {
