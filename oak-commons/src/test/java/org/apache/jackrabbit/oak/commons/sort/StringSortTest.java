@@ -32,6 +32,7 @@ import java.util.Set;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -58,6 +59,42 @@ public class StringSortTest {
         //Create ~50k paths
         List<String> paths = createTestPaths(10, true);
         collector = new StringSort(1000, comparator);
+        addPathsToCollector(paths);
+
+        assertTrue(collector.usingFile());
+        assertConstraints(paths);
+
+        collector.close();
+    }
+
+    @Test
+    public void sortWithEntriesHavingLineBreaks() throws Exception{
+        List<String> paths = Lists.newArrayList("/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
+
+        collector = new StringSort(0, comparator);
+        addPathsToCollector(paths);
+
+        assertTrue(collector.usingFile());
+        assertConstraints(paths);
+
+        collector.close();
+    }
+
+    /**
+     * Test for the case where sorting order should not be affected by escaping
+     *
+     * "aa", "aa\n1", "aa\r2", "aa\\" -> "aa", "aa\n1", "aa\r2", "aa\\"
+     * "aa", "aa\\n1", "aa\\r2", "aa\\\\" -> "aa", "aa\\", "aa\n1", "aa\r2",
+     *
+     * In above case the sorting order for escaped string is different. So
+     * it needs to be ensured that sorting order remain un affected by escaping
+     * @throws Exception
+     */
+    @Test
+    public void sortWithEntriesHavingLineBreaks2() throws Exception{
+        List<String> paths = Lists.newArrayList("/a", "/a/a\nc", "/a/a\rd", "/a/a\r\ne", "/a/a\\");
+
+        collector = new StringSort(0, comparator);
         addPathsToCollector(paths);
 
         assertTrue(collector.usingFile());

@@ -295,7 +295,7 @@ public class ExternalSort {
         try {
             for (String r : tmplist) {
                 // Skip duplicate lines
-                if (!distinct || !r.equals(lastLine)) {
+                if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     fbw.write(r);
                     fbw.newLine();
                     lastLine = r;
@@ -453,7 +453,7 @@ public class ExternalSort {
                 BinaryFileBuffer bfb = pq.poll();
                 String r = bfb.pop();
                 // Skip duplicate lines
-                if (!distinct || !r.equals(lastLine)) {
+                if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     fbw.write(r);
                     fbw.newLine();
                     lastLine = r;
@@ -467,7 +467,7 @@ public class ExternalSort {
             }
         } finally {
             fbw.close();
-            for (BinaryFileBuffer bfb : pq) {
+            for (BinaryFileBuffer bfb : buffers) {
                 bfb.close();
             }
         }
@@ -628,7 +628,6 @@ public class ExternalSort {
             return r1.compareTo(r2);
         }
     };
-
 }
 
 class BinaryFileBuffer {
@@ -648,7 +647,7 @@ class BinaryFileBuffer {
 
     private void reload() throws IOException {
         try {
-            if ((this.cache = this.fbr.readLine()) == null) {
+            if ((this.cache = fbr.readLine()) == null) {
                 this.empty = true;
                 this.cache = null;
             } else {
@@ -668,7 +667,7 @@ class BinaryFileBuffer {
         if (empty()) {
             return null;
         }
-        return this.cache.toString();
+        return this.cache;
     }
 
     public String pop() throws IOException {

@@ -36,7 +36,9 @@ import java.util.List;
 import java.util.Scanner;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Unit test for simple App.
@@ -78,6 +80,8 @@ public class ExternalSortTest {
     private static final String TEST_FILE1_TXT = "test-file-1.txt";
     private static final String TEST_FILE2_TXT = "test-file-2.txt";
     private static final String TEST_FILE1_CSV = "test-file-1.csv";
+    private static final String TEST_FILE2_CSV = "test-file-2.csv";
+
     private static final String[] EXPECTED_SORT_RESULTS = { "a", "b", "b", "e",
             "f", "i", "m", "o", "u", "u", "x", "y", "z" };
     private static final String[] EXPECTED_MERGE_RESULTS = { "a", "a", "b",
@@ -90,11 +94,18 @@ public class ExternalSortTest {
             "f", "i", "m", "o", "u", "x", "y", "z" };
     private static final String[] SAMPLE = { "f", "m", "b", "e", "i", "o", "u",
             "x", "a", "y", "z", "b", "u" };
-
+    private static final String[] EXPECTED_CSV_DISTINCT_RESULTS = { "a,1", "b,2a", "e,3", "f,4", "i,5", "m,6", "o,7", 
+                                                                      "u,8a", "x,9", "y,10", "z,11"};
+    private static final String[] EXPECTED_CSV_RESULTS = { "a,1", "b,2a", "b,2b", "e,3", "f,4", "i,5", "m,6", "o,7",
+                                                             "u,8a", "u,8b", "x,9", "y,10", "z,11"};
     private File file1;
     private File file2;
     private File csvFile;
+    private File csvFile2;
     private List<File> fileList;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     /**
      * @throws Exception
@@ -108,6 +119,8 @@ public class ExternalSortTest {
                 getResource(TEST_FILE2_TXT).toURI());
         this.csvFile = new File(this.getClass().
                 getResource(TEST_FILE1_CSV).toURI());
+        this.csvFile2 = new File(this.getClass().
+                 getResource(TEST_FILE2_CSV).toURI());
 
         File tmpFile1 = new File(this.file1.getPath().toString() + ".tmp");
         File tmpFile2 = new File(this.file2.getPath().toString() + ".tmp");
@@ -159,8 +172,8 @@ public class ExternalSortTest {
 
     @Test
     public void testEmptyFiles() throws Exception {
-        File f1 = File.createTempFile("tmp", "unit");
-        File f2 = File.createTempFile("tmp", "unit");
+        File f1 = folder.newFile();
+        File f2 = folder.newFile();
         ExternalSort.mergeSortedFiles(ExternalSort.sortInBatch(f1), f2);
         if (f2.length() != 0) {
             throw new RuntimeException("empty files should end up emtpy");
@@ -178,7 +191,7 @@ public class ExternalSortTest {
                 return o1.compareTo(o2);
             }
         };
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
         ExternalSort.mergeSortedFiles(this.fileList, out, cmp,
                 Charset.defaultCharset(), false);
 
@@ -204,7 +217,7 @@ public class ExternalSortTest {
                 return o1.compareTo(o2);
             }
         };
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
         ExternalSort.mergeSortedFiles(this.fileList, out, cmp,
                 Charset.defaultCharset(), true);
 
@@ -231,7 +244,7 @@ public class ExternalSortTest {
             }
         };
 
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
         writeStringToFile(out, "HEADER, HEADER\n");
 
         ExternalSort.mergeSortedFiles(this.fileList, out, cmp,
@@ -340,6 +353,51 @@ public class ExternalSortTest {
         testCSVSortingWithParams(true);
     }
 
+    @Test
+    public void testCSVKeyValueSorting() throws Exception {
+        testCSVSortKeyValue(false);
+        testCSVSortKeyValue(true);
+    }
+    
+    /**
+     * Sample case to sort csv file with key, value pair.
+     *
+     * @param distinct if distinct records need to be omitted
+     * @throws Exception
+     *
+     */    
+    public void testCSVSortKeyValue(boolean distinct) throws Exception {
+        
+        File out = folder.newFile();
+        
+        Comparator<String> cmp =   new Comparator<String>() {
+            @Override
+            public int compare(String s1, String s2) {
+                return s1.split(",")[0].compareTo(s2.split(",")[0]);
+            }
+        };
+        
+        List<File> listOfFiles = ExternalSort.sortInBatch(this.csvFile2, cmp,
+                                                             ExternalSort.DEFAULTMAXTEMPFILES,
+                                                             ExternalSort.DEFAULT_MAX_MEM_BYTES,
+                                                             Charset.defaultCharset(),
+                                                             null, distinct, 0, false);
+        
+        // now merge with append
+        ExternalSort.mergeSortedFiles(listOfFiles, out, cmp,
+                                         Charset.defaultCharset(), distinct, true, false);
+        ArrayList<String> result = readLines(out);
+        
+        if (distinct) {
+            assertEquals(11, result.size());
+            assertArrayEquals(Arrays.toString(result.toArray()), EXPECTED_CSV_DISTINCT_RESULTS, result.toArray());
+        } else {
+            assertEquals(13, result.size());
+            assertArrayEquals(Arrays.toString(result.toArray()), EXPECTED_CSV_RESULTS, result.toArray());            
+        }
+        
+    }
+    
     /**
      * Sample case to sort csv file.
      * 
@@ -349,7 +407,7 @@ public class ExternalSortTest {
      */
     public void testCSVSortingWithParams(boolean usegzip) throws Exception {
 
-        File out = File.createTempFile("test_results", ".tmp", null);
+        File out = folder.newFile();
 
         Comparator<String> cmp = new Comparator<String>() {
             @Override
@@ -386,11 +444,15 @@ public class ExternalSortTest {
     }
 
     public static ArrayList<String> readLines(File f) throws IOException {
-        BufferedReader r = new BufferedReader(new FileReader(f));
         ArrayList<String> answer = new ArrayList<String>();
-        String line;
-        while ((line = r.readLine()) != null) {
-            answer.add(line);
+        BufferedReader r = new BufferedReader(new FileReader(f));
+        try {
+            String line;
+            while ((line = r.readLine()) != null) {
+                answer.add(line);
+            }
+        } finally {
+            r.close();
         }
         return answer;
     }

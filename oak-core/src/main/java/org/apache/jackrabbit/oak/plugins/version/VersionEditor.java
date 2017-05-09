@@ -27,6 +27,8 @@ import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.RESTORE
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.nodetype.NodeDefinition;
+import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -86,10 +88,10 @@ class VersionEditor implements Editor {
             // deleted or versionable -> check if it was checked in
             // a node cannot be modified if it was checked in
             // unless it has a new identifier
-            isReadOnly = wasCheckedIn() && !hasNewIdentifier();
+            isReadOnly = wasCheckedIn() && !hasNewIdentifier() && !isIgnoreOnOPV();
         } else {
             // otherwise inherit from parent
-            isReadOnly = parent != null && parent.isReadOnly;
+            isReadOnly = parent != null && parent.isReadOnly && !isIgnoreOnOPV();
         }
     }
 
@@ -109,7 +111,7 @@ class VersionEditor implements Editor {
             vMgr.restore(node, after.getValue(Type.REFERENCE), null);
             return;
         }
-        if (!isReadOnly) {
+        if (!isReadOnly || getOPV(after) == OnParentVersionAction.IGNORE) {
             return;
         }
         // JCR allows to put a lock on a checked in node.
@@ -125,7 +127,7 @@ class VersionEditor implements Editor {
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
         if (!isVersionable()) {
-            if (!isVersionProperty(after) && isReadOnly) {
+            if (!isVersionProperty(after) && isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
                 throwCheckedIn("Cannot change property " + after.getName()
                         + " on checked in node");
             }
@@ -147,7 +149,7 @@ class VersionEditor implements Editor {
             vMgr.restore(node, baseVersion, null);
         } else if (isVersionProperty(after)) {
             throwProtected(after.getName());
-        } else if (isReadOnly) {
+        } else if (isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
             throwCheckedIn("Cannot change property " + after.getName()
                     + " on checked in node");
         }
@@ -157,7 +159,7 @@ class VersionEditor implements Editor {
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
         if (isReadOnly) {
-            if (!isVersionProperty(before) && !isLockProperty(before)) {
+            if (!isVersionProperty(before) && !isLockProperty(before) && getOPV(before) != OnParentVersionAction.IGNORE) {
                 throwCheckedIn("Cannot delete property on checked in node");
             }
         }
@@ -187,10 +189,7 @@ class VersionEditor implements Editor {
      */
     private boolean isVersionable() {
         if (isVersionable == null) {
-            // this is not 100% correct, because t.getPath() will
-            // not return the correct path for node after, but is
-            // sufficient to check if it is versionable
-            isVersionable = vMgr.isVersionable(TreeFactory.createReadOnlyTree(after));
+            isVersionable = vMgr.isVersionable(after);
         }
         return isVersionable;
     }
@@ -256,5 +255,28 @@ class VersionEditor implements Editor {
             throws CommitFailedException {
         throw new CommitFailedException(CommitFailedException.CONSTRAINT, 100,
                 "Property is protected: " + name);
+    }
+
+    private boolean isIgnoreOnOPV() throws CommitFailedException {
+        if (this.parent != null) {
+            try {
+                NodeDefinition definition = this.vMgr.getNodeTypeManager().getDefinition(TreeFactory.createTree(parent.node), this.name);
+                return definition.getOnParentVersion() == OnParentVersionAction.IGNORE;
+            } catch (Exception e) {
+                throw new CommitFailedException(CommitFailedException.VERSION,
+                        VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(), e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    private int getOPV(PropertyState property) throws CommitFailedException {
+        try {
+            return this.vMgr.getNodeTypeManager().getDefinition(TreeFactory.createReadOnlyTree(this.node.getNodeState()),
+                    property, false).getOnParentVersion();
+        } catch (Exception e) {
+            throw new CommitFailedException(CommitFailedException.VERSION,
+                    VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(), e.getMessage());
+        }
     }
 }

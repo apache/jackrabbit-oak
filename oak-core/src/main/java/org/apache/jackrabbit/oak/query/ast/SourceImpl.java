@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -85,6 +86,14 @@ public abstract class SourceImpl extends AstElement {
     public abstract String getPlan(NodeState rootState);
 
     /**
+     * Get the index cost as a JSON string.
+     *
+     * @param rootState the root
+     * @return the cost
+     */
+    public abstract String getIndexCostInfo(NodeState rootState);
+
+    /**
      * Prepare executing the query (recursively). This will 'wire' the
      * selectors with the join constraints, and decide which index to use.
      * 
@@ -121,7 +130,7 @@ public abstract class SourceImpl extends AstElement {
     public abstract boolean next();
 
     /**
-     * <b>!Test purpose only! <b>
+     * <b>!Test purpose only! </b>
      * 
      * this creates a filter for the given query
      * 
@@ -153,4 +162,12 @@ public abstract class SourceImpl extends AstElement {
      */
     public abstract boolean isOuterJoinRightHandSide();
 
+    /**
+     * Get the size if known.
+     * 
+     * @param precision the required precision
+     * @param max the maximum nodes read (for an exact size)
+     * @return the size, or -1 if unknown
+     */
+    public abstract long getSize(SizePrecision precision, long max);
 }

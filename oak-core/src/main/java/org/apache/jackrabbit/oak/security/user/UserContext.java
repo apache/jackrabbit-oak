@@ -42,7 +42,7 @@ final class UserContext implements Context, UserConstants {
     public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
         String propName = property.getName();
         String ntName = TreeUtil.getPrimaryTypeName(parent);
-        if (NT_REP_USER.equals(ntName)) {
+        if (NT_REP_USER.equals(ntName) || NT_REP_SYSTEM_USER.equals(ntName)) {
             return USER_PROPERTY_NAMES.contains(propName);
         } else if (NT_REP_GROUP.equals(ntName)) {
             return GROUP_PROPERTY_NAMES.contains(propName);
@@ -85,6 +85,11 @@ final class UserContext implements Context, UserConstants {
                     || path.contains(REP_MEMBERS_LIST)
                     || path.contains(REP_PWD);
         }
+    }
+
+    @Override
+    public boolean definesInternal(@Nonnull Tree tree) {
+        return false;
     }
 
 }

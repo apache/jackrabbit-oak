@@ -20,21 +20,25 @@
 package org.apache.jackrabbit.oak.management;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.failed;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.fromCompositeData;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.succeeded;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.unavailable;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.fromCompositeData;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.succeeded;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.toTabularData;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.unavailable;
 
 import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.TabularData;
 
 import com.google.common.base.Function;
+import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
+import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
@@ -75,6 +79,19 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
                         serviceType.getSimpleName() + " found."
                 );
             }
+        } finally {
+            tracker.stop();
+        }
+    }
+
+    private <T> Iterable<Status> executeAll(Class<T> serviceType, Function<T, Status> operation) {
+        Tracker<T> tracker = whiteboard.track(serviceType);
+        List<Status> statuses = newArrayList();
+        try {
+            for (T service : tracker.getServices()) {
+                statuses.add(operation.apply(service));
+            }
+            return statuses;
         } finally {
             tracker.stop();
         }
@@ -157,6 +174,18 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
         }).toCompositeData();
     }
 
+    @Nonnull
+    @Override
+    public CompositeData cancelRevisionGC() {
+        return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(RevisionGCMBean revisionGCService) {
+                return fromCompositeData(revisionGCService.cancelRevisionGC());
+            }
+        }).toCompositeData();
+    }
+
     @Override
     public CompositeData getRevisionGCStatus() {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
@@ -210,4 +239,14 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
                 }).toCompositeData();
     }
 
+    @Override
+    public TabularData refreshAllSessions() {
+        return toTabularData(executeAll(SessionMBean.class, new Function<SessionMBean, Status>() {
+            @Override
+            public Status apply(SessionMBean sessionMBean) {
+                sessionMBean.refresh();
+                return succeeded("OK");
+            }
+        }));
+    }
 }

@@ -123,6 +123,27 @@ public class QueryFulltextTest extends AbstractQueryTest {
         assertEquals("/testroot", getResult(q.execute(), "path"));
     }
 
+    public void testInValues() throws Exception {
+
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("text", "hello");
+        Node n2 = testRootNode.addNode("node2");
+        n2.setProperty("text", "hallo");
+        Node n3 = testRootNode.addNode("node3");
+        n3.setProperty("text", "hello hallo");
+        session.save();
+
+        String sql2 = "select [jcr:path] as [path], [jcr:score], * from [nt:base] as a " +
+                "where [text] in('hello', 'hallo')";
+
+        Query q = qm.createQuery(sql2, Query.JCR_SQL2);
+        String path = getResult(q.execute(), "path");
+        assertEquals("/testroot/node1, /testroot/node2", path);
+
+    }
+
     static String getResult(QueryResult result, String propertyName) throws RepositoryException {
         StringBuilder buff = new StringBuilder();
         RowIterator it = result.getRows();

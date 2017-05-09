@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -72,24 +72,6 @@ public final class NodeTypeRegistry {
 
         this.vf = new ValueFactoryImpl(
                 root, new NamePathMapperImpl(new GlobalNameMapper(root)));
-    }
-
-    /**
-     * Registers built in node types using the given {@link Root}.
-     *
-     * @param root the {@link Root} instance.
-     */
-    static void registerBuiltIn(final Root root) {
-        try {
-            InputStream stream = NodeTypeRegistry.class.getResourceAsStream("builtin_nodetypes.cnd");
-            try {
-                register(root, stream, "built-in node types");
-            } finally {
-                stream.close();
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to read built-in node types", e);
-        }
     }
 
     /**

@@ -47,9 +47,8 @@ class ConfigInstaller {
         this.bundleContext = bundleContext;
     }
 
-    public Set<String> installConfigs(Map<String, Map<String, Object>> osgiConfig)
+    public void installConfigs(Map<String, Map<String, Object>> osgiConfig)
             throws Exception {
-        Set<String> processedPids = Sets.newHashSet();
         for (Map.Entry<String, Map<String, Object>> pidEntry : osgiConfig.entrySet()) {
             final String pidString = pidEntry.getKey();
 
@@ -80,10 +79,8 @@ class ConfigInstaller {
                     log.info("Updating configuration from {}", pidString);
                 }
                 config.update(current);
-                processedPids.add(pidString);
             }
         }
-        return processedPids;
     }
 
     public void removeConfigs(Set<String> pidsToBeRemoved) throws Exception {
@@ -94,7 +91,7 @@ class ConfigInstaller {
         }
 
         if (!pidsToBeRemoved.isEmpty()) {
-            log.info("Configuration belonging to following pids have been removed ", pidsToBeRemoved);
+            log.info("Configuration belonging to following pids have been removed {}", pidsToBeRemoved);
         }
     }
 

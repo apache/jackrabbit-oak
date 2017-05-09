@@ -13,15 +13,22 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A factory for syntax tree elements.
  */
 public class AstElementFactory {
+    private static final Logger LOG = LoggerFactory.getLogger(AstElementFactory.class);
 
     public AndImpl and(ConstraintImpl constraint1, ConstraintImpl constraint2) {
         return new AndImpl(constraint1, constraint2);
@@ -45,7 +52,11 @@ public class AstElementFactory {
     }
 
     public ColumnImpl column(String selectorName, String propertyName, String columnName) {
-        return new ColumnImpl(selectorName, propertyName, columnName);
+        if (propertyName.startsWith(QueryImpl.REP_FACET)) {
+            return new FacetColumnImpl(selectorName, propertyName, columnName);
+        } else {
+            return new ColumnImpl(selectorName, propertyName, columnName);
+        }
     }
 
     public ComparisonImpl comparison(DynamicOperandImpl operand1, Operator operator, StaticOperandImpl operand2) {
@@ -83,8 +94,8 @@ public class AstElementFactory {
         return new JoinImpl(left, right, joinType, joinCondition);
     }
 
-    public LengthImpl length(PropertyValueImpl propertyValue) {
-        return new LengthImpl(propertyValue);
+    public LengthImpl length(DynamicOperandImpl operand) {
+        return new LengthImpl(operand);
     }
 
     public LiteralImpl literal(PropertyValue literalValue) {
@@ -135,8 +146,8 @@ public class AstElementFactory {
         return new SameNodeJoinConditionImpl(selector1Name, selector2Name, selector2Path);
     }
 
-    public SelectorImpl selector(NodeState type, String selectorName) {
-        return new SelectorImpl(type, selectorName);
+    public SelectorImpl selector(NodeTypeInfo nodeTypeInfo, String selectorName) {
+        return new SelectorImpl(nodeTypeInfo, selectorName);
     }
 
     public UpperCaseImpl upperCase(DynamicOperandImpl operand) {
@@ -164,4 +175,28 @@ public class AstElementFactory {
     public ConstraintImpl suggest(String selectorName, StaticOperandImpl expression) {
         return new SuggestImpl(selectorName, expression);
     }
+    
+    /**
+     * <p>
+     * as the {@link AstElement#copyOf()} can return {@code this} is the cloning is not implemented
+     * by the subclass, this method add some spice around it by checking for this case and tracking
+     * a DEBUG message in the logs.
+     * </p>
+     * 
+     * @param e the element to be cloned. Cannot be null.
+     * @return same as {@link AstElement#copyOf()}
+     */
+    @Nonnull
+    public static AstElement copyElementAndCheckReference(@Nonnull final AstElement e) {
+        AstElement clone = checkNotNull(e).copyOf();
+        
+        if (clone == e && LOG.isDebugEnabled()) {
+            LOG.debug(
+                "Failed to clone the AstElement. Returning same reference; the client may fail. {} - {}",
+                e.getClass().getName(), e);
+        }
+        
+        return clone;
+    }
+
 }

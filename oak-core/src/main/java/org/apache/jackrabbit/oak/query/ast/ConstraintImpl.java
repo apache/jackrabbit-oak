@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Collections;
 import java.util.Set;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -37,6 +40,16 @@ public abstract class ConstraintImpl extends AstElement {
     }
 
     /**
+     * Get the negative constraint, if it is simpler, or null. For example,
+     * "not x = 1" returns "x = 1", but "x = 1" returns null.
+     * 
+     * @return the negative constraint, or null
+     */
+    ConstraintImpl not() {
+        return null;
+    }
+
+    /**
      * Evaluate the result using the currently set values.
      *
      * @return true if the constraint matches
@@ -48,7 +61,7 @@ public abstract class ConstraintImpl extends AstElement {
      * is the case for example for full-text constraints if there is no
      * full-text index (unless FullTextComparisonWithoutIndex is enabled). This
      * will also allow is to add conditions that stop further processing for
-     * other reasons, similar to "WHERE ROWNUM < 10" in Oracle.
+     * other reasons, similar to {@code "WHERE ROWNUM < 10"} in Oracle.
      * 
      * @return true if further processing should be stopped
      */
@@ -125,5 +138,44 @@ public abstract class ConstraintImpl extends AstElement {
     public int hashCode() {
         return toString().hashCode();
     }
-
+    
+    /**
+     * Whether the constraint contains a fulltext condition that requires
+     * using a fulltext index, because the condition can only be evaluated there.
+     * 
+     * @return true if yes
+     */
+    public boolean requiresFullTextIndex() {
+        return false;
+    }
+    
+    /**
+     * Whether the condition contains a fulltext condition that can not be 
+     * applied to the filter, for example because it is part of an "or" condition
+     * of the form "where a=1 or contains(., 'x')".
+     * 
+     * @return true if yes
+     */
+    public boolean containsUnfilteredFullTextCondition() {
+        return false;
+    }
+    
+    /**
+     * Compute a set of sub-constraints that could be used for composing UNION
+     * statements. For example in case of "c=1 or c=2", it will return to the
+     * caller {@code [c=1, c=2]}. Those can be later on used for re-composing
+     * conditions.
+     * <p>
+     * If it is not possible to convert to a union, it must return an empty set.
+     * <p>
+     * The default implementation in {@link ConstraintImpl#convertToUnion()}
+     * always return an empty set.
+     * 
+     * @return the set of union constraints, if available, or an empty set if
+     *         conversion is not possible
+     */
+    @Nonnull
+    public Set<ConstraintImpl> convertToUnion() {
+        return Collections.emptySet();
+    }
 }

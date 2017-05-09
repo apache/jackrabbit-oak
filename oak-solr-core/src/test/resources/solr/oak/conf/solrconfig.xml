@@ -1219,7 +1219,7 @@ current implementation relies on the updateLog feature being enabled. -->
     -->
     <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
 
-        <str name="queryAnalyzerFieldType">text_general</str>
+        <str name="queryAnalyzerFieldType">spellcheck</str>
 
         <!-- Multiple "Spell Checkers" can be declared and used by this
            component
@@ -1228,7 +1228,7 @@ current implementation relies on the updateLog feature being enabled. -->
         <!-- a spellchecker built from a field of the main index -->
         <lst name="spellchecker">
             <str name="name">default</str>
-            <str name="field">catch_all</str>
+            <str name="field">:spellcheck</str>
             <str name="classname">solr.DirectSolrSpellChecker</str>
             <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
             <str name="distanceMeasure">internal</str>
@@ -1247,15 +1247,15 @@ current implementation relies on the updateLog feature being enabled. -->
         </lst>
 
         <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
-        <lst name="spellchecker">
-            <str name="name">wordbreak</str>
-            <str name="classname">solr.WordBreakSolrSpellChecker</str>
-            <str name="field">name</str>
-            <str name="combineWords">true</str>
-            <str name="breakWords">true</str>
-            <int name="maxChanges">10</int>
-            <str name="buildOnCommit">true</str>
-        </lst>
+        <!--<lst name="spellchecker">-->
+            <!--<str name="name">wordbreak</str>-->
+            <!--<str name="classname">solr.WordBreakSolrSpellChecker</str>-->
+            <!--<str name="field">name</str>-->
+            <!--<str name="combineWords">true</str>-->
+            <!--<str name="breakWords">true</str>-->
+            <!--<int name="maxChanges">10</int>-->
+            <!--<str name="buildOnCommit">true</str>-->
+        <!--</lst>-->
 
         <!-- a spellchecker that uses a different distance measure -->
         <!--
@@ -1311,13 +1311,12 @@ current implementation relies on the updateLog feature being enabled. -->
     -->
     <requestHandler name="/spellcheck" class="solr.SearchHandler" startup="lazy">
         <lst name="defaults">
-            <str name="df">catch_all</str>
+            <!--<str name="df">catch_all</str>-->
             <!-- Solr will use suggestions from both the 'default' spellchecker
         and from the 'wordbreak' spellchecker and combine them.
         collations (re-written queries) can include a combination of
         corrections from both spellcheckers -->
             <str name="spellcheck.dictionary">default</str>
-            <str name="spellcheck.dictionary">wordbreak</str>
             <str name="spellcheck">on</str>
             <str name="spellcheck.extendedResults">true</str>
             <str name="spellcheck.count">10</str>

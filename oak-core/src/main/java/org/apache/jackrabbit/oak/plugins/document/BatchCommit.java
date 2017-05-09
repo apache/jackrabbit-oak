@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -163,12 +162,11 @@ final class BatchCommit {
 
     void populateResults(NodeDocument before) {
         DocumentStore store = queue.getStore();
-        Comparator<Revision> comparator = queue.getComparator();
         for (UpdateOp op : ops) {
             results.add(Futures.immediateFuture(before));
             NodeDocument after = new NodeDocument(store);
             before.deepCopy(after);
-            UpdateUtils.applyChanges(after, op, comparator);
+            UpdateUtils.applyChanges(after, op);
             before = after;
         }
     }

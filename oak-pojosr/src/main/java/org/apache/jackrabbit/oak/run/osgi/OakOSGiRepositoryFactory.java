@@ -19,40 +19,83 @@
 
 package org.apache.jackrabbit.oak.run.osgi;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
+import javax.management.Attribute;
+import javax.management.AttributeList;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
-import de.kalpatec.pojosr.framework.launch.BundleDescriptor;
-import de.kalpatec.pojosr.framework.launch.ClasspathScanner;
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry;
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistryFactory;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.felix.connect.launch.BundleDescriptor;
+import org.apache.felix.connect.launch.ClasspathScanner;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
+import org.apache.felix.connect.launch.PojoServiceRegistryFactory;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.SynchronousBundleListener;
 import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+/**
+ * RepositoryFactory which constructs an instance of Oak repository. Thi factory supports following
+ * parameters
+ *
+ *  <dl>
+ *      <dt>org.osgi.framework.BundleActivator</dt>
+ *      <dd>(Optional) BundleActivator instance which would be notified about the startup and shutdown</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.config</dt>
+ *      <dd>(Optional) Config key which refers to the map of config where key in that map refers to OSGi config</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.configFile</dt>
+ *      <dd>
+ *          Comma separated list of file names which referred to config stored in form of JSON. The
+ *          JSON content consist of pid as the key and config map as the value
+ *      </dd>
+ *
+ *      <dt>org.apache.jackrabbit.repository.home</dt>
+ *      <dd>Used to specify the absolute path of the repository home directory</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.bundleFilter</dt>
+ *      <dd>Used to specify the bundle filter string which is passed to ClasspathScanner</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.timeoutInSecs</dt>
+ *      <dd>Timeout in seconds for the repository startup/shutdown should wait. Defaults to 10 minutes</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.shutDownOnTimeout</dt>
+ *      <dd>Boolean flag to determine if the OSGi container should be shutdown upon timeout. Defaults to false</dd>
+ *  </dl>
+ */
 public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     private static Logger log = LoggerFactory.getLogger(OakOSGiRepositoryFactory.class);
@@ -66,8 +109,8 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     /**
      * Timeout in seconds for the repository startup should wait
      */
-    public static final String REPOSITORY_STARTUP_TIMEOUT
-            = "org.apache.jackrabbit.oak.repository.startupTimeOut";
+    public static final String REPOSITORY_TIMEOUT_IN_SECS
+            = "org.apache.jackrabbit.oak.repository.timeoutInSecs";
 
     /**
      * Config key which refers to the map of config where key in that map refers to OSGi
@@ -81,10 +124,38 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
      */
     public static final String REPOSITORY_CONFIG_FILE = "org.apache.jackrabbit.oak.repository.configFile";
 
+    public static final String REPOSITORY_BUNDLE_FILTER
+            = "org.apache.jackrabbit.oak.repository.bundleFilter";
+
+    public static final String REPOSITORY_SHUTDOWN_ON_TIMEOUT =
+            "org.apache.jackrabbit.oak.repository.shutDownOnTimeout";
+
+    public static final String REPOSITORY_ENV_SPRING_BOOT =
+            "org.apache.jackrabbit.oak.repository.springBootMode";
+
+    public static final String REPOSITORY_BUNDLE_FILTER_DEFAULT = "(|" +
+            "(Bundle-SymbolicName=org.apache.jackrabbit*)" +
+            "(Bundle-SymbolicName=org.apache.sling*)" +
+            "(Bundle-SymbolicName=org.apache.felix*)" +
+            "(Bundle-SymbolicName=org.apache.aries*)" +
+            "(Bundle-SymbolicName=groovy-all)" +
+            ")";
+
     /**
      * Default timeout for repository creation
      */
     private static final int DEFAULT_TIMEOUT = (int) TimeUnit.MINUTES.toSeconds(10);
+
+    private static final BundleActivator NOOP = new BundleActivator() {
+        @Override
+        public void start(BundleContext bundleContext) throws Exception {
+
+        }
+        @Override
+        public void stop(BundleContext bundleContext) throws Exception {
+
+        }
+    };
 
     @SuppressWarnings("unchecked")
     public Repository getRepository(Map parameters) throws RepositoryException {
@@ -97,6 +168,13 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         config.putAll(parameters);
 
         PojoServiceRegistry registry = initializeServiceRegistry(config);
+        BundleActivator activator = getApplicationActivator(config);
+
+        try {
+            activator.start(registry.getBundleContext());
+        } catch (Exception e) {
+            log.warn("Error occurred while starting activator {}", activator.getClass(), e);
+        }
 
         //Future which would be used to notify when repository is ready
         // to be used
@@ -104,16 +182,17 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
         new RunnableJobTracker(registry.getBundleContext());
 
+        int timeoutInSecs = PropertiesUtil.toInteger(config.get(REPOSITORY_TIMEOUT_IN_SECS), DEFAULT_TIMEOUT);
+
         //Start the tracker for repository creation
-        new RepositoryTracker(registry, repoFuture);
+        new RepositoryTracker(registry, activator, repoFuture, timeoutInSecs);
 
 
         //Now wait for repository to be created with given timeout
         //if repository creation takes more time. This is required to handle case
         // where OSGi runtime fails to start due to bugs (like cycles)
-        int timeout = getTimeoutInSeconds(config);
         try {
-            return repoFuture.get(timeout, TimeUnit.SECONDS);
+            return repoFuture.get(timeoutInSecs, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RepositoryException("Repository initialization was interrupted");
@@ -121,13 +200,18 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
             throw new RepositoryException(e);
         } catch (TimeoutException e) {
             try {
-                shutdown(registry);
+                if (PropertiesUtil.toBoolean(config.get(REPOSITORY_SHUTDOWN_ON_TIMEOUT), true)) {
+                    shutdown(registry, timeoutInSecs);
+                    log.info("OSGi container shutdown after waiting for repository initialization for {} sec",timeoutInSecs);
+                }else {
+                    log.warn("[{}] found to be false. Container is not stopped", REPOSITORY_SHUTDOWN_ON_TIMEOUT);
+                }
             } catch (BundleException be) {
                 log.warn("Error occurred while shutting down the service registry (due to " +
                         "startup timeout) backing the Repository ", be);
             }
             throw new RepositoryException("Repository could not be started in " +
-                    timeout + " seconds", e);
+                    timeoutInSecs + " seconds", e);
         }
     }
 
@@ -136,9 +220,10 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         processConfig(config);
 
         PojoServiceRegistry registry = createServiceRegistry(config);
+        registerMBeanServer(registry);
         startConfigTracker(registry, config);
         preProcessRegistry(registry);
-        startBundles(registry);
+        startBundles(registry, (String)config.get(REPOSITORY_BUNDLE_FILTER), config);
         postProcessRegistry(registry);
 
         return registry;
@@ -169,9 +254,37 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         return descriptors;
     }
 
-    static void shutdown(PojoServiceRegistry registry) throws BundleException {
-        if (registry != null) {
-            registry.getBundleContext().getBundle().stop();
+    static void shutdown(PojoServiceRegistry registry, int timeoutInSecs) throws BundleException {
+        if (registry == null){
+            return;
+        }
+        final Bundle systemBundle = registry.getBundleContext().getBundle();
+        final CountDownLatch shutdownLatch = new CountDownLatch(1);
+
+        //Logic here is similar to org.apache.felix.connect.PojoServiceRegistryFactoryImpl.FrameworkImpl.waitForStop()
+        systemBundle.getBundleContext().addBundleListener(new SynchronousBundleListener() {
+            public void bundleChanged(BundleEvent event) {
+                if (event.getBundle() == systemBundle && event.getType() == BundleEvent.STOPPED) {
+                    shutdownLatch.countDown();
+                }
+            }
+        });
+
+        //Initiate shutdown
+        systemBundle.stop();
+
+        //Wait for framework shutdown to complete
+        try {
+            boolean shutdownWithinTimeout = shutdownLatch.await(timeoutInSecs,
+                    TimeUnit.SECONDS);
+            if (!shutdownWithinTimeout){
+                throw new BundleException("Timed out while waiting for repository " +
+                        "shutdown for "+ timeoutInSecs + " secs");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BundleException("Timed out while waiting for repository " +
+                    "shutdown for "+ timeoutInSecs + " secs", e);
         }
     }
 
@@ -179,12 +292,17 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         new ConfigTracker(config, registry.getBundleContext());
     }
 
-    private static int getTimeoutInSeconds(Map config) {
-        Integer timeout = (Integer) config.get(REPOSITORY_STARTUP_TIMEOUT);
-        if (timeout == null) {
-            timeout = DEFAULT_TIMEOUT;
+    /**
+     * Return the BundleActivator provided by the embedding application
+     * @param config config passed to factory for initialization
+     * @return BundleActivator instance
+     */
+    private static BundleActivator getApplicationActivator(Map config) {
+        BundleActivator activator = (BundleActivator) config.get(BundleActivator.class.getName());
+        if (activator == null){
+            activator = NOOP;
         }
-        return timeout;
+        return activator;
     }
 
     @SuppressWarnings("unchecked")
@@ -198,7 +316,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         config.put(Constants.FRAMEWORK_STORAGE, bundleDir);
 
         //FIXME Pojo SR currently reads this from system property instead of Framework Property
-        System.setProperty(Constants.FRAMEWORK_STORAGE, bundleDir);
+        config.put(Constants.FRAMEWORK_STORAGE, bundleDir);
 
         //Directory used by Felix File Install to watch for configs
         config.put("felix.fileinstall.dir", FilenameUtils.concat(home, "config"));
@@ -212,21 +330,6 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
         config.put("repository.home", FilenameUtils.concat(home, "repository"));
 
-        copyConfigToSystemProps(config);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static void copyConfigToSystemProps(Map config) {
-        //TODO This is a temporary workaround as the current release version
-        //of PojoSR reads value from System properties. Trunk version reads from
-        //initial map. This should be removed when we move to version which has the fix
-        Iterator<Map.Entry> itr = config.entrySet().iterator();
-        while (itr.hasNext()) {
-            Map.Entry e = itr.next();
-            if (e.getValue() instanceof String) {
-                System.setProperty((String) e.getKey(), (String) e.getValue());
-            }
-        }
     }
 
     private PojoServiceRegistry createServiceRegistry(Map<String, Object> config) {
@@ -239,10 +342,16 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     }
 
 
-    private void startBundles(PojoServiceRegistry registry) {
+    private void startBundles(PojoServiceRegistry registry, String bundleFilter, Map config) {
         try {
-            List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles();
+            if (bundleFilter == null){
+                bundleFilter = REPOSITORY_BUNDLE_FILTER_DEFAULT;
+            }
+            List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles(bundleFilter);
             descriptors = Lists.newArrayList(descriptors);
+            if (PropertiesUtil.toBoolean(config.get(REPOSITORY_ENV_SPRING_BOOT), false)){
+                descriptors = SpringBootSupport.processDescriptors(descriptors);
+            }
             descriptors = processDescriptors(descriptors);
             registry.startBundles(descriptors);
         } catch (Exception e) {
@@ -250,15 +359,49 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         }
     }
 
+    /**
+     * Registers the Platform MBeanServer as OSGi service. This would enable
+     * Aries JMX Whitboard support to then register the JMX MBean which are registered as OSGi service
+     * to be registered against the MBean server
+     */
+    private static void registerMBeanServer(PojoServiceRegistry registry) {
+        MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+        Hashtable<String, Object> mbeanProps = new Hashtable<String, Object>();
+        try {
+            ObjectName beanName = ObjectName.getInstance("JMImplementation:type=MBeanServerDelegate");
+            AttributeList attrs = platformMBeanServer.getAttributes(beanName,
+                    new String[]{"MBeanServerId", "SpecificationName",
+                            "SpecificationVersion", "SpecificationVendor",
+                            "ImplementationName", "ImplementationVersion",
+                            "ImplementationVendor"});
+            for (Object object : attrs) {
+                Attribute attr = (Attribute) object;
+                if (attr.getValue() != null) {
+                    mbeanProps.put(attr.getName(), attr.getValue().toString());
+                }
+            }
+        } catch (Exception je) {
+            log.info("Cannot set service properties of Platform MBeanServer service, registering without",
+                    je);
+        }
+        registry.registerService(MBeanServer.class.getName(),
+                platformMBeanServer, mbeanProps);
+    }
+
     private static class RepositoryTracker extends ServiceTracker<Repository, Repository> {
         private final SettableFuture<Repository> repoFuture;
         private final PojoServiceRegistry registry;
+        private final BundleActivator activator;
         private RepositoryProxy proxy;
+        private final int timeoutInSecs;
 
-        public RepositoryTracker(PojoServiceRegistry registry, SettableFuture<Repository> repoFuture) {
+        public RepositoryTracker(PojoServiceRegistry registry, BundleActivator activator,
+                                 SettableFuture<Repository> repoFuture, int timeoutInSecs) {
             super(registry.getBundleContext(), Repository.class.getName(), null);
             this.repoFuture = repoFuture;
             this.registry = registry;
+            this.activator = activator;
+            this.timeoutInSecs = timeoutInSecs;
             this.open();
         }
 
@@ -290,6 +433,15 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
             return (Repository) Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class[]{Repository.class, JackrabbitRepository.class, ServiceRegistryProvider.class}, proxy);
         }
+
+        public void shutdownRepository() throws BundleException {
+            try {
+                activator.stop(getRegistry().getBundleContext());
+            } catch (Exception e) {
+                log.warn("Error occurred while shutting down activator {}", activator.getClass(), e);
+            }
+            shutdown(getRegistry(), timeoutInSecs);
+        }
     }
 
     /**
@@ -300,6 +452,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     private static class RepositoryProxy implements InvocationHandler {
         private final RepositoryTracker tracker;
         private Repository initialService;
+        private final AtomicBoolean shutdownInitiated = new AtomicBoolean();
 
         private RepositoryProxy(RepositoryTracker tracker, Repository initialService) {
             this.tracker = tracker;
@@ -313,15 +466,22 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 obj = initialService;
             }
 
-            checkNotNull(obj, "Repository service is not available");
-
             final String name = method.getName();
+            //If shutdown then close the framework and return
+            //Repository would be shutdown by the owning OSGi
+            //component like RepositoryManager
             if ("shutdown".equals(name)) {
-                shutdown(tracker.getRegistry());
-            } else if ("getServiceRegistry".equals(name)){
+                if (!shutdownInitiated.getAndSet(true)) {
+                    tracker.shutdownRepository();
+                }
+                return null;
+            }
+
+            if ("getServiceRegistry".equals(name)){
                 return tracker.getRegistry();
             }
 
+            checkNotNull(obj, "Repository service is not available");
             return method.invoke(obj, args);
         }
 

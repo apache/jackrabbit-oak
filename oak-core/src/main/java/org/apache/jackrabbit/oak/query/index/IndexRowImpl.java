@@ -33,6 +33,11 @@ public class IndexRowImpl implements IndexRow {
     }
 
     @Override
+    public boolean isVirtualRow() {
+        return false;
+    }
+
+    @Override
     public String getPath() {
         return path;
     }

@@ -19,11 +19,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 
 import com.google.common.collect.Maps;
 
 import static org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 /**
  * Helper class to access package private functionality.
@@ -69,4 +71,23 @@ public abstract class CheckpointsHelper {
         }
     }
 
+    public static Revision min(Set<String> revs) {
+        if (revs == null || revs.isEmpty()) {
+            return null;
+        }
+        Revision r = null;
+        for (String cp : revs) {
+            r = Utils.min(r, Revision.fromString(cp));
+        }
+        return r;
+    }
+
+    public static int setInfoProperty(DocumentNodeStore store, String rev, String key, String value) {
+        try {
+            store.getCheckpoints().setInfoProperty(rev, key, value);
+        } catch (IllegalArgumentException e) {
+            return 0;
+        }
+        return 1;
+    }
 }

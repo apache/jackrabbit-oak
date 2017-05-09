@@ -74,6 +74,7 @@ class ResetDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
+        NodeDocument.removeCommitRoot(getUpdateOp(), revision);
         String p = PathUtils.concat(path, name);
         ResetDiff diff = new ResetDiff(revision, p, operations);
         UpdateOp op = diff.getUpdateOp();

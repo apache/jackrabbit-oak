@@ -1,8 +1,24 @@
-=======================================================
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+
 Jackrabbit Oak - Exercise
 =======================================================
 
-Oak module providing exercises for developers who wish to become familar with
+Oak module providing exercises for developers who wish to become familiar with
 the Oak code base and understand the design principals and implementation
 details.
 
@@ -27,7 +43,7 @@ Please make sure you have the following source code on your computer and setup i
 Recommended Reading
 -------------------
 
-As preparation of the introduction it is recommended to take a look at some security related sections of the JSR283 and to make yourself familiar with the security related areas of the API as well with the extensions defined in Apache Jackrabbit.
+As preparation of the introduction it is recommended to take a look at security related sections of the JSR283 and to make yourself familiar with the security related areas of the API as well with the extensions defined in Apache Jackrabbit.
 JSR 283 : Content Repository for Java Technology API Specification v2.0
 
 The following sections of the specification deal with security in particular with authentication and authorization.
@@ -69,7 +85,7 @@ The JavaDoc for the latest Jackrabbit API (2.10) can be found at http://jackrabb
 - User Management
     http://jackrabbit.apache.org/api/2.10/org/apache/jackrabbit/api/security/user/package-summary.html
 
-#### Oak Documenation
+#### Oak Documentation
 
 There exists some documentation about Oak Security at http://jackrabbit.apache.org/oak/docs/security/overview.html. That should cover everything that is being looked at during that introduction.
 Further References

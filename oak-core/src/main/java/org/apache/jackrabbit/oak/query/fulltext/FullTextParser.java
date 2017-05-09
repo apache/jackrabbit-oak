@@ -85,10 +85,9 @@ public class FullTextParser {
         boolean not = false;
         StringBuilder buff = new StringBuilder();
         char c = text.charAt(parseIndex);
-        if (c == '-') {
-            if (++parseIndex >= text.length()) {
-                throw getSyntaxError("term");
-            }
+        if (c == '-' && parseIndex < text.length() - 1 &&
+                text.charAt(parseIndex + 1) != ' ') {
+            c = text.charAt(++parseIndex);
             not = true;
         }
         boolean escaped = false;
@@ -163,7 +162,14 @@ public class FullTextParser {
                 } else if (c == '^') {
                     boost = "";
                     break;
-                } else if (c == ' ') {
+                } else if (c <= ' ') {
+                    while (parseIndex < text.length()) {
+                        c = text.charAt(parseIndex);
+                        if (c > ' ') {
+                            break;
+                        }
+                        parseIndex++;
+                    }
                     break;
                 } else {
                     buff.append(c);

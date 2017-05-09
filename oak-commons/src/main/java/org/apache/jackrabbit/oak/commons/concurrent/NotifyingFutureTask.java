@@ -50,10 +50,10 @@ public class NotifyingFutureTask extends FutureTask<Void> {
      * Set the on complete handler. The handler will run exactly once after
      * the task terminated. If the task has already terminated at the time of
      * this method call the handler will execute immediately.
-     * <p/>
+     * <p>
      * Note: there is no guarantee to which handler will run when the method
      * is called multiple times with different arguments.
-     *
+     * </p>
      * @param onComplete listener to invoke upon completion
      */
     public void onComplete(Runnable onComplete) {

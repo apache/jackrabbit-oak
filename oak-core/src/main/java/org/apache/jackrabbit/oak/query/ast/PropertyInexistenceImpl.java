@@ -165,4 +165,8 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
         return a == null || b == null ? a == b : a.equals(b);
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new PropertyInexistenceImpl(selectorName, propertyName);
+    }
 }

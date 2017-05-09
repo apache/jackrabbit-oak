@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_P
 import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.DEFAULT_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.util.ApproximateCounter.COUNT_PROPERTY_PREFIX;
+import static org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter.COUNT_PROPERTY_PREFIX;
 
 import java.util.Collections;
 import java.util.Set;
@@ -63,7 +63,7 @@ public class ContentMirrorStoreStrategyTest {
      * </ul>
      */
     @Test
-    public void testIndexPruning() {
+    public void testIndexPruning() throws CommitFailedException {
         IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
         NodeState root = EMPTY_NODE;
@@ -211,7 +211,7 @@ public class ContentMirrorStoreStrategyTest {
         final long repoTreeApproxNodeCount = 50000;
         final long repoSubPathApproxNodeCount = repoTreeApproxNodeCount /
                 filteredNodeFactor;
-        final FilterImpl filter = new FilterImpl();
+        final FilterImpl filter = FilterImpl.newTestInstance();
         filter.restrictPath("/" + subPathName,
                 Filter.PathRestriction.ALL_CHILDREN);
 
@@ -244,18 +244,16 @@ public class ContentMirrorStoreStrategyTest {
         assertInRange(
                 "Approximate count not used for is-not-null query",
                 approxNodeCount,
-                filteredNodeFactor *
-                        store.count(filter, root, indexMeta.getNodeState(),
-                                null, maxTraversal));
+                store.count(filter, root, indexMeta.getNodeState(),
+                            null, maxTraversal));
 
         // prop=value query without entryCount
         key.setProperty(approxPropName, approxKeyCount, Type.LONG);
         assertInRange(
                 "Approximate count not used for key=value query",
                 approxKeyCount,
-                filteredNodeFactor *
-                        store.count(filter, root, indexMeta.getNodeState(),
-                                KEY, maxTraversal));
+                store.count(filter, root, indexMeta.getNodeState(),
+                            KEY, maxTraversal));
 
         // is-not-null query with entryCount
         indexMeta
@@ -284,10 +282,10 @@ public class ContentMirrorStoreStrategyTest {
     }
 
     private static void assertInRange(String msg, double expected, double actual) {
-        final double allowedError = 0.1;
-
+        double allowedError = 0.1;
         double diff = Math.abs(expected - actual);
-        Assert.assertTrue(msg, diff < expected * allowedError);
+        Assert.assertTrue(msg + "; expected about " + expected + ", got " + actual, 
+                diff < expected * allowedError);
     }
 
 }

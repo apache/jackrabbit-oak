@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -40,21 +41,44 @@ public class IndexUpdateProvider implements EditorProvider {
 
     private final String async;
 
+    private final MissingIndexProviderStrategy missingStrategy;
+
+    private CorruptIndexHandler corruptIndexHandler = CorruptIndexHandler.NOOP;
+
+    private boolean ignoreReindexFlags = IndexUpdate.IGNORE_REINDEX_FLAGS;
+
+    public IndexUpdateProvider(IndexEditorProvider provider, boolean failOnMissingIndexProvider) {
+        this(provider, null, failOnMissingIndexProvider);
+    }
+
     public IndexUpdateProvider(IndexEditorProvider provider) {
-        this(provider, null);
+        this(provider, null, false);
     }
 
     public IndexUpdateProvider(
-            @Nonnull IndexEditorProvider provider, @CheckForNull String async) {
+            @Nonnull IndexEditorProvider provider, @CheckForNull String async, boolean failOnMissingIndexProvider) {
         this.provider = provider;
         this.async = async;
+        this.missingStrategy = new MissingIndexProviderStrategy();
+        this.missingStrategy.setFailOnMissingIndexProvider(failOnMissingIndexProvider);
     }
 
     @Override @CheckForNull
     public Editor getRootEditor(
             NodeState before, NodeState after,
             NodeBuilder builder, CommitInfo info) {
-        return VisibleEditor.wrap(new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK));
+
+        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, NodeTraversalCallback.NOOP, info, corruptIndexHandler)
+                .withMissingProviderStrategy(missingStrategy);
+        editor.setIgnoreReindexFlags(ignoreReindexFlags);
+        return VisibleEditor.wrap(editor);
     }
 
+    public void setCorruptIndexHandler(CorruptIndexHandler corruptIndexHandler) {
+        this.corruptIndexHandler = corruptIndexHandler;
+    }
+
+    public void setIgnoreReindexFlags(boolean ignoreReindexFlags) {
+        this.ignoreReindexFlags = ignoreReindexFlags;
+    }
 }

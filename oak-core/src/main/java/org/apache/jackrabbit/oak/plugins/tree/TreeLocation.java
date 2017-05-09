@@ -57,7 +57,7 @@ public abstract class TreeLocation {
      */
     public static TreeLocation create(Root root, String path) {
         checkArgument(isAbsolute(path));
-        TreeLocation location = create(root.getTree("/"));
+        TreeLocation location = create(root.getTree(PathUtils.ROOT_PATH));
         for (String name : elements(path)) {
             location = location.getChild(name);
         }
@@ -68,7 +68,7 @@ public abstract class TreeLocation {
      * Equivalent to {@code create(root, "/")}
      */
     public static TreeLocation create(Root root) {
-        return create(root, "/");
+        return create(root, PathUtils.ROOT_PATH);
     }
 
     /**
@@ -86,6 +86,13 @@ public abstract class TreeLocation {
      * @see org.apache.jackrabbit.oak.api.Tree#exists()
      */
     public abstract boolean exists();
+
+    /**
+     * The name of this location
+     * @return name
+     */
+    @Nonnull
+    public abstract String getName();
 
     /**
      * The path of this location
@@ -168,6 +175,12 @@ public abstract class TreeLocation {
             return tree.exists();
         }
 
+        @Nonnull
+        @Override
+        public String getName() {
+            return tree.getName();
+        }
+
         @Override
         public Tree getTree() {
             return exists() ? tree : null;
@@ -207,6 +220,12 @@ public abstract class TreeLocation {
         @Override
         public boolean exists() {
             return parent.hasProperty(name);
+        }
+
+        @Nonnull
+        @Override
+        public String getName() {
+            return name;
         }
 
         @Override
@@ -259,6 +278,12 @@ public abstract class TreeLocation {
         @Override
         public boolean exists() {
             return false;
+        }
+
+        @Nonnull
+        @Override
+        public String getName() {
+            return name;
         }
 
         @Nonnull

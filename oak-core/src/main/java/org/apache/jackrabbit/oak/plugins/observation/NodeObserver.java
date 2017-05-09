@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -40,7 +39,7 @@ import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.PerfLogger;
+import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,7 +121,7 @@ public abstract class NodeObserver implements Observer {
             @Nonnull CommitInfo commitInfo);
 
     @Override
-    public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+    public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
         if (previousRoot != null) {
             try {
                 long start = PERF_LOGGER.start();
@@ -187,7 +186,7 @@ public abstract class NodeObserver implements Observer {
         public NodeEventHandler(String path, CommitInfo commitInfo, NamePathMapper namePathMapper,
                 Set<String> propertyNames) {
             this.path = path;
-            this.commitInfo = commitInfo == null ? CommitInfo.EMPTY : commitInfo;
+            this.commitInfo = commitInfo;
             this.namePathMapper = namePathMapper;
             this.propertyNames = propertyNames;
             this.eventType = EventType.CHANGED;

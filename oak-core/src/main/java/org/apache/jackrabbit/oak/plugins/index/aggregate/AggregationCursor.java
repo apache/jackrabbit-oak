@@ -22,6 +22,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.Cursors.AbstractCursor;
@@ -87,11 +88,13 @@ class AggregationCursor extends AbstractCursor {
         aggregates = null;
         if (cursor.hasNext()) {
             currentRow = cursor.next();
-            String path = currentRow.getPath();
-            aggregates = Iterators.filter(Iterators.concat(
-                    Iterators.singletonIterator(path),
-                    aggregator.getParents(rootState, path)), Predicates
-                    .not(Predicates.in(seenPaths)));
+            if (!currentRow.isVirtualRow()) {
+                String path = currentRow.getPath();
+                aggregates = Iterators.filter(Iterators.concat(
+                        Iterators.singletonIterator(path),
+                        aggregator.getParents(rootState, path)), Predicates
+                        .not(Predicates.in(seenPaths)));
+            }
             fetchNext();
             return;
         }
@@ -114,6 +117,11 @@ class AggregationCursor extends AbstractCursor {
         return new IndexRow() {
 
             @Override
+            public boolean isVirtualRow() {
+                return false;
+            }
+
+            @Override
             public String getPath() {
                 return currentPath;
             }
@@ -125,4 +133,10 @@ class AggregationCursor extends AbstractCursor {
             
         };
     }
+    
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        return cursor.getSize(precision, max);
+    }
+    
 }

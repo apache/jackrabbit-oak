@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry
+import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexFormatVersion
@@ -27,7 +27,9 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
+import org.junit.After
 import org.junit.Before
+import org.junit.Ignore;
 import org.junit.Test
 
 import javax.jcr.Node
@@ -48,6 +50,11 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
     void setupRepo() {
         repositoryFactory = new CustomFactory()
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
+    }
+
+    @After
+    void logout() {
+        session.logout()
     }
 
     @Test
@@ -107,23 +114,4 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         }
     }
 
-    private static retry(int timeoutSeconds, int intervalBetweenTriesMsec, Closure c) {
-        long timeout = System.currentTimeMillis() + timeoutSeconds * 1000L;
-        while (System.currentTimeMillis() < timeout) {
-            try {
-                if (c.call()) {
-                    return;
-                }
-            } catch (AssertionError ignore) {
-            } catch (Exception ignore) {
-            }
-
-            try {
-                Thread.sleep(intervalBetweenTriesMsec);
-            } catch (InterruptedException ignore) {
-            }
-        }
-
-        fail("RetryLoop failed, condition is false after " + timeoutSeconds + " seconds: ");
-    }
 }

@@ -39,11 +39,14 @@ Out of the box Oak comes with the following LDAP integration setup:
 #### LDAP Identity Provider
 
 The [LdapIdentityProvider] is a service implementing the [ExternalIdentityProvider] interface.
+Since Oak 1.6.1 it also implements the [PrincipalNameResolver] interface to allow 
+for fast resolution from a given `ExternalIdentityRef` to a principal name as an 
+optimization for the [dynamic membership](external/dynamic.html) feature.
 
 In an OSGi-base setup the configuration options required in order to establish
 connections to the LDAP are obtained form the properties associated with the service.
 
-Otherwise the identity provider must be instanciated with the corresponding
+Otherwise the identity provider must be instantiated with the corresponding
 `LdapProviderConfig` object revealing the mandatory config options. The details
 of the LDAP configuration are listed below in section Configuration.
 
@@ -51,7 +54,7 @@ of the LDAP configuration are listed below in section Configuration.
 
 Currently the only way to combine multiple LDAP sources is to have multiple
 entries of the `ExternalLoginModule` configured in the JAAS setup each coming
-with it's own identity provider implementation.
+with it's own identity provider implementation and sync handler.
 
 See [OAK-1839] for an improvement request that allows to have multiple identity
 provider implementations configured with the `ExternalLoginModule`.
@@ -69,7 +72,7 @@ Oak repository:
 #### LDAP Configuration
 
 The LDAP IPDs are configured through the [org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig]
-which is populated either via OSGi or during manual [Repository Construction](../construct.html).
+which is populated either via OSGi or during manual [Repository Construction](../../construct.html).
 
 | Name                         | Property                | Description                              |
 |------------------------------|-------------------------|------------------------------------------|
@@ -102,6 +105,7 @@ details about the external login module and configuration options for the [Defau
 
 <!-- references -->
 [ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
+[PrincipalNameResolver]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/PrincipalNameResolver.html
 [SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
 [DefaultSyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncHandler.html
 [LdapIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/ldap/impl/LdapIdentityProvider.html

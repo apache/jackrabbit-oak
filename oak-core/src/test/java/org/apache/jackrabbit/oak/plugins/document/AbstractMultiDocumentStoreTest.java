@@ -30,7 +30,13 @@ public abstract class AbstractMultiDocumentStoreTest extends AbstractDocumentSto
         this.ds2 = dsf.createDocumentStore(2);
     }
 
-    @Parameterized.Parameters
+    @Override
+    public void cleanUp() throws Exception {
+        super.cleanUp();
+        ds2.dispose();
+    }
+
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         return fixtures(true);
     }

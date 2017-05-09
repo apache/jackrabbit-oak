@@ -16,17 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import java.io.File;
-import java.io.InputStream;
-
+import javax.naming.directory.Attribute;
+import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.ldap.LdapContext;
 
-import org.apache.directory.server.constants.ServerDNConstants;
-import org.apache.directory.server.unit.AbstractServerTest;
-
-class InternalLdapServer extends AbstractServerTest {
+class InternalLdapServer extends AbstractServer {
 
     public static final String GROUP_MEMBER_ATTR = "member";
     public static final String GROUP_CLASS_ATTR = "groupOfNames";
@@ -42,12 +38,6 @@ class InternalLdapServer extends AbstractServerTest {
         super.tearDown();
     }
 
-    @Override
-    protected void configureDirectoryService() throws Exception {
-        directoryService.setWorkingDirectory(new File("target", "apacheds"));
-        doDelete(directoryService.getWorkingDirectory());
-    }
-
     public int getPort() {
         return port;
     }
@@ -58,22 +48,26 @@ class InternalLdapServer extends AbstractServerTest {
         String dn = buildDn(cn, false);
         StringBuilder entries = new StringBuilder();
         entries.append("dn: ").append(dn).append('\n')
-                .append("objectClass: inetOrgPerson\n").append("cn: ").append(cn)
-                .append('\n').append("sn: ").append(lastName)
-                .append('\n').append("givenName:").append(firstName)
-                .append('\n').append("uid: ").append(userId)
-                .append('\n').append("userPassword: ").append(password).append("\n\n");
-        injectEntries(entries.toString());
+                .append("objectClass: inetOrgPerson\n")
+                .append("cn: ").append(cn).append('\n')
+                .append("sn: ").append(lastName).append('\n')
+                .append("givenName:").append(firstName).append('\n')
+                .append("uid: ").append(userId).append('\n')
+                .append("userPassword: ").append(password).append("\n")
+                .append("\n");
+        addEntry(entries.toString());
         return dn;
     }
 
-    public String addGroup(String name) throws Exception {
+    public String addGroup(String name, String member) throws Exception {
         String dn = buildDn(name, true);
         StringBuilder entries = new StringBuilder();
-        entries.append("dn: ").append(dn).append('\n').append("objectClass: ")
-                .append(GROUP_CLASS_ATTR).append('\n').append(GROUP_MEMBER_ATTR)
-                .append(":\n").append("cn: ").append(name).append("\n\n");
-        injectEntries(entries.toString());
+        entries.append("dn: ").append(dn).append('\n')
+                .append("objectClass: ").append(GROUP_CLASS_ATTR).append('\n')
+                .append(GROUP_MEMBER_ATTR).append(":").append(member).append("\n")
+                .append("cn: ").append(name).append("\n")
+                .append("\n");
+        addEntry(entries.toString());
         return dn;
     }
 
@@ -84,6 +78,17 @@ class InternalLdapServer extends AbstractServerTest {
         ctxt.modifyAttributes(groupDN, DirContext.ADD_ATTRIBUTE, attrs);
     }
 
+    public void addMembers(String groupDN, Iterable<String> memberDNs) throws Exception {
+        LdapContext ctxt = getWiredContext();
+        Attribute attr = new BasicAttribute("member");
+        for (String dn : memberDNs) {
+            attr.add(dn);
+        }
+        BasicAttributes attrs = new BasicAttributes();
+        attrs.put(attr);
+        ctxt.modifyAttributes(groupDN, DirContext.ADD_ATTRIBUTE, attrs);
+    }
+
     public void removeMember(String groupDN, String memberDN) throws Exception {
         LdapContext ctxt = getWiredContext();
         BasicAttributes attrs = new BasicAttributes();
@@ -91,18 +96,9 @@ class InternalLdapServer extends AbstractServerTest {
         ctxt.modifyAttributes(groupDN, DirContext.REMOVE_ATTRIBUTE, attrs);
     }
 
-    public void loadLdif(InputStream in) throws Exception {
-        super.loadLdif(in, false);
-    }
-
     private static String buildDn(String name, boolean isGroup) {
         StringBuilder dn = new StringBuilder();
-        dn.append("cn=").append(name).append(',');
-        if (isGroup) {
-            dn.append(ServerDNConstants.GROUPS_SYSTEM_DN);
-        } else {
-            dn.append(ServerDNConstants.USERS_SYSTEM_DN);
-        }
+        dn.append("cn=").append(name).append(',').append(EXAMPLE_DN);
         return dn.toString();
     }
 }

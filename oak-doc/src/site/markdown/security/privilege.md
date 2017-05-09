@@ -18,6 +18,7 @@
 Privilege Management
 --------------------------------------------------------------------------------
 
+<a name="jcr_api"/>
 ### JCR API
 
 As of JSR 283 the API contains the following privilege related interfaces and methods:
@@ -26,6 +27,7 @@ As of JSR 283 the API contains the following privilege related interfaces and me
 - `AccessControlManager.getSupportedPrivileges(String)` (see also `PrivilegeManager.getRegisteredPrivileges()`)
 - `AccessControlManager.privilegeFromName(String)` equivalent to `PrivilegeManager.getPrivilege(String)`
 
+<a name="jackrabbit_api"/>
 ### Jackrabbit API
 
 Privilege management is outside of the scope provided by JCR and therefore provided
@@ -57,122 +59,7 @@ by the extensions defined by the Jackrabbit API. It consists of a single interfa
     // NOTE: workspace operation that doesn't require Session#save()
     privilegeManager.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);
 
-### Characteristics of the Privilege Management Implementation
-
-#### General Notes
-As of Oak the built-in and custom privileges are stored in the repository
-underneath `/jcr:system/rep:privileges`. Similar to other repository level date
-(node types, namespaces and versions) this location is shared by all workspaces
-present in the repository. The nodes and properties storing the privilege
-definitions are protected by their node type definition and cannot be modified
-using regular JCR write methods. In addition a specific `Validator` and `CommitHook`
-implementations assert the consistency of the privilege store. The built-in
-privileges are installed using a dedicated implementation of the `RepositoryInitializer`.
-
-#### Differences wrt Jackrabbit 2.x
-A comprehensive list of changes compared to Jackrabbit 2.x can be found in the
-corresponding [documentation](privilege/differences.html).
-
-#### Built-in Privileges
-
-- All Privileges as defined by JSR 283
-
-        jcr:read (NOTE: Aggregate since Oak 1.0)
-        jcr:modifyProperties (NOTE: Aggregate since Oak 1.0)
-        jcr:addChildNodes
-        jcr:removeNode
-        jcr:removeChildNodes
-        jcr:readAccessControl
-        jcr:modifyAccessControl
-        jcr:lockManagement
-        jcr:versionManagement
-        jcr:nodeTypeManagement
-        jcr:retentionManagement (NOTE: retention management not implemented in Oak 1.0)
-        jcr:lifecycleManagement (NOTE: lifecycle management not implemented in Oak 1.0)
-        jcr:write
-        jcr:all
-
-- All Privileges defined by JSR 333
-
-        jcr:workspaceManagement (NOTE: wsp management not yet implemented)
-        jcr:nodeTypeDefinitionManagement
-        jcr:namespaceManagement
-
-- All Privileges defined by Jackrabbit 2.x
-
-        rep:write
-        rep:privilegeManagement
-
-- New Privileges defined by OAK 1.0:
-
-        rep:userManagement
-        rep:readNodes
-        rep:readProperties
-        rep:addProperties
-        rep:alterProperties
-        rep:removeProperties
-        rep:indexDefinitionManagement
-
-Please note the following differences with respect to Jackrabbit 2.x definitions:
-
-- `jcr:read` is now an aggregation of `rep:readNodes` and `rep:readProperties`
-- `jcr:modifyProperties` is now an aggregation of `rep:addProperties`, `rep:alterProperties` and `rep:removeProperties`
-
-##### New Privileges
-
-The new Privileges introduced with Oak 1.0 have the following effect:
-
-- `rep:userManagement`: Privilege required in order to write items that define user or group specific content.
-- `rep:readNodes`: Privilege used to allow/deny read access to nodes (aggregate of `jcr:read`)
-- `rep:readProperties`: Privilege used to allow/deny read access to properties (aggregate of `jcr:read`)
-- `rep:addProperties`: Privilege required in order to create new properties (aggreate of `jcr:modifyProperties`)
-- `rep:alterProperties`: Privilege required in order to change existing properties (aggreate of `jcr:modifyProperties`)
-- `rep:removeProperties`: Privilege required in order to remove existing properties (aggreate of `jcr:modifyProperties`)
-- `rep:indexDefinitionManagement`: Privilege required to create, modify or deleate index definitions.
-
-#### Privilege Representation in the Repository
-
-As of Oak 1.0 all privilege definitions are stored in the repository itself
-underneath `/jcr:system/rep:privileges`. The following privilege related built-in
-node types have been added in OAK 1.0 in order to represent built-in and custom
-privilege definitions.
-
-    [rep:Privileges]
-      + * (rep:Privilege) = rep:Privilege protected ABORT
-      - rep:next (LONG) protected multiple mandatory
-
-    [rep:Privilege]
-      - rep:isAbstract (BOOLEAN) protected
-      - rep:aggregates (NAME) protected multiple
-      - rep:bits (LONG) protected multiple mandatory
-
-Note the protection status of all child items defined by these node type definitions
-as they prevent modification of the privilege definitions using regular JCR
-write operations.
-
-<a name="validation"/>
-##### Validation
-
-The consistency of this content structure is asserted by a dedicated `PrivilegeValidator`.
-The corresponding errors are all of type `Constraint` with the following codes:
-
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0041              | Modification of existing privilege definition X          |
-| 0042              | Un-register privilege X                                  |
-| 0043              | Next bits not updated                                    |
-| 0044              | Privilege store not initialized                          |
-| 0045              | Modification of existing privilege definition X          |
-| 0046              | Modification of existing privilege definition X          |
-| 0047              | Invalid declared aggregate name X                        |
-| 0048              | PrivilegeBits are missing                                |
-| 0049              | PrivilegeBits already in used                            |
-| 0050              | Singular aggregation is equivalent to existing privilege.|
-| 0051              | Declared aggregate X is not a registered privilege       |
-| 0052              | Detected circular aggregation                            |
-| 0053              | Custom aggregate privilege X is already covered.         |
-
-
+<a name="api_extensions"/>
 ### API Extensions
 
 - [PrivilegeConfiguration] : Oak level entry point to retrieve `PrivilegeManager` and privilege related configuration options.
@@ -180,6 +67,7 @@ The corresponding errors are all of type `Constraint` with the following codes:
 - [PrivilegeBitsProvider] : Internal provider to read `PrivilegeBits` from the repository content and map names to internal representation (and vice versa).
 - [PrivilegeBits]: Internal representation of JCR privileges.
 
+<a name="utilities"/>
 ### Utilities
 
 The jcr-commons module present with Jackrabbit provide some privilege related
@@ -189,7 +77,13 @@ utility methods:
     - `privilegesFromNames(Session session, String... privilegeNames)`
     - `privilegesFromNames(AccessControlManager accessControlManager, String... privilegeNames)`
 
+<a name="default_implementation"/>
+### Oak Privilege Management Implementation
 
+The behavior of the default privilege management implementation is described in section 
+[Privilege Management: The Default Implementation](privilege/default.html).
+
+<a name="configuration"/>
 ### Configuration
 
 The [PrivilegeConfiguration] is the Oak level entry point to obtain a new
@@ -197,10 +91,24 @@ The [PrivilegeConfiguration] is the Oak level entry point to obtain a new
 implementation of the `PrivilegeManager` interface is based on Oak API and can
 equally be used for privilege related tasks in the Oak layer.
 
-Please note: While it's in theory possible to replace the default privilege
+<a name="pluggability"/>
+### Pluggability
+
+_Please note:_ While it's in theory possible to replace the default privilege
 management implementation in Oak, this is only recommended if you have in depth
 knowledge and understanding of Jackrabbit/Oak internals and are familiar with
-the security risk associated with it.
+the security risk associated with it. Doing so, will most likely require a re-write
+of the default access control and permission evaluation.
+
+<a name="further_reading"/>
+### Further Reading
+
+- [Differences wrt Jackrabbit 2.x](privilege/differences.html)
+- [Privilege Management : The Default Implementation](privilege/default.html)
+- Mapping Privileges to Items and API Calls
+    - [Mapping Privileges to Items](privilege/mappingtoitems.html)
+    - [Mapping API Calls to Privileges](privilege/mappingtoprivileges.html)
+
 
 <!-- references -->
 [PrivilegeConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConfiguration.html

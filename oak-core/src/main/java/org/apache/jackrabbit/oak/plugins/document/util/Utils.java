@@ -23,6 +23,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -34,23 +35,25 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
-import com.mongodb.BasicDBObject;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.RevisionContext;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
-import org.bson.types.ObjectId;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 
 /**
@@ -82,7 +85,7 @@ public class Utils {
     /**
      * The maximum size a node name, in bytes. This is only a problem for long path.
      */
-    private static final int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
+    public static final int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
@@ -129,17 +132,17 @@ public class Utils {
         if (map == null) {
             return 0;
         }
-        int size = 0;
+        long size = 0;
 
         for (Entry<?, Object> e : map.entrySet()) {
             if (e.getKey() instanceof Revision) {
                 size += 32;
             } else {
-                size += 48 + e.getKey().toString().length() * 2;
+                size += StringUtils.estimateMemoryUsage(e.getKey().toString());
             }
             Object o = e.getValue();
             if (o instanceof String) {
-                size += 48 + ((String) o).length() * 2;
+                size += StringUtils.estimateMemoryUsage((String) o);
             } else if (o instanceof Long) {
                 size += 16;
             } else if (o instanceof Boolean) {
@@ -147,7 +150,7 @@ public class Utils {
             } else if (o instanceof Integer) {
                 size += 8;
             } else if (o instanceof Map) {
-                size += 8 + estimateMemoryUsage((Map<String, Object>) o);
+                size += 8 + (long)estimateMemoryUsage((Map<String, Object>) o);
             } else if (o == null) {
                 // zero
             } else {
@@ -155,28 +158,17 @@ public class Utils {
             }
         }
 
-        if (map instanceof BasicDBObject) {
-            // Based on empirical testing using JAMM
-            size += 176;
-            size += map.size() * 136;
-        } else {
-            // overhead for some other kind of map
-            // TreeMap (80) + unmodifiable wrapper (32)
-            size += 112;
-            // 64 bytes per entry
-            size += map.size() * 64;
-        }
-        return size;
-    }
+        // overhead for map object
+        // TreeMap (80) + unmodifiable wrapper (32)
+        size += 112;
+        // 64 bytes per entry
+        size += (long)map.size() * 64;
 
-    /**
-     * Generate a unique cluster id, similar to the machine id field in MongoDB ObjectId objects.
-     *
-     * @return the unique machine id
-     */
-    public static int getUniqueClusterId() {
-        ObjectId objId = new ObjectId();
-        return objId._machine();
+        if (size > Integer.MAX_VALUE) {
+            LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 
     public static String escapePropertyName(String propertyName) {
@@ -278,7 +270,6 @@ public class Utils {
      *     <li>If id is for root path</li>
      *     <li>If id is for an invalid path</li>
      * </ul>
-     *</p>
      * @param id id for which parent id needs to be determined
      * @return parent id. null if parent id cannot be determined
      */
@@ -318,7 +309,7 @@ public class Utils {
     
     public static boolean isIdFromLongPath(String id) {
         int index = id.indexOf(':');
-        return id.charAt(index + 1) == 'h';
+        return index != -1 && index < id.length() - 1 && id.charAt(index + 1) == 'h';
     }
 
     public static String getPathFromId(String id) {
@@ -329,10 +320,16 @@ public class Utils {
         return id.substring(index + 1);
     }
 
-    public static int getDepthFromId(String id) {
-        int index = id.indexOf(':');
-        assert index > 0 : "Invalid id " + id;
-        return Integer.parseInt(id.substring(0, index));
+    public static int getDepthFromId(String id) throws IllegalArgumentException {
+        try {
+            int index = id.indexOf(':');
+            if (index >= 0) {
+                return Integer.parseInt(id.substring(0, index));
+            }
+        } catch (NumberFormatException e) {
+            // ignore and throw IllegalArgumentException
+        }
+        throw new IllegalArgumentException("Invalid id: " + id);
     }
 
     public static String getPreviousPathFor(String path, Revision r, int height) {
@@ -350,6 +347,30 @@ public class Utils {
 
     public static String getPreviousIdFor(String path, Revision r, int height) {
         return getIdFromPath(getPreviousPathFor(path, r, height));
+    }
+
+    /**
+     * Determines if the passed id belongs to a previous doc
+     *
+     * @param id id to check
+     * @return true if the id belongs to a previous doc
+     */
+    public static boolean isPreviousDocId(String id){
+        int indexOfColon = id.indexOf(':');
+        if (indexOfColon > 0 && indexOfColon < id.length() - 1){
+            return id.charAt(indexOfColon + 1) == 'p';
+        }
+        return false;
+    }
+
+    /**
+     * Determines if the passed id belongs to a leaf level previous doc
+     *
+     * @param id id to check
+     * @return true if the id belongs to a leaf level previous doc
+     */
+    public static boolean isLeafPreviousDocId(String id){
+        return isPreviousDocId(id) && id.endsWith("/0");
     }
 
     /**
@@ -475,19 +496,6 @@ public class Utils {
     }
 
     /**
-     * Checks that revision x is newer than another revision.
-     *
-     * @param x the revision to check
-     * @param previous the presumed earlier revision
-     * @return true if x is newer
-     */
-    public static boolean isRevisionNewer(@Nonnull RevisionContext context,
-                                          @Nonnull Revision x,
-                                          @Nonnull Revision previous) {
-        return context.getRevisionComparator().compare(x, previous) > 0;
-    }
-
-    /**
      * Returns the revision with the newer timestamp or {@code null} if both
      * revisions are {@code null}. The implementation will return the first
      * revision if both have the same timestamp.
@@ -498,13 +506,71 @@ public class Utils {
      */
     @CheckForNull
     public static Revision max(@Nullable Revision a, @Nullable Revision b) {
+        return max(a, b, StableRevisionComparator.INSTANCE);
+    }
+
+    /**
+     * Returns the revision which is considered more recent or {@code null} if
+     * both revisions are {@code null}. The implementation will return the first
+     * revision if both are considered equal. The comparison is done using the
+     * provided comparator.
+     *
+     * @param a the first revision (or {@code null}).
+     * @param b the second revision (or {@code null}).
+     * @param c the comparator.
+     * @return the revision considered more recent.
+     */
+    @CheckForNull
+    public static Revision max(@Nullable Revision a,
+                               @Nullable Revision b,
+                               @Nonnull Comparator<Revision> c) {
         if (a == null) {
             return b;
         } else if (b == null) {
             return a;
         }
-        return StableRevisionComparator.INSTANCE.compare(a, b) >= 0 ? a : b;
+        return c.compare(a, b) >= 0 ? a : b;
     }
+
+    /**
+     * Returns the revision with the older timestamp or {@code null} if both
+     * revisions are {@code null}. The implementation will return the first
+     * revision if both have the same timestamp.
+     *
+     * @param a the first revision (or {@code null}).
+     * @param b the second revision (or {@code null}).
+     * @return the revision with the older timestamp.
+     */
+    @CheckForNull
+    public static Revision min(@Nullable Revision a, @Nullable Revision b) {
+        return min(a, b, StableRevisionComparator.INSTANCE);
+    }
+
+    /**
+     * Returns the revision which is considered older or {@code null} if
+     * both revisions are {@code null}. The implementation will return the first
+     * revision if both are considered equal. The comparison is done using the
+     * provided comparator.
+     *
+     * @param a the first revision (or {@code null}).
+     * @param b the second revision (or {@code null}).
+     * @param c the comparator.
+     * @return the revision considered more recent.
+     */
+    @CheckForNull
+    public static Revision min(@Nullable Revision a,
+                               @Nullable Revision b,
+                               @Nonnull Comparator<Revision> c) {
+        if (a == null) {
+            return b;
+        } else if (b == null) {
+            return a;
+        }
+        return c.compare(a, b) <= 0 ? a : b;
+    }
+
+    // default batch size for paging through a document store
+    private static final int DEFAULT_BATCH_SIZE = 100;
 
     /**
      * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
@@ -517,7 +583,28 @@ public class Utils {
      * @return an {@link Iterable} over all documents in the store.
      */
     public static Iterable<NodeDocument> getAllDocuments(final DocumentStore store) {
-        return internalGetSelectedDocuments(store, null, 0);
+        return internalGetSelectedDocuments(store, null, 0, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * Returns the root node document of the given document store. The returned
+     * document is retrieved from the document store via
+     * {@link DocumentStore#find(Collection, String)}, which means the
+     * implementation is allowed to return a cached version of the document.
+     * The document is therefore not guaranteed to be up-to-date.
+     *
+     * @param store a document store.
+     * @return the root document.
+     * @throws IllegalStateException if there is no root document.
+     */
+    @Nonnull
+    public static NodeDocument getRootDocument(@Nonnull DocumentStore store) {
+        String rootId = Utils.getIdFromPath("/");
+        NodeDocument root = store.find(Collection.NODES, rootId);
+        if (root == null) {
+            throw new IllegalStateException("missing root document");
+        }
+        return root;
     }
 
     /**
@@ -532,23 +619,35 @@ public class Utils {
      * @param indexedProperty the name of the indexed property.
      * @param startValue the lower bound value for the indexed property
      *                   (inclusive).
+     * @param batchSize number of documents to fetch at once
      * @return an {@link Iterable} over all documents in the store matching the
      *         condition
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue, int batchSize) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, batchSize);
+    }
+
+    /**
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
+     * a default {@code batchSize}.
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue) {
-        return internalGetSelectedDocuments(store, indexedProperty, startValue);
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, DEFAULT_BATCH_SIZE);
     }
 
     private static Iterable<NodeDocument> internalGetSelectedDocuments(
             final DocumentStore store, final String indexedProperty,
-            final long startValue) {
+            final long startValue, final int batchSize) {
+        if (batchSize < 2) {
+            throw new IllegalArgumentException("batchSize must be > 1");
+        }
         return new Iterable<NodeDocument>() {
             @Override
             public Iterator<NodeDocument> iterator() {
                 return new AbstractIterator<NodeDocument>() {
 
-                    private static final int BATCH_SIZE = 100;
                     private String startId = NodeDocument.MIN_ID_VALUE;
 
                     private Iterator<NodeDocument> batch = nextBatch();
@@ -573,8 +672,8 @@ public class Utils {
 
                     private Iterator<NodeDocument> nextBatch() {
                         List<NodeDocument> result = indexedProperty == null ? store.query(Collection.NODES, startId,
-                                NodeDocument.MAX_ID_VALUE, BATCH_SIZE) : store.query(Collection.NODES, startId,
-                                NodeDocument.MAX_ID_VALUE, indexedProperty, startValue, BATCH_SIZE);
+                                NodeDocument.MAX_ID_VALUE, batchSize) : store.query(Collection.NODES, startId,
+                                NodeDocument.MAX_ID_VALUE, indexedProperty, startValue, batchSize);
                         return result.iterator();
                     }
                 };
@@ -588,5 +687,210 @@ public class Utils {
      */
     public static boolean isHiddenPath(@Nonnull String path) {
         return path.contains("/:");
+    }
+
+    /**
+     * Transforms the given {@link Iterable} from {@link String} to
+     * {@link StringValue} elements. The {@link Iterable} must no have
+     * {@code null} values.
+     */
+    public static Iterable<StringValue> asStringValueIterable(
+            @Nonnull Iterable<String> values) {
+        return transform(values, new Function<String, StringValue>() {
+            @Override
+            public StringValue apply(String input) {
+                return new StringValue(input);
+            }
+        });
+    }
+
+    /**
+     * Transforms the given paths into ids using {@link #getIdFromPath(String)}.
+     */
+    public static Iterable<String> pathToId(@Nonnull Iterable<String> paths) {
+        return transform(paths, new Function<String, String>() {
+            @Override
+            public String apply(String input) {
+                return getIdFromPath(input);
+            }
+        });
+    }
+
+    /**
+     * Returns the highest timestamp of all the passed external revisions.
+     * A revision is considered external if the clusterId is different from the
+     * passed {@code localClusterId}.
+     *
+     * @param revisions the revisions to consider.
+     * @param localClusterId the id of the local cluster node.
+     * @return the highest timestamp or {@link Long#MIN_VALUE} if none of the
+     *          revisions is external.
+     */
+    public static long getMaxExternalTimestamp(Iterable<Revision> revisions,
+                                               int localClusterId) {
+        long maxTime = Long.MIN_VALUE;
+        for (Revision r : revisions) {
+            if (r.getClusterId() == localClusterId) {
+                continue;
+            }
+            maxTime = Math.max(maxTime, r.getTimestamp());
+        }
+        return maxTime;
+    }
+
+    /**
+     * Returns the given number instance as a {@code Long}.
+     *
+     * @param n a number or {@code null}.
+     * @return the number converted to a {@code Long} or {@code null}
+     *      if {@code n} is {@code null}.
+     */
+    public static Long asLong(@Nullable Number n) {
+        if (n == null) {
+            return null;
+        } else if (n instanceof Long) {
+            return (Long) n;
+        } else {
+            return n.longValue();
+        }
+    }
+
+    /**
+     * Returns the minimum timestamp to use for a query for child documents that
+     * have been modified between {@code fromRev} and {@code toRev}.
+     *
+     * @param fromRev the from revision.
+     * @param toRev the to revision.
+     * @param minRevisions the minimum revisions of foreign cluster nodes. These
+     *                     are derived from the startTime of a cluster node.
+     * @return the minimum timestamp.
+     */
+    public static long getMinTimestampForDiff(@Nonnull RevisionVector fromRev,
+                                              @Nonnull RevisionVector toRev,
+                                              @Nonnull RevisionVector minRevisions) {
+        // make sure we have minimum revisions for all known cluster nodes
+        fromRev = fromRev.pmax(minRevisions);
+        toRev = toRev.pmax(minRevisions);
+        // keep only revision entries that changed
+        RevisionVector from = fromRev.difference(toRev);
+        RevisionVector to = toRev.difference(fromRev);
+        // now calculate minimum timestamp
+        long min = Long.MAX_VALUE;
+        for (Revision r : from) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        for (Revision r : to) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        return min;
+    }
+
+    /**
+     * Returns true if all the revisions in the {@code a} greater or equals
+     * to their counterparts in {@code b}. If {@code b} contains revisions
+     * for cluster nodes that are not present in {@code a}, return false.
+     *
+     * @param a
+     * @param b
+     * @return true if all the revisions in the {@code a} are at least
+     * as recent as their counterparts in the {@code b}
+     */
+    public static boolean isGreaterOrEquals(@Nonnull RevisionVector a,
+                                            @Nonnull RevisionVector b) {
+        return a.pmax(b).equals(a);
+    }
+
+    /**
+     * Wraps the given iterable and aborts iteration over elements when the
+     * predicate on an element evaluates to {@code false}.
+     *
+     * @param iterable the iterable to wrap.
+     * @param p the predicate.
+     * @return the aborting iterable.
+     */
+    public static <T> Iterable<T> abortingIterable(final Iterable<T> iterable,
+                                                   final Predicate<T> p) {
+        checkNotNull(iterable);
+        checkNotNull(p);
+        return new Iterable<T>() {
+            @Override
+            public Iterator<T> iterator() {
+                final Iterator<T> it = iterable.iterator();
+                return new AbstractIterator<T>() {
+                    @Override
+                    protected T computeNext() {
+                        if (it.hasNext()) {
+                            T next = it.next();
+                            if (p.apply(next)) {
+                                return next;
+                            }
+                        }
+                        return endOfData();
+                    }
+                };
+            }
+        };
+    }
+
+    /**
+     * Makes sure the current time is after the most recent external revision
+     * timestamp in the _lastRev map of the given root document. If necessary
+     * the current thread waits until {@code clock} is after the external
+     * revision timestamp.
+     *
+     * @param rootDoc the root document.
+     * @param clock the clock.
+     * @param clusterId the local clusterId.
+     * @throws InterruptedException if the current thread is interrupted while
+     *          waiting. The interrupted status on the current thread is cleared
+     *          when this exception is thrown.
+     */
+    public static void alignWithExternalRevisions(@Nonnull NodeDocument rootDoc,
+                                                  @Nonnull Clock clock,
+                                                  int clusterId)
+            throws InterruptedException {
+        Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
+        long externalTime = Utils.getMaxExternalTimestamp(lastRevMap.values(), clusterId);
+        long localTime = clock.getTime();
+        if (localTime < externalTime) {
+            LOG.warn("Detected clock differences. Local time is '{}', " +
+                            "while most recent external time is '{}'. " +
+                            "Current _lastRev entries: {}",
+                    new Date(localTime), new Date(externalTime), lastRevMap.values());
+            double delay = ((double) externalTime - localTime) / 1000d;
+            String fmt = "Background read will be delayed by %.1f seconds. " +
+                    "Please check system time on cluster nodes.";
+            String msg = String.format(fmt, delay);
+            LOG.warn(msg);
+            while (localTime + 60000 < externalTime) {
+                clock.waitUntil(localTime + 60000);
+                localTime = clock.getTime();
+                delay = ((double) externalTime - localTime) / 1000d;
+                LOG.warn(String.format(fmt, delay));
+            }
+            clock.waitUntil(externalTime + 1);
+        } else if (localTime == externalTime) {
+            // make sure local time is past external time
+            // but only log at debug
+            LOG.debug("Local and external time are equal. Waiting until local" +
+                    "time is more recent than external reported time.");
+            clock.waitUntil(externalTime + 1);
+        }
+    }
+
+    /**
+     * Calls {@link Thread#join()} on each of the passed threads and catches
+     * any potentially thrown {@link InterruptedException}.
+     *
+     * @param threads the threads to join.
+     */
+    public static void joinQuietly(Thread... threads) {
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                // ignore
+            }
+        }
     }
 }

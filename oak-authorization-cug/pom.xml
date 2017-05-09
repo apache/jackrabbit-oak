@@ -17,14 +17,21 @@
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>jackrabbit-oak</artifactId>
     <groupId>org.apache.jackrabbit</groupId>
-    <version>1.4-SNAPSHOT</version>
+    <artifactId>oak-parent</artifactId>
+    <version>1.8-SNAPSHOT</version>
+    <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
+  <properties>
+    <!-- enable execution of jacoco and set minimal line coverage -->
+    <skip.coverage>false</skip.coverage>
+    <minimum.coverage>0.96</minimum.coverage>
+  </properties>
+
   <artifactId>oak-authorization-cug</artifactId>
-  <name>Oak CUG</name>
+  <name>Oak CUG Authorization</name>
   <packaging>bundle</packaging>
 
   <build>
@@ -44,27 +51,21 @@
           </instructions>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-            <configuration>
-              <excludes>
-                <exclude>logback-test.xml</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
   <!-- Dependencies to other Oak components -->
   <dependencies>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-spi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-core</artifactId>
@@ -116,6 +117,11 @@
       <artifactId>org.apache.felix.scr.annotations</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>biz.aQute.bnd</groupId>
+      <artifactId>bndlib</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
     <!-- Findbugs annotations -->
     <dependency>
@@ -125,13 +131,30 @@
 
     <!-- Test dependencies -->
     <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-core</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jcr</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jcr</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 </project>

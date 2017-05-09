@@ -1,18 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.4-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>oak-exercise</artifactId>
   <name>Oak Exercises</name>
+  <packaging>bundle</packaging>
+
+  <properties>
+    <skip.deployment>false</skip.deployment>
+  </properties>
 
   <build>
     <plugins>
@@ -20,25 +41,8 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <!-- TODO set skip to false in order to run the tests -->
           <skip>true</skip>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-            <configuration>
-              <excludes>
-                <exclude>logback-test.xml</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -85,7 +89,7 @@
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-jcr</artifactId>
+      <artifactId>oak-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -96,6 +100,11 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-auth-external</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -117,7 +126,6 @@
 
     <!-- OSGi -->
     <dependency>
-      <!-- somehow the 1.6.0_65 compiler crashes on osx without this. -->
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.scr.annotations</artifactId>
       <scope>provided</scope>
@@ -125,12 +133,6 @@
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.jaas</artifactId>
-      <version>0.0.2</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -156,27 +158,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>jul-to-slf4j</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-tests</artifactId>
       <version>${jackrabbit.version}</version>
@@ -184,9 +165,15 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-commons</artifactId>
+      <artifactId>oak-core</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jcr</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -198,64 +185,14 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-core</artifactId>
+      <artifactId>oak-segment-tar</artifactId>
       <version>${project.version}</version>
-      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-    <!--<dependency>-->
-    <!--<groupId>org.apache.jackrabbit</groupId>-->
-    <!--<artifactId>jackrabbit-core</artifactId>-->
-    <!--<version>${jackrabbit.version}</version>-->
-    <!--<classifier>tests</classifier>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.jackrabbit</groupId>-->
-    <!--<artifactId>jackrabbit-core</artifactId>-->
-    <!--<version>${jackrabbit.version}</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.jackrabbit</groupId>-->
-    <!--<artifactId>jackrabbit-data</artifactId>-->
-    <!--<version>${jackrabbit.version}</version>-->
-    <!--<classifier>tests</classifier>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.jackrabbit</groupId>-->
-    <!--<artifactId>jackrabbit-jcr-server</artifactId>-->
-    <!--<version>${jackrabbit.version}</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
     <dependency>
-      <groupId>org.apache.geronimo.specs</groupId>
-      <artifactId>geronimo-jta_1.0.1B_spec</artifactId>
-      <version>1.0.1</version>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
-    <!--<dependency>-->
-    <!--<groupId>org.apache.commons</groupId>-->
-    <!--<artifactId>commons-math3</artifactId>-->
-    <!--<version>3.2</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>com.googlecode.json-simple</groupId>-->
-    <!--<artifactId>json-simple</artifactId>-->
-    <!--<version>1.1.1</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>commons-dbcp</groupId>-->
-    <!--<artifactId>commons-dbcp</artifactId>-->
-    <!--<version>1.4</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.sling</groupId>-->
-    <!--<artifactId>org.apache.sling.testing.osgi-mock</artifactId>-->
-    <!--</dependency>-->
   </dependencies>
 </project>

@@ -85,6 +85,18 @@
                 <filter class="solr.TrimFilterFactory"/>
             </analyzer>
         </fieldtype>
+        <fieldtype name="spellcheck" class="solr.TextField">
+            <analyzer type="index">
+                <tokenizer class="solr.ClassicTokenizerFactory"/>
+                <filter class="solr.LowerCaseFilterFactory"/>
+                <filter class="solr.ShingleFilterFactory" minShingleSize="2"  maxShingleSize="3"
+                        outputUnigrams="true" outputUnigramsIfNoShingles="true" tokenSeparator=" " fillerToken="*"/>
+            </analyzer>
+            <analyzer type="query">
+                <tokenizer class="solr.KeywordTokenizerFactory"/>
+                <filter class="solr.LowerCaseFilterFactory"/>
+            </analyzer>
+        </fieldtype>
 
         <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
 
@@ -103,12 +115,6 @@
 
         <fieldtype name="binary" class="solr.BinaryField"/>
 
-        <fieldType name="pint" class="solr.IntField"/>
-        <fieldType name="plong" class="solr.LongField"/>
-        <fieldType name="pfloat" class="solr.FloatField"/>
-        <fieldType name="pdouble" class="solr.DoubleField"/>
-        <fieldType name="pdate" class="solr.DateField" sortMissingLast="true"/>
-
         <fieldType name="point" class="solr.PointType" dimension="2" subFieldSuffix="_d"/>
 
         <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_coordinate"/>
@@ -126,18 +132,28 @@
         <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
         <field name="ignored" type="ignored" />
         <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true" termVectors="true"/> <!-- term vectors used for rep:similar -->
-        <field name="_version_" type="long" indexed="true" stored="true"/>
         <field name=":path" type="string" indexed="true" stored="false"/>
         <field name=":indexed" type="tdate" indexed="true" stored="false" default="NOW" docValues="true"/>
         <field name=":suggest-weight" type="tint" indexed="false" stored="false" default="1"  docValues="true"/>
         <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
+        <field name=":spellcheck" type="spellcheck" indexed="true" stored="false" multiValued="true" />
+        <field name="path_collapsed" type="string" indexed="true" stored="true"/>
+        <field name="path_depth" type="tint" indexed="true" stored="false"/>
+        <field name="_version_" type="long" indexed="true" stored="true"/>
+
+        <field name="jcr:title" type="text_general" indexed="true" stored="true" multiValued="true" />
+        <field name="jcr:description" type="text_general" indexed="true" stored="true" multiValued="true" />
+        <field name="text" type="text_general" indexed="true" stored="true" multiValued="true" />
+
+        <!-- facet fields -->
+        <dynamicField name="*_facet" type="string" indexed="false" stored="false" docValues="true" multiValued="true"/>
 
         <!-- sorting dynamic fields -->
         <dynamicField name="*_double_sort" type="tdouble" indexed="false" stored="false" multiValued="false" docValues="true"/>
         <dynamicField name="*_string_sort" type="string" indexed="false" stored="false" multiValued="false" docValues="true"/>
         <dynamicField name="*_binary_sort" type="string" indexed="true" stored="false" multiValued="false" omitNorms="true"/>
 
-        <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
+        <dynamicField name="*" type="text_general" indexed="true" stored="false" multiValued="true"/>
     </fields>
     <uniqueKey>path_exact</uniqueKey>
     <copyField source="path_exact" dest="path_anc"/>
@@ -145,6 +161,12 @@
     <copyField source="path_exact" dest="path_child"/>
     <copyField source="path_exact" dest=":path"/>
     <copyField source="*" dest="catch_all"/>
+    <copyField source="jcr:description" dest="jcr:description_facet"/>
+    <copyField source="jcr:title" dest="jcr:title_facet"/>
+    <copyField source="text" dest="text_facet"/>
+    <copyField source="tags" dest="tags_facet"/>
+    <copyField source="jcr:title" dest=":spellcheck"/>
+    <copyField source="jcr:description" dest=":spellcheck"/>
     <copyField source="jcr:title" dest=":suggest"/>
     <copyField source="jcr:description" dest=":suggest"/>
 </schema>

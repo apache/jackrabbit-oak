@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,8 +50,9 @@ public class Document implements CacheValue {
     public static final String ID = "_id";
 
     /**
-     * The modification count on the document. This is an long value
-     * incremented on every modification.
+     * The modification count on the document. This field is optional and a
+     * {@link DocumentStore} implementation may use it to keep track of how many
+     * times a document is modified. See also {@link #getModCount()}.
      */
     public static final String MOD_COUNT = "_modCount";
 
@@ -81,8 +83,8 @@ public class Document implements CacheValue {
      *         none is set.
      */
     @CheckForNull
-    public Number getModCount() {
-        return (Number) get(MOD_COUNT);
+    public Long getModCount() {
+        return Utils.asLong((Number) get(MOD_COUNT));
     }
 
     /**
@@ -109,10 +111,28 @@ public class Document implements CacheValue {
     }
 
     /**
+     * Removes the given <code>key</code>.
+     *
+     * @param key the key.
+     * @return the previous value or <code>null</code> if there was none.
+     */
+    @CheckForNull
+    public Object remove(String key) {
+        return data.remove(key);
+    }
+
+    /**
      * @return a Set view of the keys contained in this document.
      */
     public Set<String> keySet() {
         return data.keySet();
+    }
+
+    /**
+     * @return a Set view of the entries contained in this document.
+     */
+    public Set<Entry<String, Object>> entrySet() {
+        return data.entrySet();
     }
 
     /**

@@ -32,5 +32,5 @@ public interface SolrServerConfigurationProvider<S extends SolrServerProvider> {
      * @return the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration} holding the configuration parameters
      */
     @Nonnull
-    public SolrServerConfiguration<S> getSolrServerConfiguration();
+    SolrServerConfiguration<S> getSolrServerConfiguration();
 }

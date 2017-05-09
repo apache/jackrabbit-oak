@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -34,14 +35,51 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPerm
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link CompositeAuthorizationConfiguration} that combines different
  * authorization models. This implementation has the following characteristics:
  *
- * TODO This is work in progress (OAK-1268)
+ * <h2>AccessControlManager</h2>
+ * <ul>
+ *     <li>This method will return an aggregation of {@code AccessControlManager}s in case
+ *     multiple {@code AuthorizationConfiguration}s are present (see {@code CompositeAccessControlManager}).</li>
+ *     <li>If the composite only contains a single entry the {@code AccessControlManager}
+ *     of this implementation is return without extra wrapping.</li>
+ *     <li>If the list of configurations is empty an {@code IllegalStateException} is thrown.</li>
+ * </ul>
+ *
+ * <h2>PermissionProvider</h2>
+ * <ul>
+ *     <li>This method will return an aggregation of {@code PermissionProvider}s in case
+ *     multiple {@code AuthorizationConfiguration}s exposing an {@link AggregatedPermissionProvider}
+ *     are present (see {@link CompositePermissionProvider}. Note however, that
+ *     providers not implementing the {@code AggregatedPermissionProvider} extension
+ *     will be ignored.</li>
+ *     <li>If the composite only contains a single entry the {@code PermissionProvider}
+ *     of this implementation is return without extra wrapping.</li>
+ *     <li>If the list of configurations is empty an {@code IllegalStateException} is thrown.</li>
+ * </ul>
+ *
+ * <h2>RestrictionProvider</h2>
+  * <ul>
+  *     <li>This method will return an aggregation of {@code RestrictionProvider}s in case
+  *     multiple {@code AuthorizationConfiguration}s are present (see {@code CompositeRestrictionProvider}).</li>
+  *     <li>If the composite only contains a single entry the {@code RestrictionProvider}
+  *     of this implementation is return without extra wrapping.</li>
+  *     <li>If the list of configurations is empty {@link RestrictionProvider#EMPTY } is returned.</li>
+  * </ul>
+ *
  */
 public class CompositeAuthorizationConfiguration extends CompositeConfiguration<AuthorizationConfiguration> implements AuthorizationConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(CompositeAuthorizationConfiguration.class);
+
+    public CompositeAuthorizationConfiguration() {
+        super(AuthorizationConfiguration.NAME);
+    }
 
     public CompositeAuthorizationConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(AuthorizationConfiguration.NAME, securityProvider);
@@ -70,14 +108,20 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
     @Nonnull
     @Override
     public RestrictionProvider getRestrictionProvider() {
-        return CompositeRestrictionProvider.newInstance(
-                Lists.transform(getConfigurations(),
-                        new Function<AuthorizationConfiguration, RestrictionProvider>() {
-                            @Override
-                            public RestrictionProvider apply(AuthorizationConfiguration authorizationConfiguration) {
-                                return authorizationConfiguration.getRestrictionProvider();
-                            }
-                        }));
+        List<AuthorizationConfiguration> configurations = getConfigurations();
+        switch (configurations.size()) {
+            case 0: return RestrictionProvider.EMPTY;
+            case 1: return configurations.get(0).getRestrictionProvider();
+            default:
+                List<RestrictionProvider> rps = new ArrayList<RestrictionProvider>(configurations.size());
+                for (AuthorizationConfiguration c : configurations) {
+                    RestrictionProvider rp = c.getRestrictionProvider();
+                    if (RestrictionProvider.EMPTY != rp) {
+                        rps.add(rp);
+                    }
+                }
+                return CompositeRestrictionProvider.newInstance(rps);
+        }
     }
 
     @Nonnull
@@ -90,11 +134,13 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getPermissionProvider(root, workspaceName, principals);
             default:
-                List<AggregatedPermissionProvider> aggrPermissionProviders = Lists.newArrayListWithCapacity(configurations.size());
+                List<AggregatedPermissionProvider> aggrPermissionProviders = new ArrayList(configurations.size());
                 for (AuthorizationConfiguration conf : configurations) {
                     PermissionProvider pProvider = conf.getPermissionProvider(root, workspaceName, principals);
                     if (pProvider instanceof AggregatedPermissionProvider) {
                         aggrPermissionProviders.add((AggregatedPermissionProvider) pProvider);
+                    } else {
+                        log.debug("Ignoring permission provider of '{}': Not an AggregatedPermissionProvider", conf.getClass().getName());
                     }
                 }
                 PermissionProvider pp;
@@ -106,7 +152,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                         pp = aggrPermissionProviders.get(0);
                         break;
                     default :
-                        pp = new CompositePermissionProvider(root, aggrPermissionProviders);
+                        pp = new CompositePermissionProvider(root, aggrPermissionProviders, getContext());
                 }
                 return pp;
         }

@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -24,9 +28,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.OakSolrNodeStateConfiguration}
@@ -37,7 +38,7 @@ public class OakSolrNodeStateConfigurationTest {
 
     @Before
     public void setUp() throws Exception {
-        store = new SegmentNodeStore();
+        store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         NodeBuilder builder = store.getRoot().builder();
         builder.setProperty("a", 1)
                .setProperty("b", 2)

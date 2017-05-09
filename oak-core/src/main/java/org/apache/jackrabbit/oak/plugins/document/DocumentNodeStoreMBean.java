@@ -19,12 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.commons.jmx.Name;
+import javax.management.openmbean.CompositeData;
+
+import org.apache.jackrabbit.oak.api.jmx.Description;
+import org.apache.jackrabbit.oak.api.jmx.Name;
 
 @SuppressWarnings("UnusedDeclaration")
 public interface DocumentNodeStoreMBean {
     String TYPE = "DocumentNodeStore";
 
+    @Deprecated
     String getRevisionComparatorState();
 
     String getHead();
@@ -40,4 +44,20 @@ public interface DocumentNodeStoreMBean {
     String[] getLastKnownRevisions();
 
     String formatRevision(@Name("revision") String rev, @Name("UTC")boolean utc);
+
+    @Description("Return the estimated time difference in milliseconds between\n" +
+        "the local instance and the (typically common, shared) document server system.\n" +
+        "The value can be zero if the times are estimated to be equal,\n" +
+        "positive when the local instance is ahead of the remote server\n" +
+        "and negative when the local instance is behind the remote server. An invocation is not cached\n" +
+        "and typically requires a round-trip to the server (but that is not a requirement).")
+    long determineServerTimeDifferenceMillis();
+
+    CompositeData getMergeSuccessHistory();
+
+    CompositeData getMergeFailureHistory();
+
+    CompositeData getExternalChangeCountHistory();
+
+    CompositeData getBackgroundUpdateCountHistory();
 }

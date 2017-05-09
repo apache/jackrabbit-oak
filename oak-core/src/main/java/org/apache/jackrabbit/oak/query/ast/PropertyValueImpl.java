@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
  * A property expression.
@@ -140,6 +141,15 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             f.restrictPropertyAsList(pn, list);
         }
     }
+    
+    @Override
+    public String getFunction(SelectorImpl s) {
+        if (!s.equals(selector)) {
+            return null;
+        }
+        String pn = normalizePropertyName(propertyName);
+        return "@" + pn;
+    }
 
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {
@@ -154,6 +164,20 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     @Override
     public PropertyValueImpl createCopy() {
         return new PropertyValueImpl(selectorName, propertyName);
+    }
+
+    @Override
+    public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
+        if (!s.equals(selector)) {
+            // ordered by a different selector
+            return null;
+        }
+        String pn = normalizePropertyName(propertyName);
+        return new OrderEntry(
+            pn, 
+            Type.UNDEFINED, 
+            o.isDescending() ? 
+            OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 
 }

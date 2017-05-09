@@ -20,7 +20,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -29,16 +31,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class RevisionsKey implements CacheValue, Comparable<RevisionsKey> {
 
-    private final Revision r1, r2;
+    private static final Logger log = LoggerFactory.getLogger(RevisionsKey.class);
 
-    public RevisionsKey(Revision r1, Revision r2) {
+    private final RevisionVector r1, r2;
+
+    public RevisionsKey(RevisionVector r1, RevisionVector r2) {
         this.r1 = checkNotNull(r1);
         this.r2 = checkNotNull(r2);
     }
 
     @Override
     public int getMemory() {
-        return 88;
+        long size = 32 + (long)r1.getMemory() + (long)r2.getMemory();
+        if (size > Integer.MAX_VALUE) {
+            log.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
     }
 
     @Override
@@ -65,11 +74,11 @@ public final class RevisionsKey implements CacheValue, Comparable<RevisionsKey> 
     }
 
     public int compareTo(@Nonnull RevisionsKey k) {
-        int c = StableRevisionComparator.INSTANCE.compare(r1, k.r1);
+        int c = r1.compareTo(k.r1);
         if (c != 0) {
             return c;
         }
-        return StableRevisionComparator.INSTANCE.compare(r2, k.r2);
+        return r2.compareTo(k.r2);
     }
 
     public static RevisionsKey fromString(String s) {
@@ -78,7 +87,7 @@ public final class RevisionsKey implements CacheValue, Comparable<RevisionsKey> 
             throw new IllegalArgumentException(s);
         }
         return new RevisionsKey(
-                Revision.fromString(s.substring(0, idx)),
-                Revision.fromString(s.substring(idx + 1)));
+                RevisionVector.fromString(s.substring(0, idx)),
+                RevisionVector.fromString(s.substring(idx + 1)));
     }
 }

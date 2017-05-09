@@ -86,6 +86,12 @@ var oak = (function(global){
      * @returns {number} the number of children, including all descendant nodes.
      */
     api.countChildren = function(path){
+        if (path === undefined) {
+            return 0;
+        } else if (path != "/") {
+            path = path + "/";
+        }
+
         var depth = pathDepth(path);
         var totalCount = 0;
         while (true) {
@@ -130,6 +136,10 @@ var oak = (function(global){
      *        parameter of the function.
      */
     api.forEachChild = function(path, callable) {
+        if (path !== undefined && path != "/") {
+            path = path + "/";
+        }
+
         var depth = pathDepth(path);
         while (true) {
             var cur = db.nodes.find({_id: pathFilter(depth++, path)});
@@ -555,6 +565,80 @@ var oak = (function(global){
         return getRevisionEntry(doc, commitRootPath, revision);
     };
     
+    /**
+     * Prints mongoexport command to export all documents related to given path.
+     * Related documents refer to all documents in the hierarchy and their split documents.
+     * e.g.
+     * > oak.printMongoExportCommand("/etc", {db: "aem-author"})
+     *
+     * @memberof oak
+     * @method printMongoExportCommand
+     * @param {string} path the path of the document.
+     * @param {object} options pass optional parameters for host, port, db, and filename 
+     * @returns {string} command line which can be used to export documents using mongoexport
+     */
+
+    api.printMongoExportCommand = function (path, options) {
+        options = options || {};
+        var host = options.host || "127.0.0.1";
+        var port = options.port || "27017";
+        var db = options.db || "oak";
+        var filename = options.filename || "all-required-nodes.json"
+
+        var query = JSON.stringify(getDocAndHierarchyQuery(path));
+
+        var mongoExportCommand = "mongoexport"
+                                    + " --host " + host
+                                    + " --port " + port
+                                    + " --db " + db
+                                    + " --collection nodes"
+                                    + " --out " + filename
+                                    + " --query '" + query + "'";
+
+        return mongoExportCommand;
+    };
+
+    /**
+     * Prints mongoexport command to export oplog entries around time represented by revision.
+     * e.g.
+     * > oak.printOplogSliceCommand("r14e64620028-0-1", {db: "aem-author"})
+     * Note, this assumed that time on mongo instance is synchronized with time on oak instance. If that's
+     * not the case, then adjust revStr to account for the difference.
+     *
+     * @memberof oak
+     * @method printOplogSliceCommand
+     * @param {string} revStr revision string around which oplog is to be exported.
+     * @param {object} options pass optional parameters for host, port, db, filename, oplogTimeBuffer
+     * @returns {string} command line which can be used to export oplog entries using mongoexport
+     */
+
+    api.printOplogSliceCommand = function (revStr, options) {
+        options = options || {};
+        var host = options.host || "127.0.0.1";
+        var port = options.port || "27017";
+        var db = options.db || "oak";
+        var filename = options.filename || "oplog.json";
+        var oplogTimeBuffer = options.oplogTimeBuffer || 10;
+
+        var rev = new Revision(revStr);
+        var revTimeInSec = rev.asDate().getTime()/1000;
+        var startOplogTime = Math.floor(revTimeInSec - oplogTimeBuffer);
+        var endOplogTime = Math.ceil(revTimeInSec + oplogTimeBuffer);
+
+        var query = '{"ns" : "' + db + '.nodes", "ts": {"$gte": Timestamp(' + startOplogTime
+                                                + ', 1), "$lte": Timestamp(' + endOplogTime + ', 1)}}';
+
+        var mongoExportCommand = "mongoexport"
+                                    + " --host " + host
+                                    + " --port " + port
+                                    + " --db local"
+                                    + " --collection oplog.rs"
+                                    + " --out " + filename
+                                    + " --query '" + query + "'";
+
+        return mongoExportCommand;
+    };
+
     //~--------------------------------------------------< internal >
 
     var checkOrFixDeepHistory = function(path, fix, prepare, verbose) {
@@ -899,6 +983,41 @@ var oak = (function(global){
     // http://stackoverflow.com/questions/3561493/is-there-a-regexp-escape-function-in-javascript
     var escapeForRegExp = function(s) {
         return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    };
+
+    var getDocAndHierarchyQuery = function (path) {
+        var paths = getHierarchyPaths(path);
+
+        var ins = [];
+        var ors = [];
+        paths.forEach(function (path) {
+            ins.push(pathDepth(path) + ':' + path);
+
+            var depth = pathDepth(path);
+            var splitDocRegex = '^' + (depth+2) + ':p' + path + (depth==0?'':'/');
+
+            ors.push({_id : {$regex : splitDocRegex}});
+        });
+
+        ors.push({_id : {$in : ins}});
+
+        return {$or : ors}
+    };
+
+    var getHierarchyPaths = function (path) {
+        var pathElems = path.split("/");
+        var lastPath = "";
+        var paths = ["/"];
+
+        pathElems.forEach(function (pathElem) {
+            //avoid empty path elems like "/".split("/")->["", ""] or "/a".split("/")->["", "a"]
+            if (pathElem != "") {
+                lastPath = lastPath + "/" + pathElem;
+                paths.push(lastPath);
+            }
+        });
+
+        return paths;
     };
 
     return api;

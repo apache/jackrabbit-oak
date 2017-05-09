@@ -162,7 +162,7 @@ public interface SecurityConfiguration {
         @Nonnull
         @Override
         public Context getContext() {
-            return new Context.Default();
+            return Context.DEFAULT;
         }
     }
 }

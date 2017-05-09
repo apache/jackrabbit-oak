@@ -33,9 +33,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.WeakHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
@@ -48,6 +50,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,6 +137,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    private BlobStatsCollector statsCollector = BlobStatsCollector.NOOP;
+
     public void setBlockSizeMin(int x) {
         validateBlockSize(x);
         this.blockSizeMin = x;
@@ -148,6 +153,14 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     public void setBlockSize(int x) {
         validateBlockSize(x);
         this.blockSize = x;
+    }
+
+    public void setStatsCollector(BlobStatsCollector stats) {
+        this.statsCollector = stats;
+    }
+
+    protected BlobStatsCollector getStatsCollector() {
+        return statsCollector;
     }
 
     private static void validateBlockSize(int x) {
@@ -184,6 +197,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
             // System.out.println("    write blob " +  StringUtils.convertBytesToHex(id));
             String blobId = StringUtils.convertBytesToHex(id);
             usesBlobId(blobId);
+            statsCollector.uploadCompleted(blobId);
             return blobId;
         } finally {
             try {
@@ -192,6 +206,20 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
                 // ignore
             }
         }
+    }
+
+    /**
+     * Default implementation ignores options and delegates to the {@link #writeBlob(InputStream)}
+     * method.
+     *
+     * @param in the input stream to write
+     * @param options the options to use
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+       return writeBlob(in);
     }
 
     @Override
@@ -353,7 +381,10 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
                 totalLength += blockLen;
                 IOUtils.writeVarInt(idStream, digest.length);
                 idStream.write(digest);
+
+                long start = System.nanoTime();
                 storeBlock(digest, level, Arrays.copyOf(block, blockLen));
+                statsCollector.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, blockLen);
             }
             if (idStream.size() > blockSize / 2) {
                 // convert large ids to a block, but ensure it can be stored as
@@ -417,6 +448,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
         while (true) {
             int type = idStream.read();
             if (type == -1) {
+                statsCollector.downloadCompleted(blobId);
                 return -1;
             } else if (type == TYPE_DATA) {
                 int len = IOUtils.readVarInt(idStream);
@@ -573,6 +605,11 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
         return new ChunkIterator(blobId);
+    }
+
+    @Override
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
     }
     
     /**

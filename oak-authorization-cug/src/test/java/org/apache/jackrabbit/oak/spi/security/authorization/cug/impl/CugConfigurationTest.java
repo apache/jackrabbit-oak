@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -46,6 +47,11 @@ public class CugConfigurationTest extends AbstractSecurityTest {
     private CugConfiguration createConfiguration(ConfigurationParameters params) {
         SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, params)));
         return new CugConfiguration(sp);
+    }
+
+    @Test
+    public void testGetName() {
+        assertEquals(AuthorizationConfiguration.NAME, createConfiguration(ConfigurationParameters.EMPTY).getName());
     }
 
     @Test
@@ -150,5 +156,4 @@ public class CugConfigurationTest extends AbstractSecurityTest {
             assertSame(EmptyPermissionProvider.getInstance(), pp);
         }
     }
-
 }

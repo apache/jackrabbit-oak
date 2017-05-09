@@ -142,6 +142,19 @@ abstract class Expression {
     boolean isName() {
         return false;
     }
+    
+    /**
+     * Get the most specific nodetype condition, that is a condition of the form
+     * "jcr:primaryType = 'x'". If there are multiple such conditions, only the
+     * most strict one needs to be returned. If there are no, or conflicting
+     * conditions, then null may be returned, meaning no usable condition.
+     * 
+     * @param selectorName the selector name
+     * @return null or the nodetype value
+     */
+    public String getMostSpecificNodeType(String selectorName) {
+        return null;
+    }
 
     /**
      * A literal expression.
@@ -212,6 +225,28 @@ abstract class Expression {
             }
             return left.toString();
         }
+        
+        @Override
+        public String getMostSpecificNodeType(String selectorName) {
+            if (!"=".equals(operator)) {
+                return null;
+            }
+            if (!(left instanceof Property)) {
+                return null;
+            }
+            Property p = (Property) left;
+            if (!(right instanceof Literal)) {
+                return null;
+            }
+            Literal l = (Literal) right;
+            if (!"jcr:primaryType".equals(p.name)) {
+                return null;
+            }
+            if (selectorName != null && !selectorName.equals(p.selector.name)) {
+                return null;
+            }
+            return l.rawText;
+        }   
         
         @Override
         Expression getLeft() {
@@ -318,18 +353,41 @@ abstract class Expression {
             }
             String commonLeft = getCommonLeftPart();
             if (commonLeft == null) {
+                // the case:
+                // (other>0 or x=1) or x=2
+                // can be converted to:
+                // other>0 or (x=1 or x=2)
+                // which can then be optimized
+                if (left instanceof OrCondition) {
+                    OrCondition orLeft = (OrCondition) left;
+                    Expression l1 = orLeft.left;
+                    Expression l2 = orLeft.right;
+                    OrCondition orRight = new OrCondition(l2, right);
+                    Expression o2 = orRight.optimize();
+                    if (o2 != orRight) {
+                        return new OrCondition(l1, o2);
+                    }
+                }
                 return this;
             }
             // "@x = 1 or @x = 2" is converted to "@x in (1, 2)"
             if (left instanceof InCondition) {
                 InCondition in = (InCondition) left;
                 in.list.addAll(right.getRight());
+                // return a new instance, because we changed
+                // the list
+                in = new InCondition(in.getLeft(), in.list);
                 return in;
+            }
+            Expression le = left.getLeft();
+            if (XPathToSQL2Converter.NODETYPE_UNION) {
+                if (commonLeft.endsWith("[jcr:primaryType]")) {
+                    return this;
+                }
             }
             ArrayList<Expression> list = new ArrayList<Expression>();
             list.addAll(left.getRight());
             list.addAll(right.getRight());
-            Expression le = left.getLeft();
             InCondition in = new InCondition(le, list);
             return in;
         }
@@ -409,24 +467,47 @@ abstract class Expression {
         }
         
         @Override
+        public String getMostSpecificNodeType(String selectorName) {
+            String nt = left.getMostSpecificNodeType(selectorName);
+            if (nt != null) {
+                return nt;
+            }
+            return right.getMostSpecificNodeType(selectorName);
+        }
+        
+        @Override
         AndCondition pullOrRight() {
-            if (right instanceof OrCondition) {
-                return this;
-            } else if (left instanceof OrCondition) {
-                return new AndCondition(right, left);
+            ArrayList<Expression> list = getAllAndConditions();
+            OrCondition or = null;
+            Expression result = null;
+            for(Expression e : list) {
+                if (e instanceof OrCondition && or == null) {
+                    or = (OrCondition) e;
+                } else if (result == null) {
+                    result = e;
+                } else {
+                    result = new AndCondition(result, e);
+                }
+            }
+            if (or != null) {
+                result = new AndCondition(result, or);
+            }
+            return (AndCondition) result;
+        }
+        
+        private ArrayList<Expression> getAllAndConditions() {
+            ArrayList<Expression> list = new ArrayList<Expression>();
+            if (left instanceof AndCondition) {
+                list.addAll(((AndCondition) left).getAllAndConditions());
+            } else {
+                list.add(left);
             }
             if (right instanceof AndCondition) {
-                // pull up x:
-                // a and (b and (x)) -> (a and b) and (x)
-                AndCondition r2 = (AndCondition) right;
-                r2 = r2.pullOrRight();
-                AndCondition l2 = new AndCondition(left, r2.left);
-                l2 = l2.pullOrRight();
-                return new AndCondition(l2, r2.right);
-            } else if (left instanceof AndCondition) {
-                return new AndCondition(right, left).pullOrRight();
+                list.addAll(((AndCondition) right).getAllAndConditions());
+            } else {
+                list.add(right);
             }
-            return this;
+            return list;
         }
         
         @Override
@@ -707,6 +788,8 @@ abstract class Expression {
     
         final Selector selector;
         final String name;
+        private String cacheString;
+        private boolean cacheOnlySelector;
         
         /**
          * If there was no "@" character in front of the property name. If that
@@ -723,6 +806,11 @@ abstract class Expression {
     
         @Override
         public String toString() {
+            if (cacheString != null) {
+                if (cacheOnlySelector == selector.onlySelector) {
+                    return cacheString;
+                }
+            }
             StringBuilder buff = new StringBuilder();
             if (!selector.onlySelector) {
                 buff.append(selector.name).append('.');
@@ -732,7 +820,9 @@ abstract class Expression {
             } else {
                 buff.append('[').append(name).append(']');
             }
-            return buff.toString();
+            cacheString = buff.toString();
+            cacheOnlySelector = selector.onlySelector;
+            return cacheString;
         }
         
         @Override

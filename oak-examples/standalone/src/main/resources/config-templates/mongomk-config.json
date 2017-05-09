@@ -1,0 +1,7 @@
+{
+  "org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService" : {
+    "customBlobStore" : true,
+    "db" : "${oak.mongo.db}",
+    "mongouri" : "${oak.mongo.uri}"
+  }
+}

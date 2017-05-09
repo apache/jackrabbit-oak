@@ -24,6 +24,13 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
  * A row returned by the index.
  */
 public interface IndexRow {
+    /**
+     * Marks if the row is virtual and behavior of {@code getPath} is undefined. The implementation may
+     * choose to return {@code null} or empty string. User of a virtual row should now rely of value of
+     * {@code getPath} returned from virtual rows.
+     * @return if path is available for the current row
+     */
+    boolean isVirtualRow();
 
     /**
      * The path of the node, if available.

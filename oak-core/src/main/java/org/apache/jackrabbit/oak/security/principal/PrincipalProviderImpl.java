@@ -139,7 +139,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         try {
             return userManager.getAuthorizable(principal);
         } catch (RepositoryException e) {
-            log.debug("Error while retrieving principal: ", e.getMessage());
+            log.debug("Error while retrieving principal: {}", e.getMessage());
             return null;
         }
     }

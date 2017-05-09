@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.namepath;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NAMESPACES_PATH;
@@ -26,8 +27,11 @@ import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NSDA
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_PREFIXES;
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_URIS;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
+import static org.apache.jackrabbit.oak.plugins.tree.RootFactory.createReadOnlyRoot;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeFactory.createReadOnlyTree;
+import static org.apache.jackrabbit.oak.util.TreeUtil.getString;
+import static org.apache.jackrabbit.oak.util.TreeUtil.getStrings;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -35,11 +39,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -71,16 +72,24 @@ public class GlobalNameMapper implements NameMapper {
         }
     }
 
-    protected final Tree namespaces;
-    protected final Tree nsdata;
+    private final Root root;
+    private Tree namespaces;
+    private Tree nsdata;
 
     public GlobalNameMapper(Root root) {
-        this.namespaces = root.getTree(NAMESPACES_PATH);
-        this.nsdata = namespaces.getChild(REP_NSDATA);
+        this.root = root;
+        init();
     }
 
     public GlobalNameMapper(NodeState root) {
-        this(RootFactory.createReadOnlyRoot(root));
+        this(createReadOnlyRoot(root));
+    }
+
+    private void init() {
+        if (root != null) {
+            this.namespaces = root.getTree(NAMESPACES_PATH);
+            this.nsdata = namespaces.getChild(REP_NSDATA);
+        }
     }
 
     public GlobalNameMapper(Map<String, String> mappings) {
@@ -98,8 +107,9 @@ public class GlobalNameMapper implements NameMapper {
         reverse.setProperty(REP_PREFIXES, mappings.keySet(), STRINGS);
         reverse.setProperty(REP_URIS, mappings.values(), STRINGS);
 
-        this.namespaces = TreeFactory.createReadOnlyTree(forward.getNodeState());
-        this.nsdata = TreeFactory.createReadOnlyTree(reverse.getNodeState());
+        this.root = null;
+        this.namespaces = createReadOnlyTree(forward.getNodeState());
+        this.nsdata = createReadOnlyTree(reverse.getNodeState());
     }
 
     @Override @Nonnull
@@ -133,7 +143,7 @@ public class GlobalNameMapper implements NameMapper {
     @Nonnull
     @Override
     public Map<String, String> getSessionLocalMappings() {
-        return Collections.emptyMap();
+        return emptyMap();
     }
 
     @CheckForNull
@@ -165,12 +175,7 @@ public class GlobalNameMapper implements NameMapper {
             return uri;
         }
 
-        PropertyState mapping = nsdata.getProperty(encodeUri(uri));
-        if (mapping != null && mapping.getType() == STRING) {
-            return mapping.getValue(STRING);
-        }
-
-        return null;
+        return getNsData(encodeUri(uri));
     }
 
     @CheckForNull
@@ -179,12 +184,28 @@ public class GlobalNameMapper implements NameMapper {
             return prefix;
         }
 
-        PropertyState mapping = namespaces.getProperty(prefix);
-        if (mapping != null && mapping.getType() == STRING) {
-            return mapping.getValue(STRING);
-        }
+        return getNamespacesProperty(prefix);
+    }
 
-        return null;
+    protected String getNamespacesProperty(String prefix) {
+        return getString(namespaces, prefix);
+    }
+
+    private String getNsData(String uri) {
+        return getString(nsdata, uri);
+    }
+
+    protected Iterable<String> getPrefixes() {
+        Iterable<String> prefs = getStrings(nsdata, REP_PREFIXES);
+        if (prefs != null) {
+            return prefs;
+        } else {
+            return emptyList();
+        }
+    }
+
+    public void onSessionRefresh() {
+        init();
     }
 
 }

@@ -18,36 +18,33 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.Iterables.any;
-import static com.google.common.collect.Iterables.isEmpty;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
+import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
-import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
-import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
-import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
-import org.apache.jackrabbit.oak.query.ast.InImpl;
-import org.apache.jackrabbit.oak.query.ast.Operator;
-import org.apache.jackrabbit.oak.query.ast.OrImpl;
-import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
-import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * Plan for querying a given property index using a given filter.
@@ -57,22 +54,12 @@ public class PropertyIndexPlan {
     /**
      * The cost overhead to use the index in number of read operations.
      */
-    private static final double COST_OVERHEAD = 2;
+    public static final double COST_OVERHEAD = 2;
 
     /**
      * The maximum cost when the index can be used.
      */
     static final int MAX_COST = 100;
-
-    /** Index storage strategy */
-    private static final IndexStoreStrategy MIRROR =
-            new ContentMirrorStoreStrategy();
-
-    /** Index storage strategy */
-    private static final IndexStoreStrategy UNIQUE =
-            new UniqueEntryStoreStrategy();
-
-    private final NodeState root;
 
     private final NodeState definition;
 
@@ -80,7 +67,7 @@ public class PropertyIndexPlan {
 
     private final Set<String> properties;
 
-    private final IndexStoreStrategy strategy;
+    private final Set<IndexStoreStrategy> strategies;
 
     private final Filter filter;
 
@@ -94,18 +81,26 @@ public class PropertyIndexPlan {
 
     private final int depth;
 
-    PropertyIndexPlan(String name, NodeState root, NodeState definition, Filter filter) {
+    private final PathFilter pathFilter;
+
+    private final boolean unique;
+    
+    private final ValuePattern valuePattern;
+
+    PropertyIndexPlan(String name, NodeState root, NodeState definition,
+                      Filter filter){
+        this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
+    }
+
+    PropertyIndexPlan(String name, NodeState root, NodeState definition,
+                      Filter filter, MountInfoProvider mountInfoProvider) {
         this.name = name;
-        this.root = root;
+        this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
         this.properties = newHashSet(definition.getNames(PROPERTY_NAMES));
-
-        if (definition.getBoolean(UNIQUE_PROPERTY_NAME)) {
-            this.strategy = UNIQUE;
-        } else {
-            this.strategy = MIRROR;
-        }
-
+        this.valuePattern = new ValuePattern(definition.getString(IndexConstants.VALUE_PATTERN));
+        pathFilter = PathFilter.from(definition.builder());
+        this.strategies = getStrategies(definition, mountInfoProvider);
         this.filter = filter;
 
         Iterable<String> types = definition.getNames(DECLARING_NODE_TYPES);
@@ -118,7 +113,8 @@ public class PropertyIndexPlan {
         Set<String> bestValues = emptySet();
         int bestDepth = 1;
 
-        if (matchesNodeTypes) {
+        if (matchesNodeTypes &&
+                pathFilter.areAllDescendantsIncluded(filter.getPath())) {
             for (String property : properties) {
                 PropertyRestriction restriction =
                         filter.getPropertyRestriction(property);
@@ -142,29 +138,53 @@ public class PropertyIndexPlan {
                         // covering indexes are not currently supported
                         continue;
                     }
-                    Set<String> values = getValues(restriction);
-                    double cost = strategy.count(filter, root, definition, values, MAX_COST);
+                    if (depth != 1 && !matchesAllTypes) {
+                        // OAK-3589
+                        // index has a nodetype condition, and the property condition is
+                        // relative: can not use this index, as we don't know the nodetype
+                        // of the child node (well, we could, for some node types)
+                        continue;
+                    }
+                    Set<String> values = getValues(restriction, new ValuePattern(null));
+                    if (valuePattern.matchesAll()) {
+                        // matches all values: not a problem
+                    } else if (values == null) {
+                        // "is not null" condition, but we have a value pattern
+                        // that doesn't match everything
+                        // so we can't use that index
+                        continue;
+                    } else {
+                        boolean allValuesMatches = true;
+                        for (String v : values) {
+                            if (!valuePattern.matches(v)) {
+                                allValuesMatches = false;
+                                break;
+                            }
+                        }
+                        // we have a value pattern, for example (a|b),
+                        // but we search (also) for 'c': can't match
+                        if (!allValuesMatches) {
+                            continue;
+                        }
+                    }
+                    double cost = strategies.isEmpty() ? MAX_COST : 0;
+                    for (IndexStoreStrategy strategy : strategies) {
+                        cost += strategy.count(filter, root, definition,
+                                values, MAX_COST);
+                    }
+                    if (unique && cost <= 1) {
+                        // for unique index, for the normal case
+                        // (that is, for a regular lookup)
+                        // no further reads are needed
+                        cost = 0;
+                    }
                     if (cost < bestCost) {
                         bestDepth = depth;
                         bestValues = values;
                         bestCost = cost;
-                    }
-                }
-            }
-
-            // OAK-1965: let's see if we can find a (x='...' OR y='...')
-            // constraint where both x and y are covered by this index
-            // TODO: avoid repeated scans through the constraints
-            for (ConstraintImpl constraint
-                    : filter.getSelector().getSelectorConstraints()) {
-                if (constraint instanceof OrImpl) {
-                    Set<String> values = findMultiProperty((OrImpl) constraint);
-                    if (values != null) {
-                        double cost = strategy.count(filter, root, definition, values, MAX_COST);
-                        if (cost < bestCost) {
-                            bestDepth = 1;
-                            bestValues = values;
-                            bestCost = cost;
+                        if (bestCost == 0) {
+                            // shortcut: not possible to top this
+                            break;
                         }
                     }
                 }
@@ -176,58 +196,18 @@ public class PropertyIndexPlan {
         this.cost = COST_OVERHEAD + bestCost;
     }
 
-    private Set<String> findMultiProperty(OrImpl or) {
-        Set<String> values = newLinkedHashSet();
-        for (ConstraintImpl constraint : or.getConstraints()) {
-            if (constraint instanceof ComparisonImpl) {
-                ComparisonImpl comparison = (ComparisonImpl) constraint;
-                if (isIndexed(comparison.getOperand1())
-                        && comparison.getOperator() == Operator.EQUAL) {
-                    values.addAll(encode(comparison.getOperand2().currentValue()));
-                } else {
-                    return null;
-                }
-            } else if (constraint instanceof InImpl) {
-                InImpl in = (InImpl) constraint;
-                if (isIndexed(in.getOperand1())) {
-                    for (StaticOperandImpl operand : in.getOperand2()) {
-                        values.addAll(encode(operand.currentValue()));
-                    }
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        }
-        return values;
-    }
-
-    /**
-     * Checks whether the given dynamic operand is a property
-     * covered by this index.
-     */
-    private boolean isIndexed(DynamicOperandImpl operand) {
-        if (operand instanceof PropertyValueImpl) {
-            PropertyValueImpl property = (PropertyValueImpl) operand;
-            return properties.contains(property.getPropertyName());
-        } else {
-            return false;
-        }
-    }
-
-    private static Set<String> getValues(PropertyRestriction restriction) {
+    private static Set<String> getValues(PropertyRestriction restriction, ValuePattern pattern) {
         if (restriction.firstIncluding
                 && restriction.lastIncluding
                 && restriction.first != null
                 && restriction.first.equals(restriction.last)) {
             // "[property] = $value"
-            return encode(restriction.first);
+            return encode(restriction.first, pattern);
         } else if (restriction.list != null) {
             // "[property] IN (...)
             Set<String> values = newLinkedHashSet(); // keep order for testing
             for (PropertyValue value : restriction.list) {
-                values.addAll(encode(value));
+                values.addAll(encode(value, pattern));
             }
             return values;
         } else {
@@ -246,13 +226,26 @@ public class PropertyIndexPlan {
 
     Cursor execute() {
         QueryEngineSettings settings = filter.getQueryEngineSettings();
-        Cursor cursor = Cursors.newPathCursor(
-                strategy.query(filter, name, definition, values),
+        List<Iterable<String>> iterables = Lists.newArrayList();
+        for (IndexStoreStrategy s : strategies) {
+            iterables.add(s.query(filter, name, definition, values));
+        }
+        Cursor cursor = Cursors.newPathCursor(Iterables.concat(iterables),
                 settings);
         if (depth > 1) {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, settings);
         }
         return cursor;
+    }
+
+    Filter getFilter() {
+        return filter;
+    }
+
+    Set<IndexStoreStrategy> getStrategies(NodeState definition,
+            MountInfoProvider mountInfoProvider) {
+        return Multiplexers.getStrategies(unique, mountInfoProvider,
+                definition, INDEX_CONTENT_NODE_NAME);
     }
 
     //------------------------------------------------------------< Object >--

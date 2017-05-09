@@ -56,7 +56,7 @@ public class ReferenceChangeTracker {
 
     /**
      * Store the given id mapping for later lookup using
-     * {@code }{@link #get(String)}</code>.
+     * {@link #get(String)}.
      *
      * @param oldUUID old node id
      * @param newUUID new node id
@@ -75,7 +75,7 @@ public class ReferenceChangeTracker {
 
     /**
      * Store the given reference property for later retrieval using
-     * {@code }{@link #getProcessedReferences()}</code>.
+     * {@link #getProcessedReferences()}.
      *
      * @param refProp reference property
      */

@@ -45,17 +45,24 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     ScorerProviderFactory scorerFactory;
 
+    IndexAugmentorFactory augmentorFactory;
+
     public LuceneIndexProvider() {
         this(new IndexTracker());
     }
 
-    public LuceneIndexProvider(IndexTracker tracker) {
-        this(tracker, ScorerProviderFactory.DEFAULT);
+    public LuceneIndexProvider(IndexCopier indexCopier) {
+        this(new IndexTracker(indexCopier));
     }
 
-    public LuceneIndexProvider(IndexTracker tracker, ScorerProviderFactory scorerFactory) {
+    public LuceneIndexProvider(IndexTracker tracker) {
+        this(tracker, ScorerProviderFactory.DEFAULT, null);
+    }
+
+    public LuceneIndexProvider(IndexTracker tracker, ScorerProviderFactory scorerFactory, IndexAugmentorFactory augmentorFactory) {
         this.tracker = tracker;
         this.scorerFactory = scorerFactory;
+        this.augmentorFactory = augmentorFactory;
     }
 
     public void close() {
@@ -65,7 +72,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     //----------------------------------------------------------< Observer >--
 
     @Override
-    public void contentChanged(NodeState root, CommitInfo info) {
+    public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
         tracker.update(root);
     }
 
@@ -81,7 +88,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     }
 
     protected LucenePropertyIndex newLucenePropertyIndex() {
-        return new LucenePropertyIndex(tracker, scorerFactory);
+        return new LucenePropertyIndex(tracker, scorerFactory, augmentorFactory);
     }
 
     /**

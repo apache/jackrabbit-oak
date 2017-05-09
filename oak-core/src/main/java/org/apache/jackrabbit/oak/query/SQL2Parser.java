@@ -24,6 +24,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.jcr.PropertyType;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AstElementFactory;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
@@ -42,6 +44,8 @@ import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.JoinType;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyExistenceImpl;
@@ -51,7 +55,6 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +76,7 @@ public class SQL2Parser {
     private static final int KEYWORD = 1, IDENTIFIER = 2, PARAMETER = 3, END = 4, VALUE = 5;
     private static final int MINUS = 12, PLUS = 13, OPEN = 14, CLOSE = 15;
 
-    private final NodeState types;
+    private final NodeTypeInfoProvider nodeTypes;
 
     // The query as an array of characters and character types
     private String statement;
@@ -113,11 +116,12 @@ public class SQL2Parser {
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      * 
      * @param namePathMapper the name-path mapper to use
-     * @param types the node with the node type information
+     * @param nodeTypes the nodetypes
+     * @param settings the query engine settings
      */
-    public SQL2Parser(NamePathMapper namePathMapper, NodeState types, QueryEngineSettings settings) {
+    public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes, QueryEngineSettings settings) {
         this.namePathMapper = namePathMapper;
-        this.types = checkNotNull(types);
+        this.nodeTypes = checkNotNull(nodeTypes);
         this.settings = checkNotNull(settings);
     }
 
@@ -125,10 +129,11 @@ public class SQL2Parser {
      * Parse the statement and return the query.
      *
      * @param query the query string
+     * @param initialise if performing the query init ({@code true}) or not ({@code false})
      * @return the query
      * @throws ParseException if parsing fails
      */
-    public Query parse(String query) throws ParseException {
+    public Query parse(final String query, final boolean initialise) throws ParseException {
         // TODO possibly support union,... as available at
         // http://docs.jboss.org/modeshape/latest/manuals/reference/html/jcr-query-and-search.html
 
@@ -140,7 +145,8 @@ public class SQL2Parser {
         boolean explain = false, measure = false;
         if (readIf("EXPLAIN")) {
             explain = true;
-        } else if (readIf("MEASURE")) {
+        }
+        if (readIf("MEASURE")) {
             measure = true;
         }
         Query q = parseSelect();
@@ -157,21 +163,46 @@ public class SQL2Parser {
             read("BY");
             orderings = parseOrder();
         }
+        QueryOptions options = new QueryOptions();
+        if (readIf("OPTION")) {
+            read("(");
+            if (readIf("TRAVERSAL")) {
+                String n = readName().toUpperCase(Locale.ENGLISH);
+                options.traversal = Traversal.valueOf(n);
+            }
+            read(")");
+        }
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
         q.setOrderings(orderings);
         q.setExplain(explain);
         q.setMeasure(measure);
-        try {
-            q.init();
-        } catch (Exception e) {
-            ParseException e2 = new ParseException(query + ": " + e.getMessage(), 0);
-            e2.initCause(e);
-            throw e2;
-        }
         q.setInternal(isInternal(query));
+        q.setQueryOptions(options);
+
+        if (initialise) {
+            try {
+                q.init();
+            } catch (Exception e) {
+                ParseException e2 = new ParseException(statement + ": " + e.getMessage(), 0);
+                e2.initCause(e);
+                throw e2;
+            }
+        }
+
         return q;
+    }
+    
+    /**
+     * as {@link #parse(String, boolean)} by providing {@code true} to the initialisation flag.
+     * 
+     * @param query
+     * @return the parsed query
+     * @throws ParseException
+     */
+    public Query parse(final String query) throws ParseException {
+        return parse(query, true);
     }
     
     private QueryImpl parseSelect() throws ParseException {
@@ -230,8 +261,8 @@ public class SQL2Parser {
                 throw e2;
             }
         }
-        NodeState type = types.getChildNode(nodeTypeName);
-        if (!type.exists()) {
+        NodeTypeInfo nodeTypeInfo = nodeTypes.getNodeTypeInfo(nodeTypeName);
+        if (!nodeTypeInfo.exists()) {
             throw getSyntaxError("unknown node type");
         }
 
@@ -240,7 +271,7 @@ public class SQL2Parser {
             selectorName = readName();
         }
 
-        return factory.selector(type, selectorName);
+        return factory.selector(nodeTypeInfo, selectorName);
     }
 
     private String readName() throws ParseException {
@@ -607,7 +638,7 @@ public class SQL2Parser {
     private DynamicOperandImpl parseExpressionFunction(String functionName) throws ParseException {
         DynamicOperandImpl op;
         if ("LENGTH".equalsIgnoreCase(functionName)) {
-            op = factory.length(parsePropertyValue(readName()));
+            op = factory.length(parseDynamicOperand());
         } else if ("NAME".equalsIgnoreCase(functionName)) {
             if (isToken(")")) {
                 op = factory.nodeName(getOnlySelectorName());
@@ -855,7 +886,7 @@ public class SQL2Parser {
                             read(")");
                             column.propertyName = ":spellcheck";
                         }
-                        readOptionalAlias(column);                        
+                        readOptionalAlias(column);
                     } else if (readIf(".")) {
                         column.selectorName = column.propertyName;
                         if (readIf("*")) {
@@ -1212,14 +1243,17 @@ public class SQL2Parser {
             readDecimal(i - 1, i);
             return;
         case CHAR_BRACKETED:
+            currentTokenQuoted = true;
             readString(i, ']');
             currentTokenType = IDENTIFIER;
             currentToken = currentValue.getValue(Type.STRING);
             return;
         case CHAR_STRING:
+            currentTokenQuoted = true;
             readString(i, '\'');
             return;
         case CHAR_QUOTED:
+            currentTokenQuoted = true;
             readString(i, '\"');
             if (supportSQL1) {
                 // for SQL-2, this is a literal, as defined in

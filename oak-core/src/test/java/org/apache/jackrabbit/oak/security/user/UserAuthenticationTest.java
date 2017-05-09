@@ -39,7 +39,9 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -96,10 +98,8 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             // success
             assertTrue(e instanceof AccountNotFoundException);
         } finally {
-            if (g != null) {
-                g.remove();
-                root.commit();
-            }
+            g.remove();
+            root.commit();
         }
     }
 
@@ -187,6 +187,39 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     public void testAuthenticateImpersonationCredentials2() throws Exception {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
         assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, new TestAuthInfo())));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetUserIdBeforeLogin() {
+       authentication.getUserId();
+    }
+
+    @Test
+    public void testGetUserId() throws LoginException {
+        authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
+        assertEquals(userId, authentication.getUserId());
+    }
+
+    @Test
+    public void testGetUserIdCasedLoginId() throws LoginException {
+        String loginId = userId.toLowerCase();
+
+        UserAuthentication auth = new UserAuthentication(getUserConfiguration(), root, loginId);
+        assertTrue(auth.authenticate(new SimpleCredentials(loginId, userId.toCharArray())));
+
+        assertNotEquals(loginId, auth.getUserId());
+        assertEquals(userId, auth.getUserId());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetUserPrincipalBeforeLogin() {
+        authentication.getUserPrincipal();
+    }
+
+    @Test
+    public void testGetUserPrincipal() throws Exception {
+        authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
+        assertEquals(getTestUser().getPrincipal(), authentication.getUserPrincipal());
     }
 
     //--------------------------------------------------------------------------

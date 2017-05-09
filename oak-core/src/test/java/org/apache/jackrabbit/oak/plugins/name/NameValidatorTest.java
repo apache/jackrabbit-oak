@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.name;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
 
@@ -89,6 +90,11 @@ public class NameValidatorTest {
         validator.childNodeAdded("name", EMPTY_NODE);
     }
 
+    @Test(expected = CommitFailedException.class)
+    public void testNameWithLineBreaks() throws Exception{
+        validator.childNodeAdded("name\tx", EMPTY_NODE);
+    }
+
     @Test
     public void testDeleted() throws CommitFailedException {
         validator.childNodeDeleted(".", EMPTY_NODE);
@@ -98,4 +104,10 @@ public class NameValidatorTest {
         validator.childNodeDeleted("invalid/name", EMPTY_NODE);
     }
 
+    @Test
+    public void testEscaping() {
+        assertEquals("abc", NameValidator.getPrintableName("abc"));
+        assertEquals("\\t\\r\\n\\b\\f", NameValidator.getPrintableName("\t\r\n\b\f"));
+        assertEquals("\\u00e0", NameValidator.getPrintableName("\u00e0"));
+    }
 }

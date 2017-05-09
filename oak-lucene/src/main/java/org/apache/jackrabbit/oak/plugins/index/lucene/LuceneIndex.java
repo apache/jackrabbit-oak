@@ -16,26 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
-import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -48,14 +28,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
@@ -75,7 +54,9 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -84,18 +65,17 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.MultiPhraseQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
@@ -103,41 +83,55 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
+import org.apache.lucene.search.highlight.QueryScorer;
+import org.apache.lucene.search.highlight.SimpleHTMLEncoder;
+import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
+import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
-import org.apache.lucene.util.automaton.Automaton;
-import org.apache.lucene.util.automaton.CompiledAutomaton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.*;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
+import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
+import static org.apache.lucene.search.BooleanClause.Occur.*;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
  *
  * <p>
  * To define a lucene index on a subtree you have to add an
- * <code>oak:index<code> node.
+ * <code>oak:index</code> node.
  *
  * Under it follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
  * <li>must have the <code>type</code> property set to <b><code>lucene</code></b></li>
  * <li>must have the <code>async</code> property set to <b><code>async</code></b></li>
- * </b></li>
  * </ul>
- * </p>
  * <p>
  * Optionally you can add
  * <ul>
- * <li>what subset of property types to be included in the index via the <code>includePropertyTypes<code> property</li>
- * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames<code> property</li>
- * <li>the <code>reindex<code> flag which when set to <code>true<code>, triggers a full content re-index.</li>
+ * <li>what subset of property types to be included in the index via the <code>includePropertyTypes</code> property</li>
+ * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property</li>
+ * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.</li>
  * </ul>
- * </p>
- * <pre>
- * <code>
+ * <p>
+ * <pre>{@code
  * {
  *     NodeBuilder index = root.child("oak:index");
  *     index.child("lucene")
@@ -146,8 +140,7 @@ import org.slf4j.LoggerFactory;
  *         .setProperty("async", "async")
  *         .setProperty("reindex", "true");
  * }
- * </code>
- * </pre>
+ * }</pre>
  *
  * @see QueryIndex
  *
@@ -157,6 +150,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
+    private static double MIN_COST = 2.2;
 
     /**
      * IndexPaln Attribute name which refers to the path of Lucene index to be used
@@ -171,13 +165,23 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
     static final boolean USE_PATH_RESTRICTION = Boolean.getBoolean("oak.luceneUsePath");
 
+    static final int MAX_RELOAD_COUNT = Integer.getInteger("oak.luceneMaxReloadCount", 16);
+
     protected final IndexTracker tracker;
 
     private final NodeAggregator aggregator;
 
+    private final Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter("<strong>", "</strong>"),
+            new SimpleHTMLEncoder(), null);
+
     public LuceneIndex(IndexTracker tracker, NodeAggregator aggregator) {
         this.tracker = tracker;
         this.aggregator = aggregator;
+    }
+
+    @Override
+    public double getMinimumCost() {
+        return MIN_COST;
     }
 
     @Override
@@ -287,6 +291,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;
             private long lastSearchIndexerVersion;
+            private int reloadCount;
 
             @Override
             protected LuceneResultRow computeNext() {
@@ -296,7 +301,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 return endOfData();
             }
 
-            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher) throws IOException {
+            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 PathStoredFieldVisitor visitor = new PathStoredFieldVisitor();
                 reader.document(doc.doc, visitor);
@@ -321,7 +326,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         seenPaths.add(path);
                     }
 
-                    return new LuceneResultRow(path, doc.score);
+                    return new LuceneResultRow(path, doc.score, excerpt);
                 }
                 return null;
             }
@@ -349,33 +354,59 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         TopDocs docs;
                         long time = System.currentTimeMillis();
                         checkForIndexVersionChange(searcher);
-                        if (lastDoc != null) {
-                            LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
-                            docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
-                        } else {
-                            LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
-                            docs = searcher.search(query, nextBatchSize);
-                        }
-                        time = System.currentTimeMillis() - time;
-                        LOG.debug("... took {} ms", time);
-                        nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
-
-                        for (ScoreDoc doc : docs.scoreDocs) {
-                            LuceneResultRow row = convertToRow(doc, searcher);
-                            if (row != null) {
-                                queue.add(row);
+                        while (true) {
+                            if (lastDoc != null) {
+                                LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
+                                docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
+                            } else {
+                                LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
+                                docs = searcher.search(query, nextBatchSize);
                             }
-                            lastDocToRecord = doc;
+                            time = System.currentTimeMillis() - time;
+                            LOG.debug("... took {} ms", time);
+                            nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
+
+                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
+                            boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
+
+                            Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
+
+                            if (addExcerpt) {
+                                // setup highlighter
+                                QueryScorer scorer = new QueryScorer(query);
+                                scorer.setExpandMultiTermQuery(true);
+                                highlighter.setFragmentScorer(scorer);
+                            }
+
+                            for (ScoreDoc doc : docs.scoreDocs) {
+                                String excerpt = null;
+                                if (addExcerpt) {
+                                    excerpt = getExcerpt(analyzer, searcher, doc);
+                                }
+
+                                LuceneResultRow row = convertToRow(doc, searcher, excerpt);
+                                if (row != null) {
+                                    queue.add(row);
+                                }
+                                lastDocToRecord = doc;
+                            }
+
+                            if (queue.isEmpty() && docs.scoreDocs.length > 0) {
+                                lastDoc = lastDocToRecord;
+                            } else {
+                                break;
+                            }
                         }
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
+                        noDocs = true;
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
 
                         // ACL filter spellchecks
                         Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
-                            Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.string);
+                            Query query = qp.createPhraseQuery(FieldNames.SUGGEST, suggestion.string);
                             TopDocs topDocs = searcher.search(query, 100);
                             if (topDocs.totalHits > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
@@ -389,10 +420,10 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         }
 
                         queue.add(new LuceneResultRow(suggestedWords));
-                        noDocs = true;
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
                         SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
-                        List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(suggestQuery);
+                        noDocs = true;
+                        List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
                         // ACL filter suggestions
                         Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
@@ -412,7 +443,6 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         }
 
                         queue.add(new LuceneResultRow(suggestedWords));
-                        noDocs = true;
                     }
                 } catch (IOException e) {
                     LOG.warn("query via {} failed.", LuceneIndex.this, e);
@@ -430,14 +460,75 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             private void checkForIndexVersionChange(IndexSearcher searcher) {
                 long currentVersion = LucenePropertyIndex.getVersion(searcher);
                 if (currentVersion != lastSearchIndexerVersion && lastDoc != null){
+                    reloadCount++;
+                    if (reloadCount > MAX_RELOAD_COUNT) {
+                        LOG.error("More than {} index version changes detected for query {}", 
+                                MAX_RELOAD_COUNT, 
+                                plan);
+                        throw new IllegalStateException("Too many version changes");
+                    }
                     lastDoc = null;
                     LOG.debug("Change in index version detected {} => {}. Query would be performed without " +
-                            "offset", currentVersion, lastSearchIndexerVersion);
+                            "offset; reload {}", currentVersion, lastSearchIndexerVersion, reloadCount);
                 }
                 this.lastSearchIndexerVersion = currentVersion;
             }
         };
-        return new LucenePathCursor(itr, settings);
+        SizeEstimator sizeEstimator = new SizeEstimator() {
+            @Override
+            public long getSize() {
+                IndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
+                checkState(indexNode != null);                
+                try {
+                    IndexSearcher searcher = indexNode.getSearcher();
+                    LuceneRequestFacade luceneRequestFacade = getLuceneRequest(filter, searcher.getIndexReader(),
+                            nonFullTextConstraints, indexNode.getDefinition());
+                    if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
+                        Query query = (Query) luceneRequestFacade.getLuceneRequest();
+                        TotalHitCountCollector collector = new TotalHitCountCollector();
+                        searcher.search(query, collector);
+                        int totalHits =  collector.getTotalHits();
+                        LOG.debug("Estimated size for query {} is {}", query, totalHits);
+                        return totalHits;
+                    }
+                    LOG.debug("Estimated size: not a Query: {}", luceneRequestFacade.getLuceneRequest());
+                } catch (IOException e) {
+                    LOG.warn("query via {} failed.", LuceneIndex.this, e);
+                } finally {
+                    indexNode.release();
+                }
+                return -1;
+            }
+        };
+        return new LucenePathCursor(itr, settings, sizeEstimator);
+    }
+
+    private String getExcerpt(Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc) throws IOException {
+        StringBuilder excerpt = new StringBuilder();
+
+        for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields()) {
+            String name = field.name();
+            // only full text or analyzed fields
+            if (name.startsWith(FieldNames.FULLTEXT) || name.startsWith(FieldNames.ANALYZED_FIELD_PREFIX)) {
+                String text = field.stringValue();
+                TokenStream tokenStream = analyzer.tokenStream(name, text);
+                try {
+                    TextFragment[] textFragments = highlighter.getBestTextFragments(tokenStream, text, true, 2);
+                    if (textFragments != null && textFragments.length > 0) {
+                        for (TextFragment fragment : textFragments) {
+                            if (excerpt.length() > 0) {
+                                excerpt.append("...");
+                            }
+                            excerpt.append(fragment.toString());
+                        }
+                        break;
+                    }
+                } catch (InvalidTokenOffsetsException e) {
+                    LOG.error("higlighting failed", e);
+                }
+            }
+        }
+        return excerpt.toString();
     }
 
     protected static IndexPlan.Builder planBuilder(Filter filter){
@@ -557,14 +648,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         if (qs.size() == 0) {
             return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
         }
-        if (qs.size() == 1) {
-            return new LuceneRequestFacade<Query>(qs.get(0));
-        }
-        BooleanQuery bq = new BooleanQuery();
-        for (Query q : qs) {
-            bq.add(q, MUST);
-        }
-        return new LuceneRequestFacade<Query>(bq);
+        
+        return LucenePropertyIndex.performAdditionalWraps(qs);
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
@@ -629,12 +714,15 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
 
             String name = pr.propertyName;
-            if ("rep:excerpt".equals(name)) {
+            if (QueryImpl.REP_EXCERPT.equals(name) || QueryImpl.OAK_SCORE_EXPLANATION.equals(name) || QueryImpl.REP_FACET.equals(name)) {
                 continue;
             }
             if (JCR_PRIMARYTYPE.equals(name)) {
                 continue;
             }
+            if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
+                continue;
+            }              
 
             if (skipTokenization(name)) {
                 qs.add(new TermQuery(new Term(name, pr.first
@@ -876,18 +964,15 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
         } else {
             if (hasFulltextToken(tokens)) {
-                MultiPhraseQuery mpq = new MultiPhraseQuery();
+                BooleanQuery bq = new BooleanQuery();
                 for(String token: tokens){
                     if (hasFulltextToken(token)) {
-                        Term[] terms = extractMatchingTokens(reader, fieldName, token);
-                        if (terms != null && terms.length > 0) {
-                            mpq.add(terms);
-                        }
+                        bq.add(new WildcardQuery(newFulltextTerm(token, fieldName)), Occur.MUST);
                     } else {
-                        mpq.add(newFulltextTerm(token, fieldName));
+                        bq.add(new TermQuery(newFulltextTerm(token, fieldName)), Occur.MUST);
                     }
                 }
-                return mpq;
+                return bq;
             } else {
                 PhraseQuery pq = new PhraseQuery();
                 for (String t : tokens) {
@@ -895,36 +980,6 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 }
                 return pq;
             }
-        }
-    }
-
-    private static Term[] extractMatchingTokens(IndexReader reader, String fieldName, String token) {
-        if (reader == null) {
-            // getPlan call
-            return null;
-        }
-
-        try {
-            List<Term> terms = new ArrayList<Term>();
-            Term onTerm = newFulltextTerm(token, fieldName);
-            Terms t = MultiFields.getTerms(reader, onTerm.field());
-
-            //No existing field with given name indexed so no possible term values
-            if (t == null){
-                return new Term[0];
-            }
-
-            Automaton a = WildcardQuery.toAutomaton(onTerm);
-            CompiledAutomaton ca = new CompiledAutomaton(a);
-            TermsEnum te = ca.getTermsEnum(t);
-            BytesRef text;
-            while ((text = te.next()) != null) {
-                terms.add(newFulltextTerm(text.utf8ToString(), fieldName));
-            }
-            return terms.toArray(new Term[terms.size()]);
-        } catch (IOException e) {
-            LOG.error("Building fulltext query failed", e.getMessage());
-            return null;
         }
     }
 
@@ -1038,17 +1093,23 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         final String path;
         final double score;
         final Iterable<String> suggestWords;
+        final boolean isVirtual;
+        final String excerpt;
 
-        LuceneResultRow(String path, double score) {
+        LuceneResultRow(String path, double score, String excerpt) {
+            this.isVirtual = false;
             this.path = path;
             this.score = score;
+            this.excerpt = excerpt;
             this.suggestWords = Collections.emptySet();
         }
 
         LuceneResultRow(Iterable<String> suggestWords) {
+            this.isVirtual = true;
             this.path = "/";
             this.score = 1.0d;
             this.suggestWords = suggestWords;
+            this.excerpt = null;
         }
 
         @Override
@@ -1065,8 +1126,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
         private final Cursor pathCursor;
         LuceneResultRow currentRow;
+        private final SizeEstimator sizeEstimator;
+        private long estimatedSize;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryEngineSettings settings) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryEngineSettings settings, SizeEstimator sizeEstimator) {
+            this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 @Override
@@ -1106,6 +1170,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             return new IndexRow() {
 
                 @Override
+                public boolean isVirtualRow() {
+                    return currentRow.isVirtual;
+                }
+
+                @Override
                 public String getPath() {
                     return pathRow.getPath();
                 }
@@ -1119,10 +1188,21 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
                     }
+                    if (QueryImpl.REP_EXCERPT.equals(columnName)) {
+                        return PropertyValues.newString(currentRow.excerpt);
+                    }
                     return pathRow.getValue(columnName);
                 }
 
             };
+        }
+
+        @Override
+        public long getSize(SizePrecision precision, long max) {
+            if (estimatedSize != 0) {
+                return estimatedSize;
+            }
+            return estimatedSize = sizeEstimator.getSize();
         }
     }
 

@@ -31,13 +31,13 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -150,10 +150,10 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
                 .setGroupMemberAttribute(InternalLdapServer.GROUP_MEMBER_ATTR);
 
         cfg.getUserConfig()
-                .setBaseDN(ServerDNConstants.USERS_SYSTEM_DN)
+                .setBaseDN(AbstractServer.EXAMPLE_DN)
                 .setObjectClasses("inetOrgPerson");
         cfg.getGroupConfig()
-                .setBaseDN(ServerDNConstants.GROUPS_SYSTEM_DN)
+                .setBaseDN(AbstractServer.EXAMPLE_DN)
                 .setObjectClasses(InternalLdapServer.GROUP_CLASS_ATTR);
 
         cfg.getAdminPoolConfig().setMaxActive(0);
@@ -162,7 +162,7 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
     }
 
     @Override
-    protected void destroyIDP(ExternalIdentityProvider idp) {
+    protected void destroyIDP() {
         ((LdapIdentityProvider) idp).close();
     }
 
@@ -274,7 +274,7 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
             cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
 
             root.refresh();
-             user = userManager.getAuthorizable(USER_ID);
+            user = userManager.getAuthorizable(USER_ID);
             assertNotNull(user);
             assertTrue(user.hasProperty(USER_PROP));
             assertNull(userManager.getAuthorizable(GROUP_DN));
@@ -392,12 +392,11 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
     }
 
     protected static void createLdapFixture() throws Exception {
-        LDAP_SERVER.addMember(
-                GROUP_DN = LDAP_SERVER.addGroup(GROUP_NAME),
-                LDAP_SERVER.addUser(USER_FIRSTNAME, USER_LASTNAME, USER_ID, USER_PWD));
+        String userDN = LDAP_SERVER.addUser(USER_FIRSTNAME, USER_LASTNAME, USER_ID, USER_PWD);
+        GROUP_DN = LDAP_SERVER.addGroup(GROUP_NAME, userDN);
         for (int i = 0; i < NUM_CONCURRENT_LOGINS * 2; i++) {
             final String userId = "user-" + i;
-            String userDN = LDAP_SERVER.addUser(userId, "test", userId, USER_PWD);
+            userDN = LDAP_SERVER.addUser(userId, "test", userId, USER_PWD);
             if (i%2 == 0) {
                 CONCURRENT_GROUP_TEST_USERS[i/2] = userId;
                 LDAP_SERVER.addMember(GROUP_DN, userDN);

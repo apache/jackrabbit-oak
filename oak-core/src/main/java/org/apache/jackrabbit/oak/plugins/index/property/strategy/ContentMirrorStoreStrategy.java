@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.util.ApproximateCounter;
+import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +79,16 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
      * logging a warning every {@code oak.traversing.warn} traversed nodes. Default {@code 10000}
      */
     public static final int TRAVERSING_WARN = Integer.getInteger("oak.traversing.warn", 10000);
+
+    private final String indexName;
+
+    public ContentMirrorStoreStrategy() {
+        this(INDEX_CONTENT_NODE_NAME);
+    }
+
+    public ContentMirrorStoreStrategy(String indexName) {
+        this.indexName = indexName;
+    }
 
     @Override
     public void update(
@@ -163,27 +173,22 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public Iterable<String> query(final Filter filter, final String indexName,
+    public Iterable<String> query(final Filter filter, final String name,
             final NodeState indexMeta, final Iterable<String> values) {
-        return query(filter, indexName, indexMeta, INDEX_CONTENT_NODE_NAME, values);
+        return query(filter, name, indexMeta, this.indexName, values);
     }
 
     @Override
     public long count(NodeState root, NodeState indexMeta, Set<String> values, int max) {
-        return count(root, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
+        return count(null, root, indexMeta, this.indexName, values, max);
     }
 
     @Override
     public long count(final Filter filter, NodeState root, NodeState indexMeta, Set<String> values, int max) {
-        return count(filter, root, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
+        return count(filter, root, indexMeta, this.indexName, values, max);
     }
 
-    public long count(NodeState root, NodeState indexMeta, final String indexStorageNodeName,
-            Set<String> values, int max) {
-        return count(null, root, indexMeta, indexStorageNodeName, values, max);
-    }
-
-    public long count(Filter filter, NodeState root, NodeState indexMeta, final String indexStorageNodeName,
+    long count(Filter filter, NodeState root, NodeState indexMeta, final String indexStorageNodeName,
             Set<String> values, int max) {
         NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         long count = -1;
@@ -290,7 +295,16 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             if (totalNodesCount != -1) {
                 long filterPathCount = NodeCounter.getEstimatedNodeCount(root, filterRootPath, true);
                 if (filterPathCount != -1) {
-                    count = (long) ((double) count / totalNodesCount * filterPathCount);
+                    // assume nodes in the index are evenly distributed in the repository (old idea)
+                    long countScaledDown = (long) ((double) count / totalNodesCount * filterPathCount);
+                    // assume 80% of the indexed nodes are in this subtree
+                    long mostNodesFromThisSubtree = (long) (filterPathCount * 0.8);
+                    // count can at most be the assumed subtree size
+                    count = Math.min(count, mostNodesFromThisSubtree);
+                    // this in theory should not have any effect, 
+                    // except if the above estimates are incorrect,
+                    // so this is just for safety feature
+                    count = Math.max(count, countScaledDown);
                 }
             }
         }
@@ -420,7 +434,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                         readCount++;
                         if (readCount % TRAVERSING_WARN == 0) {
                             FilterIterators.checkReadLimit(readCount, settings);
-                            LOG.warn("Traversed {} nodes ({} index entries) using index {} with filter {}", readCount, intermediateNodeReadCount, indexName, filter);
+                            LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}", readCount, intermediateNodeReadCount, indexName, filter);
                         }
                         return;
                     } else {
@@ -575,5 +589,19 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 node.remove();
             }
         }
+    }
+
+    @Override
+    public boolean exists(NodeBuilder index, String key) {
+        // This is currently not implemented, because there is no test case for it,
+        // and because there is currently no need for this method with this class.
+        // We would need to traverse the tree and search for an entry "match".
+        // See also OAK-2663 for a potential (but untested) implementation.
+        throw new UnsupportedOperationException();
+   }
+
+    @Override
+    public String getIndexNodeName() {
+        return indexName;
     }
 }

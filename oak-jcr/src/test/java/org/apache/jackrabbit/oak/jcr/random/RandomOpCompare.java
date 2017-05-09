@@ -31,8 +31,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.oak.NodeStoreFixtures;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -83,7 +84,7 @@ public class RandomOpCompare {
 
     // @Before
     public void login() throws RepositoryException {
-        f1 = NodeStoreFixture.SEGMENT_MK;
+        f1 = NodeStoreFixtures.SEGMENT_TAR;
         f2 = getMongo();
         
         ns1 = f1.createNodeStore();
@@ -142,7 +143,7 @@ public class RandomOpCompare {
                 DB mongoDB = connection.getDB();                
                 return new DocumentMK.Builder().
                             memoryCacheSize(0).
-                            setMongoDB(mongoDB, 1, 16).
+                            setMongoDB(mongoDB, 16).
                             setPersistentCache("target/persistentCache,time").
                             getNodeStore();
             }

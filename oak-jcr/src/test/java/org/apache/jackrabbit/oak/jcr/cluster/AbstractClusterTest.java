@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+
 import java.util.Iterator;
 
 import javax.jcr.Repository;
@@ -24,15 +26,15 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import junit.framework.Assert;
-
+import org.apache.jackrabbit.oak.NodeStoreFixtures;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
 import org.junit.Before;
-
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 
 /**
  * A base class for DocumentMK cluster tests.
@@ -41,11 +43,12 @@ public class AbstractClusterTest {
 
     protected NodeStoreFixture fixture = getFixture();
     protected NodeStore ns1, ns2;
+    protected Whiteboard w1, w2;
     protected Repository r1, r2;
     protected Session s1, s2;
     
     protected NodeStoreFixture getFixture() {
-        return NodeStoreFixture.DOCUMENT_NS;
+        return NodeStoreFixtures.DOCUMENT_NS;
     }
     
     @After
@@ -71,13 +74,19 @@ public class AbstractClusterTest {
     protected void prepareTestData(Session s) throws RepositoryException {
     }
 
+    protected Jcr customize(Jcr jcr) {
+        return jcr;
+    }
+
     @Before
     public void login() throws RepositoryException {
         ns1 = fixture.createNodeStore(1);
         if (ns1 == null) {
             return;
         }
-        r1  = new Jcr(ns1).createRepository();
+        Oak oak1 = new Oak(ns1);
+        w1 = oak1.getWhiteboard();
+        r1  = customize(new Jcr(oak1)).createRepository();
         s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
         prepareTestData(s1);
         if (ns1 instanceof DocumentNodeStore) {
@@ -86,7 +95,9 @@ public class AbstractClusterTest {
             ((DocumentNodeStore) ns1).runBackgroundOperations();
         }
         ns2 = fixture.createNodeStore(2);
-        r2  = new Jcr(ns2).createRepository();
+        Oak oak2 = new Oak(ns2);
+        w2 = oak2.getWhiteboard();
+        r2  = customize(new Jcr(oak2)).createRepository();
         s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
     

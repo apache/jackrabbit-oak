@@ -42,7 +42,7 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
 
     @Override
     public void setUpConnection() throws Exception {
-        mongoConnection = MongoUtils.getConnection();
+        mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.clock(getTestClock());

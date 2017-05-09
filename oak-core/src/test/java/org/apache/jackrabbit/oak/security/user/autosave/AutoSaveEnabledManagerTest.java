@@ -248,4 +248,23 @@ public class AutoSaveEnabledManagerTest extends AbstractAutoSaveTest {
         assertFalse(root.hasPendingChanges());
         assertFalse(u.declaredMemberOf().hasNext());
     }
+
+    @Test
+    public void testAddMembers() throws Exception {
+        User u = mgr.createUser("u", "u");
+        Group g = mgr.createGroup("g");
+
+        assertTrue(g.addMembers(u.getID()).isEmpty());
+        assertFalse(root.hasPendingChanges());
+    }
+
+    @Test
+    public void testRemoveMembers() throws Exception {
+        User u = mgr.createUser("u", "u");
+        Group g = mgr.createGroup("g");
+        g.addMember(u);
+
+        assertTrue(g.removeMembers(u.getID()).isEmpty());
+        assertFalse(root.hasPendingChanges());
+    }
 }

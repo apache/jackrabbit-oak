@@ -19,13 +19,14 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import de.kalpatec.pojosr.framework.launch.BundleDescriptor
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry
+import org.apache.felix.connect.launch.BundleDescriptor
+import org.apache.felix.connect.launch.PojoServiceRegistry
 import groovy.json.JsonOutput
-import org.apache.commons.io.FileUtils
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.osgi.framework.Constants
 import org.osgi.service.cm.Configuration
 import org.osgi.service.cm.ConfigurationAdmin
@@ -39,10 +40,12 @@ class ConfigTest {
     PojoServiceRegistry registry
     ConfigurationAdmin cm
 
+    @Rule
+    public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"))
+
     @Before
     void setUp(){
-        workDir = new File("target", "ConfigTest");
-        workDir.mkdirs()
+        workDir = tmpFolder.getRoot();
         config  = [
                 (REPOSITORY_HOME) : workDir.absolutePath,
                 'magic.spell' : 'Alohomora'
@@ -50,10 +53,8 @@ class ConfigTest {
     }
 
     @After
-    void tearDown(){
-        if(workDir.exists()) {
-            FileUtils.cleanDirectory(workDir);
-        }
+    void shutDown(){
+        OakOSGiRepositoryFactory.shutdown(registry, 5)
     }
 
     @Test
@@ -87,7 +88,8 @@ class ConfigTest {
     void testConfigSync(){
         config[REPOSITORY_CONFIG] = [
                 foo : [a:'a', b:1],
-                bar : [a:'a1', b:2]
+                bar : [a:'a1', b:2],
+                foo2 : [a:'a2', b:2]
         ]
         initRegistry(config)
         Configuration c = cm.getConfiguration('baz')
@@ -96,16 +98,21 @@ class ConfigTest {
         assert cm.getConfiguration('baz').properties.get('a') == 'a2'
         assert cm.getConfiguration('foo').properties.get('a') == 'a'
         assert cm.getConfiguration('bar').properties.get('a') == 'a1'
+        assert cm.getConfiguration('foo2').properties.get('a') == 'a2'
+
+        shutDown()
 
         //Now re init and remove the pid bar
         config[REPOSITORY_CONFIG] = [
                 foo : [a:'a-new', b:1],
+                foo2 : [a:'a2', b:2]
         ]
         initRegistry(config)
 
         assert cm.getConfiguration('baz').properties.get('a') == 'a2'
         assert cm.getConfiguration('foo').properties.get('a') == 'a-new'
         assert cm.getConfiguration('bar').properties == null
+        assert cm.getConfiguration('foo2').properties.get('a') == 'a2'
     }
 
     private static Map createConfigMap() {

@@ -34,7 +34,6 @@ import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -189,19 +188,11 @@ public class ImporterImpl implements Importer {
     }
 
     private void createProperty(Tree tree, PropInfo pInfo, PropertyDefinition def) throws RepositoryException {
-        List<Value> values = pInfo.getValues(pInfo.getTargetType(def));
-        PropertyState propertyState;
-        String name = pInfo.getName();
+        tree.setProperty(pInfo.asPropertyState(def));
         int type = pInfo.getType();
-        if (values.size() == 1 && !def.isMultiple()) {
-            propertyState = PropertyStates.createProperty(name, values.get(0));
-        } else {
-            propertyState = PropertyStates.createProperty(name, values);
-        }
-        tree.setProperty(propertyState);
         if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
             // store reference for later resolution
-            refTracker.processedReference(new Reference(tree, name));
+            refTracker.processedReference(new Reference(tree, pInfo.getName()));
         }
     }
 
@@ -280,7 +271,7 @@ public class ImporterImpl implements Importer {
             PropertyDefinition def = pi.getPropertyDef(effectiveNodeTypeProvider.getEffectiveNodeType(tree));
             if (def.isProtected()) {
                 // skip protected property
-                log.debug("Protected property " + pi.getName());
+                log.debug("Protected property {}", pi.getName());
 
                 // notify the ProtectedPropertyImporter.
                 for (ProtectedPropertyImporter ppi : getPropertyImporters()) {
@@ -344,7 +335,7 @@ public class ImporterImpl implements Importer {
         String ntName = nodeInfo.getPrimaryTypeName();
 
         if (parent == null) {
-            log.debug("Skipping node: " + nodeName);
+            log.debug("Skipping node: {}", nodeName);
             // parent node was skipped, skip this child node too
             parents.push(null); // push null onto stack for skipped node
             // notify the p-i-importer
@@ -358,7 +349,7 @@ public class ImporterImpl implements Importer {
         if (parentDef.isProtected()) {
             // skip protected node
             parents.push(null);
-            log.debug("Skipping protected node: " + nodeName);
+            log.debug("Skipping protected node: {}", nodeName);
 
             if (pnImporter != null) {
                 // pnImporter was already started (current nodeInfo is a sibling)
@@ -406,7 +397,7 @@ public class ImporterImpl implements Importer {
                         is the a leaf in the tree to be imported 'end' will
                         not have an effect on the importer, that was never started.
                     */
-                    log.debug("Skipping protected node: " + existing);
+                    log.debug("Skipping protected node: {}", existing);
                     parents.push(existing);
                     /**
                      * let ProtectedPropertyImporters handle the properties
@@ -456,7 +447,7 @@ public class ImporterImpl implements Importer {
                     if (tree == null) {
                         // no new node has been created, so skip this node
                         parents.push(null); // push null onto stack for skipped node
-                        log.debug("Skipping existing node " + nodeInfo.getName());
+                        log.debug("Skipping existing node {}", nodeInfo.getName());
                         return;
                     }
                 } else {
@@ -469,7 +460,9 @@ public class ImporterImpl implements Importer {
         // process properties
         importProperties(tree, propInfos, false);
 
-        parents.push(tree);
+        if (tree.exists()) {
+            parents.push(tree);
+        }
     }
 
 

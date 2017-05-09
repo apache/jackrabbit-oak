@@ -27,10 +27,10 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
  * Implements a tiered diff cache which consists of a {@link LocalDiffCache} and
  * a {@link MemoryDiffCache}.
  */
-class TieredDiffCache implements DiffCache {
+class TieredDiffCache extends DiffCache {
 
-    private final LocalDiffCache localCache;
-    private final MemoryDiffCache memoryCache;
+    private final DiffCache localCache;
+    private final DiffCache memoryCache;
 
     TieredDiffCache(DocumentMK.Builder builder) {
         this.localCache = new LocalDiffCache(builder);
@@ -38,8 +38,8 @@ class TieredDiffCache implements DiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull Revision from,
-                             @Nonnull Revision to,
+    public String getChanges(@Nonnull RevisionVector from,
+                             @Nonnull RevisionVector to,
                              @Nonnull String path,
                              @Nullable Loader loader) {
         // check local first without loader
@@ -51,7 +51,8 @@ class TieredDiffCache implements DiffCache {
     }
 
     /**
-     * Creates a new entry in the {@link LocalDiffCache} only!
+     * Creates a new entry in the {@link LocalDiffCache} for local changes
+     * and {@link MemoryDiffCache} for external changes
      *
      * @param from the from revision.
      * @param to the to revision.
@@ -59,8 +60,12 @@ class TieredDiffCache implements DiffCache {
      */
     @Nonnull
     @Override
-    public Entry newEntry(@Nonnull Revision from, @Nonnull Revision to) {
-        return localCache.newEntry(from, to);
+    public Entry newEntry(@Nonnull RevisionVector from, @Nonnull RevisionVector to, boolean local) {
+        if (local) {
+            return localCache.newEntry(from, to, true);
+        } else {
+            return memoryCache.newEntry(from, to, false);
+        }
     }
 
     @Nonnull

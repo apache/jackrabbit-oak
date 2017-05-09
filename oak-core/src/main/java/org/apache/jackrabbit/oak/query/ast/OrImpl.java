@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
 import java.util.Arrays;
@@ -37,6 +38,8 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+import com.google.common.collect.Sets;
+
 /**
  * An "or" condition.
  */
@@ -44,7 +47,7 @@ public class OrImpl extends ConstraintImpl {
 
     private final List<ConstraintImpl> constraints;
 
-    OrImpl(List<ConstraintImpl> constraints) {
+    public OrImpl(List<ConstraintImpl> constraints) {
         checkArgument(!constraints.isEmpty());
         this.constraints = constraints;
     }
@@ -126,6 +129,16 @@ public class OrImpl extends ConstraintImpl {
         } else {
             return this;
         }
+    }
+
+    @Override
+    ConstraintImpl not() {
+        // not (X or Y) == (not X) and (not Y)
+        List<ConstraintImpl> list = newArrayList();
+        for (ConstraintImpl constraint : getConstraints()) {
+            list.add(new NotImpl(constraint));
+        }
+        return new AndImpl(list).simplify();
     }
 
     @Override
@@ -334,5 +347,64 @@ public class OrImpl extends ConstraintImpl {
     public int hashCode() {
         return constraints.hashCode();
     }
+
+    @Override
+    public AstElement copyOf() {
+        List<ConstraintImpl> clone = newArrayList();
+        for (ConstraintImpl c : constraints) {
+            clone.add((ConstraintImpl) copyElementAndCheckReference(c));
+        }
+        return new OrImpl(clone);
+    }
+
+    @Override
+    public Set<ConstraintImpl> convertToUnion() {
+        Set<ConstraintImpl> result = Sets.newHashSet();
+        for (ConstraintImpl c : getConstraints()) {
+            Set<ConstraintImpl> converted = c.convertToUnion(); 
+            if (converted.isEmpty()) {
+                result.add(c);
+            } else {
+                result.addAll(converted);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        for (ConstraintImpl c : getConstraints()) {
+            if (c.requiresFullTextIndex()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean containsUnfilteredFullTextCondition() {
+        boolean fulltext = false;
+        boolean plain = false;
+        for (ConstraintImpl c : constraints) {
+            // this part of the condition already contains an unfiltered
+            // condition, so we don't need to check further
+            if (c.containsUnfilteredFullTextCondition()) {
+                return true;
+            }
+            if (c.requiresFullTextIndex()) {
+                // for example "contains(a, 'x')"
+                fulltext = true;
+            } else {
+                // for example "b=123"
+                plain = true;
+            }
+            // the full-text index contains both typescan not be used for conditions
+            // of the form "contains(a, 'x') or b=123"
+            if (fulltext && plain) {
+                return true;
+            }
+        }
+        return false;
+    }    
 
 }

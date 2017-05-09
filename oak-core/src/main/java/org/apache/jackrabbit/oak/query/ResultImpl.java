@@ -80,4 +80,9 @@ public class ResultImpl implements Result {
         return query.getSize();
     }
 
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        return query.getSize(precision, max);
+    }
+
 }

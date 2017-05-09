@@ -26,7 +26,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +36,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.AsyncTouchCallback;
 import org.apache.jackrabbit.core.data.AsyncTouchResult;
 import org.apache.jackrabbit.core.data.AsyncUploadCallback;
@@ -43,6 +50,9 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3RequestDecorator;
+import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +60,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
@@ -63,6 +74,10 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.util.StringUtils;
+
+import static com.google.common.collect.Iterables.filter;
+import static java.lang.Thread.currentThread;
 
 /**
  * A data store backend that stores data on Amazon S3.
@@ -137,12 +152,24 @@ public class S3Backend implements SharedS3Backend {
             }
             String region = prop.getProperty(S3Constants.S3_REGION);
             Region s3Region = null;
-            if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
-                s3Region =  Region.US_Standard;
-            } else if (Region.EU_Ireland.toString().equals(region)) {
-                s3Region = Region.EU_Ireland;
+            if (StringUtils.isNullOrEmpty(region)) {
+                com.amazonaws.regions.Region ec2Region = Regions.getCurrentRegion();
+                if (ec2Region != null) {
+                    s3Region = Region.fromValue(ec2Region.getName());
+                } else {
+                    throw new AmazonClientException(
+                            "parameter ["
+                                    + S3Constants.S3_REGION
+                                    + "] not configured and cannot be derived from environment");
+                }
             } else {
-                s3Region = Region.fromValue(region);
+                if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
+                    s3Region = Region.US_Standard;
+                } else if (Region.EU_Ireland.toString().equals(region)) {
+                    s3Region = Region.EU_Ireland;
+                } else {
+                    s3Region = Region.fromValue(region);
+                }
             }
 
             if (!s3service.doesBucketExist(bucket)) {
@@ -183,8 +210,17 @@ public class S3Backend implements SharedS3Backend {
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
             LOG.debug("  error ", e);
+            Map<String, String> filteredMap = Maps.newHashMap();
+            if (prop != null) {
+                filteredMap = Maps.filterKeys(Maps.fromProperties(prop), new Predicate<String>() {
+                    @Override public boolean apply(String input) {
+                        return !input.equals(S3Constants.ACCESS_KEY) && !input.equals(S3Constants
+                            .SECRET_KEY);
+                    }
+                });
+            }
             throw new DataStoreException("Could not initialize S3 from "
-                + prop, e);
+                + filteredMap, e);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -228,13 +264,13 @@ public class S3Backend implements SharedS3Backend {
             ObjectMetadata objectMetaData = s3service.getObjectMetadata(bucket,
                 key);
             if (objectMetaData != null) {
-                LOG.debug("exists [{}]: [true] took [{}] ms.",
+                LOG.trace("exists [{}]: [true] took [{}] ms.",
                     identifier, (System.currentTimeMillis() - start) );
                 return true;
             }
             return false;
         } catch (AmazonServiceException e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
                 LOG.debug("exists [{}]: [false] took [{}] ms.",
                     identifier, (System.currentTimeMillis() - start) );
                 return false;
@@ -277,7 +313,7 @@ public class S3Backend implements SharedS3Backend {
             }
 
         } catch (AmazonServiceException e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
                 retVal = false;
             } else {
                 throw new DataStoreException(
@@ -326,7 +362,9 @@ public class S3Backend implements SharedS3Backend {
                 }
             });
         } catch (Exception e) {
-            callback.onAbort(new AsyncTouchResult(identifier));
+            if (callback != null) {
+                callback.onAbort(new AsyncTouchResult(identifier));
+            }
             throw new DataStoreException("Cannot touch the record "
                 + identifier.toString(), e);
         } finally {
@@ -354,7 +392,7 @@ public class S3Backend implements SharedS3Backend {
                 LOG.debug("[{}] touched. time taken [{}] ms ", new Object[] {
                     identifier, (System.currentTimeMillis() - start) });
             } else {
-                LOG.debug("[{}] touch not required. time taken [{}] ms ",
+                LOG.trace("[{}] touch not required. time taken [{}] ms ",
                     new Object[] { identifier,
                         (System.currentTimeMillis() - start) });
             }
@@ -395,33 +433,13 @@ public class S3Backend implements SharedS3Backend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers()
             throws DataStoreException {
-        long start = System.currentTimeMillis();
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        try {
-            Thread.currentThread().setContextClassLoader(
-                getClass().getClassLoader());
-            Set<DataIdentifier> ids = new HashSet<DataIdentifier>();
-            ObjectListing prevObjectListing = s3service.listObjects(bucket);
-            while (true) {
-                for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                    String id = getIdentifierName(s3ObjSumm.getKey());
-                    if (id != null && !id.startsWith(META_KEY_PREFIX)) {
-                        ids.add(new DataIdentifier(id));
-                    }
+        return new RecordsIterator<DataIdentifier>(
+            new Function<S3ObjectSummary, DataIdentifier>() {
+                @Override
+                public DataIdentifier apply(S3ObjectSummary input) {
+                    return new DataIdentifier(getIdentifierName(input.getKey()));
                 }
-                if (!prevObjectListing.isTruncated()) break;
-                prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
-            }
-            LOG.debug("getAllIdentifiers returned size [{}] took [{}] ms.",
-                ids.size(), (System.currentTimeMillis() - start));
-            return ids.iterator();
-        } catch (AmazonServiceException e) {
-            throw new DataStoreException("Could not list objects", e);
-        } finally {
-            if (contextClassLoader != null) {
-                Thread.currentThread().setContextClassLoader(contextClassLoader);
-            }
-        }
+        });
     }
 
     @Override
@@ -441,7 +459,7 @@ public class S3Backend implements SharedS3Backend {
                     (System.currentTimeMillis() - start) });
             return lastModified;
         } catch (AmazonServiceException e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
                 LOG.info(
                     "getLastModified:Identifier [{}] not found. Took [{}] ms.",
                     identifier, (System.currentTimeMillis() - start));
@@ -526,7 +544,7 @@ public class S3Backend implements SharedS3Backend {
                             && s3service.getObjectMetadata(bucket, s3ObjSumm.getKey()).getLastModified().getTime() <
                             min) {
 
-
+                            store.deleteFromCache(identifier);
                             LOG.debug("add id [{}] to delete lists", s3ObjSumm.getKey());
                             deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
                             deleteIdSet.add(identifier);
@@ -614,6 +632,25 @@ public class S3Backend implements SharedS3Backend {
         }
     }
 
+    @Override
+    public void addMetadataRecord(File input, String name) throws DataStoreException {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+
+            Upload upload = tmx.upload(s3ReqDecorator
+                .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input)));
+            upload.waitForUploadResult();
+        } catch (InterruptedException e) {
+            LOG.error("Exception in uploading metadata file {}", new Object[] {input, e});
+            throw new DataStoreException("Error in uploading metadata file", e);
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+    }
+
     public DataRecord getMetadataRecord(String name) {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -621,7 +658,7 @@ public class S3Backend implements SharedS3Backend {
                 getClass().getClassLoader());
             ObjectMetadata meta = s3service.getObjectMetadata(bucket, addMetaKeyPrefix(name));
             return new S3DataRecord(s3service, bucket, name,
-                meta.getLastModified().getTime(), meta.getContentLength());
+                meta.getLastModified().getTime(), meta.getContentLength(), true);
         } finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -640,7 +677,7 @@ public class S3Backend implements SharedS3Backend {
             ObjectListing prevObjectListing = s3service.listObjects(listObjectsRequest);
             for (final S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
                 metadataList.add(new S3DataRecord(s3service, bucket, stripMetaKeyPrefix(s3ObjSumm.getKey()),
-                    s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize()));
+                    s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize(), true));
             }
         } finally {
             if (contextClassLoader != null) {
@@ -689,6 +726,122 @@ public class S3Backend implements SharedS3Backend {
         }
     }
 
+    @Override
+    public Iterator<DataRecord> getAllRecords() {
+        return new RecordsIterator<DataRecord>(
+            new Function<S3ObjectSummary, DataRecord>() {
+                @Override
+                public DataRecord apply(S3ObjectSummary input) {
+                    return new S3DataRecord(s3service, bucket, getIdentifierName(input.getKey()),
+                        input.getLastModified().getTime(), input.getSize());
+                }
+            });
+    }
+
+    @Override
+    public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
+        long start = System.currentTimeMillis();
+        String key = getKeyName(identifier);
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+
+            ObjectMetadata object = s3service.getObjectMetadata(bucket, key);
+            S3DataRecord record = new S3DataRecord(s3service, bucket, identifier.toString(),
+                object.getLastModified().getTime(), object.getContentLength());
+            LOG.debug("Identifier [{}]'s getRecord = [{}] took [{}]ms.",
+                new Object[] {identifier, record, (System.currentTimeMillis() - start)});
+
+            return record;
+        } catch (AmazonServiceException e) {
+            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
+                LOG.info(
+                    "getRecord:Identifier [{}] not found. Took [{}] ms.",
+                    identifier, (System.currentTimeMillis() - start));
+            }
+            throw new DataStoreException(e);
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+    }
+
+    /**
+     * Returns an iterator over the S3 objects
+     * @param <T>
+     */
+    class RecordsIterator<T> extends AbstractIterator<T> {
+        ObjectListing prevObjectListing;
+        Queue<S3ObjectSummary> queue;
+        long size;
+        Function<S3ObjectSummary, T> transformer;
+
+        public RecordsIterator (Function<S3ObjectSummary, T> transformer) {
+            queue = Lists.newLinkedList();
+            this.transformer = transformer;
+        }
+
+        @Override
+        protected T computeNext() {
+            if (queue.isEmpty()) {
+                loadBatch();
+            }
+
+            if (!queue.isEmpty()) {
+                return transformer.apply(queue.remove());
+            }
+
+            return endOfData();
+        }
+
+        private boolean loadBatch() {
+            ClassLoader contextClassLoader = currentThread().getContextClassLoader();
+            long start = System.currentTimeMillis();
+            try {
+                currentThread().setContextClassLoader(getClass().getClassLoader());
+
+                // initialize the listing the first time
+                if (prevObjectListing == null) {
+                    prevObjectListing = s3service.listObjects(bucket);
+                } else if (prevObjectListing.isTruncated()) { //already initialized more objects available
+                    prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
+                } else { // no more available
+                    return false;
+                }
+
+                List<S3ObjectSummary> listing = Lists.newArrayList(
+                    filter(prevObjectListing.getObjectSummaries(),
+                        new Predicate<S3ObjectSummary>() {
+                            @Override
+                            public boolean apply(S3ObjectSummary input) {
+                                return !input.getKey().startsWith(META_KEY_PREFIX);
+                            }
+                        }));
+
+                // After filtering no elements
+                if (listing.isEmpty()) {
+                    return false;
+                }
+
+                size += listing.size();
+                queue.addAll(listing);
+
+                LOG.info("Loaded batch of size [{}] in [{}] ms.",
+                    listing.size(), (System.currentTimeMillis() - start));
+
+                return true;
+            } catch (AmazonServiceException e) {
+                LOG.warn("Could not list objects", e);
+            } finally {
+                if (contextClassLoader != null) {
+                    currentThread().setContextClassLoader(contextClassLoader);
+                }
+            }
+            return false;
+        }
+    }
+
     private static String addMetaKeyPrefix(String key) {
         return META_KEY_PREFIX + key;
     }
@@ -709,13 +862,21 @@ public class S3Backend implements SharedS3Backend {
         private long length;
         private long lastModified;
         private String bucket;
+        private boolean isMeta;
 
-        public S3DataRecord(AmazonS3Client s3service, String bucket, String key, long lastModified, long length) {
+        public S3DataRecord(AmazonS3Client s3service, String bucket, String key, long lastModified,
+            long length) {
+            this(s3service, bucket, key, lastModified, length, false);
+        }
+
+        public S3DataRecord(AmazonS3Client s3service, String bucket, String key, long lastModified,
+            long length, boolean isMeta) {
             this.s3service = s3service;
             this.identifier = new DataIdentifier(key);
             this.lastModified = lastModified;
             this.length = length;
             this.bucket = bucket;
+            this.isMeta = isMeta;
         }
 
         @Override
@@ -735,12 +896,26 @@ public class S3Backend implements SharedS3Backend {
 
         @Override
         public InputStream getStream() throws DataStoreException {
-            return s3service.getObject(bucket, addMetaKeyPrefix(identifier.toString())).getObjectContent();
+            String id = getKeyName(identifier);
+            if (isMeta) {
+                id = addMetaKeyPrefix(identifier.toString());
+            }
+            return s3service.getObject(bucket, id).getObjectContent();
         }
 
         @Override
         public long getLastModified() {
             return lastModified;
+        }
+
+        @Override
+        public String toString() {
+            return "S3DataRecord{" +
+                "identifier=" + identifier +
+                ", length=" + length +
+                ", lastModified=" + lastModified +
+                ", bucket='" + bucket + '\'' +
+                '}';
         }
     }
 
@@ -758,7 +933,7 @@ public class S3Backend implements SharedS3Backend {
             try {
                 objectMetaData = s3service.getObjectMetadata(bucket, key);
             } catch (AmazonServiceException ase) {
-                if (ase.getStatusCode() != 404) {
+                if (!(ase.getStatusCode() == 404 || ase.getStatusCode() == 403)) {
                     throw ase;
                 }
             }
@@ -1050,9 +1225,12 @@ public class S3Backend implements SharedS3Backend {
         public void run() {
             try {
                 write(identifier, file, true, callback);
-            } catch (DataStoreException e) {
-                LOG.error("Could not upload [" + identifier + "], file[" + file
+            } catch (Exception e) {
+                LOG.warn("Could not upload [" + identifier + "], file[" + file
                     + "]", e);
+                AsyncUploadResult result = new AsyncUploadResult(identifier, file);
+                result.setException(e);
+                callback.onFailure(result);
             }
 
         }

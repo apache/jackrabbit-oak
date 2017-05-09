@@ -30,12 +30,14 @@ import javax.jcr.Value;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.user.AuthorizableQueryManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -110,6 +112,7 @@ public class UserQueryTest extends AbstractUserTest {
         addMembers(insects, ant, bee, fly);
 
         User jackrabbit = createUser("jackrabbit", "carrots", 2500, true);
+        User backslash = createUser("foo\\bar", "characters", 2500, false);
         User deer = createUser("deer", "leaves", 120000, true);
         User opossum = createUser("opossum", "fruit", 1200, true);
         kangaroo = createUser("kangaroo", "grass", 90000, true);
@@ -158,6 +161,7 @@ public class UserQueryTest extends AbstractUserTest {
         setProperty("continent", vf.createValue("America"), opossum);
 
         elephant.getImpersonation().grantImpersonation(jackrabbit.getPrincipal());
+        elephant.getImpersonation().grantImpersonation(backslash.getPrincipal());
 
         authorizables.addAll(users);
         authorizables.addAll(groups);
@@ -668,6 +672,20 @@ public class UserQueryTest extends AbstractUserTest {
     }
 
     @Test
+    public void testImpersonationWithBackslash() throws RepositoryException {
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.
+                        impersonates("foo\\bar"));
+            }
+        });
+
+        Iterator<User> expected = Iterators.singletonIterator(elephant);
+        assertTrue(result.hasNext());
+        assertSameElements(expected, result);
+    }
+
+    @Test
     public void testAdminImpersonation() throws Exception {
         final String adminPrincipalName = userMgr.getAuthorizable(superuser.getUserID()).getPrincipal().getName();
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
@@ -974,6 +992,35 @@ public class UserQueryTest extends AbstractUserTest {
         assertSame(expected, result, count);
         assertFalse(result.hasNext());
     }
+
+    @Test
+    public void testQueryUserWithSpecialCharId() throws Exception {
+        List<String> ids = Lists.newArrayList("'", "]");
+        for (String id : ids) {
+            User user = null;
+            try {
+                user = userMgr.createUser(id, "pw");
+                superuser.save();
+
+                boolean found = false;
+                String query = "{\"condition\":[{\"named\":\"" + id + "\"}]}";
+                AuthorizableQueryManager queryManager = new AuthorizableQueryManager(userMgr, superuser.getValueFactory());
+                Iterator<Authorizable> it = queryManager.execute(query);
+                while (it.hasNext() && !found) {
+                    Authorizable a = it.next();
+                    found = id.equals(a.getID());
+                }
+                assertTrue(found);
+            } finally {
+                if (user != null) {
+                    user.remove();
+                    superuser.save();
+                }
+            }
+        }
+    }
+
+
 
     //------------------------------------------------------------< private >---
 

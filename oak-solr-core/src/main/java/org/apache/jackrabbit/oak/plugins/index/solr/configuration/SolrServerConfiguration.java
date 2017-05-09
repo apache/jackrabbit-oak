@@ -20,6 +20,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 
 /**

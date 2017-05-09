@@ -23,7 +23,6 @@ import static java.util.AbstractMap.SimpleImmutableEntry;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.TreeMap;
 
 import javax.annotation.Nonnull;
@@ -31,6 +30,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -85,37 +85,17 @@ class PropertyHistory implements Iterable<NodeDocument> {
      * @return the docs in the correct order.
      */
     private Iterator<NodeDocument> ensureOrder(final Iterable<Map.Entry<Revision, NodeDocument>> docs) {
-        return new Iterator<NodeDocument>() {
+        return new AbstractIterator<NodeDocument>() {
             PeekingIterator<Map.Entry<Revision, NodeDocument>> input
                     = Iterators.peekingIterator(docs.iterator());
             TreeMap<Revision, NodeDocument> queue =
                     new TreeMap<Revision, NodeDocument>(StableRevisionComparator.INSTANCE);
-            NodeDocument next = fetchNext();
 
             @Override
-            public boolean hasNext() {
-                return next != null;
-            }
-
-            @Override
-            public NodeDocument next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                NodeDocument doc = next;
-                next = fetchNext();
-                return doc;
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            private NodeDocument fetchNext() {
+            protected NodeDocument computeNext() {
                 refillQueue();
                 if (queue.isEmpty()) {
-                    return null;
+                    return endOfData();
                 } else {
                     return queue.remove(queue.lastKey());
                 }

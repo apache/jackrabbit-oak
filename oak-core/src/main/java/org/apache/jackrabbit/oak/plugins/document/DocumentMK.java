@@ -16,63 +16,99 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
+
 import java.io.InputStream;
+import java.net.UnknownHostException;
+import java.util.EnumMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalCause;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import com.google.common.cache.Weigher;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
-
+import com.mongodb.ReadConcernLevel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.json.JsopDiff;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
+import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
+import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
+import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.EvictionListener;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoStatus;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A JSON-based wrapper around the NodeStore implementation that stores the
  * data in a {@link DocumentStore}. It is used for testing purpose only.
  */
 public class DocumentMK {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(DocumentMK.class);
-    
+
     /**
      * The path where the persistent cache is stored.
      */
-    static final String DEFAULT_PERSISTENT_CACHE_URI = 
+    static final String DEFAULT_PERSISTENT_CACHE_URI =
             System.getProperty("oak.documentMK.persCache");
 
     /**
@@ -85,7 +121,7 @@ public class DocumentMK {
      * Enable or disable the LIRS cache (null to use the default setting for this configuration).
      */
     static final Boolean LIRS_CACHE;
-    
+
     static {
         String s = System.getProperty("oak.documentMK.lirsCache");
         LIRS_CACHE = s == null ? null : Boolean.parseBoolean(s);
@@ -98,10 +134,10 @@ public class DocumentMK {
             System.getProperty("oak.documentMK.fastDiff", "true"));
 
     /**
-     * The guava cache concurrency level.
+     * Number of content updates that need to happen before the updates
+     * are automatically purged to the private branch.
      */
-    static final int CACHE_CONCURRENCY = Integer.getInteger(
-            "oak.documentMK.cacheConcurrency", 16);
+    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 100000);
 
     /**
      * The node store.
@@ -123,11 +159,11 @@ public class DocumentMK {
     }
 
     void backgroundRead() {
-        nodeStore.backgroundRead(true);
+        nodeStore.runBackgroundReadOperations();
     }
 
     void backgroundWrite() {
-        nodeStore.backgroundWrite();
+        nodeStore.runBackgroundUpdateOperations();
     }
 
     void runBackgroundOperations() {
@@ -168,11 +204,20 @@ public class DocumentMK {
         if (path == null || path.equals("")) {
             path = "/";
         }
-        try {
-            return nodeStore.diff(fromRevisionId, toRevisionId, path);
-        } catch (DocumentStoreException e) {
-            throw new DocumentStoreException(e);
+        RevisionVector fromRev = RevisionVector.fromString(fromRevisionId);
+        RevisionVector toRev = RevisionVector.fromString(toRevisionId);
+        final DocumentNodeState before = nodeStore.getNode(path, fromRev);
+        final DocumentNodeState after = nodeStore.getNode(path, toRev);
+        if (before == null || after == null) {
+            String msg = String.format("Diff is only supported if the node exists in both cases. " +
+                            "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
+                    path, fromRev, before != null, toRev, after != null);
+            throw new DocumentStoreException(msg);
         }
+
+        JsopDiff diff = new JsopDiff(path, depth);
+        after.compareAgainstBaseState(before, diff);
+        return diff.toString();
     }
 
     public boolean nodeExists(String path, String revisionId)
@@ -181,7 +226,7 @@ public class DocumentMK {
             throw new DocumentStoreException("Path is not absolute: " + path);
         }
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
-        Revision rev = Revision.fromString(revisionId);
+        RevisionVector rev = RevisionVector.fromString(revisionId);
         DocumentNodeState n;
         try {
             n = nodeStore.getNode(path, rev);
@@ -198,7 +243,7 @@ public class DocumentMK {
             throw new DocumentStoreException("Only depth 0 is supported, depth is " + depth);
         }
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
-        Revision rev = Revision.fromString(revisionId);
+        RevisionVector rev = RevisionVector.fromString(revisionId);
         try {
             DocumentNodeState n = nodeStore.getNode(path, rev);
             if (n == null) {
@@ -208,7 +253,7 @@ public class DocumentMK {
             boolean includeId = filter != null && filter.contains(":id");
             includeId |= filter != null && filter.contains(":hash");
             json.object();
-            n.append(json, includeId);
+            append(n, json, includeId);
             int max;
             if (maxChildNodes == -1) {
                 max = Integer.MAX_VALUE;
@@ -227,7 +272,6 @@ public class DocumentMK {
                 json.key(name).object().endObject();
             }
             if (c.hasMore) {
-                // TODO use a better way to notify there are more children
                 json.key(":childNodeCount").value(Long.MAX_VALUE);
             } else {
                 json.key(":childNodeCount").value(c.children.size());
@@ -242,22 +286,21 @@ public class DocumentMK {
     public String commit(String rootPath, String jsonDiff, String baseRevId,
             String message) throws DocumentStoreException {
         boolean success = false;
-        boolean isBranch = false;
-        Revision rev;
-        Commit commit = nodeStore.newCommit(baseRevId != null ? Revision.fromString(baseRevId) : null, null);
+        boolean isBranch;
+        RevisionVector rev;
+        Commit commit = nodeStore.newCommit(baseRevId != null ? RevisionVector.fromString(baseRevId) : null, null);
         try {
-            Revision baseRev = commit.getBaseRevision();
+            RevisionVector baseRev = commit.getBaseRevision();
             isBranch = baseRev != null && baseRev.isBranch();
             parseJsonDiff(commit, jsonDiff, rootPath);
-            rev = commit.apply();
+            commit.apply();
+            rev = nodeStore.done(commit, isBranch, CommitInfo.EMPTY);
             success = true;
         } catch (DocumentStoreException e) {
             throw new DocumentStoreException(e);
         } finally {
             if (!success) {
                 nodeStore.canceled(commit);
-            } else {
-                nodeStore.done(commit, isBranch, null);
             }
         }
         return rev.toString();
@@ -266,20 +309,19 @@ public class DocumentMK {
     public String branch(@Nullable String trunkRevisionId) throws DocumentStoreException {
         // nothing is written when the branch is created, the returned
         // revision simply acts as a reference to the branch base revision
-        Revision revision = trunkRevisionId != null
-                ? Revision.fromString(trunkRevisionId) : nodeStore.getHeadRevision();
-        return revision.asBranchRevision().toString();
+        RevisionVector revision = trunkRevisionId != null
+                ? RevisionVector.fromString(trunkRevisionId) : nodeStore.getHeadRevision();
+        return revision.asBranchRevision(nodeStore.getClusterId()).toString();
     }
 
     public String merge(String branchRevisionId, String message)
             throws DocumentStoreException {
-        // TODO improve implementation if needed
-        Revision revision = Revision.fromString(branchRevisionId);
+        RevisionVector revision = RevisionVector.fromString(branchRevisionId);
         if (!revision.isBranch()) {
             throw new DocumentStoreException("Not a branch: " + branchRevisionId);
         }
         try {
-            return nodeStore.merge(revision, null).toString();
+            return nodeStore.merge(revision, CommitInfo.EMPTY).toString();
         } catch (DocumentStoreException e) {
             throw new DocumentStoreException(e);
         } catch (CommitFailedException e) {
@@ -291,9 +333,9 @@ public class DocumentMK {
     public String rebase(@Nonnull String branchRevisionId,
                          @Nullable String newBaseRevisionId)
             throws DocumentStoreException {
-        Revision r = Revision.fromString(branchRevisionId);
-        Revision base = newBaseRevisionId != null ?
-                Revision.fromString(newBaseRevisionId) :
+        RevisionVector r = RevisionVector.fromString(branchRevisionId);
+        RevisionVector base = newBaseRevisionId != null ?
+                RevisionVector.fromString(newBaseRevisionId) :
                 nodeStore.getHeadRevision();
         return nodeStore.rebase(r, base).toString();
     }
@@ -302,16 +344,16 @@ public class DocumentMK {
     public String reset(@Nonnull String branchRevisionId,
                         @Nonnull String ancestorRevisionId)
             throws DocumentStoreException {
-        Revision branch = Revision.fromString(branchRevisionId);
+        RevisionVector branch = RevisionVector.fromString(branchRevisionId);
         if (!branch.isBranch()) {
             throw new DocumentStoreException("Not a branch revision: " + branchRevisionId);
         }
-        Revision ancestor = Revision.fromString(ancestorRevisionId);
+        RevisionVector ancestor = RevisionVector.fromString(ancestorRevisionId);
         if (!ancestor.isBranch()) {
             throw new DocumentStoreException("Not a branch revision: " + ancestorRevisionId);
         }
         try {
-            return nodeStore.reset(branch, ancestor, null).toString();
+            return nodeStore.reset(branch, ancestor).toString();
         } catch (DocumentStoreException e) {
             throw new DocumentStoreException(e);
         }
@@ -352,7 +394,7 @@ public class DocumentMK {
     //------------------------------< internal >--------------------------------
 
     private void parseJsonDiff(Commit commit, String json, String rootPath) {
-        Revision baseRev = commit.getBaseRevision();
+        RevisionVector baseRev = commit.getBaseRevision();
         String baseRevId = baseRev != null ? baseRev.toString() : null;
         Set<String> added = Sets.newHashSet();
         JsopReader t = new JsopTokenizer(json);
@@ -374,9 +416,8 @@ public class DocumentMK {
                     if (toRemove == null) {
                         throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     }
-                    commit.removeNode(path);
-                    nodeStore.markAsDeleted(toRemove, commit, true);
-                    commit.removeNodeDiff(path);
+                    commit.removeNode(path, toRemove);
+                    markAsDeleted(toRemove, commit, true);
                     break;
                 case '^':
                     t.read(':');
@@ -392,10 +433,8 @@ public class DocumentMK {
                     }
                     String propertyName = PathUtils.getName(path);
                     commit.updateProperty(p, propertyName, value);
-                    commit.updatePropertyDiff(p, propertyName, value);
                     break;
                 case '>': {
-                    // TODO support moving nodes that were modified within this commit
                     t.read(':');
                     String targetPath = t.readString();
                     if (!PathUtils.isAbsolute(targetPath)) {
@@ -407,12 +446,10 @@ public class DocumentMK {
                     } else if (nodeExists(targetPath, baseRevId)) {
                         throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
-                    commit.moveNode(path, targetPath);
-                    nodeStore.moveNode(source, targetPath, commit);
+                    moveNode(source, targetPath, commit);
                     break;
                 }
                 case '*': {
-                    // TODO support copying nodes that were modified within this commit
                     t.read(':');
                     String targetPath = t.readString();
                     if (!PathUtils.isAbsolute(targetPath)) {
@@ -424,8 +461,7 @@ public class DocumentMK {
                     } else if (nodeExists(targetPath, baseRevId)) {
                         throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
-                    commit.copyNode(path, targetPath);
-                    nodeStore.copyNode(source, targetPath, commit);
+                    copyNode(source, targetPath, commit);
                     break;
                 }
                 default:
@@ -435,7 +471,7 @@ public class DocumentMK {
     }
 
     private void parseAddNode(Commit commit, JsopReader t, String path) {
-        DocumentNodeState n = new DocumentNodeState(nodeStore, path, commit.getRevision());
+        List<PropertyState> props = Lists.newArrayList();
         if (!t.matches('}')) {
             do {
                 String key = t.readString();
@@ -445,13 +481,63 @@ public class DocumentMK {
                     parseAddNode(commit, t, childPath);
                 } else {
                     String value = t.readRawValue().trim();
-                    n.setProperty(key, value);
+                    props.add(nodeStore.createPropertyState(key, value));
                 }
             } while (t.matches(','));
             t.read('}');
         }
+        DocumentNodeState n = new DocumentNodeState(nodeStore, path,
+                new RevisionVector(commit.getRevision()), props, false, null);
         commit.addNode(n);
-        commit.addNodeDiff(n);
+    }
+
+    private void copyNode(DocumentNodeState source, String targetPath, Commit commit) {
+        moveOrCopyNode(false, source, targetPath, commit);
+    }
+
+    private void moveNode(DocumentNodeState source, String targetPath, Commit commit) {
+        moveOrCopyNode(true, source, targetPath, commit);
+    }
+
+    private void markAsDeleted(DocumentNodeState node, Commit commit, boolean subTreeAlso) {
+        commit.removeNode(node.getPath(), node);
+
+        if (subTreeAlso) {
+            // recurse down the tree
+            for (DocumentNodeState child : nodeStore.getChildNodes(node, null, Integer.MAX_VALUE)) {
+                markAsDeleted(child, commit, true);
+            }
+        }
+    }
+
+    private void moveOrCopyNode(boolean move,
+                                DocumentNodeState source,
+                                String targetPath,
+                                Commit commit) {
+        RevisionVector destRevision = commit.getBaseRevision().update(commit.getRevision());
+        DocumentNodeState newNode = new DocumentNodeState(nodeStore, targetPath, destRevision,
+                source.getProperties(), false, null);
+
+        commit.addNode(newNode);
+        if (move) {
+            markAsDeleted(source, commit, false);
+        }
+        for (DocumentNodeState child : nodeStore.getChildNodes(source, null, Integer.MAX_VALUE)) {
+            String childName = PathUtils.getName(child.getPath());
+            String destChildPath = concat(targetPath, childName);
+            moveOrCopyNode(move, child, destChildPath, commit);
+        }
+    }
+
+    private static void append(DocumentNodeState node,
+                               JsopWriter json,
+                               boolean includeId) {
+        if (includeId) {
+            json.key(":id").value(node.getId());
+        }
+        for (String name : node.getPropertyNames()) {
+            json.key(name).encodedValue(node.getPropertyAsString(name));
+        }
     }
 
     //----------------------------< Builder >-----------------------------------
@@ -460,72 +546,174 @@ public class DocumentMK {
      * A builder for a DocumentMK instance.
      */
     public static class Builder {
-        private static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
-        public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 25;
-        public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 10;
-        public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 5;
-        public static final int DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE = 3;
+        public static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
+        public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 35;
+        public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = 4;
+        public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 15;
+        public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 30;
+        public static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
+        public static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
+        private String mongoUri;
+        private MongoStatus mongoStatus;
         private DiffCache diffCache;
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
         private int asyncDelay = 1000;
         private boolean timing;
         private boolean logging;
+        private boolean leaseCheck = true; // OAK-2739 is enabled by default also for non-osgi
+        private boolean isReadOnlyMode = false;
         private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
         private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
         private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
+        private int prevDocCachePercentage = DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
         private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
         private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
-        private int docChildrenCachePercentage = DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
+        private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
+        private int cacheStackMoveDistance = DEFAULT_CACHE_STACK_MOVE_DISTANCE;
         private boolean useSimpleRevision;
-        private long splitDocumentAgeMillis = 5 * 60 * 1000;
-        private long offHeapCacheSize = -1;
         private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
         private boolean disableBranches;
+        private boolean prefetchExternalChanges;
         private Clock clock = Clock.SIMPLE;
         private Executor executor;
         private String persistentCacheURI = DEFAULT_PERSISTENT_CACHE_URI;
         private PersistentCache persistentCache;
+        private String journalCacheURI;
+        private PersistentCache journalCache;
+        private LeaseFailureHandler leaseFailureHandler;
+        private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+        private BlobStoreStats blobStoreStats;
+        private CacheStats blobStoreCacheStats;
+        private DocumentStoreStatsCollector documentStoreStatsCollector;
+        private DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
+        private Map<CacheType, PersistentCacheStats> persistentCacheStats =
+                new EnumMap<CacheType, PersistentCacheStats>(CacheType.class);
+        private boolean bundlingDisabled;
+        private JournalPropertyHandlerFactory journalPropertyHandlerFactory =
+                new JournalPropertyHandlerFactory();
+        private int updateLimit = UPDATE_LIMIT;
+        private int commitValueCacheSize = 10000;
+        private GCMonitor gcMonitor = GCMonitor.EMPTY;
 
         public Builder() {
+        }
+
+        /**
+         * Uses the given information to connect to to MongoDB as backend
+         * storage for the DocumentNodeStore. The write concern is either
+         * taken from the URI or determined automatically based on the MongoDB
+         * setup. When running on a replica set without explicit write concern
+         * in the URI, the write concern will be {@code MAJORITY}, otherwise
+         * {@code ACKNOWLEDGED}.
+         *
+         * @param uri a MongoDB URI.
+         * @param name the name of the database to connect to. This overrides
+         *             any database name given in the {@code uri}.
+         * @param blobCacheSizeMB the blob cache size in MB.
+         * @return this
+         * @throws UnknownHostException if one of the hosts given in the URI
+         *          is unknown.
+         */
+        public Builder setMongoDB(@Nonnull String uri,
+                                  @Nonnull String name,
+                                  int blobCacheSizeMB)
+                throws UnknownHostException {
+            this.mongoUri = uri;
+
+            DB db = new MongoConnection(uri).getDB(name);
+            MongoStatus status = new MongoStatus(db);
+            if (!MongoConnection.hasWriteConcern(uri)) {
+                db.setWriteConcern(MongoConnection.getDefaultWriteConcern(db));
+            }
+            if (status.isMajorityReadConcernSupported() && status.isMajorityReadConcernEnabled() && !MongoConnection.hasReadConcern(uri)) {
+                db.setReadConcern(MongoConnection.getDefaultReadConcern(db));
+            }
+            setMongoDB(db, status, blobCacheSizeMB);
+            return this;
         }
 
         /**
          * Use the given MongoDB as backend storage for the DocumentNodeStore.
          *
          * @param db the MongoDB connection
-         * @param changesSizeMB the size in MB of the capped collection backing
-         *                      the MongoDiffCache.
          * @return this
          */
-        public Builder setMongoDB(DB db, int changesSizeMB, int blobCacheSizeMB) {
-            if (db != null) {
-                if (this.documentStore == null) {
-                    this.documentStore = new MongoDocumentStore(db, this);
-                }
+        public Builder setMongoDB(@Nonnull DB db,
+                                  int blobCacheSizeMB) {
+            return setMongoDB(db, new MongoStatus(db), blobCacheSizeMB);
+        }
 
-                if (this.blobStore == null) {
-                    GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
-                    PersistentCache p = getPersistentCache();
-                    if (p != null) {
-                        s = p.wrapBlobStore(s);
-                    }
-                    this.blobStore = s;
+        private Builder setMongoDB(@Nonnull DB db,
+                                   MongoStatus status,
+                                   int blobCacheSizeMB) {
+            if (!MongoConnection.hasSufficientWriteConcern(db)) {
+                LOG.warn("Insufficient write concern: " + db.getWriteConcern()
+                        + " At least " + MongoConnection.getDefaultWriteConcern(db) + " is recommended.");
+            }
+            if (status.isMajorityReadConcernSupported() && !status.isMajorityReadConcernEnabled()) {
+                LOG.warn("The read concern should be enabled on mongod using --enableMajorityReadConcern");
+            } else if (status.isMajorityReadConcernSupported() && !MongoConnection.hasSufficientReadConcern(db)) {
+                ReadConcernLevel currentLevel = readConcernLevel(db.getReadConcern());
+                ReadConcernLevel recommendedLevel = readConcernLevel(MongoConnection.getDefaultReadConcern(db));
+                if (currentLevel == null) {
+                    LOG.warn("Read concern hasn't been set. At least " + recommendedLevel + " is recommended.");
+                } else {
+                    LOG.warn("Insufficient read concern: " + currentLevel + ". At least " + recommendedLevel + " is recommended.");
                 }
+            }
+
+            this.mongoStatus = status;
+            if (this.documentStore == null) {
+                this.documentStore = new MongoDocumentStore(db, this);
+            }
+
+            if (this.blobStore == null) {
+                GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
+                setBlobStore(s);
             }
             return this;
         }
 
+        private void setBlobStore(GarbageCollectableBlobStore s) {
+            configureBlobStore(s);
+            PersistentCache p = getPersistentCache();
+            if (p != null) {
+                s = p.wrapBlobStore(s);
+            }
+            this.blobStore = s;
+        }
+
         /**
-         * Set the MongoDB connection to use. By default an in-memory store is used.
+         * Use the given MongoDB as backend storage for the DocumentNodeStore.
          *
          * @param db the MongoDB connection
          * @return this
          */
-        public Builder setMongoDB(DB db) {
-            return setMongoDB(db, 8, 16);
+        public Builder setMongoDB(@Nonnull DB db) {
+            return setMongoDB(db, 16);
+        }
+
+        /**
+         * Returns the Mongo URI used in the {@link #setMongoDB(String, String, int)} method.
+         *
+         * @return the Mongo URI or null if the {@link #setMongoDB(String, String, int)} method hasn't
+         * been called.
+         */
+        public String getMongoUri() {
+            return mongoUri;
+        }
+
+        /**
+         * Returns the status of the Mongo server configured in the {@link #setMongoDB(String, String, int)} method.
+         *
+         * @return the status or null if the {@link #setMongoDB(String, String, int)} method hasn't
+         * been called.
+         */
+        public MongoStatus getMongoStatus() {
+            return mongoStatus;
         }
 
         /**
@@ -535,10 +723,7 @@ public class DocumentMK {
          * @return this
          */
         public Builder setRDBConnection(DataSource ds) {
-            this.documentStore = new RDBDocumentStore(ds, this);
-            if(this.blobStore == null) {
-                this.blobStore = new RDBBlobStore(ds);
-            }
+            setRDBConnection(ds, new RDBOptions());
             return this;
         }
 
@@ -550,8 +735,24 @@ public class DocumentMK {
          */
         public Builder setRDBConnection(DataSource ds, RDBOptions options) {
             this.documentStore = new RDBDocumentStore(ds, this, options);
-            if(this.blobStore == null) {
-                this.blobStore = new RDBBlobStore(ds, options);
+            if(blobStore == null) {
+                GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
+                setBlobStore(s);
+            }
+            return this;
+        }
+
+        /**
+         * Sets a {@link DataSource}s to use for the RDB document and blob
+         * stores.
+         *
+         * @return this
+         */
+        public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
+            this.documentStore = new RDBDocumentStore(documentStoreDataSource, this);
+            if(blobStore == null) {
+                GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
+                setBlobStore(s);
             }
             return this;
         }
@@ -567,14 +768,12 @@ public class DocumentMK {
         }
 
         /**
-         * Sets a {@link DataSource}s to use for the RDB document and blob
-         * stores.
+         * Sets the journal cache option.
          *
          * @return this
          */
-        public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-            this.documentStore = new RDBDocumentStore(documentStoreDataSource, this);
-            this.blobStore = new RDBBlobStore(blobStoreDataSource);
+        public Builder setJournalCache(String journalCache) {
+            this.journalCacheURI = journalCache;
             return this;
         }
 
@@ -600,6 +799,33 @@ public class DocumentMK {
 
         public boolean getLogging() {
             return logging;
+        }
+
+        public Builder setLeaseCheck(boolean leaseCheck) {
+            this.leaseCheck = leaseCheck;
+            return this;
+        }
+
+        public boolean getLeaseCheck() {
+            return leaseCheck;
+        }
+
+        public Builder setReadOnlyMode() {
+            this.isReadOnlyMode = true;
+            return this;
+        }
+
+        public boolean getReadOnlyMode() {
+            return isReadOnlyMode;
+        }
+
+        public Builder setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
+            this.leaseFailureHandler = leaseFailureHandler;
+            return this;
+        }
+
+        public LeaseFailureHandler getLeaseFailureHandler() {
+            return leaseFailureHandler;
         }
 
         /**
@@ -653,6 +879,7 @@ public class DocumentMK {
         public BlobStore getBlobStore() {
             if (blobStore == null) {
                 blobStore = new MemoryBlobStore();
+                configureBlobStore(blobStore);
             }
             return blobStore;
         }
@@ -666,6 +893,16 @@ public class DocumentMK {
          */
         public Builder setClusterId(int clusterId) {
             this.clusterId = clusterId;
+            return this;
+        }
+
+        public Builder setCacheSegmentCount(int cacheSegmentCount) {
+            this.cacheSegmentCount = cacheSegmentCount;
+            return this;
+        }
+
+        public Builder setCacheStackMoveDistance(int cacheSegmentCount) {
+            this.cacheStackMoveDistance = cacheSegmentCount;
             return this;
         }
 
@@ -702,20 +939,20 @@ public class DocumentMK {
             this.memoryCacheSize = memoryCacheSize;
             return this;
         }
-        
+
         public Builder memoryCacheDistribution(int nodeCachePercentage,
+                                               int prevDocCachePercentage,
                                                int childrenCachePercentage,
-                                               int docChildrenCachePercentage,
                                                int diffCachePercentage) {
             checkArgument(nodeCachePercentage >= 0);
+            checkArgument(prevDocCachePercentage >= 0);
             checkArgument(childrenCachePercentage>= 0);
-            checkArgument(docChildrenCachePercentage >= 0);
             checkArgument(diffCachePercentage >= 0);
-            checkArgument(nodeCachePercentage + childrenCachePercentage + 
-                    docChildrenCachePercentage + diffCachePercentage < 100);
+            checkArgument(nodeCachePercentage + prevDocCachePercentage + childrenCachePercentage +
+                    diffCachePercentage < 100);
             this.nodeCachePercentage = nodeCachePercentage;
+            this.prevDocCachePercentage = prevDocCachePercentage;
             this.childrenCachePercentage = childrenCachePercentage;
-            this.docChildrenCachePercentage = docChildrenCachePercentage;
             this.diffCachePercentage = diffCachePercentage;
             return this;
         }
@@ -724,17 +961,17 @@ public class DocumentMK {
             return memoryCacheSize * nodeCachePercentage / 100;
         }
 
+        public long getPrevDocumentCacheSize() {
+            return memoryCacheSize * prevDocCachePercentage / 100;
+        }
+
         public long getChildrenCacheSize() {
             return memoryCacheSize * childrenCachePercentage / 100;
         }
 
         public long getDocumentCacheSize() {
-            return memoryCacheSize - getNodeCacheSize() - getChildrenCacheSize() 
-                    - getDiffCacheSize() - getDocChildrenCacheSize();
-        }
-
-        public long getDocChildrenCacheSize() {
-            return memoryCacheSize * docChildrenCachePercentage / 100;
+            return memoryCacheSize - getNodeCacheSize() - getPrevDocumentCacheSize() - getChildrenCacheSize()
+                    - getDiffCacheSize();
         }
 
         public long getDiffCacheSize() {
@@ -758,28 +995,6 @@ public class DocumentMK {
             return useSimpleRevision;
         }
 
-        public Builder setSplitDocumentAgeMillis(long splitDocumentAgeMillis) {
-            this.splitDocumentAgeMillis = splitDocumentAgeMillis;
-            return this;
-        }
-
-        public long getSplitDocumentAgeMillis() {
-            return splitDocumentAgeMillis;
-        }
-
-        public boolean useOffHeapCache() {
-            return this.offHeapCacheSize > 0;
-        }
-
-        public long getOffHeapCacheSize() {
-            return offHeapCacheSize;
-        }
-
-        public Builder offHeapCacheSize(long offHeapCacheSize) {
-            this.offHeapCacheSize = offHeapCacheSize;
-            return this;
-        }
-
         public Executor getExecutor() {
             if(executor == null){
                 return MoreExecutors.sameThreadExecutor();
@@ -795,6 +1010,53 @@ public class DocumentMK {
         public Builder clock(Clock clock) {
             this.clock = clock;
             return this;
+        }
+
+        public Builder setStatisticsProvider(StatisticsProvider statisticsProvider){
+            this.statisticsProvider = statisticsProvider;
+            return this;
+        }
+
+        public StatisticsProvider getStatisticsProvider() {
+            return this.statisticsProvider;
+        }
+        public DocumentStoreStatsCollector getDocumentStoreStatsCollector() {
+            if (documentStoreStatsCollector == null) {
+                documentStoreStatsCollector = new DocumentStoreStats(statisticsProvider);
+            }
+            return documentStoreStatsCollector;
+        }
+
+        public Builder setDocumentStoreStatsCollector(DocumentStoreStatsCollector documentStoreStatsCollector) {
+            this.documentStoreStatsCollector = documentStoreStatsCollector;
+            return this;
+        }
+
+        public DocumentNodeStoreStatsCollector getNodeStoreStatsCollector() {
+            if (nodeStoreStatsCollector == null) {
+                nodeStoreStatsCollector = new DocumentNodeStoreStats(statisticsProvider);
+            }
+            return nodeStoreStatsCollector;
+        }
+
+        public Builder setNodeStoreStatsCollector(DocumentNodeStoreStatsCollector statsCollector) {
+            this.nodeStoreStatsCollector = statsCollector;
+            return this;
+        }
+
+        @Nonnull
+        public Map<CacheType, PersistentCacheStats> getPersistenceCacheStats() {
+            return persistentCacheStats;
+        }
+
+        @CheckForNull
+        public BlobStoreStats getBlobStoreStats() {
+            return blobStoreStats;
+        }
+
+        @CheckForNull
+        public CacheStats getBlobStoreCacheStats() {
+            return blobStoreCacheStats;
         }
 
         public Clock getClock() {
@@ -819,12 +1081,93 @@ public class DocumentMK {
             return disableBranches;
         }
 
+        public Builder setBundlingDisabled(boolean enabled) {
+            bundlingDisabled = enabled;
+            return this;
+        }
+
+        public boolean isBundlingDisabled() {
+            return bundlingDisabled;
+        }
+
+        public Builder setPrefetchExternalChanges(boolean b) {
+            prefetchExternalChanges = b;
+            return this;
+        }
+
+        public boolean isPrefetchExternalChanges() {
+            return prefetchExternalChanges;
+        }
+
+        public Builder setJournalPropertyHandlerFactory(JournalPropertyHandlerFactory factory) {
+            journalPropertyHandlerFactory = factory;
+            return this;
+        }
+
+        public JournalPropertyHandlerFactory getJournalPropertyHandlerFactory() {
+            return journalPropertyHandlerFactory;
+        }
+
+        public Builder setUpdateLimit(int limit) {
+            updateLimit = limit;
+            return this;
+        }
+
+        public int getUpdateLimit() {
+            return updateLimit;
+        }
+
+        public Builder setCommitValueCacheSize(int cacheSize) {
+            this.commitValueCacheSize = cacheSize;
+            return this;
+        }
+
+        public int getCommitValueCacheSize() {
+            return commitValueCacheSize;
+        }
+
+        public Builder setGCMonitor(@Nonnull GCMonitor gcMonitor) {
+            this.gcMonitor = checkNotNull(gcMonitor);
+            return this;
+        }
+
+        public GCMonitor getGCMonitor() {
+            return gcMonitor;
+        }
+
         VersionGCSupport createVersionGCSupport() {
             DocumentStore store = getDocumentStore();
             if (store instanceof MongoDocumentStore) {
                 return new MongoVersionGCSupport((MongoDocumentStore) store);
+            } else if (store instanceof RDBDocumentStore) {
+                return new RDBVersionGCSupport((RDBDocumentStore) store);
             } else {
                 return new VersionGCSupport(store);
+            }
+        }
+
+        Iterable<ReferencedBlob> createReferencedBlobs(final DocumentNodeStore ns) {
+            final DocumentStore store = getDocumentStore();
+            return new Iterable<ReferencedBlob>() {
+                @Override
+                public Iterator<ReferencedBlob> iterator() {
+                    if (store instanceof MongoDocumentStore) {
+                        return new MongoBlobReferenceIterator(ns, (MongoDocumentStore) store);
+                    } else if (store instanceof RDBDocumentStore) {
+                        return new RDBBlobReferenceIterator(ns, (RDBDocumentStore) store);
+                    } else {
+                        return new BlobReferenceIterator(ns);
+                    }
+                }
+            };
+        }
+
+        public MissingLastRevSeeker createMissingLastRevSeeker() {
+            final DocumentStore store = getDocumentStore();
+            if (store instanceof MongoDocumentStore) {
+                return new MongoMissingLastRevSeeker((MongoDocumentStore) store, getClock());
+            } else {
+                return new MissingLastRevSeeker(store, getClock());
             }
         }
 
@@ -836,19 +1179,15 @@ public class DocumentMK {
         public DocumentMK open() {
             return new DocumentMK(this);
         }
-        
+
         public Cache<PathRev, DocumentNodeState> buildNodeCache(DocumentNodeStore store) {
             return buildCache(CacheType.NODE, getNodeCacheSize(), store, null);
         }
-        
-        public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache() {
-            return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), null, null);            
+
+        public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache(DocumentNodeStore store) {
+            return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), store, null);
         }
-        
-        public Cache<StringValue, NodeDocument.Children> buildDocChildrenCache() {
-            return buildCache(CacheType.DOC_CHILDREN, getDocChildrenCacheSize(), null, null);
-        }
-        
+
         public Cache<PathRev, StringValue> buildMemoryDiffCache() {
             return buildCache(CacheType.DIFF, getMemoryDiffCacheSize(), null, null);
         }
@@ -861,24 +1200,52 @@ public class DocumentMK {
             return buildCache(CacheType.DOCUMENT, getDocumentCacheSize(), null, docStore);
         }
 
+        public Cache<StringValue, NodeDocument> buildPrevDocumentsCache(DocumentStore docStore) {
+            return buildCache(CacheType.PREV_DOCUMENT, getPrevDocumentCacheSize(), null, docStore);
+        }
+
+        public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore, NodeDocumentLocks locks) {
+            Cache<CacheValue, NodeDocument> nodeDocumentsCache = buildDocumentCache(docStore);
+            CacheStats nodeDocumentsCacheStats = new CacheStats(nodeDocumentsCache, "Document-Documents", getWeigher(), getDocumentCacheSize());
+
+            Cache<StringValue, NodeDocument> prevDocumentsCache = buildPrevDocumentsCache(docStore);
+            CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
+
+            return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
+        }
+
+        @SuppressWarnings("unchecked")
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
                 CacheType cacheType,
                 long maxWeight,
                 DocumentNodeStore docNodeStore,
                 DocumentStore docStore
                 ) {
-            Cache<K, V> cache = buildCache(maxWeight);
-            PersistentCache p = getPersistentCache();
+            Set<EvictionListener<K, V>> listeners = new CopyOnWriteArraySet<EvictionListener<K,V>>();
+            Cache<K, V> cache = buildCache(cacheType.name(), maxWeight, listeners);
+            PersistentCache p = null;
+            if (cacheType == CacheType.DIFF || cacheType == CacheType.LOCAL_DIFF) {
+                // use separate journal cache if configured
+                p = getJournalCache();
+            }
+            if (p == null) {
+                // otherwise fall back to single persistent cache
+                p = getPersistentCache();
+            }
             if (p != null) {
-                if (docNodeStore != null) {
-                    docNodeStore.setPersistentCache(p);
+                cache = p.wrap(docNodeStore, docStore, cache, cacheType, statisticsProvider);
+                if (cache instanceof EvictionListener) {
+                    listeners.add((EvictionListener<K, V>) cache);
                 }
-                cache = p.wrap(docNodeStore, docStore, cache, cacheType);
+                PersistentCacheStats stats = PersistentCache.getPersistentCacheStats(cache);
+                if (stats != null) {
+                    persistentCacheStats.put(cacheType, stats);
+                }
             }
             return cache;
         }
-        
-        private PersistentCache getPersistentCache() {
+
+        public PersistentCache getPersistentCache() {
             if (persistentCacheURI == null) {
                 return null;
             }
@@ -892,9 +1259,26 @@ public class DocumentMK {
             }
             return persistentCache;
         }
-        
+
+        PersistentCache getJournalCache() {
+            if (journalCacheURI == null) {
+                return null;
+            }
+            if (journalCache == null) {
+                try {
+                    journalCache = new PersistentCache(journalCacheURI);
+                } catch (Throwable e) {
+                    LOG.warn("Journal cache not available; please disable the configuration", e);
+                    throw new IllegalArgumentException(e);
+                }
+            }
+            return journalCache;
+        }
+
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
-                long maxWeight) {
+                String module,
+                long maxWeight,
+                final Set<EvictionListener<K, V>> listeners) {
             // by default, use the LIRS cache when using the persistent cache,
             // but don't use it otherwise
             boolean useLirs = persistentCacheURI != null;
@@ -903,21 +1287,63 @@ public class DocumentMK {
                 useLirs = LIRS_CACHE;
             }
             if (useLirs) {
-                return CacheLIRS.newBuilder().
-                        weigher(weigher).
+                return CacheLIRS.<K, V>newBuilder().
+                        module(module).
+                        weigher(new Weigher<K, V>() {
+                            @Override
+                            public int weigh(K key, V value) {
+                                return weigher.weigh(key, value);
+                            }
+                        }).
                         averageWeight(2000).
                         maximumWeight(maxWeight).
+                        segmentCount(cacheSegmentCount).
+                        stackMoveDistance(cacheStackMoveDistance).
                         recordStats().
+                        evictionCallback(new EvictionCallback<K, V>() {
+                            @Override
+                            public void evicted(K key, V value, RemovalCause cause) {
+                                for (EvictionListener<K, V> l : listeners) {
+                                    l.evicted(key, value, cause);
+                                }
+                            }
+                        }).
                         build();
             }
             return CacheBuilder.newBuilder().
-                    concurrencyLevel(CACHE_CONCURRENCY).
+                    concurrencyLevel(cacheSegmentCount).
                     weigher(weigher).
                     maximumWeight(maxWeight).
                     recordStats().
+                    removalListener(new RemovalListener<K, V>() {
+                        @Override
+                        public void onRemoval(RemovalNotification<K, V> notification) {
+                            for (EvictionListener<K, V> l : listeners) {
+                                l.evicted(notification.getKey(), notification.getValue(), notification.getCause());
+                            }
+                        }
+                    }).
                     build();
         }
 
+        /**
+         * BlobStore which are created by builder might get wrapped.
+         * So here we perform any configuration and also access any
+         * service exposed by the store
+         *
+         * @param blobStore store to config
+         */
+        private void configureBlobStore(BlobStore blobStore) {
+            if (blobStore instanceof AbstractBlobStore){
+                this.blobStoreStats = new BlobStoreStats(statisticsProvider);
+                ((AbstractBlobStore) blobStore).setStatsCollector(blobStoreStats);
+            }
+
+            if (blobStore instanceof CachingBlobStore){
+                blobStoreCacheStats = ((CachingBlobStore) blobStore).getCacheStats();
+            }
+        }
+
     }
-    
+
 }

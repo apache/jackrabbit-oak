@@ -18,6 +18,10 @@
 Segment Storage Design Overview
 =========================
 
+*NOTE:* The information on this page applies to an older version of the 
+TarMK and is mainly of historical interest. For the documentation of the 
+current versions see [Oak Segment Tar](segment/overview.html).
+
 The SegmentNodeStore is an Oak storage backend that stores content as various
 types of *records* within larger *segments*. One or more *journals* are
 used to track the latest state of the repository. In the Tar implementation

@@ -23,7 +23,7 @@ import java.util.Set;
 
 /**
  * helper class that return the list of available fixtures based on the {@code nsfixtures} system
- * property ({@code -Dnsfixtures=SEGMENT_MK}).
+ * property ({@code -Dnsfixtures=SEGMENT_TAR}).
  * 
  * See {@link FixturesHelper.Fixture} for a list of available fixtures
  */
@@ -43,7 +43,7 @@ public final class FixturesHelper {
      * default fixtures when no {@code nsfixtures} is provided
      */
     public enum Fixture {
-       DOCUMENT_NS, SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS
+       DOCUMENT_NS, @Deprecated SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS, DOCUMENT_MEM, SEGMENT_TAR, FEDERATED_SEGMENT, FEDERATED_MEM
     }
 
     private static final Set<Fixture> FIXTURES;
@@ -53,12 +53,27 @@ public final class FixturesHelper {
             FIXTURES = unmodifiableSet(EnumSet.allOf(Fixture.class));
         } else {
             Set<Fixture> tmp = EnumSet.noneOf(Fixture.class);
+            boolean unknownFixture = false;
             for (String f : raw.split(SPLIT_ON)) {
-                String x = f.trim();
-                Fixture fx = Fixture.valueOf(x.toUpperCase());
-                if (fx != null) {
+                String x = f.trim().toUpperCase();
+                try {
+                    Fixture fx = Fixture.valueOf(x);
                     tmp.add(fx);
+                } catch (IllegalArgumentException e){
+                    //This fixture is not present in branches
+                    //so would need to be ignored
+                    if (!"SEGMENT_TAR".equals(x)){
+                        throw e;
+                    } else {
+                        unknownFixture = true;
+                    }
                 }
+            }
+
+            //If SEGMENT_TAR is missing (true for branches) then
+            //ensure that tmp maps to MEMORY_NS to avoid running all fixture
+            if (tmp.isEmpty() && unknownFixture){
+                tmp.add(Fixture.MEMORY_NS);
             }
             
             if (tmp.isEmpty()) {

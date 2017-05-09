@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;

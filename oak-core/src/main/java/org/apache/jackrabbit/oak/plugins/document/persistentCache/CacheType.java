@@ -51,6 +51,10 @@ public enum CacheType {
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) DocumentNodeState.fromString(store, value);
         }
+        @Override
+        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
+            return !store.getNodeStateCache().isCached(((PathRev)key).getPath());
+        }
     },
     
     CHILDREN {
@@ -76,6 +80,11 @@ public enum CacheType {
         public <V> V valueFromString(
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) DocumentNodeState.Children.fromString(value);
+        }
+
+        @Override
+        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
+            return !store.getNodeStateCache().isCached(((PathRev)key).getPath());
         }
     }, 
     
@@ -103,6 +112,10 @@ public enum CacheType {
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) StringValue.fromString(value);
         }
+        @Override
+        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
+            return true;
+        }
     },
 
     DOC_CHILDREN {
@@ -128,6 +141,10 @@ public enum CacheType {
         public <V> V valueFromString(
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) NodeDocument.Children.fromString(value);
+        }
+        @Override
+        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
+            return true;
         }
     }, 
     
@@ -155,6 +172,40 @@ public enum CacheType {
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) NodeDocument.fromString(docStore, value);
         }
+        @Override
+        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
+            return true;
+        }
+    },
+
+    PREV_DOCUMENT {
+        @Override
+        public <K> String keyToString(K key) {
+            return ((StringValue) key).asString();
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public <K> K keyFromString(String key) {
+            return (K) StringValue.fromString(key);
+        }
+        @Override
+        public <K> int compareKeys(K a, K b) {
+            return ((StringValue) a).asString().compareTo(((StringValue) b).asString());
+        }
+        @Override
+        public <V> String valueToString(V value) {
+            return ((NodeDocument) value).asString();
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public <V> V valueFromString(
+                DocumentNodeStore store, DocumentStore docStore, String value) {
+            return (V) NodeDocument.fromString(docStore, value);
+        }
+        @Override
+        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
+            return true;
+        }
     },
 
     LOCAL_DIFF {
@@ -181,7 +232,47 @@ public enum CacheType {
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) LocalDiffCache.Diff.fromString(value);
         }
+        @Override
+        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
+            return true;
+        }
+    },
+    
+    BLOB {
+
+        @Override
+        public <K> String keyToString(K key) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <K> K keyFromString(String key) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <K> int compareKeys(K a, K b) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <V> String valueToString(V value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <V> V valueFromString(DocumentNodeStore store,
+                DocumentStore docStore, String value) {
+            throw new UnsupportedOperationException();
+        }
+        @Override
+        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
+            return true;
+        }
+        
     };
+    
+    public static final CacheType[] VALUES = CacheType.values();
 
     public abstract <K> String keyToString(K key);
     public abstract <K> K keyFromString(String key);
@@ -189,6 +280,7 @@ public enum CacheType {
     public abstract <V> String valueToString(V value);
     public abstract <V> V valueFromString(
             DocumentNodeStore store, DocumentStore docStore, String value);
+    public abstract <K> boolean shouldCache(DocumentNodeStore store, K key);
 
 }
 

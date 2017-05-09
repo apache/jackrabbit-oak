@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.jcr.session;
 
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_PREFIXES;
 
 import java.util.HashSet;
 import java.util.Locale;
@@ -31,7 +28,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.util.XMLChar;
@@ -44,9 +40,9 @@ import com.google.common.collect.Maps;
  * re-mappings and takes a snapshot of the namespace registry when initialized
  * (see JCR 2.0 specification, section 3.5.1).
  */
-class SessionNamespaces extends LocalNameMapper {
+public class SessionNamespaces extends LocalNameMapper {
 
-    SessionNamespaces(@Nonnull Root root) {
+    public SessionNamespaces(@Nonnull Root root) {
         super(root, Maps.<String, String>newHashMap());
     }
 
@@ -97,11 +93,7 @@ class SessionNamespaces extends LocalNameMapper {
      */
     synchronized String[] getNamespacePrefixes() {
         // get registered namespace prefixes
-        Iterable<String> global = emptyList();
-        PropertyState property = nsdata.getProperty(REP_PREFIXES);
-        if (property != null && property.getType() == STRINGS) {
-            global = property.getValue(STRINGS);
-        }
+        Iterable<String> global = getPrefixes();
 
         // unless there are local remappings just use the registered ones
         if (local.isEmpty()) {

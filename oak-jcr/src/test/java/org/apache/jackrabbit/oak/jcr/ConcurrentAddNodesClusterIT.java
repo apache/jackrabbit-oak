@@ -26,10 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -62,7 +59,6 @@ public class ConcurrentAddNodesClusterIT {
     private static final int LOOP_COUNT = 10;
     private static final int WORKER_COUNT = 20;
     private static final String PROP_NAME = "testcount";
-    private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
 
     private List<Repository> repos = new ArrayList<Repository>();
     private List<DocumentMK> mks = new ArrayList<DocumentMK>();
@@ -81,12 +77,15 @@ public class ConcurrentAddNodesClusterIT {
 
     @After
     public void after() throws Exception {
+        workers.clear();
         for (Repository repo : repos) {
             dispose(repo);
         }
+        repos.clear();
         for (DocumentMK mk : mks) {
             mk.dispose();
         }
+        mks.clear();
         dropDB();
     }
 
@@ -211,7 +210,6 @@ public class ConcurrentAddNodesClusterIT {
         for (int i = 0; i < 2; i++) {
             DocumentMK mk = new DocumentMK.Builder()
                     .setMongoDB(createConnection().getDB())
-                    .setAsyncDelay(0)
                     .setClusterId(i + 1).open();
             mks.add(mk);
         }
@@ -226,18 +224,19 @@ public class ConcurrentAddNodesClusterIT {
         Session s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
         ensureIndex(s1.getRootNode(), PROP_NAME);
-        syncMKs(1);
         ensureIndex(s2.getRootNode(), PROP_NAME);
 
         Map<String, Exception> exceptions = Collections.synchronizedMap(
                 new HashMap<String, Exception>());
         createNodes(s1, "testroot-1", 1, 1, exceptions);
-        syncMKs(1);
         createNodes(s2, "testroot-2", 1, 1, exceptions);
 
         for (Map.Entry<String, Exception> entry : exceptions.entrySet()) {
             throw entry.getValue();
         }
+
+        s1.logout();
+        s2.logout();
     }
 
     @Test
@@ -264,9 +263,9 @@ public class ConcurrentAddNodesClusterIT {
         Session s3 = r3.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
         ensureIndex(s1.getRootNode(), PROP_NAME);
-        syncMKs(1);
-        ensureIndex(s2.getRootNode(), PROP_NAME);
-        ensureIndex(s3.getRootNode(), PROP_NAME);
+        runBackgroundOps(mk1);
+        runBackgroundOps(mk2);
+        runBackgroundOps(mk3);
 
         // begin test
 
@@ -313,6 +312,10 @@ public class ConcurrentAddNodesClusterIT {
         runBackgroundOps(mk1);
 
         s1.save();
+
+        s1.logout();
+        s2.logout();
+        s3.logout();
     }
 
     @Test
@@ -355,18 +358,9 @@ public class ConcurrentAddNodesClusterIT {
 
         s1.refresh(true);
         assertTrue(s1.getRootNode().hasNode("session-2/nodes"));
-    }
 
-    private void syncMKs(int delay) {
-        EXECUTOR.schedule(new Callable<Object>() {
-            @Override
-            public Object call() throws Exception {
-                for (DocumentMK mk : mks) {
-                    runBackgroundOps(mk);
-                }
-                return null;
-            }
-        }, delay, TimeUnit.SECONDS);
+        s1.logout();
+        s2.logout();
     }
 
     private static MongoConnection createConnection() throws Exception {

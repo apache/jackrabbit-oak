@@ -25,6 +25,11 @@ public class UUIDDiffIndex extends DiffIndex {
     }
 
     @Override
+    public double getMinimumCost() {
+        return 0;
+    }
+
+    @Override
     public String getIndexName() {
         return "UUIDDiffIndex";
     }

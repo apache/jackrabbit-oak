@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This implementation tracks the number of pending changes and purges them to
@@ -36,11 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
-    /**
-     * Number of content updates that need to happen before the updates
-     * are automatically purged to the private branch.
-     */
-    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 10000);
+    private static final Logger log = LoggerFactory.getLogger(DocumentRootBuilder.class);
 
     /**
      * The underlying store
@@ -57,9 +55,15 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     private NodeState base;
 
     /**
-     * Private branch used to hold pending changes exceeding {@link #UPDATE_LIMIT}
+     * Private branch used to hold pending changes exceeding {@link #updateLimit}
      */
     private DocumentNodeStoreBranch branch;
+
+    /**
+     * Number of content updates that need to happen before the updates
+     * are automatically purged to the private branch.
+     */
+    private final int updateLimit;
 
     /**
      * Number of updated not yet persisted to the private {@link #branch}
@@ -72,6 +76,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         this.store = checkNotNull(store);
         this.base = base;
         this.branch = store.createBranch(base);
+        this.updateLimit = store.getUpdateLimit();
     }
 
     //--------------------------------------------------< MemoryNodeBuilder >---
@@ -95,7 +100,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
     @Override
     protected void updated() {
-        if (updates++ > UPDATE_LIMIT) {
+        if (++updates > updateLimit) {
             purge();
         }
     }
@@ -130,6 +135,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
         // Rebase in memory changes on top of the head of the rebased branch
         super.reset(branch.getHead());
+        updates = 0;
         head.compareAgainstBaseState(inMemBase, new ConflictAnnotatingRebaseDiff(this));
 
         // Set new base and return rebased head
@@ -169,33 +175,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         return reset();
     }
 
-    /**
-     * Applied all pending changes to the underlying branch and then
-     * move the node as a separate operation on the underlying store.
-     * This allows stores to optimise move operations instead of
-     * seeing them as an added node followed by a deleted node.
-     */
-    boolean move(String source, String target) {
-        purge();
-        boolean success = branch.move(source, target);
-        super.reset(branch.getHead());
-        return success;
-    }
-
-    /**
-     * Applied all pending changes to the underlying branch and then
-     * copy the node as a separate operation on the underlying store.
-     * This allows stores to optimise copy operations instead of
-     * seeing them as an added node.
-     */
-    boolean copy(String source, String target) {
-        purge();
-        boolean success = branch.copy(source, target);
-        super.reset(branch.getHead());
-        return success;
-    }
-
-    private void purge() {
+    void purge() {
         branch.setRoot(super.getNodeState());
         super.reset(branch.getHead());
         updates = 0;

@@ -40,6 +40,11 @@ public interface IndexEditorProvider {
      * The {@code definition} builder must points to the index definition
      * node under which the indexer is expected to store the index content.
      * </p>
+     *
+     * <p>
+     * The <code>callback</code> instance may be of type {@link ContextAwareCallback}
+     * and that can be used to access {@link IndexingContext}
+     * </p>
      * 
      * @param type  index type
      * @param definition index definition node builder, used for updates

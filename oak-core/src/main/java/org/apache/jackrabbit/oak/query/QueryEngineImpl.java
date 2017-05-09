@@ -16,16 +16,18 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -33,8 +35,8 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -43,6 +45,29 @@ import org.slf4j.MDC;
  * The query engine implementation.
  */
 public abstract class QueryEngineImpl implements QueryEngine {
+    
+    /**
+     * Used to instruct the {@link QueryEngineImpl} on how to act with respect of the SQL2
+     * optimisation.
+     */
+    public static enum QuerySelectionMode {
+        
+        /**
+         * Will execute the cheapest (default).
+         */
+        CHEAPEST,
+
+        /**
+         * Will use the original SQL2 query.
+         */
+        ORIGINAL, 
+        
+        /**
+         * Will force the computed alternate query to be executed. If available.
+         */
+        ALTERNATIVE
+        
+    }
 
     private static final AtomicInteger ID_COUNTER = new AtomicInteger();
     private static final String MDC_QUERY_ID = "oak.query.id";
@@ -68,9 +93,18 @@ public abstract class QueryEngineImpl implements QueryEngine {
      * disabled for testing purposes.
      */
     private boolean traversalEnabled = true;
+    
+    /**
+     * Which query to select in case multiple options are available. Whether the
+     * query engine should pick the one with the lowest expected cost (default),
+     * or the original, or the alternative.
+     */
+    private QuerySelectionMode querySelectionMode = QuerySelectionMode.CHEAPEST;
 
     /**
-     * @return Execution context for a single query execution.
+     * Get the execution context for a single query execution.
+     * 
+     * @return the context
      */
     protected abstract ExecutionContext getExecutionContext();
 
@@ -92,11 +126,22 @@ public abstract class QueryEngineImpl implements QueryEngine {
     public List<String> getBindVariableNames(
             String statement, String language, Map<String, String> mappings)
             throws ParseException {
-        Query q = parseQuery(statement, language, getExecutionContext(), mappings);
-        return q.getBindVariableNames();
+        List<Query> qs = parseQuery(statement, language, getExecutionContext(), mappings);
+        
+        return qs.iterator().next().getBindVariableNames();
     }
 
-    private static Query parseQuery(
+    /**
+     * Parse the query.
+     * 
+     * @param statement the statement
+     * @param language the language
+     * @param context the context
+     * @param mappings the mappings
+     * @return the list of queries, where the first is the original, and all
+     *         others are alternatives (for example, a "union" query)
+     */
+    private static List<Query> parseQuery(
             String statement, String language, ExecutionContext context,
             Map<String, String> mappings) throws ParseException {
         
@@ -110,22 +155,25 @@ public abstract class QueryEngineImpl implements QueryEngine {
         NamePathMapper mapper = new NamePathMapperImpl(
                 new LocalNameMapper(context.getRoot(), mappings));
 
-        NodeState types = context.getBaseState()
-                .getChildNode(JCR_SYSTEM)
-                .getChildNode(JCR_NODE_TYPES);
+        NodeTypeInfoProvider nodeTypes = context.getNodeTypeInfoProvider();
         QueryEngineSettings settings = context.getSettings();
 
-        SQL2Parser parser = new SQL2Parser(mapper, types, settings);
+        SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);
             parser.setAllowTextLiterals(false);
         }
+        
+        ArrayList<Query> queries = new ArrayList<Query>();
+        
+        Query q;
+        
         if (SQL2.equals(language) || JQOM.equals(language)) {
-            return parser.parse(statement);
+            q = parser.parse(statement, false);
         } else if (SQL.equals(language)) {
             parser.setSupportSQL1(true);
-            return parser.parse(statement);
+            q = parser.parse(statement, false);
         } else if (XPATH.equals(language)) {
             XPathToSQL2Converter converter = new XPathToSQL2Converter();
             String sql2 = converter.convert(statement);
@@ -133,7 +181,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
             try {
                 // OAK-874: No artificial XPath selector name in wildcards
                 parser.setIncludeSelectorNameInWildcardColumns(false);
-                return parser.parse(sql2);
+                q = parser.parse(sql2, false);
             } catch (ParseException e) {
                 ParseException e2 = new ParseException(
                         statement + " converted to SQL-2 " + e.getMessage(), 0);
@@ -143,6 +191,42 @@ public abstract class QueryEngineImpl implements QueryEngine {
         } else {
             throw new ParseException("Unsupported language: " + language, 0);
         }
+        
+        queries.add(q);
+        
+        if (settings.isSql2Optimisation()) {
+            if (q.isInternal()) {
+                LOG.trace("Skipping optimisation as internal query.");
+            } else {
+                LOG.trace("Attempting optimisation");
+                Query q2 = q.buildAlternativeQuery();
+                if (q2 != q) {
+                    LOG.debug("Alternative query available: {}", q2);
+                    queries.add(q2);
+                }
+            }
+        }
+        
+        // initialising all the queries.
+        for (Query query : queries) {
+            try {
+                query.init();
+            } catch (Exception e) {
+                ParseException e2 = new ParseException(query.getStatement() + ": " + e.getMessage(), 0);
+                e2.initCause(e);
+                throw e2;
+            }
+        }
+
+        return queries;
+    }
+    
+    @Override
+    public Result executeQuery(
+            String statement, String language,
+            Map<String, ? extends PropertyValue> bindings,
+            Map<String, String> mappings) throws ParseException {
+        return executeQuery(statement, language, Long.MAX_VALUE, 0, bindings, mappings);
     }
     
     @Override
@@ -166,29 +250,98 @@ public abstract class QueryEngineImpl implements QueryEngine {
         }
 
         ExecutionContext context = getExecutionContext();
-        Query q = parseQuery(statement, language, context, mappings);
-        q.setExecutionContext(context);
-        q.setLimit(limit);
-        q.setOffset(offset);
-        if (bindings != null) {
-            for (Entry<String, ? extends PropertyValue> e : bindings.entrySet()) {
-                q.bindValue(e.getKey(), e.getValue());
+        List<Query> queries = parseQuery(statement, language, context, mappings);
+        
+        for (Query q : queries) {
+            q.setExecutionContext(context);
+            q.setLimit(limit);
+            q.setOffset(offset);
+            if (bindings != null) {
+                for (Entry<String, ? extends PropertyValue> e : bindings.entrySet()) {
+                    q.bindValue(e.getKey(), e.getValue());
+                }
             }
+            q.setTraversalEnabled(traversalEnabled);            
         }
-        q.setTraversalEnabled(traversalEnabled);
 
         boolean mdc = false;
         try {
-            mdc = setupMDC(q);
-            q.prepare();
-            return q.executeQuery();
+            Query query = prepareAndSelect(queries); 
+            mdc = setupMDC(query);
+            return query.executeQuery();
         } finally {
             if (mdc) {
                 clearMDC();
             }
         }
     }
+    
+    /**
+     * Prepare all the available queries and by based on the {@link QuerySelectionMode} flag return
+     * the appropriate.
+     * 
+     * @param queries the list of queries to be executed. Cannot be null.
+     *      If there are multiple, the first one is the original, and the second the alternative.
+     * @return the query
+     */
+    @Nonnull
+    private Query prepareAndSelect(@Nonnull List<Query> queries) {
+        Query result = null;
+        
+        if (checkNotNull(queries).size() == 1) {
+            // we only have the original query so we prepare and return it.
+            result = queries.iterator().next();
+            result.prepare();
+            result.verifyNotPotentiallySlow();
+            LOG.trace("No alternatives found. Query: {}", result);
+        } else {
+            double bestCost = Double.POSITIVE_INFINITY;
+            
+            // Always prepare all of the queries and compute the cheapest as
+            // it's the default behaviour. That way, we always log the cost and
+            // can more easily analyze problems. The querySelectionMode flag can
+            // be used to override the cheapest.
+            boolean isPotentiallySlow = true;
+            for (Query q : checkNotNull(queries)) {
+                q.prepare();
+                if (!q.isPotentiallySlow()) {
+                    isPotentiallySlow = false;
+                }
+                double cost = q.getEstimatedCost();
+                LOG.debug("cost: {} for query {}", cost, q);
+                if (q.containsUnfilteredFullTextCondition()) {
+                    LOG.debug("contains an unfiltered fulltext condition");
+                    cost = Double.POSITIVE_INFINITY;
+                }
+                if (result == null || cost < bestCost) {
+                    result = q;
+                    bestCost = cost;
+                }
+            }
 
+            switch (querySelectionMode) {
+            case ORIGINAL:
+                LOG.debug("Forcing the original SQL2 query to be executed by flag");
+                result = queries.get(0);
+                break;
+
+            case ALTERNATIVE:
+                LOG.debug("Forcing the alternative SQL2 query to be executed by flag");
+                result = queries.get(1);
+                break;
+
+            // CHEAPEST is the default behaviour
+            case CHEAPEST:
+            default:
+            }
+            if (isPotentiallySlow) {
+                result.verifyNotPotentiallySlow();
+            }
+        }
+        
+        return result;
+    }
+    
     protected void setTraversalEnabled(boolean traversalEnabled) {
         this.traversalEnabled = traversalEnabled;
     }
@@ -212,4 +365,13 @@ public abstract class QueryEngineImpl implements QueryEngine {
         MDC.remove(OAK_QUERY_ANALYZE);
     }
 
+    /**
+     * Instruct the query engine on how to behave with regards to the SQL2 optimised query if
+     * available.
+     * 
+     * @param querySelectionMode cannot be null
+     */
+    protected void setQuerySelectionMode(@Nonnull QuerySelectionMode querySelectionMode) {
+        this.querySelectionMode = querySelectionMode;
+    }
 }

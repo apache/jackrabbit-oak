@@ -27,7 +27,7 @@
 # sql-1 query (nt:unstructured needs to be escaped in sql-2)
 
 sql1 SELECT [rep:spellcheck()] FROM nt:base WHERE [jcr:path] = '/' AND SPELLCHECK('jackrabit')
-[jackrabbit], /, 1.0
+jackrabbit, /, 1.0
 
 sql1 select prop1 from nt:unstructured where prop1 is not null order by prop1 asc
 

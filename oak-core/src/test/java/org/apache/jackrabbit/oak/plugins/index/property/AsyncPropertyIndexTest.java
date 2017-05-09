@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static com.google.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -25,10 +24,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REIND
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -37,7 +36,10 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -49,9 +51,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
-;
 
 /**
  * Test the asynchronous reindexing ability of an synchronous index
@@ -65,6 +66,7 @@ public class AsyncPropertyIndexTest {
     @Test
     public void testAsyncPropertyLookup() throws Exception {
         NodeStore store = new MemoryNodeStore();
+        assertTrue(Iterables.isEmpty(store.checkpoints()));
 
         NodeBuilder builder = store.getRoot().builder();
 
@@ -100,8 +102,10 @@ public class AsyncPropertyIndexTest {
 
         // run async second time, there are no changes, should switch to sync
         async.run();
+        async.close();
         assertEquals(null, store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME)
                 .getChildNode("foo").getString(ASYNC_PROPERTY_NAME));
+        assertTrue(Iterables.isEmpty(store.checkpoints()));
 
         // add content, it should be indexed synchronously
         builder = store.getRoot().builder();
@@ -113,9 +117,8 @@ public class AsyncPropertyIndexTest {
     }
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
-        NodeState system = root.getChildNode(JCR_SYSTEM);
-        NodeState types = system.getChildNode(JCR_NODE_TYPES);
-        NodeState type = types.getChildNode(nodeTypeName);
+        NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
         return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
                 new QueryEngineSettings());
@@ -127,4 +130,15 @@ public class AsyncPropertyIndexTest {
                 : PropertyValues.newString(value)));
     }
 
+    @Test
+    public void testAsyncPropertyNoChanges() throws Exception {
+        NodeStore store = new MemoryNodeStore();
+        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
+                store, provider, true);
+        async.run();
+        async.run();
+        async.close();
+        assertTrue(Iterables.isEmpty(store.checkpoints()));
+    }
 }

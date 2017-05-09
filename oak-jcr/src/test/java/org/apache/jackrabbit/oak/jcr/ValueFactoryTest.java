@@ -16,15 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.junit.Assert.fail;
+
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 /**
  * ValueFactoryTest...

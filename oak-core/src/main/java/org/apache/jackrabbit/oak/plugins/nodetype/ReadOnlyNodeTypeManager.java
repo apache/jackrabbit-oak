@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
+import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
@@ -103,7 +104,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      */
     @Nonnull
     protected NamePathMapper getNamePathMapper() {
-        return NamePathMapperImpl.DEFAULT;
+        return NamePathMapper.DEFAULT;
     }
 
     //--------------------------------------------------------------------------
@@ -275,6 +276,25 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
 
+        return false;
+    }
+
+    @Override
+    public boolean isNodeType(@CheckForNull String primaryTypeName, @Nonnull Iterator<String> mixinTypes,
+                              @Nonnull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException {
+        // shortcut
+        if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
+            return true;
+        }
+        Tree types = getTypes();
+        if (primaryTypeName != null && isa(types, primaryTypeName, nodeTypeName)) {
+            return true;
+        }
+        while (mixinTypes.hasNext()) {
+            if (isa(types, mixinTypes.next(), nodeTypeName)) {
+                return true;
+            }
+        }
         return false;
     }
 

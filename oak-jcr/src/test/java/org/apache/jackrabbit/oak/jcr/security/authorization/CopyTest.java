@@ -18,10 +18,14 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
@@ -128,5 +132,83 @@ public class CopyTest extends AbstractEvaluationTest {
 
         superuser.refresh(false);
         assertFalse(superuser.nodeExists(targetPath + '/' + childName + "/rep:policy"));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2810">OAK-2810</a>
+     */
+    @Test
+    public void testCopyFromNonAccessibleSourceParent() throws Exception {
+        // deny read access to the parent of the source to be copied
+        deny(path, privilegesFromName(PrivilegeConstants.JCR_ALL));
+        // allow copying the node itself
+        Privilege[] readWrite = privilegesFromNames(new String[] {PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE});
+        allow(childNPath, readWrite);
+        allow(targetPath, readWrite);
+
+        testSession.getWorkspace().copy(childNPath, destPath);
+        assertTrue(testSession.nodeExists(destPath));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2810">OAK-2810</a>
+     */
+    @Test
+    public void testCopyToProtectedParentDestination() throws Exception {
+        // create a protected target parent node (not meant for permission validation this time)
+        allow(targetPath, privilegesFromName(Privilege.JCR_ALL));
+
+        Node destParent = null;
+        NodeIterator nodeIterator = superuser.getNode(targetPath).getNode(AccessControlConstants.REP_POLICY).getNodes();
+        while (nodeIterator.hasNext()) {
+            Node n = nodeIterator.nextNode();
+            if (n.getDefinition().isProtected()) {
+                destParent = n;
+                break;
+            }
+        }
+
+        if (destParent == null) {
+            throw new NotExecutableException("No protected parent found");
+        }
+
+        try {
+            superuser.getWorkspace().copy(childNPath, destParent.getPath() + "/copy");
+            fail("Copy must fail with constraint-violation if the destination parent is a protected node.");
+        } catch (ConstraintViolationException e) {
+            // success
+            assertEquals("Node " + destParent.getPath() + " is protected.", e.getMessage());
+
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2810">OAK-2810</a>
+     */
+    @Test
+    public void testCopyFromProtectedParentSource() throws Exception {
+        // create a protected source parent node (not meant for permission validation this time)
+        allow(childNPath, privilegesFromName(PrivilegeConstants.JCR_ALL));
+
+        Node sourceNode = null;
+        NodeIterator nodeIterator = superuser.getNode(childNPath).getNode(AccessControlConstants.REP_POLICY).getNodes();
+        while (nodeIterator.hasNext()) {
+            Node n = nodeIterator.nextNode();
+            if (n.getDefinition().isProtected()) {
+                sourceNode = n;
+                break;
+            }
+        }
+
+        if (sourceNode == null || !sourceNode.getParent().getDefinition().isProtected()) {
+            throw new NotExecutableException("No protected parent found");
+        }
+
+        try {
+            superuser.getWorkspace().copy(sourceNode.getPath(), destPath);
+        } catch (AccessControlException e) {
+            // success : the copy fails because an isolated ACE is copied but
+            // NOT because the source-parent was a protected node.
+        }
     }
 }

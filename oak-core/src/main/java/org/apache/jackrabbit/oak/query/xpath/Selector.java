@@ -87,4 +87,20 @@ class Selector {
      */
     Expression joinCondition;
     
+    public Selector() {
+    }
+
+    public Selector(Selector s) {
+        this.name = s.name;
+        this.onlySelector = s.onlySelector;
+        this.nodeType = s.nodeType;
+        this.isChild = s.isChild;
+        this.isParent = s.isParent;
+        this.isDescendant = s.isDescendant;
+        this.path = s.path;
+        this.nodeName = s.nodeName;
+        this.condition = s.condition;
+        this.joinCondition = s.joinCondition;
+    }
+    
 }

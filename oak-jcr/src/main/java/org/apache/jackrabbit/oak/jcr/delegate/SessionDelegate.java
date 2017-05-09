@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -43,6 +42,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -52,6 +52,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
+import org.apache.jackrabbit.oak.jcr.session.SessionNamespaces;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats.Counters;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -61,10 +63,10 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 /**
  * TODO document
@@ -91,10 +93,10 @@ public class SessionDelegate {
     private final Counters sessionCounters;
 
     // repository-wide counters for statistics about all sessions
-    private final AtomicLong readCounter;
-    private final AtomicLong readDuration;
-    private final AtomicLong writeCounter;
-    private final AtomicLong writeDuration;
+    private final MeterStats readCounter;
+    private final TimerStats readDuration;
+    private final MeterStats writeCounter;
+    private final TimerStats writeDuration;
 
     private boolean isAlive = true;
     private int sessionOpCount;
@@ -111,6 +113,8 @@ public class SessionDelegate {
      * use a session.
      */
     private final WarningLock lock = new WarningLock(new ReentrantLock());
+
+    private final SessionNamespaces namespaces;
 
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
@@ -134,20 +138,22 @@ public class SessionDelegate {
             @Nonnull Clock clock) {
         this.contentSession = checkNotNull(contentSession);
         this.securityProvider = checkNotNull(securityProvider);
-        this.saveCountRefresh = new SaveCountRefresh(checkNotNull(threadSaveCount));
-        this.refreshStrategy = RefreshStrategy.Composite.create(
-                checkNotNull(refreshStrategy), refreshAtNextAccess, saveCountRefresh);
         this.root = contentSession.getLatestRoot();
+        this.namespaces = new SessionNamespaces(this.root);
+        this.saveCountRefresh = new SaveCountRefresh(checkNotNull(threadSaveCount));
+        this.refreshStrategy = Composite.create(checkNotNull(refreshStrategy),
+                refreshAtNextAccess, saveCountRefresh, new RefreshNamespaces(
+                        namespaces));
         this.idManager = new IdentifierManager(root);
         this.clock = checkNotNull(clock);
-        this.sessionStats = new SessionStats(contentSession.toString(),
-                contentSession.getAuthInfo(), clock, refreshStrategy);
-        this.sessionCounters = sessionStats.getCounters();
         checkNotNull(statisticManager);
-        readCounter = statisticManager.getCounter(SESSION_READ_COUNTER);
-        readDuration = statisticManager.getCounter(SESSION_READ_DURATION);
-        writeCounter = statisticManager.getCounter(SESSION_WRITE_COUNTER);
-        writeDuration = statisticManager.getCounter(SESSION_WRITE_DURATION);
+        this.sessionStats = new SessionStats(contentSession.toString(),
+                contentSession.getAuthInfo(), clock, refreshStrategy, this, statisticManager);
+        this.sessionCounters = sessionStats.getCounters();
+        readCounter = statisticManager.getMeter(SESSION_READ_COUNTER);
+        readDuration = statisticManager.getTimer(SESSION_READ_DURATION);
+        writeCounter = statisticManager.getMeter(SESSION_WRITE_COUNTER);
+        writeDuration = statisticManager.getTimer(SESSION_WRITE_DURATION);
     }
 
     @Nonnull
@@ -391,6 +397,7 @@ public class SessionDelegate {
         isAlive = false;
         // TODO
 
+        sessionStats.close();
         try {
             contentSession.close();
         } catch (IOException e) {
@@ -616,14 +623,14 @@ public class SessionDelegate {
         if (op.isUpdate()) {
             sessionCounters.writeTime = t0;
             sessionCounters.writeCount++;
-            writeCounter.incrementAndGet();
-            writeDuration.addAndGet(dt);
+            writeCounter.mark();
+            writeDuration.update(dt, TimeUnit.NANOSECONDS);
             updateCount++;
         } else {
             sessionCounters.readTime = t0;
             sessionCounters.readCount++;
-            readCounter.incrementAndGet();
-            readDuration.addAndGet(dt);
+            readCounter.mark();
+            readDuration.update(dt, TimeUnit.NANOSECONDS);
         }
         if (op.isSave()) {
             refreshAtNextAccess.refreshAtNextAccess(false);
@@ -640,13 +647,12 @@ public class SessionDelegate {
         if (readOperationLogger.isTraceEnabled()
                 || writeOperationLogger.isTraceEnabled()
                 || auditLogger.isDebugEnabled()) {
-            Marker sessionMarker = MarkerFactory.getMarker(session.toString());
             Logger log = ops.isUpdate() ? writeOperationLogger : readOperationLogger;
-            log.trace(sessionMarker, "[{}] {}", session, ops);
+            log.trace("[{}] {}", session, ops);
 
             //For a logout operation the auth info is not accessible
             if (!ops.isLogout() && !ops.isRefresh() && !ops.isSave() && ops.isUpdate()) {
-                auditLogger.debug(sessionMarker, "[{}] [{}] {}", session.getAuthInfo().getUserID(), session, ops);
+                auditLogger.debug("[{}] [{}] {}", session.getAuthInfo().getUserID(), session, ops);
             }
         }
     }
@@ -729,19 +735,19 @@ public class SessionDelegate {
             this.lock = lock;
         }
 
-        public void lock(boolean isUpdate, String opName) {
+        public void lock(boolean isUpdate, Object operation) {
             if (!lock.tryLock()) {
                 // Acquire the lock before logging the warnings. As otherwise race conditions
                 // on the involved fields might lead to wrong warnings.
                 lock.lock();
                 if (holderThread != null) {
                     if (this.isUpdate) {
-                        warn(log, "Attempted to perform " + opName + " while thread " + holderThread +
+                        warn(log, "Attempted to perform " + operation.toString() + " while thread " + holderThread +
                                 " was concurrently writing to this session. Blocked until the " +
                                 "other thread finished using this session. Please review your code " +
                                 "to avoid concurrent use of a session.", holderTrace);
                     } else if (log.isDebugEnabled()) {
-                        log.debug("Attempted to perform " + opName + " while thread " + holderThread +
+                        log.debug("Attempted to perform " + operation.toString() + " while thread " + holderThread +
                                 " was concurrently reading from this session. Blocked until the " +
                                 "other thread finished using this session. Please review your code " +
                                 "to avoid concurrent use of a session.", holderTrace);
@@ -764,7 +770,7 @@ public class SessionDelegate {
         }
 
         public void lock(SessionOperation<?> sessionOperation) {
-            lock(sessionOperation.isUpdate(), sessionOperation.toString());
+            lock(sessionOperation.isUpdate(), sessionOperation);
         }
 
         @Override
@@ -883,6 +889,33 @@ public class SessionDelegate {
         public String toString() {
             return "Refresh after a save on the same thread from a different session";
         }
+    }
+
+    /**
+     * Read-only RefreshStrategy responsible for notifying the SessionNamespaces
+     * instance that a refresh was called
+     */
+    private static class RefreshNamespaces implements RefreshStrategy {
+
+        private final SessionNamespaces namespaces;
+
+        public RefreshNamespaces(SessionNamespaces namespaces) {
+            this.namespaces = namespaces;
+        }
+
+        @Override
+        public boolean needsRefresh(long secondsSinceLastAccess) {
+            return false;
+        }
+
+        @Override
+        public void refreshed() {
+            this.namespaces.onSessionRefresh();
+        }
+    }
+
+    public SessionNamespaces getNamespaces() {
+        return namespaces;
     }
 
 }

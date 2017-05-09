@@ -24,6 +24,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -34,6 +36,36 @@ public class EveryonePrincipalTest  {
     @Test
     public void testGetName() {
         assertEquals(EveryonePrincipal.NAME, everyone.getName());
+    }
+
+    @Test
+    public void testIsMember() {
+        assertTrue(EveryonePrincipal.getInstance().isMember(new PrincipalImpl("test")));
+    }
+
+    @Test
+    public void testIsMemberSelf() {
+        assertFalse(EveryonePrincipal.getInstance().isMember(everyone));
+    }
+
+    @Test
+    public void testAddMember() {
+        assertFalse(EveryonePrincipal.getInstance().addMember(new PrincipalImpl("test")));
+    }
+
+    @Test
+    public void testAddMemberSelf() {
+        assertFalse(EveryonePrincipal.getInstance().addMember(everyone));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRemoveMember() {
+        EveryonePrincipal.getInstance().removeMember(everyone);
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testMembers() {
+        EveryonePrincipal.getInstance().members();
     }
 
     @Test
@@ -71,6 +103,12 @@ public class EveryonePrincipalTest  {
     public void testEqualsOtherJackrabbitGroup() {
         Principal someotherEveryone = new OtherEveryoneGroup();
         assertEquals(everyone, someotherEveryone);
+    }
+
+    @Test
+    public void testToString() {
+        assertNotNull(everyone.toString());
+        assertNotEquals(EveryonePrincipal.NAME, everyone.toString());
     }
 
     //--------------------------------------------------------------------------

@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
@@ -92,6 +92,12 @@ public class UserProviderTest {
     private UserProvider createUserProvider(int defaultDepth) {
         Map<String, Object> options = new HashMap<String, Object>(customOptions);
         options.put(UserConstants.PARAM_DEFAULT_DEPTH, defaultDepth);
+        return new UserProvider(root, ConfigurationParameters.of(options));
+    }
+
+    private UserProvider createUserProviderRFC7612() {
+        Map<String, Object> options = new HashMap<String, Object>(customOptions);
+        options.put(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, true);
         return new UserProvider(root, ConfigurationParameters.of(options));
     }
 
@@ -215,6 +221,40 @@ public class UserProviderTest {
             } catch (CommitFailedException e) {
                 // success
             }
+        }
+    }
+
+    @Test
+    public void testCreateUserRFC7613Disabled() throws Exception {
+        String userHalfWidth = "Amalia";
+        String userFullWidth = "\uff21\uff4d\uff41\uff4c\uff49\uff41";
+
+        UserProvider userProvider = createUserProvider();
+
+        Tree userTreeHalfWidth = userProvider.createUser(userHalfWidth, null);
+        Tree userTreeFullWidth = userProvider.createUser(userFullWidth, null);
+
+        root.commit();
+
+        assertEquals(userHalfWidth, UserUtil.getAuthorizableId(userTreeHalfWidth));
+        assertEquals(userFullWidth, UserUtil.getAuthorizableId(userTreeFullWidth));
+    }
+
+    @Test
+    public void testCreateUserRFC7613Enabled() throws Exception {
+        String userHalfWidth = "Amalia";
+        String userFullWidth = "\uff21\uff4d\uff41\uff4c\uff49\uff41";
+
+        UserProvider userProvider = createUserProviderRFC7612();
+
+        userProvider.createUser(userHalfWidth, null);
+
+        try {
+            userProvider.createUser(userFullWidth, null);
+            root.commit();
+            fail("userID collision must be detected");
+        } catch (CommitFailedException e) {
+            // success
         }
     }
 

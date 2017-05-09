@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
+import aQute.bnd.annotation.ProviderType;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -23,6 +25,7 @@ import java.util.List;
 /**
  * A blob store that supports garbage collection.
  */
+@ProviderType
 public interface GarbageCollectableBlobStore extends BlobStore {
 
     /**
@@ -76,7 +79,8 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * Gets all the identifiers.
      * 
      * @param maxLastModifiedTime
-     *            the max last modified time to consider for retrieval
+     *            the max last modified time to consider for retrieval,
+     *            with the special value '0' meaning no filtering by time
      * @return the identifiers
      * @throws Exception
      *             the exception
@@ -87,14 +91,28 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * Deletes the blobs with the given ids.
      *
      * @param chunkIds the chunk ids
-     * @param maxLastModifiedTime the max last modified time to consider for retrieval
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval,
+     *            with the special value '0' meaning no filtering by time
      * @return true, if successful
      * @throws Exception the exception
      */
+    @Deprecated
     boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception;
 
     /**
-     * Resolve chunks from the given Id.
+     * Deletes the blobs with the given ids.
+     *
+     * @param chunkIds the chunk ids
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval,
+     *            with the special value '0' meaning no filtering by time
+     * @return long the count of successful deletions
+     * @throws Exception the exception
+     */
+    long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception;
+
+    /**
+     * Resolve chunks stored in the blob store from the given Id.
+     * This will not return any chunks stored in-line in the id.
      * 
      * @param blobId the blob id
      * @return the iterator

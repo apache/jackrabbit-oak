@@ -24,13 +24,13 @@ import aQute.bnd.annotation.ProviderType;
  * Provides utilities to manage synchronized external identities.
  * The operations return a single or array of messages of the operations performed. for simplicity the messages are
  * JSON serialized strings:
- * <xmp>
+ * <pre>{@code
  * {
  *     "op": "upd",
  *     "uid": "bob",
  *     "eid": "cn=bob,o=apache"
  * }
- * </xmp>
+ * }</pre>
  *
  * With the following operations:
  * <ul>
@@ -110,7 +110,7 @@ public interface SynchronizationMBean {
 
     /**
      * Purges all orphaned users. this is similar to invoke {@link #syncUsers(String[], boolean)} with the list of
-     * orphaned users. Note tha this can eb an expensive operation since all potential users need to be examined.
+     * orphaned users. Note tha this can be an expensive operation since all potential users need to be examined.
      *
      * @return result messages.
      */

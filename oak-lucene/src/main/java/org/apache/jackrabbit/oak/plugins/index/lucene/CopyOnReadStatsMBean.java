@@ -21,15 +21,24 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.management.openmbean.TabularData;
 
+import aQute.bnd.annotation.ProviderType;
+
 @SuppressWarnings("UnusedDeclaration")
+@ProviderType
 public interface CopyOnReadStatsMBean {
-    String TYPE = "CopyOnReadStats";
+    String TYPE = "IndexCopierStats";
 
     TabularData getIndexPathMapping();
 
-    int getLocalReadCount();
+    boolean isPrefetchEnabled();
 
-    int getRemoteReadCount();
+    int getReaderLocalReadCount();
+
+    int getReaderRemoteReadCount();
+
+    int getWriterLocalReadCount();
+
+    int getWriterRemoteReadCount();
 
     int getScheduledForCopyCount();
 
@@ -47,6 +56,14 @@ public interface CopyOnReadStatsMBean {
 
     long getDownloadTime();
 
+    int getDownloadCount();
+
+    String getUploadSize();
+
+    long getUploadTime();
+
+    int getUploadCount();
+
     String getLocalIndexSize();
 
     String[] getGarbageDetails();
@@ -56,4 +73,6 @@ public interface CopyOnReadStatsMBean {
     int getDeletedFilesCount();
 
     String getGarbageCollectedSize();
+
+    String getSkippedFromUploadSize();
 }

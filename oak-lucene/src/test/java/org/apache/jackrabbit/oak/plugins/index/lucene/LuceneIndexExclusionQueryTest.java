@@ -34,7 +34,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -54,7 +54,6 @@ public class LuceneIndexExclusionQueryTest extends AbstractQueryTest {
         lucene.setProperty(INCLUDE_PROPERTY_TYPES,
                 of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
         lucene.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
-        lucene.setProperty(LuceneIndexConstants.COMPAT_MODE, of(NOT_IN), STRINGS);
         useV2(lucene);
         root.commit();
     }

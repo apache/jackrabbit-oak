@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+
 /**
  * An iterator that pre-fetches a number of items in order to calculate the size
  * of the result if possible. This iterator loads at least a number of items,
@@ -33,9 +36,11 @@ import java.util.NoSuchElementException;
  * @param <K> the iterator data type
  */
 public class PrefetchIterator<K> implements Iterator<K> {
-
+    
     private final Iterator<K> it;
     private final long minPrefetch, timeout, maxPrefetch;
+    private final boolean fastSize;
+    private final Result fastSizeCallback;
     private boolean prefetchDone;
     private Iterator<K> prefetchIterator;
     private long size, position;
@@ -44,17 +49,16 @@ public class PrefetchIterator<K> implements Iterator<K> {
      * Create a new iterator.
      * 
      * @param it the base iterator
-     * @param min the minimum number of items to pre-fetch
-     * @param timeout the maximum time to pre-fetch in milliseconds
-     * @param max the maximum number of items to pre-fetch
-     * @param size the size (prefetching is only required if -1)
+     * @param options the prefetch options to use
      */
-    PrefetchIterator(Iterator<K> it, long min, long timeout, long max, long size) {
+    PrefetchIterator(Iterator<K> it, PrefetchOptions options) {
         this.it = it;
-        this.minPrefetch = min;
-        this.timeout = timeout;
-        this.maxPrefetch = max;
-        this.size = size;
+        this.minPrefetch = options.min;
+        this.maxPrefetch = options.max;
+        this.timeout = options.fastSize ? 0 : options.timeout;
+        this.fastSize = options.fastSize;
+        this.size = options.size;
+        this.fastSizeCallback = options.fastSizeCallback;
     }
 
     @Override
@@ -97,8 +101,13 @@ public class PrefetchIterator<K> implements Iterator<K> {
      * @return the size, or -1 if unknown
      */
     public long size() {
-        if (size != -1 || prefetchDone || position > maxPrefetch) {
+        if (size != -1) {
             return size;
+        }
+        if (!fastSize) {
+            if (prefetchDone || position > maxPrefetch) {
+                return -1;
+            }
         }
         prefetchDone = true;
         ArrayList<K> list = new ArrayList<K>();
@@ -126,7 +135,65 @@ public class PrefetchIterator<K> implements Iterator<K> {
             prefetchIterator = list.iterator();
             position -= list.size();
         }
+        if (size == -1 && fastSize) {
+            if (fastSizeCallback != null) {
+                size = fastSizeCallback.getSize(SizePrecision.EXACT, Long.MAX_VALUE);
+            }
+        }
         return size;
+    }
+    
+    /**
+     * The options to use for prefetching.
+     */
+    public static class PrefetchOptions {
+        
+        // uses the "simple" named-parameter pattern
+        // see also http://stackoverflow.com/questions/1988016/named-parameter-idiom-in-java
+        
+        /**
+         * The minimum number of rows / nodes to pre-fetch.
+         */
+        long min = 20;
+        
+        /**
+         * The maximum number of rows / nodes to pre-fetch.
+         */
+        long max = 100;
+        
+        /**
+         * The maximum number of milliseconds to prefetch rows / nodes
+         * (ignored if fastSize is set).
+         */
+        long timeout = 100;
+        
+        /**
+         * The size if known, or -1 if not (prefetching is only required if -1).
+         */
+        long size;
+        
+        /**
+         * Whether or not the expected size should be read from the result.
+         */
+        boolean fastSize;
+        
+        /**
+         * The result (optional) to get the size from, in case the fast size options is set.
+         */
+        Result fastSizeCallback;
+        
+        {
+            String s = System.getProperty("oak.queryMinPrefetch");
+            if (s != null) {
+                try {
+                    min = Integer.parseInt(s);
+                    max = Math.max(min, max);
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+        }
+        
     }
 
 }

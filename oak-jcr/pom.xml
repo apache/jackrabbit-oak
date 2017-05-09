@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.4-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -51,19 +51,16 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
 
       <!-- Locking : not fully implemented -->
-      org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked
-      org.apache.jackrabbit.test.api.lock.LockTest#testParentChildDeepLock
-      org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken
+      org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked <!-- OAK-3482 -->
+      org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.SetValueLockExceptionTest#testSetValueLockException
+      org.apache.jackrabbit.test.api.lock.SetValueLockExceptionTest#testSetValueLockException  <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testParentChildDeepLock
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testDeepLockAboveLockedChild
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild
+      org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddLockTokenToAnotherSession
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2 <!-- OAK-3262 -->
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3 <!-- OAK-2149 -->
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddLockTokenToAnotherSession <!-- OAK-3262 -->
 
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock2
@@ -72,6 +69,8 @@
       org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved  <!-- OAK-1459 -->
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove       <!-- OAK-1459 -->
       org.apache.jackrabbit.test.api.observation.GetInfoTest#testPropertyAdded          <!--OAK-2262-->
+      org.apache.jackrabbit.test.api.observation.GetInfoTest#testPropertyChanged        <!--OAK-2262-->
+      org.apache.jackrabbit.test.api.observation.GetInfoTest#testPropertyRemoved        <!--OAK-2262-->
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved  <!-- Move in 2nd session not reflected in nodes of 1st session -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove          <!-- Uses SNS -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName           <!-- Uses SNS -->
@@ -161,26 +160,11 @@
         <configuration>
           <instructions>
             <Export-Package>
-              org.apache.jackrabbit.oak.jcr
+              org.apache.jackrabbit.oak.jcr,
+              org.apache.jackrabbit.oak.jcr.observation.filter
             </Export-Package>
           </instructions>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-            <configuration>
-              <excludes>
-                <exclude>logback-test.xml</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -227,17 +211,66 @@
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-core-spi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-spi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-spi</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-core</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-segment-tar</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-core</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-segment-tar</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-it</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
@@ -269,6 +302,12 @@
     </dependency>
 
     <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-plugins</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -342,7 +381,6 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
-      <version>3.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -352,14 +390,32 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-jdbc</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+      <version>2.0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.lingala.zip4j</groupId>
+      <artifactId>zip4j</artifactId>
+      <version>1.3.2</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>junit-addons</groupId>
+      <artifactId>junit-addons</artifactId>
+      <version>1.4</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

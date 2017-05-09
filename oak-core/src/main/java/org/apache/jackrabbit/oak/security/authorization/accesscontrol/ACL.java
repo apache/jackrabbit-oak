@@ -194,6 +194,7 @@ abstract class ACL extends AbstractAccessControlList {
             }
         }));
 
+        boolean addEntry = true;
         for (ACE existing : subList) {
             PrivilegeBits existingBits = PrivilegeBits.getInstance(existing.getPrivilegeBits());
             PrivilegeBits entryBits = entry.getPrivilegeBits();
@@ -208,7 +209,7 @@ abstract class ACL extends AbstractAccessControlList {
                         int index = entries.indexOf(existing);
                         entries.remove(existing);
                         entries.add(index, createACE(existing, existingBits));
-                        return true;
+                        addEntry = false;
                     }
                 } else {
                     // existing is complementary entry -> clean up redundant
@@ -227,7 +228,9 @@ abstract class ACL extends AbstractAccessControlList {
             }
         }
         // finally add the new entry at the end of the list
-        entries.add(entry);
+        if (addEntry) {
+            entries.add(entry);
+        }
         return true;
     }
 

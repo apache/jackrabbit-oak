@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,8 +42,17 @@ public interface IndexStoreStrategy {
     void update(
         NodeBuilder index, String path,
         String indexName, NodeBuilder indexMeta,
-        Set<String> beforeKeys, Set<String> afterKeys);
-    
+        Set<String> beforeKeys, Set<String> afterKeys) throws CommitFailedException;
+
+    /**
+     * Check whether an entry for the given key exists.
+     * 
+     * @param index the index
+     * @param key the key
+     * @return true if at least one entry exists
+     */
+    boolean exists(NodeBuilder index, String key);
+
     /**
      * Search for a given set of values.
      * 
@@ -78,5 +88,7 @@ public interface IndexStoreStrategy {
      * @return the aggregated count of occurrences for each provided value
      */
     long count(Filter filter, NodeState root, NodeState indexMeta, Set<String> values, int max);
+
+    String getIndexNodeName();
 
 }

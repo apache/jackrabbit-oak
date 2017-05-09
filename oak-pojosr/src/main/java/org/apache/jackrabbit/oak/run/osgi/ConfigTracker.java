@@ -89,8 +89,12 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
             configs.putAll(runtimeConfig);
         }
 
-        Set<String> processedPids = configInstaller.installConfigs(configs);
-        Set<String> pidsToBeRemoved = Sets.difference(existingPids, processedPids);
+        configInstaller.installConfigs(configs);
+        //Find out the config *installed by ConfigInstaller* and are not present in
+        //current config files. Such configs must be remove. Note it does not lead to
+        //removal of configs added by using ConfigAdmin directly, say using WebConsole
+        //ui
+        Set<String> pidsToBeRemoved = Sets.difference(existingPids, configs.keySet());
         configInstaller.removeConfigs(pidsToBeRemoved);
     }
 

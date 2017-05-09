@@ -22,6 +22,7 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -44,8 +45,14 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -65,7 +72,10 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionUtil;
 import org.apache.jackrabbit.oak.security.authorization.restriction.PrincipalRestrictionProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
@@ -75,7 +85,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -103,6 +112,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     private final PrincipalManager principalManager;
     private final RestrictionProvider restrictionProvider;
 
+    private final ConfigurationParameters configParams;
     private final Set<String> readPaths;
 
     public AccessControlManagerImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
@@ -115,7 +125,8 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         principalManager = securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
         restrictionProvider = getConfig().getRestrictionProvider();
 
-        readPaths = getConfig().getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
+        configParams = getConfig().getParameters();
+        readPaths = configParams.getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
     }
 
     //-----------------------------------------------< AccessControlManager >---
@@ -233,13 +244,22 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 acl = new NodeACL(path);
             }
 
-            Map<String, Value> restrictions = new HashMap<String, Value>();
-            for (String name : ace.getRestrictionNames()) {
-                if (!REP_NODE_PATH.equals(name)) {
+            // calculate single and mv restriction and drop the rep:nodePath restriction
+            // present with the principal-based-entries.
+            Map<String, Value> restrictions = new HashMap();
+            Map<String, Value[]> mvRestrictions = new HashMap();
+            for (Restriction r : ace.getRestrictions()) {
+                String name = r.getDefinition().getName();
+                if (REP_NODE_PATH.equals(name)) {
+                    continue;
+                }
+                if (r.getDefinition().getRequiredType().isArray()) {
+                    mvRestrictions.put(name, ace.getRestrictions(name));
+                } else {
                     restrictions.put(name, ace.getRestriction(name));
                 }
             }
-            acl.addEntry(ace.getPrincipal(), ace.getPrivileges(), ace.isAllow(), restrictions);
+            acl.addEntry(ace.getPrincipal(), ace.getPrivileges(), ace.isAllow(), restrictions, mvRestrictions);
             setNodeBasedAcl(path, tree, acl);
         }
 
@@ -250,7 +270,18 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
             ACL acl = (ACL) createACL(path, tree, false);
             if (acl != null) {
-                acl.removeAccessControlEntry(ace);
+                // remove rep:nodePath restriction before removing the entry from
+                // the node-based policy (see above for adding entries without
+                // this special restriction).
+                Set<Restriction> rstr = Sets.newHashSet(ace.getRestrictions());
+                Iterator<Restriction> it = rstr.iterator();
+                while (it.hasNext()) {
+                    Restriction r = it.next();
+                    if (REP_NODE_PATH.equals(r.getDefinition().getName())) {
+                        it.remove();
+                    }
+                }
+                acl.removeAccessControlEntry(new Entry(ace.getPrincipal(), ace.getPrivilegeBits(), ace.isAllow(), rstr, getNamePathMapper()));
                 setNodeBasedAcl(path, tree, acl);
             } else {
                 log.debug("Missing ACL at {}; cannot remove entry {}", path, ace);
@@ -270,10 +301,11 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             aclTree = createAclTree(oakPath, tree);
         }
         aclTree.setOrderableChildren(true);
-        for (ACE ace : acl.getEntries()) {
-            boolean isAllow = ace.isAllow();
-            String nodeName = Util.generateAceName(aclTree, isAllow);
-            String ntName = (isAllow) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
+        List<ACE> entries = acl.getEntries();
+        for (int i = 0; i < entries.size(); i++) {
+            ACE ace = entries.get(i);
+            String nodeName = Util.generateAceName(ace, i);
+            String ntName = (ace.isAllow()) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
 
             NodeUtil aceNode = new NodeUtil(aclTree).addChild(nodeName, ntName);
             aceNode.setString(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
@@ -323,7 +355,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @Nonnull
     @Override
     public JackrabbitAccessControlPolicy[] getApplicablePolicies(@Nonnull Principal principal) throws RepositoryException {
-        Util.checkValidPrincipal(principal, principalManager, true);
+        Util.checkValidPrincipal(principal, principalManager);
 
         String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
         JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
@@ -338,7 +370,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @Nonnull
     @Override
     public JackrabbitAccessControlPolicy[] getPolicies(@Nonnull Principal principal) throws RepositoryException {
-        Util.checkValidPrincipal(principal, principalManager, true);
+        Util.checkValidPrincipal(principal, principalManager);
 
         String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
         JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
@@ -357,7 +389,30 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Root r = getLatestRoot();
 
         Result aceResult = searchAces(principals, r);
-        List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
+        Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new Comparator<JackrabbitAccessControlList>() {
+            @Override
+            public int compare(JackrabbitAccessControlList list1, JackrabbitAccessControlList list2) {
+                if (list1.equals(list2)) {
+                    return 0;
+                } else {
+                    String p1 = list1.getPath();
+                    String p2 = list2.getPath();
+
+                    if (p1 == null) {
+                        return -1;
+                    } else if (p2 == null) {
+                        return 1;
+                    } else {
+                        int depth1 = PathUtils.getDepth(p1);
+                        int depth2 = PathUtils.getDepth(p2);
+                        return (depth1 == depth2) ? p1.compareTo(p2) : Ints.compare(depth1, depth2);
+                    }
+
+                }
+            }
+        });
+
+        Set<String> paths = Sets.newHashSet();
         for (ResultRow row : aceResult.getRows()) {
             String acePath = row.getPath();
             String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
@@ -369,9 +424,13 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
 
             String path = (REP_REPO_POLICY.equals(aclName)) ? null : accessControlledTree.getPath();
-            AccessControlPolicy policy = createACL(path, accessControlledTree, true);
+            if (paths.contains(path)) {
+                continue;
+            }
+            JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true, new AcePredicate(principals));
             if (policy != null) {
                 effective.add(policy);
+                paths.add(path);
             }
         }
         return effective.toArray(new AccessControlPolicy[effective.size()]);
@@ -428,6 +487,14 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     private JackrabbitAccessControlList createACL(@Nullable String oakPath,
                                                   @Nonnull Tree accessControlledTree,
                                                   boolean isEffectivePolicy) throws RepositoryException {
+        return createACL(oakPath, accessControlledTree, isEffectivePolicy, null);
+    }
+
+    @CheckForNull
+    private JackrabbitAccessControlList createACL(@Nullable String oakPath,
+                                                  @Nonnull Tree accessControlledTree,
+                                                  boolean isEffectivePolicy,
+                                                  @CheckForNull Predicate<ACE> predicate) throws RepositoryException {
         JackrabbitAccessControlList acl = null;
         String aclName = Util.getAclName(oakPath);
         if (accessControlledTree.exists() && Util.isAccessControlled(oakPath, accessControlledTree, ntMgr)) {
@@ -436,7 +503,10 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 List<ACE> entries = new ArrayList<ACE>();
                 for (Tree child : aclTree.getChildren()) {
                     if (Util.isACE(child, ntMgr)) {
-                        entries.add(createACE(oakPath, child, restrictionProvider));
+                        ACE ace = createACE(oakPath, child, restrictionProvider);
+                        if (predicate == null || predicate.apply(ace)) {
+                            entries.add(ace);
+                        }
                     }
                 }
                 if (isEffectivePolicy) {
@@ -489,7 +559,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
     @Nonnull
     private static Result searchAces(@Nonnull Set<Principal> principals, @Nonnull Root root) throws RepositoryException {
-        StringBuilder stmt = new StringBuilder("/jcr:root");
+        StringBuilder stmt = new StringBuilder(QueryConstants.SEARCH_ROOT_PATH);
         stmt.append("//element(*,");
         stmt.append(NT_REP_ACE);
         stmt.append(")[");
@@ -511,11 +581,11 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         try {
             QueryEngine queryEngine = root.getQueryEngine();
             return queryEngine.executeQuery(
-                    stmt.toString(), Query.XPATH, Long.MAX_VALUE, 0,
+                    stmt.toString(), Query.XPATH,
                     QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
         } catch (ParseException e) {
             String msg = "Error while collecting effective policies.";
-            log.error(msg, e.getMessage());
+            log.error(msg, e);
             throw new RepositoryException(msg, e);
         }
     }
@@ -565,13 +635,15 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         @Override
         boolean checkValidPrincipal(Principal principal) throws AccessControlException {
             int importBehavior = Util.getImportBehavior(getConfig());
-            Util.checkValidPrincipal(principal, principalManager, ImportBehavior.BESTEFFORT != importBehavior);
+            if (!Util.checkValidPrincipal(principal, principalManager, importBehavior)) {
+                return false;
+            }
 
-            if (principal instanceof AdminPrincipal) {
-                log.warn("Attempt to create an ACE for the admin principal which always has full access.");
+            if (PermissionUtil.isAdminOrSystem(ImmutableSet.of(principal), configParams)) {
+                log.warn("Attempt to create an ACE for an administrative principal which always has full access:" + getPath());
                 switch (Util.getImportBehavior(getConfig())) {
                     case ImportBehavior.ABORT:
-                        throw new AccessControlException("Attempt to create an ACE for the admin principal which always has full access.");
+                        throw new AccessControlException("Attempt to create an ACE for an administrative principal which always has full access.");
                     case ImportBehavior.IGNORE:
                         return false;
                     case ImportBehavior.BESTEFFORT:
@@ -643,7 +715,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
         @Override
         boolean checkValidPrincipal(Principal principal) throws AccessControlException {
-            Util.checkValidPrincipal(principal, principalManager, true);
+            Util.checkValidPrincipal(principal, principalManager);
             return true;
         }
 
@@ -669,7 +741,8 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
             if (obj instanceof PrincipalACL) {
                 PrincipalACL other = (PrincipalACL) obj;
-                return Objects.equal(getOakPath(), other.getOakPath())
+                return principal.equals(other.principal)
+                        && Objects.equal(getOakPath(), other.getOakPath())
                         && getEntries().equals(other.getEntries());
             }
             return false;
@@ -711,6 +784,25 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         @Override
         public String getName() {
             return "Grants read access on configured trees.";
+        }
+    }
+
+    private static final class AcePredicate implements Predicate<ACE> {
+
+        private final Iterable<String> principalNames;
+
+        private AcePredicate(@Nonnull Set<Principal> principals) {
+            principalNames = Iterables.transform(principals, new Function<Principal, String>() {
+                @Override
+                public String apply(Principal input) {
+                    return input.getName();
+                }
+            });
+        }
+
+        @Override
+        public boolean apply(@Nullable ACE ace) {
+            return ace != null && Iterables.contains(principalNames, ace.getPrincipal().getName());
         }
     }
 }

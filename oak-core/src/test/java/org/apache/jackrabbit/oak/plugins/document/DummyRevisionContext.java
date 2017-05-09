@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Comparator;
-
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.stats.Clock;
 
 /**
  * A revision context for tests.
@@ -27,22 +27,14 @@ public class DummyRevisionContext implements RevisionContext {
 
     static final RevisionContext INSTANCE = new DummyRevisionContext();
 
-    private final Comparator<Revision> comparator
-            = StableRevisionComparator.INSTANCE;
-
     @Override
     public UnmergedBranches getBranches() {
-        return new UnmergedBranches(comparator);
+        return new UnmergedBranches();
     }
 
     @Override
     public UnsavedModifications getPendingModifications() {
         return new UnsavedModifications();
-    }
-
-    @Override
-    public Comparator<Revision> getRevisionComparator() {
-        return comparator;
     }
 
     @Override
@@ -52,7 +44,25 @@ public class DummyRevisionContext implements RevisionContext {
 
     @Nonnull
     @Override
-    public Revision getHeadRevision() {
-        return Revision.newRevision(1);
+    public RevisionVector getHeadRevision() {
+        return new RevisionVector(Revision.newRevision(getClusterId()));
+    }
+
+    @Nonnull
+    @Override
+    public Revision newRevision() {
+        return Revision.newRevision(getClusterId());
+    }
+
+    @Nonnull
+    @Override
+    public Clock getClock() {
+        return Clock.SIMPLE;
+    }
+
+    @Override
+    public String getCommitValue(@Nonnull Revision changeRevision,
+                                 @Nonnull NodeDocument doc) {
+        return doc.resolveCommitValue(changeRevision);
     }
 }

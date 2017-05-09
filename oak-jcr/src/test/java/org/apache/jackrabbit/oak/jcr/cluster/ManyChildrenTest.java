@@ -25,8 +25,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.oak.NodeStoreFixtures;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.h2.util.Profiler;
@@ -39,9 +40,8 @@ import org.junit.Test;
  */
 public class ManyChildrenTest {
 
-    NodeStoreFixture fixture = NodeStoreFixture.DOCUMENT_NS;
-//    NodeStoreFixture fixture = NodeStoreFixture.SEGMENT_MK;
-    
+    NodeStoreFixture fixture = NodeStoreFixtures.DOCUMENT_NS;
+
     Repository repository;
     Session session;
     NodeStore nodeStore;

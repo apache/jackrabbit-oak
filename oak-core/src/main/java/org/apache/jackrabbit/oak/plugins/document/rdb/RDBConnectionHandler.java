@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -32,9 +32,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Utility functions for connection handling.
  */
-public class RDBConnectionHandler {
+public class RDBConnectionHandler implements Closeable {
 
-    private final DataSource ds;
+    private DataSource ds;
+    private long closedTime = 0L;
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(RDBConnectionHandler.class);
 
@@ -56,9 +57,9 @@ public class RDBConnectionHandler {
      * Obtain a {@link Connection} suitable for read-only operations.
      */
     public @Nonnull Connection getROConnection() throws SQLException {
-        Connection c = this.ds.getConnection();
+        Connection c = getConnection();
         c.setAutoCommit(false);
-        c.setReadOnly(true);
+        setReadOnly(c, true);
         return c;
     }
 
@@ -66,9 +67,9 @@ public class RDBConnectionHandler {
      * Obtain a {@link Connection} suitable for read-write operations.
      */
     public @Nonnull Connection getRWConnection() throws SQLException {
-        Connection c = this.ds.getConnection();
+        Connection c = getConnection();
         c.setAutoCommit(false);
-        c.setReadOnly(false);
+        setReadOnly(c, false);
         return c;
     }
 
@@ -93,8 +94,8 @@ public class RDBConnectionHandler {
             try {
                 if (CHECKCONNECTIONONCLOSE) {
                     try {
-                        c.setReadOnly(!c.isReadOnly());
-                        c.setReadOnly(!c.isReadOnly());
+                        setReadOnly(c, !c.isReadOnly());
+                        setReadOnly(c, !c.isReadOnly());
                     } catch (SQLException ex2) {
                         LOG.error("got dirty connection", ex2);
                         throw new DocumentStoreException("dirty connection on close", ex2);
@@ -108,34 +109,87 @@ public class RDBConnectionHandler {
     }
 
     /**
-     * Closes a {@link Statement}, logging potential problems.
-     * @return null
+     * Return current schema name or {@code null} when unavailable
      */
-    public <T extends Statement> T closeStatement(@CheckForNull T stmt) {
-        if (stmt != null) {
-            try {
-                stmt.close();
-            } catch (SQLException ex) {
-                LOG.debug("Closing statement", ex);
-            }
+    @CheckForNull
+    public String getSchema(Connection c) {
+        try {
+            return (String) c.getClass().getMethod("getSchema").invoke(c);
+        } catch (Throwable ex) {
+            // ignored, it's really best effort
+            return null;
         }
-        return null;
     }
 
-    /**
-     * Closes a {@link ResultSet}, logging potential problems.
-     * 
-     * @return null
-     */
-    public ResultSet closeResultSet(@CheckForNull ResultSet rs) {
-        if (rs != null) {
-            try {
-                rs.close();
-            } catch (SQLException ex) {
-                LOG.debug("Closing result set", ex);
+    public boolean isClosed() {
+        return this.ds == null;
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.ds = null;
+        this.closedTime = System.currentTimeMillis();
+    }
+
+    @Nonnull
+    private DataSource getDataSource() throws IllegalStateException {
+        DataSource result = this.ds;
+        if (result == null) {
+            throw new IllegalStateException("Connection handler is already closed ("
+                    + (System.currentTimeMillis() - this.closedTime) + "ms ago)");
+        }
+        return result;
+    }
+
+    @Nonnull
+    private Connection getConnection() throws IllegalStateException, SQLException {
+        long ts = System.currentTimeMillis();
+        Connection c = getDataSource().getConnection();
+        if (LOG.isDebugEnabled()) {
+            long elapsed = System.currentTimeMillis() - ts;
+            if (elapsed >= 100) {
+                LOG.debug("Obtaining a new connection from " + this.ds + " took " + elapsed + "ms");
             }
         }
+        return c;
+    }
 
-        return null;
+    // workaround for broken connection wrappers
+    // see https://issues.apache.org/jira/browse/OAK-2918
+
+    private Boolean setReadOnlyThrows = null; // null if we haven't checked yet
+    private Boolean setReadWriteThrows = null; // null if we haven't checked yet
+
+    private void setReadOnly(Connection c, boolean ro) throws SQLException {
+
+        if (ro) {
+            if (this.setReadOnlyThrows == null) {
+                // we don't know yet, so we try at least once
+                try {
+                    c.setReadOnly(true);
+                    this.setReadOnlyThrows = Boolean.FALSE;
+                } catch (SQLException ex) {
+                    LOG.error("Connection class " + c.getClass()
+                            + " erroneously throws SQLException on setReadOnly(true); not trying again");
+                    this.setReadOnlyThrows = Boolean.TRUE;
+                }
+            } else if (!this.setReadOnlyThrows) {
+                c.setReadOnly(true);
+            }
+        } else {
+            if (this.setReadWriteThrows == null) {
+                // we don't know yet, so we try at least once
+                try {
+                    c.setReadOnly(false);
+                    this.setReadWriteThrows = Boolean.FALSE;
+                } catch (SQLException ex) {
+                    LOG.error("Connection class " + c.getClass()
+                            + " erroneously throws SQLException on setReadOnly(false); not trying again");
+                    this.setReadWriteThrows = Boolean.TRUE;
+                }
+            } else if (!this.setReadWriteThrows) {
+                c.setReadOnly(false);
+            }
+        }
     }
 }

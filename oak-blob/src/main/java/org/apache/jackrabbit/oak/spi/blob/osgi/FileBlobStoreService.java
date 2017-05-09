@@ -19,7 +19,10 @@
 
 package org.apache.jackrabbit.oak.spi.blob.osgi;
 
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.PROP_SPLIT_BLOBSTORE;
 
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.commons.io.FilenameUtils;
@@ -54,10 +57,14 @@ public class FileBlobStoreService {
         }
         BlobStore blobStore = new FileBlobStore(FilenameUtils.concat(homeDir,"datastore"));
         PropertiesUtil.populate(blobStore, config, false);
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        if (context.getProperties().get(PROP_SPLIT_BLOBSTORE) != null) {
+            props.put(PROP_SPLIT_BLOBSTORE, context.getProperties().get(PROP_SPLIT_BLOBSTORE));
+        }
         reg = context.getBundleContext().registerService(new String[]{
                 BlobStore.class.getName(),
                 GarbageCollectableBlobStore.class.getName()
-        }, blobStore, null);
+        }, blobStore, props);
     }
 
     @Deactivate
@@ -70,7 +77,7 @@ public class FileBlobStoreService {
     protected static String lookup(ComponentContext context, String property) {
         //Prefer property from BundleContext first
         if (context.getBundleContext().getProperty(property) != null) {
-            return context.getBundleContext().getProperty(property).toString();
+            return context.getBundleContext().getProperty(property);
         }
 
         if (context.getProperties().get(property) != null) {

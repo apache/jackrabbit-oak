@@ -25,9 +25,12 @@ import java.util.Set;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
  * The function "localname(..)".
@@ -67,22 +70,55 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        String name = PathUtils.getName(selector.currentPath());
-        int colon = name.indexOf(':');
-        // TODO LOCALNAME: evaluation of local name might not be correct
-        String localName = colon < 0 ? name : name.substring(colon + 1);
+        String path = selector.currentPath();
+        if (path == null) {
+            return null;
+        }
+        String name = PathUtils.getName(path);
+        String localName = getLocalName(name);
         // TODO reverse namespace remapping?
         return PropertyValues.newString(localName);
+    }
+    
+    static String getLocalName(String name) {
+        int colon = name.indexOf(':');
+        // TODO LOCALNAME: evaluation of local name might not be correct
+        return colon < 0 ? name : name.substring(colon + 1);
     }
 
     @Override
     public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
-        // TODO support LOCALNAME index conditions
+        if (v == null) {
+            return;
+        }
+        if (operator == Operator.NOT_EQUAL && v != null) {
+            // not supported
+            return;
+        }
+        String name = NodeNameImpl.getName(query, v);
+        if (name != null && f.getSelector().equals(selector)
+                && NodeNameImpl.supportedOperator(operator)) {
+            f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
+                    operator, PropertyValues.newString(name));
+        }
     }
-    
+
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // optimizations of type "LOCALNAME(..) IN(A, B)" are not supported
+    }
+    
+    @Override
+    public String getFunction(SelectorImpl s) {
+        if (!s.equals(selector)) {
+            return null;
+        }
+        return "@" + QueryConstants.RESTRICTION_LOCAL_NAME;
+    }
+    
+    @Override
+    public boolean supportsRangeConditions() {
+        return false;
     }
 
     @Override
@@ -98,6 +134,19 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     @Override
     public DynamicOperandImpl createCopy() {
         return new NodeLocalNameImpl(selectorName);
+    }
+    
+    @Override
+    public OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o) {
+        if (!s.equals(selector)) {
+            // ordered by a different selector
+            return null;
+        }
+        return new OrderEntry(
+                QueryConstants.RESTRICTION_LOCAL_NAME, 
+            Type.STRING, 
+            o.isDescending() ? 
+            OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 
 }

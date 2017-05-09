@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.base.Objects.equal;
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
@@ -36,9 +37,12 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,36 +53,56 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.jcr.AccessDeniedException;
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
+import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinition;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
+import javax.jcr.version.VersionException;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ForwardingListenableFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+
+import junitx.util.PrivateAccessor;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.observation.filter.FilterFactory;
+import org.apache.jackrabbit.oak.jcr.observation.filter.OakEventFilter;
+import org.apache.jackrabbit.oak.plugins.observation.filter.ChangeSetFilterImpl;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.junit.After;
 import org.junit.Before;
@@ -131,7 +155,9 @@ public class ObservationTest extends AbstractRepositoryTest {
 
     @After
     public void tearDown() {
-        observingSession.logout();
+        if (observingSession != null) {
+            observingSession.logout();
+        }
     }
 
     @Test
@@ -429,7 +455,25 @@ public class ObservationTest extends AbstractRepositoryTest {
             observationManager.removeEventListener(listener);
         }
     }
+    
+    @Test
+    public void propertyFilter() throws Exception {
+        Node root = getNode("/");
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, PROPERTY_ADDED, "/a/b", false, null, null, false);
+        Node a = root.addNode("a");
+        Node b = a.addNode("b");
+        listener.expect("/a/b/jcr:primaryType", PROPERTY_ADDED);
 
+        listener.expectAdd(b.setProperty("propName", 1));
+    	root.getSession().save();
+
+    	List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
     @Test
     public void pathFilter() throws Exception {
         final String path = "/events/only/here";
@@ -849,6 +893,56 @@ public class ObservationTest extends AbstractRepositoryTest {
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
+    
+    @Test
+    public void deepNodeTypeMixinHierarchy() throws Exception {
+        NodeTypeManager ntm = getAdminSession().getWorkspace().getNodeTypeManager();
+        NodeTypeTemplate parentMixin = ntm.createNodeTypeTemplate();
+        parentMixin.setName("parentmixin");
+        parentMixin.setMixin(true);
+        ntm.registerNodeType(parentMixin, false);
+        NodeTypeTemplate childMixin = ntm.createNodeTypeTemplate();
+        childMixin.setName("childmixin");
+        childMixin.setMixin(true);
+        childMixin.setDeclaredSuperTypeNames(new String[] {"parentmixin"});
+        ntm.registerNodeType(childMixin, false);
+        NodeTypeTemplate mytype = ntm.createNodeTypeTemplate();
+        mytype.setName("mytype");
+        mytype.setMixin(false);
+        mytype.setDeclaredSuperTypeNames(new String[] {"childmixin"});
+        NodeDefinitionTemplate child = ntm.createNodeDefinitionTemplate();
+        child.setName("*");
+        child.setDefaultPrimaryTypeName("nt:base");
+        child.setRequiredPrimaryTypeNames(new String[] {"nt:base"});
+        List<NodeDefinition> children = mytype.getNodeDefinitionTemplates();
+        children.add(child);
+        ntm.registerNodeType(mytype, false);
+        getAdminSession().save();
+        
+        // create a fresh session here to catch the above new node type definitions
+        observingSession = createAdminSession();
+        observationManager = observingSession.getWorkspace().getObservationManager();
+        JackrabbitObservationManager oManager = (JackrabbitObservationManager) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath("/")
+                .setIsDeep(true)
+                .setNodeTypes(new String[] {"parentmixin"})
+                .setEventTypes(ALL_EVENTS);
+        oManager.addEventListener(listener, filter);
+
+        Node n = getNode(TEST_PATH).addNode("n", "mytype");
+        listener.expect(n.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node m = n.addNode("m", "nt:unstructured");
+        listener.expect(m.getPath(), NODE_ADDED);
+        getAdminSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
 
     @Test
     public void filterPropertyOfParent()
@@ -1100,6 +1194,8 @@ public class ObservationTest extends AbstractRepositoryTest {
     private static class ExpectationListener implements EventListener {
         private final Set<Expectation> expected = synchronizedSet(
                 Sets.<Expectation>newCopyOnWriteArraySet());
+        private final Set<Expectation> optional = synchronizedSet(
+                Sets.<Expectation>newCopyOnWriteArraySet());
         private final List<Event> unexpected = synchronizedList(
                 Lists.<Event>newCopyOnWriteArrayList());
 
@@ -1112,12 +1208,29 @@ public class ObservationTest extends AbstractRepositoryTest {
             expected.add(expectation);
             return expectation;
         }
+        
+        public Expectation optional(Expectation expectation) {
+            if (failed != null) {
+                expectation.fail(failed);
+            }
+            optional.add(expectation);
+            return expectation;
+        }
 
         public Future<Event> expect(final String path, final int type) {
             return expect(new Expectation("path = " + path + ", type = " + type) {
                 @Override
                 public boolean onEvent(Event event) throws RepositoryException {
                     return type == event.getType() && equal(path, event.getPath());
+                }
+            });
+        }
+
+        public Future<Event> expect(final String path, final String identifier, final int type) {
+            return expect(new Expectation("path = " + path + ", identifier = " + identifier + ", type = " + type) {
+                @Override
+                public boolean onEvent(Event event) throws RepositoryException {
+                    return type == event.getType() && equal(path, event.getPath()) && equal(identifier, event.getIdentifier());
                 }
             });
         }
@@ -1181,6 +1294,15 @@ public class ObservationTest extends AbstractRepositoryTest {
             });
         }
 
+        public Future<Event> expectBeforeValue(final String path, final int type, final String beforeValue) {
+            return expect(new Expectation("path = " + path + ", type = " + type + ", beforeValue = " + beforeValue) {
+                @Override
+                public boolean onEvent(Event event) throws RepositoryException {
+                    return type == event.getType() && equal(path, event.getPath()) && event.getInfo().containsKey("beforeValue") && beforeValue.equals(((Value)event.getInfo().get("beforeValue")).getString());
+                }
+            });
+        }
+
         public List<Expectation> getMissing(int time, TimeUnit timeUnit)
                 throws ExecutionException, InterruptedException {
             List<Expectation> missing = Lists.newArrayList();
@@ -1214,6 +1336,12 @@ public class ObservationTest extends AbstractRepositoryTest {
                             exp.complete(event);
                         }
                     }
+                    for (Expectation opt : optional) {
+                        if (opt.isEnabled() && !opt.isComplete() && opt.onEvent(event)) {
+                            found = true;
+                            opt.complete(event);
+                        }
+                    }
                     if (!found) {
                         unexpected.add(event);
                     }
@@ -1231,5 +1359,1065 @@ public class ObservationTest extends AbstractRepositoryTest {
             return path + ':' + type;
         }
     }
+    
+    //------------------------------------------------------------< OakEventFilter tests >---
 
+    @Test
+    public void applyNodeTypeOnSelf() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a", "nt:unstructured").addNode("b", "oak:Unstructured").addNode("c", "nt:unstructured");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setAbsPath("/");
+        filter.setIsDeep(true);
+        filter.setNodeTypes(new String[] {"oak:Unstructured"});
+        filter = FilterFactory.wrap(filter).withApplyNodeTypeOnSelf();
+
+        oManager.addEventListener(listener, filter);
+
+        testNode.getNode("a").getNode("b").getNode("c").remove();
+        testNode.getSession().save();
+
+        // wait 1 sec to give failures a chance (we're not expecting anything, but perhaps
+        // something would come, after 1sec more likely than after 0sec)
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+        Node b = testNode.getNode("a").getNode("b");
+        // OAK-5061 : the event NODE_REMOVED on /a/b is actually expected and was missing in the test:
+        listener.expect(b.getPath(), NODE_REMOVED);
+        b.remove();
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    
+    }
+    
+    @Test
+    public void includeAncestorsRemove_WithGlobs() throws Exception {
+        OakEventFilter oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/b/c/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/b/*/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/*/*/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/*/b/*/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/*/b/c/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/*/*/c/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/*/*/*/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/**/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/**/c/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths("/**/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/**/d.jsp");
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove();
+        doIncludeAncestorsRemove_WithGlobs(oef);
+    }
+    
+    void doIncludeAncestorsRemove_WithGlobs(OakEventFilter oef) throws Exception {
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("b").addNode("c").addNode("d.jsp").setProperty("e", 42);
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        final AtomicBoolean done = new AtomicBoolean(false);
+        final AtomicBoolean unexpected = new AtomicBoolean(false);
+        final AtomicBoolean failure = new AtomicBoolean(false);
+        EventListener listener = new EventListener() {
+            
+            @Override
+            public void onEvent(EventIterator events) {
+                while(events.hasNext()) {
+                    Event event = events.nextEvent();
+                    System.out.println("got: "+event);
+                    String path = "";
+                    try {
+                        path = event.getPath();
+                    } catch (RepositoryException e) {
+                        e.printStackTrace();
+                        failure.set(true);
+                    }
+                    if (path.equals(TEST_PATH + "/a/b") && event.getType() == NODE_REMOVED) {
+                        done.set(true);
+                    } else if (path.equals(TEST_PATH + "/a/b/c/d.jsp") && event.getType() == NODE_REMOVED) {
+                        done.set(true);
+                    } else if (path.equals(TEST_PATH + "/a/b/c/d.jsp/jcr:primaryType") && event.getType() == PROPERTY_REMOVED) {
+                        done.set(true);
+                    } else {
+                        System.out.println("Unexpected event: "+event);
+                        unexpected.set(true);
+                    }
+                }
+            }
+        };
+        oManager.addEventListener(listener, oef);
+        
+        Node b = testNode.getNode("a").getNode("b");
+        b.remove();
+        testNode.getSession().save();
+        
+        Thread.sleep(1000);
+        assertTrue("didnt get either event", done.get());
+        assertFalse("did get unexpected events", unexpected.get());
+        assertFalse("got an exception", failure.get());
+        
+        oManager.removeEventListener(listener);
+        testNode.getNode("a").remove();
+        testNode.getSession().save();
+    }
+    
+    /**
+     * This tests a filter which registers a few paths and then expects
+     * NOT to get any event if an unrelated parent is removed
+     */
+    @Test
+    public void includeAncestorsRemove_Unrelated() throws Exception {
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a"},
+                new String[] {"/a"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a/b"},
+                new String[] {"/a/b"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a/b/c"},
+                new String[] {"/a/b/c"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a/b/c/d"},
+                new String[] {"/a/b/c/d"},
+                new String[] {"/a/b/c/d/jcr:primaryType"});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/c/d/*.html"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/unrelated/child", "/a/unrelated", 
+                        "/a/b/c/d"},
+                new String[] {"/a/b/c/d"},
+                new String[] {});
+
+        // and some glob tests:
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/*/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/related/unrelatedchild", "/a/b/related", "/a/unrelated/child", "/a/unrelated", 
+                        "/a"},
+                new String[] {"/a", "/a/b/related"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/**/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/related/child", "/a/b/c/related", 
+                        "/a/b/related/child", "/a/b/related", "/a/unrelated/child", "/a/unrelated", 
+                        "/a"},
+                new String[] {"/a", "/a/b/related", "/a/b/related/child", "/a/b/c/related/child", "/a/b/c/related"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/b/**/d/*.html"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/related/child", "/a/b/c/related", 
+                        "/a/b/related/child", "/a/b/related", "/a/unrelated/child", "/a/unrelated", 
+                        "/a"},
+                new String[] {"/a", "/a/b/related", "/a/b/related/child", "/a/b/c/related/child", "/a/b/c/related"},
+                new String[] {});
+
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/*/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/related/unrelatedchild", "/a/related", 
+                        "/a/b"},
+                new String[] {"/a/b", "/a/related"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/**/c/d"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/related/child", "/a/b/c/related", 
+                        "/a/b/related/child", "/a/b/related", "/a/related/relatedchild", "/a/related", 
+                        "/a/b"},
+                new String[] {"/a/b", "/a/related/relatedchild", "/a/related", "/a/b/related/child", "/a/b/related", "/a/b/c/related/child", "/a/b/c/related"},
+                new String[] {});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/*/c/*.html"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/unrelated/child", "/a/b/c/unrelated", 
+                        "/a/b/unrelated/child", "/a/b/unrelated", "/a/related/unrelatedchild", "/a/related", 
+                        "/a/b/c/x.html", "/a/b"},
+                new String[] {"/a/b", "/a/related", "/a/b/c/x.html"},
+                new String[] {"/a/b/c/x.html/jcr:primaryType"});
+        doIncludeAncestorsRemove_Unrelated(
+                new String[] {"/a/**/c/*.html"}, 
+                new String[] {"/unrelated/child", "/unrelated", "/a/b/c/related/child", "/a/b/c/related", 
+                        "/a/b/related/child", "/a/b/related", "/a/related/child", "/a/related", 
+                        "/a/b"},
+                new String[] {"/a/b", "/a/related/child", "/a/related", "/a/b/related/child", "/a/b/related", "/a/b/c/related/child", "/a/b/c/related", "/a/b/c/related/child", "/a/b/c/related"},
+                new String[] {});
+    }
+    
+    private void doIncludeAncestorsRemove_Unrelated(String[] absPaths, 
+            String[] createAndRemoveNodes, String[] expectedRemoveNodeEvents, String[] expectedRemovePropertyEvents) throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+
+        OakEventFilter filterWithAncestorsRemove = FilterFactory.wrap(new JackrabbitEventFilter());
+        filterWithAncestorsRemove.setEventTypes(NODE_REMOVED | PROPERTY_REMOVED);
+        assertTrue(absPaths.length >= 1);
+        String[] additionalPaths = new String[absPaths.length];
+        System.arraycopy(absPaths, 0, additionalPaths, 0, absPaths.length);
+        if (!absPaths[0].contains("*")) {
+            filterWithAncestorsRemove.setAbsPath(absPaths[0]);
+            if (absPaths.length > 1) {
+                additionalPaths = new String[absPaths.length - 1];
+                System.arraycopy(absPaths, 1, additionalPaths, 0, absPaths.length - 1);
+            }
+        }
+        filterWithAncestorsRemove.withIncludeGlobPaths(additionalPaths);
+        filterWithAncestorsRemove.setIsDeep(true);
+        filterWithAncestorsRemove = filterWithAncestorsRemove.withIncludeAncestorsRemove();
+        ExpectationListener listenerWithAncestorsRemove = new ExpectationListener();
+        oManager.addEventListener(listenerWithAncestorsRemove, filterWithAncestorsRemove);
+
+        OakEventFilter filterWithoutAncestorsRemove = FilterFactory.wrap(new JackrabbitEventFilter());
+        filterWithoutAncestorsRemove.setEventTypes(NODE_REMOVED);
+        if (!absPaths[0].contains("*")) {
+            filterWithoutAncestorsRemove.setAbsPath(absPaths[0]);
+        }
+        filterWithoutAncestorsRemove.withIncludeGlobPaths(additionalPaths);
+        filterWithoutAncestorsRemove.setIsDeep(true);
+        ExpectationListener listenerWithoutAncestorsRemove = new ExpectationListener();
+        oManager.addEventListener(listenerWithoutAncestorsRemove, filterWithoutAncestorsRemove);
+
+        Session session = getAdminSession();
+        for (String path : createAndRemoveNodes) {
+            Iterator<String> it = PathUtils.elements(path).iterator();
+            Node node = session.getRootNode();
+            while(it.hasNext()) {
+                String elem = it.next();
+                if (!node.hasNode(elem)) {
+                    node = node.addNode(elem);
+                } else {
+                    node = node.getNode(elem);
+                }
+            }
+        }
+        session.save();
+
+        for (String nodePath : expectedRemoveNodeEvents) {
+            listenerWithAncestorsRemove.expect(nodePath, NODE_REMOVED);
+        }
+        for (String propertyPath : expectedRemovePropertyEvents) {
+            listenerWithAncestorsRemove.expect(propertyPath, PROPERTY_REMOVED);
+        }
+
+        for (String path : createAndRemoveNodes) {
+            Iterator<String> it = PathUtils.elements(path).iterator();
+            Node node = session.getRootNode();
+            while(it.hasNext()) {
+                String elem = it.next();
+                node = node.getNode(elem);
+            }
+            node.remove();
+            session.save();
+        }
+        
+        Thread.sleep(1000);
+        List<Expectation> missing = listenerWithoutAncestorsRemove.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listenerWithoutAncestorsRemove.getUnexpected();
+        assertTrue("Unexpected events (listenerWithoutAncestorsRemove): " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events (listenerWithoutAncestorsRemove): " + missing, missing.isEmpty());
+
+        missing = listenerWithAncestorsRemove.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listenerWithAncestorsRemove.getUnexpected();
+        assertTrue("Unexpected events (listenerWithAncestorsRemove): " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events (listenerWithAncestorsRemove): " + missing, missing.isEmpty());
+    }
+
+    @Test
+    public void includeAncestorsRemove() throws Exception {
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setAbsPath(TEST_PATH + "/a/b/c/d");
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeAncestorsRemove();
+        FilterProvider filterProvider = doIncludeAncestorsRemove(filter);
+        // with 'includeAncestorsRemove' flag the listener is registered at '/'
+        assertMatches(filterProvider.getSubTrees(), "/");
+
+        filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeAncestorsRemove().withIncludeGlobPaths(TEST_PATH + "/a/b/c/**");
+        filterProvider = doIncludeAncestorsRemove(filter);
+        // with 'includeAncestorsRemove' flag the listener is registered at '/'
+        assertMatches(filterProvider.getSubTrees(), "/");
+
+    }
+    
+    private FilterProvider doIncludeAncestorsRemove(JackrabbitEventFilter filter) throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("b").addNode("c").addNode("d").setProperty("e", 42);
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        oManager.addEventListener(listener, filter);
+
+        Node d = testNode.getNode("a").getNode("b").getNode("c").getNode("d");
+        Property e = d.getProperty("e");
+        listener.expectRemove(e);
+//        listener.expectRemove(d.getProperty("jcr:primaryType"));
+//        d.remove();
+        listener.expectRemove(d).remove();
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        oManager.addEventListener(new EventListener() {
+            
+            @Override
+            public void onEvent(EventIterator events) {
+                while(events.hasNext()) {
+                    System.out.println("/a-listener GOT: "+events.next());
+                }
+                
+            }
+        }, NODE_REMOVED, TEST_PATH + "/a", false, null, null, false);
+        System.out.println("REGISTERED");
+        
+        testNode = getNode(TEST_PATH);
+        Node b = testNode.getNode("a").getNode("b");
+        listener.expect(b.getPath(), NODE_REMOVED);
+        listener.optional(new Expectation("/a/b/c is optionally sent depending on filter") {
+            @Override
+            public boolean onEvent(Event event) throws Exception {
+                if (event.getPath().equals(TEST_PATH + "/a/b/c") && event.getType() == NODE_REMOVED) {
+                    return true;
+                }
+                return false;
+            }
+        });
+        b.remove();
+        // but not the jcr:primaryType
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    
+        Node a = testNode.getNode("a");
+        listener.expect(a.getPath(), NODE_REMOVED);
+        a.remove();
+        // but not the jcr:primaryType
+        testNode.getSession().save();
+
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        return filterProvider;
+    }
+
+    @Test
+    public void includeRemovedSubtree_Globs() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("b").addNode("c").addNode("d.jsp");
+        testNode.addNode("e").addNode("f").addNode("g.jsp");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        OakEventFilter oef = FilterFactory.wrap(filter);
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeGlobPaths(TEST_PATH + "/a/**/*.jsp");
+        oef.withNodeTypeAggregate(new String[] {"nt:unstructured"}, new String[] {""});
+        oef.withIncludeSubtreeOnRemove();
+
+        oManager.addEventListener(listener, oef);
+
+        // the glob is for a jsp - so we should (only) get an event for that
+        // but only for the properties of d.jsp that get removed, not of removal of d.jsp itself
+        // as that would again be reported towards the parent of d.jsp which is /a/b/c
+        Node dDotJsp = testNode.getNode("a").getNode("b").getNode("c").getNode("d.jsp");
+        listener.expect(dDotJsp.getPath() + "/jcr:primaryType", dDotJsp.getPath(), PROPERTY_REMOVED);
+
+        // but we're removing /a/b
+        testNode.getNode("a").getNode("b").remove();
+        // and for removal of /e nothing should be generated
+        testNode.getNode("e").remove();
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
+    @Test
+    public void includeRemovedSubtree() throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("c");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setAbsPath("/");
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeSubtreeOnRemove();
+
+        oManager.addEventListener(listener, filter);
+
+        listener.expectRemove(testNode.getNode("a").getNode("c"));
+        listener.expectRemove(testNode.getNode("a")).remove();
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
+    @Test
+    public void includeRemovedSubtree_BeforeValue() throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        Node a = testNode.addNode("a");
+        a.setProperty("propA", "24");
+        a.addNode("c").setProperty("propB", "42");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter.setAbsPath("/");
+        filter.setIsDeep(true);
+        filter = FilterFactory.wrap(filter).withIncludeSubtreeOnRemove();
+
+        oManager.addEventListener(listener, filter);
+
+        Node c = testNode.getNode("a").getNode("c");
+        listener.expectRemove(c);
+        listener.expectBeforeValue(c.getProperty("propB").getPath(), PROPERTY_REMOVED, "42");
+        a = testNode.getNode("a");
+        listener.expectBeforeValue(a.getProperty("propA").getPath(), PROPERTY_REMOVED, "24");
+        listener.expectRemove(a).remove();
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
+    @Test
+    public void includeGlobPaths() throws Exception {
+        
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a1").addNode("b").addNode("c");
+        testNode.addNode("a2").addNode("b").addNode("c");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a2/**");
+        oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), TEST_PATH + "/a2");
+
+        testNode.getNode("a1").getNode("b").remove();
+        listener.expectRemove(testNode.getNode("a2").getNode("b")).remove();
+        testNode.getSession().save();
+        
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        
+        Node a3 = testNode.addNode("a3");
+        Node foo = a3.addNode("bar").addNode("foo");
+        testNode.getSession().save();
+
+        filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+//        filter.setAbsPath(TEST_PATH + "/a3/bar/foo/x");
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a3/**/x");
+        oManager.addEventListener(listener, filter);
+        cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), TEST_PATH + "/a3");
+        
+        Node x = foo.addNode("x");
+        listener.expect(x.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+        filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a3/**/y");
+        oManager.addEventListener(listener, filter);
+        cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), TEST_PATH + "/a3");
+        
+        Node y = foo.addNode("y");
+        listener.expect(y.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        testNode.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+    
+    @Test
+    public void testConsecutiveGlobPaths() throws Exception {
+        Node testNode = getNode(TEST_PATH);
+        Node a1 = testNode.addNode("a1");
+        a1.addNode("b1").addNode("c1");
+        a1.addNode("b2").addNode("c2");
+        testNode.addNode("a2").addNode("b").addNode("c");
+        testNode.getSession().save();
+
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withIncludeGlobPaths(TEST_PATH + "/a2/**").withIncludeGlobPaths(TEST_PATH + "/a1/**");
+        oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), TEST_PATH + "/a1", TEST_PATH + "/a2");
+
+        listener.expectRemove(testNode.getNode("a1").getNode("b2")).remove();
+        listener.expectRemove(testNode.getNode("a2").getNode("b")).remove();
+        testNode.getSession().save();
+        
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void testAggregate1() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setAbsPath("/parent");
+        filter.setIsDeep(true);
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withNodeTypeAggregate(new String[] { "oak:Unstructured" },
+                new String[] { "", "jcr:content", "jcr:content/**" });
+        oManager.addEventListener(listener, filter);
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expect(parent.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node child = parent.addNode("child", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expectAdd(child);
+        Node file = child.addNode("file", "oak:Unstructured");
+        listener.expectAdd(file);
+        Node jcrContent = file.addNode("jcr:content", "nt:unstructured");
+        listener.expect(jcrContent.getPath(), "/parent/child/file", NODE_ADDED);
+        listener.expect(jcrContent.getPath() + "/jcr:primaryType", "/parent/child/file", PROPERTY_ADDED);
+        Property jcrDataProperty = jcrContent.setProperty("jcr:data", "foo");
+        listener.expect(jcrDataProperty.getPath(), "/parent/child/file", PROPERTY_ADDED);
+        parent.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        file = getAdminSession().getRootNode().getNode("parent").getNode("child").getNode("file");
+        jcrContent = file.getNode("jcr:content");
+        Property newProperty = jcrContent.setProperty("newProperty", "foo");
+        listener.expect(newProperty.getPath(), "/parent/child/file", PROPERTY_ADDED);
+        Property lastModifiedBy = jcrContent.setProperty("jcr:lastModifiedBy", "bar");
+        listener.expect(lastModifiedBy.getPath(), "/parent/child/file", PROPERTY_ADDED);
+        jcrContent.getSession().save();
+
+        Thread.sleep(2000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+
+    @Test
+    public void testAggregate2() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setAbsPath("/parent");
+        filter.setIsDeep(true);
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withNodeTypeAggregate(new String[] { "oak:Unstructured" },
+                new String[] { "", "**" });// "file", "file/jcr:content",
+                                           // "file/jcr:content/**");
+        oManager.addEventListener(listener, filter);
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expect(parent.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node child = parent.addNode("child", "oak:Unstructured");
+        listener.expectAdd(child);
+        Node file = child.addNode("file", "nt:unstructured");
+        listener.expectAdd(file);
+        Node jcrContent = file.addNode("jcr:content", "nt:unstructured");
+        listener.expect(jcrContent.getPath(), "/parent/child", NODE_ADDED);
+        listener.expect(jcrContent.getPath() + "/jcr:primaryType", "/parent/child", PROPERTY_ADDED);
+        Property jcrDataProperty = jcrContent.setProperty("jcr:data", "foo");
+        listener.expect(jcrDataProperty.getPath(), "/parent/child", PROPERTY_ADDED);
+        parent.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+
+        file = getAdminSession().getRootNode().getNode("parent").getNode("child").getNode("file");
+        jcrContent = file.getNode("jcr:content");
+        Property newProperty = jcrContent.setProperty("newProperty", "foo");
+        listener.expect(newProperty.getPath(), "/parent/child", PROPERTY_ADDED);
+        Property lastModifiedBy = jcrContent.setProperty("jcr:lastModifiedBy", "bar");
+        listener.expect(lastModifiedBy.getPath(), "/parent/child", PROPERTY_ADDED);
+        jcrContent.getSession().save();
+
+        Thread.sleep(2000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+
+    @Test
+    public void testAggregate3() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setAbsPath("/parent");
+        filter.setIsDeep(true);
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter).withNodeTypeAggregate(new String[] { "oak:Unstructured" },
+                new String[] { "**" } );
+        oManager.addEventListener(listener, filter);
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expect(parent.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node child = parent.addNode("child", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expectAdd(child);
+        Node file = child.addNode("file", "oak:Unstructured");
+        listener.expect(file.getPath(), "/parent/child/file", NODE_ADDED);
+        listener.expect(file.getPath() + "/jcr:primaryType", "/parent/child/file", PROPERTY_ADDED);
+        Node jcrContent = file.addNode("jcr:content", "nt:unstructured");
+        listener.expect(jcrContent.getPath(), "/parent/child/file", NODE_ADDED);
+        listener.expect(jcrContent.getPath() + "/jcr:primaryType", "/parent/child/file", PROPERTY_ADDED);
+        Property jcrDataProperty = jcrContent.setProperty("jcr:data", "foo");
+        listener.expect(jcrDataProperty.getPath(), "/parent/child/file", PROPERTY_ADDED);
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+    
+    @Test
+    public void testAggregate4() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter)
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "**/foo/**" } )
+                .withIncludeGlobPaths("/parent/**/bar/**");
+        oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), "/parent");
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node a = parent.addNode("a", "nt:unstructured");
+        Node b = a.addNode("b", "nt:unstructured");
+        Node bar = b.addNode("bar", "oak:Unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expect(bar.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node c = bar.addNode("c", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expectAdd(c);
+        Node foo = c.addNode("foo", "nt:unstructured");
+        // OAK-5096: in OR mode the following event also gets sent:
+        listener.expectAdd(foo);
+        Node jcrContent = foo.addNode("jcr:content", "nt:unstructured");
+        listener.expectAdd(jcrContent);
+        
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+
+    /**
+     * OAK-5096 : new test case for OR mode
+     */
+    @Test
+    public void testAggregate5() throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter)
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "**/foo/**" } )
+                .withIncludeGlobPaths("/parent/**/bar/**");
+        oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), "/parent");
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node bar = parent.addNode("bar", "nt:unstructured");
+        listener.expect(bar.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node c = bar.addNode("c", "nt:unstructured");
+        listener.expectAdd(c);
+        Node foo = c.addNode("foo", "nt:unstructured");
+        listener.expectAdd(foo);
+        Node jcrContent = foo.addNode("jcr:content", "nt:unstructured");
+        listener.expectAdd(jcrContent);
+        
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+    }
+
+    @Test
+    public void testFileWithGlobs() throws Exception {
+        doTestFileWithGlobs("/parent/bar/zet.jsp", "/parent/bar/zet.jsp");
+        doTestFileWithGlobs("/parent/bar/*.jsp", "/parent/bar");
+        doTestFileWithGlobs("/parent/*/zet.jsp", "/parent");
+        doTestFileWithGlobs("/parent/*/*.jsp", "/parent");
+        doTestFileWithGlobs("/parent/**/zet.jsp", "/parent");
+        doTestFileWithGlobs("/parent/**/*.jsp", "/parent");
+        doTestFileWithGlobs("/*/bar/*.jsp", "");
+        doTestFileWithGlobs("/**/bar/*.jsp", "");
+        doTestFileWithGlobs("/**/*.jsp", "");
+        doTestFileWithGlobs("**/*.jsp", "");
+    }
+
+    private void doTestFileWithGlobs(String globPath, String... expectedSubTrees)
+            throws RepositoryException, ItemExistsException, PathNotFoundException, NoSuchNodeTypeException,
+            LockException, VersionException, ConstraintViolationException, AccessDeniedException,
+            ReferentialIntegrityException, InvalidItemStateException, InterruptedException, ExecutionException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter();
+        filter.setEventTypes(ALL_EVENTS);
+        filter = FilterFactory.wrap(filter)
+                .withIncludeGlobPaths(globPath);
+        oManager.addEventListener(listener, filter);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertArrayEquals(expectedSubTrees, Iterables.toArray(filterProvider.getSubTrees(), String.class));
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node bar = parent.addNode("bar", "nt:unstructured");
+        Node zetDotJsp = bar.addNode("zet.jsp", "nt:unstructured");
+        listener.expect(zetDotJsp.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        
+        Session session = getAdminSession();
+        session.getRootNode().getNode("parent").remove();
+        session.save();
+        oManager.removeEventListener(listener);
+    }
+
+    // OAK-5096 : a specific **/*.jsp test case
+    @Test
+    public void testAggregate6() throws Exception {
+        OakEventFilter oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.setIsDeep(true);
+        oef.withIncludeAncestorsRemove()
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/**/*.jsp");
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "/**/*.jsp", "/**/*.jsp/**"});
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.setIsDeep(false);
+        oef.withIncludeAncestorsRemove()
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/**/*.jsp");
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "/**/*.jsp", "/**/*.jsp/**"});
+        
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeAncestorsRemove()
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("**/*.jsp");
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/**", "**/*.jsp", "**/*.jsp/**"});
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef // without includeAncestorsRemove this time
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/**/*.jsp");
+        doTestAggregate6(oef, new String[] {""}, new String[] {"/**/*.jsp", "/**/*.jsp/**"});
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef // without includeAncestorsRemove this time
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("**/*.jsp");
+        doTestAggregate6(oef, new String[] {""}, new String[] {"**/*.jsp", "**/*.jsp/**"});
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeAncestorsRemove()
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/parent/**/*.jsp");
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/parent/**", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+        
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeAncestorsRemove()
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/parent/bar/**/*.jsp");
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/parent/bar", "/parent/bar/**", "/parent/bar/**/*.jsp", "/parent/bar/**/*.jsp/**"});
+        
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef // without includeAncestorsRemove this time
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/parent/**/*.jsp");
+        doTestAggregate6(oef, new String[] {"/parent"}, new String[] {"/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef // without includeAncestorsRemove this time
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/parent/**/*.jsp", "/foo/bar/**");
+        doTestAggregate6(oef, new String[] {"/parent", "/foo/bar"}, new String[] {"/foo/bar/**", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+
+        oef = FilterFactory.wrap(new JackrabbitEventFilter());
+        oef.setEventTypes(ALL_EVENTS);
+        oef.withIncludeAncestorsRemove()
+                .withNodeTypeAggregate(new String[] { "oak:Unstructured" }, new String[] { "", "jcr:content" } )
+                .withIncludeGlobPaths("/parent/**/*.jsp", "/foo/bar/**");
+        doTestAggregate6(oef, new String[] {"/"}, new String[] {"/parent", "/foo", "/foo/bar", "/foo/bar/**", "/parent/**", "/parent/**/*.jsp", "/parent/**/*.jsp/**"});
+    }
+
+    private void doTestAggregate6(OakEventFilter oef, String[] expectedSubTrees, String[] expectedPrefilterPaths)
+            throws Exception {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        oManager.addEventListener(listener, oef);
+        ChangeProcessor cp = oManager.getChangeProcessor(listener);
+        assertNotNull(cp);
+        FilterProvider filterProvider = cp.getFilterProvider();
+        assertNotNull(filterProvider);
+        assertMatches(filterProvider.getSubTrees(), expectedSubTrees);
+        ChangeSetFilterImpl changeSetFilter = (ChangeSetFilterImpl)PrivateAccessor.getField(filterProvider, "changeSetFilter");
+        assertNotNull(changeSetFilter);
+        assertMatches(changeSetFilter.getRootIncludePaths(), expectedPrefilterPaths);
+        
+        Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
+        Node bar = parent.addNode("bar", "nt:unstructured");
+        Node zetDotJsp = bar.addNode("zet.jsp", "nt:unstructured");
+        listener.expect(zetDotJsp.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node c = bar.addNode("c", "nt:unstructured");
+        Node fooDotJsp = c.addNode("foo.jsp", "oak:Unstructured");
+        listener.expect(fooDotJsp.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        Node jcrContent = fooDotJsp.addNode("jcr:content", "nt:unstructured");
+        jcrContent.setProperty("jcr:data", "foo");
+        listener.expectAdd(jcrContent);
+        listener.expect(jcrContent.getPath() + "/jcr:data", "/parent/bar/c/foo.jsp", PROPERTY_ADDED);
+        
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        
+        // OAK-5096 : this is what OAK-5096 is all about: when you change
+        // the property jcr:content/jcr:data it should be reported with 
+        // identifier of the aggregate - even though it is not in the original glob path
+        jcrContent.setProperty("jcr:data", "bar");
+        listener.expect(jcrContent.getPath() + "/jcr:data", "/parent/bar/c/foo.jsp", PROPERTY_CHANGED);
+        parent.getSession().save();
+
+        Thread.sleep(1000);
+        missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        
+        // cleanup
+        Session session = getAdminSession();
+        session.getRootNode().getNode("parent").remove();
+        session.save();
+        oManager.removeEventListener(listener);
+    }
+
+    private void assertMatches(Iterable<String> actuals, String... expected) {
+        assertEquals(newHashSet(expected), newHashSet(actuals));
+    }
 }

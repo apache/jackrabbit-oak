@@ -22,12 +22,15 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +41,7 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.observation.EventJournal;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
@@ -57,8 +61,10 @@ import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condition;
+import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
+import org.apache.jackrabbit.oak.plugins.observation.filter.ChangeSetFilterImpl;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -138,6 +144,11 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             stop(processor);
         }
     }
+    
+    /** for testing only, hence package protected **/
+    synchronized ChangeProcessor getChangeProcessor(EventListener listener) {
+        return processors.get(listener);        
+    }
 
     private synchronized void addEventListener(EventListener listener, ListenerTracker tracker,
             FilterProvider filterProvider) {
@@ -209,6 +220,10 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     @Override
     public void addEventListener(EventListener listener, JackrabbitEventFilter filter)
             throws RepositoryException {
+        OakEventFilterImpl oakEventFilter = null;
+        if (filter instanceof OakEventFilterImpl) {
+            oakEventFilter = (OakEventFilterImpl) filter;
+        }
 
         int eventTypes = filter.getEventTypes();
         boolean isDeep = filter.getIsDeep();
@@ -224,6 +239,12 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         }
         Set<String> excludedPaths = getOakPaths(namePathMapper, filter.getExcludedPaths());
         PathUtils.unifyInExcludes(includePaths, excludedPaths);
+        if (oakEventFilter != null) {
+            String[] includeGlobPaths = oakEventFilter.getIncludeGlobPaths();
+            if (includeGlobPaths != null) {
+                includePaths.addAll(Arrays.asList(includeGlobPaths));
+            }
+        }
         if (includePaths.isEmpty()) {
             LOG.warn("The passed filter excludes all events. No event listener registered");
             return;
@@ -232,32 +253,129 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         FilterBuilder filterBuilder = new FilterBuilder();
         String depthPattern = isDeep ? STAR + '/' + STAR_STAR : STAR;
         List<Condition> includeConditions = newArrayList();
+        filterBuilder.addPathsForMBean(includePaths);
         for (String path : includePaths) {
-            includeConditions.add(filterBuilder.path(concat(path, depthPattern)));
-            filterBuilder.addSubTree(path);
+            final String deepenedPath;
+            if (path.endsWith(STAR)) {
+                // that's the case for a glob ending with * already, so
+                // no need to add another * or **
+                deepenedPath = path;
+            } else if (path.contains(STAR)) {
+                // for any other glob path that doesn't end with *
+                // we only add a single *, not a **
+                deepenedPath = concat (path, STAR);
+            } else {
+                // for any non-glob path we do it the traditional way
+                deepenedPath = concat(path, depthPattern);
+            }
+            includeConditions.add(filterBuilder.path(deepenedPath));
+            if (oakEventFilter != null && oakEventFilter.getIncludeAncestorsRemove()) {
+                // with the 'includeAncestorsRemove' extension we need
+                // to register '/' as the base path - done in wrapMainCondition
+                // - in order to catch any node removal. So we have to skip adding 
+                // the subtree here as a result.
+                continue;
+            }
+            // only register the part leading to the first STAR:
+            filterBuilder.addSubTree(pathWithoutGlob(path));
         }
 
         List<Condition> excludeConditions = createExclusions(filterBuilder, excludedPaths);
 
+        final String[] validatedNodeTypeNames = validateNodeTypeNames(nodeTypeName);
+        Selector nodeTypeSelector = Selectors.PARENT;
+        boolean deleteSubtree = true;
+        if (oakEventFilter != null) {
+            Condition additionalIncludes = oakEventFilter.getAdditionalIncludeConditions(includePaths);
+            if (additionalIncludes != null) {
+                includeConditions.add(additionalIncludes);
+            }
+            filterBuilder.aggregator(oakEventFilter.getAggregator());
+            if (oakEventFilter.getApplyNodeTypeOnSelf()) {
+                nodeTypeSelector = Selectors.THIS;
+            }
+            if (oakEventFilter.getIncludeSubtreeOnRemove()) {
+                deleteSubtree = false;
+            }
+        }
+        if (deleteSubtree) {
+            excludeConditions.add(filterBuilder.deleteSubtree());
+        }
+
+        Condition condition = filterBuilder.all(
+                    filterBuilder.all(excludeConditions),
+                    filterBuilder.any(includeConditions),
+//                    filterBuilder.deleteSubtree(),     // moved depending on deleteSubtree on excludeConditions
+                    filterBuilder.moveSubtree(),
+                    filterBuilder.eventType(eventTypes),
+                    filterBuilder.uuid(Selectors.PARENT, uuids),
+                    filterBuilder.nodeType(nodeTypeSelector, validatedNodeTypeNames),
+                    filterBuilder.accessControl(permissionProviderFactory));
+        if (oakEventFilter != null) {
+            condition = oakEventFilter.wrapMainCondition(condition, filterBuilder, permissionProviderFactory);
+        }
         filterBuilder
             .includeSessionLocal(!noLocal)
             .includeClusterExternal(!noExternal)
             .includeClusterLocal(!noInternal)
-            .condition(filterBuilder.all(
-                    filterBuilder.all(excludeConditions),
-                    filterBuilder.any(includeConditions),
-                    filterBuilder.deleteSubtree(),
-                    filterBuilder.moveSubtree(),
-                    filterBuilder.eventType(eventTypes),
-                    filterBuilder.uuid(Selectors.PARENT, uuids),
-                    filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName)),
-                    filterBuilder.accessControl(permissionProviderFactory)));
+            .condition(condition);
 
         // FIXME support multiple path in ListenerTracker
         ListenerTracker tracker = new WarningListenerTracker(
                 !noExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
+        Set<String> additionalIncludePaths = null;
+        if (oakEventFilter != null) {
+            additionalIncludePaths = oakEventFilter.calcPrefilterIncludePaths(includePaths);
+        }
+        
+        // OAK-5082 : node type filtering should not only be direct but include derived types
+        // one easy way to solve this is to 'explode' the node types at start by including
+        // all subtypes of every registered node type
+        HashSet<String> explodedNodeTypes = null;
+        if (validatedNodeTypeNames != null) {
+            explodedNodeTypes = newHashSet();
+            for (String nt : validatedNodeTypeNames) {
+                explodeSubtypes(nt, explodedNodeTypes);
+            }
+        }
+        
+        // OAK-4908 : prefiltering support. here we have explicit yes/no/maybe filtering
+        // for things like propertyNames/nodeTypes/nodeNames/paths which cannot be 
+        // applied on the full-fledged filterBuilder above but requires an explicit 'prefilter' for that.
+        filterBuilder.setChangeSetFilter(new ChangeSetFilterImpl(includePaths, isDeep, additionalIncludePaths, excludedPaths, null,
+                explodedNodeTypes, null));
+        
         addEventListener(listener, tracker, filterBuilder.build());
+    }
+    
+    private void explodeSubtypes(String nodeType, Set<String> set) throws RepositoryException {
+        set.add(nodeType);
+        NodeTypeIterator it = ntMgr.getNodeType(nodeType).getSubtypes();
+        while(it.hasNext()) {
+            String subnt = String.valueOf(it.next());
+            if (!set.contains(subnt)) {
+                set.add(subnt);
+                explodeSubtypes(subnt, set);
+            }
+        }
+    }
+
+    private String pathWithoutGlob(String path) {
+        if (!path.contains("*")) {
+            return path;
+        }
+        Iterator<String> it = elements(path).iterator();
+        String result = "/";
+        while(it.hasNext()) {
+            String next = it.next();
+            if (next.contains("*")) {
+                // then stop here
+                break;
+            }
+            result = concat(result, next);
+        }
+        return result;
     }
 
     private static List<Condition> createExclusions(FilterBuilder filterBuilder, Iterable<String> excludedPaths) {
@@ -288,7 +406,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     }
 
     @Override
-    public EventListenerIterator getRegisteredEventListeners() throws RepositoryException {
+    public EventListenerIterator getRegisteredEventListeners() {
         return new EventListenerIteratorAdapter(processors.keySet());
     }
 
@@ -336,8 +454,15 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
     private static void stop(ChangeProcessor processor) {
         if (!processor.stopAndWait(STOP_TIME_OUT, MILLISECONDS)) {
-            LOG.warn(OBSERVATION, "Timed out waiting for change processor to stop after " +
-                    STOP_TIME_OUT + " milliseconds. Falling back to asynchronous stop.");
+            LOG.warn(
+                    OBSERVATION,
+                    "Timed out waiting for change processor to stop after "
+                            + STOP_TIME_OUT
+                            + " milliseconds. Falling back to asynchronous stop on "
+                            + processor
+                            + " (listener details: '"
+                            + processor.getListenerToString()
+                            + "')");
             processor.stop();
         }
     }

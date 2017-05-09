@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -34,7 +35,21 @@ import static org.junit.Assert.assertTrue;
 
 public class CugExcludeDefaultTest {
 
-    private CugExclude exclude = new CugExclude.Default();
+    CugExclude exclude;
+
+    @Before
+    public void before() {
+        exclude = createInstance();
+    }
+
+    CugExclude createInstance() {
+        return new CugExclude.Default();
+    }
+
+    @Test
+    public void testEmptyPrincipalSet() {
+        assertTrue(exclude.isExcluded(ImmutableSet.<Principal>of()));
+    }
 
     @Test
     public void testSystemPrincipal() {

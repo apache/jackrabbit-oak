@@ -143,7 +143,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public void remove() throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation("remove") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("remove") {
             @Override
             public void performVoid() throws RepositoryException {
                 delegate.remove();
@@ -186,7 +186,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public void setProperty(final String relPath, final Value value) throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation("setProperty") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("setProperty") {
             @Override
             public void performVoid() throws RepositoryException {
                 delegate.setProperty(relPath, value);
@@ -196,7 +196,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public void setProperty(final String relPath, final Value[] value) throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation("setProperty") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("setProperty") {
             @Override
             public void performVoid() throws RepositoryException {
                 delegate.setProperty(relPath, value);

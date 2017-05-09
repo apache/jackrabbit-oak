@@ -29,6 +29,7 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
 public class AtomicCounterTest extends AbstractRepositoryTest {        
@@ -123,5 +124,9 @@ public class AtomicCounterTest extends AbstractRepositoryTest {
             session.logout();
         }
     }
-    
+
+    @Override
+    protected Jcr initJcr(Jcr jcr) {
+        return super.initJcr(jcr).withAtomicCounter();
+    }
 }

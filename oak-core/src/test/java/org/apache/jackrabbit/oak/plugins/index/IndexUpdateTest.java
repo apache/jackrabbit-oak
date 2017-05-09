@@ -16,45 +16,61 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.util.Calendar;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -332,8 +348,7 @@ public class IndexUpdateTest {
                 .getValue(Type.BOOLEAN));
         assertTrue(ns1.getProperty(REINDEX_ASYNC_PROPERTY_NAME).getValue(
                 Type.BOOLEAN));
-        assertEquals(ASYNC_REINDEX_VALUE, ns1.getProperty(ASYNC_PROPERTY_NAME)
-                .getValue(Type.STRING));
+        assertEquals(ASYNC_REINDEX_VALUE, ns1.getString(ASYNC_PROPERTY_NAME));
 
         AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
                 store, provider, true);
@@ -390,6 +405,47 @@ public class IndexUpdateTest {
                 azerty.getProperty(REINDEX_PROPERTY_NAME));
     }
 
+    /**
+     * OAK-3505 Provide an optionally stricter policy for missing synchronous
+     * index editor providers
+     */
+    @Test
+    public void testMissingProviderFailsCommit() throws Exception {
+
+        final IndexUpdateCallback noop = new IndexUpdateCallback() {
+            @Override
+            public void indexUpdate() {
+            }
+        };
+        final MissingIndexProviderStrategy mips = new MissingIndexProviderStrategy();
+        mips.setFailOnMissingIndexProvider(true);
+
+        EditorHook hook = new EditorHook(new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder, CommitInfo info)
+                    throws CommitFailedException {
+                return new IndexUpdate(emptyProvider(), null, after, builder,
+                        noop).withMissingProviderStrategy(mips);
+            }
+        });
+
+        NodeState before = builder.getNodeState();
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        builder.child(INDEX_DEFINITIONS_NAME).child("azerty");
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        try {
+            hook.processCommit(before, after, CommitInfo.EMPTY);
+            fail("commit should fail on missing index provider");
+        } catch (CommitFailedException ex) {
+            // expected
+        }
+    }
+
     @Test
     public void testReindexCount() throws Exception{
         builder.child("testRoot").setProperty("foo", "abc");
@@ -409,6 +465,85 @@ public class IndexUpdateTest {
         long t2 = getReindexCount(indexed);
 
         assertTrue(t2 > t1);
+    }
+
+    @Test
+    public void contextAwareCallback() throws Exception{
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+
+        NodeState after = builder.getNodeState();
+
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+
+        CommitInfo info = new CommitInfo("foo", "bar");
+        NodeState indexed = hook.processCommit(before, after, info);
+
+        assertNotNull(provider.callback);
+        assertThat(provider.callback, instanceOf(ContextAwareCallback.class));
+        ContextAwareCallback contextualCallback = (ContextAwareCallback) provider.callback;
+        IndexingContext context = contextualCallback.getIndexingContext();
+
+        assertNotNull(context);
+        assertEquals("/oak:index/rootIndex", context.getIndexPath());
+        assertTrue(context.isReindexing());
+        assertFalse(context.isAsync());
+        assertSame(info, context.getCommitInfo());
+
+        before = indexed;
+        builder = indexed.builder();
+        builder.child("a").setProperty("foo", "bar");
+        after = builder.getNodeState();
+
+        hook.processCommit(before, after, info);
+        assertFalse(((ContextAwareCallback)provider.callback).getIndexingContext().isReindexing());
+    }
+
+    @Test
+    public void contextAwareCallback_async() throws Exception{
+        NodeState before = builder.getNodeState();
+        NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        idx.setProperty("async", asList("sync", "async"), Type.STRINGS);
+
+        NodeState after = builder.getNodeState();
+
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider, "async", false));
+
+        hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        assertTrue(((ContextAwareCallback)provider.callback).getIndexingContext().isAsync());
+    }
+
+    private static class CallbackCapturingProvider extends PropertyIndexEditorProvider {
+        private Map<String, IndexingContext> callbacks = Maps.newHashMap();
+        IndexUpdateCallback callback;
+
+        @Override
+        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
+                                     @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
+            Editor editor = super.getIndexEditor(type, definition, root, callback);
+            if (editor != null){
+                this.callback = callback;
+                if (callback instanceof ContextAwareCallback){
+                    IndexingContext context = ((ContextAwareCallback) callback).getIndexingContext();
+                    callbacks.put(context.getIndexPath(), context);
+                }
+            }
+            return editor;
+        }
+
+        public void reset(){
+            callback = null;
+            callbacks.clear();
+        }
+
+        public IndexingContext getContext(String indexPath){
+            return callbacks.get(indexPath);
+        }
     }
 
 
@@ -431,9 +566,8 @@ public class IndexUpdateTest {
 
     private Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
-        NodeState system = root.getChildNode(JCR_SYSTEM);
-        NodeState types = system.getChildNode(JCR_NODE_TYPES);
-        NodeState type = types.getChildNode(NT_BASE);
+        NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(root);
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo(NT_BASE);        
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
         Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", new QueryEngineSettings());
         return Sets.newHashSet(lookup.query(filter, name,
@@ -449,6 +583,155 @@ public class IndexUpdateTest {
         return c;
     }
 
+    @Test
+    public void testAsyncMVPDefinition() throws Exception {
+        NodeBuilder base;
 
+        // async null
+        base = EmptyNodeState.EMPTY_NODE.builder();
+        assertTrue(IndexUpdate.isIncluded(null, base));
+        assertFalse(IndexUpdate.isIncluded("async", base));
+
+        // async single value
+        base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
+                ASYNC_PROPERTY_NAME, "async");
+        assertFalse(IndexUpdate.isIncluded(null, base));
+        assertTrue(IndexUpdate.isIncluded("async", base));
+
+        // async multiple values: "" for sync
+        base = EmptyNodeState.EMPTY_NODE.builder()
+                .setProperty(ASYNC_PROPERTY_NAME, Sets.newHashSet(INDEXING_MODE_NRT, "async"),
+                        Type.STRINGS);
+        assertTrue(IndexUpdate.isIncluded(null, base));
+        assertTrue(IndexUpdate.isIncluded("async", base));
+        assertFalse(IndexUpdate.isIncluded("async-other", base));
+
+        // async multiple values: "sync" for sync
+        base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
+                ASYNC_PROPERTY_NAME, Sets.newHashSet("sync", "async"),
+                Type.STRINGS);
+        assertTrue(IndexUpdate.isIncluded(null, base));
+        assertTrue(IndexUpdate.isIncluded("async", base));
+        assertFalse(IndexUpdate.isIncluded("async-other", base));
+
+        // async multiple values: no sync present
+        base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
+                ASYNC_PROPERTY_NAME, Sets.newHashSet("async", "async-other"),
+                Type.STRINGS);
+        assertFalse(IndexUpdate.isIncluded(null, base));
+        assertTrue(IndexUpdate.isIncluded("async", base));
+        assertTrue(IndexUpdate.isIncluded("async-other", base));
+    }
+
+    @Test
+    public void corruptIndexSkipped() throws Exception{
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+
+        NodeState after = builder.getNodeState();
+
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+
+        //1. Basic sanity - provider gets invoked
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        String indexPath = "/oak:index/rootIndex";
+        assertNotNull(provider.getContext(indexPath));
+
+
+        //2. Mark as corrupt and assert that editor is not invoked
+        builder = indexed.builder();
+        before = indexed;
+        builder.child("testRoot").setProperty("foo", "abc");
+        markCorrupt(builder, "rootIndex");
+        after = builder.getNodeState();
+
+        provider.reset();
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertNull(provider.getContext(indexPath));
+
+        //3. Now reindex and that should reset corrupt flag
+        builder = indexed.builder();
+        before = indexed;
+        child(builder, indexPath).setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        after = builder.getNodeState();
+        provider.reset();
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        assertFalse(NodeStateUtils.getNode(indexed, indexPath).hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME));
+        assertNotNull(provider.getContext(indexPath));
+    }
+
+    @Test
+    public void ignoreReindexingFlag() throws Exception{
+        String indexPath = "/oak:index/rootIndex";
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+
+        IndexUpdateProvider indexUpdate = new IndexUpdateProvider(provider);
+        EditorHook hook = new EditorHook(indexUpdate);
+
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+
+        builder.child("a").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertTrue(provider.getContext(indexPath).isReindexing());
+
+        before = indexed;
+        builder = before.builder();
+        builder.child("b").setProperty("foo", "xyz");
+        child(builder, indexPath).setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        after = builder.getNodeState();
+
+        provider.reset();
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertTrue(provider.getContext(indexPath).isReindexing());
+
+        //Now set IndexUpdate to ignore the reindex flag
+        indexUpdate.setIgnoreReindexFlags(true);
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertFalse(provider.getContext(indexPath).isReindexing());
+
+        //Despite reindex flag set to true and reindexing not done new
+        //content should still get picked up
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertFalse(find(lookup, "foo", "xyz").isEmpty());
+    }
+
+    @Test
+    public void shouldNotReindexAsyncIndexInSyncMode() throws Exception{
+        String indexPath = "/oak:index/rootIndex";
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+
+        IndexUpdateProvider indexUpdate = new IndexUpdateProvider(provider);
+        EditorHook hook = new EditorHook(indexUpdate);
+
+        NodeState before = builder.getNodeState();
+        NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        idx.setProperty("async", asList("async", "sync"), Type.STRINGS);
+
+        builder.child("a").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        assertFalse(provider.getContext(indexPath).isReindexing());
+    }
+
+    private static void markCorrupt(NodeBuilder builder, String indexName) {
+        builder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)
+                .setProperty(IndexConstants.CORRUPT_PROPERTY_NAME, ISO8601.format(Calendar.getInstance()));
+    }
+
+    private static NodeBuilder child(NodeBuilder nb, String path){
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            nb = nb.child(name);
+        }
+        return nb;
+    }
 
 }

@@ -34,16 +34,22 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -105,7 +111,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void createWithoutPrincipalName() throws Exception {
         try {
             User user = getUserManager(root).createUser("withoutPrincipalName", "pw");
-            Tree tree = root.getTree(userPath);
+            Tree tree = root.getTree(user.getPath());
             tree.removeProperty(REP_PRINCIPAL_NAME);
             root.commit();
 
@@ -121,7 +127,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void createWithInvalidUUID() throws Exception {
         try {
             User user = getUserManager(root).createUser("withInvalidUUID", "pw");
-            Tree tree = root.getTree(userPath);
+            Tree tree = root.getTree(user.getPath());
             tree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
 
@@ -264,6 +270,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         invalid.add(userPath);
         invalid.add(userPath + "/folder");
 
+        UserProvider up = new UserProvider(root, getUserConfiguration().getParameters());
         for (String path : invalid) {
             try {
                 Tree parent = root.getTree(path);
@@ -281,7 +288,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
                 }
                 Tree userTree = parent.addChild("testUser");
                 userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-                userTree.setProperty(JcrConstants.JCR_UUID, UserProvider.getContentID("testUser"));
+                userTree.setProperty(JcrConstants.JCR_UUID, up.getContentID("testUser"));
                 userTree.setProperty(REP_PRINCIPAL_NAME, "testUser");
                 root.commit();
                 fail("Invalid hierarchy should be detected");
@@ -291,44 +298,6 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
             } finally {
                 root.refresh();
             }
-        }
-    }
-
-    
-    /**
-     * @since oak 1.0 cyclic group membership added in a single set of transient
-     *        modifications must be detected upon save.
-     */
-    @Test
-    public void testDetectCyclicMembership() throws Exception {
-        Group group1 = null;
-        Group group2 = null;
-        Group group3 = null;
-        
-        UserManager userMgr = getUserManager(root);
-        try {
-            group1 = userMgr.createGroup("group1");
-            group2 = userMgr.createGroup("group2");
-            group3 = userMgr.createGroup("group3");
-
-            group1.addMember(group2);
-            group2.addMember(group3);
-            
-            assertFalse(group3.addMember(group1));
-            
-            Tree group3Tree = root.getTree(group3.getPath());
-            Set<String> values = Collections.singleton(root.getTree(group1.getPath()).getProperty(JcrConstants.JCR_UUID).getValue(Type.STRING));
-            PropertyState prop = PropertyStates.createProperty(REP_MEMBERS, values, Type.WEAKREFERENCES);
-            group3Tree.setProperty(prop);
-            root.commit();
-            fail("Cyclic group membership must be detected");
-        } catch (CommitFailedException e) {
-            // success
-        } finally {
-            if (group1 != null) group1.remove();
-            if (group2 != null) group2.remove();
-            if (group3 != null) group3.remove();
-            root.commit();
         }
     }
 
@@ -364,7 +333,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         root.commit();
 
         try {
-            nested.setString(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER);
+            nested.setName(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER);
             root.commit();
             fail("Creating nested users must be detected.");
         } catch (CommitFailedException e) {
@@ -373,6 +342,72 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         } finally {
             root.refresh();
         }
+    }
+
+    @Test
+    public void hiddenNodeAdded() throws CommitFailedException {
+        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeState root = store.getRoot();
+        NodeBuilder builder = root.builder();
+        NodeBuilder test = builder.child("test");
+        NodeBuilder hidden = test.child(":hidden");
+
+        Validator validator = provider.getRootValidator(
+                root, builder.getNodeState(), CommitInfo.EMPTY);
+        Validator childValidator = validator.childNodeAdded(
+                "test", test.getNodeState());
+        assertNotNull(childValidator);
+
+        Validator hiddenValidator = childValidator.childNodeAdded(
+                ":hidden", hidden.getNodeState());
+        assertNull(hiddenValidator);
+    }
+
+    @Test
+    public void hiddenNodeChanged() throws CommitFailedException {
+        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").child(":hidden");
+        NodeState root = builder.getNodeState();
+
+        NodeBuilder test = root.builder().child("test");
+        NodeBuilder hidden = test.child(":hidden");
+        hidden.child("added");
+
+        Validator validator = provider.getRootValidator(
+                root, builder.getNodeState(), CommitInfo.EMPTY);
+        Validator childValidator = validator.childNodeChanged(
+                "test", root.getChildNode("test"), test.getNodeState());
+        assertNotNull(childValidator);
+
+        Validator hiddenValidator = childValidator.childNodeChanged(
+                ":hidden", root.getChildNode("test").getChildNode(":hidden"), hidden.getNodeState());
+        assertNull(hiddenValidator);
+    }
+
+    @Test
+    public void hiddenNodeDeleted() throws CommitFailedException {
+        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").child(":hidden");
+        NodeState root = builder.getNodeState();
+
+        builder = root.builder();
+        NodeBuilder test = builder.child("test");
+        test.child(":hidden").remove();
+
+        Validator validator = provider.getRootValidator(
+                root, builder.getNodeState(), CommitInfo.EMPTY);
+        Validator childValidator = validator.childNodeChanged(
+                "test", root.getChildNode("test"), test.getNodeState());
+        assertNotNull(childValidator);
+
+        Validator hiddenValidator = childValidator.childNodeDeleted(
+                ":hidden", root.getChildNode("test").getChildNode(":hidden"));
+        assertNull(hiddenValidator);
     }
 
     private ConfigurationParameters getConfig() {

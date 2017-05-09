@@ -24,6 +24,10 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+explain select [jcr:path], [jcr:score], * from [nt:base] as a where lower([test]) <> 'lower'
+[nt:base] as [a] /* traverse "*"
+  where lower([a].[test]) <> 'lower' */
+
 explain select * from [nt:base] where [jcr:uuid] <> '1'
 [nt:base] as [nt:base] /* property uuid IS NOT NULL
   where [nt:base].[jcr:uuid] <> '1' */

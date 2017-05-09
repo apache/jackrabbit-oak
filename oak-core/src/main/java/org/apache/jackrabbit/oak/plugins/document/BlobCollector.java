@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 public class BlobCollector {
@@ -36,7 +37,7 @@ public class BlobCollector {
         this.nodeStore = nodeStore;
     }
 
-    public void collect(NodeDocument doc, Collection<Blob> blobs) {
+    public void collect(NodeDocument doc, Collection<ReferencedBlob> blobs) {
         for (String key : doc.keySet()) {
             if (!Utils.isPropertyName(key)) {
                 continue;
@@ -44,13 +45,13 @@ public class BlobCollector {
             Map<Revision, String> valueMap = doc.getLocalMap(key);
             for (String v : valueMap.values()) {
                 if (v != null) {
-                    loadValue(v, blobs);
+                    loadValue(v, blobs, doc.getPath());
                 }
             }
         }
     }
 
-    private void loadValue(String v, Collection<Blob> blobs) {
+    private void loadValue(String v, Collection<ReferencedBlob> blobs, String nodeId) {
         JsopReader reader = new JsopTokenizer(v);
         PropertyState p;
         if (reader.matches('[')) {
@@ -58,14 +59,14 @@ public class BlobCollector {
             if (p.getType() == Type.BINARIES) {
                 for (int i = 0; i < p.count(); i++) {
                     Blob b = p.getValue(Type.BINARY, i);
-                    blobs.add(b);
+                    blobs.add(new ReferencedBlob(b, nodeId));
                 }
             }
         } else {
             p = DocumentPropertyState.readProperty("x", nodeStore, reader);
             if (p.getType() == Type.BINARY) {
                 Blob b = p.getValue(Type.BINARY);
-                blobs.add(b);
+                blobs.add(new ReferencedBlob(b, nodeId));
             }
         }
     }

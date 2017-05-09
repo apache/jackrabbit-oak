@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
+import javax.annotation.CheckForNull;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
@@ -39,20 +41,74 @@ public class ClusterNodeInfoDocument extends Document {
      */
     private static final String MAX_ID_VALUE = "a";
 
+    /**
+     * The timestamp when this document was created.
+     */
+    private final long created = Revision.getCurrentTimestamp();
+
+    /**
+     * @return the timestamp when this document was created.
+     */
+    public long getCreated() {
+        return created;
+    }
+
     public long getLeaseEndTime(){
         return checkNotNull((Long) get(ClusterNodeInfo.LEASE_END_KEY), "Lease End Time not set");
+    }
+
+    /**
+     * @return the time when this cluster node was started or {@code -1} if not
+     *          available.
+     */
+    public long getStartTime() {
+        Long startTime = (Long) get(ClusterNodeInfo.START_TIME_KEY);
+        if (startTime == null) {
+            startTime = -1L;
+        }
+        return startTime;
     }
 
     public boolean isActive(){
         return getState() == ClusterNodeState.ACTIVE;
     }
 
+    /**
+     * @return {@code true} if the recovery lock state is
+     *          {@link RecoverLockState#ACQUIRED ACQUIRED}.
+     */
     public boolean isBeingRecovered(){
         return getRecoveryState() == RecoverLockState.ACQUIRED;
     }
 
+    /**
+     * Returns {@code true} if the cluster node represented by this document
+     * is currently being recovered by the given {@code clusterId}.
+     *
+     * @param clusterId the id of a cluster node.
+     * @return {@code true} if being recovered by the given id; {@code false}
+     *          otherwise.
+     */
+    public boolean isBeingRecoveredBy(int clusterId) {
+        return Long.valueOf(clusterId).equals(getRecoveryBy());
+    }
+
+    /**
+     * @return the id of the cluster node performing recovery or {@code null} if
+     *          currently not set.
+     */
+    @CheckForNull
+    public Long getRecoveryBy() {
+        return (Long) get(ClusterNodeInfo.REV_RECOVERY_BY);
+    }
+
     public int getClusterId() {
         return Integer.parseInt(getId());
+    }
+
+    @Override
+    public String toString() {
+        return format();
     }
 
     /**
@@ -76,5 +132,12 @@ public class ClusterNodeInfoDocument extends Document {
 
     private RecoverLockState getRecoveryState(){
         return RecoverLockState.fromString((String) get(ClusterNodeInfo.REV_RECOVERY_LOCK));
+    }
+
+    /**
+     * the root-revision of the last background write (of unsaved modifications)
+     **/
+    public String getLastWrittenRootRev() {
+        return (String) get(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY);
     }
 }

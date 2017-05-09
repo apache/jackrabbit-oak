@@ -31,7 +31,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
-import javax.jcr.lock.LockManager;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.Version;
@@ -138,7 +137,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        sessionDelegate.performVoid(new SessionOperation("copy", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("copy", true) {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -147,7 +146,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
             @Override
             public void performVoid() throws RepositoryException {
-                sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
                 sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
                 checkIndexOnName(destAbsPath);
@@ -163,7 +161,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
-        sessionDelegate.performVoid(new SessionOperation("clone", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("clone", true) {
 
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -199,7 +197,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public LockManager getLockManager() {
+    public LockManagerImpl getLockManager() {
         return new LockManagerImpl(sessionContext);
     }
 

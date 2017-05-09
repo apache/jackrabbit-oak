@@ -36,6 +36,7 @@ import com.mongodb.DBAddress;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
 import org.junit.Ignore;
@@ -65,7 +66,7 @@ public class BlobThroughPutTest {
         bimap.put(WriteConcern.FSYNC_SAFE,"FSYNC_SAFE");
         bimap.put(WriteConcern.JOURNAL_SAFE,"JOURNAL_SAFE");
 //        bimap.put(WriteConcern.MAJORITY,"MAJORITY");
-        bimap.put(WriteConcern.NONE,"NONE");
+        bimap.put(WriteConcern.UNACKNOWLEDGED,"UNACKNOWLEDGED");
         bimap.put(WriteConcern.NORMAL,"NORMAL");
 //        bimap.put(WriteConcern.REPLICAS_SAFE,"REPLICAS_SAFE");
         bimap.put(WriteConcern.SAFE,"SAFE");
@@ -78,8 +79,8 @@ public class BlobThroughPutTest {
     @Ignore
     @Test
     public void performBenchMark() throws UnknownHostException, InterruptedException {
-        Mongo local = new Mongo(new DBAddress(localServer));
-        Mongo remote = new Mongo(new DBAddress(remoteServer));
+        MongoClient local = new MongoClient(new DBAddress(localServer));
+        MongoClient remote = new MongoClient(new DBAddress(remoteServer));
 
         run(local, false, false);
         run(local, true, false);

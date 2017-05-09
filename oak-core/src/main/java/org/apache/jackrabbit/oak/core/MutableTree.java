@@ -125,13 +125,13 @@ final class MutableTree extends AbstractMutableTree {
     @Override
     public PropertyState getProperty(@Nonnull String name) {
         beforeRead();
-        return super.getProperty(name);
+        return super.getProperty(checkNotNull(name));
     }
 
     @Override
     public boolean hasProperty(@Nonnull String name) {
         beforeRead();
-        return super.hasProperty(name);
+        return super.hasProperty(checkNotNull(name));
     }
 
     @Override
@@ -144,7 +144,7 @@ final class MutableTree extends AbstractMutableTree {
     @CheckForNull
     public Status getPropertyStatus(@Nonnull String name) {
         beforeRead();
-        return super.getPropertyStatus(name);
+        return super.getPropertyStatus(checkNotNull(name));
     }
 
     @Override
@@ -158,13 +158,13 @@ final class MutableTree extends AbstractMutableTree {
     @Nonnull
     public Tree getChild(@Nonnull String name) {
         beforeRead();
-        return super.getChild(name);
+        return super.getChild(checkNotNull(name));
     }
 
     @Override
     public boolean hasChild(@Nonnull String name) {
         beforeRead();
-        return super.hasChild(name);
+        return super.hasChild(checkNotNull(name));
     }
 
     @Override
@@ -281,7 +281,7 @@ final class MutableTree extends AbstractMutableTree {
      * @param path the path to the tree
      * @return a {@link Tree} instance for the child at {@code path}.
      */
-    @CheckForNull
+    @Nonnull
     MutableTree getTree(@Nonnull String path) {
         checkArgument(isAbsolute(checkNotNull(path)));
         beforeRead();

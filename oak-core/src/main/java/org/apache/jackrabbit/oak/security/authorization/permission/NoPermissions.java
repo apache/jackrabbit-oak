@@ -24,20 +24,21 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 
 /**
  * Implementation of the {@code CompiledPermission} interface that denies all permissions.
  */
-public final class NoPermissions implements CompiledPermissions {
+final class NoPermissions implements CompiledPermissions {
 
     private static final CompiledPermissions INSTANCE = new NoPermissions();
 
     private NoPermissions() {
     }
 
-    public static CompiledPermissions getInstance() {
+    static CompiledPermissions getInstance() {
         return INSTANCE;
     }
 
@@ -55,6 +56,12 @@ public final class NoPermissions implements CompiledPermissions {
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+        return TreePermission.EMPTY;
+    }
+
+    @Nonnull
+    @Override
+    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
         return TreePermission.EMPTY;
     }
 

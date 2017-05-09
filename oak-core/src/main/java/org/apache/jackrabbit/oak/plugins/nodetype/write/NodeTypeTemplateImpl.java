@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import static com.google.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -34,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import java.util.Arrays;
 import java.util.List;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -45,14 +47,14 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
-class NodeTypeTemplateImpl extends NamedTemplate
-        implements NodeTypeTemplate {
+class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
     private static final PropertyDefinition[] EMPTY_PROPERTY_DEFINITION_ARRAY =
             new PropertyDefinition[0];
@@ -77,11 +79,11 @@ class NodeTypeTemplateImpl extends NamedTemplate
 
     private List<NodeDefinitionTemplateImpl> nodeDefinitionTemplates = null;
 
-    NodeTypeTemplateImpl(NameMapper mapper) {
+    NodeTypeTemplateImpl(@Nonnull NameMapper mapper) {
         super(mapper);
     }
 
-    NodeTypeTemplateImpl(NameMapper mapper, NodeTypeDefinition definition)
+    NodeTypeTemplateImpl(@Nonnull NameMapper mapper, @Nonnull NodeTypeDefinition definition)
             throws ConstraintViolationException {
         super(mapper, definition.getName());
 
@@ -127,8 +129,11 @@ class NodeTypeTemplateImpl extends NamedTemplate
      * @return The node type tree.
      * @throws RepositoryException if this type could not be written
      */
-    Tree writeTo(Tree parent, boolean allowUpdate) throws RepositoryException {
+    Tree writeTo(@Nonnull Tree parent, boolean allowUpdate) throws RepositoryException {
         String oakName = getOakName();
+        if (oakName == null) {
+            throw new RepositoryException("Cannot register node type: name is missing.");
+        }
 
         Tree type = parent.getChild(oakName);
         if (!type.exists()) {
@@ -165,48 +170,54 @@ class NodeTypeTemplateImpl extends NamedTemplate
             type.removeProperty(JCR_PRIMARYITEMNAME);
         }
 
-        Tree tree;
         // TODO fail (in validator?) on invalid item definitions
         // See 3.7.6.8 Item Definitions in Subtypes (OAK-411)
-        int pdn = 1;
-        if (propertyDefinitionTemplates != null) {
-            for (PropertyDefinitionTemplateImpl pdt : propertyDefinitionTemplates) {
-                String name = JCR_PROPERTYDEFINITION + "[" + pdn++ + "]";
-                tree = type.getChild(name);
-                if (!tree.exists()) {
-                    tree = type.addChild(name);
-                    tree.setProperty(
-                            JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION, NAME);
-                }
-                pdt.writeTo(tree);
-            }
-        }
-        tree = type.getChild(JCR_PROPERTYDEFINITION + "[" + pdn++ + "]");
-        while (tree.exists()) {
-            tree.remove();
-            tree = type.getChild(JCR_PROPERTYDEFINITION + "[" + pdn++ + "]");
-        }
-
-        int ndn = 1;
-        if (nodeDefinitionTemplates != null) {
-            for (NodeDefinitionTemplateImpl ndt : nodeDefinitionTemplates) {
-                String name = JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]";
-                tree = type.getChild(name);
-                if (!tree.exists()) {
-                    tree = type.addChild(name);
-                    tree.setProperty(
-                            JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION, NAME);
-                }
-                ndt.writeTo(tree);
-            }
-        }
-        tree = type.getChild(JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]");
-        while (tree.exists()) {
-            tree.remove();
-            tree = type.getChild(JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]");
-        }
+        writeItemDefinitions(type, propertyDefinitionTemplates, JCR_PROPERTYDEFINITION, NT_PROPERTYDEFINITION);
+        writeItemDefinitions(type, nodeDefinitionTemplates, JCR_CHILDNODEDEFINITION, NT_CHILDNODEDEFINITION);
 
         return type;
+    }
+
+    private static void writeItemDefinitions(@Nonnull Tree nodeTypeTree, @CheckForNull List<? extends ItemDefinitionTemplate> itemDefTemplates,
+                                             @Nonnull String nodeName, @Nonnull String primaryTypeName) throws RepositoryException {
+        // first remove existing
+        for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName))) {
+            t.remove();
+        }
+        // now write definitions
+        int index = 1;
+        if (itemDefTemplates != null) {
+            for (ItemDefinitionTemplate template : itemDefTemplates) {
+                String name = nodeName(nodeName, index);
+                Tree tree = nodeTypeTree.getChild(name);
+                if (!tree.exists()) {
+                    tree = nodeTypeTree.addChild(name);
+                    tree.setProperty(
+                            JCR_PRIMARYTYPE, primaryTypeName, NAME);
+                }
+                template.writeTo(tree);
+                index++;
+            }
+        }
+    }
+
+    private static String nodeName(String name, int index) {
+        return (index == 1) ? name : name + '[' + index + ']';
+    }
+
+    private static final class SameNamePredicate implements Predicate<Tree> {
+
+        private final String name;
+
+        private SameNamePredicate(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public boolean apply(Tree t) {
+            String s = t.getName();
+            return s.equals(name) || s.startsWith(name + "[");
+        }
     }
 
     //------------------------------------------------------------< public >--

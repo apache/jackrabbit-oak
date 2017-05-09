@@ -51,6 +51,10 @@ public class DescendantNodeImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
+        if (selector.isVirtualRow()) {
+            return true;
+        }
+
         String p = selector.currentPath();
         if (p == null) {
             return false;
@@ -92,4 +96,8 @@ public class DescendantNodeImpl extends ConstraintImpl {
         }
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new DescendantNodeImpl(selectorName, ancestorPath);
+    }
 }

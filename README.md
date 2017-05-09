@@ -13,7 +13,7 @@ Getting Started
 ---------------
 
 To get started with Oak, build the latest sources with
-Maven 3 and Java 6 (or higher) like this:
+Maven 3 and Java 7 (or higher) like this:
 
     mvn clean install
 
@@ -60,11 +60,14 @@ The build consists of the following main components:
   - oak-lucene        - Lucene-based query index
   - oak-run           - runnable jar packaging
   - oak-pojosr        - integration with PojoSR
+  - oak-segment-tar   - TarMK API and implementation
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak
   - oak-it            - integration tests
     - oak-it/osgi     - integration tests for OSGi
+  - [oak-exercise][2] - Oak training material
 
   [1]: oak-core/README.md
+  [2]: oak-exercise/README.md
 
 Archive
 -------

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -147,7 +148,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
 
         NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
-        Number mc1 = doc.getModCount();
+        Long mc1 = doc.getModCount();
         assertNotNull(mc1);
         try {
             mk.commit("/test", "^\"prop\":\"v2\"", head, null);
@@ -157,8 +158,50 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         }
         doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
-        Number mc2 = doc.getModCount();
+        Long mc2 = doc.getModCount();
         assertNotNull(mc2);
-        assertTrue(mc2.longValue() > mc1.longValue());
+        assertTrue(mc2 > mc1);
+    }
+
+    // OAK-3556
+    @Test
+    public void create() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        String id = Utils.getIdFromPath("/test");
+        UpdateOp updateOp = new UpdateOp(id, true);
+        Revision r1 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r1, "a");
+        Revision r2 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r2, "b");
+        Revision r3 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r3, "c");
+        assertTrue(store.create(NODES, Collections.singletonList(updateOp)));
+
+        // maxCacheAge=0 forces loading from storage
+        NodeDocument doc = store.find(NODES, id, 0);
+        assertNotNull(doc);
+        Map<Revision, String> valueMap = doc.getValueMap("p");
+        assertEquals(3, valueMap.size());
+    }
+
+    // OAK-3582
+    @Test
+    public void createWithNull() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        String id = Utils.getIdFromPath("/test");
+        UpdateOp updateOp = new UpdateOp(id, true);
+        Revision r1 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r1, "a");
+        Revision r2 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r2, null);
+        Revision r3 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r3, "c");
+        assertTrue(store.create(NODES, Collections.singletonList(updateOp)));
+
+        // maxCacheAge=0 forces loading from storage
+        NodeDocument doc = store.find(NODES, id, 0);
+        assertNotNull(doc);
+        Map<Revision, String> valueMap = doc.getValueMap("p");
+        assertEquals(3, valueMap.size());
     }
 }

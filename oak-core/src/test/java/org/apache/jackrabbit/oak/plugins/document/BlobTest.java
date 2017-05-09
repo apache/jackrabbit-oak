@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,12 @@ import com.mongodb.DB;
  */
 public class BlobTest {
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+    
     private static final Logger LOG = LoggerFactory.getLogger(RandomizedClusterTest.class);
 
 //     private static final boolean MONGO_DB = true;
@@ -50,20 +57,22 @@ public class BlobTest {
     private static final long TOTAL_SIZE = 1 * 1024 * 1024;
     private static final int DOCUMENT_COUNT = 10;
 
-    DB openMongoConnection() {
-        return MONGO_DB ? MongoUtils.getConnection().getDB() : null;
+    DocumentMK.Builder setMongoConnection(DocumentMK.Builder builder) {
+        if (MONGO_DB) {
+            builder.setMongoDB(connectionFactory.getConnection().getDB());
+        }
+        return builder;
     }
 
     void dropCollections() {
         if (MONGO_DB) {
-            MongoUtils.dropCollections(MongoUtils.getConnection().getDB());
+            MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
         }
     }
 
     @Test
     public void addBlobs() throws Exception {
-        DocumentMK mk = new DocumentMK.Builder().
-                setMongoDB(openMongoConnection()).open();
+        DocumentMK mk = setMongoConnection(builderProvider.newBuilder()).open();
         long blobSize = TOTAL_SIZE / DOCUMENT_COUNT;
         ArrayList<String> blobIds = new ArrayList<String>();
         // use a new seed each time, to allow running the test multiple times
@@ -76,13 +85,12 @@ public class BlobTest {
         for (String id : blobIds) {
             assertEquals(blobSize, mk.getLength(id));
         }
-        mk.dispose();
     }
 
     @Test
     public void testBlobSerialization() throws Exception{
         TestBlobStore blobStore = new TestBlobStore();
-        DocumentMK mk = new DocumentMK.Builder().setBlobStore(blobStore).open();
+        DocumentMK mk = builderProvider.newBuilder().setBlobStore(blobStore).open();
         BlobSerializer blobSerializer = mk.getNodeStore().getBlobSerializer();
 
         Blob blob = new BlobStoreBlob(blobStore, "foo");

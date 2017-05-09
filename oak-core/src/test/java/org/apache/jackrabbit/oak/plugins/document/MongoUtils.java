@@ -33,8 +33,12 @@ public class MongoUtils {
     protected static final int PORT =
             Integer.getInteger("mongo.port", 27017);
 
-    protected static final String DB =
+    public static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
+
+    public static final String URL =
+            System.getProperty("mongo.url", "mongodb://" + HOST + ":" + PORT + "/" + DB +
+                    "?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000");
 
     protected static Exception exception;
 
@@ -44,7 +48,7 @@ public class MongoUtils {
      * @return the connection or null
      */
     public static MongoConnection getConnection() {
-        return getConnection(DB);
+        return getConnectionByURL(URL);
     }
 
     /**
@@ -54,19 +58,26 @@ public class MongoUtils {
      * @return the connection or null
      */
     public static MongoConnection getConnection(String dbName) {
-        if (exception != null) {
-            return null;
+        return getConnectionByURL("mongodb://" + HOST + ":" + PORT + "/" + dbName);
+    }
+
+    /**
+     * Drop all user defined collections in the given database. System
+     * collections are not dropped. This method returns silently if MongoDB is
+     * not available.
+     *
+     * @param dbName the database name.
+     */
+    public static void dropCollections(String dbName) {
+        MongoConnection c = getConnection(dbName);
+        if (c == null) {
+            return;
         }
-        MongoConnection mongoConnection = null;
         try {
-            mongoConnection = new MongoConnection(HOST, PORT, dbName);
-            mongoConnection.getDB().command(new BasicDBObject("ping", 1));
-            // dropCollections(mongoConnection.getDB());
-        } catch (Exception e) {
-            exception = e;
-            mongoConnection = null;
+            dropCollections(c.getDB());
+        } finally {
+            c.close();
         }
-        return mongoConnection;
     }
 
     /**
@@ -82,4 +93,59 @@ public class MongoUtils {
         }
     }
 
+    /**
+     * Drops the database with the given name. This method returns silently if
+     * MongoDB is not available.
+     *
+     * @param dbName the name of the database to drop.
+     */
+    public static void dropDatabase(String dbName) {
+        MongoConnection c = getConnection(dbName);
+        if (c == null) {
+            return;
+        }
+        try {
+            c.getDB().dropDatabase();
+        } finally {
+            c.close();
+        }
+    }
+
+    /**
+     * @return true if MongoDB is available, false otherwise.
+     */
+    public static boolean isAvailable() {
+        MongoConnection c = getConnection();
+        try {
+            return c != null;
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+    }
+
+    //----------------------------< internal >----------------------------------
+
+    /**
+     * Get a connection if available. If not available, null is returned.
+     *
+     * @param url the mongodb url
+     * @return the connection or null
+     */
+    private static MongoConnection getConnectionByURL(String url) {
+        if (exception != null) {
+            return null;
+        }
+        MongoConnection mongoConnection;
+        try {
+            mongoConnection = new MongoConnection(url);
+            mongoConnection.getDB().command(new BasicDBObject("ping", 1));
+            // dropCollections(mongoConnection.getDB());
+        } catch (Exception e) {
+            exception = e;
+            mongoConnection = null;
+        }
+        return mongoConnection;
+    }
 }

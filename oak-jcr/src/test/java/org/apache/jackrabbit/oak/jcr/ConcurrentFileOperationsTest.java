@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,13 +37,11 @@ import javax.jcr.util.TraversingItemVisitor;
 
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * File related write operations on the repository.

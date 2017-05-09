@@ -19,12 +19,18 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
+import org.apache.jackrabbit.oak.query.QueryImpl.MeasuringIterator;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +42,7 @@ import com.google.common.collect.Iterators;
  */
 public class UnionQueryImpl implements Query {
     
-    private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(UnionQueryImpl.class);
     
     private final boolean unionAll;
     private final Query left, right;
@@ -50,7 +56,8 @@ public class UnionQueryImpl implements Query {
     private final QueryEngineSettings settings;
     private boolean isInternal;
     
-    UnionQueryImpl(boolean unionAll, Query left, Query right, QueryEngineSettings settings) {
+    UnionQueryImpl(final boolean unionAll, final Query left, final Query right,
+                   final QueryEngineSettings settings) {
         this.unionAll = unionAll;
         this.left = left;
         this.right = right;
@@ -85,13 +92,19 @@ public class UnionQueryImpl implements Query {
     @Override
     public void setLimit(long limit) {
         this.limit = limit;
-        left.setLimit(limit);
-        right.setLimit(limit);
+        applyLimitOffset();
     }
 
     @Override
     public void setOffset(long offset) {
         this.offset = offset;
+        applyLimitOffset();
+    }
+
+    private void applyLimitOffset() {
+        long subqueryLimit = QueryImpl.saturatedAdd(limit, offset);
+        left.setLimit(subqueryLimit);
+        right.setLimit(subqueryLimit);
     }
 
     @Override
@@ -105,6 +118,12 @@ public class UnionQueryImpl implements Query {
         left.setTraversalEnabled(traversal);
         right.setTraversalEnabled(traversal);
     }
+    
+    @Override
+    public  void setQueryOptions(QueryOptions options) {
+        left.setQueryOptions(options);
+        right.setQueryOptions(options);
+    }
 
     @Override
     public void prepare() {
@@ -114,7 +133,9 @@ public class UnionQueryImpl implements Query {
     
     @Override
     public double getEstimatedCost() {
-        return left.getEstimatedCost() + right.getEstimatedCost();
+        // the cost is higher than the cost of both parts, so that
+        // non-union queries are preferred over union ones
+        return 10 + left.getEstimatedCost() + right.getEstimatedCost();
     }
 
     @Override
@@ -127,6 +148,9 @@ public class UnionQueryImpl implements Query {
 
     @Override
     public ColumnImpl[] getColumns() {
+        if (columns != null) {
+            return columns;
+        }
         return left.getColumns();
     }
 
@@ -144,7 +168,25 @@ public class UnionQueryImpl implements Query {
     public long getSize() {
         return size;
     }
-
+    
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        // Note: for "unionAll == false", overlapping entries are counted twice
+        // (this can result in a larger reported size, but it is not a security problem)
+        
+        // ensure the queries are both executed, otherwise the cursor is not set,
+        // and so the size would be -1
+        left.executeQuery().getRows().iterator().hasNext();
+        right.executeQuery().getRows().iterator().hasNext();
+        long a = left.getSize(precision, max);
+        long b = right.getSize(precision, max);
+        if (a < 0 || b < 0) {
+            return -1;
+        }
+        long total = QueryImpl.saturatedAdd(a, b);
+        return Math.min(limit, total);
+    }
+    
     @Override
     public void setExplain(boolean explain) {
         this.explain = explain;
@@ -203,6 +245,17 @@ public class UnionQueryImpl implements Query {
     }
     
     @Override
+    public String getIndexCostInfo() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("{ ");
+        buff.append(left.getIndexCostInfo());
+        buff.append(", ");
+        buff.append(right.getIndexCostInfo());
+        buff.append(" }");
+        return buff.toString();
+    }
+
+    @Override
     public Tree getTree(String path) {
         return left.getTree(path);
     }
@@ -239,14 +292,66 @@ public class UnionQueryImpl implements Query {
                 LOG.debug("query union plan {}", getPlan());
             }
         }
-        Iterator<ResultRowImpl> it = Iterators.concat(left.getRows(), right.getRows());
-        if (measure) {
-            // both queries measure themselves
-            return it;
-        }
         boolean distinct = !unionAll;
         Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
-        it = FilterIterators.newCombinedFilter(it, distinct, limit, offset, orderBy, settings);
+
+        Iterator<ResultRowImpl> it;
+        final Iterator<ResultRowImpl> leftRows = left.getRows();
+        final Iterator<ResultRowImpl> rightRows = right.getRows();
+        Iterator<ResultRowImpl> leftIter = leftRows;
+        Iterator<ResultRowImpl> rightIter = rightRows;
+
+        // if measure retrieve the backing delegate iterator instead
+        if (measure) {
+            leftIter = ((MeasuringIterator) leftRows).getDelegate();
+            rightIter = ((MeasuringIterator) rightRows).getDelegate();
+        }
+        // Since sorted by index use a merge iterator
+        if (isSortedByIndex()) {
+            it = FilterIterators
+                .newCombinedFilter(Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy), distinct,
+                    limit, offset, null, settings);
+        } else {
+            it = FilterIterators
+            .newCombinedFilter(Iterators.concat(leftIter, rightIter), distinct, limit, offset, orderBy, settings);
+        }
+
+        if (measure) {
+            // return the measuring iterator for the union
+            it = new MeasuringIterator(this, it) {
+                MeasuringIterator left = (MeasuringIterator) leftRows;
+                MeasuringIterator right = (MeasuringIterator) rightRows;
+
+                @Override
+                protected void setColumns(ColumnImpl[] cols) {
+                    columns = cols;
+                    left.setColumns(cols);
+                    right.setColumns(cols);
+                }
+
+                @Override
+                protected Map<String, Long> getSelectorScanCount() {
+                    // Merge the 2 maps from the left and right queries to get the selector counts
+                    Map<String, Long> leftSelectorScan = left.getSelectorScanCount();
+                    Map<String, Long> rightSelectorScan = right.getSelectorScanCount();
+                    Map<String, Long> unionScan = Maps.newHashMap(leftSelectorScan);
+                    for (String key : rightSelectorScan.keySet()) {
+                        if (unionScan.containsKey(key)) {
+                            unionScan.put(key, rightSelectorScan.get(key) + unionScan.get(key));
+                        } else {
+                            unionScan.put(key, rightSelectorScan.get(key));
+                        }
+                    }
+                    return unionScan;
+                }
+
+                @Override
+                protected long getReadCount() {
+                    return left.getReadCount() + right.getReadCount();
+                }
+            };
+        }
+
         return it;     
     }
 
@@ -254,5 +359,53 @@ public class UnionQueryImpl implements Query {
     public void setInternal(boolean isInternal) {
         this.isInternal = isInternal;
     }
-    
+
+    @Override
+    public boolean isSortedByIndex() {
+        return left.isSortedByIndex() && right.isSortedByIndex();
+    }
+
+    @Override
+    public Query buildAlternativeQuery() {
+        return this;
+    }
+
+    @Override
+    public Query copyOf() throws IllegalStateException {
+        return null;
+    }
+
+    @Override
+    public boolean isInit() {
+        return left.isInit() || right.isInit();
+    }
+
+    @Override
+    public String getStatement() {
+        return toString();
+    }
+
+    @Override
+    public boolean isInternal() {
+        return left.isInternal() || right.isInternal();
+    }
+
+    @Override
+    public boolean containsUnfilteredFullTextCondition() {
+        return left.containsUnfilteredFullTextCondition() || 
+                right.containsUnfilteredFullTextCondition();
+    }
+
+    @Override
+    public boolean isPotentiallySlow() {
+        return left.isPotentiallySlow() || 
+                right.isPotentiallySlow();
+    }
+
+    @Override
+    public void verifyNotPotentiallySlow() {
+        left.verifyNotPotentiallySlow();
+        right.verifyNotPotentiallySlow();
+    }
+
 }

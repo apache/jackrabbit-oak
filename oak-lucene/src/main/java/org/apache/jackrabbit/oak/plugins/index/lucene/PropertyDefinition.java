@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -86,7 +87,11 @@ class PropertyDefinition {
 
     final boolean useInSpellcheck;
 
+    final boolean facet;
+
     final String[] ancestors;
+
+    final boolean excludeFromAggregate;
 
     /**
      * Property name excluding the relativePath. For regular expression based definition
@@ -94,6 +99,16 @@ class PropertyDefinition {
      */
     @CheckForNull
     final String nonRelativeName;
+
+    /**
+     * For function-based indexes: the function name, in Polish notation.
+     */    
+    final String function;
+    
+    /**
+     * For function-based indexes: the function code, as tokens.
+     */    
+    final String[] functionCode;
 
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
@@ -103,25 +118,36 @@ class PropertyDefinition {
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);
-        this.stored = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_EXCERPT, false);
-        this.nodeScopeIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
-        this.analyzed = getOptionalValue(defn, LuceneIndexConstants.PROP_ANALYZED, false);
+        this.stored = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_EXCERPT, false);
+        this.nodeScopeIndex = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
+
+        //If boost is specified then that field MUST be analyzed
+        if (defn.hasProperty(FIELD_BOOST)){
+            this.analyzed = true;
+        } else {
+            this.analyzed = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ANALYZED, false);
+        }
 
         //If node is not set for full text then a property definition indicates that definition is for property index
-        this.propertyIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
-        this.ordered = getOptionalValue(defn, LuceneIndexConstants.PROP_ORDERED, false);
+        this.propertyIndex = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
+        this.ordered = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ORDERED, false);
         this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, LuceneIndexConstants.PROP_INCLUDED_TYPE,
                 IndexDefinition.TYPES_ALLOW_ALL);
 
         //TODO Add test case for above cases
 
         this.propertyType = getPropertyType(idxDefn, nodeName, defn);
-        this.useInSuggest = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
-        this.useInSpellcheck = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
-        this.nullCheckEnabled = getOptionalValue(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
-        this.notNullCheckEnabled = getOptionalValue(defn, LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
+        this.useInSuggest = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
+        this.useInSpellcheck = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+        this.nullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
+        this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
+        this.excludeFromAggregate = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);
         this.nonRelativeName = determineNonRelativeName();
         this.ancestors = computeAncestors(name);
+        this.facet = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_FACETS, false);
+        this.function = FunctionIndexProcessor.convertToPolishNotation(
+                getOptionalValue(defn, LuceneIndexConstants.PROP_FUNCTION, null));
+        this.functionCode = FunctionIndexProcessor.getFunctionCode(this.function);
         validate();
     }
 
@@ -194,6 +220,15 @@ class PropertyDefinition {
     }
 
     //~---------------------------------------------< internal >
+
+    private boolean getOptionalValueIfIndexed(NodeState definition, String propName, boolean defaultVal){
+        //If property is not to be indexed then all other config would be
+        //set to false ignoring whatever is defined in config for them
+        if (!index){
+            return false;
+        }
+        return getOptionalValue(definition, propName, defaultVal);
+    }
 
     private void validate() {
         if (nullCheckEnabled && isRegexp){

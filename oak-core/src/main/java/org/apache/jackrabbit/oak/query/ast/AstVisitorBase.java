@@ -117,7 +117,7 @@ public abstract class AstVisitorBase implements AstVisitor {
      */
     @Override
     public boolean visit(LengthImpl node) {
-        return node.getPropertyValue().accept(this);
+        return node.getOperand().accept(this);
     }
 
     /**

@@ -26,10 +26,16 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
+import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.junit.After;
 import org.junit.Before;
+
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGESTION_CONFIG;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES;
 
 /**
  * Tests the suggest support.
@@ -41,13 +47,16 @@ public class SuggestTest extends AbstractQueryTest {
         super.setUp();
 
         // change suggester update frequency
-        superuser.getNode("/oak:index/luceneGlobal").setProperty("suggestUpdateFrequencyMinutes", 0);
+        superuser.getNode("/oak:index/luceneGlobal/" + SUGGESTION_CONFIG)
+                .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 0);
+        superuser.getNode("/oak:index/luceneGlobal").setProperty(REINDEX_PROPERTY_NAME, true);
     }
 
     @After
     public void tearDown() throws Exception {
         // reset suggester update frequency
-        superuser.getNode("/oak:index/luceneGlobal").setProperty("suggestUpdateFrequencyMinutes", 10);
+        superuser.getNode("/oak:index/luceneGlobal/" + SUGGESTION_CONFIG)
+                .setProperty(SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
 
         super.tearDown();
     }
@@ -64,10 +73,10 @@ public class SuggestTest extends AbstractQueryTest {
 
         String sql = "SELECT [rep:suggest()] FROM nt:base WHERE [jcr:path] = '/' AND SUGGEST('in 201')";
         Query q = qm.createQuery(sql, Query.SQL);
-        String result = getResult(q.execute(), "rep:suggest()");
+        List<String> result = getResult(q.execute(), "rep:suggest()");
         assertNotNull(result);
-        assertTrue(result.contains("[{term=in 2015 a red fox is still a fox,weight="));
-        assertTrue(result.contains("{term=in 2015 my fox is red, like mike's fox and john's fox,weight="));
+        assertTrue(result.contains("in 2015 a red fox is still a fox"));
+        assertTrue(result.contains("in 2015 my fox is red, like mike's fox and john's fox"));
     }
 
     public void testSuggestXPath() throws Exception {
@@ -81,10 +90,26 @@ public class SuggestTest extends AbstractQueryTest {
 
         String xpath = "/jcr:root[rep:suggest('in 201')]/(rep:suggest())";
         Query q = qm.createQuery(xpath, Query.XPATH);
-        String result = getResult(q.execute(), "rep:suggest()");
+        List<String> result = getResult(q.execute(), "rep:suggest()");
         assertNotNull(result);
-        assertTrue(result.contains("[{term=in 2015 a red fox is still a fox,weight="));
-        assertTrue(result.contains("{term=in 2015 my fox is red, like mike's fox and john's fox,weight="));
+        assertTrue(result.contains("in 2015 a red fox is still a fox"));
+        assertTrue(result.contains("in 2015 my fox is red, like mike's fox and john's fox"));
+    }
+
+    public void testSuggestInfix() throws Exception {
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("jcr:title", "in 2015 my fox is red, like mike's fox and john's fox");
+        Node n2 = testRootNode.addNode("node2");
+        n2.setProperty("jcr:title", "in 2015 a red fox is still a fox");
+        session.save();
+
+        String xpath = "/jcr:root[rep:suggest('like mike')]/(rep:suggest())";
+        Query q = qm.createQuery(xpath, Query.XPATH);
+        List<String> result = getResult(q.execute(), "rep:suggest()");
+        assertNotNull(result);
+        assertTrue(result.contains("in 2015 my fox is red, like mike's fox and john's fox"));
     }
 
     public void testNoSuggestions() throws Exception {
@@ -98,22 +123,19 @@ public class SuggestTest extends AbstractQueryTest {
 
         String sql = "SELECT [rep:suggest()] FROM nt:base WHERE [jcr:path] = '/' AND SUGGEST('blablabla')";
         Query q = qm.createQuery(sql, Query.SQL);
-        String result = getResult(q.execute(), "rep:suggest()");
-        assertNotNull(result);
-        assertEquals("[]", result);
+        List<String> results = getResult(q.execute(), "rep:suggest()");
+        assertNotNull(results);
+        assertEquals(0, results.size());
     }
 
-    static String getResult(QueryResult result, String propertyName) throws RepositoryException {
-        StringBuilder buff = new StringBuilder();
+    static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+        List<String> results = Lists.newArrayList();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
-            if (buff.length() > 0) {
-                buff.append(", ");
-            }
             Row row = it.nextRow();
-            buff.append(row.getValue(propertyName).getString());
+            results.add(row.getValue(propertyName).getString());
         }
-        return buff.toString();
+        return results;
     }
 
 }

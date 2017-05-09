@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
@@ -76,26 +75,18 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Override
-    @SuppressWarnings("unchecked")
-    protected void createSourceContent(Repository repository) throws Exception {
-        Session session = repository.login(CREDENTIALS);
-        try {
-            JackrabbitWorkspace workspace = (JackrabbitWorkspace) session.getWorkspace();
+    protected void createSourceContent(Session session) throws Exception {
+        JackrabbitWorkspace workspace = (JackrabbitWorkspace) session.getWorkspace();
 
-            NamespaceRegistry registry = workspace.getNamespaceRegistry();
-            registry.registerNamespace("test", "http://www.example.org/");
+        NamespaceRegistry registry = workspace.getNamespaceRegistry();
+        registry.registerNamespace("test", "http://www.example.org/");
 
-            PrivilegeManager privilegeManager = workspace.getPrivilegeManager();
-            privilegeManager.registerPrivilege("test:privilege", false, null);
-            privilegeManager.registerPrivilege(
-                    "test:aggregate", false, new String[] { "jcr:read", "test:privilege" });
-            privilegeManager.registerPrivilege("test:privilege2", true, null);
-            privilegeManager.registerPrivilege(
-                    "test:aggregate2", true, new String[] { "test:aggregate", "test:privilege2" });
-
-        } finally {
-            session.logout();
-        }
+        PrivilegeManager privilegeManager = workspace.getPrivilegeManager();
+        privilegeManager.registerPrivilege("test:privilege", false, null);
+        privilegeManager.registerPrivilege("test:aggregate", false, new String[] { "jcr:read", "test:privilege" });
+        privilegeManager.registerPrivilege("test:privilege2", true, null);
+        privilegeManager.registerPrivilege("test:aggregate2", true,
+                new String[] { "test:aggregate", "test:privilege2" });
     }
 
     @Test

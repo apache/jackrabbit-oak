@@ -16,7 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Set;
 import java.util.SortedSet;
+
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.Sets;
 
 /**
  * A merge commit containing multiple commit revisions. One for each branch
@@ -25,11 +30,12 @@ import java.util.SortedSet;
 class MergeCommit extends Commit {
 
     private final SortedSet<Revision> mergeRevs;
+    private final Set<Revision> branchCommits = Sets.newHashSet();
 
     MergeCommit(DocumentNodeStore nodeStore,
-                Revision baseRevision,
+                RevisionVector baseRevision,
                 SortedSet<Revision> revisions) {
-        super(nodeStore, revisions.last(), baseRevision, null);
+        super(nodeStore, revisions.last(), baseRevision);
         this.mergeRevs = revisions;
     }
 
@@ -37,8 +43,18 @@ class MergeCommit extends Commit {
         return mergeRevs;
     }
 
+    void addBranchCommits(@Nonnull Branch branch) {
+        for (Revision r : branch.getCommits()) {
+            if (!branch.getCommit(r).isRebase()) {
+                branchCommits.add(r);
+            }
+        }
+    }
+
     @Override
-    public void applyToCache(Revision before, boolean isBranchCommit) {
-        // do nothing for a merge commit
+    public void applyToCache(RevisionVector before, boolean isBranchCommit) {
+        // do nothing for a merge commit, only notify node
+        // store about merged revisions
+        nodeStore.revisionsMerged(branchCommits);
     }
 }

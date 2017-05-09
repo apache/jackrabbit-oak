@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -50,8 +51,9 @@ import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -72,17 +74,19 @@ public abstract class AbstractSecurityTest {
     private ContentRepository contentRepository;
     private UserManager userManager;
     private User testUser;
-    private PrivilegeManager privMgr;
 
     protected NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
     protected SecurityProvider securityProvider;
     protected ContentSession adminSession;
     protected Root root;
 
+    protected QueryEngineSettings querySettings;
+
     @Before
     public void before() throws Exception {
         Oak oak = new Oak()
                 .with(new InitialContent())
+                .with(new VersionHook())
                 .with(JcrConflictHandler.createJcrConflictHandler())
                 .with(new NamespaceEditorProvider())
                 .with(new ReferenceEditorProvider())
@@ -91,6 +95,7 @@ public abstract class AbstractSecurityTest {
                 .with(new PropertyIndexProvider())
                 .with(new TypeEditorProvider())
                 .with(new ConflictValidatorProvider())
+                .with(getQueryEngineSettings())
                 .with(getSecurityProvider());
         withEditors(oak);
         contentRepository = oak.createContentRepository();
@@ -116,6 +121,10 @@ public abstract class AbstractSecurityTest {
         }
     }
 
+    protected ContentRepository getContentRepository() {
+        return contentRepository;
+    }
+
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
             securityProvider = new SecurityProviderImpl(getSecurityConfigParameters());
@@ -125,6 +134,14 @@ public abstract class AbstractSecurityTest {
 
     protected Oak withEditors(Oak oak) {
         return oak;
+    }
+
+    protected QueryEngineSettings getQueryEngineSettings() {
+        if (querySettings == null) {
+            querySettings = new QueryEngineSettings();
+            querySettings.setFailTraversal(true);
+        }
+        return querySettings;
     }
 
     protected ConfigurationParameters getSecurityConfigParameters() {
@@ -154,10 +171,14 @@ public abstract class AbstractSecurityTest {
     }
 
     protected UserManager getUserManager(Root root) {
-        if (userManager == null) {
-            userManager = getConfig(UserConfiguration.class).getUserManager(root, getNamePathMapper());
+        if (this.root == root) {
+            if (userManager == null) {
+                userManager = getConfig(UserConfiguration.class).getUserManager(root, getNamePathMapper());
+            }
+            return userManager;
+        } else {
+            return getConfig(UserConfiguration.class).getUserManager(root, getNamePathMapper());
         }
-        return userManager;
     }
 
     protected PrincipalManager getPrincipalManager(Root root) {
@@ -187,13 +208,14 @@ public abstract class AbstractSecurityTest {
     }
 
     protected PrivilegeManager getPrivilegeManager(Root root) {
-        if (privMgr == null) {
-            privMgr = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, getNamePathMapper());
-        }
-        return privMgr;
+        return getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, getNamePathMapper());
     }
 
     protected ValueFactory getValueFactory() {
+        return getValueFactory(root);
+    }
+
+    protected ValueFactory getValueFactory(@Nonnull Root root) {
         return new ValueFactoryImpl(root, getNamePathMapper());
     }
 

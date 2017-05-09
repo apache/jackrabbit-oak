@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -34,6 +36,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
@@ -45,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * granted on it's own 'home directory' being represented by the new node
  * associated with that new authorizable.
  *
- * <p>The following to configuration parameters are available with this implementation:
+ * <p>The following to configuration parameters are available with this implementation:</p>
  * <ul>
  *    <li><strong>groupPrivilegeNames</strong>: the value is expected to be a
  *    comma separated list of privileges that will be granted to the new group on
@@ -54,16 +57,14 @@ import org.slf4j.LoggerFactory;
  *    comma separated list of privileges that will be granted to the new user on
  *    the user node.</li>
  * </ul>
- * </p>
  * <p>Example configuration:
  * <pre>
  *    groupPrivilegeNames : ["jcr:read"]
  *    userPrivilegeNames  : ["jcr:read,rep:write"]
  * </pre>
- * </p>
  * <p>This configuration could for example lead to the following content
  * structure upon user or group creation. Note however that the resulting
- * structure depends on the actual access control management being in place:
+ * structure depends on the actual access control management being in place:</p>
  *
  * <pre>
  *     UserManager umgr = ((JackrabbitSession) session).getUserManager();
@@ -93,7 +94,6 @@ import org.slf4j.LoggerFactory;
  *               - rep:privileges    = ["jcr:read"]
  *           - rep:principalName     = "testGroup"
  * </pre>
- * </p>
  */
 public class AccessControlAction extends AbstractAuthorizableAction {
 
@@ -105,6 +105,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     private SecurityProvider securityProvider;
     private String[] groupPrivilegeNames = new String[0];
     private String[] userPrivilegeNames = new String[0];
+    private Set<String> administrativePrincipals = Collections.emptySet();
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
@@ -112,6 +113,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         this.securityProvider = securityProvider;
         userPrivilegeNames = privilegeNames(config, USER_PRIVILEGE_NAMES);
         groupPrivilegeNames = privilegeNames(config, GROUP_PRIVILEGE_NAMES);
+
+        administrativePrincipals = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.EMPTY_SET);
     }
 
     @Override
@@ -146,12 +149,17 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         if (securityProvider == null) {
             throw new IllegalStateException("Not initialized");
         }
-        if (isSystemUser(authorizable)) {
+        if (isBuiltInUser(authorizable)) {
             log.debug("System user: " + authorizable.getID() + "; omit ac setup.");
             return;
         }
         if (groupPrivilegeNames.length == 0 && userPrivilegeNames.length == 0) {
             log.debug("No privileges configured for groups and users; omit ac setup.");
+            return;
+        }
+        Principal principal = authorizable.getPrincipal();
+        if (administrativePrincipals.contains(principal.getName())) {
+            log.debug("Administrative principal: " + principal.getName() + "; omit ac setup.");
             return;
         }
 
@@ -171,7 +179,6 @@ public class AccessControlAction extends AbstractAuthorizableAction {
             log.warn("Cannot process AccessControlAction: no applicable ACL at " + path);
         } else {
             // setup acl according to configuration.
-            Principal principal = authorizable.getPrincipal();
             boolean modified = false;
             if (authorizable.isGroup()) {
                 // new authorizable is a Group
@@ -190,7 +197,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
     }
 
-    private boolean isSystemUser(@Nonnull Authorizable authorizable) throws RepositoryException {
+    private boolean isBuiltInUser(@Nonnull Authorizable authorizable) throws RepositoryException {
         if (authorizable.isGroup()) {
             return false;
         }

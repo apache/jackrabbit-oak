@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -80,10 +77,6 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
             throw constraintViolation(21, msg);
         }
-
-        if (REP_MEMBERS.equals(name)) {
-            checkForCyclicMembership(after.getValue(Type.STRINGS));
-        }
     }
 
     @Override
@@ -112,12 +105,6 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Password may not be plain text.";
             throw constraintViolation(24, msg);
         }
-
-        if (REP_MEMBERS.equals(name)) {
-            Set<String> afterValues = Sets.newHashSet(after.getValue(Type.STRINGS));
-            afterValues.removeAll(ImmutableSet.copyOf(before.getValue(Type.STRINGS)));
-            checkForCyclicMembership(afterValues);
-        }
     }
 
 
@@ -139,12 +126,13 @@ class UserValidator extends DefaultValidator implements UserConstants {
         Tree tree = checkNotNull(parentAfter.getChild(name));
 
         validateAuthorizable(tree, UserUtil.getType(tree));
-        return new VisibleValidator(new UserValidator(null, tree, provider), true, true);
+        return newValidator(null, tree, provider);
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        return new UserValidator(parentBefore.getChild(name), parentAfter.getChild(name), provider);
+        return newValidator(parentBefore.getChild(name),
+                parentAfter.getChild(name), provider);
     }
 
     @Override
@@ -158,11 +146,20 @@ class UserValidator extends DefaultValidator implements UserConstants {
             }
             return null;
         } else {
-            return new VisibleValidator(new UserValidator(tree, null, provider), true, true);
+            return newValidator(tree, null, provider);
         }
     }
 
     //------------------------------------------------------------< private >---
+
+    private static Validator newValidator(Tree parentBefore,
+                                          Tree parentAfter,
+                                          UserValidatorProvider provider) {
+        return new VisibleValidator(
+                new UserValidator(parentBefore, parentAfter, provider),
+                true,
+                true);
+    }
 
     private boolean isAdminUser(@Nonnull Tree userTree) {
         if (userTree.exists() && isUser(userTree)) {
@@ -170,20 +167,6 @@ class UserValidator extends DefaultValidator implements UserConstants {
             return UserUtil.getAdminId(provider.getConfig()).equals(id);
         } else {
             return false;
-        }
-    }
-
-    private void checkForCyclicMembership(@Nonnull Iterable<String> memberRefs) throws CommitFailedException {
-        String groupContentId = TreeUtil.getString(parentAfter, JcrConstants.JCR_UUID);
-        if (groupContentId == null) {
-            throw constraintViolation(30, "Missing content id for group " + UserUtil.getAuthorizableId(parentAfter) + "; cannot check for cyclic group membership.");
-        }
-        MembershipProvider mp = provider.getMembershipProvider();
-        for (String memberContentId : memberRefs) {
-            Tree memberTree = mp.getByContentID(memberContentId, AuthorizableType.GROUP);
-            if (memberTree != null && mp.isMember(memberTree, groupContentId, true)) {
-                throw constraintViolation(31, "Cyclic group membership detected in group" + UserUtil.getAuthorizableId(parentAfter));
-            }
         }
     }
 
@@ -213,9 +196,9 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private static boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
+    private boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
         String id = UserUtil.getAuthorizableId(parent);
-        return id != null && uuid.equals(UserProvider.getContentID(id));
+        return id != null && uuid.equals(provider.getMembershipProvider().getContentID(id));
     }
 
     private static boolean isUser(@Nullable Tree tree) {

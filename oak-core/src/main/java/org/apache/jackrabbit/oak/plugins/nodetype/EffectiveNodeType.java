@@ -37,7 +37,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -334,7 +334,6 @@ public class EffectiveNodeType {
      * must exactly match the type of the target property.
      * @return the applicable definition for the target property.
      * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
      */
     public PropertyDefinition getPropertyDefinition(
             String propertyName, boolean isMultiple,

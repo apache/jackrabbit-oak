@@ -84,4 +84,8 @@ public class SameNodeImpl extends ConstraintImpl {
         }
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new SameNodeImpl(selectorName, path);
+    }
 }

@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 /**
  * A diff cache implementation, which immediately forgets the diff.
  */
-class AmnesiaDiffCache implements DiffCache {
+class AmnesiaDiffCache extends DiffCache {
 
     static final DiffCache INSTANCE = new AmnesiaDiffCache();
 
@@ -35,8 +35,8 @@ class AmnesiaDiffCache implements DiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull Revision from,
-                             @Nonnull Revision to,
+    public String getChanges(@Nonnull RevisionVector from,
+                             @Nonnull RevisionVector to,
                              @Nonnull String path,
                              @Nullable Loader loader) {
         if (loader != null) {
@@ -47,7 +47,7 @@ class AmnesiaDiffCache implements DiffCache {
 
     @Nonnull
     @Override
-    public Entry newEntry(@Nonnull Revision from, @Nonnull Revision to) {
+    public Entry newEntry(@Nonnull RevisionVector from, @Nonnull RevisionVector to, boolean local) {
         return new Entry() {
             @Override
             public void append(@Nonnull String path, @Nonnull String changes) {

@@ -33,7 +33,6 @@ Compared to the Jackrabbit interface the new `AuthorizableAction` has been sligh
 adjusted to match Oak requirements operate directly on the Oak API, which eases
 the handling of implementation specific tasks such as writing protected items.
 
-
 ### AuthorizableAction API
 
 The following public interfaces are provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user.action`:
@@ -42,10 +41,17 @@ The following public interfaces are provided by Oak in the package `org.apache.j
 - [AuthorizableActionProvider]
 
 The `AuthorizableAction` interface itself allows to perform validations or write
-addition application specific content while executing user management related
-write operations. Note that the actions are consequently executed as part of the
-transient modifications and contrast to `org.apache.jackrabbit.oak.spi.commit.CommitHook`s
-that are triggered upon persisting content modifications.
+additional application specific content while executing user management related
+write operations. Therefore these actions are executed as part of the transient 
+user management modifications. This contrasts to `org.apache.jackrabbit.oak.spi.commit.CommitHook`s
+which in turn are only triggered once modifications are persisted.
+
+Consequently, implementations of the `AuthorizableAction` interface are expected 
+to adhere to this rule and perform transient repository operation or validation.
+They must not force changes to be persisted by calling `org.apache.jackrabbit.oak.api.Root.commit()`.
+
+See section [Group Actions](groupaction.html) for a related extension to
+monitor group specific operations.
 
 ### Default Implementations
 
@@ -65,7 +71,7 @@ Oak 1.0 provides the following base implementations:
 The following implementations of the `AuthorizableAction` interface are provided:
 
 * `AccessControlAction`: set up permission for new authorizables
-* `PasswordAction`: simplistic password verification upon user creation and password modification
+* `PasswordValidationAction`: simplistic password verification upon user creation and password modification
 * `PasswordChangeAction`: verifies that the new password is different from the old one
 * `ClearMembershipAction`: clear group membership upon removal of an authorizable.
 
@@ -73,14 +79,13 @@ As in Jackrabbit 2.x the actions are executed with the editing session and the
 target operation will fail if any of the configured actions fails (e.g. due to
 insufficient permissions by the editing Oak ContentSession).
 
-
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to provide custom
 `AuthorizableActionProvider` implementations and will automatically combine the
 different implementations using the `CompositeActionProvider`.
 
-In an OSGi setup the following steps are required in order to add a action provider
+In an OSGi setup the following steps are required in order to add an action provider
 implementation:
 
 - implement `AuthorizableActionProvider` interface exposing your custom action(s).

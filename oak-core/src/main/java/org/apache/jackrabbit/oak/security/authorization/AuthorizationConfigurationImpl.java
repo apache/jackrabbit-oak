@@ -103,6 +103,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
                 intValue = 100)
 })
 public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
+
     public AuthorizationConfigurationImpl() {
         super();
     }
@@ -112,7 +113,6 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
-
 
     public AuthorizationConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
@@ -181,7 +181,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
-        return new PermissionProviderImpl(root, workspaceName, principals, this);
+        Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
+        return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(), getParameters(), ctx);
     }
-
 }

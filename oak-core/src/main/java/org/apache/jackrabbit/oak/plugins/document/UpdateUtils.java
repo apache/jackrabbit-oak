@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -44,18 +43,20 @@ public class UpdateUtils {
      *            the target document.
      * @param update
      *            the changes to apply.
-     * @param comparator
-     *            the revision comparator.
      */
     public static void applyChanges(@Nonnull Document doc,
-                                    @Nonnull UpdateOp update,
-                                    @Nonnull Comparator<Revision> comparator) {
+                                    @Nonnull UpdateOp update) {
+        doc.put(Document.ID, update.getId());
         for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
             Operation op = e.getValue();
             switch (op.type) {
                 case SET: {
                     doc.put(k.toString(), op.value);
+                    break;
+                }
+                case REMOVE: {
+                    doc.remove(k.toString());
                     break;
                 }
                 case MAX: {
@@ -81,7 +82,7 @@ public class UpdateUtils {
                     @SuppressWarnings("unchecked")
                     Map<Revision, Object> m = (Map<Revision, Object>) old;
                     if (m == null) {
-                        m = new TreeMap<Revision, Object>(comparator);
+                        m = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
                         doc.put(k.getName(), m);
                     }
                     if (k.getRevision() == null) {
@@ -134,7 +135,7 @@ public class UpdateUtils {
                         return false;
                     }
                 }
-            } else if (c.type == Condition.Type.EQUALS) {
+            } else if (c.type == Condition.Type.EQUALS || c.type == Condition.Type.NOTEQUALS) {
                 if (r != null) {
                     if (value instanceof Map) {
                         value = ((Map) value).get(r);
@@ -142,7 +143,10 @@ public class UpdateUtils {
                         value = null;
                     }
                 }
-                if (!Objects.equal(value, c.value)) {
+                boolean equal = Objects.equal(value, c.value);
+                if (c.type == Condition.Type.EQUALS && !equal) {
+                    return false;
+                } else if (c.type == Condition.Type.NOTEQUALS && equal) {
                     return false;
                 }
             } else {
@@ -150,5 +154,18 @@ public class UpdateUtils {
             }
         }
         return true;
+    }
+
+    /**
+     * Ensures that the given {@link UpdateOp} is unconditional
+     * @param up the update operation
+     * @throws IllegalArgumentException when the operations is conditional
+     */
+    public static void assertUnconditional(@Nonnull UpdateOp up) {
+        Map<Key, Condition> conditions = up.getConditions();
+        if (!conditions.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "This DocumentStore method does not support conditional updates, but the UpdateOp contained: " + conditions);
+        }
     }
 }

@@ -22,9 +22,27 @@ import org.apache.lucene.util.Version;
 
 public interface LuceneIndexConstants {
 
+    enum IndexingMode {
+        SYNC,
+        NRT,
+        ASYNC;
+
+        public String asyncValueName(){
+            return name().toLowerCase();
+        }
+
+        public static IndexingMode from(String indexingMode){
+            return valueOf(indexingMode.toUpperCase());
+        }
+    }
+
     String TYPE_LUCENE = "lucene";
 
     String INDEX_DATA_CHILD_NAME = ":data";
+
+    String SUGGEST_DATA_CHILD_NAME = ":suggest-data";
+
+    String TRASH_CHILD_NAME = ":trash";
 
     Version VERSION = Version.LUCENE_47;
 
@@ -47,8 +65,6 @@ public interface LuceneIndexConstants {
     String PERSISTENCE_FILE = "file";
 
     String PERSISTENCE_PATH = "path";
-
-    String INDEX_DATA_CHILD_NAME_FS = "data";
 
     /**
      * Experimental flag to control storage behavior: 'null' or 'true' means the content is stored
@@ -79,6 +95,11 @@ public interface LuceneIndexConstants {
      * be performed with same property then it must be part of include list also
      */
     String ORDERED_PROP_NAMES = "orderedProps";
+
+    /**
+     * Actively the data store files after this many hours.
+     */
+    String ACTIVE_DELETE = "activeDelete";
 
     /**
      * Size in bytes used for splitting the index files when storing them in NodeStore
@@ -187,6 +208,14 @@ public interface LuceneIndexConstants {
     String COST_PER_EXECUTION = "costPerExecution";
 
     /**
+     * Boolean property indicating if in-built analyzer should preserve original term
+     * (i.e. use
+     * {@link org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter#PRESERVE_ORIGINAL}
+     * flag)
+     */
+    String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
+
+    /**
      * Node name under which various analyzers are configured
      */
     String ANALYZERS = "analyzers";
@@ -219,12 +248,14 @@ public interface LuceneIndexConstants {
      * The maximum number of terms that will be indexed for a single field in a
      * document.  This limits the amount of memory required for indexing, so that
      * collections with very large files will not crash the indexing process by
-     * running out of memory.<p/>
+     * running out of memory.
+     * <p>
      * Note that this effectively truncates large documents, excluding from the
      * index terms that occur further in the document.  If you know your source
      * documents are large, be sure to set this value high enough to accommodate
      * the expected size.  If you set it to Integer.MAX_VALUE, then the only limit
-     * is your memory, but you should anticipate an OutOfMemoryError.<p/>
+     * is your memory, but you should anticipate an OutOfMemoryError.
+     * <p>
      * By default, no more than 10,000 terms will be indexed for a field.
      */
     String MAX_FIELD_LENGTH = "maxFieldLength";
@@ -233,6 +264,11 @@ public interface LuceneIndexConstants {
      * whether use this property values for suggestions
      */
     String PROP_USE_IN_SUGGEST = "useInSuggest";
+
+    /**
+     * subnode holding configuration for suggestions
+     */
+    String SUGGESTION_CONFIG = "suggestion";
 
     /**
      * update frequency of the suggester in minutes
@@ -257,9 +293,77 @@ public interface LuceneIndexConstants {
     String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
 
     /**
+     * IndexRule level config to indicate that Node name should also be index
+     * to support fn:name() queries
+     */
+    String INDEX_NODE_NAME = "indexNodeName";
+
+    /**
+     * Property definition name to indicate indexing node name
+     * Its value should match {@link FieldNames#NODE_NAME}
+     */
+    String PROPDEF_PROP_NODE_NAME = ":nodeName";
+
+    /**
      * Boolean property indicating that Lucene directory content
      * should be saved as part of NodeState itself as a multi value property
      * to allow faster reads (OAK-2809)
      */
     String SAVE_DIR_LISTING = "saveDirectoryListing";
+
+    /**
+     * Optional  Property to store the path of index in the repository. Path at which index
+     * definition is defined is not known to IndexEditor. To make use of CopyOnWrite
+     * feature its required to know the indexPath to optimize the lookup and read of
+     * existing index files
+     *
+     * @deprecated With OAK-4152 no need to explicitly define indexPath property
+     */
+    @Deprecated
+    String INDEX_PATH = "indexPath";
+
+    /**
+     * Optional subnode holding configuration for facets.
+     */
+    String FACETS = "facets";
+
+    /**
+     * Optional property to set the suggest field to be analyzed and therefore allow more fine
+     * grained and flexible suggestions.
+     */
+    String SUGGEST_ANALYZED = "suggestAnalyzed";
+
+    /**
+     * Optional (index definition) property indicating whether facets should be ACL checked.
+     * Default is true
+     */
+    String PROP_SECURE_FACETS = "secure";
+
+    /**
+     * Optional (index definition) property indicating max number of facets that will be retrieved
+     * in query
+     * Default is {@link IndexDefinition#DEFAULT_FACET_COUNT}
+     */
+    String PROP_FACETS_TOP_CHILDREN = "topChildren";
+
+    /**
+     * Optional (property definition) property indicating whether facets should be created
+     * for this property
+     */
+    String PROP_FACETS = "facets";
+
+    /**
+     * Boolean property indicate that property should not be included in aggregation
+     */
+    String PROP_EXCLUDE_FROM_AGGREGATE = "excludeFromAggregation";
+
+    /**
+     * String property: the function to index, for function-based index
+     */
+    String PROP_FUNCTION = "function";
+
+    /**
+     * Boolean property which signal LuceneIndexEditor to refresh the stored index definition
+     */
+    String PROP_REFRESH_DEFN = "refresh";
 }

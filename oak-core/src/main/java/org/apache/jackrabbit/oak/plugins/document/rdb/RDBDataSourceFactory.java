@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -28,7 +30,6 @@ import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.slf4j.LoggerFactory;
 
@@ -65,14 +66,29 @@ public class RDBDataSourceFactory {
         }
 
         try {
-            BasicDataSource bds = new BasicDataSource();
             LOG.debug("Getting driver for " + url);
             Driver d = DriverManager.getDriver(url);
-            bds.setDriverClassName(d.getClass().getName());
-            bds.setUsername(username);
-            bds.setPassword(passwd);
-            bds.setUrl(url);
-            return new CloseableDataSource(bds);
+
+            String classname = "org.apache.tomcat.jdbc.pool.DataSource";
+            try {
+                Class<?> dsclazz = Class.forName(classname);
+                DataSource ds = (DataSource) dsclazz.newInstance();
+                dsclazz.getMethod("setDriverClassName", String.class).invoke(ds, d.getClass().getName());
+                dsclazz.getMethod("setUsername", String.class).invoke(ds, username);
+                dsclazz.getMethod("setPassword", String.class).invoke(ds, passwd);
+                dsclazz.getMethod("setUrl", String.class).invoke(ds, url);
+                String interceptors = System.getProperty(
+                        "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
+                        "SlowQueryReport(threshold=10000);ConnectionState;StatementCache");
+                if (!interceptors.isEmpty()) {
+                    dsclazz.getMethod("setJdbcInterceptors", String.class).invoke(ds, interceptors);
+                }
+                return new CloseableDataSource(ds);
+            } catch (Exception ex) {
+                String message = "trying to create datasource " + classname;
+                LOG.info(message, ex);
+                throw new DocumentStoreException(message, ex);
+            }
         } catch (SQLException ex) {
             String message = "trying to obtain driver for " + url;
             LOG.info(message, ex);
@@ -85,14 +101,14 @@ public class RDBDataSourceFactory {
     }
 
     /**
-     * A {@link Closeable} {@link DataSource} based on a {@link BasicDataSource}
+     * A {@link Closeable} {@link DataSource} based on a generic {@link Source}
      * .
      */
     private static class CloseableDataSource implements DataSource, Closeable {
 
-        private BasicDataSource ds;
+        private DataSource ds;
 
-        public CloseableDataSource(BasicDataSource ds) {
+        public CloseableDataSource(DataSource ds) {
             this.ds = ds;
         }
 
@@ -128,10 +144,18 @@ public class RDBDataSourceFactory {
 
         @Override
         public void close() throws IOException {
+            Class<?> dsclazz = ds.getClass();
             try {
-                this.ds.close();
-            } catch (SQLException ex) {
-                throw new IOException("closing data source " + this.ds, ex);
+                Method clmethod = dsclazz.getMethod("close");
+                clmethod.invoke(ds);
+            } catch (NoSuchMethodException e) {
+                LOG.debug("Class " + dsclazz + " does not have close() method");
+            } catch (IllegalArgumentException e) {
+                LOG.debug("Class " + dsclazz + " does not have close() method");
+            } catch (InvocationTargetException e) {
+                throw new IOException("trying to close datasource", e);
+            } catch (IllegalAccessException e) {
+                throw new IOException("trying to close datasource", e);
             }
         }
 

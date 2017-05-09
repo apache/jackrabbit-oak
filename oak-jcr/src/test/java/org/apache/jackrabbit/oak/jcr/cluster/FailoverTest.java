@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -28,8 +29,8 @@ public class FailoverTest extends AbstractClusterTest {
     
     @Override
     protected NodeStoreFixture getFixture() {
-        return NodeStoreFixture.createDocumentFixture(
-                "mongodb://localhost:27017,localhost:27018,localhost:27019/oak");
+        return new DocumentMongoFixture(
+                "mongodb://localhost:27017,localhost:27018,localhost:27019/oak", null);
     }
 
     @Test 

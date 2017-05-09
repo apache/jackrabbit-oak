@@ -35,17 +35,22 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 
 /**
  * Utility class to store a list of string and perform sort on that. For small size
  * the list would be maintained in memory. If the size crosses the required threshold then
  * the sorting would be performed externally
  */
-public class StringSort implements Closeable {
+public class StringSort implements Iterable<String>, Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());
     public static final int BATCH_SIZE = 2048;
 
@@ -117,6 +122,17 @@ public class StringSort implements Closeable {
         }
     }
 
+    @Override
+    public Iterator<String> iterator() {
+        try {
+            return getIds();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    //--------------------------< internal >------------------------------------
+
     private void addToBatch(String id) throws IOException {
         inMemBatch.add(id);
         if (inMemBatch.size() >= BATCH_SIZE) {
@@ -127,7 +143,7 @@ public class StringSort implements Closeable {
     private void flushToFile(List<String> ids) throws IOException {
         BufferedWriter w = getPersistentState().getWriter();
         for (String id : ids) {
-            w.write(id);
+            w.write(escapeLineBreak(id));
             w.newLine();
         }
         ids.clear();
@@ -161,7 +177,7 @@ public class StringSort implements Closeable {
 
         public PersistentState(Comparator<String> comparator, File workDir) {
             this.workDir = workDir;
-            this.comparator = comparator;
+            this.comparator = FileIOUtils.lineBreakAwareComparator(comparator);
         }
 
         public BufferedWriter getWriter() throws FileNotFoundException {
@@ -251,6 +267,11 @@ public class StringSort implements Closeable {
     private static class CloseableIterator extends LineIterator implements Closeable {
         public CloseableIterator(Reader reader) throws IllegalArgumentException {
             super(reader);
+        }
+
+        @Override
+        public String next() {
+            return unescapeLineBreaks(super.next());
         }
     }
 }

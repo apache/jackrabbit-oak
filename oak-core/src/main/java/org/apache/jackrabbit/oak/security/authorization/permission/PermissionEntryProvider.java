@@ -35,8 +35,5 @@ interface PermissionEntryProvider {
     @Nonnull
     Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree);
 
-    @Nonnull
-    Collection<PermissionEntry> getEntries(@Nonnull String accessControlledPath);
-
     void flush();
 }

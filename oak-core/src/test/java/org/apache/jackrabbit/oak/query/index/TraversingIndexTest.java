@@ -53,7 +53,7 @@ public class TraversingIndexTest {
 
         TraversingIndex t = new TraversingIndex();
 
-        FilterImpl f = new FilterImpl();
+        FilterImpl f = FilterImpl.newTestInstance();
 
         f.setPath("/");
         Cursor c = t.query(f, root);

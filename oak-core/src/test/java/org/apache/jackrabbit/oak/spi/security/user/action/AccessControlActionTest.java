@@ -27,6 +27,8 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Test;
@@ -46,7 +48,10 @@ public class AccessControlActionTest extends AbstractSecurityTest {
                 AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_READ},
                 AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_ALL}
         );
-        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
+        ConfigurationParameters authorizationConfig = ConfigurationParameters.of(
+                PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, new String[] {"administrativePrincipalName"}
+        );
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig, AuthorizationConfiguration.NAME, authorizationConfig);
     }
 
     @Test
@@ -86,13 +91,33 @@ public class AccessControlActionTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
+    public void testAdministrativePrincipals() throws Exception {
+        UserManager userMgr = getUserManager(root);
+        Group gr = null;
+        try {
+            gr = userMgr.createGroup("administrativePrincipalName");
+            root.commit();
+
+            AccessControlManager acMgr = getAccessControlManager(root);
+            AccessControlPolicy[] policies = acMgr.getPolicies(gr.getPath());
+            assertEquals(0, policies.length);
+        } finally {
+            root.refresh();
+            if (gr != null) {
+                gr.remove();
+            }
+            root.commit();
+        }
+    }
+
     private void assertAcAction(Authorizable a, String expectedPrivName) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-            AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
-            assertEquals(1, policies.length);
-            assertTrue(policies[0] instanceof AccessControlList);
-            AccessControlList acl = (AccessControlList) policies[0];
-            assertEquals(1, acl.getAccessControlEntries().length);
-            assertArrayEquals(new Privilege[]{getPrivilegeManager(root).getPrivilege(expectedPrivName)}, acl.getAccessControlEntries()[0].getPrivileges());
+        AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
+        assertEquals(1, policies.length);
+        assertTrue(policies[0] instanceof AccessControlList);
+        AccessControlList acl = (AccessControlList) policies[0];
+        assertEquals(1, acl.getAccessControlEntries().length);
+        assertArrayEquals(new Privilege[]{getPrivilegeManager(root).getPrivilege(expectedPrivName)}, acl.getAccessControlEntries()[0].getPrivileges());
     }
 }

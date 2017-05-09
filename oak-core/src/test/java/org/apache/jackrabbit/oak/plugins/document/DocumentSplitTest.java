@@ -19,18 +19,24 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -39,23 +45,35 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import static com.google.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest.randomStream;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.REMOVE_MAP_ENTRY;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.SET_MAP_ENTRY;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
+import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -87,13 +105,13 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertEquals(1, revs.size());
         for (Revision rev : revisions) {
             assertTrue(doc.containsRevision(rev));
-            assertTrue(doc.isCommitted(rev));
+            assertTrue(isCommitted(ns.getCommitValue(rev, doc)));
         }
         // check if document is still there
-        assertNotNull(ns.getNode("/", Revision.fromString(head)));
+        assertNotNull(ns.getNode("/", RevisionVector.fromString(head)));
 
         NodeDocument prevDoc = Iterators.getOnlyElement(doc.getAllPreviousDocs());
-        assertEquals(SplitDocType.DEFAULT, prevDoc.getSplitDocType());
+        assertThat(prevDoc.getSplitDocType(), either(is(SplitDocType.DEFAULT)).or(is(SplitDocType.DEFAULT_NO_BRANCH)));
 
         mk.commit("/", "+\"baz\":{}", null, null);
         ns.setAsyncDelay(0);
@@ -128,9 +146,9 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         for (Revision rev : revisions) {
             assertTrue("document should contain revision (or have revision in commit root path):" + rev, doc.containsRevision(rev)
                     || doc.getCommitRootPath(rev) != null);
-            assertTrue(doc.isCommitted(rev));
+            assertTrue(isCommitted(ns.getCommitValue(rev, doc)));
         }
-        DocumentNodeState node = ns.getNode("/foo", Revision.fromString(head));
+        DocumentNodeState node = ns.getNode("/foo", RevisionVector.fromString(head));
         // check status of node
         if (create) {
             assertNull(node);
@@ -142,6 +160,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     @Test
     public void splitCommitRoot() throws Exception {
         DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
         mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -161,13 +180,14 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         // the second _commitRoot entry for the most recent prop change
         assertEquals(2, commits.size());
         for (Revision rev : commitRoots) {
-            assertTrue(doc.isCommitted(rev));
+            assertTrue(isCommitted(ns.getCommitValue(rev, doc)));
         }
     }
 
     @Test
     public void splitPropertyRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -184,7 +204,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         // one remaining in the local revisions map
         assertEquals(1, localRevs.size());
         for (Revision rev : revisions) {
-            assertTrue(doc.isCommitted(rev));
+            assertTrue(isCommitted(ns.getCommitValue(rev, doc)));
         }
         // all revisions in the prop map
         Map<Revision, String> valueMap = doc.getValueMap("prop");
@@ -285,7 +305,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             // read current value
             NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/test"));
             assertNotNull(doc);
-            Revision head = ns.getHeadRevision();
+            RevisionVector head = ns.getHeadRevision();
             Revision lastRev = ns.getPendingModifications().get("/test");
             DocumentNodeState n = doc.getNodeAtRevision(mk.getNodeStore(), head, lastRev);
             assertNotNull(n);
@@ -321,7 +341,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
         assertNotNull(doc);
         DocumentNodeState node = doc.getNodeAtRevision(ns,
-                Revision.fromString(rev), null);
+                RevisionVector.fromString(rev), null);
         assertNotNull(node);
     }
 
@@ -369,7 +389,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         DocumentStore store = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
         NodeBuilder b1 = ns.getRoot().builder();
-        b1.child("test").child("foo").setProperty("binaryProp",ns.createBlob(randomStream(1, 4096)));;
+        b1.child("test").child("foo").setProperty("binaryProp",ns.createBlob(randomStream(1, 4096)));
         ns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Commit on a node which has a child and where the commit root
@@ -468,7 +488,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Map<Revision, String> valueMap = doc.getValueMap("prop");
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
             if (previous != null) {
-                assertTrue(ns.isRevisionNewer(previous, entry.getKey()));
+                assertTrue(previous.compareRevisionTime(entry.getKey()) > 0);
             }
             previous = entry.getKey();
             numValues++;
@@ -477,7 +497,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertEquals(revs.size(), numValues);
         assertEquals(revs.size(), valueMap.size());
 
-        assertNotNull(doc.getNodeAtRevision(ns, Revision.fromString(rev), null));
+        assertNotNull(doc.getNodeAtRevision(ns, RevisionVector.fromString(rev), null));
     }
 
     @Test
@@ -502,7 +522,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         UpdateOp op = new UpdateOp(id, false);
         // create some baggage from another cluster node
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 4000; i++) {
             Revision r = Revision.newRevision(2);
             op.setMapEntry("prop", r, "some long test value with many characters");
             NodeDocument.setRevision(op, r, "c");
@@ -510,17 +530,11 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         store.findAndUpdate(NODES, op);
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);
-        assertTrue(doc.getMemory() > NodeDocument.DOC_SIZE_THRESHOLD);
+        assertTrue(doc.getMemory() > DOC_SIZE_THRESHOLD);
 
-        // these will be considered for a split
-        for (int i = 0; i < NUM_REVS_THRESHOLD / 2; i++) {
-            Revision r = Revision.newRevision(clusterId);
-            op.setMapEntry("prop", r, "value");
-            NodeDocument.setRevision(op, r, "c");
-        }
         // some fake previous doc references to trigger UpdateOp
         // for an intermediate document
-        TreeSet<Revision> prev = Sets.newTreeSet(mk.getNodeStore().getRevisionComparator());
+        TreeSet<Revision> prev = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
         for (int i = 0; i < PREV_SPLIT_FACTOR; i++) {
             Revision low = Revision.newRevision(clusterId);
             Revision high = Revision.newRevision(clusterId);
@@ -531,7 +545,9 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         doc = store.find(NODES, id);
         assertNotNull(doc);
-        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
+        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(
+                mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
+                NO_BINARY));
         assertEquals(2, splitOps.size());
         // first update op is for the new intermediate doc
         op = splitOps.get(0);
@@ -540,7 +556,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         // second update op is for the main document
         op = splitOps.get(1);
         assertEquals(id, op.getId());
-        for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> entry : op.getChanges().entrySet()) {
+        for (Map.Entry<Key, Operation> entry : op.getChanges().entrySet()) {
             Revision r = entry.getKey().getRevision();
             assertNotNull(r);
             assertEquals(clusterId, r.getClusterId());
@@ -586,7 +602,9 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         // must split document and create a previous document starting at
         // the second most recent revision
-        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
+        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(
+                mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
+                NO_BINARY));
         assertEquals(2, splitOps.size());
         String prevId = Utils.getPreviousIdFor("/test", revs.get(revs.size() - 2), 0);
         assertEquals(prevId, splitOps.get(0).getId());
@@ -662,7 +680,9 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         NodeDocument doc = new NodeDocument(mk.getDocumentStore());
         doc.put(NodeDocument.ID, Utils.getIdFromPath("/test"));
         doc.put(NodeDocument.SD_TYPE, NodeDocument.SplitDocType.DEFAULT.type);
-        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE);
+        RevisionVector head = mk.getNodeStore().getHeadRevision();
+        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE, head,
+                NO_BINARY, NUM_REVS_THRESHOLD);
     }
 
     @Test
@@ -732,6 +752,381 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertTrue(doc.getLocalCommitRoot().size() < NUM_REVS_THRESHOLD);
     }
 
+    // OAK-3333
+    @Test
+    public void purgeAllButMostRecentCommitRoot() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns1 = mk.getNodeStore();
+        NodeBuilder builder1 = ns1.getRoot().builder();
+        builder1.child("test");
+        merge(ns1, builder1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns2 = new DocumentMK.Builder().setDocumentStore(store)
+                .setAsyncDelay(0).setClusterId(ns1.getClusterId() + 1).getNodeStore();
+        // prevent merge retries
+        ns2.setMaxBackOffMillis(0);
+        assertTrue(ns2.getRoot().hasChildNode("test"));
+        NodeBuilder builder2 = ns2.getRoot().builder();
+        builder2.child("test").remove();
+
+        for (int i = 0; i < NUM_REVS_THRESHOLD * 2; i++) {
+            builder1 = ns1.getRoot().builder();
+            builder1.child("test").child("child-" + i);
+            merge(ns1, builder1);
+        }
+        ns1.runBackgroundOperations();
+
+        try {
+            merge(ns2, builder2);
+            fail("merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+        ns2.dispose();
+    }
+
+    // OAK-4050
+    @Test
+    public void purgeAllButMostRecentCommittedCommitRoot() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns1 = mk.getNodeStore();
+        NodeBuilder builder1 = ns1.getRoot().builder();
+        builder1.child("test");
+        merge(ns1, builder1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns2 = new DocumentMK.Builder().setDocumentStore(store)
+                .setAsyncDelay(0).setClusterId(ns1.getClusterId() + 1).getNodeStore();
+        // prevent merge retries
+        ns2.setMaxBackOffMillis(0);
+        assertTrue(ns2.getRoot().hasChildNode("test"));
+        NodeBuilder builder2 = ns2.getRoot().builder();
+        builder2.child("test").remove();
+
+        for (int i = 0; i < NUM_REVS_THRESHOLD * 2; i++) {
+            builder1 = ns1.getRoot().builder();
+            builder1.child("test").child("child-" + i);
+            merge(ns1, builder1);
+        }
+        // create a _commitRoot entry for a revision, which is not committed
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/test"), false);
+        NodeDocument.setCommitRoot(op, ns1.newRevision(), 0);
+        store.findAndUpdate(NODES, op);
+
+        ns1.runBackgroundOperations();
+
+        try {
+            merge(ns2, builder2);
+            fail("merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+        ns2.dispose();
+    }
+
+    // OAK-3081
+    @Test
+    public void removeGarbage() throws Exception {
+        final DocumentStore store = mk.getDocumentStore();
+        final DocumentNodeStore ns = mk.getNodeStore();
+        final List<Exception> exceptions = Lists.newArrayList();
+        final List<RevisionVector> revisions = Lists.newArrayList();
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    for (int i = 0; i < 200; i++) {
+                        NodeBuilder builder = ns.getRoot().builder();
+                        builder.child("foo").child("node").child("node").child("node").child("node");
+                        builder.child("bar").child("node").child("node").child("node").child("node");
+                        merge(ns, builder);
+                        revisions.add(ns.getHeadRevision());
+
+                        builder = ns.getRoot().builder();
+                        builder.child("foo").child("node").remove();
+                        builder.child("bar").child("node").remove();
+                        merge(ns, builder);
+                        revisions.add(ns.getHeadRevision());
+                    }
+                } catch (CommitFailedException e) {
+                    exceptions.add(e);
+                }
+            }
+        });
+        t.start();
+
+        // Use a revision context, which wraps the DocumentNodeStore and
+        // randomly delays calls to get the head revision
+        RevisionContext rc = new TestRevisionContext(ns);
+        while (t.isAlive()) {
+            for (String id : ns.getSplitCandidates()) {
+                RevisionVector head = ns.getHeadRevision();
+                NodeDocument doc = store.find(NODES, id);
+                List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head,
+                        NO_BINARY, NUM_REVS_THRESHOLD);
+                Set<Revision> removed = Sets.newHashSet();
+                Set<Revision> added = Sets.newHashSet();
+                for (UpdateOp op : ops) {
+                    for (Map.Entry<Key, Operation> e : op.getChanges().entrySet()) {
+                        if (!"_deleted".equals(e.getKey().getName())) {
+                            continue;
+                        }
+                        Revision r = e.getKey().getRevision();
+                        if (e.getValue().type == Operation.Type.REMOVE_MAP_ENTRY) {
+                            removed.add(r);
+                        } else if (e.getValue().type == Operation.Type.SET_MAP_ENTRY) {
+                            added.add(r);
+                        }
+                    }
+                }
+                removed.removeAll(added);
+                assertTrue("SplitOperations must not remove committed changes: " + removed, removed.isEmpty());
+            }
+            // perform the actual cleanup
+            ns.runBackgroundOperations();
+        }
+
+        // check documents below /foo and /bar
+        // the _deleted map must contain all revisions
+        for (NodeDocument doc : Utils.getAllDocuments(store)) {
+            if (doc.isSplitDocument() || Utils.getDepthFromId(doc.getId()) < 2) {
+                continue;
+            }
+            Set<Revision> revs = Sets.newHashSet();
+            for (RevisionVector rv : revisions) {
+                Iterables.addAll(revs, rv);
+            }
+            revs.removeAll(doc.getValueMap("_deleted").keySet());
+            assertTrue("Missing _deleted entries on " + doc.getId() + ": " + revs, revs.isEmpty());
+        }
+    }
+
+    @Test
+    public void splitDocumentWithBinary() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+
+        // use more than 4k of binary data (OAK-5205)
+        PropertyState binary = binaryProperty("p", randomBytes(5 * 1024));
+
+        for (int i = 0; i < 10; i++) {
+            builder = ns.getRoot().builder();
+            builder.child("foo").setProperty(binary);
+            merge(ns, builder);
+            ns.runBackgroundOperations();
+        }
+
+        NodeDocument foo = store.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(foo);
+        List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
+        // all but most recent value are moved to individual previous docs
+        assertEquals(9, prevDocs.size());
+    }
+
+    @Test
+    public void noBinarySplitWhenRemoved() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        // use more than 4k of binary data (OAK-5205)
+        PropertyState binary = binaryProperty("p", randomBytes(5 * 1024));
+        builder.child("foo").setProperty(binary);
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        builder.child("foo").remove();
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+
+        // must not create split document in this case. See OAK-5010
+        NodeDocument foo = store.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(foo);
+        assertEquals(0, foo.getPreviousRanges().size());
+
+        // re-create it
+        builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+
+        // now the old binary value must be moved to a previous document
+        foo = store.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(foo);
+        List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
+        assertEquals(1, prevDocs.size());
+    }
+
+    // OAK-5205
+    @Test
+    public void noSplitForSmallBinary() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+
+        for (int i = 0; i < 10; i++) {
+            builder = ns.getRoot().builder();
+            builder.child("foo").setProperty(
+                    binaryProperty("p", ("value" + i).getBytes()));
+            merge(ns, builder);
+            ns.runBackgroundOperations();
+        }
+
+        NodeDocument foo = store.find(NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(foo);
+        List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
+        // must not create split documents for small binaries less 4k
+        assertEquals(0, prevDocs.size());
+    }
+
+    @Test
+    public void nonSplittableBigDocument() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+
+        String id = Utils.getIdFromPath("/foo");
+        int num = 0;
+        while (store.find(NODES, id).getMemory() < DOC_SIZE_THRESHOLD) {
+            builder = ns.getRoot().builder();
+            for (int i = 0; i < 50; i++) {
+                builder.child("foo").setProperty("p" + num++,
+                        "some value as payload for the document");
+            }
+            merge(ns, builder);
+        }
+
+        Iterable<UpdateOp> splitOps = store.find(NODES, id)
+                .split(ns, ns.getHeadRevision(), NO_BINARY);
+        assertEquals(0, Iterables.size(splitOps));
+    }
+
+    @Test
+    public void splitWithBranchCommit() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+
+        String branch = mk.branch(null);
+        branch = mk.commit("/foo", "^\"p\":\"value\"", branch, null);
+        mk.merge(branch, null);
+
+        String id = Utils.getIdFromPath("/foo");
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        assertThat(doc.getLocalBranchCommits(), is(not(empty())));
+
+        for (int i = 0; i < 5; i++) {
+            builder = ns.getRoot().builder();
+            builder.child("foo").setProperty("p", "value-" + i);
+            merge(ns, builder);
+        }
+        ns.runBackgroundOperations();
+        doc = store.find(NODES, id);
+        for (UpdateOp op : SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 5)) {
+            store.createOrUpdate(NODES, op);
+        }
+        doc = store.find(NODES, id);
+        // must have a previous document now
+        assertThat(doc.getPreviousRanges().keySet(), hasSize(1));
+        // branch commit entry moved to previous document
+        assertThat(doc.getLocalBranchCommits(), is(empty()));
+        NodeDocument prev = doc.getAllPreviousDocs().next();
+        assertThat(prev.getLocalBranchCommits(), is(not(empty())));
+    }
+
+    @Test
+    public void splitDefaultNoBranch() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo").child("bar");
+        merge(ns, builder);
+
+        for (int i = 0; i < 5; i++) {
+            builder = ns.getRoot().builder();
+            builder.child("foo").setProperty("p", "value-" + i);
+            merge(ns, builder);
+        }
+        ns.runBackgroundOperations();
+        String id = Utils.getIdFromPath("/foo");
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        for (UpdateOp op : SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 5)) {
+            store.createOrUpdate(NODES, op);
+        }
+        doc = store.find(NODES, id);
+        // must have a previous document now
+        assertThat(doc.getPreviousRanges().keySet(), is(not(empty())));
+        Iterator<NodeDocument> it = doc.getAllPreviousDocs();
+        while (it.hasNext()) {
+            assertEquals(SplitDocType.DEFAULT_NO_BRANCH, it.next().getSplitDocType());
+        }
+    }
+
+    private static class TestRevisionContext implements RevisionContext {
+
+        private final RevisionContext rc;
+
+        TestRevisionContext(RevisionContext rc) {
+            this.rc = rc;
+        }
+
+        @Override
+        public UnmergedBranches getBranches() {
+            return rc.getBranches();
+        }
+
+        @Override
+        public UnsavedModifications getPendingModifications() {
+            return rc.getPendingModifications();
+        }
+
+        @Override
+        public int getClusterId() {
+            return rc.getClusterId();
+        }
+
+        @Nonnull
+        @Override
+        public RevisionVector getHeadRevision() {
+            try {
+                Thread.sleep((long) (Math.random() * 100));
+            } catch (InterruptedException e) {
+                // ignore
+            }
+            return rc.getHeadRevision();
+        }
+
+        @Nonnull
+        @Override
+        public Revision newRevision() {
+            return rc.newRevision();
+        }
+
+        @Nonnull
+        @Override
+        public Clock getClock() {
+            return rc.getClock();
+        }
+
+        @Override
+        public String getCommitValue(@Nonnull Revision changeRevision,
+                                     @Nonnull NodeDocument doc) {
+            return rc.getCommitValue(changeRevision, doc);
+        }
+    }
+
     private static NodeState merge(NodeStore store, NodeBuilder root)
             throws CommitFailedException {
         return store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -744,5 +1139,12 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                 mks.get(i).runBackgroundOperations();
             }
         }
+    }
+
+    private byte[] randomBytes(int num) {
+        Random random = new Random(42);
+        byte[] data = new byte[num];
+        random.nextBytes(data);
+        return data;
     }
 }

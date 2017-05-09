@@ -33,6 +33,7 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -53,9 +54,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-/**
- * TokenProviderImplTest...
- */
 public class TokenProviderImplTest extends AbstractTokenTest {
 
     private String userId;
@@ -119,6 +117,12 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     public void testCreateTokenFromInvalidUserId() throws Exception {
         TokenInfo info = tokenProvider.createToken("unknownUserId", Collections.<String, Object>emptyMap());
         assertNull(info);
+    }
+
+    @Test
+    public void testCreateTokenFromGroupId() throws Exception {
+        Group gr = getUserManager(root).createGroup("groupId");
+        assertNull(tokenProvider.createToken("groupId", Collections.<String, Object>emptyMap()));
     }
 
     @Test
@@ -190,6 +194,41 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         } catch (Exception e) {
             // success
         }
+    }
+
+    @Test
+    public void testGetTokenInfoFromDisabledUser() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        getTestUser().disable("disabled");
+
+        assertNull(tokenProvider.getTokenInfo(info.getToken()));
+    }
+
+    @Test
+    public void testGetTokenInfoFromGroup() throws Exception {
+        Group gr = getUserManager(root).createGroup("gr");
+        NodeUtil groupNode = new NodeUtil(root.getTree(gr.getPath()));
+        NodeUtil parent = groupNode.addChild(TokenConstants.TOKENS_NODE_NAME, TokenConstants.TOKENS_NT_NAME);
+        NodeUtil tokenNode = parent.addChild("tokenName", TokenConstants.TOKEN_NT_NAME);
+        String tokenUUID = UUID.randomUUID().toString();
+        tokenNode.setString(JcrConstants.JCR_UUID, tokenUUID);
+        String token = tokenUUID + "_generatedKey";
+        tokenNode.setString(TokenConstants.TOKEN_ATTRIBUTE_KEY, token);
+
+        assertNull(tokenProvider.getTokenInfo(token));
+    }
+
+    @Test
+    public void testGetTokenInfoFromRegularNode() throws Exception {
+        NodeUtil node = new NodeUtil(root.getTree("/")).addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
+        NodeUtil parent = node.addChild(TokenConstants.TOKENS_NODE_NAME, TokenConstants.TOKENS_NT_NAME);
+        NodeUtil tokenNode = parent.addChild("tokenName", TokenConstants.TOKEN_NT_NAME);
+        String tokenUUID = UUID.randomUUID().toString();
+        tokenNode.setString(JcrConstants.JCR_UUID, tokenUUID);
+        String token = tokenUUID + "_generatedKey";
+        tokenNode.setString(TokenConstants.TOKEN_ATTRIBUTE_KEY, token);
+
+        assertNull(tokenProvider.getTokenInfo(token));
     }
 
     @Test

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import javax.annotation.CheckForNull;
@@ -30,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
  */
 public class DefaultSolrConfiguration implements OakSolrConfiguration {
 
-    private static final Collection<String> ignoredProperties = SolrServerConfigurationDefaults.IGNORED_PROPERTIES;
+    private static final Collection<String> ignoredProperties = OakSolrConfigurationDefaults.IGNORED_PROPERTIES;
     private static final Collection<String> usedProperties = Collections.emptyList();
 
     @Override
@@ -41,7 +40,7 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
     @Nonnull
     @Override
     public String getPathField() {
-        return SolrServerConfigurationDefaults.PATH_FIELD_NAME;
+        return OakSolrConfigurationDefaults.PATH_FIELD_NAME;
     }
 
     @CheckForNull
@@ -50,19 +49,19 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         String fieldName = null;
         switch (pathRestriction) {
             case ALL_CHILDREN: {
-                fieldName = SolrServerConfigurationDefaults.DESC_FIELD_NAME;
+                fieldName = OakSolrConfigurationDefaults.DESC_FIELD_NAME;
                 break;
             }
             case DIRECT_CHILDREN: {
-                fieldName = SolrServerConfigurationDefaults.CHILD_FIELD_NAME;
+                fieldName = OakSolrConfigurationDefaults.CHILD_FIELD_NAME;
                 break;
             }
             case EXACT: {
-                fieldName = SolrServerConfigurationDefaults.PATH_FIELD_NAME;
+                fieldName = OakSolrConfigurationDefaults.PATH_FIELD_NAME;
                 break;
             }
             case PARENT: {
-                fieldName = SolrServerConfigurationDefaults.ANC_FIELD_NAME;
+                fieldName = OakSolrConfigurationDefaults.ANC_FIELD_NAME;
                 break;
             }
             case NO_RESTRICTION:
@@ -87,27 +86,27 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getCatchAllField() {
-        return SolrServerConfigurationDefaults.CATCHALL_FIELD;
+        return OakSolrConfigurationDefaults.CATCHALL_FIELD;
     }
 
     @Override
     public int getRows() {
-        return SolrServerConfigurationDefaults.ROWS;
+        return OakSolrConfigurationDefaults.ROWS;
     }
 
     @Override
     public boolean useForPropertyRestrictions() {
-        return SolrServerConfigurationDefaults.PROPERTY_RESTRICTIONS;
+        return OakSolrConfigurationDefaults.PROPERTY_RESTRICTIONS;
     }
 
     @Override
     public boolean useForPrimaryTypes() {
-        return SolrServerConfigurationDefaults.PRIMARY_TYPES;
+        return OakSolrConfigurationDefaults.PRIMARY_TYPES;
     }
 
     @Override
     public boolean useForPathRestrictions() {
-        return SolrServerConfigurationDefaults.PATH_RESTRICTIONS;
+        return OakSolrConfigurationDefaults.PATH_RESTRICTIONS;
     }
 
     @Nonnull
@@ -120,6 +119,22 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
     @Override
     public Collection<String> getUsedProperties() {
         return usedProperties;
+    }
+
+    @Override
+    public boolean collapseJcrContentNodes() {
+        return OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES;
+    }
+
+    @Nonnull
+    @Override
+    public String getCollapsedPathField() {
+        return OakSolrConfigurationDefaults.COLLAPSED_PATH_FIELD;
+    }
+
+    @Override
+    public String getPathDepthField() {
+        return OakSolrConfigurationDefaults.PATH_DEPTH_FIELD;
     }
 
 }

@@ -86,7 +86,7 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
         try {
             pattern = Pattern.compile(constraint);
         } catch (PatternSyntaxException e) {
-            log.warn("Invalid password constraint: ", e.getMessage());
+            log.warn("Invalid password constraint: {}", e.getMessage());
         }
     }
 

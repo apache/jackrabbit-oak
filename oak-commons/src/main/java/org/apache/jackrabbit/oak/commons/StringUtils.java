@@ -16,12 +16,24 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import javax.annotation.Nonnull;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Some string utility methods.
  */
 public class StringUtils {
 
+    private static final Logger LOG = LoggerFactory.getLogger(StringUtils.class);
+
     private static final char[] HEX = "0123456789abcdef".toCharArray();
+
+    private StringUtils() {}
 
     /**
      * Convert a byte array to a hex encoded string.
@@ -29,7 +41,9 @@ public class StringUtils {
      * @param value the byte array
      * @return the hex encoded string
      */
-    public static String convertBytesToHex(byte[] value) {
+    @Nonnull
+    public static String convertBytesToHex(@Nonnull byte[] value) {
+        checkNotNull(value);
         int len = value.length;
         char[] buff = new char[len + len];
         char[] hex = HEX;
@@ -47,11 +61,12 @@ public class StringUtils {
      * @param s the hex encoded string
      * @return the byte array
      */
-    public static byte[] convertHexToBytes(String s) {
+    @Nonnull
+    public static byte[] convertHexToBytes(@Nonnull String s) {
+        checkNotNull(s);
         int len = s.length();
-        if (len % 2 != 0) {
-            throw new IllegalArgumentException(s);
-        }
+        checkArgument(len % 2 == 0);
+
         len /= 2;
         byte[] buff = new byte[len];
         for (int i = 0; i < len; i++) {
@@ -80,4 +95,18 @@ public class StringUtils {
         }
     }
 
+    /**
+     * Estimates the memory usage of the given string.
+     *
+     * @param s the string to estimate.
+     * @return the estimated memory usage.
+     */
+    public static int estimateMemoryUsage(String s) {
+        long size = s == null ? 0 : 48 + (long)s.length() * 2;
+        if (size > Integer.MAX_VALUE) {
+            LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
+            size = Integer.MAX_VALUE;
+        }
+        return (int) size;
+    }
 }

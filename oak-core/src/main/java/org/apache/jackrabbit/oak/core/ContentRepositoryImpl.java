@@ -71,8 +71,6 @@ import static javax.jcr.Repository.WRITE_SUPPORTED;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -102,7 +100,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.util.GenericDescriptors;
+import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
+import org.apache.jackrabbit.oak.OakVersion;
 
 /**
  * {@code NodeStore}-based implementation of
@@ -116,6 +115,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
     private final QueryEngineSettings queryEngineSettings;
+    private final Descriptors baseDescriptors;
 
     private GenericDescriptors descriptors;
     
@@ -134,13 +134,15 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                                  @Nonnull String defaultWorkspaceName,
                                  QueryEngineSettings queryEngineSettings,
                                  @Nullable QueryIndexProvider indexProvider,
-                                 @Nonnull SecurityProvider securityProvider) {
+                                 @Nonnull SecurityProvider securityProvider,
+                                 @Nullable Descriptors baseDescriptors) {
         this.nodeStore = checkNotNull(nodeStore);
         this.commitHook = checkNotNull(commitHook);
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
         this.securityProvider = checkNotNull(securityProvider);
         this.queryEngineSettings = queryEngineSettings != null ? queryEngineSettings : new QueryEngineSettings();
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
+        this.baseDescriptors = baseDescriptors;
     }
 
     @Nonnull
@@ -185,7 +187,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
         final Value trueValue = valueFactory.createValue(true);
         final Value falseValue = valueFactory.createValue(false);
 
-        GenericDescriptors gd = new GenericDescriptors()
+        GenericDescriptors gd = new GenericDescriptors(baseDescriptors)
                 .put(IDENTIFIER_STABILITY, valueFactory.createValue(Repository.IDENTIFIER_STABILITY_METHOD_DURATION), true, true)
                 .put(LEVEL_1_SUPPORTED, trueValue, true, true)
                 .put(LEVEL_2_SUPPORTED, trueValue, true, true)
@@ -253,7 +255,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                 .put(QUERY_XPATH_DOC_ORDER, falseValue, true, true)
                 .put(QUERY_XPATH_POS_INDEX, falseValue, true, true)
                 .put(REP_NAME_DESC, valueFactory.createValue("Apache Jackrabbit Oak"), true, true)
-                .put(REP_VERSION_DESC, valueFactory.createValue(getVersion()), true, true)
+                .put(REP_VERSION_DESC, valueFactory.createValue(OakVersion.getVersion()), true, true)
                 .put(REP_VENDOR_DESC, valueFactory.createValue("The Apache Software Foundation"), true, true)
                 .put(REP_VENDOR_URL_DESC, valueFactory.createValue("http://www.apache.org/"), true, true)
                 .put(SPEC_NAME_DESC, valueFactory.createValue("Content Repository for Java Technology API"), true, true)
@@ -274,29 +276,5 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
             }
         }
         return gd;
-    }
-
-    /**
-     * Returns the version of this repository implementation.
-     * @return the version
-     */
-    @Nonnull
-    private static String getVersion() {
-        InputStream stream = ContentRepositoryImpl.class.getResourceAsStream(
-                "/META-INF/maven/org.apache.jackrabbit/oak-core/pom.properties");
-        if (stream != null) {
-            try {
-                try {
-                    Properties properties = new Properties();
-                    properties.load(stream);
-                    return properties.getProperty("version");
-                } finally {
-                    stream.close();
-                }
-            } catch (IOException e) {
-                // ignore
-            }
-        }
-        return "SNAPSHOT";
     }
 }

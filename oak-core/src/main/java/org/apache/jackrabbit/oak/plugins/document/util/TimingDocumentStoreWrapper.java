@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -33,6 +34,8 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
@@ -40,7 +43,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * A DocumentStore wrapper that can be used to log and also time DocumentStore
  * calls.
  */
-public class TimingDocumentStoreWrapper implements DocumentStore {
+public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("base.debug", "true"));
     private static final AtomicInteger NEXT_ID = new AtomicInteger();
@@ -209,6 +212,25 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                               String indexedProperty, long startValue, long endValue)
+            throws DocumentStoreException {
+        try {
+            long start = now();
+            int result = base.remove(collection, indexedProperty, startValue, endValue);
+            updateAndLogTimes("remove", start, 0, 0);
+            if (logCommonCall()) {
+                logCommonCall(start, "remove " + collection + "; indexedProperty" + indexedProperty +
+                    "; range - (" + startValue + ", " + endValue + ")");
+            }
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+
+    @Override
     public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
         try {
             long start = now();
@@ -256,6 +278,25 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        try {
+            long start = now();
+            List<T> result = base.createOrUpdate(collection, updateOps);
+            updateAndLogTimes("createOrUpdate", start, 0, size(result));
+            if (logCommonCall()) {
+                List<String> ids = new ArrayList<String>();
+                for (UpdateOp op : updateOps) {
+                    ids.add(op.getId());
+                }
+                logCommonCall(start, "createOrUpdate " + collection + " " + updateOps + " " + ids);
+            }
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    @Override
     @CheckForNull
     public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
         try {
@@ -277,6 +318,18 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             long start = now();
             CacheInvalidationStats result = base.invalidateCache();
             updateAndLogTimes("invalidateCache", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+    
+    @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        try {
+            long start = now();
+            CacheInvalidationStats result = base.invalidateCache(keys);
+            updateAndLogTimes("invalidateCache3", start, 0, 0);
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -330,10 +383,10 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
 
     @Override
-    public CacheStats getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         try {
             long start = now();
-            CacheStats result = base.getCacheStats();
+            Iterable<CacheStats> result = base.getCacheStats();
             updateAndLogTimes("getCacheStats", start, 0, 0);
             return result;
         } catch (Exception e) {
@@ -345,6 +398,31 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     public Map<String, String> getMetadata() {
         return base.getMetadata();
     }
+
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        try {
+            long start = now();
+            long result = base.determineServerTimeDifferenceMillis();
+            updateAndLogTimes("determineServerTimeDifferenceMillis", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    @Override
+    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
+        try {
+            long start = now();
+            if (base instanceof RevisionListener) {
+                ((RevisionListener) base).updateAccessedRevision(revision, currentClusterId);
+            }
+            updateAndLogTimes("updateAccessedRevision", start, 0, 0);
+        } catch (Exception e) {
+            throw convert(e);
+        }
+   }
 
     private void logCommonCall(long start, String key) {
         int time = (int) (System.currentTimeMillis() - start);
@@ -389,7 +467,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     private static <T extends Document> int size(List<T> list) {
         int result = 0;
         for (T doc : list) {
-            result += doc.getMemory();
+            result += size(doc);
         }
         return result;
     }

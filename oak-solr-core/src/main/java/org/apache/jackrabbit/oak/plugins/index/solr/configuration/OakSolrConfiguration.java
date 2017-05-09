@@ -132,6 +132,32 @@ public interface OakSolrConfiguration {
     Collection<String> getUsedProperties();
 
     /**
+     * Make all nodes / documents matching a query that are descendants of a 'jcr:content' node collapse into such a
+     * node. That will result in resultsets being tipically much more compact in cases where most / all of the matching
+     * nodes match such a hierarchy.
+     *
+     * @return {@code true} if only the 'jcr:content' node should be returned for all its the matching descendants,
+     * {@code false} otherwise
+     */
+    boolean collapseJcrContentNodes();
+
+    /**
+     * Provide the name of the field to be used for indexing the collapsed path of each node when {@link #collapseJcrContentNodes()}
+     * is set to {@code true}.
+     *
+     * @return the name of the Solr field to be used for indexing and searching on collapsed paths.
+     */
+    @Nonnull
+    String getCollapsedPathField();
+
+    /**
+     * Provide the name of the field containing information about the depth of a certain path / node
+     *
+     * @return the name of the Solr field to be used for indexing and searching on path depth.
+     */
+    String getPathDepthField();
+
+    /**
      * Enum for describing Solr commit policy used in a certain instance
      */
     enum CommitPolicy {

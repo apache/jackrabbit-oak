@@ -20,11 +20,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -45,6 +47,8 @@ public class LastRevSingleNodeRecoveryTest {
     private Clock clock;
 
     private DocumentMK mk;
+
+    private DocumentMK mk2;
 
     public LastRevSingleNodeRecoveryTest(DocumentStoreFixture fixture) {
         this.fixture = fixture;
@@ -76,6 +80,7 @@ public class LastRevSingleNodeRecoveryTest {
         builder.setAsyncDelay(0)
                 .setClusterId(clusterId)
                 .clock(clock)
+                .setLeaseCheck(false)
                 .setDocumentStore(store);
         mk = builder.open();
         clock.waitUntil(Revision.getCurrentTimestamp());
@@ -111,13 +116,14 @@ public class LastRevSingleNodeRecoveryTest {
         // so that the current time is more than the current lease end
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
         // Recreate mk instance, to simulate fail condition and recovery on start
-        mk = openMK(0, mk.getNodeStore().getDocumentStore());
+        // Make sure to use a different variable for cleanup ; mk should not be disposed here
+        mk2 = openMK(0, mk.getNodeStore().getDocumentStore());
 
-        int pendingCount = mk.getPendingWriteCount();
+        int pendingCount = mk2.getPendingWriteCount();
         // Immediately check again, now should not have done any changes.
-        LastRevRecoveryAgent recoveryAgent = mk.getNodeStore().getLastRevRecoveryAgent();
+        LastRevRecoveryAgent recoveryAgent = mk2.getNodeStore().getLastRevRecoveryAgent();
         /** Now there should have been pendingCount updates **/
-        assertEquals(pendingCount, recoveryAgent.recover(mk.getClusterInfo().getId()));
+        assertEquals(pendingCount, recoveryAgent.recover(mk2.getClusterInfo().getId()));
     }
 
     @Test
@@ -168,10 +174,13 @@ public class LastRevSingleNodeRecoveryTest {
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
 
         LastRevRecoveryAgent recoveryAgent = mk.getNodeStore().getLastRevRecoveryAgent();
-        List<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
 
-        assertEquals(1, cids.size());
-        assertEquals(Integer.valueOf(1), cids.get(0));
+        // Post OAK-5337, a cluster node won't report itself as a candidate for recovery
+        // Recovery agent would still detect that recovery is required and calling
+        // recover on self would recover too (testLastRevRestore)
+        assertTrue(recoveryAgent.isRecoveryNeeded());
+        Iterable<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
+        assertEquals(0, Iterables.size(cids));
     }
     
     private void setupScenario() throws InterruptedException {
@@ -222,6 +231,9 @@ public class LastRevSingleNodeRecoveryTest {
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
         mk.dispose();
+        if ( mk2 != null ) {
+            mk2.dispose();
+        }
         fixture.dispose();
     }
 }

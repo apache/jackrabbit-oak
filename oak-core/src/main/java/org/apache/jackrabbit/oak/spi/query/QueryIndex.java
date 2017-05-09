@@ -24,6 +24,8 @@ import java.util.Map;
 
 import javax.annotation.CheckForNull;
 
+import aQute.bnd.annotation.ProviderType;
+
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
@@ -51,7 +53,16 @@ import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
  * even thought it will be set in the filter.
  */
 public interface QueryIndex {
-    
+
+    /**
+     * Returns the minimum cost which {@link #getCost(Filter, NodeState)} would return in the best possible case.
+     * <p>
+     * The implementation should return a static/cached value because it is called very often.
+     *
+     * @return the minimum cost for the index
+     */
+    double getMinimumCost();
+
     /**
      * Estimate the worst-case cost to query with the given filter. The returned
      * cost is a value between 1 (very fast; lookup of a unique node) and the
@@ -194,6 +205,7 @@ public interface QueryIndex {
     /**
      * An index plan.
      */
+    @ProviderType
     public interface IndexPlan extends Cloneable{
 
         /**
@@ -307,7 +319,15 @@ public interface QueryIndex {
          */
         @CheckForNull
         Object getAttribute(String name);
-        
+
+        /**
+         * Get the unique plan name.
+         *
+         * @return the plan name
+         */
+        @CheckForNull
+        String getPlanName();
+
         /**
          * A builder for index plans.
          */
@@ -325,6 +345,7 @@ public interface QueryIndex {
             protected PropertyRestriction propRestriction;
             protected String pathPrefix = "/";
             protected Map<String, Object> attributes = Maps.newHashMap();
+            protected String planName;
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -386,6 +407,11 @@ public interface QueryIndex {
                return this;
             }
 
+            public Builder setPlanName(String name) {
+                this.planName = name;
+                return this;
+             }
+
             public IndexPlan build() {
                 
                 return new IndexPlan() {
@@ -416,6 +442,7 @@ public interface QueryIndex {
                             Builder.this.pathPrefix;
                     private final Map<String, Object> attributes =
                             Builder.this.attributes;
+                    private final String planName = Builder.this.planName;
 
                     @Override
                     public String toString() {
@@ -522,6 +549,11 @@ public interface QueryIndex {
                     @Override
                     public Object getAttribute(String name) {
                         return attributes.get(name);
+                    }
+
+                    @Override
+                    public String getPlanName() {
+                        return planName;
                     }
                 };
             }

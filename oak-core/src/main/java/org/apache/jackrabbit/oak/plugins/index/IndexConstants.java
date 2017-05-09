@@ -35,6 +35,10 @@ public interface IndexConstants {
 
     String REINDEX_ASYNC_PROPERTY_NAME = "reindex-async";
 
+    String INDEXING_MODE_SYNC = "sync";
+
+    String INDEXING_MODE_NRT = "nrt";
+
     String ASYNC_PROPERTY_NAME = "async";
 
     String ASYNC_REINDEX_VALUE = "async-reindex";
@@ -42,6 +46,11 @@ public interface IndexConstants {
     String ENTRY_COUNT_PROPERTY_NAME = "entryCount";
 
     String KEY_COUNT_PROPERTY_NAME = "keyCount";
+    
+    /**
+     * The regular expression pattern of the values to be indexes.
+     */
+    String VALUE_PATTERN = "valuePattern";
 
     /**
      * Marks a unique property index.
@@ -67,4 +76,11 @@ public interface IndexConstants {
      * queries. Defaults to ['/'].
      */
     String QUERY_PATHS = "queryPaths";
+
+    /**
+     * Property name for indicating that given index is corrupt and should be excluded
+     * from further indexing. Its value is the date when this index was marked as
+     * corrupt
+     */
+    String CORRUPT_PROPERTY_NAME = "corrupt";
 }

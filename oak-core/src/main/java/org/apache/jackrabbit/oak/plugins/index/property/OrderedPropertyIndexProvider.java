@@ -17,25 +17,44 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
-
-@Component
+@Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(QueryIndexProvider.class)
 public class OrderedPropertyIndexProvider implements QueryIndexProvider {
-
+    private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexProvider.class);
+    private static int hits;
+    private static int threshold = OrderedIndex.TRACK_DEPRECATION_EVERY;
+    
     @Override
-    @Nonnull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex> of(new OrderedPropertyIndex());
+        if (getHits() % threshold == 0) {
+            LOG.warn(OrderedIndex.DEPRECATION_MESSAGE);            
+        }
+        return newArrayList();
+    }
+    
+    private synchronized int getHits() {
+        return hits++;
+    }
+    
+    /**
+     * used only for testing purposes. Not thread safe.
+     * 
+     * @param t
+     */
+    static void setThreshold(int t) {
+        threshold = t;
     }
 }

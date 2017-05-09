@@ -19,13 +19,23 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
+import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 /**
@@ -40,6 +50,22 @@ public class MeasureMemory {
 
     static final DocumentNodeStore STORE = new DocumentMK.Builder()
             .setAsyncDelay(0).getNodeStore();
+
+    static final Blob BLOB;
+    static final String BLOB_VALUE;
+
+    static {
+        try {
+            BLOB = STORE.createBlob(new RandomStream(1024 * 1024, 42));
+            NodeBuilder builder = STORE.getRoot().builder();
+            builder.child("binary").setProperty(new BinaryPropertyState("b", BLOB));
+            STORE.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            NodeState n = STORE.getRoot().getChildNode("binary");
+            BLOB_VALUE = ((DocumentNodeState) n).getPropertyAsString("b");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Test
     public void overhead() throws Exception {
@@ -129,13 +155,62 @@ public class MeasureMemory {
     }
 
     @Test
+    public void nodeWithBinaryProperty() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() {
+                DocumentNodeState n = generateNodeWithBinaryProperties(3);
+                return new Object[]{n, n.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
     public void revisionsKey() throws Exception {
         measureMemory(new Callable<Object[]>() {
             @Override
             public Object[] call() {
                 RevisionsKey k = new RevisionsKey(
-                        Revision.newRevision(0), Revision.newRevision(0));
+                        new RevisionVector(Revision.newRevision(0)),
+                        new RevisionVector(Revision.newRevision(0)));
                 return new Object[]{k, k.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void revisionVector() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() throws Exception {
+                RevisionVector rv = new RevisionVector(
+                        Revision.newRevision(0),
+                        Revision.newRevision(1),
+                        Revision.newRevision(2),
+                        Revision.newRevision(3));
+                return new Object[]{rv, rv.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void revisionVectorSingle() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() throws Exception {
+                RevisionVector rv = new RevisionVector(Revision.newRevision(0));
+                return new Object[]{rv, rv.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void revision() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() throws Exception {
+                Revision r = Revision.newRevision(0);
+                return new Object[]{r, r.getMemory() + OVERHEAD};
             }
         });
     }
@@ -167,13 +242,26 @@ public class MeasureMemory {
     }
 
     static DocumentNodeState generateNode(int propertyCount) {
-        DocumentNodeState n = new DocumentNodeState(STORE, new String("/hello/world"),
-                new Revision(1, 2, 3));
+        return generateNode(propertyCount, Collections.<PropertyState>emptyList());
+    }
+
+    static DocumentNodeState generateNode(int propertyCount, List<PropertyState> extraProps) {
+        List<PropertyState> props = Lists.newArrayList();
+        props.addAll(extraProps);
         for (int i = 0; i < propertyCount; i++) {
-            n.setProperty("property" + i, "\"values " + i + "\"");
+            String key = "property" + i;
+            props.add(STORE.createPropertyState(key, "\"values " + i + "\""));
         }
-        n.setLastRevision(new Revision(1, 2, 3));
-        return n;
+        return new DocumentNodeState(STORE, new String("/hello/world"),
+                new RevisionVector(new Revision(1, 2, 3)), props, false, new RevisionVector(new Revision(1, 2, 3)));
+    }
+
+    static DocumentNodeState generateNodeWithBinaryProperties(int propertyCount) {
+        List<PropertyState> props = Lists.newArrayList();
+        for (int i = 0; i < propertyCount; i++) {
+            props.add(STORE.createPropertyState("binary" + i, new String(BLOB_VALUE)));
+        }
+        return generateNode(0, props);
     }
 
     static BasicDBObject generateBasicObject(int propertyCount) {

@@ -27,8 +27,21 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
  */
 public interface DiffCollector {
 
-    Set<String> getResults(Filter filter);
-
+    /**
+     * Get the cost for the given filter, and prepare the result if the index
+     * can be used.
+     * 
+     * @param filter the filter
+     * @return the cost
+     */
     double getCost(Filter filter);
+
+    /**
+     * Get the result for this filter.
+     * 
+     * @param filter the filter
+     * @return the result
+     */
+    Set<String> getResults(Filter filter);
 
 }

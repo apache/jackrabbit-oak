@@ -46,7 +46,7 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
     @Before
     @Override
     public void setUpConnection() throws Exception {
-        mongoConnection = MongoUtils.getConnection();
+        mongoConnection = connectionFactory.getConnection();
         DB db = mongoConnection.getDB();
         MongoUtils.dropCollections(db);
         DocumentMK.Builder builder = new DocumentMK.Builder()

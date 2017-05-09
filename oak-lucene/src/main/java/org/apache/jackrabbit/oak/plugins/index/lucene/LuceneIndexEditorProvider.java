@@ -17,18 +17,33 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.IndexingQueue;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneDocumentHolder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
 /**
  * Service that provides Lucene based {@link IndexEditor}s
@@ -37,19 +52,160 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * @see IndexEditorProvider
  * 
  */
-@Component
-@Service(IndexEditorProvider.class)
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final IndexCopier indexCopier;
+    private final ExtractedTextCache extractedTextCache;
+    private final IndexAugmentorFactory augmentorFactory;
+    private LuceneIndexWriterFactory indexWriterFactory;
+    private final IndexTracker indexTracker;
+    private final MountInfoProvider mountInfoProvider;
+    private GarbageCollectableBlobStore blobStore;
+    private IndexingQueue indexingQueue;
+
+    /**
+     * Number of indexed Lucene document that can be held in memory
+     * This ensures that for very large commit memory consumption
+     * is bounded
+     */
+    private int inMemoryDocsLimit = Integer.getInteger("oak.lucene.inMemoryDocsLimit", 500);
+
+    public LuceneIndexEditorProvider() {
+        this(null);
+    }
+
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier) {
+        //Disable the cache by default in ExtractedTextCache
+        this(indexCopier, new ExtractedTextCache(0, 0));
+    }
+
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
+                                     ExtractedTextCache extractedTextCache) {
+        this(indexCopier, extractedTextCache, null, Mounts.defaultMountInfoProvider());
+    }
+
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
+                                     ExtractedTextCache extractedTextCache,
+                                     @Nullable IndexAugmentorFactory augmentorFactory,
+                                     MountInfoProvider mountInfoProvider) {
+        this(indexCopier, null, extractedTextCache, augmentorFactory, mountInfoProvider);
+    }
+
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
+                                     @Nullable IndexTracker indexTracker,
+                                     ExtractedTextCache extractedTextCache,
+                                     @Nullable IndexAugmentorFactory augmentorFactory,
+                                     MountInfoProvider mountInfoProvider) {
+        this.indexCopier = indexCopier;
+        this.indexTracker = indexTracker;
+        this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
+        this.augmentorFactory = augmentorFactory;
+        this.mountInfoProvider = checkNotNull(mountInfoProvider);
+    }
 
     @Override
     public Editor getIndexEditor(
-            @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+            @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root,
+            @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexEditor(root, definition, callback);
+            checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
+                    "ContextAwareCallback [%s]", callback);
+            IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
+            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, indexCopier, blobStore);
+            LuceneIndexWriterFactory writerFactory = indexWriterFactory;
+            IndexDefinition indexDefinition = null;
+            boolean asyncIndexing = true;
+            if (!indexingContext.isAsync() && IndexDefinition.supportsSyncOrNRTIndexing(definition)) {
+
+                //Would not participate in reindexing. Only interested in
+                //incremental indexing
+                if (indexingContext.isReindexing()){
+                    return null;
+                }
+
+                CommitContext commitContext = getCommitContext(indexingContext);
+                if (commitContext == null){
+                    //Logically there should not be any commit without commit context. But
+                    //some initializer code does the commit with out it. So ignore such calls with
+                    //warning now
+                    //TODO Revisit use of warn level once all such cases are analyzed
+                    log.warn("No CommitContext found for commit", new Exception());
+                    return null;
+                }
+
+                //TODO Also check if index has been done once
+
+                writerFactory = new LocalIndexWriterFactory(getDocumentHolder(commitContext),
+                        indexingContext.getIndexPath());
+
+                //IndexDefinition from tracker might differ from one passed here for reindexing
+                //case which should be fine. However reusing existing definition would avoid
+                //creating definition instance for each commit as this gets executed for each commit
+                if (indexTracker != null){
+                    indexDefinition = indexTracker.getIndexDefinition(indexingContext.getIndexPath());
+                    if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)){
+                        log.debug("Detected change in NodeType registry for index {}. Would not use " +
+                                "existing index definition", indexDefinition.getIndexPath());
+                        indexDefinition = null;
+                    }
+                }
+
+                //Pass on a read only builder to ensure that nothing gets written
+                //at all to NodeStore for local indexing.
+                //TODO [hybrid] This would cause issue with Facets as for faceted fields
+                //some stuff gets written to NodeBuilder. That logic should be refactored
+                //to be moved to LuceneIndexWriter
+                definition = new ReadOnlyBuilder(definition.getNodeState());
+
+                asyncIndexing = false;
+            }
+
+            LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
+                    writerFactory, extractedTextCache, augmentorFactory, indexingContext, asyncIndexing);
+            return new LuceneIndexEditor(context);
         }
         return null;
     }
 
+    IndexCopier getIndexCopier() {
+        return indexCopier;
+    }
 
+    IndexingQueue getIndexingQueue() {
+        return indexingQueue;
+    }
+
+    ExtractedTextCache getExtractedTextCache() {
+        return extractedTextCache;
+    }
+
+    public void setInMemoryDocsLimit(int inMemoryDocsLimit) {
+        this.inMemoryDocsLimit = inMemoryDocsLimit;
+    }
+
+    private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
+        LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(LuceneDocumentHolder.NAME);
+        if (holder == null) {
+            holder = new LuceneDocumentHolder(indexingQueue, inMemoryDocsLimit);
+            commitContext.set(LuceneDocumentHolder.NAME, holder);
+        }
+        return holder;
+    }
+
+    public void setBlobStore(@Nullable GarbageCollectableBlobStore blobStore) {
+        this.blobStore = blobStore;
+    }
+
+    public void setIndexingQueue(IndexingQueue indexingQueue) {
+        this.indexingQueue = indexingQueue;
+    }
+
+    GarbageCollectableBlobStore getBlobStore() {
+        return blobStore;
+    }
+
+    private static CommitContext getCommitContext(IndexingContext indexingContext) {
+        return (CommitContext) indexingContext.getCommitInfo().getInfo().get(CommitContext.NAME);
+    }
 }

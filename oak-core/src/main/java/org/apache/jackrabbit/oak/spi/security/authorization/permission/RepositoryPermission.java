@@ -39,7 +39,7 @@ public interface RepositoryPermission {
      * </ul>
      * @return {@code true} if the specified repository level permissions are
      * {@code granted}; {@code false} otherwise
-     * @see {@link Permissions#isRepositoryPermission(long)}
+     * @see Permissions#isRepositoryPermission(long)
      */
     boolean isGranted(long repositoryPermissions);
 

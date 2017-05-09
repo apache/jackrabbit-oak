@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -129,6 +129,13 @@ public class UserInitializerTest extends AbstractSecurityTest {
         Iterable<String> declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(
                 new String[]{UserConstants.NT_REP_AUTHORIZABLE},
+                Iterables.toArray(declaringNtNames, String.class));
+
+        Tree repMembers = oakIndex.getChild("repMembers");
+        assertIndexDefinition(repMembers, UserConstants.REP_MEMBERS, false);
+        declaringNtNames = TreeUtil.getStrings(repMembers, IndexConstants.DECLARING_NODE_TYPES);
+        assertArrayEquals(
+                new String[]{UserConstants.NT_REP_MEMBER_REFERENCES},
                 Iterables.toArray(declaringNtNames, String.class));
     }
 

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -99,6 +100,24 @@ public class PasswordUtilTest {
     }
 
     @Test
+    public void testBuildPasswordHashNoIterations() throws Exception {
+        String hash = PasswordUtil.buildPasswordHash("pw", PasswordUtil.DEFAULT_ALGORITHM, PasswordUtil.DEFAULT_SALT_SIZE, 1);
+        assertTrue(PasswordUtil.isSame(hash, "pw"));
+    }
+
+    @Test
+    public void testBuildPasswordHashNoSalt() throws Exception {
+        String hash = PasswordUtil.buildPasswordHash("pw", PasswordUtil.DEFAULT_ALGORITHM, 0, PasswordUtil.DEFAULT_ITERATIONS);
+        assertTrue(PasswordUtil.isSame(hash, "pw"));
+    }
+
+    @Test
+    public void testBuildPasswordHashNoSaltNoIterations() throws Exception {
+        String jr2Hash = "{"+PasswordUtil.DEFAULT_ALGORITHM+"}" + Text.digest(PasswordUtil.DEFAULT_ALGORITHM, "pw".getBytes("utf-8"));
+        assertTrue(PasswordUtil.isSame(jr2Hash, "pw"));
+    }
+
+    @Test
     public void testIsPlainTextPassword() throws Exception {
         for (String pw : plainPasswords) {
             assertTrue(pw + " should be plain text.", PasswordUtil.isPlainTextPassword(pw));
@@ -147,6 +166,14 @@ public class PasswordUtilTest {
             }
             previous = pw;
         }
+    }
+
+    @Test
+    public void testIsSameNoSuchAlgorithmException() throws Exception {
+        String hash = PasswordUtil.buildPasswordHash("pw");
+        String invalid = "{invalidAlgorithm}" + hash.substring(hash.indexOf('}')+1);
+
+        assertFalse(PasswordUtil.isSame(invalid, "pw"));
     }
     
     @Test

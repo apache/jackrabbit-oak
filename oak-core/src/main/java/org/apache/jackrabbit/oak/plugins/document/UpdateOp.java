@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class UpdateOp {
 
-    final String id;
+    private final String id;
 
     private boolean isNew;
     private boolean isDelete;
@@ -49,24 +49,33 @@ public final class UpdateOp {
      * @param id the primary key
      * @param isNew whether this is a new document
      */
-    UpdateOp(String id, boolean isNew) {
-        this(id, isNew, false, new HashMap<Key, Operation>());
+    public UpdateOp(@Nonnull String id, boolean isNew) {
+        this(id, isNew, false, new HashMap<Key, Operation>(), null);
     }
 
-    private UpdateOp(String id, boolean isNew, boolean isDelete,
-                     Map<Key, Operation> changes) {
-        this.id = id;
+    private UpdateOp(@Nonnull String id, boolean isNew, boolean isDelete,
+                     @Nonnull Map<Key, Operation> changes,
+                     @Nullable Map<Key, Condition> conditions) {
+        this.id = checkNotNull(id, "id must not be null");
         this.isNew = isNew;
         this.isDelete = isDelete;
-        this.changes = changes;
+        this.changes = checkNotNull(changes);
+        this.conditions = conditions;
     }
 
     static UpdateOp combine(String id, Iterable<UpdateOp> ops) {
         Map<Key, Operation> changes = Maps.newHashMap();
+        Map<Key, Condition> conditions = Maps.newHashMap();
         for (UpdateOp op : ops) {
             changes.putAll(op.getChanges());
+            if (op.conditions != null) {
+                conditions.putAll(op.conditions);
+            }
         }
-        return new UpdateOp(id, false, false, changes);
+        if (conditions.isEmpty()) {
+            conditions = null;
+        }
+        return new UpdateOp(id, false, false, changes, conditions);
     }
 
     /**
@@ -76,7 +85,7 @@ public final class UpdateOp {
      * @param id the primary key.
      */
     public UpdateOp shallowCopy(String id) {
-        return new UpdateOp(id, isNew, isDelete, changes);
+        return new UpdateOp(id, isNew, isDelete, changes, conditions);
     }
 
     /**
@@ -86,10 +95,15 @@ public final class UpdateOp {
      * @return a copy of this operation.
      */
     public UpdateOp copy() {
+        Map<Key, Condition> conditionMap = null;
+        if (conditions != null) {
+            conditionMap = new HashMap<Key, Condition>(conditions);
+        }
         return new UpdateOp(id, isNew, isDelete,
-                new HashMap<Key, Operation>(changes));
+                new HashMap<Key, Operation>(changes), conditionMap);
     }
 
+    @Nonnull
     public String getId() {
         return id;
     }
@@ -146,6 +160,19 @@ public final class UpdateOp {
     }
 
     /**
+     * Remove a property.
+     *
+     * @param property the property name
+     */
+    public void remove(@Nonnull String property) {
+        if (Document.ID.equals(property)) {
+            throw new IllegalArgumentException(Document.ID + " must not be removed");
+        }
+        Operation op = new Operation(Operation.Type.REMOVE, null);
+        changes.put(new Key(property, null), op);
+    }
+
+    /**
      * Remove a map entry.
      * The property is a map of revisions / values.
      *
@@ -158,14 +185,38 @@ public final class UpdateOp {
     }
 
     /**
-     * Set the property to the given value.
+     * Set the property to the given long value.
      *
      * @param property the property name
      * @param value the value
      */
-    void set(String property, Object value) {
-        Operation op = new Operation(Operation.Type.SET, value);
-        changes.put(new Key(property, null), op);
+    public void set(String property, long value) {
+        internalSet(property, value);
+    }
+
+    /**
+     * Set the property to the given boolean value.
+     *
+     * @param property the property name
+     * @param value the value
+     */
+    public void set(String property, boolean value) {
+        internalSet(property, value);
+    }
+
+    /**
+     * Set the property to the given String value.
+     * <p>
+     * Note that {@link Document#ID} must not be set using this method;
+     * it is sufficiently specified by the id parameter set in the constructor.
+     *
+     * @param property the property name
+     * @param value the value
+     * @throws IllegalArgumentException
+     *             if an attempt is made to set {@link Document#ID}.
+     */
+    public void set(String property, String value) {
+        internalSet(property, value);
     }
 
     /**
@@ -213,21 +264,59 @@ public final class UpdateOp {
     }
 
     /**
+     * Checks if the property is equal to the given value.
+     *
+     * @param property the name of the property or map.
+     * @param value the value to compare to ({@code null} checks both for non-existence and the value being null)
+     */
+    void equals(@Nonnull String property, @Nullable Object value) {
+        equals(property, null, value);
+    }
+
+    /**
      * Checks if the property or map entry is equal to the given value.
+     *
+     * @param property the name of the property or map.
+     * @param revision the revision within the map or {@code null} if this check
+     *                 is for a property.
+     * @param value the value to compare to ({@code null} checks both for non-existence and the value being null)
+     */
+    void equals(@Nonnull String property,
+                @Nullable Revision revision,
+                @Nullable Object value) {
+        if (isNew) {
+            throw new IllegalStateException("Cannot perform equals check on new document");
+        }
+        getOrCreateConditions().put(new Key(property, revision),
+                Condition.newEqualsCondition(value));
+    }
+
+    /**
+     * Checks if the property does not exist or is not equal to the given value.
+     *
+     * @param property the name of the property or map.
+     * @param value the value to compare to.
+     */
+    void notEquals(@Nonnull String property, @Nullable Object value) {
+        notEquals(property, null, value);
+    }
+
+    /**
+     * Checks if the property or map entry does not exist or is not equal to the given value.
      *
      * @param property the name of the property or map.
      * @param revision the revision within the map or {@code null} if this check
      *                 is for a property.
      * @param value the value to compare to.
      */
-    void equals(@Nonnull String property,
-                @Nullable Revision revision,
-                @Nonnull Object value) {
+    void notEquals(@Nonnull String property,
+                   @Nullable Revision revision,
+                   @Nullable Object value) {
         if (isNew) {
-            throw new IllegalStateException("Cannot perform equals check on new document");
+            throw new IllegalStateException("Cannot perform notEquals check on new document");
         }
         getOrCreateConditions().put(new Key(property, revision),
-                Condition.newEqualsCondition(value));
+                Condition.newNotEqualsCondition(value));
     }
 
     /**
@@ -254,7 +343,11 @@ public final class UpdateOp {
 
     @Override
     public String toString() {
-        return "key: " + id + " " + (isNew ? "new" : "update") + " " + changes;
+        String s = "key: " + id + " " + (isNew ? "new" : "update") + " " + changes;
+        if (conditions != null) {
+            s += " conditions " + conditions;
+        }
+        return s;
     }
 
     private Map<Key, Condition> getOrCreateConditions() {
@@ -262,6 +355,15 @@ public final class UpdateOp {
             conditions = Maps.newHashMap();
         }
         return conditions;
+    }
+
+    private void internalSet(String property, Object value) {
+        if (Document.ID.equals(property)) {
+            throw new IllegalArgumentException(
+                    "updateOp.id (" + id + ") must not set " + Document.ID);
+        }
+        Operation op = new Operation(Operation.Type.SET, value);
+        changes.put(new Key(property, null), op);
     }
 
     /**
@@ -304,8 +406,13 @@ public final class UpdateOp {
              * Remove the sub-key / value pair.
              * The value in the stored node is a map.
              */
-            REMOVE_MAP_ENTRY
+            REMOVE_MAP_ENTRY,
 
+            /**
+             * Remove the value.
+             * The sub-key is not used.
+             */
+            REMOVE
          }
 
 
@@ -332,17 +439,18 @@ public final class UpdateOp {
         public Operation getReverse() {
             Operation reverse = null;
             switch (type) {
-            case INCREMENT:
-                reverse = new Operation(Type.INCREMENT, -(Long) value);
-                break;
-            case SET:
-            case MAX:
-            case REMOVE_MAP_ENTRY:
-                // nothing to do
-                break;
-            case SET_MAP_ENTRY:
-                reverse = new Operation(Type.REMOVE_MAP_ENTRY, null);
-                break;
+                case INCREMENT:
+                    reverse = new Operation(Type.INCREMENT, -(Long) value);
+                    break;
+                case SET:
+                case MAX:
+                case REMOVE_MAP_ENTRY:
+                case REMOVE:
+                    // nothing to do
+                    break;
+                case SET_MAP_ENTRY:
+                    reverse = new Operation(Type.REMOVE_MAP_ENTRY, null);
+                    break;
             }
             return reverse;
         }
@@ -374,8 +482,12 @@ public final class UpdateOp {
             /**
              * Checks if a map entry equals a given value.
              */
-            EQUALS
+            EQUALS,
 
+            /**
+             * Checks if a map entry does not equal a given value.
+             */
+            NOTEQUALS
         }
 
         /**
@@ -399,8 +511,18 @@ public final class UpdateOp {
          * @param value the value to compare to.
          * @return the equals condition.
          */
-        public static Condition newEqualsCondition(@Nonnull Object value) {
-            return new Condition(Type.EQUALS, checkNotNull(value));
+        public static Condition newEqualsCondition(@Nullable Object value) {
+            return new Condition(Type.EQUALS, value);
+        }
+
+        /**
+         * Creates a new notEquals condition with the given value.
+         *
+         * @param value the value to compare to.
+         * @return the notEquals condition.
+         */
+        public static Condition newNotEqualsCondition(@Nullable Object value) {
+            return new Condition(Type.NOTEQUALS, value);
         }
 
         @Override
@@ -462,5 +584,4 @@ public final class UpdateOp {
             return false;
         }
     }
-
 }

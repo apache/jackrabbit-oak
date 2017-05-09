@@ -20,29 +20,24 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static java.io.File.createTempFile;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -51,12 +46,39 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class RefreshOnGCTest {
-    private FileStore fileStore;
+    private Callable<Void> compact;
     private Repository repository;
     private GCMonitorTracker gcMonitor;
 
+    enum Fixture {
+        SEGMENT_TAR(false);
+
+        private final boolean persistedMap;
+
+        Fixture(boolean persistedMap) {
+            this.persistedMap = persistedMap;
+        }
+
+        public boolean usePersistedMap() {
+            return persistedMap;
+        }
+    }
+
+    private NodeStore createSegmentTarStore(File directory, GCMonitor gcMonitor) throws Exception {
+        final org.apache.jackrabbit.oak.segment.file.FileStore fileStore =
+                fileStoreBuilder(directory).withGCMonitor(gcMonitor).build();
+        compact = new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                fileStore.compact();
+                return null;
+            }
+        };
+        return SegmentNodeStoreBuilders.builder(fileStore).build();
+    }
+
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         File directory = createTempFile(getClass().getSimpleName(), "test", new File("target"));
         directory.delete();
         directory.mkdir();
@@ -64,20 +86,8 @@ public class RefreshOnGCTest {
         Whiteboard whiteboard = new DefaultWhiteboard();
         gcMonitor = new GCMonitorTracker();
         gcMonitor.start(whiteboard);
-        fileStore = newFileStore(directory)
-                .withGCMonitor(gcMonitor)
-                .create()
-                .setCompactionStrategy(new CompactionStrategy(
-                        false, false, CLEAN_NONE, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
-                    @Override
-                    public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-                        setHead.call();
-                        return true;
-                    }
-                });
 
-        NodeStore nodeStore = new SegmentNodeStore(fileStore);
-        Oak oak = new Oak(nodeStore);
+        Oak oak = new Oak(createSegmentTarStore(directory, gcMonitor));
         oak.with(whiteboard);
         repository = new Jcr(oak).createRepository();
     }
@@ -91,7 +101,7 @@ public class RefreshOnGCTest {
     }
 
     @Test
-    public void compactionCausesRefresh() throws RepositoryException, InterruptedException, ExecutionException {
+    public void compactionCausesRefresh() throws Exception {
         Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         try {
             Node root = session.getRootNode();
@@ -100,7 +110,7 @@ public class RefreshOnGCTest {
 
             addNode(repository, "two");
 
-            fileStore.compact();
+            compact.call();
             assertTrue(root.hasNode("one"));
             assertTrue("Node two must be visible as compaction should cause the session to refresh",
                     root.hasNode("two"));

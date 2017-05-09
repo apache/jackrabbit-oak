@@ -31,9 +31,10 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -41,7 +42,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -53,10 +56,10 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
-import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
@@ -89,6 +92,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         }
     }
 
+    @Override
     public AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         if (oakPath != null && isSupportedPath(oakPath)) {
@@ -100,24 +104,31 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         return new AccessControlPolicy[0];
     }
 
+    @Override
     public AccessControlPolicy[] getEffectivePolicies(String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
 
-        Root r = getRoot().getContentSession().getLatestRoot();
-        List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
-        while (!Strings.isNullOrEmpty(oakPath)) {
-            if (oakPath != null && isSupportedPath(oakPath)) {
-                CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath));
-                if (cug != null) {
-                    effective.add(cug);
+        boolean enabled = config.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
+        if (enabled) {
+            Root r = getRoot().getContentSession().getLatestRoot();
+            List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
+            while (oakPath != null) {
+                if (isSupportedPath(oakPath)) {
+                    CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath));
+                    if (cug != null) {
+                        effective.add(cug);
+                    }
                 }
+                oakPath = (PathUtils.denotesRoot(oakPath)) ? null : PathUtils.getAncestorPath(oakPath, 1);
             }
-            oakPath = Text.getRelativeParent(oakPath, 1);
+            return effective.toArray(new AccessControlPolicy[effective.size()]);
+        } else {
+            return new AccessControlPolicy[0];
         }
-        return effective.toArray(new AccessControlPolicy[effective.size()]);
     }
 
+    @Override
     public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         if (oakPath == null || !isSupportedPath(oakPath)) {
@@ -133,6 +144,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         }
     }
 
+    @Override
     public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         if (isSupportedPath(oakPath)) {
@@ -143,6 +155,13 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             if (!CugUtil.definesCug(cug)) {
                 throw new AccessControlException("Unexpected primary type of node rep:cugPolicy.");
             } else {
+                // remove the rep:CugMixin if it has been explicitly added upon setPolicy
+                Set<String> mixins = Sets.newHashSet(TreeUtil.getNames(tree, NodeTypeConstants.JCR_MIXINTYPES));
+                if (mixins.remove(MIX_REP_CUG_MIXIN)) {
+                    tree.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, NAMES);
+                } else {
+                    log.debug("Cannot remove mixin type " + MIX_REP_CUG_MIXIN);
+                }
                 cug.remove();
             }
         } else {
@@ -150,6 +169,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         }
     }
 
+    @Override
     public void setPolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         if (isSupportedPath(oakPath)) {
@@ -177,18 +197,21 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     //-------------------------------------< JackrabbitAccessControlManager >---
 
+    @Override
     public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
-        // TODO
+        // editing by 'principal' is not supported
         return new JackrabbitAccessControlPolicy[0];
     }
 
+    @Override
     public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
-        // TODO
+        // editing by 'principal' is not supported
         return new JackrabbitAccessControlPolicy[0];
     }
 
+    @Override
     public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
-        // TODO
+        // editing by 'principal' is not supported
         return new AccessControlPolicy[0];
     }
 

@@ -22,7 +22,6 @@ import java.util.Set;
 
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 
 /**
@@ -39,7 +38,6 @@ public final class SystemSubject {
 
     private static Subject createSystemSubject() {
         Set<? extends Principal> principals = Collections.singleton(SystemPrincipal.INSTANCE);
-        AuthInfo info = new AuthInfoImpl(SystemPrincipal.INSTANCE.getName(), null, principals);
-        return new Subject(true, principals, Collections.singleton(info), Collections.<Object>emptySet());
+        return new Subject(true, principals, Collections.<Object>emptySet(), Collections.<Object>emptySet());
     }
 }

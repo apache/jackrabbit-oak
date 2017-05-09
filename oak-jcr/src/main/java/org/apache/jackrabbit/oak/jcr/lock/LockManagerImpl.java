@@ -71,7 +71,7 @@ public class LockManagerImpl implements LockManager {
     public void addLockToken(final String lockToken)
             throws RepositoryException {
         try {
-            delegate.performVoid(new LockOperation(sessionContext, lockToken, "addLockToken") {
+            delegate.performVoid(new LockOperation<Void>(sessionContext, lockToken, "addLockToken") {
                 @Override
                 protected void performVoid(@Nonnull NodeDelegate node) throws LockException {
                     if (node.holdsLock(false)) { // TODO: check ownership?
@@ -169,12 +169,12 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public void unlock(String absPath) throws RepositoryException {
-        delegate.performVoid(new LockOperation(sessionContext, absPath, "unlock") {
+        delegate.performVoid(new LockOperation<Void>(sessionContext, absPath, "unlock") {
             @Override
             protected void performVoid(@Nonnull NodeDelegate node)
                     throws RepositoryException {
                 String path = node.getPath();
-                if (canUnlock(path, node)) {
+                if (canUnlock(node)) {
                     node.unlock();
                     sessionContext.getSessionScopedLocks().remove(path);
                     sessionContext.getOpenScopedLocks().remove(path);
@@ -183,19 +183,27 @@ public class LockManagerImpl implements LockManager {
                     throw new LockException("Not an owner of the lock " + path);
                 }
             }
-
-            private boolean canUnlock(String path, NodeDelegate node) {
-                if (sessionContext.getSessionScopedLocks().contains(path)
-                        || sessionContext.getOpenScopedLocks().contains(path)) {
-                    return true;
-                } else if (sessionContext.getAttributes().get(RELAXED_LOCKING) == TRUE) {
-                    String user = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
-                    return node.isLockOwner(user) || isAdmin(sessionContext, user);
-                } else {
-                    return false;
-                }
-            }
         });
+    }
+    
+    /**
+     * Verifies if the current <tt>sessionContext</tt> can unlock the specified <tt>node</tt>
+     * 
+     * @param node the node state to check
+     * 
+     * @return true if the current <tt>sessionContext</tt> can unlock the specified <tt>node</tt>
+     */
+    public boolean canUnlock(NodeDelegate node) {
+        String path = node.getPath();
+        if (sessionContext.getSessionScopedLocks().contains(path)
+                || sessionContext.getOpenScopedLocks().contains(path)) {
+            return true;
+        } else if (sessionContext.getAttributes().get(RELAXED_LOCKING) == TRUE) {
+            String user = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
+            return node.isLockOwner(user) || isAdmin(sessionContext, user);
+        } else {
+            return false;
+        }
     }
 
     private boolean isAdmin(SessionContext sessionContext, String user) {

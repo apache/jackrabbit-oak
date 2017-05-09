@@ -24,15 +24,22 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class RepositoryManagerTest {
@@ -41,11 +48,8 @@ public class RepositoryManagerTest {
 
     @Test
     public void executorSetup() throws Exception {
-        context.registerService(SecurityProvider.class, new OpenSecurityProvider());
-        context.registerService(NodeStore.class, new MemoryNodeStore());
+        registerRequiredServices();
 
-        //Due to SLING-4472
-        RepositoryManager.ignoreFrameworkProperties = true;
         context.registerInjectActivateService(new RepositoryManager());
 
         Executor executor = context.getService(Executor.class);
@@ -63,6 +67,30 @@ public class RepositoryManagerTest {
 
         latch.await(5, TimeUnit.SECONDS);
         assertTrue(invoked.get());
+    }
+
+    @Test
+    public void repositoryShutdown() throws Exception{
+        registerRequiredServices();
+
+        RepositoryManager mgr = context.registerInjectActivateService(new RepositoryManager());
+        assertNotNull("MBean should be registered", context.getService(RepositoryManagementMBean.class));
+
+        mgr.deactivate();
+
+        assertNull("MBean should have been removed upon repository shutdown",
+                context.getService(RepositoryManagementMBean.class));
+
+    }
+
+
+    private void registerRequiredServices() {
+        context.registerService(SecurityProvider.class, new OpenSecurityProvider());
+        context.registerService(NodeStore.class, new MemoryNodeStore());
+        context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider(),
+                ImmutableMap.<String, Object>of("type", "property"));
+        context.registerService(IndexEditorProvider.class, new ReferenceEditorProvider(),
+                ImmutableMap.<String, Object>of("type", "reference"));
     }
 
 }

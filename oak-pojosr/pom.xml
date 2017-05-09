@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.4-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -41,7 +41,7 @@
       <plugin>
         <groupId>org.codehaus.gmaven</groupId>
         <artifactId>gmaven-plugin</artifactId>
-        <version>1.4</version>
+        <version>1.5</version>
         <!--suppress MavenModelInspection -->
         <configuration>
           <providerSelection>2.0</providerSelection>
@@ -77,35 +77,21 @@
             <exclude>**/org.apache.jackrabbit.oak.security.user.UserConfigurationImpl.config</exclude>
             <exclude>**/org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider.config</exclude>
             <exclude>**/org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.config</exclude>
-            <exclude>**/org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.config</exclude>
             <exclude>**/oak-base-config.json</exclude>
             <exclude>**/oak-tar-config.json</exclude>
           </excludes>
         </configuration>
       </plugin>
     </plugins>
-    <pluginManagement>
-      <plugins>
-        <!-- Some component is creating derby.log in test. Need to be deleted-->
-        <plugin>
-          <artifactId>maven-clean-plugin</artifactId>
-          <version>2.5</version>
-          <configuration>
-            <filesets>
-              <fileset>
-                <directory>${project.basedir}</directory>
-                <includes>
-                  <include>derby.log</include>
-                </includes>
-              </fileset>
-            </filesets>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
   </build>
 
   <dependencies>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-segment-tar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
@@ -114,6 +100,7 @@
     <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongo-java-driver</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
@@ -123,31 +110,13 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.4</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>log4j-over-slf4j</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>jcl-over-slf4j</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>jul-to-slf4j</artifactId>
     </dependency>
 
     <!-- Required to route OSGi LogEvents to Slf4j-->
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.commons.logservice</artifactId>
-      <version>1.0.2</version>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
+      <version>1.0.4</version>
     </dependency>
 
     <!-- Findbugs annotations -->
@@ -158,39 +127,55 @@
 
     <!-- Pojo SR -->
     <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <version>4.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
-      <version>4.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>com.googlecode.pojosr</groupId>
-      <artifactId>de.kalpatec.pojosr.framework.bare</artifactId>
-      <version>0.2.1</version>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.connect</artifactId>
+      <version>0.1.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.osgi</groupId>
+          <artifactId>org.osgi.core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.osgi</groupId>
+          <artifactId>org.osgi.compendium</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.scr</artifactId>
       <version>1.8.2</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>animal-sniffer-annotations</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.configadmin</artifactId>
-      <version>1.8.0</version>
+      <version>1.8.6</version>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.fileinstall</artifactId>
-      <version>3.2.8</version>
+      <version>3.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.metatype</artifactId>
+      <version>1.0.12</version>
+      <exclusions>
+        <exclusion>
+          <groupId>net.sf.kxml</groupId>
+          <artifactId>kxml2</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.jaas</artifactId>
-      <version>0.0.2</version>
     </dependency>
     <dependency>
       <groupId>org.apache.aries.jmx</groupId>
@@ -213,11 +198,13 @@
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>
       <version>${tika.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-parsers</artifactId>
       <version>${tika.version}</version>
+      <scope>test</scope>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>
@@ -229,30 +216,54 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
       <version>${lucene.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-analyzers-common</artifactId>
       <version>${lucene.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-queryparser</artifactId>
       <version>${lucene.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-queries</artifactId>
       <version>${lucene.version}</version>
+      <scope>test</scope>
     </dependency>
 
 
     <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-api</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-federated</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-core</artifactId>
+      <classifier>tests</classifier>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -262,6 +273,7 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <version>${h2.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.gmongo</groupId>
@@ -273,6 +285,33 @@
       <groupId>org.codehaus.groovy</groupId>
       <artifactId>groovy-all</artifactId>
       <version>${groovy.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>log4j-over-slf4j</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>1.10.19</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

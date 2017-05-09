@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.slf4j.Logger;
@@ -36,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements a <code>DocumentStore</code> wrapper and logs all calls.
  */
-public class LoggingDocumentStoreWrapper implements DocumentStore {
+public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoggingDocumentStoreWrapper.class);
 
@@ -171,6 +173,24 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> int remove(final Collection<T> collection,
+                                           final String indexedProperty, final long startValue, final long endValue)
+            throws DocumentStoreException {
+        try {
+            logMethod("remove", collection, indexedProperty, startValue, endValue);
+            return logResult(new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    return store.remove(collection, indexedProperty, startValue, endValue);
+                }
+            });
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override
     public <T extends Document> boolean create(final Collection<T> collection,
                                                final List<UpdateOp> updateOps) {
         try {
@@ -225,6 +245,23 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> List<T> createOrUpdate(final Collection<T> collection,
+                                                       final List<UpdateOp> updateOps) {
+        try {
+            logMethod("createOrUpdate", collection, updateOps);
+            return logResult(new Callable<List<T>>() {
+                @Override
+                public List<T> call() throws Exception {
+                    return store.createOrUpdate(collection, updateOps);
+                }
+            });
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override
     public <T extends Document> T findAndUpdate(final Collection<T> collection,
                                                 final UpdateOp update) {
         try {
@@ -246,6 +283,17 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         try {
             logMethod("invalidateCache");
             return store.invalidateCache();
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+    
+    @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        try {
+            logMethod("invalidateCache", keys);
+            return store.invalidateCache(keys);
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -303,12 +351,12 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public CacheStats getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         try {
             logMethod("getCacheStats");
-            return logResult(new Callable<CacheStats>() {
+            return logResult(new Callable<Iterable<CacheStats>>() {
                 @Override
-                public CacheStats call() throws Exception {
+                public Iterable<CacheStats> call() throws Exception {
                     return store.getCacheStats();
                 }
             });
@@ -321,6 +369,14 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     @Override
     public Map<String, String> getMetadata() {
         return store.getMetadata();
+    }
+
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        logMethod("determineServerTimeDifferenceMillis", "start");
+        long result = store.determineServerTimeDifferenceMillis();
+        logMethod("determineServerTimeDifferenceMillis", "end", result);
+        return result;
     }
 
     private void logMethod(String methodName, Object... args) {
@@ -371,5 +427,13 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             System.out.println(out);
         }
         LOG.info(out);
+    }
+
+    @Override
+    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
+        logMethod("updateAccessedRevision", revision);
+        if (store instanceof RevisionListener) {
+            ((RevisionListener) store).updateAccessedRevision(revision, currentClusterId);
+        }
     }
 }

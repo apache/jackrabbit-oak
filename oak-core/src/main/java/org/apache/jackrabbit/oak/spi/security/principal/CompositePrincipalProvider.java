@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -40,6 +39,21 @@ public class CompositePrincipalProvider implements PrincipalProvider {
 
     public CompositePrincipalProvider(List<PrincipalProvider> providers) {
         this.providers = checkNotNull(providers);
+    }
+
+    public static PrincipalProvider of(@Nonnull List<PrincipalProvider> providers) {
+        PrincipalProvider pp;
+        switch (providers.size()) {
+            case 0 :
+                pp = EmptyPrincipalProvider.INSTANCE;
+                break;
+            case 1 :
+                pp = providers.get(0);
+                break;
+            default :
+                pp = new CompositePrincipalProvider(providers);
+        }
+        return pp;
     }
 
     //--------------------------------------------------< PrincipalProvider >---

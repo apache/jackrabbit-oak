@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
@@ -32,7 +33,7 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.MongoException;
+import com.mongodb.DuplicateKeyException;
 import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteResult;
@@ -87,7 +88,7 @@ public class MongoBlobStore extends CachingBlobStore {
         // TODO verify insert is fast if the entry already exists
         try {
             getBlobCollection().insert(mongoBlob);
-        } catch (MongoException.DuplicateKey e) {
+        } catch (DuplicateKeyException e) {
             // the same block was already stored before: ignore
         }
     }
@@ -97,6 +98,7 @@ public class MongoBlobStore extends CachingBlobStore {
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
         byte[] data = cache.get(id);
         if (data == null) {
+            long start = System.nanoTime();
             MongoBlob blobMongo = getBlob(id, 0);
             if (blobMongo == null) {
                 String message = "Did not find block " + id;
@@ -104,6 +106,7 @@ public class MongoBlobStore extends CachingBlobStore {
                 throw new IOException(message);
             }
             data = blobMongo.getData();
+            getStatsCollector().downloaded(id, System.nanoTime() - start, TimeUnit.NANOSECONDS, data.length);
             cache.put(id, data);
         }
         if (blockId.getPos() == 0) {
@@ -138,20 +141,14 @@ public class MongoBlobStore extends CachingBlobStore {
         DBObject query = getBlobQuery(id, minLastModified);
         DBObject update = new BasicDBObject("$set",
                 new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
-        WriteResult writeResult = getBlobCollection().update(query, update);
-        if (writeResult.getError() != null) {
-            LOG.error("Mark failed for blob %s: %s", id, writeResult.getError());
-        }
+        getBlobCollection().update(query, update);
     }
 
     @Override
     public int sweep() throws IOException {
         DBObject query = getBlobQuery(null, minLastModified);
         long countBefore = getBlobCollection().count(query);
-        WriteResult writeResult = getBlobCollection().remove(query);
-        if (writeResult.getError() != null) {
-            LOG.error("Sweep failed: %s", writeResult.getError());
-        }
+        getBlobCollection().remove(query);
 
         long countAfter = getBlobCollection().count(query);
         minLastModified = 0;
@@ -165,15 +162,9 @@ public class MongoBlobStore extends CachingBlobStore {
     }
 
     private void initBlobCollection() {
-        if (db.collectionExists(COLLECTION_BLOBS)) {
-            return;
+        if (!db.collectionExists(COLLECTION_BLOBS)) {
+            db.createCollection(COLLECTION_BLOBS, new BasicDBObject());
         }
-        DBCollection collection = getBlobCollection();
-        DBObject index = new BasicDBObject();
-        index.put(MongoBlob.KEY_ID, 1L);
-        DBObject options = new BasicDBObject();
-        options.put("unique", Boolean.TRUE);
-        collection.ensureIndex(index, options);
     }
 
     private MongoBlob getBlob(String id, long lastMod) {
@@ -205,7 +196,7 @@ public class MongoBlobStore extends CachingBlobStore {
     }
 
     @Override
-    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         DBCollection collection = getBlobCollection();
         QueryBuilder queryBuilder = new QueryBuilder();
         if (chunkIds != null) {
@@ -217,11 +208,7 @@ public class MongoBlobStore extends CachingBlobStore {
         }
 
         WriteResult result = collection.remove(queryBuilder.get());
-        if (result.getN() == chunkIds.size()) {
-            return true;
-        }
-
-        return false;
+        return result.getN();
     }
 
     @Override

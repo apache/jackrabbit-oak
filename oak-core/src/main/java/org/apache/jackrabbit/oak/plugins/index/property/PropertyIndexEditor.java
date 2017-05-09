@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
+import java.util.Collections;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -39,11 +40,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
-import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
-import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -57,14 +58,6 @@ import com.google.common.base.Predicate;
  * @see PropertyIndexLookup
  */
 class PropertyIndexEditor implements IndexEditor {
-
-    /** Index storage strategy */
-    private static final IndexStoreStrategy MIRROR =
-            new ContentMirrorStoreStrategy();
-
-    /** Index storage strategy */
-    private static final IndexStoreStrategy UNIQUE =
-            new UniqueEntryStoreStrategy();
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final PropertyIndexEditor parent;
@@ -81,12 +74,15 @@ class PropertyIndexEditor implements IndexEditor {
     /** Root node state */
     private final NodeState root;
 
-     private final Set<String> propertyNames;
+    private final Set<String> propertyNames;
+    
+    private final ValuePattern valuePattern;
 
     /** Type predicate, or {@code null} if there are no type restrictions */
     private final Predicate<NodeState> typePredicate;
 
     /**
+     * This field is only set for unique indexes. Otherwise it is null.
      * Keys to check for uniqueness, or {@code null} for no uniqueness checks.
      */
     private final Set<String> keysToCheckForUniqueness;
@@ -108,13 +104,21 @@ class PropertyIndexEditor implements IndexEditor {
 
     private final IndexUpdateCallback updateCallback;
 
+    private final PathFilter pathFilter;
+
+    private final PathFilter.Result pathFilterResult;
+
+    private final MountInfoProvider mountInfoProvider;
+
     public PropertyIndexEditor(NodeBuilder definition, NodeState root,
-            IndexUpdateCallback updateCallback) {
+                               IndexUpdateCallback updateCallback, MountInfoProvider mountInfoProvider) {
         this.parent = null;
         this.name = null;
         this.path = "/";
         this.definition = definition;
         this.root = root;
+        pathFilter = PathFilter.from(definition);
+        pathFilterResult = getPathFilterResult();
 
         //initPropertyNames(definition);
 
@@ -126,6 +130,7 @@ class PropertyIndexEditor implements IndexEditor {
         } else {
             this.propertyNames = newHashSet(names.getValue(NAMES));
         }
+        this.valuePattern = new ValuePattern(definition.getString(IndexConstants.VALUE_PATTERN));
 
         // get declaring types, and all their subtypes
         // TODO: should we reindex when type definitions change?
@@ -143,18 +148,23 @@ class PropertyIndexEditor implements IndexEditor {
             this.keysToCheckForUniqueness = null;
         }
         this.updateCallback = updateCallback;
+        this.mountInfoProvider = mountInfoProvider;
     }
     
-    PropertyIndexEditor(PropertyIndexEditor parent, String name) {
+    PropertyIndexEditor(PropertyIndexEditor parent, String name, PathFilter.Result pathFilterResult) {
         this.parent = parent;
         this.name = name;
         this.path = null;
         this.definition = parent.definition;
         this.root = parent.root;
         this.propertyNames = parent.getPropertyNames();
+        this.valuePattern = parent.valuePattern;
         this.typePredicate = parent.typePredicate;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
         this.updateCallback = parent.updateCallback;
+        this.pathFilter = parent.pathFilter;
+        this.pathFilterResult = pathFilterResult;
+        this.mountInfoProvider = parent.mountInfoProvider;
     }
     
     /**
@@ -187,31 +197,32 @@ class PropertyIndexEditor implements IndexEditor {
      * @return set of encoded values, possibly initialized
      */
     private static Set<String> addValueKeys(
-            Set<String> keys, PropertyState property) {
+            Set<String> keys, PropertyState property, ValuePattern pattern) {
         if (property.getType().tag() != PropertyType.BINARY
                 && property.count() > 0) {
             if (keys == null) {
                 keys = newHashSet();
             }
-            keys.addAll(encode(PropertyValues.create(property)));
+            keys.addAll(encode(PropertyValues.create(property), pattern));
         }
         return keys;
     }
 
     private static Set<String> getMatchingKeys(
-            NodeState state, Iterable<String> propertyNames) {
+            NodeState state, Iterable<String> propertyNames, ValuePattern pattern) {
         Set<String> keys = null;
         for (String propertyName : propertyNames) {
             PropertyState property = state.getProperty(propertyName);
             if (property != null) {
-                keys = addValueKeys(keys, property);
+                keys = addValueKeys(keys, property, pattern);
             }
         }
         return keys;
     }
 
-    IndexStoreStrategy getStrategy(boolean unique) {
-        return unique ? UNIQUE : MIRROR;
+    Set<IndexStoreStrategy> getStrategies(boolean unique) {
+        return Multiplexers.getStrategies(unique, mountInfoProvider,
+                definition, INDEX_CONTENT_NODE_NAME);
     }
 
     @Override
@@ -226,13 +237,23 @@ class PropertyIndexEditor implements IndexEditor {
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
+
+        if (pathFilterResult == PathFilter.Result.INCLUDE) {
+            applyTypeRestrictions(before, after);
+            updateIndex(before, after);
+        }
+        checkUniquenessConstraints();
+        
+    }
+    
+    private void applyTypeRestrictions(NodeState before, NodeState after) {
         // apply the type restrictions
         if (typePredicate != null) {
             if (typeChanged) {
                 // possible type change, so ignore diff results and
                 // just load all matching values from both states
-                beforeKeys = getMatchingKeys(before, getPropertyNames());
-                afterKeys = getMatchingKeys(after, getPropertyNames());
+                beforeKeys = getMatchingKeys(before, getPropertyNames(), valuePattern);
+                afterKeys = getMatchingKeys(after, getPropertyNames(), valuePattern);
             }
             if (beforeKeys != null && !typePredicate.apply(before)) {
                 // the before state doesn't match the type, so clear its values
@@ -243,7 +264,9 @@ class PropertyIndexEditor implements IndexEditor {
                 afterKeys = null;
             }
         }
-
+    }
+    
+    private void updateIndex(NodeState before, NodeState after) throws CommitFailedException {
         // if any changes were detected, update the index accordingly
         if (beforeKeys != null || afterKeys != null) {
             // first make sure that both the before and after sets are non-null
@@ -262,35 +285,89 @@ class PropertyIndexEditor implements IndexEditor {
 
             if (!beforeKeys.isEmpty() || !afterKeys.isEmpty()) {
                 updateCallback.indexUpdate();
-                NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
                 String properties = definition.getString(PROPERTY_NAMES);
-                getStrategy(keysToCheckForUniqueness != null).update(
-                        index, getPath(), properties, definition, beforeKeys, afterKeys);
-                if (keysToCheckForUniqueness != null) {
-                    keysToCheckForUniqueness.addAll(afterKeys);
+                boolean uniqueIndex = keysToCheckForUniqueness != null;
+                for (IndexStoreStrategy strategy : getStrategies(uniqueIndex)) {
+                    NodeBuilder index = definition.child(strategy
+                            .getIndexNodeName());
+                    if (uniqueIndex) {
+                        keysToCheckForUniqueness.addAll(getExistingKeys(
+                                afterKeys, index, strategy));
+                    }
+                    strategy.update(index, getPath(), properties, definition,
+                            beforeKeys, afterKeys);
                 }
             }
         }
 
+        checkUniquenessConstraints();
+    }
+
+    private void checkUniquenessConstraints() throws CommitFailedException {
         if (parent == null) {
             // make sure that the index node exist, even with no content
             definition.child(INDEX_CONTENT_NODE_NAME);
 
+            boolean uniqueIndex = keysToCheckForUniqueness != null;
             // check uniqueness constraints when leaving the root
-            if (keysToCheckForUniqueness != null
-                    && !keysToCheckForUniqueness.isEmpty()) {
+            if (uniqueIndex &&
+                    !keysToCheckForUniqueness.isEmpty()) {
                 NodeState indexMeta = definition.getNodeState();
-                IndexStoreStrategy s = getStrategy(true);
-                for (String key : keysToCheckForUniqueness) {
-                    if (s.count(root, indexMeta, singleton(key), 2) > 1) {
-                        String msg = String.format("Uniqueness constraint violated at path [%s] for one of the " +
-                                        "property in %s having value %s", getPath(), propertyNames, key);
-                        throw new CommitFailedException(
-                                CONSTRAINT, 30, msg);
-                    }
+                String failed = getFirstDuplicate(
+                        keysToCheckForUniqueness, indexMeta);
+                if (failed != null) {
+                    String msg = String.format(
+                            "Uniqueness constraint violated at path [%s] for one of the "
+                                    + "property in %s having value %s",
+                            getPath(), propertyNames, failed);
+                    throw new CommitFailedException(CONSTRAINT, 30, msg);
                 }
             }
         }
+    }
+
+    /**
+     * From a set of keys, get those that already exist in the index.
+     * 
+     * @param keys the keys
+     * @param index the index
+     * @param s the index store strategy
+     * @return the set of keys that already exist in this unique index
+     */
+    private Set<String> getExistingKeys(Set<String> keys, NodeBuilder index, IndexStoreStrategy s) {
+        Set<String> existing = null;
+        for (String key : keys) {
+            if (s.exists(index, key)) {
+                if (existing == null) {
+                    existing = newHashSet();
+                }
+                existing.add(key);
+            }
+        }
+        if (existing == null) {
+            existing = Collections.emptySet();
+        }
+        return existing;
+    }
+
+    /**
+     * From a set of keys, get the first that has multiple entries, if any.
+     * 
+     * @param keys the keys
+     * @param indexMeta the index configuration
+     * @return the first duplicate, or null if none was found
+     */
+    private String getFirstDuplicate(Set<String> keys, NodeState indexMeta) {
+        for (String key : keys) {
+            long count = 0;
+            for (IndexStoreStrategy s : getStrategies(true)) {
+                count += s.count(root, indexMeta, singleton(key), 2);
+                if (count > 1) {
+                    return key;
+                }
+            }
+        }
+        return null;
     }
 
     private static boolean isTypeProperty(String name) {
@@ -302,7 +379,7 @@ class PropertyIndexEditor implements IndexEditor {
         String name = after.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            afterKeys = addValueKeys(afterKeys, after);
+            afterKeys = addValueKeys(afterKeys, after, valuePattern);
         }
     }
 
@@ -311,8 +388,8 @@ class PropertyIndexEditor implements IndexEditor {
         String name = after.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            beforeKeys = addValueKeys(beforeKeys, before);
-            afterKeys = addValueKeys(afterKeys, after);
+            beforeKeys = addValueKeys(beforeKeys, before, valuePattern);
+            afterKeys = addValueKeys(afterKeys, after, valuePattern);
         }
     }
 
@@ -321,7 +398,7 @@ class PropertyIndexEditor implements IndexEditor {
         String name = before.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            beforeKeys = addValueKeys(beforeKeys, before);
+            beforeKeys = addValueKeys(beforeKeys, before, valuePattern);
         }
     }
 
@@ -332,24 +409,43 @@ class PropertyIndexEditor implements IndexEditor {
      * @param name the name of the child node
      * @return an instance of the PropertyIndexEditor
      */
-    PropertyIndexEditor getChildIndexEditor(@Nonnull PropertyIndexEditor parent, @Nonnull String name) {
-       return new PropertyIndexEditor(parent, name);
+    PropertyIndexEditor getChildIndexEditor(@Nonnull PropertyIndexEditor parent, @Nonnull String name, PathFilter.Result filterResult) {
+       return new PropertyIndexEditor(parent, name, filterResult);
     }
     
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return getChildIndexEditor(this, name);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
+        return getChildIndexEditor(this, name, filterResult);
     }
 
     @Override
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after) {
-        return getChildIndexEditor(this, name);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
+        return getChildIndexEditor(this, name, filterResult);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before) {
-        return getChildIndexEditor(this, name);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
+        return getChildIndexEditor(this, name, filterResult);
     }
 
+    private PathFilter.Result getPathFilterResult() {
+        return pathFilter.filter(getPath());
+    }
+
+    private PathFilter.Result getPathFilterResult(String childNodeName) {
+        return pathFilter.filter(concat(getPath(), childNodeName));
+    }
 }

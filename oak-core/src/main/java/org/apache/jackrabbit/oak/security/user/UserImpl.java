@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 
@@ -41,17 +42,19 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 class UserImpl extends AuthorizableImpl implements User {
 
     private final boolean isAdmin;
+    private final PasswordHistory pwHistory;
 
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
 
         isAdmin = UserUtil.isAdmin(userManager.getConfig(), id);
+        pwHistory = new PasswordHistory(userManager.getConfig());
     }
 
     //---------------------------------------------------< AuthorizableImpl >---
     @Override
-    void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !UserUtil.isType(tree, AuthorizableType.USER)) {
+    void checkValidTree(@Nonnull Tree tree) throws RepositoryException {
+        if (!UserUtil.isType(tree, AuthorizableType.USER)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }
@@ -107,6 +110,9 @@ class UserImpl extends AuthorizableImpl implements User {
         }
         UserManagerImpl userManager = getUserManager();
         userManager.onPasswordChange(this, password);
+
+        pwHistory.updatePasswordHistory(getTree(), password);
+
         userManager.setPassword(getTree(), getID(),  password, true);
     }
 

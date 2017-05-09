@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
 import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
 
@@ -211,6 +210,17 @@ class SolrIndexEditor implements IndexEditor {
         SolrInputDocument inputDocument = new SolrInputDocument();
         String path = getPath();
         inputDocument.addField(configuration.getPathField(), path);
+        inputDocument.addField(configuration.getPathDepthField(), PathUtils.getDepth(path));
+
+        if (configuration.collapseJcrContentNodes()) {
+            int jcrContentIndex = path.lastIndexOf(JcrConstants.JCR_CONTENT);
+            if (jcrContentIndex >= 0) {
+                int index = jcrContentIndex + JcrConstants.JCR_CONTENT.length();
+                String collapsedPath = path.substring(0, index);
+                inputDocument.addField(configuration.getCollapsedPathField(), collapsedPath);
+            }
+        }
+
         for (PropertyState property : state.getProperties()) {
             if ((configuration.getUsedProperties().size() > 0 && configuration.getUsedProperties().contains(property.getName()))
                     || !configuration.getIgnoredProperties().contains(property.getName())) {

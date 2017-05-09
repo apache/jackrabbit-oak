@@ -32,11 +32,14 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A diff cache, which is pro-actively filled after a commit.
  */
-public class LocalDiffCache implements DiffCache {
+public class LocalDiffCache extends DiffCache {
+    private static final Logger LOG = LoggerFactory.getLogger(LocalDiffCache.class);
 
     /**
      * Limit is arbitrary for now i.e. 16 MB. Same as in MongoDiffCache
@@ -54,8 +57,8 @@ public class LocalDiffCache implements DiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull Revision from,
-                             @Nonnull Revision to,
+    public String getChanges(@Nonnull RevisionVector from,
+                             @Nonnull RevisionVector to,
                              @Nonnull String path,
                              @Nullable Loader loader) {
         RevisionsKey key = new RevisionsKey(from, to);
@@ -72,11 +75,12 @@ public class LocalDiffCache implements DiffCache {
 
     @Nonnull
     @Override
-    public Entry newEntry(final @Nonnull Revision from,
-                          final @Nonnull Revision to) {
+    public Entry newEntry(final @Nonnull RevisionVector from,
+                          final @Nonnull RevisionVector to,
+                          boolean local /*ignored*/) {
         return new Entry() {
             private final Map<String, String> changesPerPath = Maps.newHashMap();
-            private int size;
+            private long size;
             @Override
             public void append(@Nonnull String path, @Nonnull String changes) {
                 if (exceedsSize()){
@@ -93,6 +97,7 @@ public class LocalDiffCache implements DiffCache {
                 }
                 diffCache.put(new RevisionsKey(from, to),
                         new Diff(changesPerPath, size));
+                LOG.debug("Adding cache entry from {} to {}", from, to);
                 return true;
             }
 
@@ -114,9 +119,9 @@ public class LocalDiffCache implements DiffCache {
     public static final class Diff implements CacheValue {
 
         private final Map<String, String> changes;
-        private int memory;
+        private long memory;
 
-        public Diff(Map<String, String> changes, int memory) {
+        public Diff(Map<String, String> changes, long memory) {
             this.changes = changes;
             this.memory = memory;
         }
@@ -156,13 +161,18 @@ public class LocalDiffCache implements DiffCache {
         @Override
         public int getMemory() {
             if (memory == 0) {
-                int m = 0;
+                long m = 0;
                 for (Map.Entry<String, String> e : changes.entrySet()){
                     m += size(e.getKey()) + size(e.getValue());
                 }
                 memory = m;
             }
-            return memory;
+            if (memory > Integer.MAX_VALUE) {
+                LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", memory);
+                return Integer.MAX_VALUE;
+            } else {
+                return (int) memory;
+            }
         }
 
         String get(String path) {
@@ -187,7 +197,7 @@ public class LocalDiffCache implements DiffCache {
         }
     }
 
-    private static int size(String s){
+    private static long size(String s){
         return StringValue.getMemory(s);
     }
 }

@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -30,6 +30,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -54,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.security.user.action.GroupAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -79,7 +81,8 @@ public class UserManagerImpl implements UserManager {
     private UserQueryManager queryManager;
     private ReadOnlyNodeTypeManager ntMgr;
 
-    public UserManagerImpl(Root root, NamePathMapper namePathMapper, SecurityProvider securityProvider) {
+    public UserManagerImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+                           @Nonnull SecurityProvider securityProvider) {
         this.root = root;
         this.namePathMapper = namePathMapper;
         this.securityProvider = securityProvider;
@@ -92,7 +95,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Nonnull
-    private static AuthorizableActionProvider getActionProvider(ConfigurationParameters config) {
+    private static AuthorizableActionProvider getActionProvider(@Nonnull ConfigurationParameters config) {
         AuthorizableActionProvider actionProvider = config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, null, AuthorizableActionProvider.class);
         if (actionProvider == null) {
             actionProvider = new DefaultAuthorizableActionProvider(config);
@@ -104,9 +107,9 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         Authorizable authorizable = null;
-        Tree tree = userProvider.getAuthorizable(id);
+        Tree tree = (Strings.isNullOrEmpty(id)) ? null : userProvider.getAuthorizable(id);
         if (tree != null) {
-            authorizable = getAuthorizable(id, tree);
+            authorizable = getAuthorizable(UserUtil.getAuthorizableId(tree), tree);
         }
         return authorizable;
     }
@@ -118,7 +121,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
-        return getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
+        return (principal == null) ? null : getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
     }
 
     @Override
@@ -127,7 +130,7 @@ public class UserManagerImpl implements UserManager {
         if (oakPath == null) {
             throw new RepositoryException("Invalid path " + path);
         }
-        return getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
+        return getAuthorizableByOakPath(oakPath);
     }
 
     @Override
@@ -154,7 +157,7 @@ public class UserManagerImpl implements UserManager {
     @Override
     public User createUser(String userID, String password, Principal principal,
                            @Nullable String intermediatePath) throws RepositoryException {
-        checkValidID(userID);
+        checkValidId(userID);
         checkValidPrincipal(principal, false);
 
         if (intermediatePath != null) {
@@ -175,7 +178,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public User createSystemUser(String userID, String intermediatePath) throws RepositoryException {
-        checkValidID(userID);
+        checkValidId(userID);
         Principal principal = new PrincipalImpl(userID);
         checkValidPrincipal(principal, false);
 
@@ -206,7 +209,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Group createGroup(String groupID, Principal principal, @Nullable String intermediatePath) throws RepositoryException {
-        checkValidID(groupID);
+        checkValidId(groupID);
         checkValidPrincipal(principal, true);
 
         if (intermediatePath != null) {
@@ -257,9 +260,13 @@ public class UserManagerImpl implements UserManager {
      * @param password The password.
      * @throws RepositoryException If an exception occurs.
      */
-    void onCreate(User user, String password) throws RepositoryException {
-        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
-            action.onCreate(user, password, root, namePathMapper);
+    void onCreate(@Nonnull User user, @CheckForNull String password) throws RepositoryException {
+        if (!user.isSystemUser()) {
+            for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+                action.onCreate(user, password, root, namePathMapper);
+            }
+        } else {
+            log.debug("Omit onCreate action for system users.");
         }
     }
 
@@ -271,7 +278,7 @@ public class UserManagerImpl implements UserManager {
      * @param group The new group.
      * @throws RepositoryException If an exception occurs.
      */
-    void onCreate(Group group) throws RepositoryException {
+    void onCreate(@Nonnull Group group) throws RepositoryException {
         for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onCreate(group, root, namePathMapper);
         }
@@ -285,7 +292,7 @@ public class UserManagerImpl implements UserManager {
      * @param authorizable The authorizable to be removed.
      * @throws RepositoryException If an exception occurs.
      */
-    void onRemove(Authorizable authorizable) throws RepositoryException {
+    void onRemove(@Nonnull Authorizable authorizable) throws RepositoryException {
         for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onRemove(authorizable, root, namePathMapper);
         }
@@ -300,19 +307,70 @@ public class UserManagerImpl implements UserManager {
      * @param password The new password.
      * @throws RepositoryException If an exception occurs.
      */
-    void onPasswordChange(User user, String password) throws RepositoryException {
+    void onPasswordChange(@Nonnull User user, @Nonnull String password) throws RepositoryException {
         for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onPasswordChange(user, password, root, namePathMapper);
         }
     }
 
+    /**
+     * Upon a group being updated (single {@code Authorizable} successfully added or removed),
+     * call available {@code GroupAction}s and execute the method specific to removal or addition.
+     * {@code GroupAction}s may then validate or modify the changes.
+     *
+     * @param group    The target group.
+     * @param isRemove Indicates whether the member is removed or added.
+     * @param member   The member successfully removed or added.
+     * @throws RepositoryException If an error occurs.
+     */
+    void onGroupUpdate(@Nonnull Group group, boolean isRemove, @Nonnull Authorizable member) throws RepositoryException {
+        for (GroupAction action : selectGroupActions()) {
+            if (isRemove) {
+                action.onMemberRemoved(group, member, root, namePathMapper);
+            } else {
+                action.onMemberAdded(group, member, root, namePathMapper);
+            }
+        }
+    }
+
+    /**
+     * Upon a group being updated (multiple {@code memberIds} added or removed),
+     * call available {@code GroupAction}s and execute the method specific to removal or addition.
+     * {@code GroupAction}s may then validate or modify the changes.
+     *
+     * @param group       The target group.
+     * @param isRemove    Indicates whether the member is removed or added.
+     * @param isContentId Indicates whether member ids are expressed as content-ids (UUID) or member-ids.
+     * @param memberIds   The IDs of all members successfully removed or added.
+     * @param failedIds   The IDs of all members whose addition or removal failed.
+     * @throws RepositoryException If an error occurs.
+     */
+    void onGroupUpdate(@Nonnull Group group, boolean isRemove, boolean isContentId, @Nonnull Set<String> memberIds, @Nonnull Set<String> failedIds) throws RepositoryException {
+        for (GroupAction action : selectGroupActions()) {
+            if (isRemove) {
+                action.onMembersRemoved(group, memberIds, failedIds, root, namePathMapper);
+            } else {
+                if (isContentId) {
+                    action.onMembersAddedContentId(group, memberIds, failedIds, root, namePathMapper);
+                } else {
+                    action.onMembersAdded(group, memberIds, failedIds, root, namePathMapper);
+                }
+            }
+        }
+    }
+
     //--------------------------------------------------------------------------
     @CheckForNull
-    Authorizable getAuthorizable(Tree tree) throws RepositoryException {
+    public Authorizable getAuthorizable(@CheckForNull Tree tree) throws RepositoryException {
         if (tree == null || !tree.exists()) {
             return null;
         }
         return getAuthorizable(UserUtil.getAuthorizableId(tree), tree);
+    }
+
+    @CheckForNull
+    Authorizable getAuthorizableByOakPath(@Nonnull String oakPath) throws RepositoryException {
+        return getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
     }
 
     @Nonnull
@@ -344,32 +402,33 @@ public class UserManagerImpl implements UserManager {
     }
 
     @CheckForNull
-    private Authorizable getAuthorizable(String id, Tree tree) throws RepositoryException {
+    private Authorizable getAuthorizable(@CheckForNull String id, @CheckForNull Tree tree) throws RepositoryException {
         if (id == null || tree == null) {
             return null;
         }
         if (UserUtil.isType(tree, AuthorizableType.USER)) {
             if (UserUtil.isSystemUser(tree)) {
-                return new SystemUserImpl(UserUtil.getAuthorizableId(tree), tree, this);
+                return new SystemUserImpl(id, tree, this);
             } else {
-                return new UserImpl(UserUtil.getAuthorizableId(tree), tree, this);
+                return new UserImpl(id, tree, this);
             }
         } else if (UserUtil.isType(tree, AuthorizableType.GROUP)) {
-            return new GroupImpl(UserUtil.getAuthorizableId(tree), tree, this);
+            return new GroupImpl(id, tree, this);
         } else {
             throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
         }
     }
 
-    private void checkValidID(String id) throws RepositoryException {
+    private void checkValidId(@CheckForNull String id) throws RepositoryException {
         if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("Invalid ID " + id);
-        } else if (getAuthorizable(id) != null) {
+        }
+        if (getAuthorizable(id) != null) {
             throw new AuthorizableExistsException("Authorizable with ID " + id + " already exists");
         }
     }
 
-    void checkValidPrincipal(Principal principal, boolean isGroup) throws RepositoryException {
+    void checkValidPrincipal(@CheckForNull Principal principal, boolean isGroup) throws RepositoryException {
         if (principal == null || Strings.isNullOrEmpty(principal.getName())) {
             throw new IllegalArgumentException("Principal may not be null and must have a valid name.");
         }
@@ -381,19 +440,16 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    void setPrincipal(Tree authorizableTree, Principal principal) {
-        checkNotNull(principal);
+    void setPrincipal(@Nonnull Tree authorizableTree, @Nonnull Principal principal) {
         authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
     }
 
-    void setPassword(Tree userTree, String userId, String password, boolean forceHash) throws RepositoryException {
+    void setPassword(@Nonnull Tree userTree, @Nonnull String userId, @Nonnull String password, boolean forceHash) throws RepositoryException {
         String pwHash;
         if (forceHash || PasswordUtil.isPlainTextPassword(password)) {
             try {
                 pwHash = PasswordUtil.buildPasswordHash(password, config);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RepositoryException(e);
-            } catch (UnsupportedEncodingException e) {
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
                 throw new RepositoryException(e);
             }
         } else {
@@ -429,10 +485,27 @@ public class UserManagerImpl implements UserManager {
         return config.getConfigValue(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE);
     }
 
+    @Nonnull
     private UserQueryManager getQueryManager() {
         if (queryManager == null) {
             queryManager = new UserQueryManager(this, namePathMapper, config, root);
         }
         return queryManager;
+    }
+
+    /**
+     * Select only {@code GroupAction}s from the available {@code AuthorizableAction}s.
+     *
+     * @return A {@code List} of {@code GroupAction}s. List may be empty.
+     */
+    @Nonnull
+    private List<GroupAction> selectGroupActions() {
+        List<GroupAction> actions = Lists.newArrayList();
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+            if (action instanceof GroupAction) {
+                actions.add((GroupAction) action);
+            }
+        }
+        return actions;
     }
 }

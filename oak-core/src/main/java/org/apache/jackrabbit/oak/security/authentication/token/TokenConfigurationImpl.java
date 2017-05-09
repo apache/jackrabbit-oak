@@ -27,6 +27,9 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -35,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -53,6 +58,10 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
         @Property(name = TokenProvider.PARAM_TOKEN_LENGTH,
                 label = "Token Length",
                 description = "Length of the generated token."),
+        @Property(name = TokenProvider.PARAM_TOKEN_REFRESH,
+                label = "Token Refresh",
+                description = "Enable/disable refresh of login tokens (i.e. resetting the expiration time).",
+                boolValue = true),
         @Property(name = UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
                 label = "Hash Algorithm",
                 description = "Name of the algorithm to hash the token.",
@@ -68,6 +77,12 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 })
 public class TokenConfigurationImpl extends ConfigurationBase implements TokenConfiguration {
 
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.DYNAMIC)
+    private CredentialsSupport credentialsSupport = SimpleCredentialsSupport.getInstance();
+
+    @SuppressWarnings("UnusedDeclaration")
     public TokenConfigurationImpl() {
         super();
     }
@@ -76,10 +91,24 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
+    //----------------------------------------------------------------< SCR >---
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void bindCredentialsSupport(CredentialsSupport credentialsSupport) {
+        this.credentialsSupport = credentialsSupport;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void unbindCredentialsSupport(CredentialsSupport credentialsSupport) {
+        if (credentialsSupport == this.credentialsSupport) {
+            // reset to default implementation
+            this.credentialsSupport = SimpleCredentialsSupport.getInstance();
+        }
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -107,6 +136,6 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     @Override
     public TokenProvider getTokenProvider(Root root) {
         UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
-        return new TokenProviderImpl(root, getParameters(), uc);
+        return new TokenProviderImpl(root, getParameters(), uc, credentialsSupport);
     }
 }

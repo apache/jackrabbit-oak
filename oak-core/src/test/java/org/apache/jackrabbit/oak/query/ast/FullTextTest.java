@@ -46,11 +46,15 @@ public class FullTextTest {
     @Test
     public void and() throws ParseException {
         assertEquals("\"hello\" \"world\"", convertPattern("hello world"));
+        assertEquals("\"hello\" \"world\"", convertPattern("hello  world"));
+        assertEquals("\"hello\" \"world\"", convertPattern("hello   world"));
+        assertEquals("\"hello\" \"world\"", convertPattern("hello \t  world"));
         assertEquals("\"hello\" \"or\" \"world\"", convertPattern("hello or world"));
         assertFalse(test("hello world", "hello"));
         assertFalse(test("hello world", "world"));
         assertTrue(test("hello world", "world hello"));
         assertTrue(test("hello world ", "hello world"));
+        assertEquals("\"hello\"", convertPattern("hello hello"));
     }
 
     @Test
@@ -62,7 +66,35 @@ public class FullTextTest {
     }
 
     @Test
+    public void minusLiteral() throws ParseException {
+        assertEquals("\"-\"", convertPattern("-"));
+        assertEquals("\"-\"", convertPattern("- "));
+        assertEquals("\"-\"", convertPattern("- -"));
+        assertEquals("\"-\" \"hello\"", convertPattern("- hello"));
+        assertEquals("\"hello\" \"-\" \"world\"", convertPattern("hello - world"));
+        assertEquals("\"hello\" \"-\" \"world\"", convertPattern("hello  -  world"));
+        assertEquals("\"hello\" \"-\"", convertPattern("hello -"));
+        assertEquals("\"hello\" \"-\"", convertPattern("hello -"));
+        assertEquals("\"hello\" \"-\"", convertPattern("hello - hello"));
+
+        assertTrue(test("-", "hello - world"));
+        assertTrue(test("- ", "hello - world"));
+        assertTrue(test("- -", "hello - world"));
+        assertTrue(test("- hello", "hello - world"));
+        assertTrue(test("hello - world", "hello - world"));
+        assertTrue(test("hello - \"wonderful world\"", "hello - wonderful world"));
+        assertTrue(test("hello -", "hello -"));
+    }
+
+    @Test
     public void not() throws ParseException {
+        assertEquals("\"hello\" -\"wonderful world\"", convertPattern("hello -\"wonderful world\""));
+        assertTrue(test("hello -\"wonderful world\"", "hello"));
+        assertTrue(test("hello -\"wonderful world\"", "hello wonderful"));
+        assertTrue(test("hello -\"wonderful world\"", "hello world"));
+        assertFalse(test("hello -\"wonderful world\"", "hello wonderful world"));
+        assertFalse(test("hello -\"wonderful world\"", "wonderful world"));
+        assertTrue(test("hello \"-wonderful world\"", "hello this beautiful -wonderful world"));
         assertEquals("\"hello\" -\"world\"", convertPattern("hello -world"));
         assertTrue(test("hello -world", "hello"));
         assertFalse(test("hello -world", "hello world"));
@@ -104,8 +136,6 @@ public class FullTextTest {
         testInvalid("", "(*); expected: term");
         testInvalid("x OR ", "x OR(*); expected: term");
         testInvalid("\"", "(*)\"; expected: double quote");
-        testInvalid("-", "(*)-; expected: term");
-        testInvalid("- x", "- (*)x; expected: term");
         testInvalid("\\", "(*)\\; expected: escaped char");
         testInvalid("\"\\", "\"(*)\\; expected: escaped char");
         testInvalid("\"x\"y", "\"x\"(*)y; expected: space");

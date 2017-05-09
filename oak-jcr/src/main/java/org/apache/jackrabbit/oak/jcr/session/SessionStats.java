@@ -32,12 +32,31 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 
 public class SessionStats implements SessionMBean {
-    private final Exception initStackTrace = new Exception("The session was opened here:");
+
+    /**
+     * The threshold of active sessions from where on it should record the stack trace for new sessions. The reason why
+     * this is not enabled by default is because recording stack traces is rather expensive and can significantly
+     * slow down the code if sessions are created and thrown away in a loop.
+     *
+     * Once this threshold is exceeded, we assume that there is a session leak which should be fixed and start recording
+     * the stack traces to make it easier to find the cause of it.
+     *
+     * Configurable by the "oak.sessionStats.initStackTraceThreshold" system property. Set to "0" to record stack trace
+     * information on each session creation.
+     *
+     */
+    static final int INIT_STACK_TRACE_THRESHOLD = Integer.getInteger("oak.sessionStats.initStackTraceThreshold", 1000);
+
+    private final Exception initStackTrace;
 
     private final AtomicReference<RepositoryException> lastFailedSave =
             new AtomicReference<RepositoryException>();
@@ -48,14 +67,26 @@ public class SessionStats implements SessionMBean {
     private final Clock clock;
     private final RefreshStrategy refreshStrategy;
 
+    private volatile SessionDelegate sessionDelegate;
+
     private Map<String, Object> attributes = Collections.emptyMap();
 
-    public SessionStats(String sessionId, AuthInfo authInfo, Clock clock, RefreshStrategy refreshStrategy) {
+    public SessionStats(String sessionId, AuthInfo authInfo, Clock clock,
+            RefreshStrategy refreshStrategy, SessionDelegate sessionDelegate, StatisticManager statisticManager) {
         this.counters = new Counters(clock);
         this.sessionId = sessionId;
         this.authInfo = authInfo;
         this.clock = clock;
         this.refreshStrategy = refreshStrategy;
+        this.sessionDelegate = sessionDelegate;
+
+        long activeSessionCount = statisticManager.getStatsCounter(Type.SESSION_COUNT).getCount();
+        initStackTrace = (activeSessionCount > INIT_STACK_TRACE_THRESHOLD) ?
+                new Exception("The session was opened here:") : null;
+    }
+
+    public void close() {
+        sessionDelegate = null;
     }
 
     public static class Counters {
@@ -245,6 +276,26 @@ public class SessionStats implements SessionMBean {
     @Override
     public String getLastFailedSave() {
         return format(lastFailedSave.get());
+    }
+
+    @Override
+    public void refresh() {
+        final SessionDelegate sd = sessionDelegate;
+        if (sd != null) {
+            sd.safePerform(new SessionOperation<Void>("MBean initiated refresh", true) {
+                @Override
+                public Void perform() {
+                    sd.refresh(true);
+                    return null;
+                }
+
+                @Override
+                public void checkPreconditions() throws RepositoryException {
+                    sd.checkAlive();
+                }
+            });
+            sd.refresh(true);
+        }
     }
 
     //------------------------------------------------------------< internal >---

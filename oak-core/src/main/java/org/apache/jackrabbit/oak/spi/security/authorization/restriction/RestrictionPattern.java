@@ -79,5 +79,10 @@ public interface RestrictionPattern {
         public boolean matches() {
             return true;
         }
+
+        @Override
+        public String toString() {
+            return "RestrictionPattern.EMPTY";
+        }
     };
 }

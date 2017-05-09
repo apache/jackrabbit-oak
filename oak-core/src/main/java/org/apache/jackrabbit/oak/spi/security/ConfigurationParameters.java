@@ -138,6 +138,9 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (map.isEmpty()) {
             return EMPTY;
         }
+        if (map instanceof ConfigurationParameters) {
+            return (ConfigurationParameters) map;
+        }
         Map<String, Object> options = new HashMap<String, Object>(map.size());
         for (Map.Entry<?,?> e : map.entrySet()) {
             options.put(String.valueOf(e.getKey()), e.getValue());
@@ -305,8 +308,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
             throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + clazz.getName(), e);
         }
     }
-    //-----------------------------------------------------------------------------------< Map interface delegation >---
 
+    //-------------------------------------------< Map interface delegation >---
     /**
      * {@inheritDoc}
      */
@@ -411,7 +414,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
     }
 
     /**
-     * Helper class for configuration parameters that denote a "duration", such as a timeout or expiration time.
+     * Helper class for configuration parameters that denote a "duration", such
+     * as a timeout or expiration time.
      */
     public static final class Milliseconds {
 
@@ -449,6 +453,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
 
         /**
          * Parses a value string into a duration. the String has the following format:
+         * {@code
          * <xmp>
          *     format:= (value [ unit ])+;
          *     value:= float value;
@@ -461,6 +466,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
          *     "1s 50ms": 1050 milliseconds
          *     "1.5d":  1 1/2 days == 36 hours.
          * </xmp>
+         * }
          *
          * @param str the string to parse
          * @return the new Milliseconds object or null.
@@ -499,28 +505,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
             if (str == null) {
                 return defaultValue;
             }
-            Matcher m = pattern.matcher(str);
-            long current = -1;
-            while (m.find()) {
-                String number = m.group(1);
-                String decimal = m.group(2);
-                if (decimal != null) {
-                    number += decimal;
-                }
-                String unit = m.group(3);
-                double value = Double.valueOf(number);
-                if ("s".equals(unit)) {
-                    value *= 1000.0;
-                } else if ("m".equals(unit)) {
-                    value *= 60 * 1000.0;
-                } else if ("h".equals(unit)) {
-                    value *= 60 * 60 * 1000.0;
-                } else if ("d".equals(unit)) {
-                    value *= 24 * 60 * 60 * 1000.0;
-                }
-                current += value;
-            }
-            return current < 0 ? defaultValue : new Milliseconds(current + 1);
+            Milliseconds ms = of(str);
+            return (ms == null) ? defaultValue : ms;
         }
 
         @Override

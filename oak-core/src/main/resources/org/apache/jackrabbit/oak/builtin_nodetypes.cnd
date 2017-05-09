@@ -1,0 +1,838 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+<rep='internal'>
+<jcr='http://www.jcp.org/jcr/1.0'>
+<nt='http://www.jcp.org/jcr/nt/1.0'>
+<mix='http://www.jcp.org/jcr/mix/1.0'>
+<oak='http://jackrabbit.apache.org/oak/ns/1.0'>
+
+//------------------------------------------------------------------------------
+// B A S E  T Y P E
+//------------------------------------------------------------------------------
+
+/**
+ * nt:base is an abstract primary node type that is the base type for all other
+ * primary node types. It is the only primary node type without supertypes.
+ *
+ * @since 1.0
+ */
+[nt:base]
+  abstract
+  - jcr:primaryType (NAME) mandatory autocreated protected COMPUTE
+  - jcr:mixinTypes (NAME) protected multiple COMPUTE
+
+//------------------------------------------------------------------------------
+// S T A N D A R D   A P P L I C A T I O N   N O D E   T Y P E S
+//------------------------------------------------------------------------------
+
+/**
+ * This abstract node type serves as the supertype of nt:file and nt:folder.
+ * @since 1.0
+ */
+[nt:hierarchyNode] > mix:created
+  abstract
+
+/**
+ * Nodes of this node type may be used to represent files. This node type inherits
+ * the item definitions of nt:hierarchyNode and requires a single child node called
+ * jcr:content. The jcr:content node is used to hold the actual content of the
+ * file. This child node is mandatory, but not auto-created. Its node type will be
+ * application-dependent and therefore it must be added by the user. A common
+ * approach is to make the jcr:content a node of type nt:resource or oak:Resource. The
+ * jcr:content child node is also designated as the primary child item of its parent.
+ *
+ * @since 1.0
+ */
+[nt:file] > nt:hierarchyNode
+  primaryitem jcr:content
+  + jcr:content (nt:base) mandatory
+
+/**
+ * The nt:linkedFile node type is similar to nt:file, except that the content
+ * node is not stored directly as a child node, but rather is specified by a
+ * REFERENCE property. This allows the content node to reside anywhere in the
+ * workspace and to be referenced by multiple nt:linkedFile nodes. The content
+ * node must be referenceable.
+ *
+ * @since 1.0
+ */
+[nt:linkedFile] > nt:hierarchyNode
+  primaryitem jcr:content
+  - jcr:content (REFERENCE) mandatory
+
+/**
+ * Nodes of this type may be used to represent folders or directories. This node
+ * type inherits the item definitions of nt:hierarchyNode and adds the ability
+ * to have any number of other nt:hierarchyNode child nodes with any names.
+ * This means, in particular, that it can have child nodes of types nt:folder,
+ * nt:file or nt:linkedFile.
+ *
+ * @since 1.0
+ */
+[nt:folder] > nt:hierarchyNode
+  + * (nt:hierarchyNode) VERSION
+
+/**
+ * This node type may be used to represent the content of a file. In particular,
+ * the jcr:content subnode of an nt:file node will often be an nt:resource.
+ *
+ * @since 1.0
+ */
+[nt:resource] > mix:mimeType, mix:lastModified, mix:referenceable
+  primaryitem jcr:data
+  - jcr:data (BINARY) mandatory
+
+/**
+ * This node type may be used to represent the content of a file. This should be
+ * preferred over nt:resource if non referenceable nt:file nodes are required
+ *
+ * @since 1.5.6
+ */
+[oak:Resource] > mix:mimeType, mix:lastModified
+  primaryitem jcr:data
+  - jcr:data (BINARY) mandatory
+
+/**
+ * This mixin node type can be used to add standardized title and description
+ * properties to a node.
+ *
+ * Note that the protected attributes suggested by JSR283 are omitted in this variant.
+ * @since 2.0
+ */
+[mix:title]
+  mixin
+  - jcr:title (STRING)
+  - jcr:description (STRING)
+
+/**
+ * This mixin node type can be used to add standardized creation information
+ * properties to a node. Since the properties are protected, their values are
+ * controlled by the repository, which should set them appropriately upon the
+ * initial persist of a node with this mixin type. In cases where this mixin is
+ * added to an already existing node the semantics of these properties are
+ * implementation specific. Note that jackrabbit initializes the properties to
+ * the current date and user in this case.
+ *
+ *
+ * @since 2.0
+ */
+[mix:created]
+  mixin
+  - jcr:created (DATE) autocreated protected
+  - jcr:createdBy (STRING) autocreated protected
+
+/**
+ * This mixin node type can be used to provide standardized modification
+ * information properties to a node.
+ *
+ * The following is not yet implemented in Jackrabbit:
+ * "Since the properties are protected, their values
+ *  are controlled by the repository, which should set them appropriately upon a
+ *  significant modification of the subgraph of a node with this mixin. What
+ *  constitutes a significant modification will depend on the semantics of the various
+ *  parts of a node's subgraph and is implementation-dependent"
+ *
+ * Jackrabbit initializes the properties to the current date and user in the
+ * case they are newly created.
+ *
+ * Note that the protected attributes suggested by JSR283 are omitted in this variant.
+ * @since 2.0
+ */
+[mix:lastModified]
+  mixin
+  - jcr:lastModified (DATE) autocreated
+  - jcr:lastModifiedBy (STRING) autocreated
+
+/**
+ * This mixin node type can be used to provide a standardized property that
+ * specifies the natural language in which the content of a node is expressed.
+ * The value of the jcr:language property should be a language code as defined
+ * in RFC 46465. Examples include "en" (English), "en-US" (United States English),
+ * "de" (German) and "de-CH" (Swiss German).
+ *
+ * Note that the protected attributes suggested by JSR283 are omitted in this variant.
+ * @since 2.0
+ */
+[mix:language]
+  mixin
+  - jcr:language (STRING)
+
+/**
+ * This mixin node type can be used to provide standardized mimetype and
+ * encoding properties to a node. If a node of this type has a primary item
+ * that is a single-value BINARY property then jcr:mimeType property indicates
+ * the media type applicable to the contents of that property and, if that
+ * media type is one to which a text encoding applies, the jcr:encoding property
+ * indicates the character set used. If a node of this type does not meet the
+ * above precondition then the interpretation of the jcr:mimeType and
+ * jcr:encoding properties is implementation-dependent.
+ *
+ * Note that the protected attributes suggested by JSR283 are omitted in this variant.
+ * @since 2.0
+ */
+[mix:mimeType]
+  mixin
+  - jcr:mimeType (STRING)
+  - jcr:encoding (STRING)
+
+/**
+ * This node type may be used to represent the location of a JCR item not just
+ * within a particular workspace but within the space of all workspaces in all JCR
+ * repositories.
+ *
+ * @prop jcr:protocol Stores a string holding the protocol through which the
+ *                    target repository is to be accessed.
+ * @prop jcr:host     Stores a string holding the host name of the system
+ *                    through which the repository is to be accessed.
+ * @prop jcr:port     Stores a string holding the port number through which the
+ *                    target repository is to be accessed.
+ *
+ * The semantics of these properties above are left undefined but are assumed to be
+ * known by the application. The names and descriptions of the properties are not
+ * normative and the repository does not enforce any particular semantic
+ * interpretation on them.
+ *
+ * @prop jcr:repository Stores a string holding the name of the target repository.
+ * @prop jcr:workspace  Stores the name of a workspace.
+ * @prop jcr:path       Stores a path to an item.
+ * @prop jcr:id         Stores a weak reference to a node.
+ *
+ * In most cases either the jcr:path or the jcr:id property would be used, but
+ * not both, since they may point to different nodes. If any of the properties
+ * other than jcr:path and jcr:id are missing, the address can be interpreted as
+ * relative to the current container at the same level as the missing specifier.
+ * For example, if no repository is specified, then the address can be
+ * interpreted as referring to a workspace and path or id within the current
+ * repository.
+ *
+ * @since 2.0
+ */
+[nt:address]
+  - jcr:protocol (STRING)
+  - jcr:host (STRING)
+  - jcr:port (STRING)
+  - jcr:repository (STRING)
+  - jcr:workspace (STRING)
+  - jcr:path (PATH)
+  - jcr:id (WEAKREFERENCE)
+
+/**
+ * The mix:etag mixin type defines a standardized identity validator for BINARY 
+ * properties similar to the entity tags used in HTTP/1.1
+ *
+ * A jcr:etag property is an opaque string whose syntax is identical to that
+ * defined for entity tags in HTTP/1.1. Semantically, the jcr:etag is comparable
+ * to the HTTP/1.1 strong entity tag.
+ *
+ * On creation of a mix:etag node N, or assignment of mix:etag to N, the
+ * repository must create a jcr:etag property with an implementation determined
+ * value.
+ *
+ * The value of the jcr:etag property must change immediately on persist of any
+ * of the following changes to N:
+ * - A BINARY property is added t o N.
+ * - A BINARY property is removed from N.
+ * - The value of an existing BINARY property of N changes.
+ *
+ * @since 2.0
+ */
+[mix:etag]
+  mixin
+  - jcr:etag (STRING) protected autocreated
+  
+/**
+ * mix:atomicCounter will define a node as a counter which will keep tracks of increasing/decreasing
+ * consistently across a cluster of oak instances. https://issues.apache.org/jira/browse/OAK-2220
+ */
+[mix:atomicCounter]
+  mixin
+  - oak:counter (LONG) = '0' protected autocreated
+
+/**
+ * allows restricting node types such as NT_FOLDER to have NT_UNSTRUCTURED. Required for oak:index
+ */
+[mix:indexable]
+  mixin
+  + oak:index (nt:base) = nt:unstructured COPY
+
+//------------------------------------------------------------------------------
+// U N S T R U C T U R E D   C O N T E N T
+//------------------------------------------------------------------------------
+
+/**
+ * This node type is used to store unstructured content. It allows any number of
+ * child nodes or properties with any names. It also allows multiple nodes having
+ * the same name as well as both multi-value and single-value properties with any
+ * names. This node type also supports client-orderable child nodes.
+ *
+ * @since 1.0
+ */
+[nt:unstructured]
+  orderable
+  - * (UNDEFINED) multiple
+  - * (UNDEFINED)
+  + * (nt:base) = nt:unstructured sns VERSION
+
+[oak:Unstructured]
+ - * (UNDEFINED) multiple
+ - * (UNDEFINED)
+ + * (nt:base) = oak:Unstructured VERSION
+
+/**
+ * Unstructured base node type for repository internal information that must not
+ * be copied to the version store OPV
+ *
+ * @since oak 1.0
+ */
+[rep:Unstructured]
+ - * (UNDEFINED) multiple IGNORE
+ - * (UNDEFINED) IGNORE
+ + * (nt:base) = rep:Unstructured IGNORE
+
+/**
+ * Unstructured base node type for protected repository internal information
+ * that is protected and must not be copied to the version store OPV
+ *
+ * @since oak 1.4
+ */
+[rep:UnstructuredProtected] abstract
+- * (UNDEFINED) protected multiple IGNORE
+- * (UNDEFINED) protected IGNORE
++ * (rep:UnstructuredProtected) protected IGNORE
+
+//------------------------------------------------------------------------------
+// R E F E R E N C E A B L E
+//------------------------------------------------------------------------------
+
+/**
+ * This node type adds an auto-created, mandatory, protected STRING property to
+ * the node, called jcr:uuid, which exposes the identifier of the node.
+ * Note that the term "UUID" is used for backward compatibility with JCR 1.0
+ * and does not necessarily imply the use of the UUID syntax, or global uniqueness.
+ * The identifier of a referenceable node must be a referenceable identifier.
+ * Referenceable identifiers must fulfill a number of constraints beyond the
+ * minimum required of standard identifiers (see 3.8.3 Referenceable Identifiers).
+ * A reference property is a property that holds the referenceable identifier of a
+ * referenceable node and therefore serves as a pointer to that node. The two types
+ * of reference properties, REFERENCE and WEAKREFERENCE differ in that the former
+ * enforces referential integrity while the latter does not.
+ *
+ * @since 1.0
+ */
+[mix:referenceable]
+  mixin
+  - jcr:uuid (STRING) mandatory autocreated protected INITIALIZE 
+
+//------------------------------------------------------------------------------
+// L O C K I N G
+//------------------------------------------------------------------------------
+
+/**
+ * @since 1.0
+ */
+[mix:lockable]
+  mixin
+  - jcr:lockOwner (STRING) protected IGNORE
+  - jcr:lockIsDeep (BOOLEAN) protected IGNORE
+
+//------------------------------------------------------------------------------
+// S H A R E A B L E   N O D E S
+//------------------------------------------------------------------------------
+
+/**
+ * @since 2.0
+ */
+[mix:shareable] > mix:referenceable
+  mixin
+
+//------------------------------------------------------------------------------
+// V E R S I O N I N G
+//------------------------------------------------------------------------------
+
+/**
+ * @since 2.0
+ */
+[mix:simpleVersionable]
+  mixin
+  - jcr:isCheckedOut (BOOLEAN) = 'true' mandatory autocreated protected IGNORE
+
+/**
+ * @since 1.0
+ */
+[mix:versionable] > mix:simpleVersionable, mix:referenceable
+  mixin
+  - jcr:versionHistory (REFERENCE) mandatory protected IGNORE < 'nt:versionHistory'
+  - jcr:baseVersion (REFERENCE) mandatory protected IGNORE < 'nt:version'
+  - jcr:predecessors (REFERENCE) mandatory protected multiple IGNORE < 'nt:version'
+  - jcr:mergeFailed (REFERENCE) protected multiple ABORT < 'nt:version'
+    /** @since 2.0 */
+  - jcr:activity (REFERENCE) protected < 'nt:activity'
+    /** @since 2.0 */
+  - jcr:configuration (REFERENCE) protected IGNORE < 'nt:configuration'
+
+/**
+ * @since 1.0
+ */
+[nt:versionHistory] > mix:referenceable
+  - jcr:versionableUuid (STRING) mandatory autocreated protected ABORT
+    /** @since 2.0 */
+  - jcr:copiedFrom (WEAKREFERENCE) protected ABORT < 'nt:version'
+  + jcr:rootVersion (nt:version) = nt:version mandatory autocreated protected ABORT
+  + jcr:versionLabels (nt:versionLabels) = nt:versionLabels mandatory autocreated protected ABORT
+  + * (nt:version) = nt:version protected ABORT
+
+/**
+ * @since 1.0
+ */
+[nt:versionLabels]
+  - * (REFERENCE) protected ABORT < 'nt:version'
+
+/**
+ * @since 1.0
+ */
+[nt:version] > mix:referenceable
+  - jcr:created (DATE) mandatory autocreated protected ABORT
+  - jcr:predecessors (REFERENCE) protected multiple ABORT < 'nt:version'
+  - jcr:successors (REFERENCE) protected multiple ABORT < 'nt:version'
+    /** @since 2.0 */
+  - jcr:activity (REFERENCE) protected ABORT < 'nt:activity'
+  + jcr:frozenNode (nt:frozenNode) protected ABORT
+
+/**
+ * @since 1.0
+ */
+[nt:frozenNode] > mix:referenceable
+  orderable
+  - jcr:frozenPrimaryType (NAME) mandatory autocreated protected ABORT
+  - jcr:frozenMixinTypes (NAME) protected multiple ABORT
+  - jcr:frozenUuid (STRING) mandatory autocreated protected ABORT
+  - * (UNDEFINED) protected ABORT
+  - * (UNDEFINED) protected multiple ABORT
+  + * (nt:base) protected sns ABORT
+
+/**
+ * @since 1.0
+ */
+[nt:versionedChild]
+  - jcr:childVersionHistory (REFERENCE) mandatory autocreated protected ABORT < 'nt:versionHistory'
+
+/**
+ * @since 2.0
+ */
+[nt:activity] > mix:referenceable
+  - jcr:activityTitle (STRING) mandatory autocreated protected
+
+/**
+ * @since 2.0
+ */
+[nt:configuration] > mix:versionable
+  - jcr:root (REFERENCE) mandatory autocreated protected
+
+/**
+ * @since oak 1.0
+ */
+ [rep:VersionablePaths]
+  mixin
+  - * (PATH) protected ABORT
+
+//------------------------------------------------------------------------------
+// N O D E T Y P E S
+//------------------------------------------------------------------------------
+
+/**
+ * This node type is used to store a node type definition. Property and child node
+ * definitions within the node type definition are stored as same-name sibling nodes
+ * of type nt:propertyDefinition and nt:childNodeDefinition.
+ *
+ * @since 1.0
+ */
+[nt:nodeType]
+  - jcr:nodeTypeName (NAME) protected mandatory
+  - jcr:supertypes (NAME) protected multiple
+  - jcr:isAbstract (BOOLEAN) protected mandatory
+  - jcr:isQueryable (BOOLEAN) protected mandatory
+  - jcr:isMixin (BOOLEAN) protected mandatory
+  - jcr:hasOrderableChildNodes (BOOLEAN) protected mandatory
+  - jcr:primaryItemName (NAME) protected
+  + jcr:propertyDefinition (nt:propertyDefinition) = nt:propertyDefinition protected sns
+  + jcr:childNodeDefinition (nt:childNodeDefinition) = nt:childNodeDefinition protected sns
+
+/**
+ * @since oak 1.0
+ */
+[rep:NodeType] > nt:nodeType
+  - rep:supertypes (NAME) protected multiple autocreated
+  - rep:primarySubtypes (NAME) protected multiple autocreated
+  - rep:mixinSubtypes (NAME) protected multiple autocreated
+  - rep:mandatoryProperties (NAME) protected multiple autocreated
+  - rep:mandatoryChildNodes (NAME) protected multiple autocreated
+  - rep:protectedProperties (NAME) protected multiple autocreated
+  - rep:protectedChildNodes (NAME) protected multiple autocreated
+  - rep:hasProtectedResidualProperties (BOOLEAN) protected autocreated
+  - rep:hasProtectedResidualChildNodes (BOOLEAN) protected autocreated
+  - rep:namedSingleValuedProperties (NAME) protected multiple autocreated
+  + rep:namedPropertyDefinitions (rep:NamedPropertyDefinitions) = rep:NamedPropertyDefinitions protected
+  + rep:residualPropertyDefinitions (rep:PropertyDefinitions) = rep:PropertyDefinitions protected
+  + rep:namedChildNodeDefinitions (rep:NamedChildNodeDefinitions) = rep:NamedChildNodeDefinitions protected
+  + rep:residualChildNodeDefinitions (rep:ChildNodeDefinitions) = rep:ChildNodeDefinitions protected
+
+[rep:NamedPropertyDefinitions]
+  + * (rep:PropertyDefinitions) = rep:PropertyDefinitions protected
+
+[rep:PropertyDefinitions]
+  + * (rep:PropertyDefinition) = rep:PropertyDefinition protected
+
+[rep:PropertyDefinition] > nt:propertyDefinition
+  - rep:declaringNodeType (NAME) protected mandatory
+
+[rep:NamedChildNodeDefinitions]
+  + * (rep:ChildNodeDefinitions) = rep:ChildNodeDefinitions protected
+
+[rep:ChildNodeDefinitions]
+  + * (rep:ChildNodeDefinition) = rep:ChildNodeDefinition protected
+
+[rep:ChildNodeDefinition] > nt:childNodeDefinition
+  - rep:declaringNodeType (NAME) protected mandatory
+
+/**
+ * This node type used to store a property definition within a node type definition,
+ * which itself is stored as an nt:nodeType node.
+ *
+ * @since 1.0
+ */
+[nt:propertyDefinition]
+  - jcr:name (NAME) protected 
+  - jcr:autoCreated (BOOLEAN) protected mandatory
+  - jcr:mandatory (BOOLEAN) protected mandatory
+  - jcr:onParentVersion (STRING) protected mandatory
+      < 'COPY', 'VERSION', 'INITIALIZE', 'COMPUTE', 'IGNORE', 'ABORT'
+  - jcr:protected (BOOLEAN) protected mandatory
+  - jcr:requiredType (STRING) protected mandatory
+    < 'STRING', 'URI', 'BINARY', 'LONG', 'DOUBLE',
+      'DECIMAL', 'BOOLEAN', 'DATE', 'NAME', 'PATH',
+      'REFERENCE', 'WEAKREFERENCE', 'UNDEFINED'
+  - jcr:valueConstraints (STRING) protected multiple
+  - jcr:defaultValues (UNDEFINED) protected multiple
+  - jcr:multiple (BOOLEAN) protected mandatory
+  - jcr:availableQueryOperators (NAME) protected mandatory multiple
+  - jcr:isFullTextSearchable (BOOLEAN) protected mandatory
+  - jcr:isQueryOrderable (BOOLEAN) protected mandatory
+
+/**
+ * This node type used to store a child node definition within a node type definition,
+ * which itself is stored as an nt:nodeType node.
+ *
+ * @since 1.0
+ */
+[nt:childNodeDefinition]
+  - jcr:name (NAME) protected
+  - jcr:autoCreated (BOOLEAN) protected mandatory
+  - jcr:mandatory (BOOLEAN) protected mandatory
+  - jcr:onParentVersion (STRING) protected mandatory 
+      < 'COPY', 'VERSION', 'INITIALIZE', 'COMPUTE', 'IGNORE', 'ABORT'
+  - jcr:protected (BOOLEAN) protected mandatory
+  - jcr:requiredPrimaryTypes (NAME) = 'nt:base' protected mandatory multiple
+  - jcr:defaultPrimaryType (NAME) protected
+  - jcr:sameNameSiblings (BOOLEAN) protected mandatory
+
+//------------------------------------------------------------------------------
+// Q U E R Y
+//------------------------------------------------------------------------------
+
+/**
+ * @since 1.0
+ */
+[nt:query]
+  - jcr:statement (STRING)
+  - jcr:language (STRING)
+
+/**
+ * Index definitions storage
+ *
+ * @since oak 0.6
+ */
+[oak:QueryIndexDefinition] > oak:Unstructured
+  - type (STRING) mandatory
+  - async (STRING)
+  - reindex (BOOLEAN) IGNORE
+
+//------------------------------------------------------------------------------
+// L I F E C Y C L E   M A N A G E M E N T
+//------------------------------------------------------------------------------
+
+/**
+ * Only nodes with mixin node type mix:lifecycle may participate in a lifecycle.
+ *
+ * @peop jcr:lifecyclePolicy
+ *              This property is a reference to another node that contains
+ *              lifecycle policy information. The definition of the referenced
+ *              node is not specified.
+ * @prop jcr:currentLifecycleState
+ *              This property is a string identifying the current lifecycle
+ *              state of this node. The format of this string is not specified.
+ *
+ * @since 2.0
+ */
+[mix:lifecycle]
+  mixin
+  - jcr:lifecyclePolicy (REFERENCE) protected INITIALIZE
+  - jcr:currentLifecycleState (STRING) protected INITIALIZE
+
+//------------------------------------------------------------------------------
+// J A C K R A B B I T   I N T E R N A L S
+//------------------------------------------------------------------------------
+
+[rep:root] > nt:unstructured
+  + jcr:system (rep:system) = rep:system mandatory IGNORE
+
+[rep:system]
+  orderable
+  + jcr:versionStorage (rep:versionStorage) = rep:versionStorage mandatory protected ABORT
+  + jcr:nodeTypes (rep:nodeTypes) = rep:nodeTypes mandatory protected ABORT
+  // @since 2.0
+  + jcr:activities (rep:Activities) = rep:Activities mandatory protected ABORT
+  // @since 2.0
+  + jcr:configurations (rep:Configurations) = rep:Configurations protected ABORT
+  + * (nt:base) = nt:base IGNORE
+  // @since oak 1.0
+  + rep:privileges (rep:Privileges) = rep:Privileges mandatory protected ABORT
+
+
+/**
+ * Node Types (virtual) storage
+ */
+[rep:nodeTypes]
+  + * (nt:nodeType) = nt:nodeType protected ABORT
+
+/**
+ * Version storage
+ */
+[rep:versionStorage]
+  + * (nt:versionHistory) = nt:versionHistory protected ABORT
+  + * (rep:versionStorage) = rep:versionStorage protected ABORT
+  - * (UNDEFINED) protected ABORT
+  - * (UNDEFINED) protected multiple ABORT
+
+/**
+ * Activities storage
+ * @since 2.0
+ */
+[rep:Activities]
+  + * (nt:activity) = nt:activity protected ABORT
+  + * (rep:Activities) = rep:Activities protected ABORT
+
+/**
+ * the intermediate nodes for the configurations storage.
+ * Note: since the versionable node points to the configuration and vice versa,
+ * a configuration could never be removed because no such API exists. therefore
+ * the child node definitions are not protected.
+ * @since 2.0
+ */
+[rep:Configurations]
+  + * (nt:configuration) = nt:configuration ABORT
+  + * (rep:Configurations) = rep:Configurations ABORT
+
+/**
+ * mixin that provides a multi value property for referencing versions.
+ * This is used for recording the baseline versions in the nt:configuration
+ * node, and to setup a bidirectional relationship between activities and
+ * the respective versions
+ * @since 2.0
+ */
+[rep:VersionReference] mix
+  - rep:versions (REFERENCE) protected multiple
+  
+// -----------------------------------------------------------------------------
+// J A C K R A B B I T  S E C U R I T Y
+// -----------------------------------------------------------------------------
+
+[rep:AccessControllable]
+  mixin
+  + rep:policy (rep:Policy) protected IGNORE
+
+[rep:RepoAccessControllable]
+  mixin
+  + rep:repoPolicy (rep:Policy) protected IGNORE
+
+[rep:Policy]
+  abstract
+
+[rep:ACL] > rep:Policy
+  orderable
+  + * (rep:ACE) = rep:GrantACE protected IGNORE
+
+[rep:ACE]
+  - rep:principalName (STRING) protected mandatory
+  - rep:privileges (NAME) protected mandatory multiple
+  - rep:nodePath (PATH) protected /* deprecated in favor of restrictions */
+  - rep:glob (STRING) protected   /* deprecated in favor of restrictions */
+  - * (UNDEFINED) protected       /* deprecated in favor of restrictions */
+  + rep:restrictions (rep:Restrictions) = rep:Restrictions protected
+
+[rep:GrantACE] > rep:ACE
+
+[rep:DenyACE] > rep:ACE
+
+/**
+ * @since oak 1.0
+ */
+[rep:Restrictions]
+  - * (UNDEFINED) protected
+  - * (UNDEFINED) protected multiple
+
+// -----------------------------------------------------------------------------
+// Principal based AC
+// -----------------------------------------------------------------------------
+
+[rep:AccessControl]
+  + * (rep:AccessControl) protected IGNORE
+  + * (rep:PrincipalAccessControl) protected IGNORE
+
+[rep:PrincipalAccessControl] > rep:AccessControl
+  + rep:policy (rep:Policy) protected IGNORE
+
+// -----------------------------------------------------------------------------
+// Permissions
+// -----------------------------------------------------------------------------
+/**
+ * @since oak 1.0
+ */
+[rep:PermissionStore]
+  - rep:accessControlledPath (STRING) protected IGNORE
+  - rep:numPermissions (LONG) protected IGNORE
+  - rep:modCount (LONG) protected IGNORE
+  + * (rep:PermissionStore) = rep:PermissionStore protected IGNORE
+  + * (rep:Permissions) = rep:Permissions protected IGNORE
+
+/**
+ * @since oak 1.0
+ */
+[rep:Permissions]
+  - * (UNDEFINED) protected IGNORE
+  - * (UNDEFINED) protected multiple IGNORE
+  + * (rep:Permissions) = rep:Permissions protected IGNORE
+
+// -----------------------------------------------------------------------------
+// User Management 
+// -----------------------------------------------------------------------------
+
+[rep:Authorizable] > mix:referenceable, nt:hierarchyNode
+  abstract
+  + * (nt:base) = nt:unstructured VERSION
+  - rep:principalName  (STRING) protected mandatory
+  - rep:authorizableId (STRING) protected /* @since oak 1.0 */
+  - * (UNDEFINED)
+  - * (UNDEFINED) multiple
+
+[rep:Impersonatable]
+  mixin
+  - rep:impersonators (STRING) protected multiple
+
+[rep:Password]
+  - * (UNDEFINED) protected
+  - * (UNDEFINED) protected multiple
+
+[rep:User] > rep:Authorizable, rep:Impersonatable
+  + rep:pwd (rep:Password) = rep:Password protected
+  - rep:password (STRING) protected
+  - rep:disabled (STRING) protected
+
+[rep:SystemUser] > rep:User /* @since oak 1.1.0 */
+
+[rep:Group] > rep:Authorizable, rep:MemberReferences
+  + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated since oak 1.0 (remove?) */
+  + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected COPY /* @since oak 1.0 */
+
+[rep:AuthorizableFolder] > nt:hierarchyNode
+  + * (rep:Authorizable) = rep:User VERSION
+  + * (rep:AuthorizableFolder) = rep:AuthorizableFolder VERSION
+
+/*
+ * @deprecated since oak 1.0
+ */
+[rep:Members]
+  orderable
+  + * (rep:Members) = rep:Members protected multiple
+  - * (WEAKREFERENCE) protected < 'rep:Authorizable'
+
+/**
+ * @since oak 1.0
+ */
+[rep:MemberReferences]
+  - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
+
+/**
+ * @since oak 1.0
+ */
+[rep:MemberReferencesList]
+  + * (rep:MemberReferences) = rep:MemberReferences protected COPY
+
+/**
+ * @since oak 1.4
+ */
+[rep:Cache] > rep:UnstructuredProtected
+  - rep:expiration (LONG) protected IGNORE
+
+// -----------------------------------------------------------------------------
+// Privilege Management
+// -----------------------------------------------------------------------------
+
+/**
+ * @since oak 1.0
+ */
+[rep:Privileges]
+  + * (rep:Privilege) = rep:Privilege protected ABORT
+  - rep:next (LONG) protected multiple mandatory
+
+/**
+ * @since oak 1.0
+ */
+[rep:Privilege]
+  - rep:isAbstract (BOOLEAN) protected
+  - rep:aggregates (NAME) protected multiple
+  - rep:bits (LONG) protected multiple mandatory
+
+// -----------------------------------------------------------------------------
+// Token Management
+// -----------------------------------------------------------------------------
+/**
+ * @since oak 1.0
+ */
+[rep:Token] > mix:referenceable
+  - rep:token.key (STRING) protected mandatory
+  - rep:token.exp (DATE) protected mandatory
+  - * (UNDEFINED) protected
+  - * (UNDEFINED) multiple protected
+
+// -----------------------------------------------------------------------------
+// J A C K R A B B I T  R E T E N T I O N  M A N A G E M E N T
+// -----------------------------------------------------------------------------
+
+[rep:RetentionManageable]
+  mixin
+  - rep:hold (UNDEFINED) protected  multiple IGNORE
+  - rep:retentionPolicy (UNDEFINED) protected IGNORE
+
+// -----------------------------------------------------------------------------
+// Oak save conflict resolution
+// -----------------------------------------------------------------------------
+
+[rep:MergeConflict]
+  mixin
+  primaryitem rep:ours
+  + rep:ours (rep:Unstructured) protected IGNORE

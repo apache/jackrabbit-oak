@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
@@ -46,6 +48,8 @@ import static org.junit.Assert.fail;
  * Test for OAK-2151
  */
 public class HierarchyConflictTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HierarchyConflictTest.class);
 
     private List<Throwable> exceptions;
     private CountDownLatch nodeRemoved;
@@ -118,7 +122,7 @@ public class HierarchyConflictTest {
                     " to a removed parent");
         } catch (CommitFailedException e) {
             // expected
-            System.out.println("expected: " + e.toString());
+            LOG.info("expected: {}", e.toString());
         }
     }
 
@@ -176,7 +180,7 @@ public class HierarchyConflictTest {
                     " when child is added concurrently");
         } catch (CommitFailedException e) {
             // expected
-            System.out.println("expected: " + e.toString());
+            LOG.info("expected: {}", e.toString());
         }
     }
 

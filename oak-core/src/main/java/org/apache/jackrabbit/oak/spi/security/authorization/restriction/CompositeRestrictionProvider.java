@@ -31,7 +31,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -42,14 +41,14 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
  */
 public final class CompositeRestrictionProvider implements RestrictionProvider {
 
-    private final Collection<? extends RestrictionProvider> providers;
+    private final RestrictionProvider[] providers;
 
     private CompositeRestrictionProvider(@Nonnull Collection<? extends RestrictionProvider> providers) {
-        this.providers = ImmutableSet.copyOf(providers);
+        this.providers = providers.toArray(new RestrictionProvider[providers.size()]);
     }
 
     public static RestrictionProvider newInstance(@Nonnull RestrictionProvider... providers) {
-        return newInstance(Arrays.<RestrictionProvider>asList(providers));
+        return newInstance(Arrays.asList(providers));
     }
 
     public static RestrictionProvider newInstance(@Nonnull Collection<? extends RestrictionProvider> providers) {

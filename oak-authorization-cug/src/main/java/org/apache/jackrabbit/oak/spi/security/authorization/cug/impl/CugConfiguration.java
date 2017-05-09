@@ -17,17 +17,16 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Activate;
@@ -36,16 +35,20 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -57,7 +60,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
@@ -71,7 +73,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 @Component(metatype = true,
         label = "Apache Jackrabbit Oak CUG Configuration",
-        description = "Authorization configuration dedicated to setup and evaluation 'closed user group' permissions.",
+        description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.",
         policy = ConfigurationPolicy.REQUIRE)
 @Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
 @Properties({
@@ -80,7 +82,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
                 description = "Paths under which CUGs can be created and will be evaluated.",
                 cardinality = Integer.MAX_VALUE),
         @Property(name = CugConstants.PARAM_CUG_ENABLED,
-                label = "CUG Enabled",
+                label = "CUG Evaluation Enabled",
                 description = "Flag to enable the evaluation of the configured CUG policies.",
                 boolValue = false),
         @Property(name = CompositeConfiguration.PARAM_RANKING,
@@ -90,14 +92,11 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 })
 public class CugConfiguration extends ConfigurationBase implements AuthorizationConfiguration, CugConstants {
 
-    @Reference
-    private ContentRepository repository;
-
     /**
      * Reference to services implementing {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}.
      */
-    @Reference
-    private CugExclude exclude = new CugExclude.Default();
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
+    private CugExclude exclude;
 
     @SuppressWarnings("UnusedDeclaration")
     public CugConfiguration() {
@@ -130,7 +129,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         if (!enabled || supportedPaths.isEmpty() || getExclude().isExcluded(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
-            return new CugPermissionProvider(root, principals, supportedPaths, getContext());
+            return new CugPermissionProvider(root, workspaceName, principals, supportedPaths, getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext());
         }
     }
 
@@ -152,12 +151,18 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
                 Root root = RootFactory.createSystemRoot(store,
                         new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
                         null, null, null, null);
-                if (CugUtil.registerCugNodeTypes(root)) {
+                if (registerCugNodeTypes(root)) {
                     NodeState target = store.getRoot();
                     target.compareAgainstBaseState(base, new ApplyDiff(builder));
                 }
             }
         };
+    }
+
+    @Nonnull
+    @Override
+    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+        return Collections.singletonList(new NestedCugHook());
     }
 
     @Nonnull
@@ -181,29 +186,38 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     //----------------------------------------------------< SCR Integration >---
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    protected void activate() throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
-        ContentSession systemSession = null;
-        try {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                @Override
-                public ContentSession run() throws LoginException, RepositoryException {
-                    return repository.login(null, null);
-                }
-            });
-            final Root root = systemSession.getLatestRoot();
-            if (CugUtil.registerCugNodeTypes(root)) {
-                root.commit();
-            }
-        } finally {
-            if (systemSession != null) {
-                systemSession.close();
-            }
-        }
+    protected void activate(Map<String, Object> properties) throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
+        setParameters(ConfigurationParameters.of(properties));
     }
 
     //--------------------------------------------------------------------------
     @Nonnull
     private CugExclude getExclude() {
         return (exclude == null) ? new CugExclude.Default() : exclude;
+    }
+
+    static boolean registerCugNodeTypes(@Nonnull final Root root) {
+        try {
+            ReadOnlyNodeTypeManager ntMgr = new ReadOnlyNodeTypeManager() {
+                @Override
+                protected Tree getTypes() {
+                    return root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
+                }
+            };
+            if (!ntMgr.hasNodeType(NT_REP_CUG_POLICY)) {
+                InputStream stream = CugConfiguration.class.getResourceAsStream("cug_nodetypes.cnd");
+                try {
+                    NodeTypeRegistry.register(root, stream, "cug node types");
+                    return true;
+                } finally {
+                    stream.close();
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to read cug node types", e);
+        } catch (RepositoryException e) {
+            throw new IllegalStateException("Unable to read cug node types", e);
+        }
+        return false;
     }
 }

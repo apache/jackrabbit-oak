@@ -27,7 +27,6 @@ import javax.jcr.PropertyType;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.cache.StringCache;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.json.TypeCodes;
@@ -94,12 +93,30 @@ final class DocumentPropertyState implements PropertyState {
 
     @Override
     public long size(int index) {
-        return parsed().size(index);
+        long size;
+        PropertyState parsed = parsed();
+        if (parsed.getType() == Type.BINARIES) {
+            size = parsed.getValue(Type.BINARY, index).length();
+        } else {
+            size = parsed.size(index);
+        }
+        return size;
     }
 
     @Override
     public int count() {
         return parsed().count();
+    }
+
+    /**
+     * Returns the raw un-parsed value as passed to the constructor of this
+     * property state.
+     *
+     * @return the raw un-parsed value.
+     */
+    @Nonnull
+    String getValue() {
+        return value;
     }
 
     //------------------------------------------------------------< Object >--

@@ -26,8 +26,10 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
@@ -37,6 +39,25 @@ import org.junit.Test;
  * Permission evaluation tests related to write operations.
  */
 public class WriteTest extends AbstractEvaluationTest {
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3517">OAK-3517</a>
+     */
+    @Test
+    public void testAddNodeWithRelativePath() throws Exception {
+        Privilege[] privileges = privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_NODE_TYPE_MANAGEMENT
+        });
+        allow(childNPath, EveryonePrincipal.getInstance(), privileges);
+
+        Node testNode = testSession.getNode(path);
+        String relPath = testSession.getNode(childNPath).getName() + "/newChild";
+        testNode.addNode(relPath, JcrConstants.NT_UNSTRUCTURED);
+
+        testSession.save();
+    }
+
 
     @Test
     public void testAddChildNodeAndSetProperty() throws Exception {

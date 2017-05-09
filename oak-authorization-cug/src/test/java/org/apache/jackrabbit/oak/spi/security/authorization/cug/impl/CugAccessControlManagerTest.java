@@ -32,15 +32,21 @@ import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Test;
 
@@ -120,6 +126,12 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     }
 
     @Test
+    public void testGetApplicablePoliciesNullPath() throws Exception {
+        AccessControlPolicyIterator it = cugAccessControlManager.getApplicablePolicies((String) null);
+        assertFalse(it.hasNext());
+    }
+
+    @Test
     public void testGetPolicies() throws Exception {
         AccessControlPolicy[] policies = cugAccessControlManager.getPolicies(SUPPORTED_PATH);
         assertEquals(0, policies.length);
@@ -134,6 +146,24 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         assertTrue(policies[0] instanceof CugPolicyImpl);
     }
 
+    @Test
+    public void testGetPoliciesAfterManualCreation() throws Exception {
+        NodeUtil n = new NodeUtil(root.getTree(SUPPORTED_PATH));
+        NodeUtil cug = n.addChild(REP_CUG_POLICY, NT_REP_CUG_POLICY);
+
+        AccessControlPolicy[] policies = cugAccessControlManager.getPolicies(SUPPORTED_PATH);
+        assertEquals(1, policies.length);
+        assertTrue(policies[0] instanceof CugPolicy);
+        CugPolicy cugPolicy = (CugPolicy) policies[0];
+        assertTrue(cugPolicy.getPrincipals().isEmpty());
+
+        cug.setStrings(REP_PRINCIPAL_NAMES, "unknownPrincipalName", EveryonePrincipal.NAME);
+
+        policies = cugAccessControlManager.getPolicies(SUPPORTED_PATH);
+        cugPolicy = (CugPolicy) policies[0];
+        assertEquals(2, cugPolicy.getPrincipals().size());
+    }
+
     @Test(expected = PathNotFoundException.class)
     public void testGetPoliciesInvalidPath() throws Exception {
         cugAccessControlManager.getPolicies(INVALID_PATH);
@@ -143,6 +173,65 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     public void testGetPoliciesUnsupportedPath() throws Exception {
         AccessControlPolicy[] policies = cugAccessControlManager.getPolicies(UNSUPPORTED_PATH);
         assertEquals(0, policies.length);
+    }
+
+    @Test
+    public void testGetPoliciesNullPath() throws Exception {
+        AccessControlPolicy[] policies = cugAccessControlManager.getPolicies((String) null);
+        assertEquals(0, policies.length);
+    }
+
+    @Test
+    public void testGetEffectivePolicies() throws Exception {
+        AccessControlPolicy[] policies = cugAccessControlManager.getEffectivePolicies(SUPPORTED_PATH);
+        assertEquals(0, policies.length);
+
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, createCug(SUPPORTED_PATH));
+        root.commit();
+
+        policies = cugAccessControlManager.getEffectivePolicies(SUPPORTED_PATH);
+        assertEquals(1, policies.length);
+
+        AccessControlPolicy[] effectiveOnChild = cugAccessControlManager.getEffectivePolicies(SUPPORTED_PATH + "/subtree");
+        assertEquals(1, policies.length);
+
+        assertEquals(policies.length, effectiveOnChild.length);
+        assertEquals(((JackrabbitAccessControlPolicy) policies[0]).getPath(), ((JackrabbitAccessControlPolicy) effectiveOnChild[0]).getPath());
+    }
+
+    @Test(expected = PathNotFoundException.class)
+    public void testGetEffectivePoliciesInvalidPath() throws Exception {
+        cugAccessControlManager.getEffectivePolicies(INVALID_PATH);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesUnsupportedPath() throws Exception {
+        AccessControlPolicy[] policies = cugAccessControlManager.getEffectivePolicies(UNSUPPORTED_PATH);
+        assertEquals(0, policies.length);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesNullPath() throws Exception {
+        AccessControlPolicy[] policies = cugAccessControlManager.getEffectivePolicies((String) null);
+        assertEquals(0, policies.length);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesNotEnabled() throws Exception {
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, createCug(SUPPORTED_PATH));
+        root.commit();
+
+        ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
+                    CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS,
+                    CugConstants.PARAM_CUG_ENABLED, false));
+        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, new CugSecurityProvider(config));
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(SUPPORTED_PATH);
+        assertEquals(0, policies.length);
+
+        AccessControlPolicy[] effectiveOnChild = acMgr.getEffectivePolicies(SUPPORTED_PATH + "/subtree");
+        assertEquals(0, policies.length);
+
+        assertEquals(policies.length, effectiveOnChild.length);
     }
 
     @Test
@@ -219,6 +308,14 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         cugAccessControlManager.setPolicy(SUPPORTED_PATH, createCug(SUPPORTED_PATH + "/subtree"));
     }
 
+    @Test(expected = AccessControlException.class)
+    public void testSetInvalidCugNode() throws Exception {
+        Tree supportedTree = root.getTree(SUPPORTED_PATH);
+        new NodeUtil(supportedTree).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, new CugPolicyImpl(SUPPORTED_PATH, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.BESTEFFORT));
+    }
+
     @Test
     public void testRemovePolicy() throws Exception {
         CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
@@ -238,6 +335,22 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
         Tree tree = root.getTree(SUPPORTED_PATH);
         assertFalse(tree.hasChild(CugConstants.REP_CUG_POLICY));
+    }
+
+    @Test
+    public void testRemovePolicyRemovesMixin() throws Exception {
+        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+
+        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
+        root.commit();
+
+        assertTrue(ntMgr.isNodeType(root.getTree(SUPPORTED_PATH), MIX_REP_CUG_MIXIN));
+
+        cugAccessControlManager.removePolicy(SUPPORTED_PATH, cugAccessControlManager.getPolicies(SUPPORTED_PATH)[0]);
+        root.commit();
+
+        assertFalse(ntMgr.isNodeType(root.getTree(SUPPORTED_PATH), MIX_REP_CUG_MIXIN));
     }
 
     @Test
@@ -262,6 +375,14 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         }
     }
 
+    @Test(expected = AccessControlException.class)
+    public void testRemoveInvalidCugNode() throws Exception {
+        Tree supportedTree = root.getTree(SUPPORTED_PATH);
+        new NodeUtil(supportedTree).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+
+        cugAccessControlManager.removePolicy(SUPPORTED_PATH, new CugPolicyImpl(SUPPORTED_PATH, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.BESTEFFORT));
+    }
+
     @Test(expected = PathNotFoundException.class)
     public void testRemovePolicyInvalidPath() throws Exception {
         cugAccessControlManager.removePolicy(INVALID_PATH, createCug(INVALID_PATH));
@@ -275,6 +396,27 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     @Test(expected = AccessControlException.class)
     public void testRemovePolicyPathMismatch() throws Exception {
         cugAccessControlManager.removePolicy(SUPPORTED_PATH, createCug(SUPPORTED_PATH + "/subtree"));
+    }
+
+    @Test
+    public void testGetApplicablePoliciesByPrincipal() throws Exception {
+        AccessControlPolicy[] applicable = cugAccessControlManager.getApplicablePolicies(EveryonePrincipal.getInstance());
+        assertNotNull(applicable);
+        assertEquals(0, applicable.length);
+    }
+
+    @Test
+    public void testGetPoliciesByPrincipal() throws Exception {
+        AccessControlPolicy[] applicable = cugAccessControlManager.getPolicies(EveryonePrincipal.getInstance());
+        assertNotNull(applicable);
+        assertEquals(0, applicable.length);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesByPrincipal() throws Exception {
+        AccessControlPolicy[] applicable = cugAccessControlManager.getEffectivePolicies(ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        assertNotNull(applicable);
+        assertEquals(0, applicable.length);
     }
 
     /**

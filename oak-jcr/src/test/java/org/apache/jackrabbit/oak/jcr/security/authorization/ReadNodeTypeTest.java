@@ -21,6 +21,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.api.util.Text;
 
@@ -112,5 +113,72 @@ public class ReadNodeTypeTest extends AbstractEvaluationTest {
         assertFalse(newNode.hasProperty(JcrConstants.JCR_MIXINTYPES));
         NodeType[] mixins = newNode.getMixinNodeTypes();
         assertEquals(0, mixins.length);
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3775">OAK-3775</a>
+     */
+    public void testIsNodeType() throws Exception {
+        superuser.getNode(path).addMixin(JcrConstants.MIX_LOCKABLE);
+        superuser.save();
+
+        deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+
+        Node n = testSession.getNode(path);
+        assertFalse(n.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
+
+        assertTrue(n.isNodeType(superuser.getNode(path).getPrimaryNodeType().getName()));
+        assertTrue(n.isNodeType(JcrConstants.MIX_LOCKABLE));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3775">OAK-3775</a>
+     */
+    public void testIsNodeTypeNewNode() throws Exception {
+        superuser.getNode(path).addMixin(JcrConstants.MIX_LOCKABLE);
+        superuser.save();
+        deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+
+        testSession.getNode(path).remove();
+        Node newNode = testSession.getNode(testRoot).addNode(Text.getName(path));
+
+        assertTrue(newNode.isNodeType(superuser.getNode(path).getPrimaryNodeType().getName()));
+        assertTrue(newNode.isNodeType(testNodeType));
+        assertFalse(newNode.isNodeType(JcrConstants.MIX_LOCKABLE));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3775">OAK-3775</a>
+     */
+    public void testIsNodeTypeAddNewNode() throws Exception {
+        allow(path, privilegesFromName(PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT));
+        deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+
+        Node newNode = testSession.getNode(path).addNode("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertTrue(newNode.isNodeType(NodeTypeConstants.NT_OAK_UNSTRUCTURED));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3775">OAK-3775</a>
+     */
+    public void testIsReferenceable()  throws Exception {
+        superuser.getNode(path).addMixin(JcrConstants.MIX_REFERENCEABLE);
+        superuser.save();
+        deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+
+        Node n = testSession.getNode(path);
+        assertTrue(n.isNodeType(JcrConstants.MIX_REFERENCEABLE));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3775">OAK-3775</a>
+     */
+    public void testIsVersionable()  throws Exception {
+        superuser.getNode(path).addMixin(JcrConstants.MIX_VERSIONABLE);
+        superuser.save();
+        deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+
+        Node n = testSession.getNode(path);
+        assertTrue(n.isNodeType(JcrConstants.MIX_VERSIONABLE));
     }
 }

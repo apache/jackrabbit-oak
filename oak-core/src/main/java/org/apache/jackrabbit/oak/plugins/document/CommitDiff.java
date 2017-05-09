@@ -21,15 +21,17 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingHandler;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * Implementation of a {@link NodeStateDiff}, which translates the diffs into
@@ -41,25 +43,26 @@ class CommitDiff implements NodeStateDiff {
 
     private final Commit commit;
 
-    private final String path;
-
     private final JsopBuilder builder;
 
     private final BlobSerializer blobs;
 
+    private final BundlingHandler bundlingHandler;
+
     CommitDiff(@Nonnull DocumentNodeStore store, @Nonnull Commit commit,
                @Nonnull BlobSerializer blobs) {
-        this(checkNotNull(store), checkNotNull(commit), "/",
+        this(checkNotNull(store), checkNotNull(commit), store.getBundlingConfigHandler().newBundlingHandler(),
                 new JsopBuilder(), checkNotNull(blobs));
     }
 
-    private CommitDiff(DocumentNodeStore store, Commit commit, String path,
+    private CommitDiff(DocumentNodeStore store, Commit commit, BundlingHandler bundlingHandler,
                JsopBuilder builder, BlobSerializer blobs) {
         this.store = store;
         this.commit = commit;
-        this.path = path;
+        this.bundlingHandler = bundlingHandler;
         this.builder = builder;
         this.blobs = blobs;
+        performBundlingRelatedOperations();
     }
 
     @Override
@@ -76,45 +79,104 @@ class CommitDiff implements NodeStateDiff {
 
     @Override
     public boolean propertyDeleted(PropertyState before) {
-        commit.updateProperty(path, before.getName(), null);
+        commit.updateProperty(bundlingHandler.getRootBundlePath(), bundlingHandler.getPropertyPath(before.getName()), null);
         return true;
     }
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        String p = PathUtils.concat(path, name);
-        commit.addNode(new DocumentNodeState(store, p, commit.getRevision()));
+        BundlingHandler child = bundlingHandler.childAdded(name, after);
+        if (child.isBundlingRoot()) {
+            commit.addNode(new DocumentNodeState(store, child.getRootBundlePath(),
+                    new RevisionVector(commit.getRevision())));
+        }
+        setOrTouchChildrenFlag(child);
         return after.compareAgainstBaseState(EMPTY_NODE,
-                new CommitDiff(store, commit, p, builder, blobs));
+                new CommitDiff(store, commit, child, builder, blobs));
     }
 
     @Override
     public boolean childNodeChanged(String name,
                                     NodeState before,
                                     NodeState after) {
-        String p = PathUtils.concat(path, name);
+        //TODO [bundling] Handle change of primaryType. Current approach would work
+        //but if bundling was enabled for previous nodetype its "side effect"
+        //would still impact even though new nodetype does not have bundling enabled
+        BundlingHandler child = bundlingHandler.childChanged(name, after);
         return after.compareAgainstBaseState(before,
-                new CommitDiff(store, commit, p, builder, blobs));
+                new CommitDiff(store, commit, child, builder, blobs));
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        String p = PathUtils.concat(path, name);
-        commit.removeNode(p);
+        BundlingHandler child = bundlingHandler.childDeleted(name, before);
+        if (child.isBundlingRoot()) {
+            commit.removeNode(child.getRootBundlePath(), before);
+        }
+        setOrTouchChildrenFlag(child);
         return MISSING_NODE.compareAgainstBaseState(before,
-                new CommitDiff(store, commit, p, builder, blobs));
+                new CommitDiff(store, commit, child, builder, blobs));
     }
 
     //----------------------------< internal >----------------------------------
+
+    private void performBundlingRelatedOperations() {
+        setMetaProperties();
+        informCommitAboutBundledNodes();
+        removeRemovedProps();
+    }
+
+    private void setMetaProperties() {
+        for (PropertyState ps : bundlingHandler.getMetaProps()){
+            setProperty(ps);
+        }
+    }
+
+    private void informCommitAboutBundledNodes() {
+        if (bundlingHandler.isBundledNode()){
+            commit.addBundledNode(bundlingHandler.getNodeFullPath(), bundlingHandler.getRootBundlePath());
+        }
+    }
+
+    private void removeRemovedProps() {
+        for (String propName : bundlingHandler.getRemovedProps()){
+            commit.updateProperty(bundlingHandler.getRootBundlePath(),
+                    bundlingHandler.getPropertyPath(propName), null);
+        }
+    }
+
+    private void setOrTouchChildrenFlag(BundlingHandler child) {
+        //Add hasChildren marker for bundling case
+        String propName = null;
+        if (child.isBundledNode()){
+            //1. Child is a bundled node. In that case current node would be part
+            //   same NodeDocument in which the child would be saved
+            propName = DocumentBundlor.META_PROP_BUNDLED_CHILD;
+        } else if (bundlingHandler.isBundledNode()){
+            //2. Child is a non bundled node but current node was bundled. This would
+            //   be the case where child node is not covered by bundling pattern. In
+            //   that case also add marker to current node
+            //   For case when current node is bundled  but is bundling root
+            //   this info is already captured in _hasChildren flag
+            propName = DocumentBundlor.META_PROP_NON_BUNDLED_CHILD;
+        }
+
+        //Retouch the property if already present to enable
+        //hierarchy conflict detection
+        if (propName != null){
+            setProperty(createProperty(propName, Boolean.TRUE));
+        }
+    }
 
     private void setProperty(PropertyState property) {
         builder.resetWriter();
         JsonSerializer serializer = new JsonSerializer(builder, blobs);
         serializer.serialize(property);
-        commit.updateProperty(path, property.getName(), serializer.toString());
+        commit.updateProperty(bundlingHandler.getRootBundlePath(), bundlingHandler.getPropertyPath(property.getName()),
+                 serializer.toString());
         if ((property.getType() == Type.BINARY)
                 || (property.getType() == Type.BINARIES)) {
-            this.commit.markNodeHavingBinary(this.path);
+            this.commit.markNodeHavingBinary(bundlingHandler.getRootBundlePath());
         }
     }
 }

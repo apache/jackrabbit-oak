@@ -29,6 +29,8 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 
 /**
@@ -135,7 +137,7 @@ public class PropInfo {
     @Nonnull
     public TextValue getTextValue() throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
-            throw new RepositoryException("TODO");
+            throw new RepositoryException("Multiple import values with single-valued property definition");
         }
         return values.get(0);
     }
@@ -148,7 +150,7 @@ public class PropInfo {
     @Nonnull
     public Value getValue(int targetType) throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
-            throw new RepositoryException("TODO");
+            throw new RepositoryException("Multiple import values with single-valued property definition");
         }
         return values.get(0).getValue(targetType);
     }
@@ -193,5 +195,16 @@ public class PropInfo {
             }
         }
         return null;
+    }
+
+    public PropertyState asPropertyState(@Nonnull PropertyDefinition propertyDefinition) throws RepositoryException {
+        List<Value> vs = getValues(getTargetType(propertyDefinition));
+        PropertyState propertyState;
+        if (vs.size() == 1 && !propertyDefinition.isMultiple()) {
+            propertyState = PropertyStates.createProperty(name, vs.get(0));
+        } else {
+            propertyState = PropertyStates.createProperty(name, vs);
+        }
+        return propertyState;
     }
 }

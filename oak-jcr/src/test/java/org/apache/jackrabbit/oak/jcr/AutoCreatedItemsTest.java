@@ -24,6 +24,7 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
 /**

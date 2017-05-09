@@ -24,6 +24,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -166,23 +167,26 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         /*
-        now try to import the 'g' group that has a circular group
-        membership references.
+        now try to import the 'g' group that has a circular group membership references.
         expected:
         - group is imported
-        - circular membership is ignored
-        - g is member of g1
-        - g1 isn't member of g
+        - circular membership is not spotted due to best-effort optimization
+        - circular membership is spotted upon resolution of members
         */
         doImport(getTargetPath() + "/gFolder", xml2);
 
-        Authorizable g = getUserManager().getAuthorizable("g");
-        assertNotNull(g);
-        if (g.isGroup()) {
-            assertNotDeclaredMember((Group) g, g1Id, getImportSession());
-        } else {
-            fail("'g' was not imported as Group.");
-        }
+        Group g = getUserManager().getAuthorizable("g", Group.class);
+        Group g1 = getUserManager().getAuthorizable("g1", Group.class);
+
+        assertNotNull("'g' was not imported as Group.", g);
+        assertNotNull("'g1' was not imported as Group.", g1);
+
+        assertTrue(g1.isDeclaredMember(g));
+        assertTrue(g.isDeclaredMember(g1));
+
+        // circular membership created during import -> must be spotted upon member-access
+        assertEquals(1, Iterators.size(g1.getMembers()));
+        assertEquals(1, Iterators.size(g.getMembers()));
     }
 
     @Test

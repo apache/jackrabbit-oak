@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -25,7 +28,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.Text;
 
@@ -76,6 +83,20 @@ public final class PermissionUtil implements PermissionConstants {
         return permissionsTree.getChild(Text.escapeIllegalJcrChars(principalName));
     }
 
+    public static boolean isAdminOrSystem(@Nonnull Set<Principal> principals, @Nonnull ConfigurationParameters config) {
+        if (principals.contains(SystemPrincipal.INSTANCE)) {
+            return true;
+        } else {
+            Set<String> adminNames = config.getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.EMPTY_SET);
+            for (Principal principal : principals) {
+                if (principal instanceof AdminPrincipal || adminNames.contains(principal.getName())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     @CheckForNull
     public static String getPath(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
         String path = null;
@@ -85,5 +106,13 @@ public final class PermissionUtil implements PermissionConstants {
             path = parentAfter.getPath();
         }
         return path;
+    }
+
+    public static Tree getImmutableTree(@Nullable Tree tree, @Nonnull Root immutableRoot) {
+        if (tree instanceof ImmutableTree) {
+            return tree;
+        } else {
+            return (tree == null) ? null : immutableRoot.getTree(tree.getPath());
+        }
     }
 }

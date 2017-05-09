@@ -220,7 +220,8 @@ public class FileBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        int count = 0;
         for (String chunkId : chunkIds) {
             byte[] digest = StringUtils.convertHexToBytes(chunkId);
             File f = getFile(digest, false);
@@ -233,9 +234,10 @@ public class FileBlobStore extends AbstractBlobStore {
             if ((maxLastModifiedTime <= 0) 
                     || FileUtils.isFileOlder(f, maxLastModifiedTime)) {
                 f.delete();
+                count++;
             }
         }
-        return true;
+        return count;
     }
 
     @Override

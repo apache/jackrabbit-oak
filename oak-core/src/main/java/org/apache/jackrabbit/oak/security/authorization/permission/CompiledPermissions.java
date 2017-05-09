@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 
@@ -33,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
  * be may able to simplify the evaluation. See e.g. {@link org.apache.jackrabbit.oak.security.authorization.permission.AllPermissions}
  * and {@link org.apache.jackrabbit.oak.security.authorization.permission.NoPermissions}
  */
-public interface CompiledPermissions {
+interface CompiledPermissions {
 
     /**
      * Refresh this instance to reflect the permissions as present with the
@@ -67,6 +68,18 @@ public interface CompiledPermissions {
      */
     @Nonnull
     TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission);
+
+    /**
+     * Returns the tree permissions for the specified {@code tree}.
+     *
+     *
+     * @param tree The tree for which to obtain the permissions.
+     * @param parentPermission The permissions as present with the parent.
+     * @return The permissions for the specified tree.
+     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#getChildPermission(String, org.apache.jackrabbit.oak.spi.state.NodeState)}
+     */
+    @Nonnull
+    TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission);
 
     /**
      * Returns {@code true} if the given {@code permissions} are granted on the
@@ -104,7 +117,7 @@ public interface CompiledPermissions {
     Set<String> getPrivileges(@Nullable Tree tree);
 
     /**
-     * Retruns true if all privileges identified by the given {@code privilegeNames}
+     * Returns {@code true} if all privileges identified by the given {@code privilegeNames}
      * are granted at the given {@code tree}.
      *
      *

@@ -25,6 +25,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * PrincipalImplTest...
@@ -36,6 +38,11 @@ public class PrincipalImplTest {
     @Test
     public void testGetName() {
         assertEquals("name", principal.getName());
+    }
+
+    @Test
+    public void testEqualsSame() {
+        assertTrue(principal.equals(principal));
     }
 
     @Test
@@ -69,6 +76,13 @@ public class PrincipalImplTest {
         for (Principal p : principals) {
             assertFalse(principal.equals(p));
         }
+    }
+
+    @Test
+    public void testToString() {
+        assertNotNull(principal.toString());
+        assertTrue(principal.toString().endsWith(principal.getName()));
+        assertTrue(principal.toString().startsWith(principal.getClass().getName()));
     }
 
     //--------------------------------------------------------------------------

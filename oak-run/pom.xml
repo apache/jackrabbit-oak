@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.4-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -32,7 +32,12 @@
 
   <properties>
     <jetty.version>8.1.2.v20120308</jetty.version>
-    <groovy.version>2.3.1</groovy.version>
+    <groovy.version>2.4.7</groovy.version>
+    <!--
+      Size History:
+      + 38 MB. Initial value. Current 35MB plus a 10%
+    -->
+    <max.jar.size>38000000</max.jar.size>
   </properties>
 
   <build>
@@ -52,62 +57,27 @@
     </resources>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.gmaven</groupId>
-        <artifactId>gmaven-plugin</artifactId>
-        <version>1.4</version>
-        <!--suppress MavenModelInspection -->
-        <configuration>
-          <providerSelection>2.0</providerSelection>
-          <sourceEncoding>UTF-8</sourceEncoding>
-        </configuration>
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <version>1.5</version>
         <executions>
           <execution>
             <goals>
+              <goal>addSources</goal>
+              <goal>addTestSources</goal>
               <goal>generateStubs</goal>
               <goal>compile</goal>
-              <goal>generateTestStubs</goal>
+              <goal>testGenerateStubs</goal>
               <goal>testCompile</goal>
+              <goal>removeStubs</goal>
+              <goal>removeTestStubs</goal>
             </goals>
-          </execution>
-        </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
-            <version>${groovy.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.8</version>
-        <executions>
-          <execution>
-            <id>copy</id>
-            <phase>package</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.apache.lucene</groupId>
-                  <artifactId>lucene-core</artifactId>
-                  <version>3.6.0</version>
-                  <type>jar</type>
-                  <overWrite>false</overWrite>
-                  <outputDirectory>${project.build.directory}/jr2</outputDirectory>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
           </execution>
         </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.4</version>
         <configuration>
           <archive>
             <manifest>
@@ -131,24 +101,12 @@
               </descriptors>
             </configuration>
           </execution>
-          <execution>
-            <id>create-jr2</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <descriptors>
-                <descriptor>src/main/assembly/oak-run-jr2.xml</descriptor>
-              </descriptors>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
-        <version>1.7</version>
+        <version>1.8</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -170,36 +128,9 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.7</version>
-        <executions>
-          <execution>
-            <id>reserve-network-port</id>
-            <goals>
-                <goal>reserve-network-port</goal>
-            </goals>
-            <phase>process-resources</phase>
-            <configuration>
-              <portNames>
-                <portName>jetty.http.port</portName>
-              </portNames>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <systemPropertyVariables>
-            <jetty.http.port>${jetty.http.port}</jetty.http.port>
-          </systemPropertyVariables>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>com.phasebash.jsdoc</groupId>
         <artifactId>jsdoc3-maven-plugin</artifactId>
-        <version>1.1.0</version>
+        <version>1.2.0</version>
         <executions>
           <execution>
             <id>generate-jsdoc</id>
@@ -217,19 +148,42 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.rat</groupId>
-        <artifactId>apache-rat-plugin</artifactId>
-        <configuration>
-          <excludes>
-            <exclude>**/deepTree.xml</exclude>
-            <exclude>**/deepTree_everyone.xml</exclude>
-          </excludes>
-        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-file-size</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <rules>
+                <requireFilesSize>
+                  <maxsize>${max.jar.size}</maxsize>
+                  <files>
+                    <file>${project.build.directory}/${project.build.finalName}.jar</file>
+                  </files>
+                </requireFilesSize>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
 
   <dependencies>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-run-commons</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
@@ -237,12 +191,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-http</artifactId>
+      <artifactId>oak-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-upgrade</artifactId>
+      <artifactId>oak-core-spi</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -252,29 +206,63 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-solr-core</artifactId>
+      <artifactId>oak-blob-cloud</artifactId>
       <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.solr</groupId>
-      <artifactId>solr-solrj</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.solr</groupId>
-      <artifactId>solr-core</artifactId>
-      <version>${lucene.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-        </exclusion>
-      </exclusions>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-tarmk-standby</artifactId>
+      <artifactId>oak-segment-tar</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-aws-ext</artifactId>
+      <version>${jackrabbit.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-cloud-azure</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>net.sf.jopt-simple</groupId>
+      <artifactId>jopt-simple</artifactId>
+      <version>4.6</version>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <version>${groovy.version}</version>
+      <classifier>indy</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongo-java-driver</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mapdb</groupId>
+      <artifactId>mapdb</artifactId>
+      <version>1.0.6</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.configadmin</artifactId>
+      <version>1.8.8</version>
+    </dependency>
+    <dependency>
+      <groupId>jline</groupId>
+      <artifactId>jline</artifactId>
+      <version>2.14.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>1.1</version>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -282,79 +270,30 @@
       <version>${h2.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+      <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-jcr-server</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-core</artifactId>
-      <version>${jackrabbit.version}</version>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1.1</version>
       <exclusions>
         <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
+          <artifactId>junit</artifactId>
+          <groupId>junit</groupId>
         </exclusion>
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-data</artifactId>
-      <version>${jackrabbit.version}</version>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-parsers</artifactId>
+      <version>1.5</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-math</artifactId>
-      <version>2.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>1.8</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <version>2.4</version>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlet</artifactId>
-      <version>${jetty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>net.sf.jopt-simple</groupId>
-      <artifactId>jopt-simple</artifactId>
-      <version>4.6</version>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.groovy</groupId>
-      <artifactId>groovy-all</artifactId>
-      <version>${groovy.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
-      <version>2.11</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mapdb</groupId>
-      <artifactId>mapdb</artifactId>
-      <version>1.0.6</version>
-      <scope>compile</scope>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-core</artifactId>
+      <version>1.5</version>
     </dependency>
 
     <!-- Findbugs annotations -->
@@ -369,20 +308,10 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
   </dependencies>
 
   <profiles>
-    <profile>
-      <id>jr2</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-          <version>3.6.0</version>
-        </dependency>
-      </dependencies>
-    </profile>
     <profile>
       <!--
          oak-lucene embeds the Lucene jar. However when running in IDE
@@ -420,11 +349,17 @@
           <version>${lucene.version}</version>
         </dependency>
         <dependency>
-          <groupId>org.apache.jackrabbit</groupId>
-          <artifactId>oak-solr-osgi</artifactId> <!-- this is declared here to avoid having it in the jr2 profile too -->
-          <version>${project.version}</version>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-facet</artifactId>
+          <version>${lucene.version}</version>
         </dependency>
-
+        <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>oak-core</artifactId>
+          <version>${project.version}</version>
+          <type>test-jar</type>
+          <scope>test</scope>
+        </dependency>
       </dependencies>
     </profile>
   </profiles>

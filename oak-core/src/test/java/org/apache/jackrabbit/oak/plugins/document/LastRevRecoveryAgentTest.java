@@ -19,22 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.IOException;
-import java.util.List;
-
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
@@ -43,74 +34,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-@RunWith(Parameterized.class)
-public class LastRevRecoveryAgentTest {
-    private final DocumentStoreFixture fixture;
-
-    private DocumentNodeStore ds1;
-    private DocumentNodeStore ds2;
-    private int c1Id;
-    private int c2Id;
-    private DocumentStore sharedStore;
-    private Clock clock;
+public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
 
     public LastRevRecoveryAgentTest(DocumentStoreFixture fixture) {
-        this.fixture = fixture;
+        super(fixture);
     }
-
-    //----------------------------------------< Set Up >
-
-    @Parameterized.Parameters
-    public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
-
-        DocumentStoreFixture rdb = new RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
-        if (rdb.isAvailable()) {
-            fixtures.add(new Object[] { rdb });
-        }
-
-        DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if (mongo.isAvailable()) {
-            fixtures.add(new Object[] { mongo });
-        }
-        return fixtures;
-    }
-
-    @Before
-    public void setUp() throws InterruptedException {
-        clock = new Clock.Virtual();
-
-        //Quite a bit of logic relies on timestamp converted
-        // to 5 sec resolutions
-        clock.waitUntil(System.currentTimeMillis());
-
-        ClusterNodeInfo.setClock(clock);
-        Revision.setClock(clock);
-        sharedStore = fixture.createDocumentStore();
-        ds1 = new DocumentMK.Builder()
-                .setAsyncDelay(0)
-                .clock(clock)
-                .setDocumentStore(sharedStore)
-                .getNodeStore();
-        c1Id = ds1.getClusterId();
-
-        ds2 = new DocumentMK.Builder()
-                .setAsyncDelay(0)
-                .clock(clock)
-                .setDocumentStore(sharedStore)
-                .getNodeStore();
-        c2Id = ds2.getClusterId();
-    }
-
-    @After
-    public void tearDown(){
-        sharedStore.dispose();
-        ClusterNodeInfo.resetClockToDefault();
-        Revision.resetClockToDefault();
-    }
-
-    //~------------------------------------------< Test Case >
 
     @Test
     public void testIsRecoveryRequired() throws Exception{
@@ -127,7 +55,7 @@ public class LastRevRecoveryAgentTest {
         b2.child("x").child("y").child("z").setProperty("foo", "bar");
         ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        Revision zlastRev2 = ds2.getHeadRevision();
+        Revision zlastRev2 = ds2.getHeadRevision().getRevision(ds2.getClusterId());
 
         long leaseTime = ds1.getClusterInfo().getLeaseTime();
         ds1.runBackgroundOperations();
@@ -139,15 +67,57 @@ public class LastRevRecoveryAgentTest {
 
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
-        List<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
-        assertEquals(1, cids.size());
-        assertEquals(c2Id, cids.get(0).intValue());
+        Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
+        assertEquals(1, Iterables.size(cids));
+        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
-        ds1.getLastRevRecoveryAgent().recover(cids.get(0));
+        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
 
         assertEquals(zlastRev2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
         assertEquals(zlastRev2, getDocument(ds1, "/x").getLastRev().get(c2Id));
         assertEquals(zlastRev2, getDocument(ds1, "/").getLastRev().get(c2Id));
+    }
+
+    //OAK-5337
+    @Test
+    public void testSelfRecovery() throws Exception{
+        //1. Create base structure /x/y
+        NodeBuilder b1 = ds1.getRoot().builder();
+        b1.child("x").child("y");
+        merge(ds1, b1);
+        ds1.runBackgroundOperations();
+
+        //2. Add a new node /x/y/z in C1
+        b1 = ds1.getRoot().builder();
+        b1.child("x").child("y").child("z");
+        merge(ds1, b1);
+
+        long leaseTime = ds1.getClusterInfo().getLeaseTime();
+
+        clock.waitUntil(clock.getTime() + leaseTime + 10);
+
+        //Renew the lease for C2
+        ds2.getClusterInfo().renewLease();
+        //C1 needs recovery from lease timeout pov
+        assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
+
+        Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
+        //.. but, it won't be returned while we iterate candidate nodes from self
+        assertEquals(0, Iterables.size(cids));
+
+        cids = ds2.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
+        //... checking that from other node still reports
+        assertEquals(1, Iterables.size(cids));
+        assertEquals(c1Id, Iterables.get(cids, 0).intValue());
+
+        ds2.runBackgroundOperations();
+        assertFalse(ds2.getRoot().getChildNode("x").getChildNode("y").hasChildNode("z"));
+
+        // yet, calling recover with self-cluster-id still works (useful for startup LRRA)
+        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
+
+        ds2.runBackgroundOperations();
+        assertTrue(ds2.getRoot().getChildNode("x").getChildNode("y").hasChildNode("z"));
     }
 
     @Test

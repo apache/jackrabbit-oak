@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -31,7 +32,11 @@ import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -42,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -58,11 +64,27 @@ public final class FilterBuilder {
     private boolean includeClusterExternal;
     private boolean includeClusterLocal = true;
     private final List<String> subTrees = newArrayList();
+    private final Set<String> pathsForMBean = newHashSet();
     private Condition condition = includeAll();
+    private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
+        
+        @Override
+        public boolean excludes(ChangeSet changeSet) {
+            return false;
+        }
+    };
+
+    private EventAggregator aggregator;
 
     public interface Condition {
         @Nonnull
         EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after);
+    }
+    
+    @Nonnull
+    public FilterBuilder setChangeSetFilter(@Nonnull ChangeSetFilter changeSetFilter) {
+        this.changeSetFilter = changeSetFilter;
+        return this;
     }
 
     /**
@@ -89,6 +111,16 @@ public final class FilterBuilder {
         subTrees.add(checkNotNull(absPath));
         return this;
     }
+    
+    /**
+     * Adds paths to the FilterConfigMBean's getPaths set
+     * @param paths
+     * @return
+     */
+    public FilterBuilder addPathsForMBean(@Nonnull Set<String> paths) {
+        pathsForMBean.addAll(paths);
+        return this;
+    }
 
     /**
      * A set of paths whose subtrees include all events of this filter.
@@ -98,6 +130,11 @@ public final class FilterBuilder {
     @Nonnull
     private Iterable<String> getSubTrees() {
         return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
+    }
+    
+    public FilterBuilder aggregator(EventAggregator aggregator) {
+        this.aggregator = aggregator;
+        return this;
     }
 
     /**
@@ -370,9 +407,16 @@ public final class FilterBuilder {
             final boolean includeSessionLocal = FilterBuilder.this.includeSessionLocal;
             final boolean includeClusterExternal = FilterBuilder.this.includeClusterExternal;
             final boolean includeClusterLocal = FilterBuilder.this.includeClusterLocal;
+            final EventAggregator aggregator = FilterBuilder.this.aggregator;
             final Iterable<String> subTrees = FilterBuilder.this.getSubTrees();
             final Condition condition = FilterBuilder.this.condition;
+            final ChangeSetFilter changeSetFilter = FilterBuilder.this.changeSetFilter;
 
+            @Override
+            public String toString() {
+                return super.toString() + " [changeSetFilter="+changeSetFilter+"]";
+            }
+            
             @Override
             public boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info) {
                 return (includeSessionLocal || !isLocal(checkNotNull(sessionId), info))
@@ -402,7 +446,17 @@ public final class FilterBuilder {
             }
 
             private boolean isExternal(CommitInfo info) {
-                return info == null;
+                return info.isExternal();
+            }
+            
+            @Override
+            public EventAggregator getEventAggregator() {
+                return aggregator;
+            }
+            
+            @Override
+            public boolean excludes(ChangeSet changeSet) {
+                return changeSetFilter.excludes(changeSet);
             }
         };
     }
@@ -411,18 +465,18 @@ public final class FilterBuilder {
     private FilterConfigMBean getConfigMBean(){
         return new FilterConfigMBean() {
             @Override
-            public String[] getSubTrees() {
-                return Iterables.toArray(subTrees, String.class);
+            public String[] getPaths() {
+                return Iterables.toArray(pathsForMBean, String.class);
             }
 
             @Override
             public boolean isIncludeClusterLocal() {
-                return FilterBuilder.this.includeClusterExternal;
+                return FilterBuilder.this.includeClusterLocal;
             }
 
             @Override
             public boolean isIncludeClusterExternal() {
-                return FilterBuilder.this.includeClusterLocal;
+                return FilterBuilder.this.includeClusterExternal;
             }
         };
     }
@@ -461,6 +515,7 @@ public final class FilterBuilder {
 
     private static class PathCondition implements Condition {
         private final String pathGlob;
+        private final Map<String,Pattern> patternMap = new HashMap<String,Pattern>();
 
         public PathCondition(String pathGlob) {
             this.pathGlob = pathGlob;
@@ -468,7 +523,7 @@ public final class FilterBuilder {
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            return new GlobbingPathFilter(pathGlob);
+            return new GlobbingPathFilter(pathGlob, patternMap);
         }
     }
 

@@ -27,7 +27,10 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
+
+import java.util.List;
 
 /**
  * Tests the spellcheck support.
@@ -45,9 +48,9 @@ public class SpellcheckTest extends AbstractQueryTest {
 
         String sql = "SELECT [rep:spellcheck()] FROM nt:base WHERE [jcr:path] = '/' AND SPELLCHECK('helo')";
         Query q = qm.createQuery(sql, Query.SQL);
-        String result = getResult(q.execute(), "rep:spellcheck()");
+        List<String> result = getResult(q.execute(), "rep:spellcheck()");
         assertNotNull(result);
-        assertEquals("[hello, hold]", result);
+        assertEquals("[hello, hold]", result.toString());
     }
 
     public void testSpellcheckXPath() throws Exception {
@@ -61,22 +64,39 @@ public class SpellcheckTest extends AbstractQueryTest {
 
         String xpath = "/jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())";
         Query q = qm.createQuery(xpath, Query.XPATH);
-        String result = getResult(q.execute(), "rep:spellcheck()");
+        List<String> result = getResult(q.execute(), "rep:spellcheck()");
         assertNotNull(result);
-        assertEquals("[hello, hold]", result);
+        assertEquals("[hello, hold]", result.toString());
     }
 
-    static String getResult(QueryResult result, String propertyName) throws RepositoryException {
-        StringBuilder buff = new StringBuilder();
+    public void testSpellcheckMultipleWords() throws Exception {
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("jcr:title", "it is always a good idea to go visiting ontario");
+        Node n2 = testRootNode.addNode("node2");
+        n2.setProperty("jcr:title", "ontario is a nice place to live in");
+        Node n3 = testRootNode.addNode("node3");
+        n2.setProperty("jcr:title", "I flied to ontario for voting for the major polls");
+        Node n4 = testRootNode.addNode("node4");
+        n2.setProperty("jcr:title", "I will go voting in ontario, I always voted since I've been allowed to");
+        session.save();
+
+        String xpath = "/jcr:root[rep:spellcheck('votin in ontari')]/(rep:spellcheck())";
+        Query q = qm.createQuery(xpath, Query.XPATH);
+        List<String> result = getResult(q.execute(), "rep:spellcheck()");
+        assertNotNull(result);
+        assertEquals("[voting in ontario]", result.toString());
+    }
+
+    static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+        List<String> results = Lists.newArrayList();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
-            if (buff.length() > 0) {
-                buff.append(", ");
-            }
             Row row = it.nextRow();
-            buff.append(row.getValue(propertyName).getString());
+            results.add(row.getValue(propertyName).getString());
         }
-        return buff.toString();
+        return results;
     }
 
 }

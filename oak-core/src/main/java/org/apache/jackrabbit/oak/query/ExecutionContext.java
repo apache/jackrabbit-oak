@@ -23,6 +23,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -67,6 +68,15 @@ public class ExecutionContext {
     @Nonnull
     public NodeState getBaseState() {
         return baseState;
+    }
+    
+    /**
+     * Get the nodetype info provider.
+     * 
+     * @return the provider
+     */
+    public NodeTypeInfoProvider getNodeTypeInfoProvider() {
+        return new NodeStateNodeTypeInfoProvider(baseState);
     }
 
     /**

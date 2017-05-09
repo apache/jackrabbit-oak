@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -42,13 +43,13 @@ public class BlobReferenceTest {
         HashSet<String> set = new HashSet<String>();
         for (int i = 0; i < 100; i++) {
             Blob b = a.createBlob(randomStream(i, 10));
-            set.add(b.toString());
+            set.add(new ReferencedBlob(b, "/c" + i).toString());
             a.child("c" + i).setProperty("x", b);
         }
         s.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        Iterator<Blob> it = s.getReferencedBlobsIterator();
+        Iterator<ReferencedBlob> it = s.getReferencedBlobsIterator();
         while (it.hasNext()) {
-            Blob b = it.next();
+            ReferencedBlob b = it.next();
             set.remove(b.toString());
         }
         assertTrue(set.isEmpty());

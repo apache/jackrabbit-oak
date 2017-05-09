@@ -21,7 +21,7 @@
   <parent>
     <artifactId>oak-parent</artifactId>
     <groupId>org.apache.jackrabbit</groupId>
-    <version>1.4-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -45,26 +45,12 @@
               *
             </Import-Package>
             <Export-Package>
-              org.apache.jackrabbit.oak.spi.blob
+              org.apache.jackrabbit.oak.spi.blob,
+              org.apache.jackrabbit.oak.spi.blob.stats,
+              org.apache.jackrabbit.oak.spi.blob.split
             </Export-Package>
           </instructions>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-            <configuration>
-              <excludes>
-                <exclude>logback-test.xml</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
@@ -92,6 +78,16 @@
       <scope>provided</scope>
     </dependency>
 
+    <dependency>
+      <groupId>javax.jcr</groupId>
+      <artifactId>jcr</artifactId>
+      <version>2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-data</artifactId>
+      <version>${jackrabbit.version}</version>
+    </dependency>
     <!-- Dependencies to other Oak components -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
@@ -107,7 +103,11 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.5</version>
     </dependency>
 
     <!--  Optional dependency for jclouds s3 to enable s3 cloud store -->
@@ -145,6 +145,11 @@
       <artifactId>oak-commons</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

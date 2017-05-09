@@ -25,8 +25,10 @@ import javax.annotation.Nullable;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
@@ -162,6 +164,21 @@ public class TypePredicate implements Predicate<NodeState> {
         }
         if (mixinTypes != null && any(mixins, in(mixinTypes))) {
             return true;
+        }
+        return false;
+    }
+
+    public boolean apply(@Nullable Tree input) {
+        if (input != null) {
+            init();
+            if (primaryTypes != null
+                    && primaryTypes.contains(TreeUtil.getPrimaryTypeName(input))) {
+                return true;
+            }
+            if (mixinTypes != null
+                    && any(TreeUtil.getNames(input, JCR_MIXINTYPES), in(mixinTypes))) {
+                return true;
+            }
         }
         return false;
     }

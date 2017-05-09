@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+
+<!DOCTYPE web-app PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN" "http://java.sun.com/dtd/web-app_2_3.dtd">
+<web-app>
+    <display-name>Jackrabbit JCR Server</display-name>
+
+    <listener>
+        <listener-class>org.apache.felix.http.proxy.ProxyListener</listener-class>
+    </listener>
+
+    <!-- ====================================================================== -->
+    <!-- R E P O S I T O R Y   S T A R T U P  S E R V L E T                     -->
+    <!-- ====================================================================== -->
+    <servlet>
+        <servlet-name>RepositoryStartup</servlet-name>
+        <description>
+            Repository servlet that starts the repository and registers it to JNDI ans RMI.
+            If you already have the repository registered in this appservers JNDI context,
+            or if its accessible via RMI, you do not need to use this servlet.
+        </description>
+        <servlet-class>org.apache.jackrabbit.j2ee.RepositoryStartupServlet</servlet-class>
+
+        <init-param>
+            <param-name>bootstrap-config</param-name>
+            <param-value>oak/bootstrap.properties</param-value>
+            <description>
+                Property file that hold the same initialization properties than
+                the init-params below. If a parameter is specified in both
+                places the one in the bootstrap-config wins.
+            </description>
+        </init-param>
+
+        <!--
+        <init-param>
+            <param-name>repository-config</param-name>
+            <param-value>/WEB-INF/repository/repository.xml</param-value>
+            <description>the repository config location</description>
+        </init-param>
+
+        <init-param>
+            <param-name>repository-home</param-name>
+            <param-value>jackrabbit/repository</param-value>
+            <description>the repository home</description>
+        </init-param>
+
+        <init-param>
+            <param-name>repository-name</param-name>
+            <param-value>jackrabbit.repository</param-value>
+            <description>Repository Name under which the repository is registered via JNDI/RMI</description>
+        </init-param>
+        -->
+
+        <!--
+            the following 3 parameters deal with registering the repository to
+            a RMI registry. if all parameters are omitted, the repository will
+            not be registered.
+        -->
+        <!--
+        <init-param>
+            <param-name>rmi-port</param-name>
+            <param-value>0</param-value>
+            <description>
+                The RMI port for registering the repository in the RMI Registry.
+                If equals 0, the default port is used.
+            </description>
+        </init-param>
+        <init-param>
+            <param-name>rmi-host</param-name>
+            <param-value>localhost</param-value>
+            <description>
+                The RMI host for registering the repository in the RMI Registry.
+                If equals "" or missing, the default host is used.
+            </description>
+        </init-param>
+        <init-param>
+            <param-name>rmi-uri</param-name>
+            <param-value></param-value>
+            <description>
+                The RMI uri for registering the repository in the RMI Registry.
+                If missing, the uri is composed using the other rmi parameters
+                and will have the format: //{rmi-host}:{rmi-port}/{repository-name}
+            </description>
+        </init-param>
+        -->
+        <!--
+            JNDI environment variables for creating the initial context
+            (all init parameters starting with java.naming.* will be added to the initial context environment).
+        -->
+        <!--
+        <init-param>
+            <param-name>java.naming.provider.url</param-name>
+            <param-value>http://www.apache.org/jackrabbit</param-value>
+        </init-param>
+        <init-param>
+            <param-name>java.naming.factory.initial</param-name>
+            <param-value>org.apache.jackrabbit.core.jndi.provider.DummyInitialContextFactory</param-value>
+        </init-param>
+        -->
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+
+    <!-- ====================================================================== -->
+    <!-- R E P O S I T O R Y   S E R V L E T                                    -->
+    <!-- ====================================================================== -->
+    <servlet>
+        <servlet-name>Repository</servlet-name>
+        <description>
+            This servlet provides other servlets and jsps a common way to access
+            the repository. The repository can be accessed via JNDI, RMI or Webdav.
+        </description>
+        <servlet-class>org.apache.jackrabbit.j2ee.RepositoryAccessServlet</servlet-class>
+
+        <init-param>
+            <param-name>bootstrap-config</param-name>
+            <param-value>oak/bootstrap.properties</param-value>
+            <description>
+                Property file that hold the same initialization properties than
+                the init-params below. If a parameter is specified in both
+                places the one in the bootstrap-config wins.
+            </description>
+        </init-param>
+
+        <init-param>
+          <param-name>repository.context.attribute.name</param-name>
+          <param-value>javax.jcr.Repository</param-value>
+          <description>
+            If this is set, the RepositoryAccessServlet expects a Repository in the ServletContext 
+            attribute having this name. This allows servlets of this module to be used with repositories
+            initialized by the jackrabbit-jcr-servlet module utilities.
+          </description>
+        </init-param>
+
+        <!--
+        <init-param>
+            <param-name>repository-name</param-name>
+            <param-value>jackrabbit.repository</param-value>
+            <description>Repository Name that is used to retrieve it via JNDI</description>
+        </init-param>
+        -->
+        <!--
+            JNDI environment variables for creating the initial context
+            (all init parameters starting with java.naming.* will be added to the initial context environment).
+        -->
+        <!--
+        <init-param>
+            <param-name>java.naming.provider.url</param-name>
+            <param-value>http://www.apache.org/jackrabbit</param-value>
+        </init-param>
+        <init-param>
+            <param-name>java.naming.factory.initial</param-name>
+            <param-value>org.apache.jackrabbit.core.jndi.provider.DummyInitialContextFactory</param-value>
+        </init-param>
+        -->
+        <!--
+            RMI url, if RMI remoting is needed
+        -->
+        <!--
+        <init-param>
+            <param-name>rmi-uri</param-name>
+            <param-value>///jackrabbit.repository</param-value>
+            <description>The URI for the RMI connection.</description>
+        </init-param>
+        -->
+
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
+    <!-- ====================================================================== -->
+    <!-- W E B D A V  S E R V L E T                                              -->
+    <!-- ====================================================================== -->
+    <servlet>
+        <servlet-name>Webdav</servlet-name>
+        <description>
+            The webdav servlet that connects HTTP request to the repository.
+        </description>
+        <servlet-class>org.apache.jackrabbit.j2ee.SimpleWebdavServlet</servlet-class>
+
+        <init-param>
+            <param-name>resource-path-prefix</param-name>
+            <param-value>/repository</param-value>
+            <description>
+                defines the prefix for spooling resources out of the repository.
+            </description>
+        </init-param>
+        <!--
+         <init-param>
+             <param-name>missing-auth-mapping</param-name>
+             <param-value>anonymous:anonymous</param-value>
+             <description>
+                 Defines how a missing authorization header should be handled.
+                 1) If this init-param is missing, a 401 response is generated.
+                    This is suitable for clients (eg. webdav clients) for which
+                    sending a proper authorization header is not possible if the
+                    server never sent a 401.
+                 2) If this init-param is present with an empty value,
+                    null-credentials are returned, thus forcing an null login
+                    on the repository.
+                 3) If this init-param is present with the value 'guestcredentials'
+                    java.jcr.GuestCredentials are used to login to the repository.
+                 4) If this init-param has a 'user:password' value, the respective
+                    simple credentials are generated.
+             </description>
+         </init-param>
+         -->
+        <!--
+            Optional parameter to define the value of the 'WWW-Authenticate' header
+        -->
+        <!--
+        <init-param>
+            <param-name>authenticate-header</param-name>
+            <param-value>Basic realm="Jackrabbit Webdav Server"</param-value>
+            <description>
+                Defines the value of the 'WWW-Authenticate' header.
+            </description>
+        </init-param>
+        -->
+        <!--
+            Parameter used to configure behaviour of webdav resources such as:
+            - distinction between collections and non-collections
+            - resource filtering
+        -->
+        <init-param>
+            <param-name>resource-config</param-name>
+            <param-value>/WEB-INF/config.xml</param-value>
+            <description>
+                Defines various dav-resource configuration parameters.
+            </description>
+        </init-param>
+       <!--
+            Optional parameter to define the behaviour of the referrer-based CSRF protection
+        -->
+        <!--
+        <init-param>
+            <param-name>csrf-protection</param-name>
+            <param-value>host1.domain.com,host2.domain.org</param-value>
+            <description>
+                Defines the behaviour of the referrer based CSRF protection
+                1) If omitted or left empty the (default) behaviour is to allow only requests with
+                   an empty referrer header or a referrer host equal to the server host
+                2) May also contain a comma separated list of additional allowed referrer hosts
+                3) If set to 'disabled' no referrer checking will be performed at all
+            </description>
+        </init-param>
+        -->
+        <load-on-startup>4</load-on-startup>
+    </servlet>
+
+    <!-- ====================================================================== -->
+    <!-- J C R  R E M O T I N G  S E R V L E T                                  -->
+    <!-- ====================================================================== -->
+    <servlet>
+        <servlet-name>JCRWebdavServer</servlet-name>
+        <description>
+            The servlet used to remote JCR calls over HTTP.
+        </description>
+        <servlet-class>org.apache.jackrabbit.j2ee.JcrRemotingServlet</servlet-class>
+        <init-param>
+            <param-name>missing-auth-mapping</param-name>
+            <param-value></param-value>
+            <description>
+                Defines how a missing authorization header should be handled.
+                 1) If this init-param is missing, a 401 response is generated.
+                    This is suitable for clients (eg. webdav clients) for which
+                    sending a proper authorization header is not possible if the
+                    server never sent a 401.
+                 2) If this init-param is present with an empty value,
+                    null-credentials are returned, thus forcing an null login
+                    on the repository.
+                 3) If this init-param is present with the value 'guestcredentials'
+                    java.jcr.GuestCredentials are used to login to the repository.
+                 4) If this init-param has a 'user:password' value, the respective
+                    simple credentials are generated.
+            </description>
+        </init-param>
+        <!--
+            Optional parameter to define the value of the 'WWW-Authenticate' header
+        -->
+        <!--
+        <init-param>
+            <param-name>authenticate-header</param-name>
+            <param-value>Basic realm="Jackrabbit Webdav Server"</param-value>
+            <description>
+                Defines the value of the 'WWW-Authenticate' header.
+            </description>
+        </init-param>
+        -->
+        <init-param>
+            <param-name>resource-path-prefix</param-name>
+            <param-value>/server</param-value>
+            <description>
+                defines the prefix for spooling resources out of the repository.
+            </description>
+        </init-param>
+        <!--
+            Init parameters specific for JcrRemotingServlet
+        -->
+        <!--
+        <init-param>
+            <param-name>home</param-name>
+            <param-value></param-value>
+            <description>JcrRemotingServlet: Optional home directory for JcrRemotingServlet temporary files (default: "jackrabbit")</description>
+        </init-param>
+        <init-param>
+            <param-name>temp-directory</param-name>
+            <param-value></param-value>
+            <description>JcrRemotingServlet: Optional temporary directory name (under home, default: "tmp")</description>
+        </init-param>
+        -->
+        <init-param>
+            <param-name>batchread-config</param-name>
+            <param-value>/WEB-INF/batchread.properties</param-value>
+            <description>JcrRemotingServlet: Optional mapping from node type names to default depth.</description>
+        </init-param>
+        <init-param>
+          <param-name>protectedhandlers-config</param-name>
+          <param-value>/WEB-INF/protectedHandlersConfig.xml</param-value>
+          <description>JcrRemotingServlet: Handlers for removing protected items.</description>
+        </init-param>
+        <!-- init-param>
+        	<param-name>concurrency-level</param-name>
+        	<param-value>50</param-value>
+        	<description>Number of concurrent requests expected. Default value is 50.</description>
+        </init-param -->
+        <!--
+            Optional parameter to define the behaviour of the referrer-based CSRF protection
+        -->
+        <!--
+        <init-param>
+            <param-name>csrf-protection</param-name>
+            <param-value>host1.domain.com,host2.domain.org</param-value>
+            <description>
+                Defines the behaviour of the referrer based CSRF protection
+                1) If omitted or left empty the (default) behaviour is to allow only requests with
+                   an empty referrer header or a referrer host equal to the server host
+                2) May also contain a comma separated list of additional allowed referrer hosts
+                3) If set to 'disabled' no referrer checking will be performed at all
+            </description>
+        </init-param>
+        -->       <load-on-startup>5</load-on-startup>
+    </servlet>
+
+    <!-- ====================================================================== -->
+    <!-- R M I   B I N D I N G   S E R V L E T                                  -->
+    <!-- ====================================================================== -->
+    <servlet>
+      <servlet-name>RMI</servlet-name>
+      <servlet-class>org.apache.jackrabbit.servlet.remote.RemoteBindingServlet</servlet-class>
+    </servlet>
+
+    <!-- ====================================================================== -->
+    <!-- F E L I X   W E B C O N S O L E P R O X Y   S E R V L E T              -->
+    <!-- ====================================================================== -->
+
+    <servlet>
+        <servlet-name>proxy</servlet-name>
+        <description>
+            This servlet is used to enable integration with Felix WebConsole. It
+            routes the call to /osgi/* to servlets running withing OSGi
+        </description>
+        <servlet-class>org.apache.felix.http.proxy.ProxyServlet</servlet-class>
+    </servlet>
+    <!-- ====================================================================== -->
+    <!-- S E R V L E T   M A P P I N G                                          -->
+    <!-- ====================================================================== -->
+    <servlet-mapping>
+        <servlet-name>RepositoryStartup</servlet-name>
+        <url-pattern>/admin/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>Webdav</servlet-name>
+        <url-pattern>/repository/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>JCRWebdavServer</servlet-name>
+        <url-pattern>/server/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>RMI</servlet-name>
+        <url-pattern>/rmi</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>proxy</servlet-name>
+        <url-pattern>/osgi/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- ====================================================================== -->
+    <!-- W E L C O M E   F I L E S                                              -->
+    <!-- ====================================================================== -->
+    <welcome-file-list>
+      <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+
+    <error-page>
+        <exception-type>org.apache.jackrabbit.j2ee.JcrApiNotFoundException</exception-type>
+        <location>/error/classpath.jsp</location>
+    </error-page>
+    <error-page>
+        <exception-type>javax.jcr.RepositoryException</exception-type>
+        <location>/error/repository.jsp</location>
+    </error-page>
+    
+</web-app>

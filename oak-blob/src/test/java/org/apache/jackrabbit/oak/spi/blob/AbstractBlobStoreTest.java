@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -35,10 +36,15 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.CountingOutputStream;
+import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -422,6 +428,67 @@ public abstract class AbstractBlobStoreTest {
 
         assertTrue(ret.toString(), ret.isEmpty());
     }
+    
+    @Test
+    public void deleteCount() throws Exception {
+        Set<String> ids = createArtifacts();
+
+        long count = store.countDeleteChunks(Lists.newArrayList(ids), 0);
+
+        Iterator<String> iter = store.getAllChunkIds(0);
+        Set<String> ret = Sets.newHashSet();
+        while (iter.hasNext()) {
+            ret.add(iter.next());
+        }
+
+        assertTrue(ret.toString(), ret.isEmpty());
+        assertEquals(ids.size(), count);
+    }
+
+    @Test
+    public void uploadCallback() throws Exception {
+        assumeTrue(supportsStatsCollection());
+        TestCollector collector = new TestCollector();
+        setupCollector(collector);
+        int size = 10 * 1024;
+        store.writeBlob(randomStream(42, size));
+        //For chunked storage the actual stored size is greater than the file size
+        assertCollectedSize(collector.size, size);
+        assertEquals(1, collector.uploadCount);
+    }
+
+    @Test
+    public void downloadCallback() throws Exception {
+        assumeTrue(supportsStatsCollection());
+        TestCollector collector = new TestCollector();
+        setupCollector(collector);
+        int size = 10 * 1024;
+        String id = store.writeBlob(randomStream(42, size));
+
+        store.clearCache();
+        collector.reset();
+
+        InputStream is = store.getInputStream(id);
+        CountingOutputStream cos = new CountingOutputStream(new NullOutputStream());
+        IOUtils.copy(is, cos);
+        is.close();
+
+        assertEquals(size, cos.getCount());
+
+        //For chunked storage the actual stored size is greater than the file size
+        assertCollectedSize(collector.size, size);
+        assertEquals(1, collector.downloadCount);
+    }
+
+    protected void setupCollector(BlobStatsCollector statsCollector) {
+        if (store instanceof AbstractBlobStore){
+            ((AbstractBlobStore) store).setStatsCollector(statsCollector);
+        }
+    }
+
+    protected boolean supportsStatsCollection(){
+        return false;
+    }
 
     private Set<String> createArtifacts() throws Exception {
         Set<String> ids = Sets.newHashSet();
@@ -441,5 +508,43 @@ public abstract class AbstractBlobStoreTest {
         byte[] data = new byte[size];
         r.nextBytes(data);
         return new ByteArrayInputStream(data);
+    }
+
+    private static void assertCollectedSize(long collectedSize, long expectedSize){
+        if (collectedSize < expectedSize) {
+            fail(String.format("Collected size %d is less that expected size %d", collectedSize, expectedSize));
+        }
+    }
+
+    private static class TestCollector implements BlobStatsCollector {
+        long size;
+        int uploadCount;
+        int downloadCount;
+
+        @Override
+        public void uploaded(long timeTaken, TimeUnit unit, long size) {
+            this.size += size;
+        }
+
+        @Override
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
+            this.size += size;
+        }
+
+        @Override
+        public void uploadCompleted(String blobId) {
+            uploadCount++;
+        }
+
+        @Override
+        public void downloadCompleted(String blobId) {
+            downloadCount++;
+        }
+
+        void reset(){
+            size = 0;
+            downloadCount = 0;
+            uploadCount = 0;
+        }
     }
 }

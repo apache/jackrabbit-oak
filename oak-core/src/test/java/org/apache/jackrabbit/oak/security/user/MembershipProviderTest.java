@@ -16,305 +16,381 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.user.Authorizable;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.junit.After;
-import org.junit.Assert;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertNull;
 
 /**
- * Tests large group and user graphs.
- * <ul>
- *     <li>{@link #NUM_USERS} users</li>
- *     <li>{@link #NUM_GROUPS} groups</li>
- *     <li>1 group with all users</li>
- *     <li>1 user with all groups</li>
- * </ul>
- *
  * @since OAK 1.0
  */
-public class MembershipProviderTest extends AbstractSecurityTest {
-
-    private static final int NUM_USERS = 1000;
-    private static final int NUM_GROUPS = 1000;
-    private static final int SIZE_TH = 10;
-
-    private UserManagerImpl userMgr;
-    private Set<String> testUsers = new HashSet<String>();
-    private Set<String> testGroups = new HashSet<String>();
+public class MembershipProviderTest extends MembershipBaseTest {
 
     @Before
     public void before() throws Exception {
         super.before();
-        testUsers.clear();
-        testGroups.clear();
-        userMgr = new UserManagerImpl(root, namePathMapper, getSecurityProvider());
-        // set the membership size threshold low for testing
-        userMgr.getMembershipProvider().setMembershipSizeThreshold(SIZE_TH);
-    }
-
-    @After
-    public void after() throws Exception {
-        try {
-            for (String authId: testGroups) {
-                Authorizable auth = userMgr.getAuthorizable(authId);
-                if (auth != null) {
-                    auth.remove();
-                }
-            }
-            for (String authId: testUsers) {
-                Authorizable auth = userMgr.getAuthorizable(authId);
-                if (auth != null) {
-                    auth.remove();
-                }
-            }
-            root.commit();
-        } finally {
-            super.after();
-        }
     }
 
     @Test
-    public void testManyMembers() throws Exception {
-        Set<String> members = new HashSet<String>();
-        Group grp  = createGroup();
-        for (int i=0; i<NUM_USERS; i++) {
-            User usr = createUser();
-            grp.addMember(usr);
-            members.add(usr.getID());
-        }
-        root.commit();
-        checkMembers(grp, members);
+    public void testRemoveMember() throws Exception {
+        Group gr = createGroup();
+        User member = createUser();
+        gr.addMember(member);
 
-        // also check storage structure
-        Tree tree = root.getTree(grp.getPath());
-        assertEquals(
-                "rep:members property must have correct number of references",
-                SIZE_TH,
-                tree.getProperty(UserConstants.REP_MEMBERS).count()
-        );
-
-        Tree membersList = tree.getChild(UserConstants.REP_MEMBERS_LIST);
-        assertTrue(
-                "rep:memberList must exist",
-                membersList.exists()
-        );
-
-        assertEquals(
-                "rep:memberList must have correct primary type.",
-                UserConstants.NT_REP_MEMBER_REFERENCES_LIST,
-                membersList.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(Type.STRING)
-        );
-
-        assertEquals(
-                "rep:memberList must have correct number of child nodes.",
-                (NUM_USERS / SIZE_TH) - 1,
-                membersList.getChildrenCount(Long.MAX_VALUE)
-        );
-    }
-
-    @Test
-    public void testManyMemberships() throws Exception {
-        Set<String> memberships = new HashSet<String>();
-        User usr = createUser();
-        for (int i=0; i<NUM_GROUPS; i++) {
-            Group grp = createGroup();
-            grp.addMember(usr);
-            memberships.add(grp.getID());
-        }
-        root.commit();
-
-        Iterator<Group> iter = usr.declaredMemberOf();
-        while (iter.hasNext()) {
-            Group group = iter.next();
-            Assert.assertTrue(memberships.remove(group.getID()));
-        }
-        assertEquals(0, memberships.size());
-    }
-
-    @Test
-    public void testNestedMembers() throws Exception {
-        Set<String> members = new HashSet<String>();
-        Set<String> declaredMembers = new HashSet<String>();
-        Group grp  = createGroup();
-        for (int i=0; i<10; i++) {
-            Group g1 = createGroup();
-            grp.addMember(g1);
-            members.add(g1.getID());
-            declaredMembers.add(g1.getID());
-            for (int j=0; j<10; j++) {
-                Group g2 = createGroup();
-                g1.addMember(g2);
-                members.add(g2.getID());
-                for (int k=0; k<10; k++) {
-                    User usr = createUser();
-                    g2.addMember(usr);
-                    members.add(usr.getID());
-                }
-            }
-        }
-        root.commit();
-
-        checkMembers(grp, members);
-
-        Iterator<Authorizable> iter = grp.getDeclaredMembers();
-        while (iter.hasNext()) {
-            Authorizable member = iter.next();
-            Assert.assertTrue(declaredMembers.remove(member.getID()));
-        }
-        assertEquals(0, declaredMembers.size());
-    }
-
-    @Test
-    public void testNestedMemberships() throws Exception {
-        Set<String> memberships = new HashSet<String>();
-        User user  = createUser();
-        Group grp = createGroup();
-        memberships.add(grp.getID());
-        for (int i=0; i<10; i++) {
-            Group g1 = createGroup();
-            grp.addMember(g1);
-            memberships.add(g1.getID());
-            for (int j=0; j<10; j++) {
-                Group g2 = createGroup();
-                g1.addMember(g2);
-                memberships.add(g2.getID());
-                g2.addMember(user);
-            }
-        }
-        root.commit();
-
-        Iterator<Group> iter = user.memberOf();
-        while (iter.hasNext()) {
-            Group group = iter.next();
-            Assert.assertTrue(memberships.remove(group.getID()));
-        }
-        assertEquals(0, memberships.size());
+        assertTrue(mp.removeMember(getTree(gr), getTree(member)));
     }
 
     @Test
     public void testRemoveMembers() throws Exception {
-        Set<String> members = new HashSet<String>();
-        String[] users = new String[NUM_USERS];
-        Group grp  = createGroup();
-        for (int i=0; i<NUM_USERS; i++) {
-            User usr = createUser();
-            grp.addMember(usr);
-            members.add(usr.getID());
-            users[i] = usr.getID();
-        }
-        root.commit();
+        Group gr = createGroup();
+        User member = createUser();
+        Group member2 = createGroup();
+        gr.addMembers(member.getID(), member2.getID());
 
-        // remove the first TH users, this should remove all references from rep:members in the group node and remove
-        // the rep:members property
-        for (int i=0; i<SIZE_TH; i++) {
-            Authorizable auth = userMgr.getAuthorizable(users[i]);
-            members.remove(users[i]);
-            grp.removeMember(auth);
-        }
-        root.commit();
+        Map m = Maps.newHashMap();
+        m.put(getContentID(member.getID()), member.getID());
+        m.put(getContentID(member2.getID()), member2.getID());
 
-        checkMembers(grp, members);
 
-        // also check storage structure
-        Tree tree = root.getTree(grp.getPath());
-        assertNull(
-                "rep:members property not exist",
-                tree.getProperty(UserConstants.REP_MEMBERS)
-        );
-
-        // now add TH/2 again.
-        for (int i=0; i<SIZE_TH/2; i++) {
-            Authorizable auth = userMgr.getAuthorizable(users[i]);
-            members.add(users[i]);
-            grp.addMember(auth);
-        }
-        root.commit();
-
-        assertEquals(
-                "rep:members property must have correct number of references",
-                SIZE_TH / 2,
-                tree.getProperty(UserConstants.REP_MEMBERS).count()
-        );
-        checkMembers(grp, members);
-
-        // now remove the users 20-30, this should remove the 2nd overflow node
-        for (int i=2*SIZE_TH; i< (3*SIZE_TH); i++) {
-            Authorizable auth = userMgr.getAuthorizable(users[i]);
-            members.remove(users[i]);
-            grp.removeMember(auth);
-        }
-        root.commit();
-
-        checkMembers(grp, members);
-
-        Tree membersList = tree.getChild(UserConstants.REP_MEMBERS_LIST);
-        assertFalse(
-                "the first overflow node must not exist",
-                membersList.getChild("1").exists()
-        );
-
-        // now add 10 users and check if the "1" node exists again
-        for (int i=2*SIZE_TH; i< (3*SIZE_TH); i++) {
-            Authorizable auth = userMgr.getAuthorizable(users[i]);
-            members.add(users[i]);
-            grp.addMember(auth);
-        }
-        root.commit();
-        checkMembers(grp, members);
-
-        membersList = tree.getChild(UserConstants.REP_MEMBERS_LIST);
-        assertTrue(
-                "the first overflow node must not exist",
-                membersList.getChild("1").exists()
-        );
+        Set<String> failed = mp.removeMembers(getTree(gr), m);
+        assertTrue(failed.isEmpty());
     }
 
-    private User createUser() throws RepositoryException {
-        String userId = "testUser" + testUsers.size();
-        User usr = userMgr.createUser(userId, "pw");
-        testUsers.add(userId);
-        if ((testUsers.size() + testGroups.size()) % 100 == 0) {
-            System.out.println("created " + testGroups.size() + " groups, " + testUsers.size() + " users.");
-        }
-        return usr;
+
+    @Test
+    public void testRemoveNonMember() throws Exception {
+        assertFalse(mp.removeMember(getTree(createGroup()), getTree(getTestUser())));
     }
 
-    private Group createGroup() throws RepositoryException {
-        String groupName = "testGroup" + testGroups.size();
-        Group grp = userMgr.createGroup(groupName);
-        testGroups.add(groupName);
-        if ((testUsers.size() + testGroups.size()) % 100 == 0) {
-            System.out.println("created " + testGroups.size() + " groups, " + testUsers.size() + " users.");
-        }
-        return grp;
+    @Test
+    public void testRemoveNonMembers() throws Exception {
+        Map<String, String> nonMemberIds = createIdMap(1, 5);
+
+        Set<String> expected = Sets.newHashSet(nonMemberIds.values());
+        Set<String> failed = mp.removeMembers(getTree(createGroup()), nonMemberIds);
+        assertEquals(expected, failed);
     }
 
-    private void checkMembers(Group grp, Set<String> ms) throws RepositoryException {
-        Set<String> members = new HashSet<String>(ms);
-        Iterator<Authorizable> iter = grp.getMembers();
-        while (iter.hasNext()) {
-            Authorizable member = iter.next();
-            Assert.assertTrue("Group must have member", members.remove(member.getID()));
+    @Test
+    public void testAddMemberAgain() throws Exception {
+        Group grp = createGroup();
+        List<String> memberPaths = createMembers(grp, NUM_USERS);
+        root.commit();
+
+        Tree groupTree = root.getTree(grp.getPath());
+        for (String path : memberPaths) {
+            Tree memberTree = root.getTree(path);
+            assertFalse(mp.addMember(groupTree, memberTree));
         }
-        assertEquals("Group must have all members", 0, members.size());
+    }
+
+    @Test
+    public void testAddMembersAgain() throws Exception {
+        Group grp = createGroup();
+        List<String> memberPaths = createMembers(grp, NUM_USERS);
+        root.commit();
+
+        Map<String, String> m = new HashMap();
+        for (String path : memberPaths) {
+            Tree memberTree = root.getTree(path);
+            String memberId = TreeUtil.getString(memberTree, REP_AUTHORIZABLE_ID);
+            m.put(getContentID(memberTree), memberId);
+        }
+
+        Set<String> expected = Sets.newHashSet(m.values());
+        Set<String> failed = mp.addMembers(getTree(grp), m);
+        assertFalse(failed.isEmpty());
+        assertEquals(expected, failed);
+    }
+
+    @Test
+    public void testIsDeclaredMemberTransient() throws Exception {
+        Group g = createGroup();
+        List<String> memberPaths = createMembers(g, NUM_USERS/2);
+
+        // test declared members with transient modifications
+        for (String path : memberPaths) {
+            assertTrue(mp.isDeclaredMember(getTree(g), getTree(path)));
+        }
+    }
+
+    @Test
+    public void testIsDeclaredMember() throws Exception {
+        Group g = createGroup();
+        List<String> memberPaths = createMembers(g, NUM_USERS/2);
+        root.commit();
+
+        // test declared members after commit
+        for (String path : memberPaths) {
+            assertTrue(mp.isDeclaredMember(getTree(g), getTree(path)));
+        }
+    }
+
+    @Test
+    public void testIsDeclaredMemberFew() throws Exception {
+        Group g = createGroup();
+        Group m1 = createGroup();
+        User m2 = createUser();
+
+        g.addMembers(m1.getID(), m2.getID());
+
+        Tree groupTree = getTree(g);
+
+        // test declared members with transient modifications
+        assertTrue(mp.isDeclaredMember(groupTree, getTree(m1)));
+        assertTrue(mp.isDeclaredMember(groupTree, getTree(m2)));
+
+        // ... and after commit
+        root.commit();
+        assertTrue(mp.isDeclaredMember(groupTree, getTree(m1)));
+        assertTrue(mp.isDeclaredMember(groupTree, getTree(m2)));
+    }
+
+    @Test
+    public void testIsDeclaredMemberMissingMembersProperty() throws Exception {
+        Tree grTree = getTree(createGroup());
+        Tree memberTree = getTree(createUser());
+
+        NodeUtil memberList = new NodeUtil(grTree).addChild(REP_MEMBERS_LIST, NT_REP_MEMBER_REFERENCES_LIST);
+        memberList.addChild("member1", NT_REP_MEMBER_REFERENCES).setStrings(REP_MEMBERS, getContentID(memberTree));
+
+        assertTrue(mp.isDeclaredMember(grTree, memberTree));
+    }
+
+    @Test
+    public void testNotIsDeclaredMemberMissingMembersProperty() throws Exception {
+        Tree grTree = getTree(createGroup());
+        Tree memberTree = getTree(createUser());
+
+        NodeUtil memberList = new NodeUtil(grTree).addChild(REP_MEMBERS_LIST, NT_REP_MEMBER_REFERENCES_LIST);
+        memberList.addChild("member1", NT_REP_MEMBER_REFERENCES).setStrings(REP_MEMBERS, getContentID("another"));
+
+        assertFalse(mp.isDeclaredMember(grTree, memberTree));
+    }
+
+    @Test
+    public void testIsMemberTransient() throws Exception {
+        Group g = createGroup();
+        Group g2 = createGroup();
+        g.addMember(g2);
+
+        List<String> memberPaths = createMembers(g2, NUM_USERS);
+
+        Tree groupTree = getTree(g);
+
+        // test members with transient modifications
+        for (String path : memberPaths) {
+            Tree tree = getTree(path);
+            assertFalse(mp.isDeclaredMember(groupTree, tree));
+            assertTrue(mp.isMember(groupTree, tree));
+        }
+    }
+
+    @Test
+    public void testIsMember() throws Exception {
+        Group g = createGroup();
+        Group g2 = createGroup();
+        g.addMember(g2);
+
+        List<String> memberPaths = createMembers(g2, NUM_USERS/2);
+        root.commit();
+
+        // test members after commit
+        Tree groupTree = getTree(g);
+        for (String path : memberPaths) {
+            Tree tree = getTree(path);
+            assertFalse(mp.isDeclaredMember(groupTree, tree));
+            assertTrue(mp.isMember(groupTree, tree));
+        }
+    }
+
+    @Test
+    public void testIsMemberFew() throws Exception {
+        Group g = createGroup();
+        Group g2 = createGroup();
+        g.addMember(g2);
+
+        User m1 = createUser();
+        Group m2 = createGroup();
+        g2.addMember(m1);
+        g2.addMember(m2);
+
+        Tree groupTree = getTree(g);
+
+        // test members with transient modifications
+        assertFalse(mp.isDeclaredMember(groupTree, getTree(m1)));
+        assertFalse(mp.isDeclaredMember(groupTree, getTree(m2)));
+        assertTrue(mp.isMember(groupTree, getTree(m1)));
+        assertTrue(mp.isMember(groupTree, getTree(m2)));
+
+        // ... and after commit
+        root.commit();
+        assertFalse(mp.isDeclaredMember(groupTree, getTree(m1)));
+        assertFalse(mp.isDeclaredMember(groupTree, getTree(m2)));
+        assertTrue(mp.isMember(groupTree, getTree(m1)));
+        assertTrue(mp.isMember(groupTree, getTree(m2)));
+    }
+
+    @Test
+    public void testTransientInMembersList() throws Exception {
+        Group g = createGroup();
+        createMembers(g, NUM_USERS/2);
+        root.commit();
+
+        // add another transient member that will end up in the members-ref-list
+        User u = createUser();
+        g.addMember(u);
+
+        Tree groupTree = getTree(g);
+        Tree memberTree = getTree(u);
+
+        assertTrue(mp.isDeclaredMember(groupTree, memberTree));
+        assertTrue(mp.isMember(groupTree, memberTree));
+
+        assertFalse(Iterators.contains(mp.getMembership(memberTree, false), groupTree.getPath()));
+        assertFalse(Iterators.contains(mp.getMembership(memberTree, true), groupTree.getPath()));
+        root.commit();
+        assertTrue(Iterators.contains(mp.getMembership(memberTree, false), groupTree.getPath()));
+        assertTrue(Iterators.contains(mp.getMembership(memberTree, true), groupTree.getPath()));
+    }
+
+    @Test
+    public void testNoMember() throws Exception {
+        Tree groupTree = getTree(createGroup());
+        Tree notMember = getTree(createGroup());
+        Tree notMember2 = getTree(createUser());
+
+        assertFalse(mp.isDeclaredMember(groupTree, notMember));
+        assertFalse(mp.isDeclaredMember(groupTree, notMember2));
+
+        assertFalse(mp.isMember(groupTree, notMember));
+        assertFalse(mp.isMember(groupTree, notMember2));
+
+        root.commit();
+
+        assertFalse(mp.isDeclaredMember(groupTree, notMember));
+        assertFalse(mp.isDeclaredMember(groupTree, notMember2));
+
+        assertFalse(mp.isMember(groupTree, notMember));
+        assertFalse(mp.isMember(groupTree, notMember2));
+    }
+
+    @Test
+    public void testGetMembersWithRemoved() throws Exception {
+        Group g = createGroup();
+        Group member = createGroup();
+        g.addMember(member);
+        member.remove();
+        root.commit();
+
+        assertFalse(mp.getMembers(getTree(g), false).hasNext());
+        assertFalse(mp.getMembers(getTree(g), true).hasNext());
+    }
+
+    @Test
+    public void testGetMembersInherited() throws Exception {
+        Group g = createGroup();
+        Group member = createGroup();
+        g.addMember(member);
+        member.addMember(createUser());
+        root.commit();
+
+        Iterator<String> res = mp.getMembers(getTree(g), true);
+        assertEquals(2, Iterators.size(res));
+    }
+
+    @Test
+    public void testGetMembersWithDuplicates() throws Exception {
+        Group g = createGroup();
+        Group member = createGroup();
+        g.addMember(member);
+
+        User user = createUser();
+        member.addMember(user);
+        g.addMember(user);
+        root.commit();
+
+        Iterator<String> res = mp.getMembers(getTree(g), true);
+        assertEquals(2, Iterators.size(res));
+    }
+
+    @Test
+    public void testGetMembers() throws Exception {
+        Group g = createGroup();
+        Group member = createGroup();
+        g.addMember(member);
+        member.addMember(createUser());
+        root.commit();
+
+        Iterator<String> res = mp.getMembers(getTree(g), false);
+        assertEquals(1, Iterators.size(res));
+    }
+
+    @Test
+    public void testGetMembershipInherited() throws Exception {
+        User user = createUser();
+        Group g = createGroup();
+        Group member = createGroup();
+        Group member2 = createGroup();
+
+        g.addMember(member);
+        member.addMember(member2);
+        member2.addMember(user);
+
+        root.commit();
+
+        Iterator<String> res = mp.getMembership(getTree(user), true);
+        assertEquals(3, Iterators.size(res));
+    }
+
+    @Test
+    public void testGetMembershipWithDuplicates() throws Exception {
+        User user = createUser();
+        Group g = createGroup();
+        Group member = createGroup();
+        Group member2 = createGroup();
+
+        g.addMember(member);
+        g.addMember(member2);
+        member.addMember(member2);
+        member2.addMember(user);
+
+        root.commit();
+
+        Iterator<String> res = mp.getMembership(getTree(user), true);
+        assertEquals(3, Iterators.size(res));
+    }
+
+    @Test
+    public void testGetMembership() throws Exception {
+        User user = createUser();
+        Group g = createGroup();
+        Group member = createGroup();
+        Group member2 = createGroup();
+
+        g.addMember(member);
+        member.addMember(member2);
+        member2.addMember(user);
+
+        root.commit();
+
+        Iterator<String> res = mp.getMembership(getTree(user), false);
+        assertEquals(1, Iterators.size(res));
     }
 }

@@ -21,6 +21,7 @@ import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
@@ -53,6 +54,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import aQute.bnd.annotation.ProviderType;
 
 /**
  * Abstract implementation of the {@link LoginModule} interface that can act
@@ -92,11 +95,9 @@ import org.slf4j.LoggerFactory;
  * <li>{@link #clearState()}: Clears all private state information that has
  * be created during login. This method in called in {@link #abort()} and
  * subclasses are expected to override this method.</li>
- * <p>
  * <li>{@link #getSupportedCredentials()}: Abstract method used by
  * {@link #getCredentials()} that reveals which credential implementations
  * are supported by the {@code LoginModule}.</li>
- * <p>
  * <li>{@link #getCredentials()}: Tries to retrieve valid (supported)
  * Credentials in the following order:
  * <ol>
@@ -105,31 +106,24 @@ import org.slf4j.LoggerFactory;
  * state (see also {@link #getSharedCredentials()} and finally by</li>
  * <li>searching for valid credentials in the subject.</li>
  * </ol></li>
- * <p>
  * <li>{@link #getSharedCredentials()}: This method returns credentials
  * passed to the login module with the share state. The key to share credentials
  * with a another module extending from this base class is
  * {@link #SHARED_KEY_CREDENTIALS}. Note, that this method does not verify
  * if the credentials provided by the shared state are
  * {@link #getSupportedCredentials() supported}.</li>
- * <p>
  * <li>{@link #getSharedLoginName()}: If the shared state contains an entry
  * for {@link #SHARED_KEY_LOGIN_NAME} this method returns the value as login name.</li>
- * <p>
  * <li>{@link #getSecurityProvider()}: Returns the configured security
  * provider or {@code null}.</li>
- * <p>
  * <li>{@link #getRoot()}: Provides access to the latest state of the
  * repository in order to retrieve user or principal information required to
  * authenticate the subject as well as to write back information during
  * {@link #commit()}.</li>
- * <p>
  * <li>{@link #getUserManager()}: Returns an instance of the configured
  * {@link UserManager} or {@code null}.</li>
- * <p>
  * <li>{@link #getPrincipalProvider()}: Returns an instance of the configured
  * principal provider or {@code null}.</li>
- * <p>
  * <li>{@link #getPrincipals(String)}: Utility that returns all principals
  * associated with a given user id. This method might be be called after
  * successful authentication in order to be able to populate the subject
@@ -138,6 +132,7 @@ import org.slf4j.LoggerFactory;
  * on the provider exposed by {@link #getPrincipalProvider()}</li>
  * </ul>
  */
+@ProviderType
 public abstract class AbstractLoginModule implements LoginModule {
 
     /**
@@ -394,18 +389,18 @@ public abstract class AbstractLoginModule implements LoginModule {
                 callbackHandler.handle(new Callback[]{rcb});
 
                 final ContentRepository repository = rcb.getContentRepository();
-                systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                    @Override
-                    public ContentSession run() throws LoginException, NoSuchWorkspaceException {
-                        return repository.login(null, rcb.getWorkspaceName());
-                    }
-                });
-                root = systemSession.getLatestRoot();
-            } catch (UnsupportedCallbackException e) {
-                log.debug(e.getMessage());
-            } catch (IOException e) {
-                log.debug(e.getMessage());
-            } catch (PrivilegedActionException e){
+                if (repository != null) {
+                    systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+                        @Override
+                        public ContentSession run() throws LoginException, NoSuchWorkspaceException {
+                            return repository.login(null, rcb.getWorkspaceName());
+                        }
+                    });
+                    root = systemSession.getLatestRoot();
+                } else {
+                    log.debug("Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
+                }
+            } catch (UnsupportedCallbackException | PrivilegedActionException | IOException e) {
                 log.debug(e.getMessage());
             }
         }
@@ -434,9 +429,7 @@ public abstract class AbstractLoginModule implements LoginModule {
                 UserManagerCallback userCallBack = new UserManagerCallback();
                 callbackHandler.handle(new Callback[]{userCallBack});
                 userManager = userCallBack.getUserManager();
-            } catch (IOException e) {
-                log.debug(e.getMessage());
-            } catch (UnsupportedCallbackException e) {
+            } catch (IOException | UnsupportedCallbackException e) {
                 log.debug(e.getMessage());
             }
         }
@@ -466,9 +459,7 @@ public abstract class AbstractLoginModule implements LoginModule {
                 PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
                 callbackHandler.handle(new Callback[]{principalCallBack});
                 principalProvider = principalCallBack.getPrincipalProvider();
-            } catch (IOException e) {
-                log.debug(e.getMessage());
-            } catch (UnsupportedCallbackException e) {
+            } catch (IOException | UnsupportedCallbackException e) {
                 log.debug(e.getMessage());
             }
         }
@@ -484,13 +475,27 @@ public abstract class AbstractLoginModule implements LoginModule {
      * @see #getPrincipalProvider()
      */
     @Nonnull
-    protected Set<? extends Principal> getPrincipals(String userId) {
+    protected Set<? extends Principal> getPrincipals(@Nonnull String userId) {
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider == null) {
             log.debug("Cannot retrieve principals. No principal provider configured.");
             return Collections.emptySet();
         } else {
             return principalProvider.getPrincipals(userId);
+        }
+    }
+
+    @Nonnull
+    protected Set<? extends Principal> getPrincipals(@Nonnull Principal userPrincipal) {
+        PrincipalProvider principalProvider = getPrincipalProvider();
+        if (principalProvider == null) {
+            log.debug("Cannot retrieve principals. No principal provider configured.");
+            return Collections.emptySet();
+        } else {
+            Set<Principal> principals = new HashSet();
+            principals.add(userPrincipal);
+            principals.addAll(principalProvider.getGroupMembership(userPrincipal));
+            return principals;
         }
     }
 

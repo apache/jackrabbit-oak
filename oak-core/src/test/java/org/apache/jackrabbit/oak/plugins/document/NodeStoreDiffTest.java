@@ -21,10 +21,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
@@ -39,19 +41,31 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.UPDATE_LIMIT;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
 public class NodeStoreDiffTest {
-    private NodeStore ns;
+
+    private static final Logger LOG = LoggerFactory.getLogger(NodeStoreDiffTest.class);
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
+    private DocumentNodeStore ns;
     private final TestDocumentStore tds = new TestDocumentStore();
 
     @Before
     public void setUp() throws IOException {
-        ns = new DocumentMK.Builder()
+        ns = builderProvider.newBuilder()
                 .setDocumentStore(tds)
                 .setUseSimpleRevision(true) //To simplify debugging
                 .setAsyncDelay(0)
@@ -122,10 +136,17 @@ public class NodeStoreDiffTest {
                 //but less then lastRev of the of readRevision. Where readRevision is the rev of root node when
                 //rebase was performed
 
+                // remember paths accessed so far
+                List<String> paths = Lists.newArrayList(tds.paths);
+
                 //This is not to be done in actual cases as CommitHooks are invoked in critical sections
                 //and creating nodes from within CommitHooks would cause deadlock. This is done here to ensure
                 //that changes are done when rebase has been performed and merge is about to happen
                 createNodes("/oak:index/prop-b/b1");
+
+                // reset accessed paths
+                tds.reset();
+                tds.paths.addAll(paths);
 
                 //For now we the cache is disabled (size 0) so this is not required
                 //ns.nodeCache.invalidateAll();
@@ -139,6 +160,40 @@ public class NodeStoreDiffTest {
         assertFalse(tds.paths.contains("/oak:index/prop-b/b1"));
     }
 
+    // OAK-4403
+    @Test
+    public void diffWithPersistedBranch() throws Exception{
+        createNodes("/content/a", "/etc/x", "var/x", "/etc/y");
+
+        //#1 - Start making some changes
+        NodeBuilder b = ns.getRoot().builder();
+        createNodes(b, "/content/b");
+
+        //#2 - Do lots of change so as to trigger branch creation
+        //BranchState > Unmodified -> InMemory
+        for (int i = 0; i <= UPDATE_LIMIT; i++) {
+            b.child("content").child("a").child("c" + i);
+        }
+
+        //#3 -  In between push some changes to NodeStore
+        NodeBuilder b2 = ns.getRoot().builder();
+        b2.child("etc").child("x").setProperty("foo", 1);
+        b2.child("var").remove();
+        merge(b2);
+        ns.runBackgroundOperations();
+
+        createNodes(b, "/content/e");
+
+        tds.reset();
+
+        merge(b);
+
+        //With the merge the diff logic should not be accessing the
+        //paths which are not part of the current commit like /etc and /var
+        assertThat(tds.paths, not(hasItem("/etc/x")));
+        assertThat(tds.paths, not(hasItem("/var/x")));
+    }
+
     private NodeState merge(NodeBuilder nb) throws CommitFailedException {
         NodeState result = ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         prRev(result);
@@ -147,19 +202,13 @@ public class NodeStoreDiffTest {
     }
 
     private void ops(){
-        if(ns instanceof DocumentNodeStore) {
-            DocumentNodeStore dns = ((DocumentNodeStore) ns);
-            dns.runBackgroundOperations();
-            //Background ops are disabled for simple revisions
-            dns.backgroundWrite();
-        }
+        ns.runBackgroundOperations();
     }
 
     private NodeState createNodes(String... paths) throws CommitFailedException {
         NodeBuilder nb = ns.getRoot().builder();
         createNodes(nb, paths);
-        NodeState result = merge(nb);
-        return result;
+        return merge(nb);
     }
 
     private static void createNodes(NodeBuilder builder, String... paths) {
@@ -174,13 +223,13 @@ public class NodeStoreDiffTest {
     private void prRev(NodeState ns){
         if(ns instanceof DocumentNodeState){
             DocumentNodeState dns = ((DocumentNodeState) ns);
-            System.out.printf("Root at %s (%s) %n", dns.getRevision(), dns.getLastRevision());
+            LOG.info("Root at {} ({})", dns.getRootRevision(), dns.getLastRevision());
         }
     }
 
 
     private static class TestDocumentStore extends MemoryDocumentStore {
-        final List<String> paths = Lists.newArrayList();
+        final Set<String> paths = Sets.newHashSet();
 
         @Override
         public <T extends Document> T find(Collection<T> collection, String key) {

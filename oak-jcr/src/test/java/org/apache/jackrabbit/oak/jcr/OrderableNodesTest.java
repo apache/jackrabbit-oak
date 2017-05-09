@@ -16,19 +16,21 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.iterator.NodeIterable;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class OrderableNodesTest extends AbstractRepositoryTest {
 

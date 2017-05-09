@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
@@ -25,7 +27,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.StreamStore;
@@ -36,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * A persistent blob cache. Only blobs that are smaller than 10% of the maximum
  * cache size are stored.
  */
-public class BlobCache implements BlobStore, GarbageCollectableBlobStore, GenerationCache {
+public class BlobCache implements GarbageCollectableBlobStore, GenerationCache, Closeable {
 
     static final Logger LOG = LoggerFactory.getLogger(BlobCache.class);
 
@@ -55,6 +57,11 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
         data = new MultiGenerationMap<Long, byte[]>();
         meta = new MultiGenerationMap<String, byte[]>();
         maxEntrySize = cache.getMaxBinaryEntrySize();
+    }
+    
+    @Override
+    public CacheType getType() {
+        return CacheType.BLOB;
     }
     
     @Override
@@ -117,6 +124,19 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
         return base.writeBlob(in);
     }
 
+    /**
+     * Ignores the options provided and delegates to {@link #writeBlob(InputStream)}.
+     *
+     * @param in the input stream to write
+     * @param options the options to use
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public String writeBlob(InputStream in, BlobOptions options) throws IOException {
+        return writeBlob(in);
+    }
+
     @Override
     public int readBlob(String blobId, long pos, byte[] buff, int off,
             int length) throws IOException {
@@ -156,13 +176,19 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     }
 
     @Override
-    public boolean deleteChunks(List<String> arg0, long arg1) throws Exception {
-        return base.deleteChunks(arg0, arg1);
+    @Deprecated
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return base.deleteChunks(chunkIds, maxLastModifiedTime);
     }
 
     @Override
-    public Iterator<String> getAllChunkIds(long arg0) throws Exception {
-        return base.getAllChunkIds(arg0);
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return base.countDeleteChunks(chunkIds, maxLastModifiedTime);
+    }
+    
+    @Override
+    public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
+        return base.getAllChunkIds(maxLastModifiedTime);
     }
 
     @Override
@@ -171,13 +197,13 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     }
 
     @Override
-    public Iterator<String> resolveChunks(String arg0) throws IOException {
-        return base.resolveChunks(arg0);
+    public Iterator<String> resolveChunks(String blobId) throws IOException {
+        return base.resolveChunks(blobId);
     }
 
     @Override
-    public void setBlockSize(int arg0) {
-        base.setBlockSize(arg0);
+    public void setBlockSize(int x) {
+        base.setBlockSize(x);
     }
 
     @Override
@@ -191,8 +217,20 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     }
 
     @Override
-    public String writeBlob(String arg0) throws IOException {
-        return base.writeBlob(arg0);
+    public String writeBlob(String tempFileName) throws IOException {
+        return base.writeBlob(tempFileName);
+    }
+
+    @Override
+    public void receive(ByteBuffer buff) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (base instanceof Closeable) {
+            ((Closeable)base).close();
+        }
     }
     
 }

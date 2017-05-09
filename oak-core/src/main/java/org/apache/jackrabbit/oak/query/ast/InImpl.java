@@ -179,4 +179,8 @@ public class InImpl extends ConstraintImpl {
         return operand1.hashCode();
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new InImpl(operand1.createCopy(), operand2);
+    }
 }

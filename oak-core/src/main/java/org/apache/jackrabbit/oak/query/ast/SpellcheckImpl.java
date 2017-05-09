@@ -114,4 +114,14 @@ public class SpellcheckImpl extends ConstraintImpl {
         return expression;
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new SpellcheckImpl(selectorName, expression);
+    }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        return true;
+    }
+
 }

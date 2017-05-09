@@ -95,4 +95,8 @@ public class ChildNodeImpl extends ConstraintImpl {
         }
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new ChildNodeImpl(selectorName, parentPath);
+    }
 }

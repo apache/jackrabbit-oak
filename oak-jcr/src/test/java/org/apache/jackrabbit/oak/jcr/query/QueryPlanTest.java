@@ -31,8 +31,8 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -215,7 +215,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
         Node nodetype = session.getRootNode().getNode("oak:index").getNode("nodetype");
-        nodetype.setProperty("entryCount", 100000);
+        nodetype.setProperty("entryCount", 10000000);
         Node testRootNode = session.getRootNode().addNode("testroot");
         Node n1 = testRootNode.addNode("node1");
         Node n2 = n1.addNode("node2");

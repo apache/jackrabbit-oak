@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.4-SNAPSHOT</version>
+        <version>1.8-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -35,7 +35,6 @@
     <properties>
         <tika.version>1.5</tika.version>
         <known.issues>
-            org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                   <!-- different ranking -->
             org.apache.jackrabbit.core.query.FulltextQueryTest#testMultiByte                               <!-- wildcards with multi byte support -->
             org.apache.jackrabbit.core.query.FnNameQueryTest#testLikeWithPrefix                            <!-- OAK-328 -->
             org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
@@ -59,6 +58,13 @@
             org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment                     <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testQuotedPhrase                                  <!-- OAK-3580 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testEncodeIllegalCharsHighlights                  <!-- OAK-3580 -->
+            org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR3                                      <!-- OAK-3437 -->
+            org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR4                                      <!-- OAK-3437 -->
+            org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR5                                      <!-- OAK-3437 -->
+            org.apache.jackrabbit.oak.jcr.query.SpellcheckTest#testSpellcheckMultipleWords                 <!-- OAK-3355 -->
+            org.apache.jackrabbit.oak.jcr.query.FacetTest                                                  <!-- OAK-3809 -->
         </known.issues>
     </properties>
 
@@ -102,9 +108,20 @@
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-segment-tar</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

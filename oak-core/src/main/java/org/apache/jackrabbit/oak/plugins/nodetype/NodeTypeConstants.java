@@ -46,6 +46,10 @@ public interface NodeTypeConstants extends JcrConstants {
      * @since oak 1.0
      */
     String NT_OAK_UNSTRUCTURED = "oak:Unstructured";
+    /**
+     * @since oak 1.5.7
+     */
+    String NT_OAK_RESOURCE = "oak:Resource";
 
     String NT_REP_NODE_TYPE = "rep:NodeType";
     String NT_REP_NAMED_PROPERTY_DEFINITIONS = "rep:NamedPropertyDefinitions";
@@ -95,4 +99,10 @@ public interface NodeTypeConstants extends JcrConstants {
      * mixin to enable the AtomicCounterEditor.
      */
     String MIX_ATOMIC_COUNTER = "mix:atomicCounter";
+    
+    /**
+     * adding such mixin will allow the {@link JcrConstants#NT_UNSTRUCTURED} type under restricting
+     * nodes such {@link JcrConstants#NT_FOLDER}
+     */
+    String MIX_INDEXABLE = "mix:indexable";
 }

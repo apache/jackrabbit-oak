@@ -22,10 +22,10 @@ Oak provides two different mechanisms to create pre-authentication that doesn't
 involve the repositories internal authentication mechanism for credentials
 validation.
 
-- Pre-Authentication combined with Login Module Chain
-- Pre-Authentication without Repository Involvement
+- [Pre-Authentication combined with Login Module Chain](#withloginchain)
+- [Pre-Authentication without Repository Involvement](#withoutrepository)
 
-
+<a name="withloginchain"/>
 ### Pre-Authentication combined with Login Module Chain
 
 This first variant allows to support 3rd party login modules that wish to provide
@@ -86,9 +86,20 @@ marker to the shared state:
             }
 
             [...]
+            
+            // subsequent login modules need to succeed and process the 'PreAuthenticatedLogin'
+            return false;
+        }
+        
+        @Overwrite
+        public boolean commit() {
+            // this module leaves subject population to the subsequent modules 
+            // that already handled the login with 'PreAuthenticatedLogin' marker.
+            return false;
         }
     }
 
+<a name="withoutrepository"/>
 ### Pre-Authentication without Repository Involvement
 
 Like in Jackrabbit-core the repository internal authentication verification can

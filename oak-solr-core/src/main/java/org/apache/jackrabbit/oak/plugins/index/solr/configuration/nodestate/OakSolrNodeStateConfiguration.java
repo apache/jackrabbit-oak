@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -27,7 +26,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -68,7 +67,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     @Nonnull
     @Override
     public String getPathField() {
-        return getStringValueFor(Properties.PATH_FIELD, SolrServerConfigurationDefaults.PATH_FIELD_NAME);
+        return getStringValueFor(Properties.PATH_FIELD, OakSolrConfigurationDefaults.PATH_FIELD_NAME);
     }
 
     @CheckForNull
@@ -77,19 +76,19 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         String fieldName = null;
         switch (pathRestriction) {
             case ALL_CHILDREN: {
-                fieldName = getStringValueFor(Properties.DESCENDANTS_FIELD, SolrServerConfigurationDefaults.DESC_FIELD_NAME);
+                fieldName = getStringValueFor(Properties.DESCENDANTS_FIELD, OakSolrConfigurationDefaults.DESC_FIELD_NAME);
                 break;
             }
             case DIRECT_CHILDREN: {
-                fieldName = getStringValueFor(Properties.CHILDREN_FIELD, SolrServerConfigurationDefaults.CHILD_FIELD_NAME);
+                fieldName = getStringValueFor(Properties.CHILDREN_FIELD, OakSolrConfigurationDefaults.CHILD_FIELD_NAME);
                 break;
             }
             case EXACT: {
-                fieldName = getStringValueFor(Properties.PATH_FIELD, SolrServerConfigurationDefaults.PATH_FIELD_NAME);
+                fieldName = getStringValueFor(Properties.PATH_FIELD, OakSolrConfigurationDefaults.PATH_FIELD_NAME);
                 break;
             }
             case PARENT: {
-                fieldName = getStringValueFor(Properties.PARENT_FIELD, SolrServerConfigurationDefaults.ANC_FIELD_NAME);
+                fieldName = getStringValueFor(Properties.PARENT_FIELD, OakSolrConfigurationDefaults.ANC_FIELD_NAME);
                 break;
             }
             case NO_RESTRICTION:
@@ -103,7 +102,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getCatchAllField() {
-        return getStringValueFor(Properties.CATCHALL_FIELD, SolrServerConfigurationDefaults.CATCHALL_FIELD);
+        return getStringValueFor(Properties.CATCHALL_FIELD, OakSolrConfigurationDefaults.CATCHALL_FIELD);
     }
 
     @Override
@@ -125,27 +124,27 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     @Nonnull
     @Override
     public CommitPolicy getCommitPolicy() {
-        return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()));
+        return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()).toUpperCase());
     }
 
     @Override
     public int getRows() {
-        return getIntValueFor(Properties.ROWS, SolrServerConfigurationDefaults.ROWS);
+        return getIntValueFor(Properties.ROWS, OakSolrConfigurationDefaults.ROWS);
     }
 
     @Override
     public boolean useForPropertyRestrictions() {
-        return getBooleanValueFor(Properties.PROPERTY_RESTRICIONS, SolrServerConfigurationDefaults.PROPERTY_RESTRICTIONS);
+        return getBooleanValueFor(Properties.PROPERTY_RESTRICIONS, OakSolrConfigurationDefaults.PROPERTY_RESTRICTIONS);
     }
 
     @Override
     public boolean useForPrimaryTypes() {
-        return getBooleanValueFor(Properties.PRIMARY_TYPES, SolrServerConfigurationDefaults.PRIMARY_TYPES);
+        return getBooleanValueFor(Properties.PRIMARY_TYPES, OakSolrConfigurationDefaults.PRIMARY_TYPES);
     }
 
     @Override
     public boolean useForPathRestrictions() {
-        return getBooleanValueFor(Properties.PATH_RESTRICTIONS, SolrServerConfigurationDefaults.PATH_RESTRICTIONS);
+        return getBooleanValueFor(Properties.PATH_RESTRICTIONS, OakSolrConfigurationDefaults.PATH_RESTRICTIONS);
     }
 
     @Nonnull
@@ -159,7 +158,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
                 ignoredProperties.add(ignoredProperty);
             }
         } else {
-            ignoredProperties = SolrServerConfigurationDefaults.IGNORED_PROPERTIES;
+            ignoredProperties = OakSolrConfigurationDefaults.IGNORED_PROPERTIES;
         }
         return ignoredProperties;
     }
@@ -178,6 +177,23 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
             usedProperties = Collections.emptyList();
         }
         return usedProperties;
+    }
+
+    @Override
+    public boolean collapseJcrContentNodes() {
+        return getBooleanValueFor(Properties.COLLAPSE_JCR_CONTENT_NODES, OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES);
+    }
+
+    @Nonnull
+    @Override
+    public String getCollapsedPathField() {
+        return getStringValueFor(Properties.COLLAPSED_PATH_FIELD, OakSolrConfigurationDefaults.COLLAPSED_PATH_FIELD);
+    }
+
+    @Nonnull
+    @Override
+    public String getPathDepthField() {
+        return getStringValueFor(Properties.DEPTH_FIELD, OakSolrConfigurationDefaults.PATH_DEPTH_FIELD);
     }
 
     private boolean getBooleanValueFor(String propertyName, boolean defaultValue) {
@@ -229,6 +245,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     public final class Properties {
         // --> oak solr config properties <--
         public static final String PATH_FIELD = "pathField";
+        public static final String COLLAPSED_PATH_FIELD = "pathField";
         public static final String PARENT_FIELD = "parentField";
         public static final String CHILDREN_FIELD = "childrenField";
         public static final String DESCENDANTS_FIELD = "descendantsField";
@@ -242,6 +259,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         public static final String TYPE_MAPPINGS = "typeMappings";
         public static final String PROPERTY_MAPPINGS = "propertyMappings";
         public static final String USED_PROPERTIES = "usedProperties";
-
+        public static final String COLLAPSE_JCR_CONTENT_NODES = "collapseJcrContentNodes";
+        public static final String DEPTH_FIELD= "depthField";
     }
 }

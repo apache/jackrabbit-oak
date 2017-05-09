@@ -27,11 +27,11 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositePattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -51,7 +51,7 @@ import static org.junit.Assert.fail;
 /**
  * Tests for {@link RestrictionProviderImpl}
  */
-public class RestrictionProviderImplTest extends AbstractAccessControlTest implements AccessControlConstants {
+public class RestrictionProviderImplTest extends AbstractSecurityTest implements AccessControlConstants {
 
     private RestrictionProviderImpl provider;
 
@@ -68,7 +68,7 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
 
         Set<RestrictionDefinition> defs = provider.getSupportedRestrictions("/testPath");
         assertNotNull(defs);
-        assertEquals(3, defs.size());
+        assertEquals(4, defs.size());
 
         for (RestrictionDefinition def : defs) {
             if (REP_GLOB.equals(def.getName())) {
@@ -79,6 +79,9 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
                 assertFalse(def.isMandatory());
             } else if (REP_PREFIXES.equals(def.getName())) {
                 assertEquals(Type.STRINGS, def.getRequiredType());
+                assertFalse(def.isMandatory());
+            } else if (REP_ITEM_NAMES.equals(def.getName())) {
+                assertEquals(Type.NAMES, def.getRequiredType());
                 assertFalse(def.isMandatory());
             } else {
                 fail("unexpected restriction " + def.getName());
@@ -122,6 +125,8 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
         map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
         List<String> prefixes = ImmutableList.of("rep", "jcr");
         map.put(PropertyStates.createProperty(REP_PREFIXES, prefixes, Type.STRINGS), new PrefixPattern(prefixes));
+        List<String> itemNames = ImmutableList.of("abc", "jcr:primaryType");
+        map.put(PropertyStates.createProperty(REP_ITEM_NAMES, prefixes, Type.NAMES), new ItemNamePattern(itemNames));
 
         NodeUtil tree = new NodeUtil(root.getTree("/")).getOrAddTree("testPath", JcrConstants.NT_UNSTRUCTURED);
         Tree restrictions = tree.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS).getTree();
@@ -137,10 +142,15 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
     public void testGetPatternFromRestrictions() throws Exception {
         Map<PropertyState, RestrictionPattern> map = newHashMap();
         map.put(PropertyStates.createProperty(REP_GLOB, "/*/jcr:content"), GlobPattern.create("/testPath", "/*/jcr:content"));
+
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
         map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
+
         List<String> prefixes = ImmutableList.of("rep", "jcr");
         map.put(PropertyStates.createProperty(REP_PREFIXES, prefixes, Type.STRINGS), new PrefixPattern(prefixes));
+
+        List<String> itemNames = ImmutableList.of("abc", "jcr:primaryType");
+        map.put(PropertyStates.createProperty(REP_ITEM_NAMES, itemNames, Type.NAMES), new ItemNamePattern(itemNames));
 
         NodeUtil tree = new NodeUtil(root.getTree("/")).getOrAddTree("testPath", JcrConstants.NT_UNSTRUCTURED);
         Tree restrictions = tree.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS).getTree();
@@ -174,7 +184,7 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
                 "*********************");
         for (String glob : globs) {
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
-            acl.addEntry(getTestPrincipal(),
+            acl.addEntry(getTestUser().getPrincipal(),
                     AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ),
                     true, Collections.singletonMap(REP_GLOB, getValueFactory().createValue(glob)));
             acMgr.setPolicy(path, acl);

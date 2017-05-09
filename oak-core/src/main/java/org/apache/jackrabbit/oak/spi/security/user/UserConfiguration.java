@@ -60,7 +60,7 @@ public interface UserConfiguration extends SecurityConfiguration {
      * provider implementation should be used that acts on public user management
      * API.
      *
-     * @see {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration}
+     * @see org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration
      */
     @Nullable
     PrincipalProvider getUserPrincipalProvider(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper);

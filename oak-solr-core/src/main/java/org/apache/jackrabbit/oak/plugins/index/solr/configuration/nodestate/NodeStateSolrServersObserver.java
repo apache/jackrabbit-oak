@@ -17,17 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DiffObserver;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.solr.client.solrj.SolrServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,27 +37,16 @@ public class NodeStateSolrServersObserver extends DiffObserver {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Override
-    protected NodeStateDiff getRootDiff(@Nonnull NodeState before, @Nonnull NodeState after, @Nullable CommitInfo info) {
+    protected NodeStateDiff getRootDiff(@Nonnull NodeState before, @Nonnull NodeState after, @Nonnull CommitInfo info) {
         return new ChangingSolrServersNodeStateDiff(after);
     }
 
     private void shutdownRegisteredSolrServers(NodeState nodeState) {
-        log.info("shutting down servers at {}", nodeState);
+        log.debug("shutting down persisted Solr server");
         NodeStateSolrServerConfigurationProvider nodeStateSolrServerConfigurationProvider = new NodeStateSolrServerConfigurationProvider(nodeState);
-        SolrServerConfiguration<SolrServerProvider> solrServerConfiguration = nodeStateSolrServerConfigurationProvider.getSolrServerConfiguration();
-        SolrServer searchingSolrServer = SolrServerRegistry.get(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
-        if (searchingSolrServer != null) {
-            searchingSolrServer.shutdown();
-            log.info("searching SolrServer shut down");
-            SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
-        }
-
-        SolrServer indexingSolrServer = SolrServerRegistry.get(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
-        if (indexingSolrServer != null) {
-            indexingSolrServer.shutdown();
-            log.info("indexing SolrServer shut down");
-            SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
-        }
+        OakSolrServer oakSolrServer = new OakSolrServer(nodeStateSolrServerConfigurationProvider);
+        oakSolrServer.shutdown();
+        log.info("persisted Solr server has been shutdown");
     }
 
     private class ChangingSolrServersNodeStateDiff implements NodeStateDiff {
@@ -132,6 +117,7 @@ public class NodeStateSolrServersObserver extends DiffObserver {
         }
 
         private boolean isSolrServerNode(String name, NodeState nodeState) {
+            log.info("checking {} in {}", name, nodeState);
             return "server".equals(name) && nodeState.hasProperty("solrServerType");
         }
 

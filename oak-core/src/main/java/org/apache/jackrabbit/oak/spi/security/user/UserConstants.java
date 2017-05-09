@@ -49,6 +49,7 @@ public interface UserConstants {
     String REP_MEMBERS_LIST = "rep:membersList";
     String REP_IMPERSONATORS = "rep:impersonators";
     String REP_PWD = "rep:pwd";
+    String REP_PWD_HISTORY = "rep:pwdHistory";
 
     Collection<String> GROUP_PROPERTY_NAMES = ImmutableSet.of(
             REP_PRINCIPAL_NAME,
@@ -169,6 +170,19 @@ public interface UserConstants {
     String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
 
     /**
+     * Optionally enables the UsernameCaseMapped profile defined in
+     * https://tools.ietf.org/html/rfc7613#section-3.2 for user name comparison.
+     * Use this if half-width and full-width user names should be considered
+     * equal.
+     */
+    String PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = "enableRFC7613UsercaseMappedProfile";
+
+    /**
+     * Default value for {@link #PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE}
+     */
+    boolean DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = false;
+
+    /**
      * Optional configuration parameter defining how to generate the name of the
      * authorizable node from the ID of the new authorizable that is being created.
      * The value is expected to be an instance of {@link AuthorizableNodeName}.
@@ -203,7 +217,7 @@ public interface UserConstants {
 
     /**
      * Optional configuration parameter indicating the maximum age in days a password may have
-     * before it expires. If the value specified is > 0, password expiry is implicitly enabled.
+     * before it expires. If the value specified is {@code > 0}, password expiry is implicitly enabled.
      */
     String PARAM_PASSWORD_MAX_AGE = "passwordMaxAge";
 
@@ -228,4 +242,21 @@ public interface UserConstants {
      * This may be used change the password via the credentials object.
      */
     String CREDENTIALS_ATTRIBUTE_NEWPASSWORD = "user.newpassword";
+
+    /**
+     * Optional configuration parameter indicating the maximum number of passwords recorded for a user after
+     * password changes. If the value specified is {@code > 0}, password history checking during password change is implicitly
+     * enabled and the new password provided during a password change must not be found in the already recorded
+     * history.
+     *
+     * @since Oak 1.3.3
+     */
+    String PARAM_PASSWORD_HISTORY_SIZE = "passwordHistorySize";
+
+    /**
+     * Constant to indicate disabled password history, which is the default.
+     *
+     * @since Oak 1.3.3
+     */
+    int PASSWORD_HISTORY_DISABLED_SIZE = 0;
 }

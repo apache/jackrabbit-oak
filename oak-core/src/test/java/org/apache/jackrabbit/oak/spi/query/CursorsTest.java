@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.Test;
 
@@ -99,6 +100,11 @@ public class CursorsTest {
         public IndexRow next() {
             return rows.next();
         }
+
+        @Override
+        public long getSize(SizePrecision precision, long max) {
+            return -1;
+        }
         
     }
     
@@ -110,6 +116,11 @@ public class CursorsTest {
         SimpleIndexRow(String path, String id) {
             this.path = path;
             this.id = id;
+        }
+
+        @Override
+        public boolean isVirtualRow() {
+            return false;
         }
 
         @Override

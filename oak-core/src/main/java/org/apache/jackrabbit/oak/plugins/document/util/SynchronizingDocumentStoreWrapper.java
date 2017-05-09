@@ -25,6 +25,9 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
@@ -32,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * Implements a <code>DocumentStore</code> wrapper which synchronizes on all
  * methods.
  */
-public class SynchronizingDocumentStoreWrapper implements DocumentStore {
+public class SynchronizingDocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     final DocumentStore store;
 
@@ -81,6 +84,13 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           String indexedProperty, long startValue, long endValue)
+            throws DocumentStoreException {
+        return store.remove(collection, indexedProperty, startValue, endValue);
+    }
+
+    @Override
     public synchronized <T extends Document> boolean create(final Collection<T> collection, final List<UpdateOp> updateOps) {
         return store.create(collection, updateOps);
     }
@@ -97,6 +107,11 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public synchronized <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        return store.createOrUpdate(collection, updateOps);
+    }
+
+    @Override
     public synchronized <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update) {
         return store.findAndUpdate(collection, update);
     }
@@ -106,6 +121,11 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
         return store.invalidateCache();
     }
 
+    @Override
+    public synchronized CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        return store.invalidateCache(keys);
+    }
+    
     @Override
     public synchronized <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         store.invalidateCache(collection, key);
@@ -127,12 +147,24 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public synchronized CacheStats getCacheStats() {
+    public synchronized Iterable<CacheStats> getCacheStats() {
         return store.getCacheStats();
     }
 
     @Override
-    public Map<String, String> getMetadata() {
+    public synchronized long determineServerTimeDifferenceMillis() {
+        return store.determineServerTimeDifferenceMillis();
+    }
+
+    @Override
+    public synchronized Map<String, String> getMetadata() {
         return store.getMetadata();
+    }
+
+    @Override
+    public synchronized void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
+        if (store instanceof RevisionListener) {
+            ((RevisionListener) store).updateAccessedRevision(revision, currentClusterId);
+        }
     }
 }

@@ -17,87 +17,61 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import java.security.Principal;
-import java.util.HashSet;
 import java.util.Set;
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
+import org.mockito.Mockito;
 
-public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
+public abstract class AbstractAccessControlTest {
 
-    private RestrictionProvider restrictionProvider;
-    private PrivilegeBitsProvider bitsProvider;
+    final Root root = Mockito.mock(Root.class);
 
-    protected void registerNamespace(String prefix, String uri) throws Exception {
-        NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry(root) {
-            @Override
-            protected Root getWriteRoot() {
-                return root;
-            }
-        };
-        nsRegistry.registerNamespace(prefix, uri);
+    Principal testPrincipal = new PrincipalImpl("testPrincipal");
+
+    PrivilegeBitsProvider getBitsProvider() {
+        return new PrivilegeBitsProvider(root);
     }
 
-    protected RestrictionProvider getRestrictionProvider() {
-        if (restrictionProvider == null) {
-            restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
-        }
-        return restrictionProvider;
+    NamePathMapper getNamePathMapper() {
+        return NamePathMapper.DEFAULT;
     }
 
-    protected PrivilegeBitsProvider getBitsProvider() {
-        if (bitsProvider == null) {
-            bitsProvider = new PrivilegeBitsProvider(root);
-        }
-        return bitsProvider;
-    }
-
-    protected Principal getTestPrincipal() throws Exception {
-        return getTestUser().getPrincipal();
-    }
-
-    protected ACE createEntry(Principal principal, boolean isAllow, Set<Restriction> restrictions, String... privilegeNames) throws RepositoryException {
-        return new TestACE(principal, getBitsProvider().getBits(privilegeNames), isAllow, restrictions);
-    }
-
-    protected ACE createEntry(Principal principal, Privilege[] privileges, boolean isAllow)
+    ACE createEntry(boolean isAllow, String... privilegeName)
             throws RepositoryException {
-        PrivilegeBits bits = getBitsProvider().getBits(privileges, getNamePathMapper());
-        return new TestACE(principal, bits, isAllow, null);
+        if (privilegeName.length == 1) {
+            return createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(privilegeName[0]), isAllow);
+        } else {
+            PrivilegeBits bits = PrivilegeBits.getInstance();
+            for (String n : privilegeName) {
+                bits.add(PrivilegeBits.BUILT_IN.get(n));
+            }
+            return createEntry(testPrincipal, bits.unmodifiable(), isAllow);
+        }
     }
 
-    protected ACE createEntry(Principal principal, PrivilegeBits bits, boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
-        return new TestACE(principal, bits, isAllow, restrictions);
+    ACE createEntry(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Restriction... restrictions)
+            throws RepositoryException {
+        return new TestACE(principal, privilegeBits, isAllow, ImmutableSet.copyOf(restrictions));
     }
 
     private final class TestACE extends ACE {
 
-    private TestACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
-        super(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
-    }
+        private TestACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
+            super(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
+        }
 
-    @Override
-    public Privilege[] getPrivileges() {
-        Set<Privilege> privileges = new HashSet<Privilege>();
-            for (String name : bitsProvider.getPrivilegeNames(getPrivilegeBits())) {
-                try {
-                    privileges.add(getPrivilegeManager(root).getPrivilege(name));
-                } catch (RepositoryException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return privileges.toArray(new Privilege[privileges.size()]);
+        @Override
+        public Privilege[] getPrivileges() {
+            throw new UnsupportedOperationException();
+        }
     }
-}
-
 }

@@ -73,6 +73,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -273,6 +274,8 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         } catch (InvalidItemStateException e) {
             assertTrue(e.getCause() instanceof CommitFailedException);
         }
+        s2.logout();
+        s3.logout();
     }
 
     private Session newSession(boolean refreshIntervalZero) throws RepositoryException {
@@ -448,6 +451,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         QueryResult r = q.execute();
         RowIterator it = r.getRows();
         Assert.assertTrue(it.hasNext());
+        anonymousSession.logout();
     }
 
 }

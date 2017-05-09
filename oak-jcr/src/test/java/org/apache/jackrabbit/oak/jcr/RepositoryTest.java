@@ -85,6 +85,7 @@ import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.spi.QValue;
@@ -143,6 +144,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals(1, attributeNames.length);
         assertEquals(RepositoryImpl.REFRESH_INTERVAL, attributeNames[0]);
         assertEquals(42L, session.getAttribute(RepositoryImpl.REFRESH_INTERVAL));
+        session.logout();
     }
 
     @Test
@@ -1870,6 +1872,35 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void setPrimaryTypeShouldFail() throws RepositoryException {
+        Node testNode = getNode(TEST_PATH);
+        assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
+        assertEquals("nt:unstructured", testNode.getProperty("jcr:primaryType").getString());
+
+        // create subnode that would not be allowed with nt:folder
+        testNode.addNode("unstructured_child", NodeType.NT_UNSTRUCTURED);
+        getAdminSession().save();
+
+        testNode.setPrimaryType("nt:folder");
+        try {
+            getAdminSession().save();
+            fail("Changing the primary type to nt:folder should fail.");
+        } catch (RepositoryException e) {
+            // ok
+            getAdminSession().refresh(false);
+        }
+
+        Session session2 = createAnonymousSession();
+        try {
+            testNode = session2.getNode(TEST_PATH);
+            assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
+            assertEquals("nt:unstructured", testNode.getProperty("jcr:primaryType").getString());
+        } finally {
+            session2.logout();
+        }
+    }
+
+    @Test
     public void nodeTypeRegistry() throws RepositoryException {
         NodeTypeManager ntMgr = getAdminSession().getWorkspace().getNodeTypeManager();
         assertFalse(ntMgr.hasNodeType("foo"));
@@ -2176,6 +2207,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         session.save();
 
         rootLogger().detachAppender(a);
+        a.stop();
 
         assertTrue(logMessages.size() >= 2);
         assertThat("Warn log message must contains a reference to the large array property path",

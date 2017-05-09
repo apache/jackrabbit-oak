@@ -30,6 +30,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -116,6 +117,8 @@ public final class Permissions {
 
     public static final long SET_PROPERTY = ADD_PROPERTY | MODIFY_PROPERTY | REMOVE_PROPERTY;
 
+    public static final long WRITE = ADD_NODE | REMOVE_NODE | SET_PROPERTY;
+
     public static final long ALL = (READ
             | SET_PROPERTY
             | ADD_NODE | REMOVE_NODE
@@ -170,6 +173,7 @@ public final class Permissions {
         PERMISSION_NAMES.put(ADD_NODE, "ADD_NODE");
         PERMISSION_NAMES.put(REMOVE_NODE, "REMOVE_NODE");
         PERMISSION_NAMES.put(REMOVE, "REMOVE");
+        PERMISSION_NAMES.put(WRITE, "WRITE");
         PERMISSION_NAMES.put(MODIFY_CHILD_NODE_COLLECTION, "MODIFY_CHILD_NODE_COLLECTION");
         PERMISSION_NAMES.put(READ_ACCESS_CONTROL, "READ_ACCESS_CONTROL");
         PERMISSION_NAMES.put(MODIFY_ACCESS_CONTROL, "MODIFY_ACCESS_CONTROL");
@@ -187,33 +191,59 @@ public final class Permissions {
     }
 
     private static final Map<String, Long> PERMISSION_LOOKUP = new LinkedHashMap<String, Long>();
-        static {
-            PERMISSION_LOOKUP.put("ALL", ALL);
-            PERMISSION_LOOKUP.put("READ", READ);
-            PERMISSION_LOOKUP.put("READ_NODE", READ_NODE);
-            PERMISSION_LOOKUP.put("READ_PROPERTY", READ_PROPERTY);
-            PERMISSION_LOOKUP.put("SET_PROPERTY", SET_PROPERTY);
-            PERMISSION_LOOKUP.put("ADD_PROPERTY", ADD_PROPERTY);
-            PERMISSION_LOOKUP.put("MODIFY_PROPERTY", MODIFY_PROPERTY);
-            PERMISSION_LOOKUP.put("REMOVE_PROPERTY", REMOVE_PROPERTY);
-            PERMISSION_LOOKUP.put("ADD_NODE", ADD_NODE);
-            PERMISSION_LOOKUP.put("REMOVE_NODE", REMOVE_NODE);
-            PERMISSION_LOOKUP.put("REMOVE", REMOVE);
-            PERMISSION_LOOKUP.put("MODIFY_CHILD_NODE_COLLECTION", MODIFY_CHILD_NODE_COLLECTION);
-            PERMISSION_LOOKUP.put("READ_ACCESS_CONTROL", READ_ACCESS_CONTROL);
-            PERMISSION_LOOKUP.put("MODIFY_ACCESS_CONTROL", MODIFY_ACCESS_CONTROL);
-            PERMISSION_LOOKUP.put("NODE_TYPE_MANAGEMENT", NODE_TYPE_MANAGEMENT);
-            PERMISSION_LOOKUP.put("VERSION_MANAGEMENT", VERSION_MANAGEMENT);
-            PERMISSION_LOOKUP.put("LOCK_MANAGEMENT", LOCK_MANAGEMENT);
-            PERMISSION_LOOKUP.put("LIFECYCLE_MANAGEMENT", LIFECYCLE_MANAGEMENT);
-            PERMISSION_LOOKUP.put("RETENTION_MANAGEMENT", RETENTION_MANAGEMENT);
-            PERMISSION_LOOKUP.put("NODE_TYPE_DEFINITION_MANAGEMENT", NODE_TYPE_DEFINITION_MANAGEMENT);
-            PERMISSION_LOOKUP.put("NAMESPACE_MANAGEMENT", NAMESPACE_MANAGEMENT);
-            PERMISSION_LOOKUP.put("WORKSPACE_MANAGEMENT", WORKSPACE_MANAGEMENT);
-            PERMISSION_LOOKUP.put("PRIVILEGE_MANAGEMENT", PRIVILEGE_MANAGEMENT);
-            PERMISSION_LOOKUP.put("USER_MANAGEMENT", USER_MANAGEMENT);
-            PERMISSION_LOOKUP.put("INDEX_DEFINITION_MANAGEMENT", INDEX_DEFINITION_MANAGEMENT);
-        }
+    static {
+        PERMISSION_LOOKUP.put("ALL", ALL);
+        PERMISSION_LOOKUP.put("READ", READ);
+        PERMISSION_LOOKUP.put("READ_NODE", READ_NODE);
+        PERMISSION_LOOKUP.put("READ_PROPERTY", READ_PROPERTY);
+        PERMISSION_LOOKUP.put("SET_PROPERTY", SET_PROPERTY);
+        PERMISSION_LOOKUP.put("ADD_PROPERTY", ADD_PROPERTY);
+        PERMISSION_LOOKUP.put("MODIFY_PROPERTY", MODIFY_PROPERTY);
+        PERMISSION_LOOKUP.put("REMOVE_PROPERTY", REMOVE_PROPERTY);
+        PERMISSION_LOOKUP.put("ADD_NODE", ADD_NODE);
+        PERMISSION_LOOKUP.put("REMOVE_NODE", REMOVE_NODE);
+        PERMISSION_LOOKUP.put("REMOVE", REMOVE);
+        PERMISSION_LOOKUP.put("WRITE", WRITE);
+        PERMISSION_LOOKUP.put("MODIFY_CHILD_NODE_COLLECTION", MODIFY_CHILD_NODE_COLLECTION);
+        PERMISSION_LOOKUP.put("READ_ACCESS_CONTROL", READ_ACCESS_CONTROL);
+        PERMISSION_LOOKUP.put("MODIFY_ACCESS_CONTROL", MODIFY_ACCESS_CONTROL);
+        PERMISSION_LOOKUP.put("NODE_TYPE_MANAGEMENT", NODE_TYPE_MANAGEMENT);
+        PERMISSION_LOOKUP.put("VERSION_MANAGEMENT", VERSION_MANAGEMENT);
+        PERMISSION_LOOKUP.put("LOCK_MANAGEMENT", LOCK_MANAGEMENT);
+        PERMISSION_LOOKUP.put("LIFECYCLE_MANAGEMENT", LIFECYCLE_MANAGEMENT);
+        PERMISSION_LOOKUP.put("RETENTION_MANAGEMENT", RETENTION_MANAGEMENT);
+        PERMISSION_LOOKUP.put("NODE_TYPE_DEFINITION_MANAGEMENT", NODE_TYPE_DEFINITION_MANAGEMENT);
+        PERMISSION_LOOKUP.put("NAMESPACE_MANAGEMENT", NAMESPACE_MANAGEMENT);
+        PERMISSION_LOOKUP.put("WORKSPACE_MANAGEMENT", WORKSPACE_MANAGEMENT);
+        PERMISSION_LOOKUP.put("PRIVILEGE_MANAGEMENT", PRIVILEGE_MANAGEMENT);
+        PERMISSION_LOOKUP.put("USER_MANAGEMENT", USER_MANAGEMENT);
+        PERMISSION_LOOKUP.put("INDEX_DEFINITION_MANAGEMENT", INDEX_DEFINITION_MANAGEMENT);
+    }
+
+    private static final Set<String> WRITE_ACTIONS = ImmutableSet.of(
+            Session.ACTION_REMOVE,
+            Session.ACTION_ADD_NODE,
+            Session.ACTION_SET_PROPERTY,
+            JackrabbitSession.ACTION_REMOVE_NODE,
+            JackrabbitSession.ACTION_ADD_PROPERTY,
+            JackrabbitSession.ACTION_MODIFY_PROPERTY,
+            JackrabbitSession.ACTION_REMOVE_PROPERTY
+    );
+
+    private static final Map<String, Long> ACTIONS_MAP = new LinkedHashMap<String, Long>();
+    static {
+        ACTIONS_MAP.put(Session.ACTION_ADD_NODE, ADD_NODE);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_ADD_PROPERTY, ADD_PROPERTY);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_MODIFY_PROPERTY, MODIFY_PROPERTY);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_REMOVE_PROPERTY, REMOVE_PROPERTY);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_REMOVE_NODE, REMOVE_NODE);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT, NODE_TYPE_MANAGEMENT);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_LOCKING, LOCK_MANAGEMENT);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_VERSIONING, VERSION_MANAGEMENT);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_READ_ACCESS_CONTROL, READ_ACCESS_CONTROL);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL, MODIFY_ACCESS_CONTROL);
+        ACTIONS_MAP.put(JackrabbitSession.ACTION_USER_MANAGEMENT, USER_MANAGEMENT);
+    }
 
     /**
      * Returns names of the specified permissions.
@@ -272,7 +302,7 @@ public final class Permissions {
     }
 
     public static boolean isAggregate(long permission) {
-        return !NON_AGGREGATES.contains(permission);
+        return permission > NO_PERMISSION && !NON_AGGREGATES.contains(permission);
     }
 
     public static Iterable<Long> aggregates(final long permissions) {
@@ -297,19 +327,19 @@ public final class Permissions {
                 Permissions.includes(permissions, Permissions.REMOVE_NODE);
     }
 
-     /**
-      * Returns those bits from {@code permissions} that are not present in
-      * the {@code otherPermissions}, i.e. subtracts the other permissions
-      * from permissions.<br>
-      * If the specified {@code otherPermissions} do not intersect with
-      * {@code permissions},  {@code permissions} are returned.<br>
-      * If {@code permissions} is included in {@code otherPermissions},
-      * {@link #NO_PERMISSION} is returned.
-      *
-      * @param permissions
-      * @param otherPermissions
-      * @return the differences of the 2 permissions or {@link #NO_PERMISSION}.
-      */
+    /**
+     * Returns those bits from {@code permissions} that are not present in
+     * the {@code otherPermissions}, i.e. subtracts the other permissions
+     * from permissions.<br>
+     * If the specified {@code otherPermissions} do not intersect with
+     * {@code permissions},  {@code permissions} are returned.<br>
+     * If {@code permissions} is included in {@code otherPermissions},
+     * {@link #NO_PERMISSION} is returned.
+     *
+     * @param permissions
+     * @param otherPermissions
+     * @return the differences of the 2 permissions or {@link #NO_PERMISSION}.
+     */
     public static long diff(long permissions, long otherPermissions) {
         return permissions & ~otherPermissions;
     }
@@ -332,10 +362,12 @@ public final class Permissions {
      * @throws IllegalArgumentException If the string contains unknown actions
      * or permission names.
      */
-    public static long getPermissions(String jcrActions, TreeLocation location,
+    public static long getPermissions(@Nonnull String jcrActions,
+                                      @Nonnull TreeLocation location,
                                       boolean isAccessControlContent) {
         Set<String> actions = Sets.newHashSet(Text.explode(jcrActions, ',', false));
         long permissions = NO_PERMISSION;
+        // map read action respecting the 'isAccessControlContent' flag.
         if (actions.remove(Session.ACTION_READ)) {
             if (isAccessControlContent) {
                 permissions |= READ_ACCESS_CONTROL;
@@ -348,17 +380,15 @@ public final class Permissions {
             }
         }
 
+        // map write actions respecting the 'isAccessControlContent' flag.
         if (!actions.isEmpty()) {
             if (isAccessControlContent) {
-                actions.removeAll(ImmutableSet.of(
-                        Session.ACTION_ADD_NODE,
-                        Session.ACTION_REMOVE,
-                        Session.ACTION_SET_PROPERTY));
-                permissions |= MODIFY_ACCESS_CONTROL;
-            } else {
-                if (actions.remove(Session.ACTION_ADD_NODE)) {
-                    permissions |= ADD_NODE;
+                if (actions.removeAll(WRITE_ACTIONS)) {
+                    permissions |= MODIFY_ACCESS_CONTROL;
                 }
+            } else {
+                // item is not access controlled -> cover actions that don't have
+                // a 1:1 mapping to a given permission.
                 if (actions.remove(Session.ACTION_SET_PROPERTY)) {
                     if (location.getProperty() == null) {
                         permissions |= ADD_PROPERTY;
@@ -378,8 +408,18 @@ public final class Permissions {
             }
         }
 
-        permissions |= getPermissions(actions);
+        // map remaining actions and permission-names that have a simple 1:1
+        // mapping between action and permission
+        if (!actions.isEmpty()) {
+            for (Map.Entry<String, Long> actionEntry : ACTIONS_MAP.entrySet()) {
+                if (actions.remove(actionEntry.getKey())) {
+                    permissions |= actionEntry.getValue();
+                }
+            }
+            permissions |= getPermissions(actions);
+        }
 
+        // now the action set must be empty; otherwise it contained unsupported action(s)
         if (!actions.isEmpty()) {
             throw new IllegalArgumentException("Unknown actions: " + actions);
         }

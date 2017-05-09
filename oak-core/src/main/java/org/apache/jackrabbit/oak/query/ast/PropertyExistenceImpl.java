@@ -114,4 +114,8 @@ public class PropertyExistenceImpl extends ConstraintImpl {
         return a == null || b == null ? a == b : a.equals(b);
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new PropertyExistenceImpl(selectorName, propertyName);
+    }
 }

@@ -31,9 +31,13 @@ import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceCon
 import static org.apache.jackrabbit.oak.spi.query.Cursors.newPathCursor;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
-import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -43,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * Provides a QueryIndex that does lookups for node references based on a custom
@@ -51,7 +57,22 @@ import com.google.common.collect.ImmutableSet;
  */
 class ReferenceIndex implements QueryIndex {
 
-    private static final ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
+    private static final double COST = 1;
+
+    private final MountInfoProvider mountInfoProvider;
+
+    ReferenceIndex() {
+        this(Mounts.defaultMountInfoProvider());
+    }
+
+    ReferenceIndex(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+    }
+
+    @Override
+    public double getMinimumCost() {
+        return COST;
+    }
 
     @Override
     public String getIndexName() {
@@ -72,7 +93,7 @@ class ReferenceIndex implements QueryIndex {
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             if (isEqualityRestrictionOnType(pr, REFERENCE) ||
                     isEqualityRestrictionOnType(pr, WEAKREFERENCE)) {
-                return 1;
+                return COST;
             }
         }
         // not an appropriate index
@@ -103,15 +124,19 @@ class ReferenceIndex implements QueryIndex {
         return newPathCursor(new ArrayList<String>(), filter.getQueryEngineSettings());
     }
 
-    private static Cursor lookup(NodeState root, String uuid,
+    private Cursor lookup(NodeState root, String uuid,
             final String name, String index, Filter filter) {
         NodeState indexRoot = root.getChildNode(INDEX_DEFINITIONS_NAME)
                 .getChildNode(NAME);
         if (!indexRoot.exists()) {
             return newPathCursor(new ArrayList<String>(), filter.getQueryEngineSettings());
         }
-        Iterable<String> paths = STORE.query(new FilterImpl(), index + "("
-                + uuid + ")", indexRoot, index, ImmutableSet.of(uuid));
+        List<Iterable<String>> iterables = Lists.newArrayList();
+        for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
+            iterables.add(s.query(filter, index + "("
+                    + uuid + ")", indexRoot, ImmutableSet.of(uuid)));
+        }
+        Iterable<String> paths = Iterables.concat(iterables);
 
         if (!"*".equals(name)) {
             paths = filter(paths, new Predicate<String>() {
@@ -128,6 +153,12 @@ class ReferenceIndex implements QueryIndex {
             }
         });
         return newPathCursor(paths, filter.getQueryEngineSettings());
+    }
+
+    private static Set<IndexStoreStrategy> getStrategies(NodeState definition,
+            MountInfoProvider mountInfoProvider, String index) {
+        return Multiplexers.getStrategies(false, mountInfoProvider, definition,
+                index);
     }
 
     @Override

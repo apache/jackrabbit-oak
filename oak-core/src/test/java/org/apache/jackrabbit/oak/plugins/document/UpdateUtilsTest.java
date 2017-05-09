@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Comparator;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -34,7 +33,6 @@ public class UpdateUtilsTest {
 
     @Test
     public void applyChanges() {
-        Comparator<Revision> comp = StableRevisionComparator.INSTANCE;
         Revision r = Revision.newRevision(1);
         String id = Utils.getIdFromPath("/foo");
         Document d = new Document();
@@ -43,43 +41,42 @@ public class UpdateUtilsTest {
         UpdateOp op = newUpdateOp(id);
         op.set("p", 42L);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals(42L, d.get("p"));
 
         op = newUpdateOp(id);
         op.max("p", 23L);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals(42L, d.get("p"));
 
         op = newUpdateOp(id);
         op.max("p", 58L);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals(58L, d.get("p"));
 
         op = newUpdateOp(id);
         op.increment("p", 3);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals(61L, d.get("p"));
 
         op = newUpdateOp(id);
         op.setMapEntry("t", r, "value");
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals("value", getMapEntry(d, "t", r));
 
         op = newUpdateOp(id);
         op.removeMapEntry("t", r);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertNull(getMapEntry(d, "t", r));
     }
 
     @Test
     public void checkConditions() {
-        Comparator<Revision> comp = StableRevisionComparator.INSTANCE;
         Revision r = Revision.newRevision(1);
         String id = Utils.getIdFromPath("/foo");
         Document d = new Document();
@@ -88,7 +85,7 @@ public class UpdateUtilsTest {
         UpdateOp op = newUpdateOp(id);
         op.set("p", 42L);
         op.setMapEntry("t", r, "value");
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
 
         op = newUpdateOp(id);
         op.containsMapEntry("t", r, true);
@@ -111,32 +108,84 @@ public class UpdateUtilsTest {
         assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
+        op.notEquals("t", r, "value");
+        assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
         op.equals("t", r, "foo");
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("t", r, "foo");
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
         op.equals("t", Revision.newRevision(1), "value");
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
-        op.equals("t", null, "value");
+        op.notEquals("t", Revision.newRevision(1), "value");
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.equals("t", "value");
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("t", "value");
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
         op.equals("p", r, 42L);
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
-        op.equals("p", null, 42L);
+        op.notEquals("p", r, 42L);
         assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
-        op.equals("p", null, 7L);
+        op.equals("p", 42L);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("p", 42L);
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
 
+        op = newUpdateOp(id);
+        op.equals("p", 7L);
+        assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
 
+        op = newUpdateOp(id);
+        op.notEquals("p", 7L);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        // check on non-existing property
+        op = newUpdateOp(id);
+        op.notEquals("other", 7L);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("other", r, 7L);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("other", r, null);
+        assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.equals("other", r, null);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        // check null
+        op = newUpdateOp(id);
+        op.notEquals("p", null);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("other", r, null);
+        assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
     }
-    
+
     private static UpdateOp newUpdateOp(String id) {
         return new UpdateOp(id, false);
     }

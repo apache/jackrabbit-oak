@@ -20,14 +20,14 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.oak.api.Descriptors;
-import org.apache.jackrabbit.oak.util.GenericDescriptors;
+import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
 
 import static javax.jcr.Repository.OPTION_LOCKING_SUPPORTED;
 import static javax.jcr.Repository.OPTION_XML_EXPORT_SUPPORTED;
 import static javax.jcr.Repository.OPTION_XML_IMPORT_SUPPORTED;
 
 /**
- * The {@code JcrDescriptorsImpl} extend the {@link org.apache.jackrabbit.oak.util.GenericDescriptors} by automatically marking some of the JCR
+ * The {@code JcrDescriptorsImpl} extend the {@link GenericDescriptors} by automatically marking some of the JCR
  * features as supported.
  */
 public class JcrDescriptorsImpl extends GenericDescriptors {

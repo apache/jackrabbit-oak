@@ -21,11 +21,14 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.ObjectName;
+import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -38,6 +41,8 @@ import javax.management.openmbean.TabularType;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Longs;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -53,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.osgi.framework.BundleContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -78,6 +84,12 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
                 referenceInterface = BackgroundObserverMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
                 cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
+        @Reference(name = "changeProcessorMBean",
+                bind = "bindChangeProcessorMBean",
+                unbind = "unbindChangeProcessorMBean",
+                referenceInterface = ChangeProcessorMBean.class,
+                policy = ReferencePolicy.DYNAMIC,
+                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
         @Reference(name = "filterConfigMBean",
                 bind = "bindFilterConfigMBean",
                 unbind = "unbindFilterConfigMBean",
@@ -90,6 +102,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     private final AtomicInteger observerCount = new AtomicInteger();
     private final Map<ObjectName, EventListenerMBean> eventListeners = Maps.newConcurrentMap();
     private final Map<ObjectName, BackgroundObserverMBean> bgObservers = Maps.newConcurrentMap();
+    private final Map<ObjectName, ChangeProcessorMBean> changeProcessors = Maps.newConcurrentMap();
     private final Map<ObjectName, FilterConfigMBean> filterConfigs = Maps.newConcurrentMap();
 
     private Registration mbeanReg;
@@ -121,6 +134,37 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             tds = new TabularDataSupport(tt);
             for(BackgroundObserverMBean o: collectNonJcrObservers()){
                 tds.put(new ObserverStatsData(++id, o).toCompositeData());
+            }
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+        return tds;
+    }
+
+    @Override
+    public TabularData getLeaderBoard() {
+        TabularDataSupport tds;
+        try {
+            int id = 0;
+            TabularType tt = new TabularType(LeaderBoardData.class.getName(),
+                    "Leaderboard", LeaderBoardData.TYPE, new String[]{"index"});
+            tds = new TabularDataSupport(tt);
+            List<LeaderBoardData> leaderBoard = Lists.newArrayList();
+            for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
+                String listenerId = getListenerId(e.getKey());
+                EventListenerMBean mbean = e.getValue();
+                FilterConfigMBean filterConfigMBean = null;
+                for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
+                    if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                        filterConfigMBean = ef.getValue();
+                        break;
+                    }
+                }
+                leaderBoard.add(new LeaderBoardData(++id, mbean, filterConfigMBean));
+            }
+            sort(leaderBoard);
+            for (LeaderBoardData data : leaderBoard) {
+                tds.put(data.toCompositeData());
             }
         } catch (OpenDataException e) {
             throw new IllegalStateException(e);
@@ -173,6 +217,11 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                     m.observerMBean = ef.getValue();
                 }
             }
+            for (Map.Entry<ObjectName, ChangeProcessorMBean> ef : changeProcessors.entrySet()){
+                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                    m.changeProcessorMBean = ef.getValue();
+                }
+            }
             mbeans.add(m);
         }
         return mbeans;
@@ -221,6 +270,16 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     }
 
     @SuppressWarnings("unused")
+    protected void bindChangeProcessorMBean(ChangeProcessorMBean mbean, Map<String, ?> config){
+    	changeProcessors.put(getObjectName(config), mbean);
+    }
+
+    @SuppressWarnings("unused")
+    protected void unbindChangeProcessorMBean(ChangeProcessorMBean mbean, Map<String, ?> config){
+    	changeProcessors.remove(getObjectName(config));
+    }
+
+    @SuppressWarnings("unused")
     protected void bindListenerMBean(EventListenerMBean mbean, Map<String, ?> config){
         eventListeners.put(getObjectName(config), mbean);
     }
@@ -252,6 +311,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     private static class ListenerMBeans {
         EventListenerMBean eventListenerMBean;
         BackgroundObserverMBean observerMBean;
+        ChangeProcessorMBean changeProcessorMBean;
         FilterConfigMBean filterConfigMBean;
     }
 
@@ -261,6 +321,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         static final String[] FIELD_NAMES = new String[]{
                 "index",
                 "className",
+                "toString",
                 "isDeep",
                 "nodeTypeNames",
                 "deliveries",
@@ -270,6 +331,11 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                 "delivered/hr",
                 "us/delivered",
                 "ratioOfTimeSpentProcessingEvents",
+                "eventConsumerTimeRatio",
+                "queueBacklogMillis",
+                "prefilterSkips",
+                "prefilterExcludes",
+                "prefilterIncludes",
                 "queueSize",
                 "localEventCount",
                 "externalEventCount",
@@ -285,6 +351,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         static final OpenType[] FIELD_TYPES = new OpenType[]{
                 SimpleType.INTEGER,
                 SimpleType.STRING,
+                SimpleType.STRING,
                 SimpleType.BOOLEAN,
                 SimpleType.STRING,
                 SimpleType.LONG,
@@ -294,6 +361,11 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                 SimpleType.LONG,
                 SimpleType.LONG,
                 SimpleType.DOUBLE,
+                SimpleType.DOUBLE,
+                SimpleType.LONG,
+                SimpleType.INTEGER,
+                SimpleType.INTEGER,
+                SimpleType.INTEGER,
                 SimpleType.INTEGER,
                 SimpleType.INTEGER,
                 SimpleType.INTEGER,
@@ -330,6 +402,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             Object[] values = new Object[]{
                     index,
                     mbeans.eventListenerMBean.getClassName(),
+                    mbeans.eventListenerMBean.getToString(),
                     mbeans.eventListenerMBean.isDeep(),
                     Arrays.toString(mbeans.eventListenerMBean.getNodeTypeName()),
                     mbeans.eventListenerMBean.getEventDeliveries(),
@@ -339,10 +412,15 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                     mbeans.eventListenerMBean.getEventsDeliveredPerHour(),
                     mbeans.eventListenerMBean.getMicrosecondsPerEventDelivered(),
                     mbeans.eventListenerMBean.getRatioOfTimeSpentProcessingEvents(),
+                    mbeans.eventListenerMBean.getEventConsumerTimeRatio(),
+                    mbeans.eventListenerMBean.getQueueBacklogMillis(),
+                    mbeans.changeProcessorMBean == null ? -1 : mbeans.changeProcessorMBean.getPrefilterSkipCount(),
+                    mbeans.changeProcessorMBean == null ? -1 : mbeans.changeProcessorMBean.getPrefilterExcludeCount(),
+                    mbeans.changeProcessorMBean == null ? -1 : mbeans.changeProcessorMBean.getPrefilterIncludeCount(),
                     mbeans.observerMBean.getQueueSize(),
                     mbeans.observerMBean.getLocalEventCount(),
                     mbeans.observerMBean.getExternalEventCount(),
-                    Arrays.toString(mbeans.filterConfigMBean.getSubTrees()),
+                    Arrays.toString(mbeans.filterConfigMBean.getPaths()),
                     mbeans.filterConfigMBean.isIncludeClusterExternal(),
                     mbeans.filterConfigMBean.isIncludeClusterLocal(),
                     mbeans.observerMBean.getMaxQueueSize(),
@@ -415,6 +493,122 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
+        }
+    }
+
+    private static class LeaderBoardData {
+        static final String[] FIELD_NAMES = new String[] {
+                "index",
+                "className",
+                "paths",
+                "processingTime",
+                "delivered",
+                "eventConsumerTimeRatio",
+        };
+
+        static final String[] FIELD_DESCRIPTIONS = FIELD_NAMES;
+
+        @SuppressWarnings("rawtypes")
+        static final OpenType[] FIELD_TYPES = new OpenType[]{
+                SimpleType.INTEGER,
+                SimpleType.STRING,
+                SimpleType.STRING,
+                SimpleType.LONG,
+                SimpleType.LONG,
+                SimpleType.DOUBLE,
+        };
+
+        static final CompositeType TYPE = createCompositeType();
+
+        static CompositeType createCompositeType() {
+            try {
+                return new CompositeType(
+                        LeaderBoardData.class.getName(),
+                        "Composite data type for Listener Leaderboard",
+                        LeaderBoardData.FIELD_NAMES,
+                        LeaderBoardData.FIELD_DESCRIPTIONS,
+                        LeaderBoardData.FIELD_TYPES);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private final EventListenerMBean mbean;
+        private final FilterConfigMBean filterConfigMBean;
+        private final CompositeData producerTime;
+        private final CompositeData consumerTime;
+        private final int index;
+
+        public LeaderBoardData(int i, EventListenerMBean mbean, FilterConfigMBean filterConfigMBean) {
+            this(i, mbean, filterConfigMBean, mbean.getEventProducerTime(), mbean.getEventConsumerTime());
+        }
+
+        private LeaderBoardData(int i, EventListenerMBean mbean,
+                                FilterConfigMBean filterConfigMBean,
+                                CompositeData producerTime,
+                                CompositeData consumerTime) {
+            this.index = i;
+            this.mbean = mbean;
+            this.filterConfigMBean = filterConfigMBean;
+            this.producerTime = producerTime;
+            this.consumerTime = consumerTime;
+        }
+
+        LeaderBoardData withIndex(int i) {
+            return new LeaderBoardData(i, mbean, filterConfigMBean, producerTime, consumerTime);
+        }
+
+        CompositeDataSupport toCompositeData() {
+            Object[] values = new Object[]{
+                    index,
+                    mbean.getClassName(),
+                    filterConfigMBean == null ? "n/a" : Arrays.toString(filterConfigMBean.getPaths()),
+                    getProcessingTime(),
+                    mbean.getEventsDelivered(),
+                    mbean.getEventConsumerTimeRatio(),
+            };
+            try {
+                return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        long getProcessingTime() {
+            long time = 0;
+            for (String name : TimeSeriesStatsUtil.ITEM_NAMES) {
+                time += sum(name, producerTime, consumerTime);
+            }
+            return time;
+        }
+
+        private long sum(String key, CompositeData... data) {
+            long sum = 0;
+            for (CompositeData d : data) {
+                sum += sum((long[]) d.get(key));
+            }
+            return sum;
+        }
+
+        private long sum(long[] values) {
+            long sum = 0;
+            for (long value : values) {
+                sum += value;
+            }
+            return sum;
+        }
+    }
+
+    private void sort(List<LeaderBoardData> leaderBoard) {
+        Collections.sort(leaderBoard, new Comparator<LeaderBoardData>() {
+            @Override
+            public int compare(LeaderBoardData o1, LeaderBoardData o2) {
+                return Longs.compare(o1.getProcessingTime(), o2.getProcessingTime());
+            }
+        });
+        // assign new index value according to sort order
+        for (int i = 0; i < leaderBoard.size(); i++) {
+            leaderBoard.set(i, leaderBoard.get(i).withIndex(i));
         }
     }
 }

@@ -34,7 +34,12 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
 
     @BeforeClass
     public static void checkMongoDbAvailable() {
-        Assume.assumeNotNull(MongoUtils.getConnection());
+        Assume.assumeTrue(MongoUtils.isAvailable());
+    }
+
+    @Override
+    protected boolean supportsStatsCollection() {
+        return true;
     }
 
     @Before
@@ -53,6 +58,7 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
     @Override
     public void tearDown() throws Exception {
         MongoUtils.dropCollections(mongoConnection.getDB());
+        mongoConnection.close();
         super.tearDown();
     }
 

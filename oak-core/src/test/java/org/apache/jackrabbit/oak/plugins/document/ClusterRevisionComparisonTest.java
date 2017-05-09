@@ -92,8 +92,6 @@ public class ClusterRevisionComparisonTest {
         c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
         c1.invalidateNodeCache("/a/c3" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
 
-        //Revision comparator purge by moving in future
-        clock.waitUntil(clock.getTime() + DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS * 2);
         runBgOps(c1);
 
         NodeState a = c1ns1.getChildNode("a");
@@ -104,7 +102,7 @@ public class ClusterRevisionComparisonTest {
 
         //Trigger a diff. With OAK-2144 an exception would be thrown as diff traverses
         //the /a children
-        c1ns1.compareAgainstBaseState(c1ns2, new ClusterTest.TrackingDiff());
+        c1ns1.compareAgainstBaseState(c1ns2, new TrackingDiff());
     }
 
     @Test
@@ -139,8 +137,6 @@ public class ClusterRevisionComparisonTest {
         c1.invalidateNodeCache("/a/c1" , ((DocumentNodeState)a).getLastRevision());
         c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)a).getLastRevision());
 
-        //Revision comparator purge by moving in future
-        clock.waitUntil(clock.getTime() + DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS * 2);
         runBgOps(c1);
 
         assertTrue("/a/c1 disappeared", a.hasChildNode("c1"));
@@ -149,7 +145,7 @@ public class ClusterRevisionComparisonTest {
         // read again starting at root node with a invalidated cache
         // and purged revision comparator
         c1ns1 = c1.getRoot();
-        c1.invalidateNodeCache("/", c1ns1.getRevision());
+        c1.invalidateNodeCache("/", c1ns1.getRootRevision());
         c1ns1 = c1.getRoot();
         c1.invalidateNodeCache("/a", c1ns1.getLastRevision());
         assertTrue("/a missing", c1ns1.hasChildNode("a"));

@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -48,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -91,7 +91,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     @Override
     public void initialize(NodeBuilder builder, String workspaceName) {
         // squeeze node state before it is passed to store (OAK-2411)
-        NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
+        NodeState base = squeeze(builder.getNodeState());
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
@@ -108,12 +108,28 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
 
             if (!index.hasChild("authorizableId")) {
-                IndexUtils.createIndexDefinition(index, "authorizableId", true, new String[]{REP_AUTHORIZABLE_ID}, null);
+                NodeUtil authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId", true, 
+                        new String[]{REP_AUTHORIZABLE_ID}, 
+                        new String[]{NT_REP_AUTHORIZABLE});
+                authorizableId.setString("info", 
+                        "Oak index used by the user management " + 
+                        "to enforce uniqueness of rep:authorizableId property values.");
             }
             if (!index.hasChild("principalName")) {
-                IndexUtils.createIndexDefinition(index, "principalName", true,
+                NodeUtil principalName = IndexUtils.createIndexDefinition(index, "principalName", true,
                         new String[]{REP_PRINCIPAL_NAME},
                         new String[]{NT_REP_AUTHORIZABLE});
+                principalName.setString("info", 
+                        "Oak index used by the user management " +
+                        "to enforce uniqueness of rep:principalName property values, " +
+                        "and to quickly search a principal by name if it was constructed manually.");
+            }
+            if (!index.hasChild("repMembers")) {
+                NodeUtil members = IndexUtils.createIndexDefinition(index, "repMembers", false,
+                        new String[]{REP_MEMBERS},
+                        new String[]{NT_REP_MEMBER_REFERENCES});
+                members.setString("info",
+                        "Oak index used by the user management to lookup group membership.");
             }
 
             ConfigurationParameters params = userConfiguration.getParameters();
@@ -140,5 +156,4 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }
-
 }

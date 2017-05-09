@@ -77,14 +77,16 @@ if the sub-tree rooted at the respective item does not contain all transient cha
 Query
 -----
 
-Oak does not index content by default as does Jackrabbit 2. You need to create custom indexes when
+Oak does not index as much content by default as does Jackrabbit 2. You need to create custom indexes when
 necessary, much like in traditional RDBMSs. If there is no index for a specific query then the
 repository will be traversed. That is, the query will still work but probably be very slow.
-See the [query overview page](query.html) for how to create a custom index.
+See the [query overview page](query/query.html) for how to create a custom index.
 
 There were some smaller bugfixes in the query parser which might lead to incompatibility.
-See the [query overview page](query.html) for details.
+See the [query overview page](query/query.html) for details.
 
+In Oak, the method `QueryManager.createQuery` does not 
+return an object of type `QueryObjectModel`.
 
 Observation
 -----------
@@ -200,8 +202,8 @@ As a result the `available()` method of the stream would typically return
 the full count of remaining bytes, regardless of whether the next `read()`
 call would block to wait for disk IO.
 
-In Oak binaries are typically stored in an external database or (with the
-TarMK) using a custom data structure in the local file system. The streams
+In Oak binaries are typically stored in an external database or (in case of
+the SegmentNodeStore) using a custom data structure in the local file system. The streams
 returned by Oak are therefore custom `InputStream` subclasses that implement
 the `available()` method based on whether the next `read()` call will return
 immediately or if it needs to block to wait for the underlying IO operations.
@@ -287,7 +289,7 @@ Security
 --------
 
 * [Authentication](security/authentication/differences.html)
-* [AccessControl Management](security/accesscontrol/differences.html)
+* [Access Control Management](security/accesscontrol/differences.html)
 * [Permission Evaluation](security/permission/differences.html)
 * [Privilege Management](security/privilege/differences.html)
 * [Principal Management](security/principal/differences.html)

@@ -126,7 +126,7 @@ public class AccessControlManagerDelegator implements AccessControlManager {
     @Override
     public void setPolicy(final String absPath, final AccessControlPolicy policy)
             throws RepositoryException {
-        delegate.performVoid(new SessionOperation("setPolicy") {
+        delegate.performVoid(new SessionOperation<Void>("setPolicy") {
             @Override
             public void performVoid() throws RepositoryException {
                 acManager.setPolicy(absPath, policy);
@@ -137,7 +137,7 @@ public class AccessControlManagerDelegator implements AccessControlManager {
     @Override
     public void removePolicy(final String absPath, final AccessControlPolicy policy)
             throws RepositoryException {
-        delegate.performVoid(new SessionOperation("removePolicy") {
+        delegate.performVoid(new SessionOperation<Void>("removePolicy") {
             @Override
             public void performVoid() throws RepositoryException {
                 acManager.removePolicy(absPath, policy);

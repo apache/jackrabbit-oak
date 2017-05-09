@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.UUID;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -366,5 +367,30 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
         n.setName(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED);
         root.commit();
+    }
+
+    @Test
+    public void testChangeToReservedTokenNodeType() throws Exception {
+        String parentPath = getTestUser().getPath() + "/"+TokenConstants.TOKENS_NODE_NAME;
+        String path = parentPath+"/node";
+        try {
+            Tree t = root.getTree(getTestUser().getPath()).addChild(TokenConstants.TOKENS_NODE_NAME);
+            t.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+            t.addChild("node").setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+            root.commit();
+
+            NodeUtil node = new NodeUtil(root.getTree(path));
+            node.setName(JcrConstants.JCR_PRIMARYTYPE, TokenConstants.TOKEN_NT_NAME);
+            node.setString(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
+            node.setString(TokenConstants.TOKEN_ATTRIBUTE_KEY, PasswordUtil.buildPasswordHash("key"));
+            node.setDate(TokenConstants.TOKEN_ATTRIBUTE_EXPIRY, new Date().getTime());
+            root.commit(CommitMarker.asCommitAttributes());
+        } catch (CommitFailedException e) {
+            assertEquals(62, e.getCode());
+        } finally {
+            root.refresh();
+            root.getTree(parentPath).remove();
+            root.commit();
+        }
     }
 }

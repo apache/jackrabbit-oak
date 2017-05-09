@@ -27,24 +27,19 @@ import static java.lang.System.getenv;
  * Utility class for ITs to determine the environment running in.
  */
 public final class CIHelper {
-    private CIHelper() { }
 
-    /**
-     * @return  {@code true} iff running on
-     * http://ci.apache.org/builders/oak-trunk-win7
-     */
-    public static boolean buildBotWin7Trunk() {
-        String build = getenv("BUILD_NAME");
-        return build != null && build.startsWith("buildbot-win7-oak-trunk");
+    private CIHelper() {
+        // Prevent instantiation.
     }
 
     /**
-     * @return  {@code true} iff running on
-     * http://ci.apache.org/builders/oak-trunk
+     * Check if this process is running on Jenkins.
+     *
+     * @return {@code true} if this process is running on Jenkins, {@code false}
+     * otherwise.
      */
-    public static boolean buildBotLinuxTrunk() {
-        String build = getenv("BUILD_NAME");
-        return build != null && build.startsWith("buildbot-linux-oak-trunk");
+    public static boolean jenkins() {
+        return getenv("JENKINS_URL") != null;
     }
 
     /**
@@ -57,6 +52,7 @@ public final class CIHelper {
 
     /**
      * @return  {@code true} iff running on with {@code PROFILE=pedantic}
+     * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisPedantic() {
         return equal(getenv("PROFILE"), "pedantic");
@@ -64,6 +60,7 @@ public final class CIHelper {
 
     /**
      * @return  {@code true} iff running on with {@code PROFILE=unittesting}
+     * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisUnitTesting() {
         return equal(getenv("PROFILE"), "unittesting");
@@ -71,9 +68,23 @@ public final class CIHelper {
 
     /**
      * @return  {@code true} iff running on with {@code PROFILE=integrationTesting}
+     * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisIntegrationTesting() {
         return equal(getenv("PROFILE"), "integrationTesting");
+    }
+
+    public static boolean jenkinsNodeLabel(String label) {
+        String labels = getenv("NODE_LABELS");
+        if (labels == null) {
+            return false;
+        }
+        for (String l: labels.trim().split("\\s+")) {
+            if (l.equals(label)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

@@ -37,6 +37,30 @@ class NameValidator extends DefaultValidator {
         this.prefixes = prefixes;
     }
 
+    // escape non-printable non-USASCII characters using standard Java escapes
+    protected static String getPrintableName(String s) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c >= ' ' && c < 127) {
+                sb.append(c);
+            } else if (c == '\b') {
+                sb.append("\\b");
+            } else if (c == '\f') {
+                sb.append("\\f");
+            } else if (c == '\n') {
+                sb.append("\\n");
+            } else if (c == '\r') {
+                sb.append("\\r");
+            } else if (c == '\t') {
+                sb.append("\\t");
+            } else {
+                sb.append(String.format("\\u%04x", (int) c));
+            }
+        }
+        return sb.toString();
+    }
+
     protected void checkValidName(String name) throws CommitFailedException {
         int colon = name.indexOf(':');
         if (colon > 0) {
@@ -57,7 +81,7 @@ class NameValidator extends DefaultValidator {
             }
             if (local.charAt(i) != '[') {
                 throw new CommitFailedException(
-                        CommitFailedException.NAME, 2, "Invalid name index " + name);
+                        CommitFailedException.NAME, 2, "Invalid name index in: " + getPrintableName(name));
             } else {
                 local = local.substring(0, i);
             }
@@ -65,7 +89,7 @@ class NameValidator extends DefaultValidator {
 
         if (!Namespaces.isValidLocalName(local)) {
             throw new CommitFailedException(
-                    CommitFailedException.NAME, 3, "Invalid name: " + name);
+                    CommitFailedException.NAME, 3, "Invalid name: " + getPrintableName(name));
         }
     }
 

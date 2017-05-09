@@ -28,6 +28,8 @@ public interface ConsolidatedListenerMBean {
 
     TabularData getObserversStats();
 
+    TabularData getLeaderBoard();
+
     int getListenersCount();
 
     int getObserversCount();

@@ -37,7 +37,7 @@ import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
 /**
@@ -64,16 +64,16 @@ public class EventFactory {
 
     EventFactory(NamePathMapper mapper, CommitInfo commitInfo) {
         this.mapper = mapper;
-        if (commitInfo != null) {
+        if (!commitInfo.isExternal()) {
             this.userID = commitInfo.getUserId();
             Object userData = commitInfo.getInfo().get(USER_DATA);
             this.userData = userData instanceof String ? (String) userData : null;
             this.date = commitInfo.getDate();
             this.external = false;
         } else {
-            this.userID = CommitInfo.OAK_UNKNOWN;
+            this.userID = commitInfo.getUserId();
             this.userData = null;
-            this.date = System.currentTimeMillis(); // rough estimate
+            this.date = commitInfo.getDate(); // rough estimate
             this.external = true;
         }
     }

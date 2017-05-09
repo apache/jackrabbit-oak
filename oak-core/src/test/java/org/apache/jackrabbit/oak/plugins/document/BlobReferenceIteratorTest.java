@@ -26,6 +26,7 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -48,14 +49,19 @@ public class BlobReferenceIteratorTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[]{new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
-            fixtures.add(new Object[]{mongo});
+            fixtures.add(new Object[] { mongo });
+        }
+
+        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture();
+        if (rdb.isAvailable()) {
+            fixtures.add(new Object[] { rdb });
         }
         return fixtures;
     }
@@ -66,29 +72,29 @@ public class BlobReferenceIteratorTest {
                 .setDocumentStore(fixture.createDocumentStore())
                 .setAsyncDelay(0)
                 .getNodeStore();
-
     }
 
     @After
     public void tearDown() throws Exception {
         store.dispose();
+        fixture.dispose();
     }
-    
-    @Test
-    public void testBlobIterator() throws Exception{
-        List<Blob> blobs = Lists.newArrayList();
 
-        //1. Set some single value Binary property
-        for(int i = 0; i < 10; i++){
+    @Test
+    public void testBlobIterator() throws Exception {
+        List<ReferencedBlob> blobs = Lists.newArrayList();
+
+        // 1. Set some single value Binary property
+        for (int i = 0; i < 10; i++) {
             NodeBuilder b1 = store.getRoot().builder();
             Blob b = store.createBlob(randomStream(i, 4096));
-            b1.child("x").child("y"+1).setProperty("b" + i, b);
-            blobs.add(b);
+            b1.child("x").child("y" + 1).setProperty("b" + i, b);
+            blobs.add(new ReferencedBlob(b, "/x/y" + 1));
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
-        List<Blob> collectedBlobs = ImmutableList.copyOf(store.getReferencedBlobsIterator());
+        List<ReferencedBlob> collectedBlobs = ImmutableList.copyOf(store.getReferencedBlobsIterator());
         assertEquals(blobs.size(), collectedBlobs.size());
-        assertEquals(new HashSet<Blob>(blobs), new HashSet<Blob>(collectedBlobs));
+        assertEquals(new HashSet<ReferencedBlob>(blobs), new HashSet<ReferencedBlob>(collectedBlobs));
     }
 }

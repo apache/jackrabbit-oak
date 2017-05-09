@@ -29,6 +29,7 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
+import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.version.Version;
@@ -465,6 +466,112 @@ public class ReferencesTest extends AbstractJCRTest {
         Node frozen = v1.getFrozenNode();
         assertEquals("ref", ref.getPath(), frozen.getProperty("myref").getNode().getPath());
         checkReferences("ref in version store", ref.getReferences(), n.getPath() + "/myref");
+    }
+
+    public void testRemoveReferenced1() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+
+        Node n1 = testRootNode.addNode(nodeName2, testNodeType);
+        n1.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n1.getProperty("ref").getType());
+        superuser.save();
+
+        ref.remove();
+        n1.remove();
+        superuser.save();
+    }
+
+    public void testRemoveReferenced2() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+
+        Node n1 = testRootNode.addNode(nodeName2, testNodeType);
+        n1.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n1.getProperty("ref").getType());
+        Node n2 = testRootNode.addNode(nodeName3, testNodeType);
+        n2.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n2.getProperty("ref").getType());
+        superuser.save();
+
+        ref.remove();
+        n1.remove();
+        try {
+            superuser.save();
+            fail("must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
+    }
+
+    public void testRemoveReferenced3() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+
+        Node n1 = testRootNode.addNode(nodeName2, testNodeType);
+        n1.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n1.getProperty("ref").getType());
+        superuser.save();
+
+        Node n2 = testRootNode.addNode(nodeName3, testNodeType);
+        n2.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n2.getProperty("ref").getType());
+        ref.remove();
+        n1.remove();
+        try {
+            superuser.save();
+            fail("must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
+    }
+
+    public void testRecreateWithDifferentUUID() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+        String uuid = ref.getIdentifier();
+
+        Node n1 = testRootNode.addNode(nodeName2, testNodeType);
+        n1.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n1.getProperty("ref").getType());
+        superuser.save();
+
+        // recreate
+        ref.remove();
+        ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        assertFalse(uuid.equals(ref.getIdentifier()));
+        try {
+            superuser.save();
+            fail("must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
+    }
+
+    public void testRecreateNonReferenceable() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+
+        Node n1 = testRootNode.addNode(nodeName2, testNodeType);
+        n1.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n1.getProperty("ref").getType());
+        superuser.save();
+
+        // recreate
+        ref.remove();
+        testRootNode.addNode(nodeName1, testNodeType);
+        try {
+            superuser.save();
+            fail("must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
     }
 
     private static void checkReferences(String msg, PropertyIterator refs, String ... expected) throws RepositoryException {

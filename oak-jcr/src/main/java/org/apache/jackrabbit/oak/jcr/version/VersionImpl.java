@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {

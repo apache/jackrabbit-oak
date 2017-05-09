@@ -67,4 +67,8 @@ public class ColumnImpl extends AstElement {
         return selector;
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new ColumnImpl(selectorName, propertyName, columnName);
+    }
 }

@@ -45,11 +45,11 @@ information about the issue. This page is an informal registry of common error c
 
 #### User Validation
 
-see section [User Management](../security/user.html#validation)
+see section [User Management](../security/user/default.html#validation)
 
 #### Privilege Validation
 
-see section [Privilege Management](../security/privilege.html#validation)
+see section [Privilege Management](../security/privilege/default.html#validation)
 
 #### Token Validation
 
@@ -60,17 +60,17 @@ see section [Token Management](../security/authentication/tokenmanagement.html#v
 
 #### Permission Validation
 
-see section [Permissions](../security/permission.html#validation)
+see section [Permissions](../security/permission/default.html#validation)
 
 ### Type Access Control
 
 #### Default Access Control Validation
 
-see section [Access Control Management](../security/accesscontrol.html#validation)
+see section [Access Control Management](../security/accesscontrol/default.html#validation)
 
 #### CUG Validation
 
-see section [Closed User Groups](../security/accesscontrol/cug.html#validation)
+see section [Closed User Groups](../security/authorization/cug.html#validation)
 
 <!-- hidden references -->
 [OAK-764]: https://issues.apache.org/jira/browse/OAK-764

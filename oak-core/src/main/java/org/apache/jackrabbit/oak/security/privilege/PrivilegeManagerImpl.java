@@ -55,7 +55,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     //---------------------------------------------------< PrivilegeManager >---
     @Override
     public Privilege[] getRegisteredPrivileges() throws RepositoryException {
-        Set<Privilege> privileges = new HashSet<Privilege>();
+        Set<Privilege> privileges = new HashSet();
         for (PrivilegeDefinition def : getPrivilegeDefinitions()) {
             privileges.add(getPrivilege(def));
         }
@@ -97,12 +97,12 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     }
 
     @Nonnull
-    private Set<String> getOakNames(String[] jcrNames) throws RepositoryException {
+    private Set<String> getOakNames(@CheckForNull String[] jcrNames) throws RepositoryException {
         Set<String> oakNames;
         if (jcrNames == null || jcrNames.length == 0) {
             oakNames = Collections.emptySet();
         } else {
-            oakNames = new HashSet<String>(jcrNames.length);
+            oakNames = new HashSet(jcrNames.length);
             for (String jcrName : jcrNames) {
                 String oakName = getOakName(jcrName);
                 oakNames.add(oakName);
@@ -112,7 +112,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     }
 
     @Nonnull
-    private String getOakName(String jcrName) throws RepositoryException {
+    private String getOakName(@CheckForNull String jcrName) throws RepositoryException {
         if (jcrName == null) {
             throw new AccessControlException("Invalid privilege name 'null'");
         }
@@ -124,7 +124,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     }
 
     @Nonnull
-    private Privilege getPrivilege(PrivilegeDefinition definition) {
+    private Privilege getPrivilege(@Nonnull PrivilegeDefinition definition) {
         return new PrivilegeImpl(definition);
     }
 
@@ -135,7 +135,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     }
 
     @CheckForNull
-    private PrivilegeDefinition getPrivilegeDefinition(String oakName) {
+    private PrivilegeDefinition getPrivilegeDefinition(@Nonnull String oakName) {
         return getReader().readDefinition(oakName);
     }
 
@@ -153,7 +153,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
 
         private final PrivilegeDefinition definition;
 
-        private PrivilegeImpl(PrivilegeDefinition definition) {
+        private PrivilegeImpl(@Nonnull PrivilegeDefinition definition) {
             this.definition = definition;
         }
 
@@ -176,7 +176,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         @Override
         public Privilege[] getDeclaredAggregatePrivileges() {
             Set<String> declaredAggregateNames = definition.getDeclaredAggregateNames();
-            Set<Privilege> declaredAggregates = new HashSet<Privilege>(declaredAggregateNames.size());
+            Set<Privilege> declaredAggregates = new HashSet(declaredAggregateNames.size());
             for (String oakName : declaredAggregateNames) {
                 if (oakName.equals(definition.getName())) {
                     log.warn("Found cyclic privilege aggregation -> ignore declared aggregate " + oakName);
@@ -194,7 +194,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
 
         @Override
         public Privilege[] getAggregatePrivileges() {
-            Set<Privilege> aggr = new HashSet<Privilege>();
+            Set<Privilege> aggr = new HashSet();
             for (Privilege decl : getDeclaredAggregatePrivileges()) {
                 aggr.add(decl);
                 if (decl.isAggregate()) {

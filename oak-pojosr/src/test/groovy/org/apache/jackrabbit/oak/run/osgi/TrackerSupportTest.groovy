@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistryFactory
+import org.apache.felix.connect.launch.PojoServiceRegistry
+import org.apache.felix.connect.launch.PojoServiceRegistryFactory
 import org.junit.After
 import org.junit.Test
 

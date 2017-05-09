@@ -36,81 +36,84 @@ import static org.junit.Assert.fail;
 public class PathFilterTest {
 
     @Test
-    public void exclude() throws Exception{
+    public void exclude() throws Exception {
         PathFilter p = new PathFilter(of("/"), of("/etc"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/a"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/etc"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/etc/workflow"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/a"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow"));
     }
 
     @Test
-    public void include() throws Exception{
+    public void include() throws Exception {
         PathFilter p = new PathFilter(of("/content", "/etc"), of("/etc/workflow/instance"));
-        assertEquals(PathFilter.Result.TRAVERSE, p.doFiler("/"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/var"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/content"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/content/example"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/etc"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/etc/workflow"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/etc/workflow/instance"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/etc/workflow/instance/1"));
+        assertEquals(PathFilter.Result.TRAVERSE, p.filter("/"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/var"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/content"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/content/example"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc/workflow"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow/instance"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow/instance/1"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/x"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/e"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etcx"));
     }
 
     @Test
-    public void emptyConfig() throws Exception{
+    public void emptyConfig() throws Exception {
         NodeBuilder root = EMPTY_NODE.builder();
         PathFilter p = PathFilter.from(root);
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/a"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/a"));
     }
 
     @Test
-    public void config() throws Exception{
+    public void config() throws Exception {
         NodeBuilder root = EMPTY_NODE.builder();
         root.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/etc"), Type.STRINGS));
         root.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/etc/workflow"), Type.STRINGS));
         PathFilter p = PathFilter.from(root);
-        assertEquals(PathFilter.Result.TRAVERSE, p.doFiler("/"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/etc"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/etc/a"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/etc/workflow"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/etc/workflow/1"));
+        assertEquals(PathFilter.Result.TRAVERSE, p.filter("/"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc/a"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow/1"));
     }
 
     @Test
-    public void configOnlyExclude() throws Exception{
+    public void configOnlyExclude() throws Exception {
         NodeBuilder root = EMPTY_NODE.builder();
         root.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/etc/workflow"), Type.STRINGS));
         PathFilter p = PathFilter.from(root);
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/etc"));
-        assertEquals(PathFilter.Result.INCLUDE, p.doFiler("/etc/a"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/etc/workflow"));
-        assertEquals(PathFilter.Result.EXCLUDE, p.doFiler("/etc/workflow/1"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc/a"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow/1"));
     }
 
     @Test
-    public void invalid() throws Exception{
+    public void invalid() throws Exception {
         try {
             new PathFilter(Collections.<String>emptyList(), of("/etc"));
             fail();
-        } catch (IllegalStateException ignore){
-
+        } catch (IllegalStateException ignore) {
+            // expected
         }
 
         try {
             new PathFilter(of("/etc/workflow"), of("/etc"));
             fail();
-        } catch (IllegalStateException ignore){
-
+        } catch (IllegalStateException ignore) {
+            // expected
         }
 
         try {
             new PathFilter(Collections.<String>emptyList(), Collections.<String>emptyList());
             fail();
-        } catch (IllegalStateException ignore){
-
+        } catch (IllegalStateException ignore) {
+            // expected
         }
     }
 }

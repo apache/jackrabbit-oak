@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 class SecureNodeBuilder implements NodeBuilder {
 
@@ -372,7 +373,10 @@ class SecureNodeBuilder implements NodeBuilder {
         @Override
         public boolean apply(@Nullable PropertyState property) {
             if (property != null) {
-                return getTreePermission().canRead(property) || isNew(property.getName());
+                String propertyName = property.getName();
+                return NodeStateUtils.isHidden(propertyName) ||
+                        getTreePermission().canRead(property) ||
+                        isNew(propertyName);
             } else {
                 return false;
             }

@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class GlobbingPathFilterTest {
@@ -84,6 +85,50 @@ public class GlobbingPathFilterTest {
         EventFilter filter = new GlobbingPathFilter(STAR);
 
         assertTrue(filter.includeAdd("q", tree.getNodeState()));
+    }
+    
+    @Test
+    public void wildcardMatches() {
+        EventFilter filter = new GlobbingPathFilter("*.*");
+        assertFalse(filter.includeAdd("a", tree.getNodeState()));
+        assertTrue(filter.includeAdd(".b", tree.getNodeState()));
+        assertTrue(filter.includeAdd("a.b", tree.getNodeState()));
+        assertTrue(filter.includeAdd("a.", tree.getNodeState()));
+        
+        filter = new GlobbingPathFilter("*.html");
+        assertFalse(filter.includeAdd("a.b", tree.getNodeState()));
+        assertFalse(filter.includeAdd("html", tree.getNodeState()));
+        assertTrue(filter.includeAdd(".html", tree.getNodeState()));
+        assertTrue(filter.includeAdd("a.html", tree.getNodeState()));
+
+        filter = new GlobbingPathFilter("*foo*.html");
+        assertFalse(filter.includeAdd("a.b", tree.getNodeState()));
+        assertFalse(filter.includeAdd("a.html", tree.getNodeState()));
+        assertTrue(filter.includeAdd("foo.html", tree.getNodeState()));
+        assertTrue(filter.includeAdd("my-foo-bar.html", tree.getNodeState()));
+    }
+
+    /**
+     * match ** 'in the middle'
+     */
+    @Test
+    public void inTheMiddle() {
+        EventFilter filter = new GlobbingPathFilter("/foo/"+STAR_STAR+"/bar");
+        ImmutableTree t = tree;
+
+        for(String name : elements("foo/a/b/c")) {
+            t = t.getChild(name);
+            assertFalse(filter.includeAdd(name, t.getNodeState()));
+            filter = filter.create(name, t.getNodeState(), t.getNodeState());
+            assertNotNull(filter);
+        }
+
+        for(String name : elements("bar")) {
+            t = t.getChild(name);
+            assertTrue(filter.includeAdd(name, t.getNodeState()));
+            filter = filter.create(name, t.getNodeState(), t.getNodeState());
+            assertNotNull(filter);
+        }
     }
 
     /**
@@ -251,10 +296,10 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void matchSuffix() {
-        EventFilter filter = new GlobbingPathFilter("r/s/t/**");
+        EventFilter filter = new GlobbingPathFilter("a/b/c/d/r/s/t/**");
         ImmutableTree t = tree;
 
-        for(String name : elements("r/s")) {
+        for(String name : elements("a/b/c/d/r/s")) {
             t = t.getChild(name);
             assertFalse(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
@@ -267,6 +312,22 @@ public class GlobbingPathFilterTest {
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
             assertNotNull(filter);
         }
+    }
+
+    @Test
+    @Ignore("Manual test for OAK-5589")
+    public void constructorPerformance() throws Exception {
+        final int NUM = 5000000;
+        final long start = System.currentTimeMillis();
+        for(int i=0; i<NUM; i++) {
+            matchSuffix();
+            matchAtEnd();
+        }
+        final long end = System.currentTimeMillis();
+        final long diff = end - start;
+        System.out.println(NUM + " iterations took " + diff + "ms.");
+        // old version: 5000000 iterations took 33-34sec
+        // new version: 5000000 iterations took 23-24sec -> ca 25-30% faster
     }
 
 }

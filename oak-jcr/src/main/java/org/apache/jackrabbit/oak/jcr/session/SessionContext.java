@@ -25,17 +25,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
-import javax.jcr.Workspace;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.security.AccessControlManager;
 
@@ -58,7 +55,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -68,6 +65,9 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +90,6 @@ public class SessionContext implements NamePathMapper {
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
 
-    private final SessionNamespaces namespaces;
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
 
@@ -109,12 +108,25 @@ public class SessionContext implements NamePathMapper {
 
     /** Paths of all session scoped locks held by this session. */
     private final Set<String> sessionScopedLocks = newHashSet();
+    
+    private final boolean fastQueryResultSize;
+
+    public SessionContext(
+             @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
+             @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
+             @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
+             int observationQueueLength, CommitRateLimiter commitRateLimiter) {
+        
+        this(repository, statisticManager, securityProvider, whiteboard, attributes, delegate,
+            observationQueueLength, commitRateLimiter, false);
+    }
 
     public SessionContext(
             @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
             @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
             @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
-            int observationQueueLength, CommitRateLimiter commitRateLimiter) {
+            int observationQueueLength, CommitRateLimiter commitRateLimiter,
+            boolean fastQueryResultSize) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -126,11 +138,11 @@ public class SessionContext implements NamePathMapper {
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
-        this.namespaces = new SessionNamespaces(delegate.getRoot());
         this.namePathMapper = new NamePathMapperImpl(
-                namespaces, delegate.getIdManager());
+                delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper);
+        this.fastQueryResultSize = fastQueryResultSize;
     }
 
     public final Map<String, Object> getAttributes() {
@@ -152,7 +164,7 @@ public class SessionContext implements NamePathMapper {
     }
 
     /**
-     * Factory method for creating the {@link Session} instance for this
+     * Factory method for creating the {@link javax.jcr.Session} instance for this
      * context. Called by {@link #getSession()} when first accessed. Can be
      * overridden by subclasses to customize the session implementation.
      *
@@ -163,7 +175,7 @@ public class SessionContext implements NamePathMapper {
     }
 
     /**
-     * Factory method for creating the {@link Workspace} instance for this
+     * Factory method for creating the {@link javax.jcr.Workspace} instance for this
      * context. Called by {@link #getWorkspace()} when first accessed. Can be
      * overridden by subclasses to customize the workspace implementation.
      *
@@ -179,8 +191,18 @@ public class SessionContext implements NamePathMapper {
     }
 
     @Nonnull
-    public AtomicLong getCounter(Type type) {
-        return statisticManager.getCounter(type);
+    public MeterStats getMeter(Type type){
+        return statisticManager.getMeter(type);
+    }
+
+    @Nonnull
+    public TimerStats getTimer(Type type) {
+        return statisticManager.getTimer(type);
+    }
+
+    @Nonnull
+    public CounterStats getCount(Type type) {
+        return statisticManager.getStatsCounter(type);
     }
 
     @Nonnull
@@ -194,13 +216,13 @@ public class SessionContext implements NamePathMapper {
     }
 
     SessionNamespaces getNamespaces() {
-        return namespaces;
+        return delegate.getNamespaces();
     }
 
     @Override
     @Nonnull
     public Map<String, String> getSessionLocalMappings() {
-        return namespaces.getSessionLocalMappings();
+        return getNamespaces().getSessionLocalMappings();
     }
 
     public ValueFactory getValueFactory() {
@@ -273,12 +295,26 @@ public class SessionContext implements NamePathMapper {
         return observationManager;
     }
 
+    public boolean hasEventListeners(){
+        if (observationManager != null){
+            return observationManager.getRegisteredEventListeners().hasNext();
+        }
+        return false;
+    }
+
     public Set<String> getOpenScopedLocks() {
         return openScopedLocks;
     }
 
     public Set<String> getSessionScopedLocks() {
         return sessionScopedLocks;
+    }
+    
+    public boolean getFastQueryResultSize() {
+        if (System.getProperty("oak.fastQuerySize") != null) {
+            return Boolean.getBoolean("oak.fastQuerySize");
+        }
+        return fastQueryResultSize;
     }
 
     //-----------------------------------------------------< NamePathMapper >---
@@ -373,7 +409,7 @@ public class SessionContext implements NamePathMapper {
         if (observationManager != null) {
             observationManager.dispose();
         }
-        namespaces.clear();
+        getNamespaces().clear();
     }
 
     /**
@@ -384,7 +420,7 @@ public class SessionContext implements NamePathMapper {
      */
     // TODO: should this be in SessionImpl?
     private void unlockAllSessionScopedLocks() throws RepositoryException {
-        delegate.performVoid(new SessionOperation("unlockAllSessionScopedLocks") {
+        delegate.performVoid(new SessionOperation<Void>("unlockAllSessionScopedLocks") {
             @Override
             public void performVoid() {
                 Iterator<String> iterator = sessionScopedLocks.iterator();

@@ -27,6 +27,7 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 
+import javax.annotation.Nonnull
 import javax.jcr.Credentials
 import javax.jcr.Session
 import javax.jcr.SimpleCredentials
@@ -54,11 +55,10 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
                         (AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME) : 'FelixJaasProvider'
                 ],
                 'org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager' : [:],
-                'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService' : [:]
+                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService' : [:]
         ]
     }
 
-    @Ignore("OAK-2185")
     @Test
     public void defaultConfigSpiAuth() throws Exception{
         repository = repositoryFactory.getRepository(config)
@@ -74,8 +74,11 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
 
         ] as Hashtable)
 
+
+
         Session session = repository.login(new SimpleCredentials("batman", "password".toCharArray()))
         assert session
+        session.logout()
     }
 
     public static class TestLoginModule extends AbstractLoginModule {
@@ -83,6 +86,7 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
         private Set<? extends Principal> principals;
         private String userId;
 
+        @Nonnull
         @Override
         protected Set<Class> getSupportedCredentials() {
             return ImmutableSet.of(SimpleCredentials.class)

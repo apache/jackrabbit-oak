@@ -45,9 +45,12 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
         // property index for rep:principalName stored in ACEs
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
         if (!index.hasChildNode("acPrincipalName")) {
-            IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
+            NodeBuilder acPrincipalName = IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
                     ImmutableList.<String>of(REP_PRINCIPAL_NAME),
                     ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
+            acPrincipalName.setProperty("info",
+                    "Oak index used by authorization to quickly search a principal by name."
+                    );
         }
 
         // create the permission store and the root for this workspace.

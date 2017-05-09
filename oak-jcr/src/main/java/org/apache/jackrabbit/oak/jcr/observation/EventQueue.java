@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.EventGenerator;
 import org.apache.jackrabbit.oak.plugins.observation.EventHandler;
 import org.apache.jackrabbit.oak.plugins.observation.FilteredHandler;
+import org.apache.jackrabbit.oak.plugins.observation.filter.EventAggregator;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -50,11 +52,12 @@ class EventQueue implements EventIterator {
     public EventQueue(
             @Nonnull NamePathMapper mapper, CommitInfo info,
             @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull Iterable<String> basePaths, @Nonnull EventFilter filter) {
+            @Nonnull Iterable<String> basePaths, @Nonnull EventFilter filter,
+            @Nullable EventAggregator aggregator) {
         this.generator = new EventGenerator();
         EventFactory factory = new EventFactory(mapper, info);
         EventHandler handler = new FilteredHandler(
-                filter, new QueueingHandler(this, factory, before, after));
+                filter, new QueueingHandler(this, factory, aggregator, before, after));
         for (String path : basePaths) {
             addHandler(before, after, path, handler, generator);
         }

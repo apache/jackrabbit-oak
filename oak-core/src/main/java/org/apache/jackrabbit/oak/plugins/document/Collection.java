@@ -70,6 +70,20 @@ public abstract class Collection<T extends Document> {
                 }
             };
 
+    /**
+     * The 'journal' collection contains documents with consolidated
+     * diffs for changes performed by a cluster node between two background
+     * updates.
+     */
+    public static final Collection<JournalEntry> JOURNAL =
+            new Collection<JournalEntry>("journal") {
+        @Nonnull
+        @Override
+        public JournalEntry newDocument(DocumentStore store) {
+            return new JournalEntry(store);
+        }
+    };
+
     private final String name;
 
     public Collection(String name) {

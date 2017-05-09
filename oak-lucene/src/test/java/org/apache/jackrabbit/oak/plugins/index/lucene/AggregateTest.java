@@ -20,35 +20,54 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
+
+import javax.jcr.PropertyType;
+
+import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeInclude;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeIncludeResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.PropertyIncludeResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.document.Document;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.matchers.JUnitMatchers.hasItems;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 public class AggregateTest {
 
@@ -84,10 +103,49 @@ public class AggregateTest {
     }
 
     @Test
+    public void noOfChildNodeRead() throws Exception{
+        Aggregate ag = new Aggregate("nt:base", of(ni("a")));
+        NodeBuilder nb = newNode("nt:base");
+        nb.child("a");
+        for (int i = 0; i < 10; i++) {
+            nb.child("a"+i);
+        }
+
+        NodeState state = nb.getNodeState();
+        final AtomicInteger counter = new AtomicInteger();
+        Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(state.getChildNodeEntries(),
+                new Function<ChildNodeEntry, ChildNodeEntry>() {
+            @Override
+            public ChildNodeEntry apply(ChildNodeEntry input) {
+                counter.incrementAndGet();
+                return input;
+            }
+        });
+        NodeState mocked = spy(state);
+        doReturn(countingIterator).when(mocked).getChildNodeEntries();
+        ag.collectAggregates(mocked, col);
+
+        //Here at max a single call should happen for reading child nodes
+        assertThat(counter.get(), is(lessThanOrEqualTo(1)));
+    }
+
+    @Test
     public void oneLevelTyped() throws Exception{
         Aggregate ag = new Aggregate("nt:base", of(ni("nt:resource","*", false)));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").setProperty(JCR_PRIMARYTYPE,"nt:resource");
+        nb.child("b");
+
+        ag.collectAggregates(nb.getNodeState(), col);
+        assertEquals(1, col.getNodePaths().size());
+        assertThat(col.getNodePaths(), hasItems("a"));
+    }
+
+    @Test
+    public void oneLevelTypedMixin() throws Exception{
+        Aggregate ag = new Aggregate("nt:base", of(ni("mix:title","*", false)));
+        NodeBuilder nb = newNode("nt:base");
+        nb.child("a").setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES);
         nb.child("b");
 
         ag.collectAggregates(nb.getNodeState(), col);
@@ -259,6 +317,37 @@ public class AggregateTest {
     }
 
     @Test
+    public void testReaggregateMixin() throws Exception{
+        //A variant of testReaggregation but using mixin
+        //instead of normal nodetype. It abuses mix:title
+        //and treat it like nt:file. Test check if reaggregation
+        //works for mixins also
+
+        //Enable relative include for all child nodes of nt:folder
+        //So indexing would create fulltext field for each relative nodes
+        Aggregate agFolder = new Aggregate("nt:folder", of(ni("mix:title", "*", true)));
+
+        Aggregate agFile = new Aggregate("mix:title", of(ni(null, "jcr:content", true)));
+        mapper.add("mix:title", agFile);
+        mapper.add("nt:folder", agFolder);
+
+        NodeBuilder nb = newNode("nt:folder");
+        nb.child("a").child("c");
+        createFileMixin(nb, "b", "hello world");
+        createFileMixin(nb, "c", "hello world");
+
+        agFolder.collectAggregates(nb.getNodeState(), col);
+        assertEquals(4, col.getNodePaths().size());
+        assertThat(col.getNodePaths(), hasItems("b", "c", "b/jcr:content", "c/jcr:content"));
+
+        assertEquals(2, col.nodeResults.get("b/jcr:content").size());
+
+        //Check that a result is provided for relative node 'b'. Actual node provided
+        //is b/jcr:content
+        assertEquals(1, col.getRelativeNodeResults("b/jcr:content", "b").size());
+    }
+
+    @Test
     public void testRelativeNodeInclude() throws Exception{
         //Enable relative include for all child nodes of nt:folder
         //So indexing would create fulltext field for each relative nodes
@@ -285,6 +374,12 @@ public class AggregateTest {
                 .child("jcr:content").setProperty("jcr:data", content.getBytes());
     }
 
+    private static void createFileMixin(NodeBuilder nb, String fileName, String content){
+        //Abusing mix:title as its registered by default
+        nb.child(fileName).setProperty(JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES)
+                .child("jcr:content").setProperty("jcr:data", content.getBytes());
+    }
+
     //~---------------------------------< Prop Includes >
 
     @Test
@@ -294,7 +389,7 @@ public class AggregateTest {
         child(rules, "nt:folder/properties/p1")
                 .setProperty(LuceneIndexConstants.PROP_NAME, "a/p1");
 
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
 
         NodeBuilder nb = newNode("nt:folder");
@@ -308,6 +403,30 @@ public class AggregateTest {
     }
 
     @Test
+    public void propOneLevelNamedDirect() throws Exception{
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("nt:folder")
+                .property("jcr:content/a").ordered(PropertyType.TYPENAME_LONG).propertyIndex()
+                .property("jcr:content/b").ordered(PropertyType.TYPENAME_LONG).propertyIndex();
+
+
+        IndexDefinition defn = new IndexDefinition(root, builder.build(), "/foo");
+        Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
+
+        NodeBuilder nb = newNode("nt:folder");
+        nb.child("jcr:content").setProperty("a", 1);
+        nb.child("jcr:content").setProperty("b", 1);
+
+        LuceneDocumentMaker maker = new LuceneDocumentMaker(defn, defn.getApplicableIndexingRule("nt:folder"), "/bar");
+        Document doc = maker.makeDocument(nb.getNodeState());
+
+        DefaultIndexWriterFactory writerFactory = new DefaultIndexWriterFactory(Mounts.defaultMountInfoProvider(), null, null);
+        LuceneIndexWriter writer = writerFactory.newInstance(defn, EMPTY_NODE.builder(), false);
+        writer.updateDocument("/bar", doc);
+        writer.close(100);
+    }
+
+    @Test
     public void propOneLevelRegex() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
@@ -315,7 +434,7 @@ public class AggregateTest {
                 .setProperty(LuceneIndexConstants.PROP_NAME, "a/foo.*")
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
 
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
 
         NodeBuilder nb = newNode("nt:folder");
@@ -337,7 +456,7 @@ public class AggregateTest {
         NodeBuilder aggFolder = aggregates.child("nt:folder");
         aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_PATH, "*");
 
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate agg = defn.getAggregate("nt:folder");
         assertNotNull(agg);
         assertEquals(1, agg.getIncludes().size());
@@ -352,7 +471,7 @@ public class AggregateTest {
         aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_PRIMARY_TYPE, "nt:file");
         aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
 
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         Aggregate agg = defn.getAggregate("nt:folder");
         assertNotNull(agg);
         assertEquals(42, agg.reAggregationLimit);
@@ -386,12 +505,12 @@ public class AggregateTest {
         final ListMultimap<String, NodeIncludeResult> nodeResults = ArrayListMultimap.create();
         final Map<String, PropertyIncludeResult> propResults = newHashMap();
         @Override
-        public void onResult(NodeIncludeResult result) throws CommitFailedException{
+        public void onResult(NodeIncludeResult result) {
             nodeResults.put(result.nodePath, result);
         }
 
         @Override
-        public void onResult(PropertyIncludeResult result) throws CommitFailedException {
+        public void onResult(PropertyIncludeResult result) {
             propResults.put(result.propertyPath, result);
 
         }

@@ -103,4 +103,8 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
         return available.contains(childSelector) && available.contains(parentSelector);
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new ChildNodeJoinConditionImpl(childSelectorName, parentSelectorName);
+    }
 }

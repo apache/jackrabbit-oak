@@ -29,6 +29,12 @@ To construct an in-memory repository, use:
 
         Repository repo = new Jcr(new Oak()).createRepository();
 
+To use a tar file based Segment NodeStore backend, use:
+
+        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("repository")).build();
+        SegmentNodeStore ns = SegmentNodeStoreBuilders.builder(fs).build();
+        Repository repo = new Jcr(new Oak(ns)).createRepository();
+
 To use a MongoDB backend, use:
 
         DB db = new MongoClient("127.0.0.1", 27017).getDB("test2");
@@ -36,7 +42,7 @@ To use a MongoDB backend, use:
                 setMongoDB(db).getNodeStore();
         Repository repo = new Jcr(new Oak(ns)).createRepository();
 
-To login to the repository and do some work (using 
+To login to the repository and do some work (using
 the default username/password combination), use:
 
         Session session = repo.login(
@@ -56,4 +62,8 @@ the default username/password combination), use:
 To logout and close the backend store, use:
         
         session.logout();
+        // depending on NodeStore implementation either:
+        // close FileStore
+        fs.close();
+        // or close DocumentNodeStore
         ns.dispose();

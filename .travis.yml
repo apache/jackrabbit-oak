@@ -13,17 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-install:  true
-script:   mvn --batch-mode verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS
+sudo: false
+env:
+  - MODULE=oak-jcr
+  - MODULE=oak-core
+  - MODULE=oak-it
+  - MODULE=oak-lucene
+  - MODULE=oak-run
+  - MODULE=oak-it-osgi
+  - MODULE=oak-pojosr
+  - MODULE=oak-upgrade
+install:  mvn --batch-mode -DskipTests -Dbaseline.skip=true install -pl :${MODULE} -am -nsu
+script:   mvn --batch-mode clean verify -Dbaseline.skip=true -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
 language: java
 jdk:
-  - oraclejdk7
-# OAK-1822: use MongoDB 2.6.1 instead of version provided by travis (2.4.x)
-before_install:
-  - "sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10"
-  - "echo 'deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen' | sudo tee /etc/apt/sources.list.d/mongodb.list"
-  - "sudo apt-get update"
-  - "sudo apt-get install mongodb-org=2.6.1 mongodb-org-server=2.6.1 mongodb-org-shell=2.6.1 mongodb-org-mongos=2.6.1 mongodb-org-tools=2.6.1"
+  - oraclejdk8
+cache:
+  directories:
+    - $HOME/.m2
+addons:
+  apt:
+    sources:
+      - mongodb-upstart
+    packages:
+      - mongodb-org-server
+      - oracle-java8-installer
 notifications:
   email: false
   webhooks:

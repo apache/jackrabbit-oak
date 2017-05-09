@@ -16,14 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.junit.Assert.fail;
+
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 public class NameAndPathPropertyTest extends AbstractRepositoryTest {
 

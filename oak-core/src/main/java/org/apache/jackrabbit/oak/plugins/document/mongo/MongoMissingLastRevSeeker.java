@@ -19,9 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import javax.annotation.Nonnull;
+
 import static com.google.common.collect.Iterables.transform;
 import static com.mongodb.QueryBuilder.start;
-import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
 
 import com.google.common.base.Function;
 import com.mongodb.BasicDBObject;
@@ -33,10 +34,10 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.apache.jackrabbit.oak.stats.Clock;
 
 /**
  * Mongo specific version of MissingLastRevSeeker which uses mongo queries
@@ -47,18 +48,19 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     private final MongoDocumentStore store;
 
-    public MongoMissingLastRevSeeker(MongoDocumentStore store) {
-        super(store);
+    public MongoMissingLastRevSeeker(MongoDocumentStore store, Clock clock) {
+        super(store, clock);
         this.store = store;
     }
 
     @Override
+    @Nonnull
     public CloseableIterable<NodeDocument> getCandidates(final long startTime) {
         DBObject query =
                 start(NodeDocument.MODIFIED_IN_SECS).greaterThanEquals(
                                 NodeDocument.getModifiedInSecs(startTime))
                         .get();
-        DBObject sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
+        DBObject sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
 
         DBCursor cursor =
                 getNodeCollection().find(query)
@@ -73,35 +75,10 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     }
 
     @Override
-    public boolean acquireRecoveryLock(int clusterId) {
-        QueryBuilder query =
-                start().and(
-                        start(Document.ID).is(Integer.toString(clusterId)).get(),
-                        start(ClusterNodeInfo.REV_RECOVERY_LOCK).notEquals(RecoverLockState.ACQUIRED.name()).get()
-                );
-
-        DBObject returnFields = new BasicDBObject();
-        returnFields.put("_id", 1);
-
-        BasicDBObject setUpdates = new BasicDBObject();
-        setUpdates.append(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
-
-        BasicDBObject update = new BasicDBObject();
-        update.append("$set", setUpdates);
-
-        DBObject oldNode = getClusterNodeCollection().findAndModify(query.get(), returnFields,
-                null /*sort*/, false /*remove*/, update, false /*returnNew*/,
-                false /*upsert*/);
-
-        return oldNode != null;
-    }
-
-    @Override
-    public boolean isRecoveryNeeded(long currentTime) {
+    public boolean isRecoveryNeeded() {
         QueryBuilder query =
                 start(ClusterNodeInfo.STATE).is(ClusterNodeInfo.ClusterNodeState.ACTIVE.name())
-                .put(ClusterNodeInfo.LEASE_END_KEY).lessThan(currentTime)
-                .put(ClusterNodeInfo.REV_RECOVERY_LOCK).notEquals(RecoverLockState.ACQUIRED.name());
+                .put(ClusterNodeInfo.LEASE_END_KEY).lessThan(clock.getTime());
 
         return getClusterNodeCollection().findOne(query.get()) != null;
     }

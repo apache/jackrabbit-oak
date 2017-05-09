@@ -16,48 +16,27 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import javax.annotation.Nonnull;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.json.JsonUtil;
-import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncResultImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncedIdentityImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code SyncMBeanImpl}...
+ * Implementation of the {@link SynchronizationMBean} interface.
  */
 public class SyncMBeanImpl implements SynchronizationMBean {
 
     private static final Logger log = LoggerFactory.getLogger(SyncMBeanImpl.class);
 
-    private final Repository repository;
+    private final ContentRepository repository;
+
+    private final SecurityProvider securityProvider;
 
     private final SyncManager syncManager;
 
@@ -67,9 +46,11 @@ public class SyncMBeanImpl implements SynchronizationMBean {
 
     private final String idpName;
 
-    public SyncMBeanImpl(Repository repository, SyncManager syncManager, String syncName,
-                         ExternalIdentityProviderManager idpManager, String idpName) {
+    public SyncMBeanImpl(@Nonnull ContentRepository repository, @Nonnull SecurityProvider securityProvider,
+                         @Nonnull SyncManager syncManager, @Nonnull String syncName,
+                         @Nonnull ExternalIdentityProviderManager idpManager, @Nonnull String idpName) {
         this.repository = repository;
+        this.securityProvider = securityProvider;
         this.syncManager = syncManager;
         this.syncName = syncName;
         this.idpManager = idpManager;
@@ -88,284 +69,10 @@ public class SyncMBeanImpl implements SynchronizationMBean {
             log.error("No idp available for name", idpName);
             throw new IllegalArgumentException("No idp manager available for name " + idpName);
         }
-        try {
-            return new Delegatee(handler, idp);
-        } catch (SyncException e) {
-            throw new IllegalArgumentException("Unable to create delegatee", e);
-        }
+        return Delegatee.createInstance(repository, securityProvider, handler, idp);
     }
 
-    private final class Delegatee {
-
-        private SyncHandler handler;
-
-        private ExternalIdentityProvider idp;
-
-        private SyncContext context;
-
-        private UserManager userMgr;
-
-        private Session systemSession;
-
-        private Delegatee(@Nonnull SyncHandler handler, @Nonnull ExternalIdentityProvider idp) throws SyncException {
-            this.handler = handler;
-            this.idp = idp;
-            try {
-                systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
-                    @Override
-                    public Session run() throws RepositoryException {
-                        if (repository instanceof JackrabbitRepository) {
-                            // this is to bypass GuestCredentials injection in the "AbstractSlingRepository2"
-                            return ((JackrabbitRepository) repository).login(null, null, null);
-                        } else {
-                            return repository.login(null, null);
-                        }
-                    }
-                });
-            } catch (PrivilegedActionException e) {
-                throw new SyncException(e);
-            }
-            try {
-                context = handler.createContext(idp, userMgr = ((JackrabbitSession) systemSession).getUserManager(), systemSession.getValueFactory());
-            } catch (Exception e) {
-                systemSession.logout();
-                throw new SyncException(e);
-            }
-
-            log.info("Created delegatee for SyncMBean with session: {} {}", systemSession, systemSession.getUserID());
-        }
-
-        private void close() {
-            if (context != null) {
-                context.close();
-                context = null;
-            }
-            if (systemSession != null) {
-                systemSession.logout();
-            }
-        }
-
-        /**
-         * @see SynchronizationMBean#syncUsers(String[], boolean)
-         */
-        @Nonnull
-        public String[] syncUsers(@Nonnull String[] userIds, boolean purge) {
-            context.setKeepMissing(!purge)
-                    .setForceGroupSync(true)
-                    .setForceUserSync(true);
-            List<String> result = new ArrayList<String>();
-            for (String userId: userIds) {
-                try {
-                    SyncResult r = context.sync(userId);
-                    systemSession.save();
-                    result.add(getJSONString(r));
-                } catch (SyncException e) {
-                    log.warn("Error while syncing user {}", userId, e);
-                } catch (RepositoryException e) {
-                    log.warn("Error while syncing user {}", userId, e);
-                }
-            }
-            return result.toArray(new String[result.size()]);
-        }
-
-        /**
-         * @see SynchronizationMBean#syncAllUsers(boolean)
-         */
-        @Nonnull
-        public String[] syncAllUsers(boolean purge) {
-            try {
-                List<String> list = new ArrayList<String>();
-                context.setKeepMissing(!purge)
-                        .setForceGroupSync(true)
-                        .setForceUserSync(true);
-                Iterator<SyncedIdentity> iter = handler.listIdentities(userMgr);
-                while (iter.hasNext()) {
-                    SyncedIdentity id = iter.next();
-                    if (isMyIDP(id)) {
-                        try {
-                            SyncResult r = context.sync(id.getId());
-                            systemSession.save();
-                            list.add(getJSONString(r));
-                        } catch (SyncException e) {
-                            list.add(getJSONString(id, e));
-                        } catch (RepositoryException e) {
-                            list.add(getJSONString(id, e));
-                        }
-                    }
-                }
-                return list.toArray(new String[list.size()]);
-            } catch (RepositoryException e) {
-                throw new IllegalStateException("Error retrieving users for syncing", e);
-            }
-        }
-
-        /**
-         * @see SynchronizationMBean#syncExternalUsers(String[])
-         */
-        @Nonnull
-        public String[] syncExternalUsers(@Nonnull String[] externalIds) {
-            List<String> list = new ArrayList<String>();
-            context.setForceGroupSync(true).setForceUserSync(true);
-            for (String externalId: externalIds) {
-                ExternalIdentityRef ref = ExternalIdentityRef.fromString(externalId);
-                try {
-                    ExternalIdentity id = idp.getIdentity(ref);
-                    if (id != null) {
-                        SyncResult r = context.sync(id);
-                        systemSession.save();
-                        list.add(getJSONString(r));
-                    } else {
-                        SyncResult r = new SyncResultImpl(
-                                new SyncedIdentityImpl("", ref, false, -1),
-                                SyncResult.Status.NO_SUCH_IDENTITY
-                        );
-                        list.add(getJSONString(r));
-                    }
-                } catch (ExternalIdentityException e) {
-                    log.warn("error while fetching the external identity {}", externalId, e);
-                    list.add(getJSONString(ref, e));
-                } catch (SyncException e) {
-                    list.add(getJSONString(ref, e));
-                } catch (RepositoryException e) {
-                    list.add(getJSONString(ref, e));
-                }
-            }
-            return list.toArray(new String[list.size()]);
-        }
-
-        /**
-         * @see SynchronizationMBean#syncAllExternalUsers()
-         */
-        @Nonnull
-        public String[] syncAllExternalUsers() {
-            List<String> list = new ArrayList<String>();
-            context.setForceGroupSync(true).setForceUserSync(true);
-            try {
-                Iterator<ExternalUser> iter = idp.listUsers();
-                while (iter.hasNext()) {
-                    ExternalUser user = iter.next();
-                    try {
-                        SyncResult r = context.sync(user);
-                        systemSession.save();
-                        list.add(getJSONString(r));
-                    } catch (SyncException e) {
-                        list.add(getJSONString(user.getExternalId(), e));
-                    } catch (RepositoryException e) {
-                        list.add(getJSONString(user.getExternalId(), e));
-                    }
-                }
-                return list.toArray(new String[list.size()]);
-            } catch (ExternalIdentityException e) {
-                throw new IllegalArgumentException("Unable to retrieve external users", e);
-            }
-        }
-
-        /**
-         * @see SynchronizationMBean#listOrphanedUsers()
-         */
-        @Nonnull
-        public String[] listOrphanedUsers() {
-            List<String> list = new ArrayList<String>();
-            try {
-                Iterator<SyncedIdentity> iter = handler.listIdentities(userMgr);
-                while (iter.hasNext()) {
-                    SyncedIdentity id = iter.next();
-                    if (isMyIDP(id)) {
-                        ExternalIdentityRef exIdRef = id.getExternalIdRef();
-                        ExternalIdentity extId = (exIdRef == null) ? null : idp.getIdentity(exIdRef);
-                        if (extId == null) {
-                            list.add(id.getId());
-                        }
-                    }
-                }
-            } catch (RepositoryException e) {
-                log.error("Error while listing orphaned users", e);
-            } catch (ExternalIdentityException e) {
-                log.error("Error while fetching external identity", e);
-            }
-            return list.toArray(new String[list.size()]);
-        }
-
-        /**
-         * @see SynchronizationMBean#purgeOrphanedUsers()
-         */
-        @Nonnull
-        public String[] purgeOrphanedUsers() {
-            context.setKeepMissing(false);
-            List<String> result = new ArrayList<String>();
-            for (String userId: listOrphanedUsers()) {
-                try {
-                    SyncResult r = context.sync(userId);
-                    systemSession.save();
-                    result.add(getJSONString(r));
-                } catch (SyncException e) {
-                    log.warn("Error while syncing user {}", userId, e);
-                } catch (RepositoryException e) {
-                    log.warn("Error while syncing user {}", userId, e);
-                }
-            }
-            return result.toArray(new String[result.size()]);
-        }
-
-        private boolean isMyIDP(@Nonnull SyncedIdentity id) {
-            String providerName = id.getExternalIdRef() == null
-                    ? null
-                    : id.getExternalIdRef().getProviderName();
-            return (providerName == null || providerName.isEmpty() || providerName.equals(idp.getName()));
-        }
-    }
-
-    private static String getJSONString(@Nonnull SyncResult r) {
-        String op;
-        switch (r.getStatus()) {
-            case NOP:
-                op = "nop";
-                break;
-            case ADD:
-                op = "add";
-                break;
-            case UPDATE:
-                op = "upd";
-                break;
-            case DELETE:
-                op = "del";
-                break;
-            case NO_SUCH_AUTHORIZABLE:
-                op = "nsa";
-                break;
-            case NO_SUCH_IDENTITY:
-                op = "nsi";
-                break;
-            case MISSING:
-                op = "mis";
-                break;
-            case FOREIGN:
-                op = "for";
-                break;
-            default:
-                op = "";
-        }
-        SyncedIdentity syncedIdentity = r.getIdentity();
-        String uid = JsonUtil.getJsonString((syncedIdentity == null ? null : syncedIdentity.getId()));
-        ExternalIdentityRef externalIdentityRef = (syncedIdentity == null) ? null : syncedIdentity.getExternalIdRef();
-        String eid = (externalIdentityRef == null) ? "\"\"" : JsonUtil.getJsonString(externalIdentityRef.getString());
-        return String.format("{op:\"%s\",uid:%s,eid:%s}", op, uid, eid);
-    }
-
-    private static String getJSONString(@Nonnull SyncedIdentity id, @Nonnull Exception e) {
-        String uid = JsonUtil.getJsonString(id.getId());
-        String eid = (id.getExternalIdRef() == null) ? "\"\"" : JsonUtil.getJsonString(id.getExternalIdRef().getString());
-        String msg = JsonUtil.getJsonString(e.toString());
-        return String.format("{op:\"ERR\",uid:%s,eid:%s,msg:%s}", uid, eid, msg);
-    }
-
-    private static String getJSONString(ExternalIdentityRef ref, Exception e) {
-        String eid = JsonUtil.getJsonString(ref.getString());
-        String msg = JsonUtil.getJsonString(e.toString());
-        return String.format("{op:\"ERR\",uid:\"\",eid:%s,msg:%s}", eid, msg);
-    }
-
-    //---------------------------------------------------------------------------------------< SynchronizationMBean >---
+    //-----------------------------------------------< SynchronizationMBean >---
     @Nonnull
     @Override
     public String getSyncHandlerName() {

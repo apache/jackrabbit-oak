@@ -36,6 +36,8 @@ public abstract class AbstractDocumentStoreTest {
     protected DocumentStoreFixture dsf;
     protected DataSource rdbDataSource;
     protected List<String> removeMe = new ArrayList<String>();
+    protected List<String> removeMeSettings = new ArrayList<String>();
+    protected List<String> removeMeJournal = new ArrayList<String>();
 
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
@@ -48,30 +50,14 @@ public abstract class AbstractDocumentStoreTest {
 
     @After
     public void cleanUp() throws Exception {
-        if (!removeMe.isEmpty()) {
-            long start = System.nanoTime();
-            try {
-                ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
-            } catch (Exception ex) {
-                // retry one by one
-                for (String id : removeMe) {
-                    try {
-                        ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, id);
-                    } catch (Exception ex2) {
-                        // best effort
-                    }
-                }
-            }
-            if (removeMe.size() > 1) {
-                long elapsed = (System.nanoTime() - start) / (1000 * 1000);
-                float rate = (((float)removeMe.size()) / (elapsed == 0 ? 1 : elapsed));
-                LOG.info(removeMe.size() + " documents removed in " + elapsed + "ms (" + rate + "/ms)");
-            }
-        }
+        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
+        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS, removeMeSettings);
+        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL, removeMeJournal);
+        ds.dispose();
         dsf.dispose();
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         return fixtures(false);
     }
@@ -79,8 +65,9 @@ public abstract class AbstractDocumentStoreTest {
     protected static Collection<Object[]> fixtures(boolean multi) {
         Collection<Object[]> result = new ArrayList<Object[]>();
         DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
-                DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_PG, DocumentStoreFixture.RDB_DB2,
-                DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE, DocumentStoreFixture.RDB_MSSQL };
+                DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_DERBY, DocumentStoreFixture.RDB_PG,
+                DocumentStoreFixture.RDB_DB2, DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE,
+                DocumentStoreFixture.RDB_MSSQL };
 
         for (DocumentStoreFixture dsf : candidates) {
             if (dsf.isAvailable()) {
@@ -91,5 +78,55 @@ public abstract class AbstractDocumentStoreTest {
         }
 
         return result;
+    }
+
+    /**
+     * Generate a random string of given size, with or without non-ASCII characters.
+     */
+    public static String generateString(int length, boolean asciiOnly) {
+        char[] s = new char[length];
+        for (int i = 0; i < length; i++) {
+            if (asciiOnly) {
+                s[i] = (char) (32 + (int) (95 * Math.random()));
+            } else {
+                s[i] = (char) (32 + (int) ((0xd7ff - 32) * Math.random()));
+            }
+        }
+        return new String(s);
+    }
+
+    /**
+     * Generate a random string of given size, with or without non-ASCII characters.
+     */
+    public static String generateConstantString(int length) {
+        char[] s = new char[length];
+        for (int i = 0; i < length; i++) {
+            s[i] = (char)('0' + (i % 10));
+        }
+        return new String(s);
+    }
+
+    private <T extends Document> void removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection<T> col,
+            List<String> ids) {
+        if (!ids.isEmpty()) {
+            long start = System.nanoTime();
+            try {
+                ds.remove(col, ids);
+            } catch (Exception ex) {
+                // retry one by one
+                for (String id : ids) {
+                    try {
+                        ds.remove(col, id);
+                    } catch (Exception ex2) {
+                        // best effort
+                    }
+                }
+            }
+            if (ids.size() > 1) {
+                long elapsed = (System.nanoTime() - start) / (1000 * 1000);
+                float rate = (((float) ids.size()) / (elapsed == 0 ? 1 : elapsed));
+                LOG.info(ids.size() + " documents removed in " + elapsed + "ms (" + rate + "/ms)");
+            }
+        }
     }
 }

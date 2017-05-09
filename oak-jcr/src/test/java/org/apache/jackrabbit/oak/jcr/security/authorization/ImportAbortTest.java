@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
-import java.security.AccessControlException;
+
+import javax.jcr.security.AccessControlException;
 
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 public class ImportAbortTest extends ImportIgnoreTest {
 
@@ -29,13 +28,8 @@ public class ImportAbortTest extends ImportIgnoreTest {
         return ImportBehavior.NAME_ABORT;
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testImportUnknownPrincipal() throws Exception {
-        try {
-            runImport();
-            fail("Import with unknown principal must fail.");
-        } catch (AccessControlException e) {
-            // success
-        }
+        runImport();
     }
 }

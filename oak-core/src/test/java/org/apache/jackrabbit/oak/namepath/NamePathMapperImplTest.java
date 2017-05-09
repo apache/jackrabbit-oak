@@ -99,6 +99,7 @@ public class NamePathMapperImplTest {
         assertEquals("oak-jcr:content", npMapper.getOakPath("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("/a/b/c", npMapper.getOakPath("/a/b[1]/c[01]"));
         assertEquals("/a/b[2]/c[3]", npMapper.getOakPath("/a[1]/b[2]/c[03]"));
+        assertEquals("/a/b", npMapper.getOakPath("/a/b/a/.."));
     }
 
     @Test
@@ -196,6 +197,36 @@ public class NamePathMapperImplTest {
             assertEquals(name, npMapper.getOakName(name));
         }
     }
+
+    @Test
+    public void testBracketsInPaths() throws Exception {
+        String[] paths = {
+                "/parent/childB1",
+                "/parent/}childB2",
+                "/parent/{childB3}",
+                "/parent/sub/childB4",
+                "/parent/sub/}childB5",
+                "/parent/sub/{childB6}",
+        };
+
+        for (String path : paths) {
+            assertEquals(path, npMapper.getOakPath(path));
+        }
+    }
+    
+    @Test
+    public void testIllegalBracketsInPaths() throws Exception {
+        String[] paths = {
+                "/parent/sub/{childB7", 
+                "/parent/sub/{childB7",
+                "/parent/{", 
+                "/parent/{childA1", 
+                "/parent/{{childA2"        };
+
+        for (String path : paths) {
+            assertNull(npMapper.getOakPath(path));
+        }
+    }    
 
     @Test
     public void testWhitespace() {

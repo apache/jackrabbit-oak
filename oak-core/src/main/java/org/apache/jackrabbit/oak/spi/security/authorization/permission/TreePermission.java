@@ -145,6 +145,11 @@ public interface TreePermission {
         public boolean isGranted(long permissions, @Nonnull PropertyState property) {
             return false;
         }
+
+        @Override
+        public String toString() {
+            return "TreePermission.EMPTY";
+        }
     };
 
     /**
@@ -186,6 +191,55 @@ public interface TreePermission {
         @Override
         public boolean isGranted(long permissions, @Nonnull PropertyState property) {
             return true;
+        }
+
+        @Override
+        public String toString() {
+            return "TreePermission.ALL";
+        }
+    };
+
+    TreePermission NO_RECOURSE = new TreePermission() {
+
+        @Nonnull
+        @Override
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canRead() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canRead(@Nonnull PropertyState property) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canReadAll() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean canReadProperties() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isGranted(long permissions) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String toString() {
+            return "TreePermission.NO_RECOURSE";
         }
     };
 }

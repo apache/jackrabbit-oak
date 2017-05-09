@@ -74,7 +74,23 @@ If that is set to say 4096 then any binary with size less than 4kb would be stor
 as part of node data itself and not in BlobStore.
 
 Its recommended to not set very high value for this as depending on implementation it
-might hit some limit causing the commit to fail. For e.g. SegmentMK enforces a limit of
+might hit some limit causing the commit to fail. For e.g. the SegmentNodeStore enforces a limit of
 8k for any inlined binary value. Further this would also lead to repository growth as
 by default when binaries are stored in BlobStore then they are deduplicated.
 
+### Creating files
+
+The default node type provided by JCR 1.0 to model file structure using
+`nt:file` is to add `jcr:content` child with type `nt:resource`, which makes
+that content referenceable.
+
+If the file has no need to be referenceable it is recommended to use the
+node type `oak:Resource` instead and add the mixin type `mix:referenceble`
+only upon demand (see [OAK-4567](https://issues.apache.org/jira/browse/OAK-4567))
+
+### Don't use Thread.interrupt()
+
+`Thread.interrupt()` can severely impact or even stop the repository. The reason for 
+this is that Oak internally uses various classes from the `nio` package that implement 
+`InterruptibleChannel`, which are [asynchronously closed](http://docs.oracle.com/javase/7/docs/api/java/nio/channels/InterruptibleChannel.html) 
+when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](https://issues.apache.org/jira/browse/OAK-2609).  

@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * {@code RestrictionImpl}
@@ -28,6 +29,8 @@ public class RestrictionImpl implements Restriction {
 
     private final RestrictionDefinition definition;
     private final PropertyState property;
+
+    private int hashCode = 0;
 
     public RestrictionImpl(@Nonnull PropertyState property, @Nonnull RestrictionDefinition def) {
         this.definition = def;
@@ -55,7 +58,10 @@ public class RestrictionImpl implements Restriction {
     //-------------------------------------------------------------< Object >---
     @Override
     public int hashCode() {
-        return Objects.hashCode(definition, property);
+        if (hashCode == 0) {
+            hashCode = Objects.hashCode(definition, property, PropertyValues.create(property));
+        }
+        return hashCode;
     }
 
     @Override

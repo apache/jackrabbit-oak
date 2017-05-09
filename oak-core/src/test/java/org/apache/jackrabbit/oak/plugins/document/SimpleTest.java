@@ -16,13 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -40,14 +45,14 @@ import com.mongodb.DB;
  */
 public class SimpleTest {
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
-
-    @Test
-    public void test() {
-        DocumentMK mk = new DocumentMK.Builder().open();
-        mk.dispose();
-    }
 
     @Test
     public void pathToId() {
@@ -71,22 +76,21 @@ public class SimpleTest {
 
     @Test
     public void addNodeGetNode() {
-        DocumentMK mk = new DocumentMK.Builder().open();
+        DocumentMK mk = builderProvider.newBuilder().open();
         DocumentStore s = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
-        Revision rev = Revision.fromString(mk.getHeadRevision());
-        DocumentNodeState n = new DocumentNodeState(ns, "/test", rev);
-        n.setProperty("name", "\"Hello\"");
-        UpdateOp op = n.asOperation(true);
+        RevisionVector rev = RevisionVector.fromString(mk.getHeadRevision());
+        DocumentNodeState n = new DocumentNodeState(ns, "/test", rev,
+                Collections.singleton(ns.createPropertyState("name", "\"Hello\"")), false, null);
+        UpdateOp op = n.asOperation(rev.getRevision(ns.getClusterId()));
         // mark as commit root
-        NodeDocument.setRevision(op, rev, "c");
+        NodeDocument.setRevision(op, rev.getRevision(ns.getClusterId()), "c");
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
         DocumentNodeState n2 = ns.getNode("/test", rev);
         assertNotNull(n2);
         PropertyState p = n2.getProperty("name");
         assertNotNull(p);
         assertEquals("Hello", p.getValue(Type.STRING));
-        mk.dispose();
     }
 
     @Test
@@ -119,8 +123,6 @@ public class SimpleTest {
         assertEquals("{\":id\":\"/test/a@r4-0-1\",\"x\":1,\":childNodeCount\":0}", r4);
         r4 = mk.getNodes("/test/b", rev4, 0, 0, Integer.MAX_VALUE, ":id");
         assertEquals("{\":id\":\"/test/b@r3-0-1\",\":childNodeCount\":0}", r4);
-
-        mk.dispose();
     }
 
     @Test
@@ -136,7 +138,6 @@ public class SimpleTest {
         // the previous commit should be rolled back now,
         // so this should work
         mk.commit("/", "+\"b\": {}", null, null);
-        mk.dispose();
     }
 
     @Test
@@ -165,10 +166,9 @@ public class SimpleTest {
         String diff23 = mk.diff(rev2, rev3, "/", 0).trim();
         assertEquals("+\"/t3\":{}", diff23);
         String diff13 = mk.diff(rev1, rev3, "/", 0).trim();
-        assertEquals("+\"/t2\":{}\n+\"/t3\":{}", diff13);
+        assertThat(diff13, anyOf(equalTo("+\"/t2\":{}+\"/t3\":{}"), equalTo("+\"/t3\":{}+\"/t2\":{}")));
         String diff34 = mk.diff(rev3, rev4, "/", 0).trim();
         assertEquals("^\"/t3\":{}", diff34);
-        mk.dispose();
     }
 
     @Test
@@ -199,7 +199,6 @@ public class SimpleTest {
         assertEquals("{\":childNodeCount\":0}", test);
         String test2 = mk.getNodes("/test2", rev, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\":childNodeCount\":0}", test2);
-        mk.dispose();
     }
 
     @Test
@@ -211,7 +210,6 @@ public class SimpleTest {
         assertEquals("{\"x\":\"1\",\"child\":{},\":childNodeCount\":1}", test);
         test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
         assertNull(test);
-        mk.dispose();
     }
 
     @Test
@@ -223,7 +221,6 @@ public class SimpleTest {
         assertEquals("{\"x\":\"1\",\"child\":{},\":childNodeCount\":1}", test);
         test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\"x\":\"1\",\"child\":{},\":childNodeCount\":1}", test);
-        mk.dispose();
     }
 
     @Test
@@ -252,11 +249,11 @@ public class SimpleTest {
         String r0 = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
         String r1 = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
         test = mk.getNodes("/test", r0, 0, 0, Integer.MAX_VALUE, null);
-        DocumentNodeState n = ns.getNode("/", Revision.fromString(r0));
+        DocumentNodeState n = ns.getNode("/", RevisionVector.fromString(r0));
         assertNotNull(n);
         Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals("[test]", c.toString());
-        n = ns.getNode("/test", Revision.fromString(r1));
+        n = ns.getNode("/test", RevisionVector.fromString(r1));
         assertNotNull(n);
         c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals("[a, b]", c.toString());
@@ -266,7 +263,6 @@ public class SimpleTest {
         assertEquals("{\"test\":1,\"test\":{},\":childNodeCount\":1}", test);
 
         // System.out.println(test);
-        mk.dispose();
     }
 
     @Test
@@ -279,19 +275,19 @@ public class SimpleTest {
         mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
         String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
 
-        DocumentNodeState n = ns.getNode("/testDel", Revision.fromString(r1));
+        DocumentNodeState n = ns.getNode("/testDel", RevisionVector.fromString(r1));
         assertNotNull(n);
         Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals(3, c.children.size());
 
         String r2 = mk.commit("/testDel", "-\"c\"", null, null);
-        n = ns.getNode("/testDel", Revision.fromString(r2));
+        n = ns.getNode("/testDel", RevisionVector.fromString(r2));
         assertNotNull(n);
         c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals(2, c.children.size());
 
         String r3 = mk.commit("/", "-\"testDel\"", null, null);
-        n = ns.getNode("/testDel", Revision.fromString(r3));
+        n = ns.getNode("/testDel", RevisionVector.fromString(r3));
         assertNull(n);
     }
 
@@ -394,62 +390,58 @@ public class SimpleTest {
     @Test
     public void commitRoot() {
         DocumentMK mk = createMK();
-        try {
-            DocumentStore store = mk.getDocumentStore();
-            Revision head = Revision.fromString(mk.getHeadRevision());
-            head = Revision.fromString(mk.commit("", "+\"/test\":{\"foo\":{}}", head.toString(), null));
+        DocumentStore store = mk.getDocumentStore();
+        Revision head = Revision.fromString(mk.getHeadRevision());
+        head = Revision.fromString(mk.commit("", "+\"/test\":{\"foo\":{}}", head.toString(), null));
 
-            // root node must not have the revision
-            NodeDocument rootDoc = store.find(Collection.NODES, "0:/");
+        // root node must not have the revision
+        NodeDocument rootDoc = store.find(Collection.NODES, "0:/");
 
-            //As we update the childStatus flag the commit root would shift
-            //one layer above
-            // assertNotNull(rootDoc);
-            // assertFalse(rootDoc.containsRevision(head));
+        //As we update the childStatus flag the commit root would shift
+        //one layer above
+        // assertNotNull(rootDoc);
+        // assertFalse(rootDoc.containsRevision(head));
 
-            // test node must have head in revisions
-            NodeDocument node = store.find(Collection.NODES, "1:/test");
-            //assertNotNull(node);
-            //assertTrue(node.containsRevision(head));
+        // test node must have head in revisions
+        NodeDocument node = store.find(Collection.NODES, "1:/test");
+        //assertNotNull(node);
+        //assertTrue(node.containsRevision(head));
 
-            // foo must not have head in revisions and must refer to test
-            // as commit root (depth = 1)
-            NodeDocument foo = store.find(Collection.NODES, "2:/test/foo");
-            assertNotNull(foo);
-            assertFalse(foo.containsRevision(head));
-            assertEquals("/", foo.getCommitRootPath(head));
+        // foo must not have head in revisions and must refer to test
+        // as commit root (depth = 1)
+        NodeDocument foo = store.find(Collection.NODES, "2:/test/foo");
+        assertNotNull(foo);
+        assertFalse(foo.containsRevision(head));
+        assertEquals("/", foo.getCommitRootPath(head));
 
-            head = Revision.fromString(mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head.toString(), null));
+        head = Revision.fromString(mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head.toString(), null));
 
-            // root node is root of commit
-            rootDoc = store.find(Collection.NODES, "0:/");
-            assertNotNull(rootDoc);
-            assertTrue(rootDoc.containsRevision(head));
+        // root node is root of commit
+        rootDoc = store.find(Collection.NODES, "0:/");
+        assertNotNull(rootDoc);
+        assertTrue(rootDoc.containsRevision(head));
 
-            // /bar refers to root nodes a commit root
-            NodeDocument bar = store.find(Collection.NODES, "1:/bar");
-            assertNotNull(bar);
-            assertEquals("/", bar.getCommitRootPath(head));
+        // /bar refers to root nodes a commit root
+        NodeDocument bar = store.find(Collection.NODES, "1:/bar");
+        assertNotNull(bar);
+        assertEquals("/", bar.getCommitRootPath(head));
 
-            // /test/foo/bar refers to root nodes a commit root
-            bar = store.find(Collection.NODES, "3:/test/foo/bar");
-            assertNotNull(bar);
-            assertEquals("/", bar.getCommitRootPath(head));
+        // /test/foo/bar refers to root nodes a commit root
+        bar = store.find(Collection.NODES, "3:/test/foo/bar");
+        assertNotNull(bar);
+        assertEquals("/", bar.getCommitRootPath(head));
 
-        } finally {
-            mk.dispose();
-        }
     }
 
-    private static DocumentMK createMK() {
+    private DocumentMK createMK() {
         return createMK(false);
     }
 
-    private static DocumentMK createMK(boolean useSimpleRevision) {
-        DocumentMK.Builder builder = new DocumentMK.Builder();
+    private DocumentMK createMK(boolean useSimpleRevision) {
+        DocumentMK.Builder builder = builderProvider.newBuilder();
 
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
+            DB db = connectionFactory.getConnection().getDB();
             MongoUtils.dropCollections(db);
             builder.setMongoDB(db);
         }

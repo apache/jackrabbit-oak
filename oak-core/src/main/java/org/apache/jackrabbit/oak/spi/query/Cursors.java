@@ -24,10 +24,12 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -104,7 +106,7 @@ public class Cursors {
      * returned cursor guarantees distinct rows.
      *
      * @param c the cursor to wrap.
-     * @param level the ancestor level. Must be >= 1.
+     * @param level the ancestor level. Must be {@code >= 1}.
      * @return cursor over the ancestors of <code>c</code> at <code>level</code>.
      */
     public static Cursor newAncestorCursor(Cursor c, int level, QueryEngineSettings settings) {
@@ -124,6 +126,11 @@ public class Cursors {
             throw new UnsupportedOperationException();
         }
         
+        @Override
+        public long getSize(SizePrecision precision, long max) {
+            return -1;
+        }
+
     }
 
     /**
@@ -234,6 +241,12 @@ public class Cursors {
             NodeState parent = null;
             NodeState node = rootState;
             
+            if (filter.containsNativeConstraint()) {
+                // OAK-4313: if no other index was found,
+                // then, for native queries, we won't match anything
+                return;
+            }
+
             if (filter.isAlwaysFalse()) {
                 // nothing can match this filter, leave nodes empty
                 return;
@@ -419,6 +432,17 @@ public class Cursors {
             FilterIterators.checkMemoryLimit(seen.size(), settings);
         }
         
+        @Override
+        public long getSize(SizePrecision precision, long max) {
+            // this is the worst case
+            long a = first.getSize(precision, max);
+            long b = second.getSize(precision, max);
+            if (a < 0 || b < 0) {
+                return -1;
+            }
+            return QueryImpl.saturatedAdd(a, b);
+        }
+        
     }
 
     /**
@@ -433,16 +457,21 @@ public class Cursors {
         private boolean closed;
 
         private Cursor currentCursor;
+        private int cursorListIndex;
         private IndexRow current;
 
         ConcatCursor(List<Cursor> cursors, QueryEngineSettings settings) {
             this.cursors = cursors;
             this.settings = settings;
-            if (cursors.size() == 0) {
+            nextCursor();
+        }
+        
+        private void nextCursor() {
+            if (cursorListIndex >= cursors.size()) {
                 init = true;
                 closed = true;
             } else {
-                this.currentCursor = cursors.remove(0);
+                currentCursor = cursors.get(cursorListIndex++);
             }
         }
 
@@ -472,11 +501,9 @@ public class Cursors {
         private void fetchNext() {
             while (true) {
                 while (!currentCursor.hasNext()) {
-                    if (cursors.isEmpty()) {
-                        closed = true;
+                    nextCursor();
+                    if (closed) {
                         return;
-                    } else {
-                        currentCursor = cursors.remove(0);
                     }
                 }
                 IndexRow c = currentCursor.next();
@@ -493,6 +520,20 @@ public class Cursors {
         private void markSeen(String path) {
             seen.add(path);
             FilterIterators.checkMemoryLimit(seen.size(), settings);
+        }
+        
+        @Override
+        public long getSize(SizePrecision precision, long max) {
+            // this is the worst case (duplicate entries are counted twice)
+            long total = 0;
+            for (Cursor c : cursors) {
+                long t = c.getSize(precision, max);
+                if (t < 0) {
+                    return -1;
+                }
+                total = QueryImpl.saturatedAdd(total, t);
+            }
+            return total;
         }
 
     }

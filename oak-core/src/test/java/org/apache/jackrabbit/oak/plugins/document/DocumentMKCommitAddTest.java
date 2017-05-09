@@ -203,7 +203,7 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
     @Ignore("OAK-461")
     public void commitTime() throws Exception {
         boolean debug = false;
-        final Stopwatch watch = new Stopwatch();
+        final Stopwatch watch = Stopwatch.createUnstarted();
         for (int i = 0; i < 1000; i++) {
             watch.start();
             String diff = "+\"a"+i+"\" : {} +\"b"+i+"\" : {} +\"c"+i+"\" : {}";

@@ -128,6 +128,10 @@ public final class JcrPathParser {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
                                 "' not a valid name character.");
                         return false;
+                    } else if (state == STATE_URI && c == EOF) {
+                        // we reached EOF without finding the closing curly brace '}'
+                        listener.error('\'' + jcrPath + "' is not a valid path. Missing '}'.");
+                        return false;
                     }
                     break;
 

@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -98,7 +99,18 @@ class PropertyIndex implements QueryIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(PropertyIndex.class);
 
-    static Set<String> encode(PropertyValue value) {
+    private final MountInfoProvider mountInfoProvider;
+
+    /**
+     * Cached property index plan
+     */
+    private PropertyIndexPlan plan;
+
+    PropertyIndex(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+    }
+
+    static Set<String> encode(PropertyValue value, ValuePattern pattern) {
         if (value == null) {
             return null;
         }
@@ -107,6 +119,9 @@ class PropertyIndex implements QueryIndex {
             try {
                 if (v.length() > MAX_STRING_LENGTH) {
                     v = v.substring(0, MAX_STRING_LENGTH);
+                }
+                if (!pattern.matches(v)) {
+                    continue;
                 }
                 if (v.isEmpty()) {
                     v = EMPTY_TOKEN;
@@ -121,7 +136,23 @@ class PropertyIndex implements QueryIndex {
         return values;
     }
 
-    private static PropertyIndexPlan plan(NodeState root, Filter filter) {
+    private PropertyIndexPlan getPlan(NodeState root, Filter filter) {
+        // Reuse cached plan if the filter is the same (which should always be the case). The filter is compared as a
+        // string because it would not be possible to use its equals method since the preparing flag would be different
+        // and creating a separate isSimilar method is not worth the effort since it would not be used anymore once the
+        // PropertyIndex has been refactored to an AdvancedQueryIndex (which will make the plan cache obsolete).
+        PropertyIndexPlan plan = this.plan;
+        if (plan != null && plan.getFilter().toString().equals(filter.toString())) {
+            return plan;
+        } else {
+            plan = createPlan(root, filter, mountInfoProvider);
+            this.plan = plan;
+            return plan;
+        }
+    }
+
+    private static PropertyIndexPlan createPlan(NodeState root, Filter filter,
+                                                MountInfoProvider mountInfoProvider) {
         PropertyIndexPlan bestPlan = null;
 
         // TODO support indexes on a path
@@ -132,12 +163,16 @@ class PropertyIndex implements QueryIndex {
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
                     && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
                 PropertyIndexPlan plan = new PropertyIndexPlan(
-                        entry.getName(), root, definition, filter);
+                        entry.getName(), root, definition, filter, mountInfoProvider);
                 if (plan.getCost() != Double.POSITIVE_INFINITY) {
                     LOG.debug("property cost for {} is {}",
                             plan.getName(), plan.getCost());
                     if (bestPlan == null || plan.getCost() < bestPlan.getCost()) {
                         bestPlan = plan;
+                        // Stop comparing if the costs are the minimum
+                        if (plan.getCost() == PropertyIndexPlan.COST_OVERHEAD) {
+                            break;
+                        }
                     }
                 }
             }
@@ -147,6 +182,11 @@ class PropertyIndex implements QueryIndex {
     }
 
     //--------------------------------------------------------< QueryIndex >--
+
+    @Override
+    public double getMinimumCost() {
+        return PropertyIndexPlan.COST_OVERHEAD;
+    }
 
     @Override
     public String getIndexName() {
@@ -163,8 +203,12 @@ class PropertyIndex implements QueryIndex {
             // not an appropriate index for native search
             return Double.POSITIVE_INFINITY;
         }
+        if (filter.getPropertyRestrictions().isEmpty()) {
+            // not an appropriate index for no property restrictions & selector constraints
+            return Double.POSITIVE_INFINITY;
+        }
 
-        PropertyIndexPlan plan = plan(root, filter);
+        PropertyIndexPlan plan = getPlan(root, filter);
         if (plan != null) {
             return plan.getCost();
         } else {
@@ -174,7 +218,7 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        PropertyIndexPlan plan = plan(root, filter);
+        PropertyIndexPlan plan = getPlan(root, filter);
         checkState(plan != null,
                 "Property index is used even when no index"
                 + " is available for filter " + filter);
@@ -183,7 +227,7 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        PropertyIndexPlan plan = plan(root, filter);
+        PropertyIndexPlan plan = getPlan(root, filter);
         if (plan != null) {
             return plan.toString();
         } else {

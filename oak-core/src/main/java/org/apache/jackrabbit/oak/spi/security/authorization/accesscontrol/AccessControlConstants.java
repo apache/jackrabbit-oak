@@ -50,6 +50,14 @@ public interface AccessControlConstants {
     String REP_PREFIXES = "rep:prefixes";
 
     /**
+     * Name of the optional multivalued access control restriction by item name.
+     * The corresponding restriction type is {@link org.apache.jackrabbit.oak.api.Type#NAMES}.
+     *
+     * @since OAK 1.3.8
+     */
+    String REP_ITEM_NAMES = "rep:itemNames";
+
+    /**
      * @since OAK 1.0
      */
     String REP_RESTRICTIONS = "rep:restrictions";

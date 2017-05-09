@@ -27,7 +27,10 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
+
+import java.util.List;
 
 /**
  * Tests the suggest support.
@@ -45,10 +48,11 @@ public class SuggestTest extends AbstractQueryTest {
 
         String sql = "SELECT [rep:suggest()] FROM nt:base WHERE [jcr:path] = '/' AND SUGGEST('in 201')";
         Query q = qm.createQuery(sql, Query.SQL);
-        String result = getResult(q.execute(), "rep:suggest()");
+        List<String> result = getResult(q.execute(), "rep:suggest()");
         assertNotNull(result);
-        assertEquals("[{term=in 2015 a red fox is still a fox,weight=1}, " +
-                        "{term=in 2015 my fox is red, like mike's fox and john's fox,weight=1}]", result);
+        assertEquals(2, result.size());
+        assertTrue(result.contains("in 2015 a red fox is still a fox"));
+        assertTrue(result.contains("in 2015 my fox is red, like mike's fox and john's fox"));
     }
 
     public void testSuggestXPath() throws Exception {
@@ -62,10 +66,11 @@ public class SuggestTest extends AbstractQueryTest {
 
         String xpath = "/jcr:root[rep:suggest('in 201')]/(rep:suggest())";
         Query q = qm.createQuery(xpath, Query.XPATH);
-        String result = getResult(q.execute(), "rep:suggest()");
+        List<String> result = getResult(q.execute(), "rep:suggest()");
         assertNotNull(result);
-        assertEquals("[{term=in 2015 a red fox is still a fox,weight=1}, " +
-                        "{term=in 2015 my fox is red, like mike's fox and john's fox,weight=1}]", result);
+        assertEquals(2, result.size());
+        assertTrue(result.contains("in 2015 a red fox is still a fox"));
+        assertTrue(result.contains("in 2015 my fox is red, like mike's fox and john's fox"));
     }
 
     public void testNoSuggestions() throws Exception {
@@ -79,22 +84,19 @@ public class SuggestTest extends AbstractQueryTest {
 
         String sql = "SELECT [rep:suggest()] FROM nt:base WHERE [jcr:path] = '/' AND SUGGEST('blablabla')";
         Query q = qm.createQuery(sql, Query.SQL);
-        String result = getResult(q.execute(), "rep:suggest()");
+        List<String> result = getResult(q.execute(), "rep:suggest()");
         assertNotNull(result);
-        assertEquals("[]", result);
+        assertEquals("There shouldn't be any suggestions", 0, result.size());
     }
 
-    static String getResult(QueryResult result, String propertyName) throws RepositoryException {
-        StringBuilder buff = new StringBuilder();
+    static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+        List<String> results = Lists.newArrayList();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
-            if (buff.length() > 0) {
-                buff.append(", ");
-            }
             Row row = it.nextRow();
-            buff.append(row.getValue(propertyName).getString());
+            results.add(row.getValue(propertyName).getString());
         }
-        return buff.toString();
+        return results;
     }
 
 }

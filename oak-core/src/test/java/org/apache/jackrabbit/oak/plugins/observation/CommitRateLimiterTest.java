@@ -24,6 +24,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -59,9 +60,53 @@ public class CommitRateLimiterTest {
     }
 
     @Test(expected = CommitFailedException.class)
-    public void blockCommits() throws CommitFailedException {
+    public void blockCommits() throws CommitFailedException, InterruptedException {
+        // using a latch to avoid having to rely on timing
+        final CountDownLatch latch = new CountDownLatch(1);
+        CommitRateLimiter limiter = new CommitRateLimiter() {
+            @Override
+            public boolean getBlockCommits() {
+                // this method is called in the 'try' loop, so it
+                // that InterruptedException will be converted
+                // to CommitFailedException as expected
+                // (sure, this is an implementation detail, 
+                // but I don't see a good alternative here)
+                latch.countDown();
+                return super.getBlockCommits();
+            }
+        };
         limiter.blockCommits();
-        limiter.processCommit(EMPTY_NODE, AFTER, null);
+        final Thread mainThread = Thread.currentThread();
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    // wait forever to avoid timing problems
+                    // (if the CommitRateLimiter is changed to not call
+                    // getBlockCommits(), then this wouldn't work - but
+                    // how could it not call getBlockCommits()?)
+                    latch.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                mainThread.interrupt();
+            }
+        };
+        t.start();
+        try {
+            limiter.processCommit(EMPTY_NODE, AFTER, null);
+        } finally {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                // once in a while, we get a spurious 
+                // wakeup in the CommitRateLimiter,
+                // so that the Thresd.interrupt() above
+                // will reach t.join().
+                Thread.currentThread().interrupt();
+            }
+            assertTrue(Thread.interrupted());
+        }
     }
 
     @Test
