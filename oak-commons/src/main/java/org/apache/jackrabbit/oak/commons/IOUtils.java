@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Locale;
 
 /**
  * Input/output utility methods.
@@ -364,6 +365,6 @@ public final class IOUtils {
         }
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         char pre = "kMGTPE".charAt(exp - 1);
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+        return String.format(Locale.ENGLISH, "%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }
