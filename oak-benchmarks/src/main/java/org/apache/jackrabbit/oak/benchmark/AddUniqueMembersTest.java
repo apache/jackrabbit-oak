@@ -18,56 +18,59 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+
 import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.junit.Assert;
 
 /**
  * Test the performance of adding a configured number of members to groups. The
  * following parameters can be used to run the benchmark:
  *
  * - numberOfMembers : the number of members that should be added in the test run
- * - batchSize : the number of users to be added as members before {@link Session#save()} is called.
+ * - batchSize : the size of the memberID-array to be passed to the addMembers call
  *
- * In contrast to {@link AddMembersTest}, this benchmark will always call
- * {@link Group#addMember(Authorizable)}.
+ * In contrast to {@link AddMembersTest}, this benchmark will always add unique
+ * members to the given group.
  */
-public class AddMemberTest extends AddMembersTest {
+public class AddUniqueMembersTest extends AddMembersTest {
 
-    private final List<String> userPaths;
+    private static AtomicLong index = new AtomicLong();
 
-    public AddMemberTest(int numberOfMembers, int batchSize) {
-        super(numberOfMembers, batchSize, ImportBehavior.NAME_ABORT);
-        userPaths = new ArrayList<String>(numberOfMembers);
+    public AddUniqueMembersTest(int numberOfMembers, int batchSize) {
+        super(numberOfMembers, batchSize, ImportBehavior.NAME_BESTEFFORT);
     }
 
     @Override
     protected void createUsers(@Nonnull UserManager userManager) throws Exception {
-        for (int i = 0; i <= numberOfMembers; i++) {
-            String id = USER + i;
-            User u = userManager.createUser(id, null, new PrincipalImpl(id), REL_TEST_PATH);
-            userPaths.add(u.getPath());
-        }
+        // no need for creating the users beforehand
     }
 
     @Override
-    protected void addMembers(@Nonnull UserManager userManager, @Nonnull Group group, @Nonnull Session s) throws Exception {
-        int j = 1;
+    protected void addMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s)
+            throws Exception {
+        long uid = index.getAndIncrement();
+
         for (int i = 0; i <= numberOfMembers; i++) {
-            String userPath = userPaths.get(random.nextInt(numberOfMembers));
-            group.addMember(userManager.getAuthorizableByPath(userPath));
-            if (j == batchSize) {
-                s.save();
-                j = 1;
+            Set<String> failed;
+            if (batchSize <= DEFAULT_BATCH_SIZE) {
+                failed = group.addMembers(USER + i + "_" + uid);
             } else {
-                j++;
+                List<String> ids = new ArrayList<String>(batchSize);
+                for (int j = 0; j < batchSize && i <= numberOfMembers; j++) {
+                    ids.add(USER + i + "_" + uid);
+                    i++;
+                }
+                failed = group.addMembers(ids.toArray(new String[ids.size()]));
             }
+            Assert.assertTrue("Group " + group.getID() + ": unable to add: " + failed, failed.isEmpty());
+            s.save();
         }
     }
 }

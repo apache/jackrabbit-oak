@@ -27,7 +27,7 @@
   <properties>
     <!-- enable execution of jacoco and set minimal line coverage -->
     <skip.coverage>false</skip.coverage>
-    <minimum.coverage>0.96</minimum.coverage>
+    <minimum.coverage>0.97</minimum.coverage>
   </properties>
 
   <artifactId>oak-authorization-cug</artifactId>
@@ -153,6 +153,12 @@
       <artifactId>oak-jcr</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>1.10.19</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
