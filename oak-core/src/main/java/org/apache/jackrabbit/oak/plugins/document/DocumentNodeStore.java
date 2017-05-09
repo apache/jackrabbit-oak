@@ -634,7 +634,16 @@ public final class DocumentNodeStore
             initializeRootState(rootDoc);
             // check if _lastRev for our clusterId exists
             if (!rootDoc.getLastRev().containsKey(clusterId)) {
-                unsavedLastRevisions.put("/", getRoot().getRootRevision().getRevision(clusterId));
+                RevisionVector rootRev = getRoot().getRootRevision();
+                Revision initialRev = rootRev.getRevision(clusterId);
+                if (initialRev == null) {
+                    throw new IllegalStateException(
+                            "missing revision for clusterId " + clusterId +
+                                    ": " + rootRev);
+                }
+                unsavedLastRevisions.put("/", initialRev);
+                // set initial sweep revision
+                sweepRevisions = sweepRevisions.pmax(new RevisionVector(initialRev));
                 if (!readOnlyMode) {
                     backgroundWrite();
                 }

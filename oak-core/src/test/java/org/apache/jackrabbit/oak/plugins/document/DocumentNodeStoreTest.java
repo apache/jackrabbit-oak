@@ -3023,6 +3023,41 @@ public class DocumentNodeStoreTest {
         assertTrue(head1.compareRevisionTime(head3) < 0);
     }
 
+    @Test
+    public void noSweepOnNewClusterNode() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        DocumentStore store = new MemoryDocumentStore();
+        builderProvider.newBuilder().clock(clock)
+                .setDocumentStore(store).setAsyncDelay(0).setClusterId(1)
+                .getNodeStore();
+
+        // now startup second node store with a custom lastRev seeker
+        final AtomicInteger candidateCalls = new AtomicInteger();
+        DocumentMK.Builder nsBuilder = new DocumentMK.Builder() {
+            @Override
+            public MissingLastRevSeeker createMissingLastRevSeeker() {
+                return new MissingLastRevSeeker(getDocumentStore(), getClock()) {
+                    @Nonnull
+                    @Override
+                    public Iterable<NodeDocument> getCandidates(long startTime) {
+                        candidateCalls.incrementAndGet();
+                        return super.getCandidates(startTime);
+                    }
+                };
+            }
+        };
+        DocumentNodeStore ns2 = nsBuilder.clock(clock)
+                .setDocumentStore(store).setAsyncDelay(0).setClusterId(2)
+                .getNodeStore();
+        try {
+            assertEquals(0, candidateCalls.get());
+        } finally {
+            ns2.dispose();
+        }
+    }
+
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;
