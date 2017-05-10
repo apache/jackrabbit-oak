@@ -19,77 +19,43 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.io.Closeable;
-import java.util.Queue;
+import static com.google.common.collect.Iterables.transform;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Queues;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.QueryBuilder;
-import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
-import org.apache.jackrabbit.oak.plugins.document.BlobCollector;
+import java.util.Iterator;
+
+import org.apache.jackrabbit.oak.plugins.document.BlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 
-public class MongoBlobReferenceIterator extends AbstractIterator<ReferencedBlob> implements Closeable {
+import com.google.common.base.Function;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.QueryBuilder;
+
+public class MongoBlobReferenceIterator extends BlobReferenceIterator {
+
     private final MongoDocumentStore documentStore;
-    private final BlobCollector blobCollector;
-    private final Queue<ReferencedBlob> blobs = Queues.newArrayDeque();
 
-    private DBCursor cursor;
-
-    public MongoBlobReferenceIterator(DocumentNodeStore nodeStore,
-                                      MongoDocumentStore documentStore) {
+    public MongoBlobReferenceIterator(DocumentNodeStore nodeStore, MongoDocumentStore documentStore) {
+        super(nodeStore);
         this.documentStore = documentStore;
-        this.blobCollector = new BlobCollector(nodeStore);
     }
 
     @Override
-    protected ReferencedBlob computeNext() {
-        if (blobs.isEmpty()) {
-            loadBatch();
-        }
-        if (!blobs.isEmpty()) {
-            return blobs.remove();
-        }
-        return endOfData();
-    }
+    public Iterator<NodeDocument> getIteratorOverDocsWithBinaries() {
+        DBObject query = QueryBuilder.start(NodeDocument.HAS_BINARY_FLAG).is(NodeDocument.HAS_BINARY_VAL).get();
+        // TODO It currently prefers secondary. Would that be Ok?
+        DBCursor cursor = documentStore.getDBCollection(Collection.NODES).find(query)
+                .setReadPreference(documentStore.getConfiguredReadPreference(Collection.NODES));
 
-    private void loadBatch() {
-        initializeCursor();
-        //Some node which have the '_bin' flag set might not have any binaries in it
-        //so move forward if blobs is still empty and cursor has more elements
-        while (cursor.hasNext() && blobs.isEmpty()) {
-            collectBinaries(documentStore.convertFromDBObject(Collection.NODES, cursor.next()));
-        }
-    }
+        return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
+            @Override
+            public NodeDocument apply(DBObject input) {
+                return documentStore.convertFromDBObject(Collection.NODES, input);
+            }
+        }), cursor).iterator();
 
-    private void collectBinaries(NodeDocument nodeDocument) {
-        blobCollector.collect(nodeDocument, blobs);
-    }
-
-    private void initializeCursor() {
-        if (cursor == null) {
-            DBObject query = QueryBuilder.start(NodeDocument.HAS_BINARY_FLAG)
-                    .is(NodeDocument.HAS_BINARY_VAL)
-                    .get();
-            //TODO It currently prefers secondary. Would that be Ok?
-            cursor = getNodeCollection().find(query)
-                    .setReadPreference(documentStore.getConfiguredReadPreference(Collection.NODES));
-        }
-    }
-
-    private DBCollection getNodeCollection() {
-        return documentStore.getDBCollection(Collection.NODES);
-    }
-
-    @Override
-    public void close() {
-        if (cursor != null) {
-            cursor.close();
-        }
     }
 }
