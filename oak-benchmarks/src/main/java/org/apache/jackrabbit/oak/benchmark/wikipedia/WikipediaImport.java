@@ -63,29 +63,31 @@ public class WikipediaImport extends Benchmark {
 
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
-        if (dump.isFile()) {
-            for (RepositoryFixture fixture : fixtures) {
-                if (fixture.isAvailable(1)) {
-                    System.out.format(
-                            "%s: Wikipedia import benchmark%n", fixture);
+        if (dump == null) {
+            System.out.format("Missing Wikipedia dump, skipping import benchmark.%n");
+            return;
+        }
+        if (!dump.isFile()) {
+            System.out.format("The Wikipedia dump at %s is not a file, skipping import benchmark.%n", dump.getPath());
+            return;
+        }
+        for (RepositoryFixture fixture : fixtures) {
+            if (fixture.isAvailable(1)) {
+                System.out.format(
+                        "%s: Wikipedia import benchmark%n", fixture);
+                try {
+                    Repository[] cluster = setupCluster(fixture);
                     try {
-                        Repository[] cluster = setupCluster(fixture);
-                        try {
-                            run(cluster[0]);
-                        } finally {
-                            tearDown(fixture);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                        run(cluster[0]);
+                    } finally {
+                        tearDown(fixture);
                     }
-                } else {
-                    System.out.format("%s: not available, skipping.%n", fixture);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+            } else {
+                System.out.format("%s: not available, skipping.%n", fixture);
             }
-        } else {
-            System.out.format(
-                    "Missing Wikipedia dump %s, skipping import benchmark.%n",
-                    dump.getPath());
         }
     }
 
