@@ -16,19 +16,8 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.size;
-import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -39,12 +28,21 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
-import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.size;
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 class SecureNodeBuilder implements NodeBuilder {
 
@@ -70,11 +68,6 @@ class SecureNodeBuilder implements NodeBuilder {
     private final LazyValue<PermissionProvider> permissionProvider;
 
     /**
-     * Access control context for evaluating access rights to the underlying raw builder
-     */
-    private final Context acContext;
-
-    /**
      * Underlying node builder.
      */
     private final NodeBuilder builder;
@@ -95,15 +88,19 @@ class SecureNodeBuilder implements NodeBuilder {
      */
     private TreePermission rootPermission = null; // initialized lazily
 
+    /**
+     * Create the {@code SecureNodeBuilder} for the root node.
+     *
+     * @param builder The {@code NodeBuilder} of the root node.
+     * @param permissionProvider The {@code PermissionProvider} used to evaluation read access.
+     */
     SecureNodeBuilder(
             @Nonnull NodeBuilder builder,
-            @Nonnull LazyValue<PermissionProvider> permissionProvider,
-            @Nonnull Context acContext) {
+            @Nonnull LazyValue<PermissionProvider> permissionProvider) {
         this.rootBuilder = this;
         this.parent = null;
         this.name = null;
         this.permissionProvider = checkNotNull(permissionProvider);
-        this.acContext = checkNotNull(acContext);
         this.builder = checkNotNull(builder);
     }
 
@@ -112,7 +109,6 @@ class SecureNodeBuilder implements NodeBuilder {
         this.parent = parent;
         this.name = name;
         this.permissionProvider = parent.permissionProvider;
-        this.acContext = parent.acContext;
         this.builder = parent.builder.getChildNode(name);
     }
 
