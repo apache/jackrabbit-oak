@@ -26,6 +26,12 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 public class ManyNodes extends Benchmark {
 
+    private final boolean verbose;
+
+    ManyNodes(boolean verbose) {
+        this.verbose = verbose;
+    }
+
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
         for (RepositoryFixture fixture : fixtures) {
@@ -70,8 +76,9 @@ public class ManyNodes extends Benchmark {
                 session.save();
                 if (total % 10000 == 0) {
                     long now = System.currentTimeMillis();
-                    System.out.println(total + " nodes in "
-                            + (now - time) + " ms");
+                    if (verbose) {
+                        System.out.println(total + " nodes in " + (now - time) + " ms");
+                    }
                     time = now;
                 }
             }

@@ -29,6 +29,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Counting;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.MoreExecutors;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ListIdentitiesTest;
@@ -44,19 +55,6 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Counting;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 
 public class BenchmarkRunner {
 
@@ -166,6 +164,7 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Integer.class).defaultsTo(2);
         OptionSpec<Integer> pathsPerMount = parser.accepts("pathsPerMount", "Number of paths per one mount.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1000);
+        OptionSpec<?> verbose = parser.accepts("verbose", "Enable verbose output");
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
@@ -275,7 +274,7 @@ public class BenchmarkRunner {
                     flatStructure.value(options),
                     report.value(options)),
             new CreateNodesBenchmark(),
-            new ManyNodes(),
+            new ManyNodes(options.has(verbose)),
             new ObservationTest(),
             new RevisionGCTest(),
             new ContinuousRevisionGCTest(),
