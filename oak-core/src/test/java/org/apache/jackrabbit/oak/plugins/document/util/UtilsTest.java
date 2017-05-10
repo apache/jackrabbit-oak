@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -34,6 +35,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -188,5 +190,19 @@ public class UtilsTest {
     @Test(expected = IllegalArgumentException.class)
     public void getDepthFromIdIllegalArgumentException2() {
         Utils.getDepthFromId("42");
+    }
+
+    @Test
+    public void isIdFromLongPath() {
+        String path = "/test";
+        while (!Utils.isLongPath(path)) {
+            path += path;
+        }
+        String idFromLongPath = Utils.getIdFromPath(path);
+        assertTrue(Utils.isIdFromLongPath(idFromLongPath));
+        assertFalse(Utils.isIdFromLongPath("foo"));
+        assertFalse(Utils.isIdFromLongPath(NodeDocument.MIN_ID_VALUE));
+        assertFalse(Utils.isIdFromLongPath(NodeDocument.MAX_ID_VALUE));
+        assertFalse(Utils.isIdFromLongPath(":"));
     }
 }
