@@ -39,6 +39,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -329,7 +330,12 @@ public class LastRevRecoveryAgent {
             // thus it doesn't matter, where exactly the check is done
             // as to whether the recovered lastRev has already been
             // written to the journal.
-            unsaved.persist(nodeStore, new UnsavedModifications.Snapshot() {
+            unsaved.persist(docStore, new Supplier<Revision>() {
+                @Override
+                public Revision get() {
+                    return sweepRev.get();
+                }
+            }, new UnsavedModifications.Snapshot() {
 
                 @Override
                 public void acquiring(Revision mostRecent) {

@@ -2308,7 +2308,13 @@ public final class DocumentNodeStore
     //-----------------------------< internal >---------------------------------
 
     private BackgroundWriteStats backgroundWrite() {
-        return unsavedLastRevisions.persist(this, new UnsavedModifications.Snapshot() {
+        return unsavedLastRevisions.persist(getDocumentStore(),
+                new Supplier<Revision>() {
+            @Override
+            public Revision get() {
+                return getSweepRevisions().getRevision(getClusterId());
+            }
+        }, new UnsavedModifications.Snapshot() {
             @Override
             public void acquiring(Revision mostRecent) {
                 pushJournalEntry(mostRecent);
