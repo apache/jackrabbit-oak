@@ -32,9 +32,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -194,6 +196,38 @@ public class DocumentNodeStoreSweepTest {
         assertTrue(ns.getLastRevRecoveryAgent().recover(clusterId) > 0);
         // now the store must be clean
         assertCleanStore();
+    }
+
+    @Test
+    public void pre18ClusterNodeRecovery() throws Exception {
+        int clusterId = ns.getClusterId();
+        createUncommittedChanges();
+        // add a node, but do not run background write
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("node");
+        merge(ns, builder);
+
+        // simulate a crashed node store
+        crashDocumentNodeStore();
+        // and remove the sweep revision for clusterId
+        // this will look like an upgraded and crashed pre 1.8 node store
+        UpdateOp op = new UpdateOp(getIdFromPath(ROOT_PATH), false);
+        op.removeMapEntry("_sweepRev", new Revision(0, 0, clusterId));
+        assertNotNull(store.findAndUpdate(Collection.NODES, op));
+        NodeDocument rootDoc = getRootDocument(store);
+        assertNull(rootDoc.getSweepRevisions().getRevision(clusterId));
+
+        // wait for lease to expire
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+
+        // start a new node store with a different clusterId
+        ns = createDocumentNodeStore(clusterId + 1);
+
+        // then run recovery for the other cluster node
+        assertTrue(ns.getLastRevRecoveryAgent().recover(clusterId) > 0);
+        // must not set a sweep revision
+        rootDoc = getRootDocument(store);
+        assertNull(rootDoc.getSweepRevisions().getRevision(clusterId));
     }
 
     private void assertNodeExists(String path) {
