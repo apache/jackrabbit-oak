@@ -39,8 +39,11 @@ import org.junit.Test;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -285,6 +288,44 @@ public class LastRevRecoveryTest {
         info1 = sharedStore.find(CLUSTER_NODES, clusterId);
         assertFalse(seeker.isRecoveryNeeded(info1));
         assertFalse(info1.isBeingRecovered());
+    }
+
+    @Test
+    public void recoveryMustNotPerformInitialSweep() throws Exception {
+        String clusterId = String.valueOf(c1Id);
+        ClusterNodeInfoDocument info1 = sharedStore.find(CLUSTER_NODES, clusterId);
+
+        NodeBuilder builder = ds1.getRoot().builder();
+        builder.child("x").child("y").child("z");
+        merge(ds1, builder);
+        ds1.dispose();
+
+        // reset clusterNodes entry to simulate a crash of ds1
+        sharedStore.remove(CLUSTER_NODES, clusterId);
+        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(info1)));
+
+        // remove the sweep revision as well
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
+        op.removeMapEntry("_sweepRev", new Revision(0, 0, c1Id));
+        assertNotNull(sharedStore.findAndUpdate(NODES, op));
+        NodeDocument doc = getRootDocument(sharedStore);
+        assertNull(doc.getSweepRevisions().getRevision(c1Id));
+
+        // 'wait' until lease expires
+        clock.waitUntil(info1.getLeaseEndTime() + 1);
+        // make sure ds2 lease is still fine
+        ds2.getClusterInfo().renewLease();
+
+        // run recovery on ds2 for ds1
+        LastRevRecoveryAgent agent = new LastRevRecoveryAgent(ds2);
+        Iterable<Integer> clusterIds = agent.getRecoveryCandidateNodes();
+        assertTrue(Iterables.contains(clusterIds, c1Id));
+        // nothing to recover
+        assertEquals("must not recover any documents",
+                0, agent.recover(c1Id));
+        // must not set sweep revision
+        doc = getRootDocument(sharedStore);
+        assertNull(doc.getSweepRevisions().getRevision(c1Id));
     }
 
     private NodeDocument getDocument(DocumentNodeStore nodeStore, String path) {
