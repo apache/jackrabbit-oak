@@ -41,8 +41,6 @@ class CompactCommand implements Command {
         OptionParser parser = new OptionParser();
         OptionSpec<String> directoryArg = parser.nonOptions(
                 "Path to segment store (required)").ofType(String.class);
-        OptionSpec<Void> forceFlag = parser.accepts(
-                "force", "Force compaction and ignore non matching segment version");
         OptionSet options = parser.parse(args);
 
         String path = directoryArg.value(options);
@@ -53,7 +51,6 @@ class CompactCommand implements Command {
         }
 
         File directory = new File(path);
-        boolean force = options.has(forceFlag);
 
         boolean success = false;
         Set<String> beforeLs = newHashSet();
@@ -70,7 +67,7 @@ class CompactCommand implements Command {
         System.out.println("    -> compacting");
 
         try {
-            SegmentTarUtils.compact(directory, force);
+            SegmentTarUtils.compact(directory);
             success = true;
         } catch (Throwable e) {
             System.out.println("Compaction failure stack trace:");
