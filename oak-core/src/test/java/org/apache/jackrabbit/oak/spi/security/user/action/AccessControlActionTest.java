@@ -106,11 +106,6 @@ public class AccessControlActionTest implements UserConstants {
         return gr;
     }
 
-    @Test
-    public void testInit() {
-        // TODO
-    }
-
     @Test(expected = IllegalStateException.class)
     public void testOnCreateUserMissingSecurityProvider() throws Exception {
         new AccessControlAction().onCreate(Mockito.mock(User.class), null, root, NamePathMapper.DEFAULT);
