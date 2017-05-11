@@ -50,8 +50,6 @@ public class Compact implements Runnable {
 
         private File path;
 
-        private boolean force;
-
         private Builder() {
             // Prevent external instantiation.
         }
@@ -64,21 +62,6 @@ public class Compact implements Runnable {
          */
         public Builder withPath(File path) {
             this.path = checkNotNull(path);
-            return this;
-        }
-
-        /**
-         * Set whether or not to force compact concurrent commits on top of
-         * already compacted commits after the maximum number of retries has
-         * been reached. Force committing tries to exclusively write lock the
-         * node store.
-         *
-         * @param force {@code true} to force an exclusive commit of the
-         *              compacted state, {@code false} otherwise.
-         * @return this builder.
-         */
-        public Builder withForce(boolean force) {
-            this.force = force;
             return this;
         }
 

@@ -202,10 +202,9 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void compact(File directory, boolean force) {
+    static void compact(File directory) {
         Compact.builder()
                 .withPath(directory)
-                .withForce(force)
                 .build()
                 .run();
     }

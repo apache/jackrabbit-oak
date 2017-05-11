@@ -44,7 +44,7 @@ that contains the segment  (data*.tar) files.
 
 The oak-run compact operation may be used to perform an offline compaction:
 
-    java -mx4g -jar oak-run-*.jar compact <repository> [--force]
+    java -mx4g -jar oak-run-*.jar compact <repository>
 
 It makes sense to find and remove the old checkpoints, using the `checkpoint`
 command described above.
