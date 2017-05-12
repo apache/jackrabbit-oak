@@ -67,6 +67,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -105,7 +106,10 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -2539,6 +2543,32 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String clonedDefnPath = "/oak:index/test1/" + INDEX_DEFINITION_NODE;
         assertFalse(NodeStateUtils.getNode(nodeStore.getRoot(), clonedDefnPath).exists());
+    }
+
+    @Test
+    public void storedIndexDefinitionDiff() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        AsyncIndexInfoService asyncService = new AsyncIndexInfoServiceImpl(nodeStore);
+        LuceneIndexInfoProvider indexInfoProvider = new LuceneIndexInfoProvider(nodeStore, asyncService, temporaryFolder.newFolder());
+
+        IndexInfo info = indexInfoProvider.getInfo("/oak:index/test1");
+        assertNotNull(info);
+
+        assertFalse(info.hasIndexDefinitionChangedWithoutReindexing());
+        assertNull(info.getIndexDefinitionDiff());
+
+        Tree idxTree = root.getTree("/oak:index/test1");
+        idxTree.setProperty("foo", "bar");
+        root.commit();
+
+        info = indexInfoProvider.getInfo("/oak:index/test1");
+        assertTrue(info.hasIndexDefinitionChangedWithoutReindexing());
+        assertNotNull(info.getIndexDefinitionDiff());
     }
 
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
