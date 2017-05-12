@@ -185,5 +185,10 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         public boolean hasIndexDefinitionChangedWithoutReindexing() {
             return false; //TODO To be computed
         }
+
+        @Override
+        public String getIndexDefinitionDiff() {
+            return null;
+        }
     }
 }

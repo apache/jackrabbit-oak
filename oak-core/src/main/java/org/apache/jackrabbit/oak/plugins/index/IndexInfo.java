@@ -82,4 +82,13 @@ public interface IndexInfo {
      * was done for that change.
      */
     boolean hasIndexDefinitionChangedWithoutReindexing();
+
+    /**
+     * If the index definition has changed without doing any reindexing
+     * then this method can be used to determine the diff in the index
+     * definition
+     * @return diff if the definition change otherwise null
+     */
+    @CheckForNull
+    String getIndexDefinitionDiff();
 }

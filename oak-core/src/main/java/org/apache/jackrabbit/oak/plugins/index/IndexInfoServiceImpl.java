@@ -165,5 +165,10 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         public boolean hasIndexDefinitionChangedWithoutReindexing() {
             return false;
         }
+
+        @Override
+        public String getIndexDefinitionDiff() {
+            return null;
+        }
     }
 }
