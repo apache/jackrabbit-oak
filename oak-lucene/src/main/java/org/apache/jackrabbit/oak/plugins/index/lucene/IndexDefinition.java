@@ -144,6 +144,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     static final String STATUS_NODE = ":status";
 
     /**
+     * Property on status node which refers to the date when the index was lastUpdated
+     * This may not be the same time as when index was closed but the time of checkpoint
+     * upto which index is upto date (OAK-6194)
+     */
+    static final String STATUS_LAST_UPDATED = "lastUpdated";
+
+    /**
      * Meta property which provides the unique id
      */
     static final String PROP_UID = "uid";
