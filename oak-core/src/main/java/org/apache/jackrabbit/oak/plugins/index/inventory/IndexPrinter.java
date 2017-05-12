@@ -133,11 +133,11 @@ public class IndexPrinter implements InventoryPrinter {
             pw.printf("    Last Indexed Upto       : %tc%n", info.getIndexedUpToTime());
         }
 
-        if (info.getSizeInBytes() > 0){
+        if (info.getSizeInBytes() >= 0){
             pw.printf("    Size                    : %s%n", IOUtils.humanReadableByteCount(info.getSizeInBytes()));
         }
 
-        if (info.getEstimatedEntryCount() > 0){
+        if (info.getEstimatedEntryCount() >= 0){
             pw.printf("    Estimated entry count   : %d%n", info.getEstimatedEntryCount());
         }
         pw.println();
