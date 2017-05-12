@@ -710,8 +710,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
             markFailingIndexesAsCorrupt(builder);
 
+            CommitInfo info = new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
+                    ImmutableMap.of(IndexConstants.CHECKPOINT_CREATION_TIME, afterTime));
             indexUpdate =
-                    new IndexUpdate(provider, name, after, builder, callback, callback, CommitInfo.EMPTY, corruptIndexHandler)
+                    new IndexUpdate(provider, name, after, builder, callback, callback, info, corruptIndexHandler)
                     .withMissingProviderStrategy(missingStrategy);
             CommitFailedException exception =
                     EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
