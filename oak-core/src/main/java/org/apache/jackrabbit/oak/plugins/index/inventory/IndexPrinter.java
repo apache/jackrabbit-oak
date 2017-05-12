@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.inventory;
 
 import java.io.PrintWriter;
+import java.util.Calendar;
 import java.util.List;
 
 import com.google.common.base.Strings;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
+import org.apache.jackrabbit.util.ISO8601;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -82,7 +84,7 @@ public class IndexPrinter implements InventoryPrinter {
             pw.println(lane);
             AsyncIndexInfo info = asyncIndexInfoService.getInfo(lane);
             if (info != null) {
-                        pw.printf("    Last Indexed To      : %tc%n", info.getLastIndexedTo());
+                        pw.printf("    Last Indexed To      : %s%n", formatTime(info.getLastIndexedTo()));
                 IndexStatsMBean stats = info.getStatsMBean();
                 if (stats != null) {
                         pw.printf("    Status              : %s%n", stats.getStatus());
@@ -130,7 +132,11 @@ public class IndexPrinter implements InventoryPrinter {
         }
 
         if (info.getIndexedUpToTime() > 0){
-            pw.printf("    Last Indexed Upto       : %tc%n", info.getIndexedUpToTime());
+            pw.printf("    Last Indexed Upto       : %s%n", formatTime(info.getIndexedUpToTime()));
+        }
+
+        if (info.getLastUpdatedTime() > 0){
+            pw.printf("    Last updated time       : %s%n", formatTime(info.getLastUpdatedTime()));
         }
 
         if (info.getSizeInBytes() >= 0){
@@ -141,5 +147,11 @@ public class IndexPrinter implements InventoryPrinter {
             pw.printf("    Estimated entry count   : %d%n", info.getEstimatedEntryCount());
         }
         pw.println();
+    }
+
+    private static String formatTime(long time){
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(time);
+        return ISO8601.format(cal);
     }
 }
