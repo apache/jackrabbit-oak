@@ -62,7 +62,7 @@ public class DocumentNodeStoreServiceTest {
 
     @After
     public void tearDown() throws Exception {
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
         MongoUtils.dropCollections(MongoUtils.DB);
     }
 

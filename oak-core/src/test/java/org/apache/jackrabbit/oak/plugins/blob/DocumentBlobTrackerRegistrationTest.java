@@ -62,6 +62,6 @@ public class DocumentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegi
 
     @Override
     protected void unregisterNodeStoreService() {
-        deactivate(service);
+        deactivate(service, context.bundleContext());
     }
 }
