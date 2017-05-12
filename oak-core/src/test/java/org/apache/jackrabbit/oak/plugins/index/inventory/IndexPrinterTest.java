@@ -126,6 +126,11 @@ public class IndexPrinterTest {
         public boolean hasIndexDefinitionChangedWithoutReindexing() {
             return false;
         }
+
+        @Override
+        public String getIndexDefinitionDiff() {
+            return null;
+        }
     }
 
 }

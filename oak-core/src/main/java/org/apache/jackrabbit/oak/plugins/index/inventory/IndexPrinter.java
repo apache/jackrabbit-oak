@@ -146,6 +146,14 @@ public class IndexPrinter implements InventoryPrinter {
         if (info.getEstimatedEntryCount() >= 0){
             pw.printf("    Estimated entry count   : %d%n", info.getEstimatedEntryCount());
         }
+
+        if (info.hasIndexDefinitionChangedWithoutReindexing()) {
+            pw.println("    Index definition changed without reindexing");
+            String diff = info.getIndexDefinitionDiff();
+            if (diff != null) {
+                pw.println("    "+diff);
+            }
+        }
         pw.println();
     }
 

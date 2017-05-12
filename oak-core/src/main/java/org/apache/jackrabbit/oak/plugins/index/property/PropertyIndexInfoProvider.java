@@ -142,5 +142,10 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
         public boolean hasIndexDefinitionChangedWithoutReindexing() {
             return false;
         }
+
+        @Override
+        public String getIndexDefinitionDiff() {
+            return null;
+        }
     }
 }
