@@ -83,4 +83,13 @@ public interface IndexConstants {
      * corrupt
      */
     String CORRUPT_PROPERTY_NAME = "corrupt";
+
+    /**
+     * CommitInfo attribute name which refers to the time at which
+     * async index checkpoint is created i.e. time upto which repository
+     * state is being indexed in given indexing cycle.
+     *
+     * The time is in string for as per Type.DATE
+     */
+    String CHECKPOINT_CREATION_TIME = "indexingCheckpointTime";
 }
