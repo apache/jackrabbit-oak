@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.binary.BinaryTextExtractor;
@@ -30,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetsConfigProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -139,7 +141,7 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
             //as to make IndexTracker detect changes when index
             //is stored in file system
             NodeBuilder status = definitionBuilder.child(":status");
-            status.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
+            status.setProperty(IndexDefinition.STATUS_LAST_UPDATED, getUpdatedTime(currentTime), Type.DATE);
             status.setProperty("indexedNodes", indexedNodes);
 
             PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
@@ -149,6 +151,16 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
             }
         }
     }
+
+    private String getUpdatedTime(Calendar currentTime) {
+        CommitInfo info = getIndexingContext().getCommitInfo();
+        String checkpointTime = (String) info.getInfo().get(IndexConstants.CHECKPOINT_CREATION_TIME);
+        if (checkpointTime != null) {
+            return checkpointTime;
+        }
+        return ISO8601.format(currentTime);
+    }
+
     /** Only set for testing */
     static void setClock(Clock c) {
         checkNotNull(c);

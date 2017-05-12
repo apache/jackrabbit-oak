@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.Directory;
 
@@ -86,6 +87,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
 
         LuceneIndexInfo info = new LuceneIndexInfo(indexPath);
         computeSize(idxState, info);
+        computeLastUpdatedTime(idxState, info);
         computeAsyncIndexInfo(idxState, indexPath, info);
         return info;
     }
@@ -122,12 +124,23 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         }
     }
 
+    private static void computeLastUpdatedTime(NodeState idxState, LuceneIndexInfo info) {
+        NodeState status = idxState.getChildNode(IndexDefinition.STATUS_NODE);
+        if (status.exists()){
+            PropertyState updatedTime = status.getProperty(IndexDefinition.STATUS_LAST_UPDATED);
+            if (updatedTime != null) {
+                info.lastUpdatedTime = ISO8601.parse(updatedTime.getValue(Type.DATE)).getTimeInMillis();
+            }
+        }
+    }
+
     private static class LuceneIndexInfo implements IndexInfo {
         String indexPath;
         String asyncName;
         long numEntries;
         long size;
         long indexedUptoTime;
+        long lastUpdatedTime;
 
         public LuceneIndexInfo(String indexPath) {
             this.indexPath = indexPath;
@@ -150,7 +163,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
 
         @Override
         public long getLastUpdatedTime() {
-            return 0; //TODO To be computed
+            return lastUpdatedTime;
         }
 
         @Override
