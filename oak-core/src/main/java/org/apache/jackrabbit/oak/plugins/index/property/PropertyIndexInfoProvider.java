@@ -71,6 +71,7 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
         long count = -1;
 
         for (ChildNodeEntry cne : idxState.getChildNodeEntries()) {
+            //In multiplexing setups there can be multiple index nodes
             if (NodeStateUtils.isHidden(cne.getName())) {
                 NodeState indexData = cne.getNodeState();
                 long estimate = ApproximateCounter.getCountSync(indexData);
@@ -80,7 +81,7 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
                     }
                     count += estimate;
 
-                } else if (indexData.getChildNodeCount(1) == 0) {
+                } else if (count < 0 && indexData.getChildNodeCount(1) == 0) {
                     //If we cannot get estimate then at least try to see if any index data is there or not
                     count = 0;
                 }
