@@ -78,7 +78,7 @@ public class SecondaryStoreCacheServiceTest {
         assertNotNull(context.getService(BackgroundObserverMBean.class));
         assertNotNull(context.getService(DocumentNodeStateCache.class));
 
-        MockOsgi.deactivate(cacheService);
+        MockOsgi.deactivate(cacheService, context.bundleContext());
 
         assertNull(context.getService(Observer.class));
         assertNull(context.getService(BackgroundObserverMBean.class));

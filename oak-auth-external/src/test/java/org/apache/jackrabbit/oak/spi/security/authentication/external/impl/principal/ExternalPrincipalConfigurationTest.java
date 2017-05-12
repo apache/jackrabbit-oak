@@ -55,6 +55,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
 import static org.junit.Assert.assertEquals;
@@ -79,7 +80,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     private void enable() {
-        context.registerService(DefaultSyncHandler.class, new DefaultSyncHandler(), ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, new DefaultSyncHandler(), ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
     }
 
     private void assertIsEnabled(ExternalPrincipalConfiguration externalPrincipalConfiguration, boolean expected) throws Exception {
@@ -260,9 +261,10 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         DefaultSyncHandler sh = new DefaultSyncHandler();
         BundleContext bundleContext = context.bundleContext();
 
-        ServiceRegistration registration1 = bundleContext.registerService(DefaultSyncHandler.class.getName(), sh, enableProps);
-        ServiceRegistration registration2 = bundleContext.registerService(DefaultSyncHandler.class.getName(), sh, enableProps);
-        ServiceRegistration registration3 = bundleContext.registerService(DefaultSyncHandler.class.getName(), sh, disableProps);
+        ServiceRegistration registration1 = bundleContext.registerService(SyncHandler.class.getName(), sh, enableProps);
+        ServiceRegistration registration2 = bundleContext.registerService(SyncHandler.class.getName(), sh, enableProps);
+        ServiceRegistration registration3 = bundleContext.registerService(SyncHandler.class.getName(), sh, disableProps);
+
         assertIsEnabled(principalConfiguration, true);
 
         registration2.unregister();

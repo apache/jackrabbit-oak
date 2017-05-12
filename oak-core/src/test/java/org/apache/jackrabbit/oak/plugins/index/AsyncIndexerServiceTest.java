@@ -76,7 +76,7 @@ public class AsyncIndexerServiceTest {
         assertNotNull(mbean);
         assertEquals("async", mbean.getName());
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
         assertNull(context.getService(Runnable.class));
         assertTrue(indexUpdate.isClosed());
     }

@@ -149,7 +149,7 @@ public class PrivateStoreValidatorProviderTest {
         assertTrue(validator instanceof PrivateStoreValidatorProvider);
         assertTrue(((PrivateStoreValidatorProvider)validator).isFailOnDetection());
 
-        MockOsgi.deactivate(privateStoreValidatorProvider);
+        MockOsgi.deactivate(privateStoreValidatorProvider, context.bundleContext());
         assertNull(context.getService(EditorProvider.class));
     }
 

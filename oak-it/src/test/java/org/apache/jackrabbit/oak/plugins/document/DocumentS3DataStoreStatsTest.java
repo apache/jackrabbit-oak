@@ -84,10 +84,10 @@ public class DocumentS3DataStoreStatsTest {
         assertServiceActivated();
 
         S3DataStoreStats s3DataStoreStats =
-            context.registerInjectActivateService(new S3DataStoreStats(), null);
+            context.registerInjectActivateService(new S3DataStoreStats());
         assertNotNull(context.getService(S3DataStoreStatsMBean.class));
 
-        deactivate(s3DataStoreStats);
+        deactivate(s3DataStoreStats, context.bundleContext());
         unregisterDocumentNodeStoreService();
         unregisterBlobStore();
         delegateReg.unregister();
@@ -104,7 +104,7 @@ public class DocumentS3DataStoreStatsTest {
 
         try {
             S3DataStoreStats s3DataStoreStats =
-                context.registerInjectActivateService(new S3DataStoreStats(), null);
+                context.registerInjectActivateService(new S3DataStoreStats());
             assertNull(context.getService(S3DataStoreStatsMBean.class));
         } finally {
             unregisterDocumentNodeStoreService();
@@ -126,7 +126,7 @@ public class DocumentS3DataStoreStatsTest {
     }
 
     private void unregisterDocumentNodeStoreService() {
-        deactivate(documentNodeStoreService);
+        deactivate(documentNodeStoreService, context.bundleContext());
     }
 
     private ServiceRegistration blobStore;

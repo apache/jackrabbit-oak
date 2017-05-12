@@ -51,7 +51,7 @@ public class MountInfoProviderServiceTest {
         assertNotNull(provider);
         assertEquals(defaultMountInfoProvider(), provider);
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
         assertNull(context.getService(MountInfoProvider.class));
     }
 

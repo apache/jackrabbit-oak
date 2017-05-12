@@ -51,7 +51,7 @@ public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
 
     @Override
     protected void unregisterSegmentNodeStoreService() {
-        deactivate(segmentNodeStoreFactory);
+        deactivate(segmentNodeStoreFactory, context.bundleContext());
     }
 
     @Override

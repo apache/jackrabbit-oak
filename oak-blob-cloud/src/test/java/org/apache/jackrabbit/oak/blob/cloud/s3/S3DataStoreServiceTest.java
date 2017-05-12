@@ -100,6 +100,6 @@ public class S3DataStoreServiceTest {
     }
 
     private void unregisterBlobStore() {
-        deactivate(service);
+        deactivate(service, context.bundleContext());
     }
 }
