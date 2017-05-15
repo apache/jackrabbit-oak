@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
+package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -25,6 +25,12 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.AbstractRestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 
 /**
  * RestrictionProvider for tests.
