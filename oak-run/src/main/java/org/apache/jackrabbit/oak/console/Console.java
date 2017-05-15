@@ -16,27 +16,14 @@
  */
 package org.apache.jackrabbit.oak.console;
 
-import static java.util.Arrays.asList;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import javax.sql.DataSource;
 
-import org.apache.jackrabbit.core.data.FileDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
+import org.apache.jackrabbit.oak.run.cli.Options;
 import org.codehaus.groovy.tools.shell.IO;
-
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -49,91 +36,35 @@ public class Console {
 
     public static void main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec<Integer> clusterId = parser.accepts("clusterId", "MongoMK clusterId")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
+
         OptionSpec quiet = parser.accepts("quiet", "be less chatty");
         OptionSpec shell = parser.accepts("shell", "run the shell after executing files");
-        OptionSpec readWrite = parser.accepts("read-write", "connect to repository in read-write mode");
-        OptionSpec<String> fdsPathSpec = parser.accepts("fds-path", "Path to FDS store").withOptionalArg().defaultsTo("");
-        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
 
-        // RDB specific options
-        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg().defaultsTo("");
-        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg().defaultsTo("");
+        Options opts = new Options();
+        OptionSet options = opts.parseAndConfigure(parser, args);
 
-        OptionSpec<String> nonOption = parser.nonOptions("console {<path-to-repository> | <mongodb-uri>}");
-
-        OptionSet options = parser.parse(args);
-        List<String> nonOptions = nonOption.values(options);
-
-        if (options.has(help)) {
+        if (opts.getCommonOpts().isHelpRequested()) {
             parser.printHelpOn(System.out);
             System.exit(0);
         }
 
+        List<String> nonOptions = opts.getCommonOpts().getNonOptions();
         if (nonOptions.isEmpty()) {
             parser.printHelpOn(System.err);
             System.exit(1);
         }
 
-        BlobStore blobStore = null;
-        String fdsPath = fdsPathSpec.value(options);
-        if (!"".equals(fdsPath)) {
-            File fdsDir = new File(fdsPath);
-            if (fdsDir.exists()) {
-                FileDataStore fds = new FileDataStore();
-                fds.setPath(fdsDir.getAbsolutePath());
-                fds.init(null);
-
-                blobStore = new DataStoreBlobStore(fds);
-            }
-        }
-
-        boolean readOnly = !options.has(readWrite);
-
-        NodeStoreFixture fixture;
-        if (nonOptions.get(0).startsWith(MongoURI.MONGODB_PREFIX)) {
-            MongoClientURI uri = new MongoClientURI(nonOptions.get(0));
-            if (uri.getDatabase() == null) {
-                System.err.println("Database missing in MongoDB URI: " + uri.getURI());
-                System.exit(1);
-            }
-            MongoConnection mongo = new MongoConnection(uri.getURI());
-
-            DocumentMK.Builder builder = new DocumentMK.Builder()
-                    .setBlobStore(blobStore)
-                    .setMongoDB(mongo.getDB()).
-                    setClusterId(clusterId.value(options));
-            if (readOnly) {
-                builder.setReadOnlyMode();
-            }
-            DocumentNodeStore store = builder.getNodeStore();
-            fixture = new MongoFixture(store);
-        } else if (nonOptions.get(0).startsWith("jdbc")) {
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(nonOptions.get(0), rdbjdbcuser.value(options),
-                    rdbjdbcpasswd.value(options));
-            DocumentMK.Builder builder = new DocumentMK.Builder()
-                    .setBlobStore(blobStore)
-                    .setRDBConnection(ds).
-                    setClusterId(clusterId.value(options));
-            if (readOnly) {
-                builder.setReadOnlyMode();
-            }
-            DocumentNodeStore store = builder.getNodeStore();
-            fixture = new MongoFixture(store);
-        } else {
-            fixture = SegmentTarFixture.create(new File(nonOptions.get(0)), readOnly, blobStore);
-        }
+        NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
 
         List<String> scriptArgs = nonOptions.size() > 1 ?
-                nonOptions.subList(1, nonOptions.size()) : Collections.<String>emptyList();
+                opts.getCommonOpts().getNonOptions().subList(1, nonOptions.size()) : Collections.<String>emptyList();
         IO io = new IO();
 
         if(options.has(quiet)){
             io.setVerbosity(IO.Verbosity.QUIET);
         }
 
-        if (readOnly) {
+        if (!opts.getCommonOpts().isReadWrite()) {
             io.out.println("Repository connected in read-only mode. Use '--read-write' for write operations");
         }
 
@@ -150,23 +81,5 @@ public class Console {
         }
 
         System.exit(code);
-    }
-
-    private static class MongoFixture implements NodeStoreFixture {
-        private final DocumentNodeStore nodeStore;
-
-        private MongoFixture(DocumentNodeStore nodeStore) {
-            this.nodeStore = nodeStore;
-        }
-
-        @Override
-        public NodeStore getStore() {
-            return nodeStore;
-        }
-
-        @Override
-        public void close() throws IOException {
-            nodeStore.dispose();
-        }
     }
 }
