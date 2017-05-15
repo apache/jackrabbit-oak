@@ -38,6 +38,7 @@ public class Options {
     private final EnumSet<OptionBeans> oakRunOptions;
     private final ClassToInstanceMap<OptionsBean> optionBeans = MutableClassToInstanceMap.create();
     private OptionSet optionSet;
+    private boolean disableSystemExit;
 
     public Options(){
         this.oakRunOptions = EnumSet.allOf(OptionBeans.class);
@@ -104,7 +105,7 @@ public class Options {
         if (optionBeans.containsKey(CommonOptions.class)
                 && getCommonOpts().isHelpRequested()){
             parser.printHelpOn(System.out);
-            System.exit(0);
+            systemExit(0);
         }
     }
 
@@ -113,8 +114,18 @@ public class Options {
         if (optionBeans.containsKey(CommonOptions.class)
                 && getCommonOpts().getNonOptions().isEmpty()){
             parser.printHelpOn(System.out);
-            System.exit(1);
+            systemExit(1);
         }
     }
 
+    private void systemExit(int code) {
+        if (!disableSystemExit) {
+            System.exit(code);
+        }
+    }
+
+    Options withDisableSystemExit() {
+        this.disableSystemExit = true;
+        return this;
+    }
 }

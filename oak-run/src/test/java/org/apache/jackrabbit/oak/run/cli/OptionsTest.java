@@ -29,7 +29,7 @@ public class OptionsTest {
     @Test
     public void noArgs() throws Exception{
         OptionParser parser = new OptionParser();
-        Options opts = new Options();
+        Options opts = new Options().withDisableSystemExit();
         opts.parseAndConfigure(parser, new String[]{});
         assertNotNull(opts.getCommonOpts());
     }
@@ -37,7 +37,7 @@ public class OptionsTest {
     @Test
     public void help() throws Exception{
         OptionParser parser = new OptionParser();
-        Options opts = new Options();
+        Options opts = new Options().withDisableSystemExit();
         opts.parseAndConfigure(parser, new String[]{"-h"});
         assertTrue(opts.getCommonOpts().isHelpRequested());
 
