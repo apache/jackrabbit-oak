@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-public class IndexTest {
+public class JsonIndexTest {
 
     @Test
     public void simple() throws Exception {
@@ -102,11 +102,11 @@ public class IndexTest {
     
     @Test
     public void readWrite() throws Exception {
-        IndexCommand index = new IndexCommand();
+        JsonIndexCommand index = new JsonIndexCommand();
         try (NodeStoreFixture fixture = memoryFixture();
                 ) {
             NodeStore store = fixture.getStore();
-            index.session = IndexCommand.openSession(store);
+            index.session = JsonIndexCommand.openSession(store);
             assertCommand(index, 
                     combineLines(""),
                     "{'addNode':'/foo', 'node':{'jcr:primaryType': 'nt:unstructured', 'x': 1, 'y':{}}}", 
@@ -177,10 +177,10 @@ public class IndexTest {
     }
     
     void assertCommand(String expected, String... commands) throws Exception {
-        assertCommand(new IndexCommand(), expected, commands);
+        assertCommand(new JsonIndexCommand(), expected, commands);
     }
 
-    void assertCommand(IndexCommand index, String expected, String... commands) throws Exception {
+    void assertCommand(JsonIndexCommand index, String expected, String... commands) throws Exception {
         ByteArrayOutputStream w = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(w, false, "UTF-8");
         index.output = out;

@@ -76,8 +76,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-public class IndexCommand implements Command {
-    public static final String INDEX = "index";
+public class JsonIndexCommand implements Command {
+    public static final String INDEX = "json-index";
 
     PrintStream output = System.out;
     Session session;
