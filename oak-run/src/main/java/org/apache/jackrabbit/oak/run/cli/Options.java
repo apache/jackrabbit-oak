@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -46,13 +47,30 @@ public class Options {
         this.oakRunOptions = Sets.newEnumSet(asList(options), OptionBeans.class);
     }
 
-    public OptionSet parseAndConfigure(OptionParser parser, String[] args){
+    public OptionSet parseAndConfigure(OptionParser parser, String[] args) throws IOException {
+        return parseAndConfigure(parser, args, true);
+    }
+
+    /**
+     * Parses the arguments and configures the OptionBeans
+     *
+     * @param parser option parser instance
+     * @param args command line arguments
+     * @param checkNonOptions if true then it checks that non options are specified i.e. some NodeStore is
+     *                        selected
+     * @return optionSet returned from OptionParser
+     */
+    public OptionSet parseAndConfigure(OptionParser parser, String[] args, boolean checkNonOptions) throws IOException {
         for (OptionsBeanFactory o : Iterables.concat(oakRunOptions, beanFactories)){
             OptionsBean bean = o.newInstance(parser);
             optionBeans.put(bean.getClass(), bean);
         }
         optionSet = parser.parse(args);
         configure(optionSet);
+        checkForHelp(parser);
+        if (checkNonOptions) {
+            checkNonOptions(parser);
+        }
         return optionSet;
     }
 
@@ -60,6 +78,7 @@ public class Options {
         return optionSet;
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends OptionsBean> T getOptionBean(Class<T> clazz){
         Object o = optionBeans.get(clazz);
         checkNotNull(o, "No [%s] found in [%s]",
@@ -80,4 +99,22 @@ public class Options {
             bean.configure(optionSet);
         }
     }
+
+    private void checkForHelp(OptionParser parser) throws IOException {
+        if (optionBeans.containsKey(CommonOptions.class)
+                && getCommonOpts().isHelpRequested()){
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+    }
+
+    private void checkNonOptions(OptionParser parser) throws IOException {
+        //Some non option should be provided to enable
+        if (optionBeans.containsKey(CommonOptions.class)
+                && getCommonOpts().getNonOptions().isEmpty()){
+            parser.printHelpOn(System.out);
+            System.exit(1);
+        }
+    }
+
 }
