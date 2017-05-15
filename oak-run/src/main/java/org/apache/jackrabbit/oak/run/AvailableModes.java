@@ -40,7 +40,7 @@ public final class AvailableModes {
             .put("graph", new GraphCommand())
             .put("help", new HelpCommand())
             .put("history", new HistoryCommand())
-            .put(IndexCommand.INDEX, new IndexCommand())
+            .put(JsonIndexCommand.INDEX, new JsonIndexCommand())
             .put(PersistentCacheCommand.PERSISTENTCACHE, new PersistentCacheCommand())
             .put("revisions", new RevisionsCommand())
             .put("recovery", new RecoveryCommand())
