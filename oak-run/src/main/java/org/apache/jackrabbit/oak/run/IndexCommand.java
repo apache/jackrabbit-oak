@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static java.util.Arrays.asList;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -25,18 +24,25 @@ import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.query.Query;
@@ -45,19 +51,30 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
+import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.console.NodeStoreFixture;
-import org.apache.jackrabbit.oak.console.NodeStoreOpener;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 public class IndexCommand implements Command {
     public static final String INDEX = "index";
@@ -73,18 +90,13 @@ public class IndexCommand implements Command {
         OptionSpec<String> scriptOption = parser
                 .accepts("script", "Path to Script").withOptionalArg()
                 .defaultsTo("");
-        OptionSpec<?> helpSpec = parser.acceptsAll(
-                asList("h", "?", "help"), "show help").forHelp();
+
+        Options oakOptions = new Options();
+        OptionSet options = oakOptions.parseAndConfigure(parser, args);
+
         System.out.println("Opening nodestore...");
-        NodeStoreFixture nodeStoreFixture = NodeStoreOpener.open(parser, true, args);
-        OptionSet options = parser.parse(args);
-        if (options.has(helpSpec)
-                || options.nonOptionArguments().isEmpty()) {
-            System.out.println("Mode: " + INDEX);
-            System.out.println();
-            parser.printHelpOn(System.out);
-            return;
-        }
+        NodeStoreFixture nodeStoreFixture = NodeStoreFixtureProvider.create(oakOptions);
+
         NodeStore nodeStore = nodeStoreFixture.getStore();
         String script = scriptOption.value(options);
         LineNumberReader reader = openScriptReader(script);
@@ -110,7 +122,7 @@ public class IndexCommand implements Command {
 
     public void process(NodeStore nodeStore, LineNumberReader reader)
             throws Exception {
-        session = NodeStoreOpener.openSession(nodeStore);
+        session = openSession(nodeStore);
         System.out.println("Nodestore is open");
         if (interactive) {
             System.out.println("Type \"exit\" to quit");
@@ -457,6 +469,38 @@ public class IndexCommand implements Command {
             appendNode(builder, n2, depth - 1);
         }
         builder.endObject();
+    }
+
+    public static Session openSession(NodeStore nodeStore) throws RepositoryException {
+        if (nodeStore == null) {
+            return null;
+        }
+        StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+        Oak oak = new Oak(nodeStore).with(ManagementFactory.getPlatformMBeanServer());
+        oak.getWhiteboard().register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
+        LuceneIndexProvider provider = createLuceneIndexProvider();
+        oak.with((QueryIndexProvider) provider)
+                .with((Observer) provider)
+                .with(createLuceneIndexEditorProvider());
+        Jcr jcr = new Jcr(oak);
+        Repository repository = jcr.createRepository();
+        return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+    }
+
+    private static LuceneIndexEditorProvider createLuceneIndexEditorProvider() {
+        LuceneIndexEditorProvider ep = new LuceneIndexEditorProvider();
+        ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
+                (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
+        StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+        int queueSize = Integer.getInteger("queueSize", 1000);
+        IndexTracker tracker = new IndexTracker();
+        DocumentQueue queue = new DocumentQueue(queueSize, tracker, executorService, statsProvider);
+        ep.setIndexingQueue(queue);
+        return ep;
+    }
+
+    private static LuceneIndexProvider createLuceneIndexProvider() {
+        return new LuceneIndexProvider();
     }
 
 }

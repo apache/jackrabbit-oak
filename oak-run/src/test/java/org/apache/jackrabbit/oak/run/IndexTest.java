@@ -25,7 +25,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import org.apache.jackrabbit.oak.console.NodeStoreFixture;
-import org.apache.jackrabbit.oak.console.NodeStoreOpener;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -107,7 +106,7 @@ public class IndexTest {
         try (NodeStoreFixture fixture = memoryFixture();
                 ) {
             NodeStore store = fixture.getStore();
-            index.session = NodeStoreOpener.openSession(store);
+            index.session = IndexCommand.openSession(store);
             assertCommand(index, 
                     combineLines(""),
                     "{'addNode':'/foo', 'node':{'jcr:primaryType': 'nt:unstructured', 'x': 1, 'y':{}}}", 
