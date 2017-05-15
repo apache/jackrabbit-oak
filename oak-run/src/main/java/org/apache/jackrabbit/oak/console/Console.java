@@ -43,21 +43,12 @@ public class Console {
         Options opts = new Options();
         OptionSet options = opts.parseAndConfigure(parser, args);
 
-        if (opts.getCommonOpts().isHelpRequested()) {
-            parser.printHelpOn(System.out);
-            System.exit(0);
-        }
-
-        List<String> nonOptions = opts.getCommonOpts().getNonOptions();
-        if (nonOptions.isEmpty()) {
-            parser.printHelpOn(System.err);
-            System.exit(1);
-        }
 
         NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
 
+        List<String> nonOptions = opts.getCommonOpts().getNonOptions();
         List<String> scriptArgs = nonOptions.size() > 1 ?
-                opts.getCommonOpts().getNonOptions().subList(1, nonOptions.size()) : Collections.<String>emptyList();
+                nonOptions.subList(1, nonOptions.size()) : Collections.emptyList();
         IO io = new IO();
 
         if(options.has(quiet)){
