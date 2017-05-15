@@ -30,6 +30,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -202,9 +205,10 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void compact(File directory) {
+    static void compact(@Nonnull File directory, @Nullable Boolean mmap) {
         Compact.builder()
                 .withPath(directory)
+                .withMmap(mmap)
                 .build()
                 .run();
     }
