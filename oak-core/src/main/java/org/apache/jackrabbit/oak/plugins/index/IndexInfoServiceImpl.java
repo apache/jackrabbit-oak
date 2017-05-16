@@ -58,6 +58,15 @@ public class IndexInfoServiceImpl implements IndexInfoService{
     @Reference
     private NodeStore nodeStore;
 
+    public IndexInfoServiceImpl() {
+        //For DS
+    }
+
+    public IndexInfoServiceImpl(NodeStore nodeStore, IndexPathService indexPathService) {
+        this.indexPathService = indexPathService;
+        this.nodeStore = nodeStore;
+    }
+
     @Override
     public Iterable<IndexInfo> getAllIndexInfo() {
         return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(), new Function<String, IndexInfo>() {
@@ -101,11 +110,11 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         return infoProvider.isValid(indexPath);
     }
 
-    protected void bindInfoProviders(IndexInfoProvider infoProvider){
+    public void bindInfoProviders(IndexInfoProvider infoProvider){
         infoProviders.put(checkNotNull(infoProvider.getType()), infoProvider);
     }
 
-    protected void unbindInfoProviders(IndexInfoProvider infoProvider){
+    public void unbindInfoProviders(IndexInfoProvider infoProvider){
         infoProviders.remove(infoProvider.getType());
     }
 
