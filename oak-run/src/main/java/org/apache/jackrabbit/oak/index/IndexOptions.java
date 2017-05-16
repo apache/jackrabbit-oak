@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -43,6 +45,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> stats;
     private final OptionSpec<Void> definitions;
     private OptionSet options;
+    private final Set<OptionSpec> actionOpts;
 
 
     public IndexOptions(OptionParser parser){
@@ -52,6 +55,9 @@ public class IndexOptions implements OptionsBean {
                 .withRequiredArg().ofType(File.class).defaultsTo(new File("."));
         stats = parser.accepts("index-info", "Collects and dumps information related to the indexes");
         definitions = parser.accepts("index-definitions", "Collects and dumps index definitions");
+
+        //Set of options which define action
+        actionOpts = ImmutableSet.of(stats, definitions);
     }
 
     @Override
@@ -70,10 +76,20 @@ public class IndexOptions implements OptionsBean {
     }
 
     public boolean dumpStats(){
-        return options.has(stats);
+        return options.has(stats) || !anyActionSelected();
     }
 
     public boolean dumpDefinitions(){
-        return options.has(definitions);
+        return options.has(definitions) || !anyActionSelected();
+    }
+
+    private boolean anyActionSelected(){
+        for (OptionSpec spec : actionOpts){
+            if (options.has(spec)){
+                return true;
+            }
+        }
+        return false;
+
     }
 }
