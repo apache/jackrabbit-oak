@@ -22,6 +22,8 @@ import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -59,6 +61,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -99,6 +102,12 @@ public final class TreeUtil {
     @CheckForNull
     public static String getString(@Nonnull Tree tree, @Nonnull String propertyName) {
         return getStringInternal(tree, propertyName, Type.STRING);
+    }
+
+    @CheckForNull
+    public String getString(@Nonnull Tree tree, @Nonnull String name, @Nullable String defaultValue) {
+        String str = getString(tree, name);
+        return (str != null) ? str : defaultValue;
     }
 
     @CheckForNull
@@ -147,6 +156,15 @@ public final class TreeUtil {
             return property.getValue(NAMES);
         } else {
             return emptyList();
+        }
+    }
+
+    public static long getLong(@Nonnull Tree tree, @Nonnull String name, long defaultValue) {
+        PropertyState property = tree.getProperty(name);
+        if (property != null && !property.isArray()) {
+            return property.getValue(LONG);
+        } else {
+            return defaultValue;
         }
     }
 
@@ -209,6 +227,46 @@ public final class TreeUtil {
         }
         autoCreateItems(child, type, typeRoot, userID);
         return child;
+    }
+
+    /**
+     * Adds a new child tree with the given name and primary type name.
+     * This method is a shortcut for calling {@link Tree#addChild(String)} and
+     * {@link Tree#setProperty(String, Object, org.apache.jackrabbit.oak.api.Type)}
+     * where the property name is {@link JcrConstants#JCR_PRIMARYTYPE}.
+     * Note, that this method in addition verifies if the created tree exists
+     * and is accessible in order to avoid {@link IllegalStateException} upon
+     * subsequent modification of the new child.
+     *
+     * @param name            The Oak name of the child item.
+     * @param primaryTypeName The Oak name of the primary node type.
+     * @return The new child tree with the specified name and primary type.
+     * @throws AccessDeniedException If the child does not exist after creation.
+     */
+    @Nonnull
+    public static Tree addChild(@Nonnull Tree tree, @Nonnull String childName, @Nonnull String primaryTypeName) throws AccessDeniedException {
+        Tree child = tree.addChild(childName);
+        if (!child.exists()) {
+            throw new AccessDeniedException();
+        }
+        child.setProperty(JcrConstants.JCR_PRIMARYTYPE, primaryTypeName, NAME);
+        return child;
+    }
+
+    /**
+     * Combination of {@link Tree#getChild(String)} and adding a child including
+     * its jcr:primaryType property (i.e. {@link Tree#addChild(String)} and
+     * {@link Tree#setProperty(PropertyState)}) in case no tree exists with the specified name.
+     *
+     * @param name            The Oak name of the child item.
+     * @param primaryTypeName The Oak name of the primary node type.
+     * @return The new child node with the specified name and primary type.
+     * @throws AccessDeniedException If the child does not exist after creation.
+     */
+    @Nonnull
+    public static Tree getOrAddChild(@Nonnull Tree tree, @Nonnull String childName, @Nonnull String primaryTypeName) throws AccessDeniedException {
+        Tree child = tree.getChild(childName);
+        return (child.exists()) ? child : addChild(tree, childName, primaryTypeName);
     }
 
     public static void addMixin(@Nonnull Tree tree, @Nonnull String mixinName, @Nonnull Tree typeRoot, @CheckForNull String userID) throws RepositoryException {

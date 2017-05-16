@@ -49,6 +49,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Utility class for accessing and writing typed content of a tree.
+ *
+ * @deprecated See OAK-6093
  */
 public class NodeUtil {
 
