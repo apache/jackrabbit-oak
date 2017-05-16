@@ -149,12 +149,14 @@ public enum RDBDocumentStoreDB {
             return "select cast (days(current_timestamp - current_timezone) - days('1970-01-01') as integer) * 86400 + midnight_seconds(current_timestamp - current_timezone) from sysibm.sysdummy1";
         }
 
+        @Override
         public String getTableCreationStatement(String tableName) {
             return "create table " + tableName
                     + " (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
                     + 1024 * 1024 * 1024 + "))";
         }
 
+        @Override
         public List<String> getIndexCreationStatements(String tableName) {
             List<String> statements = new ArrayList<String>();
             String pkName = tableName + "_pk";
