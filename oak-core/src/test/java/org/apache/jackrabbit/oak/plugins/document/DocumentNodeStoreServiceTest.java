@@ -17,11 +17,15 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
+import com.mongodb.DB;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -37,6 +41,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 
@@ -132,6 +137,28 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.activate(service, context.bundleContext(), config);
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         assertEquals(17, store.getUpdateLimit());
+    }
+
+    @Test
+    public void keepAlive() throws Exception {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put(DocumentNodeStoreService.PROP_SO_KEEP_ALIVE, true);
+        MockOsgi.activate(service, context.bundleContext(), config);
+        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
+        MongoDocumentStore mds = getMongoDocumentStore(store);
+        DB db = MongoDocumentStoreHelper.getDB(mds);
+        assertTrue(db.getMongo().getMongoOptions().isSocketKeepAlive());
+    }
+
+    private static MongoDocumentStore getMongoDocumentStore(DocumentNodeStore s) {
+        try {
+            Field f = s.getClass().getDeclaredField("nonLeaseCheckingStore");
+            f.setAccessible(true);
+            return (MongoDocumentStore) f.get(s);
+        } catch (Exception e) {
+            fail(e.getMessage());
+            return null;
+        }
     }
 
     private void assertPersistentCachePath(String expectedPath,
