@@ -38,6 +38,7 @@ import org.junit.rules.TemporaryFolder;
 import static java.nio.charset.Charset.defaultCharset;
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -80,6 +81,34 @@ public class IndexCommandIT {
         assertTrue(defns.exists());
 
         assertThat(Files.toString(info, defaultCharset()), containsString("/oak:index/uuid"));
+        assertThat(Files.toString(info, defaultCharset()), containsString("/oak:index/fooIndex"));
+    }
+
+    @Test
+    public void selectedIndexPaths() throws Exception{
+        createTestData();
+        //Close the repository so as all changes are flushed
+        fixture.close();
+
+        IndexCommand command = new IndexCommand();
+
+        File outDir = temporaryFolder.newFolder();
+        String[] args = {
+                "-index-work-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "-index-out-dir="  + outDir.getAbsolutePath(),
+                "-index-paths=/oak:index/fooIndex",
+                "-index-info",
+                "-index-definitions",
+                fixture.getDir().getAbsolutePath()
+        };
+
+        command.execute(args);
+
+        File info = new File(outDir, IndexCommand.INDEX_INFO_TXT);
+
+        assertTrue(info.exists());
+
+        assertThat(Files.toString(info, defaultCharset()), not(containsString("/oak:index/uuid")));
         assertThat(Files.toString(info, defaultCharset()), containsString("/oak:index/fooIndex"));
     }
 

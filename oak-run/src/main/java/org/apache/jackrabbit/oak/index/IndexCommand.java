@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import joptsimple.OptionParser;
-import joptsimple.OptionSet;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.console.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
@@ -67,7 +66,8 @@ public class IndexCommand implements Command {
     }
 
     private void execute(NodeStore store, IndexOptions indexOpts) throws IOException {
-        IndexHelper indexHelper = new IndexHelper(store, indexOpts.getOutDir(), indexOpts.getWorkDir());
+        IndexHelper indexHelper = new IndexHelper(store, indexOpts.getOutDir(),
+                indexOpts.getWorkDir(), indexOpts.getIndexPaths());
 
         dumpIndexStats(indexOpts, indexHelper);
         dumpIndexDefinitions(indexOpts, indexHelper);

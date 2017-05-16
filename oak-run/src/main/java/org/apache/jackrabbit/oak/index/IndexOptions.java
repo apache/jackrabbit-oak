@@ -21,9 +21,14 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -46,6 +51,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> definitions;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
+    private final OptionSpec<String> indexPaths;
 
 
     public IndexOptions(OptionParser parser){
@@ -55,6 +61,9 @@ public class IndexOptions implements OptionsBean {
                 .withRequiredArg().ofType(File.class).defaultsTo(new File("."));
         stats = parser.accepts("index-info", "Collects and dumps information related to the indexes");
         definitions = parser.accepts("index-definitions", "Collects and dumps index definitions");
+        indexPaths = parser.accepts("index-paths", "Comma separated list of index paths for which the " +
+                "selected operations need to be performed")
+                .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
 
         //Set of options which define action
         actionOpts = ImmutableSet.of(stats, definitions);
@@ -83,6 +92,10 @@ public class IndexOptions implements OptionsBean {
         return options.has(definitions) || !anyActionSelected();
     }
 
+    public List<String> getIndexPaths(){
+        return options.has(indexPaths) ? trim(indexPaths.values(options)) : Collections.emptyList();
+    }
+
     private boolean anyActionSelected(){
         for (OptionSpec spec : actionOpts){
             if (options.has(spec)){
@@ -90,6 +103,16 @@ public class IndexOptions implements OptionsBean {
             }
         }
         return false;
+    }
 
+    private static List<String> trim(List<String> values) {
+        Set<String> paths = Sets.newHashSet();
+        for (String v : values) {
+            v = Strings.emptyToNull(v);
+            if (v != null) {
+                paths.add(v.trim());
+            }
+        }
+        return new ArrayList<>(paths);
     }
 }

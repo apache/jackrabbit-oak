@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -40,11 +41,13 @@ class IndexHelper {
     private IndexInfoServiceImpl indexInfoService;
     private IndexPathService indexPathService;
     private AsyncIndexInfoService asyncIndexInfoService;
+    private final List<String> indexPaths;
 
-    IndexHelper(NodeStore store, File outputDir, File workDir) {
+    IndexHelper(NodeStore store, File outputDir, File workDir, List<String> indexPaths) {
         this.store = store;
         this.outputDir = outputDir;
         this.workDir = workDir;
+        this.indexPaths = indexPaths;
     }
 
     public File getOutputDir() {
@@ -61,7 +64,11 @@ class IndexHelper {
 
     private IndexPathService getIndexPathService() {
         if (indexPathService == null) {
-            indexPathService = new IndexPathServiceImpl(store);
+            if (indexPaths.isEmpty()) {
+                indexPathService = new IndexPathServiceImpl(store);
+            } else {
+                indexPathService = () -> indexPaths;
+            }
         }
         return indexPathService;
     }
