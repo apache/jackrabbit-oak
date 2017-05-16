@@ -834,6 +834,8 @@ public class RDBDocumentStore implements DocumentStore {
             // table does not appear to exist
             con.rollback();
 
+            LOG.info("trying to create: " + tableName + " ("  + tableName.length() + ")", new Exception("call stack"));
+
             PreparedStatement checkStatement2 = null;
             ResultSet checkResultSet2 = null;
 
