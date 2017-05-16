@@ -27,6 +27,7 @@ import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MutableClassToInstanceMap;
 import com.google.common.collect.Sets;
+import joptsimple.BuiltinHelpFormatter;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
@@ -66,6 +67,7 @@ public class Options {
             OptionsBean bean = o.newInstance(parser);
             optionBeans.put(bean.getClass(), bean);
         }
+        parser.formatHelpWith(new BuiltinHelpFormatter(120, 2));
         optionSet = parser.parse(args);
         configure(optionSet);
         checkForHelp(parser);
@@ -124,7 +126,7 @@ public class Options {
         }
     }
 
-    Options withDisableSystemExit() {
+    public Options withDisableSystemExit() {
         this.disableSystemExit = true;
         return this;
     }
