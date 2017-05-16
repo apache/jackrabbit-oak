@@ -19,11 +19,14 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import java.util.List;
+
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.*;
 
 public class IndexOptionsTest {
@@ -54,6 +57,16 @@ public class IndexOptionsTest {
 
         assertFalse(idxOpts.dumpDefinitions());
         assertTrue(idxOpts.dumpStats());
+    }
+
+    @Test
+    public void indexPathsAreTrimmed() throws Exception{
+        options.parseAndConfigure(parser, new String[] {"--index-paths=foo, bar, baz ,"});
+
+        IndexOptions idxOpts = options.getOptionBean(IndexOptions.class);
+        List<String> paths = idxOpts.getIndexPaths();
+        assertEquals(3, paths.size());
+        assertThat(paths, hasItems("foo", "bar", "baz"));
     }
 
 }
