@@ -48,6 +48,7 @@ import javax.jcr.security.Privilege;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -90,7 +91,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
@@ -307,11 +307,11 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             String nodeName = Util.generateAceName(ace, i);
             String ntName = (ace.isAllow()) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
 
-            NodeUtil aceNode = new NodeUtil(aclTree).addChild(nodeName, ntName);
-            aceNode.setString(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
-            aceNode.setNames(REP_PRIVILEGES, AccessControlUtils.namesFromPrivileges(ace.getPrivileges()));
+            Tree aceNode = TreeUtil.addChild(aclTree, nodeName, ntName);
+            aceNode.setProperty(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
+            aceNode.setProperty(REP_PRIVILEGES, ImmutableList.copyOf(AccessControlUtils.namesFromPrivileges(ace.getPrivileges())), Type.NAMES);
             Set<Restriction> restrictions = ace.getRestrictions();
-            restrictionProvider.writeRestrictions(oakPath, aceNode.getTree(), restrictions);
+            restrictionProvider.writeRestrictions(oakPath, aceNode, restrictions);
         }
     }
 
@@ -480,7 +480,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
         }
         String aclName = Util.getAclName(oakPath);
-        return new NodeUtil(tree).addChild(aclName, NT_REP_ACL).getTree();
+        return TreeUtil.addChild(tree, aclName, NT_REP_ACL);
     }
 
     @CheckForNull

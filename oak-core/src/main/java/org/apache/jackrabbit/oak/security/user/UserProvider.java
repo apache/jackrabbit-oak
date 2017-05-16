@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -294,16 +292,16 @@ class UserProvider extends AuthorizableBaseProvider {
         String folderPath = new StringBuilder()
                 .append(authRoot)
                 .append(getFolderPath(nodeName, intermediatePath, authRoot)).toString();
-        NodeUtil folder;
+        Tree folder;
         Tree tree = root.getTree(folderPath);
         while (!tree.isRoot() && !tree.exists()) {
             tree = tree.getParent();
         }
         if (tree.exists()) {
-            folder = new NodeUtil(tree);
+            folder = tree;
             String relativePath = PathUtils.relativize(tree.getPath(), folderPath);
             if (!relativePath.isEmpty()) {
-                folder = folder.getOrAddTree(relativePath, NT_REP_AUTHORIZABLE_FOLDER);
+                folder = Utils.getOrAddTree(folder, relativePath, NT_REP_AUTHORIZABLE_FOLDER);
             }
         } else {
             throw new AccessDeniedException("Missing permission to create intermediate authorizable folders.");
@@ -311,8 +309,8 @@ class UserProvider extends AuthorizableBaseProvider {
 
         // test for colliding folder child node.
         while (folder.hasChild(nodeName)) {
-            NodeUtil colliding = folder.getChild(nodeName);
-            String primaryType = TreeUtil.getPrimaryTypeName(colliding.getTree());
+            Tree colliding = folder.getChild(nodeName);
+            String primaryType = TreeUtil.getPrimaryTypeName(colliding);
             if (NT_REP_AUTHORIZABLE_FOLDER.equals(primaryType)) {
                 log.debug("Existing folder node collides with user/group to be created. Expanding path by: " + colliding.getName());
                 folder = colliding;
@@ -320,7 +318,7 @@ class UserProvider extends AuthorizableBaseProvider {
                 break;
             }
         }
-        return folder.getTree();
+        return folder;
     }
 
     @Nonnull
