@@ -53,8 +53,8 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_P
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getBoolean;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getBoolean;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getNames;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -85,7 +85,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.value.ValueHelper;
 
 /**
