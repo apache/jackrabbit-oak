@@ -36,6 +36,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.console.BlobStoreFixture;
@@ -79,10 +80,15 @@ public class BlobStoreFixtureProvider {
             closer.register(asCloseable(homeDir));
             delegate = azureds;
         } else {
-            delegate = new OakFileDataStore();
-            String cfgPath = bsopts.getFDSConfigPath();
-            Properties props = loadAndTransformProps(cfgPath);
-            populate(delegate, Maps.fromProperties(props), true);
+            FileDataStore fds = new OakFileDataStore();
+            delegate = fds;
+            if (bsopts.getFDSPath() != null) {
+                fds.setPath(bsopts.getFDSPath());
+            } else {
+                String cfgPath = bsopts.getFDSConfigPath();
+                Properties props = loadAndTransformProps(cfgPath);
+                populate(delegate, Maps.fromProperties(props), true);
+            }
             delegate.init(null);
         }
         DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
