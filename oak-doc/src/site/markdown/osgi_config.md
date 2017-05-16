@@ -243,6 +243,10 @@ db
 : Default - oak
 : Name of the database in Mongo
 
+socketKeepAlive
+: Default - false
+: Enables socket keep-alive for MongoDB connections
+
 cache
 : Default - 256
 : Cache size in MB. This is distributed among various caches used in DocumentNodeStore
