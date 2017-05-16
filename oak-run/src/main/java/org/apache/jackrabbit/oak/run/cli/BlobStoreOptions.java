@@ -30,10 +30,13 @@ public class BlobStoreOptions implements OptionsBean {
     private final OptionSpec<String> fdsOption;
     private final OptionSpec<String> s3Option;
     private final OptionSpec<String> azureOption;
+    private final OptionSpec<String> fdsPathOption;
     private OptionSet options;
 
     public BlobStoreOptions(OptionParser parser){
-        fdsOption = parser.acceptsAll(asList("fds", "fds-path"), "FileDataStore config")
+        fdsOption = parser.acceptsAll(asList("fds"), "FileDataStore config")
+                .withRequiredArg().ofType(String.class);
+        fdsPathOption = parser.acceptsAll(asList("fds-path"), "FileDataStore path")
                 .withRequiredArg().ofType(String.class);
         s3Option = parser.accepts("s3ds", "S3DataStore config")
                 .withRequiredArg().ofType(String.class);
@@ -50,6 +53,10 @@ public class BlobStoreOptions implements OptionsBean {
         return fdsOption.value(options);
     }
 
+    public String getFDSPath(){
+        return fdsPathOption.value(options);
+    }
+
     public String getS3ConfigPath(){
         return s3Option.value(options);
     }
@@ -59,7 +66,7 @@ public class BlobStoreOptions implements OptionsBean {
     }
 
     public Type getBlobStoreType(){
-        if (options.has(fdsOption)){
+        if (options.has(fdsOption) || options.has(fdsPathOption)){
             return Type.FDS;
         } else if (options.has(s3Option)){
             return Type.S3;
