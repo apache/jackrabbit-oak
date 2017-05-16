@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.index.IndexCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
 
@@ -52,5 +53,6 @@ public final class AvailableModes {
             .put("tika", new TikaCommand())
             .put("upgrade", new UpgradeCommand())
             .put("unlockupgrade", new UnlockUpgradeCommand())
+            .put("index", new IndexCommand())
             .build());
 }
