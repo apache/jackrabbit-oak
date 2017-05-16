@@ -282,6 +282,27 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         executeQuery("SELECT * FROM [nt:base] where a='b'", SQL2, NO_BINDINGS);
     }
 
+    @Test
+    public void testSynonyms() throws Exception {
+        Tree idx = createFulltextIndex(root.getTree("/"), "synonymIndex");
+        TestUtil.useV2(idx);
+
+        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
+        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "Standard");
+        Tree synFilter = anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("Synonym");
+        synFilter.setProperty("synonyms", "syn.txt");
+        synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "plane, airplane, aircraft\nflies=>scars");
+
+        Tree test = root.getTree("/").addChild("test").addChild("node");
+        test.setProperty("foo", "an aircraft flies");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'plane')", asList("/test/node"));
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'airplane')", asList("/test/node"));
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'aircraft')", asList("/test/node"));
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'scars')", asList("/test/node"));
+    }
+
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
         return TestUtil.createFulltextIndex(index, name);
     }
