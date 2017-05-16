@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

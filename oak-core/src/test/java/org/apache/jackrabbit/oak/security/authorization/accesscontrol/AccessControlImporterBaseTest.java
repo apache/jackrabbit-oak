@@ -51,7 +51,7 @@ import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.junit.Test;
 import org.mockito.Mockito;
 

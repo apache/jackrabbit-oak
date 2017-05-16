@@ -79,7 +79,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

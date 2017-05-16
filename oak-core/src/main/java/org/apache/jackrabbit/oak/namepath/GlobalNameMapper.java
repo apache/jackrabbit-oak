@@ -29,8 +29,8 @@ import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_URIS
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
 import static org.apache.jackrabbit.oak.plugins.tree.RootFactory.createReadOnlyRoot;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeFactory.createReadOnlyTree;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getString;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getStrings;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getString;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getStrings;
 
 import java.util.Map;
 import java.util.Map.Entry;
