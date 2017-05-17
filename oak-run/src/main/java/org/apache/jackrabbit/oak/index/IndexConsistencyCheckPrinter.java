@@ -20,11 +20,14 @@
 package org.apache.jackrabbit.oak.index;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Stopwatch;
+import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
@@ -61,6 +64,7 @@ class IndexConsistencyCheckPrinter implements InventoryPrinter {
             }
 
             IndexConsistencyChecker checker = new IndexConsistencyChecker(root, indexPath, indexHelper.getWorkDir());
+            checker.setPrintStream(new PrintStream(new WriterOutputStream(pw, Charsets.UTF_8)));
             try {
                 IndexConsistencyChecker.Result result = checker.check(level);
                 result.dump(pw);
