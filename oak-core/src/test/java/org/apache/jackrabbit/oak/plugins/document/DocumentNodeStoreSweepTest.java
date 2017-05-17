@@ -17,8 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -228,6 +234,52 @@ public class DocumentNodeStoreSweepTest {
         // must not set a sweep revision
         rootDoc = getRootDocument(store);
         assertNull(rootDoc.getSweepRevisions().getRevision(clusterId));
+    }
+
+    @Test
+    public void lowerSweepLimit() throws Exception {
+        ns.dispose();
+        // restart with a document store that tracks queries
+        final Map<String, Long> queries = Maps.newHashMap();
+        store = new FailingDocumentStore(new MemoryDocumentStore() {
+            @Nonnull
+            @Override
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      String indexedProperty,
+                                                      long startValue,
+                                                      int limit) {
+                queries.put(indexedProperty, startValue);
+                return super.query(collection, fromKey, toKey,
+                        indexedProperty, startValue, limit);
+            }
+        });
+        ns = createDocumentNodeStore(0);
+
+        createUncommittedChanges();
+        // get the revision of the uncommitted changes
+        Revision r = null;
+        for (NodeDocument d : Utils.getAllDocuments(store)) {
+            if (d.getPath().startsWith("/node-")) {
+                r = Iterables.getFirst(d.getAllChanges(), null);
+                break;
+            }
+        }
+        assertNotNull(r);
+        // after a new head and a background sweep, the
+        // uncommitted changes must be cleaned up
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        queries.clear();
+        ns.runBackgroundOperations();
+        assertCleanStore();
+        // sweeper must have looked at most recently modified documents
+        Long modified = queries.get(NodeDocument.MODIFIED_IN_SECS);
+        assertNotNull(modified);
+        long startValue = NodeDocument.getModifiedInSecs(r.getTimestamp());
+        assertEquals(startValue, modified.longValue());
     }
 
     private void assertNodeExists(String path) {

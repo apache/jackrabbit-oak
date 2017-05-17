@@ -34,7 +34,6 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
@@ -2387,8 +2386,7 @@ public final class DocumentNodeStore
         NodeDocumentSweeper sweeper = new NodeDocumentSweeper(this, false);
         LOG.debug("Starting document sweep. Head: {}, starting at {}",
                 sweeper.getHeadRevision(), startRev);
-        long lastSweepTick = getModifiedInSecs(startRev.getTimestamp());
-        Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(lastSweepTick);
+        Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(startRev.getTimestamp());
         try {
             final AtomicInteger numUpdates = new AtomicInteger();
 
