@@ -46,6 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.ReadConcernLevel;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -547,6 +548,7 @@ public class DocumentMK {
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
         private String mongoUri;
+        private boolean socketKeepAlive;
         private MongoStatus mongoStatus;
         private DiffCache diffCache;
         private BlobStore blobStore;
@@ -611,7 +613,9 @@ public class DocumentMK {
                 throws UnknownHostException {
             this.mongoUri = uri;
 
-            DB db = new MongoConnection(uri).getDB(name);
+            MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
+            options.socketKeepAlive(socketKeepAlive);
+            DB db = new MongoConnection(uri, options).getDB(name);
             MongoStatus status = new MongoStatus(db);
             if (!MongoConnection.hasWriteConcern(uri)) {
                 db.setWriteConcern(MongoConnection.getDefaultWriteConcern(db));
@@ -662,6 +666,18 @@ public class DocumentMK {
                 GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
                 setBlobStore(s);
             }
+            return this;
+        }
+
+        /**
+         * Enables the socket keep-alive option for MongoDB. The default is
+         * disabled.
+         *
+         * @param enable whether to enable it.
+         * @return this
+         */
+        public Builder setSocketKeepAlive(boolean enable) {
+            this.socketKeepAlive = enable;
             return this;
         }
 
