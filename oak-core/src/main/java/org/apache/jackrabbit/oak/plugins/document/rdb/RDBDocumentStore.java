@@ -109,9 +109,9 @@ import com.google.common.collect.Sets;
  * <li>Apache Derby</li>
  * <li>IBM DB2</li>
  * <li>PostgreSQL</li>
- * <li>MariaDB (MySQL) (experimental)</li>
- * <li>Microsoft SQL Server (experimental)</li>
- * <li>Oracle (experimental)</li>
+ * <li>MariaDB (MySQL)</li>
+ * <li>Microsoft SQL Server</li>
+ * <li>Oracle</li>
  * </ul>
  * 
  * <h3>Table Layout</h3>
@@ -164,6 +164,13 @@ import com.google.common.collect.Sets;
  * purposes)</td>
  * </tr>
  * <tr>
+ * <th>VERSION</th>
+ * <td>smallint</td>
+ * <td>the schema version the code writing to a row (or inserting it) was aware
+ * of (introduced with schema version 1). Not set for rows written by version 0
+ * client code.</td>
+ * </tr>
+ * <tr>
  * <th>DATA</th>
  * <td>varchar(16384)</td>
  * <td>the document's JSON serialization (only used for small document sizes, in
@@ -183,13 +190,26 @@ import com.google.common.collect.Sets;
  * testing, as tables can also be dropped automatically when the store is
  * disposed (this only happens for those tables that have been created on
  * demand).
+ * <h4>Versioning</h4>
  * <p>
- * <em>Note that the database needs to be created/configured to support all Unicode
- * characters in text fields, and to collate by Unicode code point (in DB2: "collate using identity",
- * in Postgres: "C").
- * THIS IS NOT THE DEFAULT!</em>
+ * The initial database layout used in OAK 1.0 through 1.6 is version 0.
  * <p>
- * <em>For MySQL, the database parameter "max_allowed_packet" needs to be increased to support ~16M blobs.</em>
+ * Version 1 introduces an additional "version" column, which records the schema
+ * version of the code writing to the database (upon insert and update). This is
+ * in preparation of future layout changes which might introduce new columns.
+ * <p>
+ * The code deals with both version 0 and version 1 table layouts. By default,
+ * it tries to create version 1 tables, and also tries to upgrade existing
+ * version 0 tables to version 1.
+ * <h4>DB-specific information</h4>
+ * <p>
+ * <em>Note that the database needs to be created/configured to support all
+ * Unicode characters in text fields, and to collate by Unicode code point (in
+ * DB2: "collate using identity", in Postgres: "C"). THIS IS NOT THE
+ * DEFAULT!</em>
+ * <p>
+ * <em>For MySQL, the database parameter "max_allowed_packet" needs to be
+ * increased to support ~16M blobs.</em>
  * 
  * <h3>Caching</h3>
  * <p>
@@ -197,9 +217,9 @@ import com.google.common.collect.Sets;
  * 
  * <h3>Queries</h3>
  * <p>
- * The implementation currently supports only three indexed properties:
- * "_bin", "deletedOnce", and "_modified". Attempts to use a different indexed property will
- * cause a {@link DocumentStoreException}.
+ * The implementation currently supports only three indexed properties: "_bin",
+ * "deletedOnce", and "_modified". Attempts to use a different indexed property
+ * will cause a {@link DocumentStoreException}.
  */
 public class RDBDocumentStore implements DocumentStore {
 
@@ -609,6 +629,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         private final String name;
         private boolean idIsBinary = false;
+        private boolean hasVersion = false;
         private int dataLimitInOctets = 16384;
 
         public RDBTableMetaData(String name) {
@@ -627,8 +648,16 @@ public class RDBDocumentStore implements DocumentStore {
             return this.idIsBinary;
         }
 
+        public boolean hasVersion() {
+            return this.hasVersion;
+        }
+
         public void setIdIsBinary(boolean idIsBinary) {
             this.idIsBinary = idIsBinary;
+        }
+
+        public void setHasVersion(boolean hasVersion) {
+            this.hasVersion = hasVersion;
         }
 
         public void setDataLimitInOctets(int dataLimitInOctets) {
@@ -766,6 +795,10 @@ public class RDBDocumentStore implements DocumentStore {
     private static final Set<String> REQUIREDCOLUMNS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
             new String[] { "id", "dsize", "deletedonce", "bdata", "data", "cmodcount", "modcount", "hasbinary", "modified" })));
 
+    // set of optional table columns
+    private static final Set<String> OPTIONALCOLUMNS = Collections
+            .unmodifiableSet(new HashSet<String>(Arrays.asList(new String[] { "version" })));
+
     // set of properties not serialized to JSON
     // when adding new columns also update UNHANDLEDPROPS!
     private static final Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(
@@ -838,13 +871,13 @@ public class RDBDocumentStore implements DocumentStore {
         StringBuilder tableDiags = new StringBuilder();
         try {
             createTableFor(con, Collection.CLUSTER_NODES, this.tableMeta.get(Collection.CLUSTER_NODES), tablesCreated,
-                    tablesPresent, tableDiags);
+                    tablesPresent, tableDiags, options.getInitialSchema(), options.getUpgradeToSchema());
             createTableFor(con, Collection.NODES, this.tableMeta.get(Collection.NODES), tablesCreated, tablesPresent,
-                    tableDiags);
+                    tableDiags, options.getInitialSchema(), options.getUpgradeToSchema());
             createTableFor(con, Collection.SETTINGS, this.tableMeta.get(Collection.SETTINGS), tablesCreated, tablesPresent,
-                    tableDiags);
+                    tableDiags, options.getInitialSchema(), options.getUpgradeToSchema());
             createTableFor(con, Collection.JOURNAL, this.tableMeta.get(Collection.JOURNAL), tablesCreated, tablesPresent,
-                    tableDiags);
+                    tableDiags, options.getInitialSchema(), options.getUpgradeToSchema());
         } finally {
             con.commit();
             con.close();
@@ -884,6 +917,9 @@ public class RDBDocumentStore implements DocumentStore {
             }
             if ("data".equals(lcName)) {
                 tmd.setDataLimitInOctets(met.getPrecision(i));
+            }
+            if ("version".equals(lcName)) {
+                tmd.setHasVersion(true);
             }
         }
     }
@@ -999,7 +1035,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void createTableFor(Connection con, Collection<? extends Document> col, RDBTableMetaData tmd, List<String> tablesCreated,
-            List<String> tablesPresent, StringBuilder diagnostics) throws SQLException {
+            List<String> tablesPresent, StringBuilder diagnostics, int initialSchema, int upgradeToSchema) throws SQLException {
         String dbname = this.dbInfo.toString();
         if (con.getMetaData().getURL() != null) {
             dbname += " (" + con.getMetaData().getURL() + ")";
@@ -1010,6 +1046,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         ResultSet checkResultSet = null;
         Statement creatStatement = null;
+        Statement upgradeStatement = null;
         try {
             checkStatement = con.prepareStatement("select * from " + tableName + " where ID = ?");
             checkStatement.setString(1, "0:/");
@@ -1022,10 +1059,16 @@ public class RDBDocumentStore implements DocumentStore {
             // check that all required columns are present
             Set<String> requiredColumns = new HashSet<String>(REQUIREDCOLUMNS);
             Set<String> unknownColumns = new HashSet<String>();
+            boolean hasVersionColumn = false;
             for (int i = 1; i <= met.getColumnCount(); i++) {
                 String cname = met.getColumnName(i).toLowerCase(Locale.ENGLISH);
                 if (!requiredColumns.remove(cname)) {
-                    unknownColumns.add(cname);
+                    if (!OPTIONALCOLUMNS.contains(cname)) {
+                        unknownColumns.add(cname);
+                    }
+                }
+                if (cname.equals("version")) {
+                    hasVersionColumn = true;
                 }
             }
 
@@ -1050,6 +1093,22 @@ public class RDBDocumentStore implements DocumentStore {
                     diagnostics.append(" ").append(indexInfo);
                 }
             }
+
+            if (!hasVersionColumn && upgradeToSchema >= 1) {
+                String upStatement1 = this.dbInfo.getTableUpgradeStatement(tableName, 1);
+                try {
+                    upgradeStatement = con.createStatement();
+                    upgradeStatement.execute(upStatement1);
+                    upgradeStatement.close();
+                    con.commit();
+                    LOG.info("Upgraded " + tableName + " to DB level 1 using '" + upStatement1 + "'");
+                } catch (SQLException exup) {
+                    con.rollback();
+                    LOG.info("Attempted to upgrade " + tableName + " to DB level 1 using '" + upStatement1
+                            + "', but failed - will continue without.", exup);
+                }
+            }
+
             tablesPresent.add(tableName);
         } catch (SQLException ex) {
             // table does not appear to exist
@@ -1060,7 +1119,7 @@ public class RDBDocumentStore implements DocumentStore {
 
             try {
                 creatStatement = con.createStatement();
-                creatStatement.execute(this.dbInfo.getTableCreationStatement(tableName));
+                creatStatement.execute(this.dbInfo.getTableCreationStatement(tableName, initialSchema));
                 creatStatement.close();
 
                 for (String ic : this.dbInfo.getIndexCreationStatements(tableName)) {
@@ -1070,6 +1129,21 @@ public class RDBDocumentStore implements DocumentStore {
                 }
 
                 con.commit();
+
+                if (initialSchema < 1 && upgradeToSchema >= 1) {
+                    String upStatement1 = this.dbInfo.getTableUpgradeStatement(tableName, 1);
+                    try {
+                        upgradeStatement = con.createStatement();
+                        upgradeStatement.execute(upStatement1);
+                        upgradeStatement.close();
+                        con.commit();
+                        LOG.info("Upgraded " + tableName + " to DB level 1 using '" + upStatement1 + "'");
+                    } catch (SQLException exup) {
+                        con.rollback();
+                        LOG.info("Attempted to upgrade " + tableName + " to DB level 1 using '" + upStatement1
+                                + "', but failed - will continue without.", exup);
+                    }
+                }
 
                 tablesCreated.add(tableName);
 
@@ -1102,6 +1176,7 @@ public class RDBDocumentStore implements DocumentStore {
             closeResultSet(checkResultSet);
             closeStatement(checkStatement);
             closeStatement(creatStatement);
+            closeStatement(upgradeStatement);
         }
     }
 
