@@ -67,6 +67,8 @@ public class IndexConsistencyChecker {
     private final String indexPath;
     private final File workDirRoot;
     private File workDir;
+    private PrintStream printStream;
+    private boolean verbose;
 
     public enum Level {
         /**
@@ -220,6 +222,14 @@ public class IndexConsistencyChecker {
         this.workDirRoot = checkNotNull(workDirRoot);
     }
 
+    public void setPrintStream(PrintStream printStream) {
+        this.printStream = printStream;
+    }
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
+    }
+
     public Result check(Level level) throws IOException {
         return check(level, true);
     }
@@ -312,7 +322,9 @@ public class IndexConsistencyChecker {
             log.debug("[{}][{}] Directory content found to be consistent. Proceeding to IndexCheck", indexPath, dirName);
             CheckIndex ci = new CheckIndex(targetDir);
 
-            if (log.isDebugEnabled()) {
+            if (printStream != null) {
+                ci.setInfoStream(printStream, verbose);
+            } else if (log.isDebugEnabled()) {
                 ci.setInfoStream(new LoggingPrintStream(log), log.isTraceEnabled());
             }
 
