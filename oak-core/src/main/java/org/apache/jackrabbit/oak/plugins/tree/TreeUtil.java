@@ -238,7 +238,7 @@ public final class TreeUtil {
      * and is accessible in order to avoid {@link IllegalStateException} upon
      * subsequent modification of the new child.
      *
-     * @param name            The Oak name of the child item.
+     * @param childName       The Oak name of the child item.
      * @param primaryTypeName The Oak name of the primary node type.
      * @return The new child tree with the specified name and primary type.
      * @throws AccessDeniedException If the child does not exist after creation.
@@ -258,7 +258,7 @@ public final class TreeUtil {
      * its jcr:primaryType property (i.e. {@link Tree#addChild(String)} and
      * {@link Tree#setProperty(PropertyState)}) in case no tree exists with the specified name.
      *
-     * @param name            The Oak name of the child item.
+     * @param childName       The Oak name of the child item.
      * @param primaryTypeName The Oak name of the primary node type.
      * @return The new child node with the specified name and primary type.
      * @throws AccessDeniedException If the child does not exist after creation.
