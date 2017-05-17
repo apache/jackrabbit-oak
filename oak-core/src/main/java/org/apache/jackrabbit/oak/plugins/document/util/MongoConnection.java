@@ -26,6 +26,7 @@ import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
+import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -45,12 +46,28 @@ public class MongoConnection {
      * See also http://docs.mongodb.org/manual/reference/connection-string/
      *
      * @param uri the MongoDB URI
-     * @throws UnknownHostException
+     * @throws MongoException if there are failures
      */
-    public MongoConnection(String uri) throws UnknownHostException  {
-        MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
+    public MongoConnection(String uri) throws MongoException {
+        this(uri, MongoConnection.getDefaultBuilder());
+    }
+
+    /**
+     * Constructs a new connection using the specified MongoDB connection
+     * String. The default client options are taken from the provided builder.
+     *
+     * @param uri the connection URI.
+     * @param builder the client option defaults.
+     * @throws MongoException if there are failures
+     */
+    public MongoConnection(String uri, MongoClientOptions.Builder builder)
+            throws MongoException {
         mongoURI = new MongoClientURI(uri, builder);
-        mongo = new MongoClient(mongoURI);
+        try {
+            mongo = new MongoClient(mongoURI);
+        } catch (UnknownHostException e) {
+            throw new MongoException(e.getMessage(), e);
+        }
     }
 
     /**
@@ -59,9 +76,10 @@ public class MongoConnection {
      * @param host The host address.
      * @param port The port.
      * @param database The database name.
-     * @throws Exception If an error occurred while trying to connect.
+     * @throws MongoException if there are failures
      */
-    public MongoConnection(String host, int port, String database) throws Exception {
+    public MongoConnection(String host, int port, String database)
+            throws MongoException {
         this("mongodb://" + host + ":" + port + "/" + database);
     }
 

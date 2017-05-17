@@ -36,6 +36,10 @@ public class MongoUtils {
     protected static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
+    public static final String URL =
+            System.getProperty("mongo.url", "mongodb://" + HOST + ":" + PORT + "/" + DB +
+                    "?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000");
+
     protected static Exception exception;
 
     /**
