@@ -49,6 +49,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<File> outputDirOpt;
     private final OptionSpec<Void> stats;
     private final OptionSpec<Void> definitions;
+    private final OptionSpec<Integer> consistencyCheck;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
     private final OptionSpec<String> indexPaths;
@@ -65,8 +66,13 @@ public class IndexOptions implements OptionsBean {
                 "selected operations need to be performed")
                 .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
 
+        consistencyCheck = parser.accepts("index-consistency-check", "Performs consistency check " +
+                "for indexes as specified by --index-paths. If none specified performs check for all indexes. Currently " +
+                "this is only supported for Lucene indexes. Possible values 1 - Basic check, 2 - Full check (slower)")
+                .withOptionalArg().ofType(Integer.class).defaultsTo(1);
+
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions);
+        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck);
     }
 
     @Override
@@ -90,6 +96,14 @@ public class IndexOptions implements OptionsBean {
 
     public boolean dumpDefinitions(){
         return options.has(definitions) || !anyActionSelected();
+    }
+
+    public boolean checkConsistency(){
+        return options.has(consistencyCheck);
+    }
+
+    public int consistencyCheckLevel(){
+        return consistencyCheck.value(options);
     }
 
     public List<String> getIndexPaths(){

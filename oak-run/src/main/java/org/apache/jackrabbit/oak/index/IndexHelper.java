@@ -50,8 +50,16 @@ class IndexHelper {
         this.indexPaths = indexPaths;
     }
 
+    public NodeStore getNodeStore() {
+        return store;
+    }
+
     public File getOutputDir() {
         return outputDir;
+    }
+
+    public File getWorkDir() {
+        return workDir;
     }
 
     public IndexPrinter getIndexPrinter() {
@@ -62,7 +70,7 @@ class IndexHelper {
         return new IndexDefinitionPrinter(store, getIndexPathService());
     }
 
-    private IndexPathService getIndexPathService() {
+    public IndexPathService getIndexPathService() {
         if (indexPathService == null) {
             if (indexPaths.isEmpty()) {
                 indexPathService = new IndexPathServiceImpl(store);
