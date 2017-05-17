@@ -35,8 +35,10 @@ public class IndexCommand implements Command {
 
     public static final String INDEX_DEFINITIONS_JSON = "index-definitions.json";
     public static final String INDEX_INFO_TXT = "index-info.txt";
+    public static final String INDEX_CONSISTENCY_CHECK_TXT = "index-consistency-check-report.txt";
     private File info;
     private File definitions;
+    private File consistencyCheckReport;
 
     @Override
     public void execute(String... args) throws Exception {
@@ -63,6 +65,10 @@ public class IndexCommand implements Command {
         if (definitions != null) {
             System.out.printf("Index definitions stored at %s%n", getPath(definitions));
         }
+
+        if (consistencyCheckReport != null) {
+            System.out.printf("Index consistency check report stored at %s%n", getPath(consistencyCheckReport));
+        }
     }
 
     private void execute(NodeStore store, IndexOptions indexOpts) throws IOException {
@@ -71,6 +77,18 @@ public class IndexCommand implements Command {
 
         dumpIndexStats(indexOpts, indexHelper);
         dumpIndexDefinitions(indexOpts, indexHelper);
+        performConsistencyCheck(indexOpts, indexHelper);
+    }
+
+    private void performConsistencyCheck(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {
+        if (indexOpts.checkConsistency()) {
+            IndexConsistencyCheckPrinter printer =
+                    new IndexConsistencyCheckPrinter(indexHelper, indexOpts.consistencyCheckLevel());
+            PrinterDumper dumper = new PrinterDumper(indexHelper.getOutputDir(), INDEX_CONSISTENCY_CHECK_TXT,
+                    false, Format.TEXT, printer);
+            dumper.dump();
+            consistencyCheckReport = dumper.getOutFile();
+        }
     }
 
     private void dumpIndexDefinitions(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {
