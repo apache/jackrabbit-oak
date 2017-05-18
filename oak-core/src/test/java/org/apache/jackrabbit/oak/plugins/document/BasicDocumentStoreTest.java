@@ -134,6 +134,17 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals(NodeDocument.HAS_BINARY_VAL, nd.get(NodeDocument.HAS_BINARY_FLAG));
         assertFalse(nd.wasDeletedOnce());
         assertTrue(nd.hasBinary());
+        
+        // remove
+        up = new UpdateOp(id, false);
+        up.remove(NodeDocument.DELETED_ONCE);
+        up.remove(NodeDocument.HAS_BINARY_FLAG);
+        super.ds.findAndUpdate(Collection.NODES, up);
+        
+        super.ds.invalidateCache();
+        nd = super.ds.find(Collection.NODES, id, 0);
+        assertNull(nd.get(NodeDocument.DELETED_ONCE));
+        assertNull(nd.get(NodeDocument.HAS_BINARY_FLAG));
     }
 
     @Test
