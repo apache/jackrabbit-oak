@@ -116,6 +116,7 @@ public class DataStoreCheckTest {
         File cfgFile = temporaryFolder.newFile();
         BufferedWriter writer = Files.newWriter(cfgFile, UTF_8);
         FileIOUtils.writeAsLine(writer, "path=\"" + StringEscapeUtils.escapeJava(dsPath) + "\"",false);
+        FileIOUtils.writeAsLine(writer, "minRecordLength=L\"4096\"", false);
         writer.close();
         cfgFilePath = cfgFile.getAbsolutePath();
 
