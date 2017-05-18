@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.annotation.Nullable;
@@ -168,7 +169,7 @@ class Utils {
             delegate = new OakFileDataStore();
             String cfgPath = fdsConfig.value(options);
             Properties props = loadAndTransformProps(cfgPath);
-            populate(delegate, Maps.fromProperties(props), true);
+            populate(delegate, asMap(props), true);
             delegate.init(null);
         }
         DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
@@ -241,5 +242,13 @@ class Utils {
             props.put(key, dict.get(key));
         }
         return props;
+    }
+
+    private static Map<String, ?> asMap(Properties props) {
+        Map<String, Object> map = Maps.newHashMap();
+        for (Object key : props.keySet()) {
+            map.put((String)key, props.get(key));
+        }
+        return map;
     }
 }
