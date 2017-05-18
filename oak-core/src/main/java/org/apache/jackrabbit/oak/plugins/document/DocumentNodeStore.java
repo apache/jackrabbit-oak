@@ -661,6 +661,7 @@ public final class DocumentNodeStore
         commitQueue = new CommitQueue(this);
         String threadNamePostfix = "(" + clusterId + ")";
         batchCommitQueue = new BatchCommitQueue(store);
+        // prepare background threads
         backgroundReadThread = new Thread(
                 new BackgroundReadOperation(this, isDisposed),
                 "DocumentNodeStore background read thread " + threadNamePostfix);
@@ -673,32 +674,30 @@ public final class DocumentNodeStore
                 new BackgroundSweepOperation(this, isDisposed),
                 "DocumentNodeStore background sweep thread " + threadNamePostfix);
         backgroundSweepThread.setDaemon(true);
-
+        clusterUpdateThread = new Thread(new BackgroundClusterUpdate(this, isDisposed),
+                "DocumentNodeStore cluster update thread " + threadNamePostfix);
+        clusterUpdateThread.setDaemon(true);
+        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
+                "DocumentNodeStore lease update thread " + threadNamePostfix);
+        leaseUpdateThread.setDaemon(true);
+        // now start the background threads
+        clusterUpdateThread.start();
         backgroundReadThread.start();
         if (!readOnlyMode) {
+            // OAK-3398 : make lease updating more robust by ensuring it
+            // has higher likelihood of succeeding than other threads
+            // on a very busy machine - so as to prevent lease timeout.
+            leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
+            leaseUpdateThread.start();
+
             // perform an initial document sweep if needed
+            // this may be long running if there is no sweep revision
+            // for this clusterId (upgrade from Oak <= 1.6).
+            // it is therefore important the lease thread is running already.
             backgroundSweep();
 
             backgroundUpdateThread.start();
             backgroundSweepThread.start();
-        }
-
-        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
-                "DocumentNodeStore lease update thread " + threadNamePostfix);
-        leaseUpdateThread.setDaemon(true);
-        // OAK-3398 : make lease updating more robust by ensuring it
-        // has higher likelihood of succeeding than other threads
-        // on a very busy machine - so as to prevent lease timeout.
-        leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
-        if (!readOnlyMode) {
-            leaseUpdateThread.start();
-        }
-
-        clusterUpdateThread = new Thread(new BackgroundClusterUpdate(this, isDisposed),
-                "DocumentNodeStore cluster update thread " + threadNamePostfix);
-        clusterUpdateThread.setDaemon(true);
-        if (!readOnlyMode) {
-            clusterUpdateThread.start();
         }
 
         persistentCache = builder.getPersistentCache();
