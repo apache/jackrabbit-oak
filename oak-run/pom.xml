@@ -237,7 +237,6 @@
     <dependency>
       <groupId>net.sf.jopt-simple</groupId>
       <artifactId>jopt-simple</artifactId>
-      <version>5.0.3</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
