@@ -93,7 +93,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
      * @return Properties instance
      */
     public static Properties getS3Config() {
-        String config = System.getProperty("config");
+        String config = System.getProperty("s3.config");
         if (Strings.isNullOrEmpty(config)) {
             config = DEFAULT_CONFIG_PATH;
         }
@@ -101,7 +101,8 @@ public class S3DataStoreUtils extends DataStoreUtils {
         if (new File(config).exists()) {
             InputStream is = null;
             try {
-                props.load(new FileInputStream(config));
+                is = new FileInputStream(config);
+                props.load(is);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
