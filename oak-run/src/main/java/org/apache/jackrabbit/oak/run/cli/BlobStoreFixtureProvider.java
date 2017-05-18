@@ -68,7 +68,9 @@ public class BlobStoreFixtureProvider {
             SharedS3DataStore s3ds = new SharedS3DataStore();
             Properties props = loadAndTransformProps(bsopts.getS3ConfigPath());
             s3ds.setProperties(props);
-            s3ds.init(null);
+            File homeDir =  Files.createTempDir();
+            closer.register(asCloseable(homeDir));
+            s3ds.init(homeDir.getAbsolutePath());
             delegate = s3ds;
         } else if(bsType == Type.AZURE){
             AzureDataStore azureds = new AzureDataStore();

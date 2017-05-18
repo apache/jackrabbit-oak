@@ -233,7 +233,9 @@ class Utils {
             String cfgPath = s3dsConfig.value(options);
             Properties props = loadAndTransformProps(cfgPath);
             s3ds.setProperties(props);
-            s3ds.init(null);
+            File homeDir =  Files.createTempDir();
+            closer.register(asCloseable(homeDir));
+            s3ds.init(homeDir.getAbsolutePath());
             delegate = s3ds;
         } else if (options.has(azureBlobDSConfig)) {
             AzureDataStore azureds = new AzureDataStore();
