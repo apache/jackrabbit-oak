@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DataStoreTestBase extends TestBase {
@@ -175,6 +176,7 @@ public class DataStoreTestBase extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-6239")
     public void testProxyFlippedIntermediateByte2() throws Exception {
         useProxy(0, 0, 150000, false);
     }
@@ -185,6 +187,7 @@ public class DataStoreTestBase extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-6239")
     public void testProxyFlippedIntermediateByteChange2() throws Exception {
         useProxy(0, 0, 150000, true);
     }
