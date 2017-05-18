@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -41,11 +42,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -88,11 +92,14 @@ public class DataStoreCheckTest {
 
     private String dsOption;
 
+    private String container;
+
     @Before
     public void setup() throws Exception {
         if (S3DataStoreUtils.isS3Configured()) {
             Properties props = S3DataStoreUtils.getS3Config();
             props.setProperty("cacheSize", "0");
+            container = props.getProperty(S3Constants.S3_BUCKET);
             DataStore ds = S3DataStoreUtils.getS3DataStore(S3DataStoreUtils.getFixtures().get(0),
                 props,
                 temporaryFolder.newFolder().getAbsolutePath());
@@ -102,6 +109,7 @@ public class DataStoreCheckTest {
         } else if (AzureDataStoreUtils.isAzureConfigured()) {
             Properties props = AzureDataStoreUtils.getAzureConfig();
             props.setProperty("cacheSize", "0");
+            container = props.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
             DataStore ds = AzureDataStoreUtils.getAzureDataStore(props,
                 temporaryFolder.newFolder().getAbsolutePath());
             setupDataStore = new DataStoreBlobStore(ds);
@@ -155,6 +163,17 @@ public class DataStoreCheckTest {
     @After
     public void tearDown() {
         System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err)));
+        if (!Strings.isNullOrEmpty(container)) {
+            try {
+                if (dsOption.equals("s3ds")) {
+                    S3DataStoreUtils.deleteBucket(container, new Date());
+                } else {
+                    AzureDataStoreUtils.deleteContainer(container);
+                }
+            } catch (Exception e) {
+                log.error("Error in cleaning container", e);
+            }
+        }
     }
 
     @Test
