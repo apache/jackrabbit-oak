@@ -27,7 +27,6 @@ import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MutableClassToInstanceMap;
 import com.google.common.collect.Sets;
-import joptsimple.BuiltinHelpFormatter;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
@@ -40,6 +39,9 @@ public class Options {
     private final ClassToInstanceMap<OptionsBean> optionBeans = MutableClassToInstanceMap.create();
     private OptionSet optionSet;
     private boolean disableSystemExit;
+    private String commandName;
+    private String summary;
+    private String connectionString;
 
     public Options(){
         this.oakRunOptions = EnumSet.allOf(OptionBeans.class);
@@ -67,7 +69,7 @@ public class Options {
             OptionsBean bean = o.newInstance(parser);
             optionBeans.put(bean.getClass(), bean);
         }
-        parser.formatHelpWith(new BuiltinHelpFormatter(120, 2));
+        parser.formatHelpWith(new OakHelpFormatter(optionBeans.values(), commandName, summary, connectionString));
         optionSet = parser.parse(args);
         configure(optionSet);
         checkForHelp(parser);
@@ -91,6 +93,26 @@ public class Options {
 
     public void registerOptionsFactory(OptionsBeanFactory factory){
         beanFactories.add(factory);
+    }
+
+    public Options withDisableSystemExit() {
+        this.disableSystemExit = true;
+        return this;
+    }
+
+    public Options setCommandName(String commandName) {
+        this.commandName = commandName;
+        return this;
+    }
+
+    public Options setSummary(String summary) {
+        this.summary = summary;
+        return this;
+    }
+
+    public Options setConnectionString(String connectionString) {
+        this.connectionString = connectionString;
+        return this;
     }
 
     public CommonOptions getCommonOpts(){
@@ -124,10 +146,5 @@ public class Options {
         if (!disableSystemExit) {
             System.exit(code);
         }
-    }
-
-    public Options withDisableSystemExit() {
-        this.disableSystemExit = true;
-        return this;
     }
 }

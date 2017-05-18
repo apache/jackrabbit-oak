@@ -53,6 +53,6 @@ public final class AvailableModes {
             .put("tika", new TikaCommand())
             .put("upgrade", new UpgradeCommand())
             .put("unlockupgrade", new UnlockUpgradeCommand())
-            .put("index", new IndexCommand())
+            .put(IndexCommand.NAME, new IndexCommand())
             .build());
 }
