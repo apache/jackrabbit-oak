@@ -78,6 +78,13 @@ public class IndexCommand implements Command {
         dumpIndexStats(indexOpts, indexHelper);
         dumpIndexDefinitions(indexOpts, indexHelper);
         performConsistencyCheck(indexOpts, indexHelper);
+        dumpIndexContents(indexOpts, indexHelper);
+    }
+
+    private void dumpIndexContents(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {
+        if (indexOpts.dumpIndex()) {
+            new IndexDumper(indexHelper, indexOpts.getOutDir()).dump();
+        }
     }
 
     private void performConsistencyCheck(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {
@@ -109,7 +116,7 @@ public class IndexCommand implements Command {
         }
     }
 
-    private static Path getPath(File file) {
+    static Path getPath(File file) {
         return file.toPath().normalize().toAbsolutePath();
     }
 }
