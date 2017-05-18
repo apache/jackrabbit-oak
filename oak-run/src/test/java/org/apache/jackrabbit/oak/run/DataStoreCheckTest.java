@@ -198,7 +198,7 @@ public class DataStoreCheckTest {
             .newArrayList("--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath());
         log.info("Running testMissinOpParams: {}", argsList);
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "'id'", "'ref'", "'consistency'"));
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "id", "ref", "consistency"));
     }
 
     @Test
@@ -219,12 +219,12 @@ public class DataStoreCheckTest {
         List<String> argsList = Lists
             .newArrayList("--consistency", "--" + dsOption, cfgFilePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) ['store']"));
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
 
         argsList = Lists
             .newArrayList("--ref", "--" + dsOption, cfgFilePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) ['store']"));
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
     }
 
     public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {
