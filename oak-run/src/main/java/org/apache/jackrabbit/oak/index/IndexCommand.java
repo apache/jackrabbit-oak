@@ -26,16 +26,20 @@ import java.nio.file.Path;
 import joptsimple.OptionParser;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.console.NodeStoreFixture;
+import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class IndexCommand implements Command {
-
+    public static final String NAME = "index";
     public static final String INDEX_DEFINITIONS_JSON = "index-definitions.json";
     public static final String INDEX_INFO_TXT = "index-info.txt";
     public static final String INDEX_CONSISTENCY_CHECK_TXT = "index-consistency-check-report.txt";
+
+    private final String summary = "Provides index management related operations";
+
     private File info;
     private File definitions;
     private File consistencyCheckReport;
@@ -45,8 +49,10 @@ public class IndexCommand implements Command {
         OptionParser parser = new OptionParser();
 
         Options opts = new Options();
+        opts.setCommandName(NAME);
+        opts.setSummary(summary);
+        opts.setConnectionString(CommonOptions.DEFAULT_CONNECTION_STRING);
         opts.registerOptionsFactory(IndexOptions.FACTORY);
-
         opts.parseAndConfigure(parser, args);
 
         IndexOptions indexOpts = opts.getOptionBean(IndexOptions.class);

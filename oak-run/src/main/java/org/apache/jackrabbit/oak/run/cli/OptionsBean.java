@@ -19,9 +19,32 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import java.util.Set;
+
 import joptsimple.OptionSet;
 
 public interface OptionsBean {
 
     void configure(OptionSet options);
+
+    /**
+     * Title string for this set of options
+     */
+    String title();
+
+    /**
+     * Description string for this set of options
+     */
+    String description();
+
+    /**
+     * Used to sort the help output. Help for OptionsBean in descending order i.e.
+     * bean having highest order would be rendered first
+     */
+    int order();
+
+    /**
+     * Option names which are actually performing operation
+     */
+    Set<String> operationNames();
 }

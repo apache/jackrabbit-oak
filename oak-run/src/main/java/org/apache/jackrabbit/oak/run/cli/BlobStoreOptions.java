@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import java.util.Collections;
+import java.util.Set;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -47,6 +50,26 @@ public class BlobStoreOptions implements OptionsBean {
     @Override
     public void configure(OptionSet options) {
         this.options = options;
+    }
+
+    @Override
+    public String title() {
+        return "BlobStore Options";
+    }
+
+    @Override
+    public String description() {
+        return "Options related to configuring a BlobStore";
+    }
+
+    @Override
+    public int order() {
+        return 10;
+    }
+
+    @Override
+    public Set<String> operationNames() {
+        return Collections.emptySet();
     }
 
     public String getFDSConfigPath(){

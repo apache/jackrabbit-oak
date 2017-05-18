@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -54,6 +55,7 @@ public class IndexOptions implements OptionsBean {
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
     private final OptionSpec<String> indexPaths;
+    private final Set<String> operationNames;
 
 
     public IndexOptions(OptionParser parser){
@@ -76,11 +78,33 @@ public class IndexOptions implements OptionsBean {
 
         //Set of options which define action
         actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex);
+        operationNames = collectionOperationNames(actionOpts);
     }
 
     @Override
     public void configure(OptionSet options) {
         this.options = options;
+    }
+
+    @Override
+    public String title() {
+        return "";
+    }
+
+    @Override
+    public String description() {
+        return "Index command supports following operations. Most operations are read only. For performing them " +
+                "BloStore related options must be provided as they would access the binaries stored there  ";
+    }
+
+    @Override
+    public int order() {
+        return 50;
+    }
+
+    @Override
+    public Set<String> operationNames() {
+        return operationNames;
     }
 
     public File getWorkDir() throws IOException {
@@ -135,5 +159,13 @@ public class IndexOptions implements OptionsBean {
             }
         }
         return new ArrayList<>(paths);
+    }
+
+    private static Set<String> collectionOperationNames(Set<OptionSpec> actionOpts){
+        Set<String> result = new HashSet<>();
+        for (OptionSpec spec : actionOpts){
+            result.addAll(spec.options());
+        }
+        return result;
     }
 }

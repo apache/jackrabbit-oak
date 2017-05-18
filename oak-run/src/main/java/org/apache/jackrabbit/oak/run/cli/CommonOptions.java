@@ -19,7 +19,9 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -28,6 +30,7 @@ import joptsimple.OptionSpec;
 import static java.util.Arrays.asList;
 
 public class CommonOptions implements OptionsBean {
+    public static final String DEFAULT_CONNECTION_STRING = "{<path-to-repository> | <mongodb-uri>} | <rdb-uri>}";
     private final OptionSpec<Void> help;
     private final OptionSpec<Void> readWriteOption;
     private final OptionSpec<String> nonOption;
@@ -36,7 +39,7 @@ public class CommonOptions implements OptionsBean {
     public CommonOptions(OptionParser parser){
         help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         readWriteOption = parser.accepts("read-write", "connect to repository in read-write mode");
-        nonOption = parser.nonOptions("{<path-to-repository> | <mongodb-uri>}");
+        nonOption = parser.nonOptions(DEFAULT_CONNECTION_STRING);
     }
 
     @Override
@@ -71,5 +74,25 @@ public class CommonOptions implements OptionsBean {
     public String getStoreArg() {
         List<String> nonOptions = nonOption.values(options);
         return nonOptions.size() > 0 ? nonOptions.get(0) : "";
+    }
+
+    @Override
+    public String title() {
+        return null;
+    }
+
+    @Override
+    public String description() {
+        return null;
+    }
+
+    @Override
+    public int order() {
+        return 0;
+    }
+
+    @Override
+    public Set<String> operationNames() {
+        return Collections.emptySet();
     }
 }
