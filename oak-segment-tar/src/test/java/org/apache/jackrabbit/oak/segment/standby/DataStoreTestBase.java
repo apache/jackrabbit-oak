@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -174,6 +175,7 @@ public abstract class DataStoreTestBase extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-6239")
     public void testProxyFlippedIntermediateByte2() throws Exception {
         useProxy(0, 0, 150000, false);
     }
