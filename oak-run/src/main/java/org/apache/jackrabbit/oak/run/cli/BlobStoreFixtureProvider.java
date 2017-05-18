@@ -25,6 +25,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.annotation.CheckForNull;
@@ -89,7 +90,7 @@ public class BlobStoreFixtureProvider {
             } else {
                 String cfgPath = bsopts.getFDSConfigPath();
                 Properties props = loadAndTransformProps(cfgPath);
-                populate(delegate, Maps.fromProperties(props), true);
+                populate(delegate, asMap(props), true);
             }
             delegate.init(null);
         }
@@ -140,5 +141,13 @@ public class BlobStoreFixtureProvider {
                 FileUtils.deleteDirectory(dir);
             }
         };
+    }
+
+    private static Map<String, ?> asMap(Properties props) {
+        Map<String, Object> map = Maps.newHashMap();
+        for (Object key : props.keySet()) {
+            map.put((String)key, props.get(key));
+        }
+        return map;
     }
 }
