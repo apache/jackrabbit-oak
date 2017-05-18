@@ -141,6 +141,28 @@ public class IndexCommandIT {
         assertThat(Files.toString(report, defaultCharset()), containsString("/oak:index/fooIndex"));
     }
 
+    @Test
+    public void dumpIndex() throws Exception{
+        createTestData();
+        //Close the repository so as all changes are flushed
+        fixture.close();
+
+        IndexCommand command = new IndexCommand();
+
+        File outDir = temporaryFolder.newFolder();
+        String[] args = {
+                "--index-work-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-out-dir="  + outDir.getAbsolutePath(),
+                "--index-dump",
+                "--", // -- indicates that options have ended and rest needs to be treated as non option
+                fixture.getDir().getAbsolutePath()
+        };
+
+        command.execute(args);
+        File dumpDir = new File(outDir, IndexDumper.INDEX_DUMPS_DIR);
+        assertTrue(dumpDir.exists());
+    }
+
     private void createTestData() throws IOException, RepositoryException {
         fixture = new RepositoryFixture(temporaryFolder.newFolder());
         indexIndexDefinitions();

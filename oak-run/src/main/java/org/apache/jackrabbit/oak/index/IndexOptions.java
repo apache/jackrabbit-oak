@@ -49,6 +49,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<File> outputDirOpt;
     private final OptionSpec<Void> stats;
     private final OptionSpec<Void> definitions;
+    private final OptionSpec<Void> dumpIndex;
     private final OptionSpec<Integer> consistencyCheck;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
@@ -71,8 +72,10 @@ public class IndexOptions implements OptionsBean {
                 "this is only supported for Lucene indexes. Possible values 1 - Basic check, 2 - Full check (slower)")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1);
 
+        dumpIndex = parser.accepts("index-dump", "Dumps index content");
+
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck);
+        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex);
     }
 
     @Override
@@ -96,6 +99,10 @@ public class IndexOptions implements OptionsBean {
 
     public boolean dumpDefinitions(){
         return options.has(definitions) || !anyActionSelected();
+    }
+
+    public boolean dumpIndex() {
+        return options.has(dumpIndex);
     }
 
     public boolean checkConsistency(){
