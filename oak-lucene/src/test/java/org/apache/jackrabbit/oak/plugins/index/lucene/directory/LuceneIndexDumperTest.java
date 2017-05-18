@@ -40,7 +40,7 @@ import org.junit.rules.TemporaryFolder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class IndexDumperTest {
+public class LuceneIndexDumperTest {
     private NodeState rootState = InitialContent.INITIAL_CONTENT;
     private NodeBuilder idx = new IndexDefinitionBuilder().build().builder();
 
