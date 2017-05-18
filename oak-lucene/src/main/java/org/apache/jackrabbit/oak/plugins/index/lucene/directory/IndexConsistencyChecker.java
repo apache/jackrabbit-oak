@@ -33,6 +33,7 @@ import javax.jcr.PropertyType;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Closer;
 import com.google.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -235,6 +236,12 @@ public class IndexConsistencyChecker {
     }
 
     public Result check(Level level, boolean cleanWorkDir) throws IOException {
+        try (Closer closer = Closer.create()) {
+            return check(level, cleanWorkDir, closer);
+        }
+    }
+
+    private Result check(Level level, boolean cleanWorkDir, Closer closer) throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         Result result = new Result();
         result.indexPath = indexPath;
@@ -245,7 +252,7 @@ public class IndexConsistencyChecker {
 
         checkBlobs(result);
         if (level == Level.FULL && result.clean){
-            checkIndex(result);
+            checkIndex(result, closer);
         }
 
         if (result.clean){
@@ -265,7 +272,7 @@ public class IndexConsistencyChecker {
         return result;
     }
 
-    private void checkIndex(Result result) throws IOException {
+    private void checkIndex(Result result, Closer closer) throws IOException {
         NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
         IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx, indexPath).build();
         workDir = createWorkDir(workDirRoot, PathUtils.getName(indexPath));
@@ -277,7 +284,7 @@ public class IndexConsistencyChecker {
                 result.dirStatus.add(dirStatus);
                 log.debug("[{}] Checking directory {}", indexPath, dirName);
                 try {
-                    checkIndexDirectory(dirStatus, idx, defn, workDir, dirName);
+                    checkIndexDirectory(dirStatus, idx, defn, workDir, dirName, closer);
                 } catch (IOException e){
                     dirStatus.clean = false;
                     log.warn("[{}][{}] Error occurred while performing directory check", indexPath, dirName, e);
@@ -291,10 +298,13 @@ public class IndexConsistencyChecker {
     }
 
     private void checkIndexDirectory(DirectoryStatus dirStatus, NodeState idx, IndexDefinition defn,
-                                     File workDir, String dirName) throws IOException {
+                                     File workDir, String dirName, Closer closer) throws IOException {
         File idxDir = createWorkDir(workDir, dirName);
         Directory sourceDir = new OakDirectory(new ReadOnlyBuilder(idx), dirName, defn, true);
         Directory targetDir = FSDirectory.open(idxDir);
+
+        closer.register(sourceDir);
+        closer.register(targetDir);
 
         boolean clean = true;
         for (String file : sourceDir.listAll()) {
@@ -337,7 +347,7 @@ public class IndexConsistencyChecker {
             DirectoryReader dirReader = DirectoryReader.open(targetDir);
             dirStatus.numDocs = dirReader.numDocs();
             log.debug("[{}][{}] DirectoryReader can be opened", indexPath, dirName);
-            dirReader.close();
+            closer.register(dirReader);
         }
     }
 
