@@ -27,6 +27,7 @@ import java.io.StringWriter;
 import org.apache.jackrabbit.oak.console.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
@@ -96,7 +97,12 @@ public class JsonIndexTest {
                     throw new RuntimeException(e);
                 }
             }
-            
+
+            @Override
+            public BlobStore getBlobStore() {
+                return null;
+            }
+
         };
     }
     

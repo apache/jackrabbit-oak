@@ -68,7 +68,7 @@ public class NodeStoreFixtureProvider {
             store = configureSegment(options, blobStore, closer, readOnly);
         }
 
-        return new SimpleNodeStoreFixture(store, closer);
+        return new SimpleNodeStoreFixture(store, blobStore, closer);
     }
 
 
@@ -156,8 +156,10 @@ public class NodeStoreFixtureProvider {
     private static class SimpleNodeStoreFixture implements NodeStoreFixture {
         private final Closer closer;
         private final NodeStore nodeStore;
+        private final BlobStore blobStore;
 
-        private SimpleNodeStoreFixture(NodeStore nodeStore, Closer closer) {
+        private SimpleNodeStoreFixture(NodeStore nodeStore, BlobStore blobStore, Closer closer) {
+            this.blobStore = blobStore;
             this.closer = closer;
             this.nodeStore = nodeStore;
         }
@@ -165,6 +167,11 @@ public class NodeStoreFixtureProvider {
         @Override
         public NodeStore getStore() {
             return nodeStore;
+        }
+
+        @Override
+        public BlobStore getBlobStore() {
+            return blobStore;
         }
 
         @Override
