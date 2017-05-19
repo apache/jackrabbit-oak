@@ -31,6 +31,7 @@ import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -40,12 +41,17 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
 public class RepositoryFixture implements Closeable {
     private final File dir;
     private Repository repository;
     private FileStore fileStore;
     private NodeStore nodeStore;
+    private Whiteboard whiteboard;
 
     public RepositoryFixture(File dir) {
         this.dir = dir;
@@ -69,6 +75,11 @@ public class RepositoryFixture implements Closeable {
         return nodeStore;
     }
 
+    public AsyncIndexUpdate getAsyncIndexUpdate(String laneName) {
+        return (AsyncIndexUpdate) getService(whiteboard, Runnable.class,
+                (runnable) -> runnable instanceof AsyncIndexUpdate && laneName.equals(((AsyncIndexUpdate)runnable).getName()));
+    }
+
     @Override
     public void close() throws IOException {
         if (repository instanceof JackrabbitRepository) {
@@ -80,6 +91,8 @@ public class RepositoryFixture implements Closeable {
             fileStore.close();
             fileStore = null;
         }
+
+        whiteboard = null;
     }
 
     public File getDir() {
@@ -88,10 +101,14 @@ public class RepositoryFixture implements Closeable {
 
     private Repository createRepository() throws IOException {
         Oak oak = new Oak(getNodeStore());
+
+        oak.withAsyncIndexing("async", 3600); //Effectively disable async indexing
         configureLuceneProvider(oak);
 
         Jcr jcr = new Jcr(oak);
-        return jcr.createRepository();
+        Repository repository = jcr.createRepository();
+        whiteboard = oak.getWhiteboard();
+        return repository;
     }
 
     private void configureLuceneProvider(Oak oak) throws IOException {

@@ -51,6 +51,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> stats;
     private final OptionSpec<Void> definitions;
     private final OptionSpec<Void> dumpIndex;
+    private final OptionSpec<Void> reindex;
     private final OptionSpec<Integer> consistencyCheck;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
@@ -75,9 +76,10 @@ public class IndexOptions implements OptionsBean {
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1);
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
+        reindex = parser.accepts("reindex", "Reindex the indexes").availableIf("index-paths");
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex);
+        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex);
         operationNames = collectionOperationNames(actionOpts);
     }
 
@@ -137,6 +139,10 @@ public class IndexOptions implements OptionsBean {
 
     public int consistencyCheckLevel(){
         return consistencyCheck.value(options);
+    }
+
+    public boolean isReindex() {
+        return options.has(reindex);
     }
 
     public List<String> getIndexPaths(){

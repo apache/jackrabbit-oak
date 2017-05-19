@@ -1445,7 +1445,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         this.mbeanRegistration = mbeanRegistration;
     }
 
-    protected String getName() {
+    public String getName() {
         return name;
     }
 

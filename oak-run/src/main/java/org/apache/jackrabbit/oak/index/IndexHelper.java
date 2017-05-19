@@ -19,9 +19,23 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
@@ -32,9 +46,16 @@ import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexPrinter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexInfoProvider;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-class IndexHelper {
+class IndexHelper implements Closeable{
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore store;
     private final File outputDir;
     private final File workDir;
@@ -42,12 +63,17 @@ class IndexHelper {
     private IndexPathService indexPathService;
     private AsyncIndexInfoService asyncIndexInfoService;
     private final List<String> indexPaths;
+    private LuceneIndexHelper luceneIndexHelper;
+    private Executor executor;
+    private final Closer closer = Closer.create();
+    private final BlobStore blobStore;
 
-    IndexHelper(NodeStore store, File outputDir, File workDir, List<String> indexPaths) {
+    IndexHelper(NodeStore store, BlobStore blobStore, File outputDir, File workDir, List<String> indexPaths) {
         this.store = store;
+        this.blobStore = blobStore;
         this.outputDir = outputDir;
         this.workDir = workDir;
-        this.indexPaths = indexPaths;
+        this.indexPaths = ImmutableList.copyOf(indexPaths);
     }
 
     public NodeStore getNodeStore() {
@@ -81,6 +107,44 @@ class IndexHelper {
         return indexPathService;
     }
 
+    public List<String> getIndexPaths() {
+        return indexPaths;
+    }
+
+    public Executor getExecutor() {
+        if (executor == null) {
+            ExecutorService executorService = createExecutor();
+            closer.register(new ExecutorCloser(executorService));
+            executor = executorService;
+        }
+        return executor;
+    }
+
+    public MountInfoProvider getMountInfoProvider(){
+        return Mounts.defaultMountInfoProvider();
+    }
+
+    public StatisticsProvider getStatisticsProvider(){
+        return StatisticsProvider.NOOP; //TODO Wire in a real stats provider based on metric
+    }
+
+    public BlobStore getBlobStore() {
+        return blobStore;
+    }
+
+    public LuceneIndexHelper getLuceneIndexHelper(){
+        if (luceneIndexHelper == null) {
+            luceneIndexHelper = new LuceneIndexHelper(this);
+            closer.register(luceneIndexHelper);
+        }
+        return luceneIndexHelper;
+    }
+
+    @Override
+    public void close() throws IOException {
+        closer.close();
+    }
+
     private AsyncIndexInfoService getAsyncIndexInfoService() {
         if (asyncIndexInfoService == null) {
             asyncIndexInfoService = new AsyncIndexInfoServiceImpl(store);
@@ -99,5 +163,29 @@ class IndexHelper {
     private void bindIndexInfoProviders(IndexInfoServiceImpl indexInfoService) {
         indexInfoService.bindInfoProviders(new LuceneIndexInfoProvider(store, getAsyncIndexInfoService(), workDir));
         indexInfoService.bindInfoProviders(new PropertyIndexInfoProvider(store));
+    }
+
+    private ThreadPoolExecutor createExecutor() {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(0, 5, 60L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
+            private final AtomicInteger counter = new AtomicInteger();
+            private final Thread.UncaughtExceptionHandler handler =
+                    (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
+            @Override
+            public Thread newThread(@Nonnull Runnable r) {
+                Thread thread = new Thread(r, createName());
+                thread.setDaemon(true);
+                thread.setPriority(Thread.MIN_PRIORITY);
+                thread.setUncaughtExceptionHandler(handler);
+                return thread;
+            }
+
+            private String createName() {
+                return "oak-lucene-" + counter.getAndIncrement();
+            }
+        });
+        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
     }
 }
