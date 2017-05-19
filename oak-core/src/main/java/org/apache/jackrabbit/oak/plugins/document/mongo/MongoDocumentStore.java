@@ -1096,6 +1096,7 @@ public class MongoDocumentStore implements DocumentStore {
                         }
                         break;
                     }
+                    case REMOVE:
                     case REMOVE_MAP_ENTRY:
                         // nothing to do for new entries
                         break;
@@ -1457,6 +1458,7 @@ public class MongoDocumentStore implements DocumentStore {
                     incUpdates.append(k.toString(), op.value);
                     break;
                 }
+                case REMOVE:
                 case REMOVE_MAP_ENTRY: {
                     unsetUpdates.append(k.toString(), "1");
                     break;

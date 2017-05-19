@@ -121,7 +121,7 @@ public class RDBDocumentSerializer {
                 sb.append("\"=\",");
             } else if (op.type == UpdateOp.Operation.Type.MAX) {
                 sb.append("\"M\",");
-            } else if (op.type == UpdateOp.Operation.Type.REMOVE_MAP_ENTRY) {
+            } else if (op.type == UpdateOp.Operation.Type.REMOVE || op.type == UpdateOp.Operation.Type.REMOVE_MAP_ENTRY) {
                 sb.append("\"*\",");
             } else {
                 throw new DocumentStoreException("Can't serialize " + update.toString() + " for JSON append");
@@ -266,7 +266,7 @@ public class RDBDocumentSerializer {
             }
         } else if ("*".equals(opcode)) {
             if (rev == null) {
-                throw new DocumentStoreException("unexpected operation " + op + " in: " + updateString);
+                doc.remove(key);
             } else {
                 @SuppressWarnings("unchecked")
                 Map<Revision, Object> m = (Map<Revision, Object>) old;
