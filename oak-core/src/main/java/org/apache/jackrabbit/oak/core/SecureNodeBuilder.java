@@ -158,9 +158,8 @@ class SecureNodeBuilder implements NodeBuilder {
 
     public void baseChanged() {
         checkState(parent == null);
-        treePermission = null; // trigger re-evaluation of the context
+        treePermission = null; // trigger re-evaluation
         rootPermission = null;
-        getTreePermission();   // sets both tree permissions and root node permissions
     }
 
     @Override
@@ -174,11 +173,11 @@ class SecureNodeBuilder implements NodeBuilder {
         return exists() && builder.moveTo(newParent, newName);
     }
 
-    @Override @CheckForNull
+    @CheckForNull
+    @Override
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
-        if (property != null
-                && new ReadablePropertyPredicate().apply(property)) {
+        if (new ReadablePropertyPredicate().apply(property)) {
             return property;
         } else {
             return null;
@@ -201,7 +200,8 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public Iterable<? extends PropertyState> getProperties() {
         if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getProperties();
@@ -215,61 +215,66 @@ class SecureNodeBuilder implements NodeBuilder {
     @Override
     public boolean getBoolean(@Nonnull String name) {
         PropertyState property = getProperty(name);
-        return property != null
-                && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
+        return isType(property, BOOLEAN)  && property.getValue(BOOLEAN);
     }
 
-    @Override @CheckForNull
+    @CheckForNull
+    @Override
     public String getString(@Nonnull String name) {
         PropertyState property = getProperty(name);
-        if (property != null && property.getType() == STRING) {
+        if (isType(property, STRING)) {
             return property.getValue(STRING);
         } else {
             return null;
         }
     }
 
-    @Override @CheckForNull
+    @CheckForNull
+    @Override
     public String getName(@Nonnull String name) {
         PropertyState property = getProperty(name);
-        if (property != null && property.getType() == NAME) {
+        if (isType(property, NAME)) {
             return property.getValue(NAME);
         } else {
             return null;
         }
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public Iterable<String> getNames(@Nonnull String name) {
         PropertyState property = getProperty(name);
-        if (property != null && property.getType() == NAMES) {
+        if (isType(property, NAMES)) {
             return property.getValue(NAMES);
         } else {
             return emptyList();
         }
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public NodeBuilder setProperty(@Nonnull PropertyState property) {
         builder.setProperty(property);
         return this;
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public <T> NodeBuilder setProperty(String name, @Nonnull T value) {
         builder.setProperty(name, value);
         return this;
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public <T> NodeBuilder setProperty(
             String name, @Nonnull T value, Type<T> type) {
         builder.setProperty(name, value, type);
         return this;
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public NodeBuilder removeProperty(String name) {
         if (hasProperty(name)) { // only remove properties that we can see
             builder.removeProperty(name);
@@ -277,16 +282,12 @@ class SecureNodeBuilder implements NodeBuilder {
         return this;
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public Iterable<String> getChildNodeNames() {
         return filter(
                 builder.getChildNodeNames(),
-                new Predicate<String>() {
-                    @Override
-                    public boolean apply(@Nullable String input) {
-                        return input != null && getChildNode(input).exists();
-                    }
-                });
+                input -> input != null && getChildNode(input).exists());
     }
 
     @Override
@@ -298,7 +299,8 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public NodeBuilder child(@Nonnull String name) {
         if (hasChildNode(name)) {
             return getChildNode(name);
@@ -307,13 +309,15 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public NodeBuilder setChildNode(@Nonnull String name) {
         builder.setChildNode(name);
         return new SecureNodeBuilder(this, name);
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState nodeState) {
         builder.setChildNode(name, nodeState);
         return new SecureNodeBuilder(this, name);
@@ -344,6 +348,7 @@ class SecureNodeBuilder implements NodeBuilder {
      *
      * @return The permissions for this tree.
      */
+    @Nonnull
     private TreePermission getTreePermission() {
         if (treePermission == null
                 || rootPermission != rootBuilder.treePermission) {
@@ -358,6 +363,11 @@ class SecureNodeBuilder implements NodeBuilder {
             }
         }
         return treePermission;
+    }
+
+    private static boolean isType(@CheckForNull PropertyState property, Type<?> type) {
+        Type<?> t = (property == null) ? null : property.getType();
+        return t == type;
     }
 
     //------------------------------------------------------< inner classes >---
