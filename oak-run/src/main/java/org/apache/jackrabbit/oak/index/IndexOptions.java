@@ -94,7 +94,9 @@ public class IndexOptions implements OptionsBean {
     @Override
     public String description() {
         return "Index command supports following operations. Most operations are read only. For performing them " +
-                "BloStore related options must be provided as they would access the binaries stored there  ";
+                "BloStore related options must be provided as they would access the binaries stored there. \n" +
+                "By default it performs --index-info and --index-definitions operation if no explicit operation is selected. \n" +
+                "Use --index-paths to restrict the set of indexes on which the operation needs to be performed";
     }
 
     @Override
