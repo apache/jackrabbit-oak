@@ -33,7 +33,7 @@ public class DocumentNodeStoreOptions implements OptionsBean {
     private OptionSet options;
 
     public DocumentNodeStoreOptions(OptionParser parser){
-        clusterId = parser.accepts("clusterId", "MongoMK clusterId")
+        clusterId = parser.accepts("clusterId", "Cluster node instance id")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         disableBranchesSpec = parser.
                 accepts("disableBranches", "disable branches");
