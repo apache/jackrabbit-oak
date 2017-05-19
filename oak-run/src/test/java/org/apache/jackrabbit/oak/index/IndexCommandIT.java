@@ -71,7 +71,7 @@ public class IndexCommandIT {
 
         File outDir = temporaryFolder.newFolder();
         String[] args = {
-                "-index-work-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "-index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
                 "-index-out-dir="  + outDir.getAbsolutePath(),
                 "-index-info",
                 "-index-definitions",
@@ -100,7 +100,7 @@ public class IndexCommandIT {
 
         File outDir = temporaryFolder.newFolder();
         String[] args = {
-                "-index-work-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "-index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
                 "-index-out-dir="  + outDir.getAbsolutePath(),
                 "-index-paths=/oak:index/fooIndex",
                 "-index-info",
@@ -128,7 +128,7 @@ public class IndexCommandIT {
 
         File outDir = temporaryFolder.newFolder();
         String[] args = {
-                "--index-work-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
                 "--index-out-dir="  + outDir.getAbsolutePath(),
                 "--index-consistency-check",
                 "--", // -- indicates that options have ended and rest needs to be treated as non option
@@ -156,7 +156,7 @@ public class IndexCommandIT {
 
         File outDir = temporaryFolder.newFolder();
         String[] args = {
-                "--index-work-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
                 "--index-out-dir="  + outDir.getAbsolutePath(),
                 "--index-dump",
                 "--", // -- indicates that options have ended and rest needs to be treated as non option
@@ -180,7 +180,7 @@ public class IndexCommandIT {
         File outDir = temporaryFolder.newFolder();
         File storeDir = fixture.getDir();
         String[] args = {
-                "--index-work-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
                 "--index-out-dir="  + outDir.getAbsolutePath(),
                 "--index-paths=/oak:index/fooIndex",
                 "--read-write=true",

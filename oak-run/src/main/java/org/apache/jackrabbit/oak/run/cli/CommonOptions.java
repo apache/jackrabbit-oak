@@ -78,7 +78,7 @@ public class CommonOptions implements OptionsBean {
 
     @Override
     public String title() {
-        return null;
+        return "Global Options";
     }
 
     @Override

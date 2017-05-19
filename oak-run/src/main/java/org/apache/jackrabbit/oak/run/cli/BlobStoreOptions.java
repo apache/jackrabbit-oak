@@ -37,13 +37,13 @@ public class BlobStoreOptions implements OptionsBean {
     private OptionSet options;
 
     public BlobStoreOptions(OptionParser parser){
-        fdsOption = parser.acceptsAll(asList("fds"), "FileDataStore config")
+        fdsOption = parser.acceptsAll(asList("fds"), "FileDataStore config path")
                 .withRequiredArg().ofType(String.class);
         fdsPathOption = parser.acceptsAll(asList("fds-path"), "FileDataStore path")
                 .withRequiredArg().ofType(String.class);
-        s3Option = parser.accepts("s3ds", "S3DataStore config")
+        s3Option = parser.accepts("s3ds", "S3DataStore config path")
                 .withRequiredArg().ofType(String.class);
-        azureOption = parser.accepts("azureblobds", "AzureBlobStorageDataStore config")
+        azureOption = parser.acceptsAll(asList("azureblobds", "azureds"), "AzureBlobStorageDataStore config path")
                 .withRequiredArg().ofType(String.class);
     }
 
@@ -59,7 +59,8 @@ public class BlobStoreOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "Options related to configuring a BlobStore";
+        return "Options related to configuring a BlobStore. All config options here (except --fds-path) refer to " +
+                "path of the config file. The file should be '.cofig' file confirming to OSGi config admin format ";
     }
 
     @Override
