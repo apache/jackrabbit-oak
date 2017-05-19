@@ -22,36 +22,32 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 import java.io.IOException;
 import java.util.Map;
 
-import javax.annotation.Nullable;
 
 import com.google.common.collect.Maps;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
 class MultiplexingIndexWriter implements LuceneIndexWriter {
-    private final IndexCopier indexCopier;
     private final MountInfoProvider mountInfoProvider;
+    private final DirectoryFactory directoryFactory;
     private final IndexDefinition definition;
     private final NodeBuilder definitionBuilder;
     private final boolean reindex;
-    private GarbageCollectableBlobStore blobStore;
 
     private final Map<Mount, DefaultIndexWriter> writers = Maps.newHashMap();
 
-    public MultiplexingIndexWriter(IndexCopier indexCopier, MountInfoProvider mountInfoProvider,
+    public MultiplexingIndexWriter(DirectoryFactory directoryFactory, MountInfoProvider mountInfoProvider,
                                    IndexDefinition definition, NodeBuilder definitionBuilder,
-                                   boolean reindex, @Nullable GarbageCollectableBlobStore blobStore) {
-        this.indexCopier = indexCopier;
+                                   boolean reindex) {
         this.mountInfoProvider = mountInfoProvider;
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
         this.reindex = reindex;
-        this.blobStore = blobStore;
+        this.directoryFactory = directoryFactory;
     }
 
     @Override
@@ -100,7 +96,7 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
     private DefaultIndexWriter createWriter(Mount m) {
         String dirName = MultiplexersLucene.getIndexDirName(m);
         String suggestDirName = MultiplexersLucene.getSuggestDirName(m);
-        return new DefaultIndexWriter(definition, definitionBuilder, indexCopier, dirName,
-            suggestDirName, reindex, blobStore);
+        return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory, dirName,
+            suggestDirName, reindex);
     }
 }
