@@ -90,9 +90,7 @@ public class CopyOnWriteDirectoryTest {
     public void copyOnWrite() throws Exception {
         IndexDefinition def = new IndexDefinition(ns.getRoot(), ns.getRoot(), "/foo");
         NodeBuilder builder = ns.getRoot().builder();
-        Directory remote = IndexWriterUtils.newIndexDirectory(
-                def, builder.child("foo"), INDEX_DATA_CHILD_NAME, true, null);
-        Directory dir = copier.wrapForWrite(def, remote, false, INDEX_DATA_CHILD_NAME);
+        Directory dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
         addFiles(dir);
         writeTree(builder);
         dir.close();
