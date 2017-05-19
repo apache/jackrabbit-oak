@@ -30,14 +30,21 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     private final MountInfoProvider mountInfoProvider;
     private final DirectoryFactory directoryFactory;
 
     public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
         @Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore) {
-        this.mountInfoProvider = mountInfoProvider;
-        this.directoryFactory = new DefaultDirectoryFactory(indexCopier, blobStore);
+        this(mountInfoProvider, new DefaultDirectoryFactory(indexCopier, blobStore));
+    }
+
+    public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
+                                     DirectoryFactory directoryFactory) {
+        this.mountInfoProvider = checkNotNull(mountInfoProvider);
+        this.directoryFactory = checkNotNull(directoryFactory);
     }
 
     @Override

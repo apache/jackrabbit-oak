@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.IndexingQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneDocumentHolder;
@@ -62,6 +64,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final MountInfoProvider mountInfoProvider;
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
+    private DirectoryFactory directoryFactory;
 
     /**
      * Number of indexed Lucene document that can be held in memory
@@ -112,7 +115,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
                     "ContextAwareCallback [%s]", callback);
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
-            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, indexCopier, blobStore);
+            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, getDirectoryFactory());
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
             IndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
@@ -182,6 +185,17 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     public void setInMemoryDocsLimit(int inMemoryDocsLimit) {
         this.inMemoryDocsLimit = inMemoryDocsLimit;
+    }
+
+    public void setDirectoryFactory(DirectoryFactory directoryFactory) {
+        this.directoryFactory = directoryFactory;
+    }
+
+    private DirectoryFactory getDirectoryFactory() {
+        if (directoryFactory == null) {
+            directoryFactory = new DefaultDirectoryFactory(indexCopier, blobStore);
+        }
+        return directoryFactory;
     }
 
     private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
