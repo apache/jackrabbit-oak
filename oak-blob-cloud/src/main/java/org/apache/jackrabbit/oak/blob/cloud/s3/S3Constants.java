@@ -58,6 +58,11 @@ public final class S3Constants {
     public static final String S3_BUCKET = "s3Bucket";
 
     /**
+     * Amazon aws S3 bucket (alternate property name).
+     */
+    public static final String S3_CONTAINER = "container";
+
+    /**
      * Amazon aws S3 region.
      */
     public static final String S3_REGION = "s3Region";
