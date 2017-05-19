@@ -28,8 +28,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,8 +40,10 @@ import org.junit.rules.TemporaryFolder;
 
 import static java.nio.charset.Charset.defaultCharset;
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -58,7 +63,7 @@ public class IndexCommandIT {
 
     @Test
     public void dumpStatsAndInfo() throws Exception{
-        createTestData();
+        createTestData(false);
         //Close the repository so as all changes are flushed
         fixture.close();
 
@@ -87,7 +92,7 @@ public class IndexCommandIT {
 
     @Test
     public void selectedIndexPaths() throws Exception{
-        createTestData();
+        createTestData(false);
         //Close the repository so as all changes are flushed
         fixture.close();
 
@@ -115,7 +120,7 @@ public class IndexCommandIT {
 
     @Test
     public void consistencyCheck() throws Exception{
-        createTestData();
+        createTestData(false);
         //Close the repository so as all changes are flushed
         fixture.close();
 
@@ -143,7 +148,7 @@ public class IndexCommandIT {
 
     @Test
     public void dumpIndex() throws Exception{
-        createTestData();
+        createTestData(false);
         //Close the repository so as all changes are flushed
         fixture.close();
 
@@ -163,10 +168,39 @@ public class IndexCommandIT {
         assertTrue(dumpDir.exists());
     }
 
-    private void createTestData() throws IOException, RepositoryException {
+    @Test
+    public void reindex() throws Exception{
+        createTestData(true);
+        fixture.getAsyncIndexUpdate("async").run();
+        //Close the repository so as all changes are flushed
+        fixture.close();
+
+        IndexCommand command = new IndexCommand();
+
+        File outDir = temporaryFolder.newFolder();
+        File storeDir = fixture.getDir();
+        String[] args = {
+                "--index-work-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-out-dir="  + outDir.getAbsolutePath(),
+                "--index-paths=/oak:index/fooIndex",
+                "--read-write=true",
+                "--reindex",
+                "--", // -- indicates that options have ended and rest needs to be treated as non option
+                storeDir.getAbsolutePath()
+        };
+
+        command.execute(args);
+
+        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+        NodeStore store2 = fixture2.getNodeStore();
+        PropertyState reindexCount = getNode(store2.getRoot(), "/oak:index/fooIndex").getProperty(IndexConstants.REINDEX_COUNT);
+        assertEquals(2, reindexCount.getValue(Type.LONG).longValue());
+    }
+
+    private void createTestData(boolean asyncIndex) throws IOException, RepositoryException {
         fixture = new RepositoryFixture(temporaryFolder.newFolder());
         indexIndexDefinitions();
-        createLuceneIndex();
+        createLuceneIndex(asyncIndex);
         addTestContent();
     }
 
@@ -190,9 +224,11 @@ public class IndexCommandIT {
         session.logout();
     }
 
-    private void createLuceneIndex() throws IOException, RepositoryException {
+    private void createLuceneIndex(boolean asyncIndex) throws IOException, RepositoryException {
         IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
-        idxBuilder.noAsync();
+        if (!asyncIndex) {
+            idxBuilder.noAsync();
+        }
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
 
         Session session = fixture.getAdminSession();
