@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -149,6 +150,10 @@ public class S3Backend implements SharedS3Backend {
             s3service = Utils.openService(prop);
             if (bucket == null || "".equals(bucket.trim())) {
                 bucket = prop.getProperty(S3Constants.S3_BUCKET);
+                // Alternately check if the 'container' property is set
+                if (Strings.isNullOrEmpty(bucket)) {
+                    bucket = prop.getProperty(S3Constants.S3_CONTAINER);
+                }
             }
             String region = prop.getProperty(S3Constants.S3_REGION);
             Region s3Region = null;
