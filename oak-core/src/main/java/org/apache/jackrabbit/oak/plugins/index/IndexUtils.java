@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -31,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROP
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -38,6 +40,8 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -219,5 +223,19 @@ public class IndexUtils {
             }
         }
         return entry;
+    }
+
+    @CheckForNull
+    public static String getAsyncLaneName(NodeState idxState, String indexPath) {
+        PropertyState async = idxState.getProperty(IndexConstants.ASYNC_PROPERTY_NAME);
+        if (async != null) {
+            Set<String> asyncNames = Sets.newHashSet(async.getValue(Type.STRINGS));
+            asyncNames.remove(IndexConstants.INDEXING_MODE_NRT);
+            asyncNames.remove(IndexConstants.INDEXING_MODE_SYNC);
+            checkArgument(!asyncNames.isEmpty(), "No valid async name found for " +
+                    "index [%s], definition %s", indexPath, idxState);
+            return Iterables.getOnlyElement(asyncNames);
+        }
+        return null;
     }
 }

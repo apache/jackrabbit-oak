@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
@@ -67,19 +68,6 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         this.workDir = checkNotNull(workDir);
     }
 
-    static String getAsyncName(NodeState idxState, String indexPath) {
-        PropertyState async = idxState.getProperty(IndexConstants.ASYNC_PROPERTY_NAME);
-        if (async != null) {
-            Set<String> asyncNames = Sets.newHashSet(async.getValue(Type.STRINGS));
-            asyncNames.remove(IndexConstants.INDEXING_MODE_NRT);
-            asyncNames.remove(IndexConstants.INDEXING_MODE_SYNC);
-            checkArgument(!asyncNames.isEmpty(), "No valid async name found for " +
-                    "index [%s], definition %s", indexPath, idxState);
-            return Iterables.getOnlyElement(asyncNames);
-        }
-        return null;
-    }
-
     @Override
     public String getType() {
         return LuceneIndexConstants.TYPE_LUCENE;
@@ -107,7 +95,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     }
 
     private void computeAsyncIndexInfo(NodeState idxState, String indexPath, LuceneIndexInfo info) {
-        String asyncName = getAsyncName(idxState, indexPath);
+        String asyncName = IndexUtils.getAsyncLaneName(idxState, indexPath);
         if (asyncName == null) {
             log.warn("No 'async' value for index definition at [{}]. Definition {}", indexPath, idxState);
             return;

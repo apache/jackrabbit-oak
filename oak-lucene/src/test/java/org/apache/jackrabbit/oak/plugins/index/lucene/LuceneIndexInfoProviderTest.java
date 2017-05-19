@@ -57,18 +57,6 @@ public class LuceneIndexInfoProviderTest {
         provider = new LuceneIndexInfoProvider(store, asyncService, temporaryFolder.getRoot());
     }
 
-    @Test
-    public void asyncName() throws Exception {
-        assertNull(LuceneIndexInfoProvider.getAsyncName(EMPTY_NODE, "/fooIndex"));
-
-        NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty("async", newArrayList("async2", "sync"), Type.STRINGS);
-        assertEquals("async2", LuceneIndexInfoProvider.getAsyncName(builder.getNodeState(), "/fooIndex"));
-
-        builder.setProperty("async", newArrayList("async3"), Type.STRINGS);
-        assertEquals("async3", LuceneIndexInfoProvider.getAsyncName(builder.getNodeState(), "/fooIndex"));
-    }
-
     @Test(expected = IllegalArgumentException.class)
     public void infoNonExisting() throws Exception {
         provider.getInfo("/no/existing/path");
