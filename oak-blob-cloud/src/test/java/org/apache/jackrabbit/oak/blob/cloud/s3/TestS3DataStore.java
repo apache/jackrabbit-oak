@@ -145,4 +145,22 @@ public class TestS3DataStore {
 
         assertEquals(id, ref);
     }
+
+    @Test
+    public void testAlternateBucketProp() throws Exception {
+        assumeTrue(isS3Configured());
+
+        Random randomGen = new Random();
+        props = S3DataStoreUtils.getS3Config();
+        //Replace bucket in props with container
+        String bucket = props.getProperty(S3Constants.S3_BUCKET);
+        props.remove(S3Constants.S3_BUCKET);
+        props.put(S3Constants.S3_CONTAINER, bucket);
+
+        ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
+        byte[] data = new byte[4096];
+        randomGen.nextBytes(data);
+        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+        assertEquals(data.length, rec.getLength());
+    }
 }
