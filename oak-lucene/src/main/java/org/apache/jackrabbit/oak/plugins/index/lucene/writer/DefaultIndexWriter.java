@@ -24,15 +24,12 @@ import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
@@ -50,7 +47,6 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.newIndexDirectory;
 
 class DefaultIndexWriter implements LuceneIndexWriter {
     private static final Logger log = LoggerFactory.getLogger(DefaultIndexWriter.class);
@@ -59,32 +55,24 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     private final IndexDefinition definition;
     private final NodeBuilder definitionBuilder;
-    private final IndexCopier indexCopier;
+    private final DirectoryFactory directoryFactory;
     private final String dirName;
     private final String suggestDirName;
     private final boolean reindex;
     private IndexWriter writer;
     private Directory directory;
-    private GarbageCollectableBlobStore blobStore;
     private long genAtStart = -1;
     private boolean indexUpdated = false;
 
     public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
-        @Nullable IndexCopier indexCopier, String dirName, String suggestDirName,
-        boolean reindex, @Nullable GarbageCollectableBlobStore blobStore) {
+                              DirectoryFactory directoryFactory, String dirName, String suggestDirName,
+                              boolean reindex) {
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
-        this.indexCopier = indexCopier;
+        this.directoryFactory = directoryFactory;
         this.dirName = dirName;
         this.suggestDirName = suggestDirName;
         this.reindex = reindex;
-        this.blobStore = blobStore;
-    }
-
-    public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
-                              @Nullable IndexCopier indexCopier, String dirName, String suggestDirName,
-                              boolean reindex) {
-        this(definition, definitionBuilder, indexCopier, dirName, suggestDirName, reindex, null);
     }
 
     @Override
@@ -130,7 +118,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             final long start = PERF_LOGGER.start();
 
             if (updateSuggestions) {
-                indexUpdated |= updateSuggester(writer.getAnalyzer(), currentTime, blobStore);
+                indexUpdated |= updateSuggester(writer.getAnalyzer(), currentTime);
                 PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
             }
 
@@ -153,10 +141,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
-            directory = newIndexDirectory(definition, definitionBuilder, dirName, indexCopier != null, blobStore);
+            directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
             IndexWriterConfig config;
-            if (indexCopier != null){
-                directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);
+            if (directoryFactory.remoteDirectory()){
                 config = getIndexWriterConfig(definition, false);
             } else {
                 config = getIndexWriterConfig(definition, true);
@@ -174,20 +161,19 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * @param analyzer the analyzer used to update the suggester
      * @param blobStore
      */
-    private boolean updateSuggester(Analyzer analyzer, Calendar currentTime,
-        @Nullable GarbageCollectableBlobStore blobStore) throws IOException {
+    private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
         NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
         DirectoryReader reader = DirectoryReader.open(writer, false);
-        final OakDirectory suggestDirectory =
-            new OakDirectory(definitionBuilder, suggestDirName, definition, false, blobStore);
+        final Directory suggestDirectory =
+            directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
         boolean updated = false;
         try {
             SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
             suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
+            updated = true;
         } catch (Throwable e) {
             log.warn("could not update suggester", e);
         } finally {
-            updated = suggestDirectory.isDirty();
             suggestDirectory.close();
             reader.close();
         }
