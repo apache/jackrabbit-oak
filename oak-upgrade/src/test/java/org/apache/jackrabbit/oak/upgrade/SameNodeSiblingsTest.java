@@ -20,12 +20,11 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.upgrade.cli.Util.createTempDir;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Set;
 
 import javax.jcr.Credentials;
@@ -53,7 +52,7 @@ public class SameNodeSiblingsTest {
 
     @Before
     public void createCrx2RepoDir() throws IOException {
-        crx2RepoDir = Files.createTempDirectory(Paths.get("target"), "repo-crx2").toFile();
+        this.crx2RepoDir = createTempDir("repo-crx2");
     }
 
     @After
