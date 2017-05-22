@@ -36,7 +36,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
@@ -209,6 +212,18 @@ public final class FileStoreHelper {
         return FileStore.builder(checkFileStoreVersionOrFail(directory, force))
                 .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED).build();
+    }
+
+    public static FileStore openFileStore(String directory, boolean force, @Nullable Boolean mmap)
+    throws IOException, InvalidFileStoreVersionException {
+        Builder builder = FileStore.builder(checkFileStoreVersionOrFail(directory, force))
+                .withCacheSize(TAR_SEGMENT_CACHE_SIZE);
+
+        if (mmap == null && !TAR_STORAGE_MEMORY_MAPPED) {
+            return builder.withDefaultMemoryMapping().build();
+        } else {
+            return builder.withMemoryMapping((mmap != null && mmap) || TAR_STORAGE_MEMORY_MAPPED).build();
+        }
     }
 
     public static FileStore openFileStore(String directory, boolean force,
