@@ -63,4 +63,11 @@ public final class Util {
             log.info("Unzip took {} msec", delta);
         }
     }
+
+    public static File createTempDir(String prefix) throws IOException {
+        File tempDir = File.createTempFile(prefix, "", new File("target"));
+        tempDir.delete();
+        tempDir.mkdir();
+        return tempDir;
+    }
 }
