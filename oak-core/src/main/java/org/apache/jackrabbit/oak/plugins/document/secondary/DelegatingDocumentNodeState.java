@@ -48,8 +48,8 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
  */
 public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     //Hidden props holding DocumentNodeState meta properties
-    static final String PROP_REVISION = ":doc-rev";
-    static final String PROP_LAST_REV = ":doc-lastRev";
+    public static final String PROP_REVISION = ":doc-rev";
+    public static final String PROP_LAST_REV = ":doc-lastRev";
 
     private static final Predicate<PropertyState> NOT_META_PROPS = new Predicate<PropertyState>() {
         @Override
