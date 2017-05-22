@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class IndexCommand implements Command {
     public static final String NAME = "index";
     public static final String INDEX_DEFINITIONS_JSON = "index-definitions.json";
@@ -46,12 +48,13 @@ public class IndexCommand implements Command {
     private File info;
     private File definitions;
     private File consistencyCheckReport;
+    private Options opts;
 
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
-        Options opts = new Options();
+        opts = new Options();
         opts.setCommandName(NAME);
         opts.setSummary(summary);
         opts.setConnectionString(CommonOptions.DEFAULT_CONNECTION_STRING);
@@ -100,7 +103,16 @@ public class IndexCommand implements Command {
         if (!indexOpts.isReindex()){
             return;
         }
-        new ReIndexer(indexHelper).reindex();
+
+        if (opts.getCommonOpts().isReadWrite()) {
+            new ReIndexer(indexHelper).reindex();
+        } else {
+            String checkpoint = indexOpts.getCheckpoint();
+            checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
+            try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, checkpoint)) {
+                indexer.reindex();
+            }
+        }
     }
 
     private void dumpIndexContents(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {

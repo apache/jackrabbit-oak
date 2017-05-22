@@ -56,6 +56,7 @@ public class IndexOptions implements OptionsBean {
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
     private final OptionSpec<String> indexPaths;
+    private final OptionSpec<String> checkpoint;
     private final Set<String> operationNames;
 
 
@@ -70,6 +71,10 @@ public class IndexOptions implements OptionsBean {
         indexPaths = parser.accepts("index-paths", "Comma separated list of index paths for which the " +
                 "selected operations need to be performed")
                 .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
+
+        checkpoint = parser.accepts("checkpoint", "Checkpoint value upto which index would be updated when " +
+                "indexing is performed in read only mode")
+                .withRequiredArg().ofType(String.class);
 
         consistencyCheck = parser.accepts("index-consistency-check", "Performs consistency check " +
                 "for indexes as specified by --index-paths. If none specified performs check for all indexes. Currently " +
@@ -144,6 +149,10 @@ public class IndexOptions implements OptionsBean {
 
     public boolean isReindex() {
         return options.has(reindex);
+    }
+
+    public String getCheckpoint(){
+        return checkpoint.value(options);
     }
 
     public List<String> getIndexPaths(){

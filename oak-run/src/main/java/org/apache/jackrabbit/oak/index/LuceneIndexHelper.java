@@ -28,13 +28,16 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 
 class LuceneIndexHelper implements Closeable {
     private final IndexHelper indexHelper;
     private IndexCopier indexCopier;
+    //TODO Set pre extracted text provider
     private final ExtractedTextCache textCache =
             new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
+    private DirectoryFactory directoryFactory;
 
     LuceneIndexHelper(IndexHelper indexHelper) {
         this.indexHelper = indexHelper;
@@ -52,7 +55,15 @@ class LuceneIndexHelper implements Closeable {
             editor.setBlobStore((GarbageCollectableBlobStore) indexHelper.getBlobStore());
         }
 
+        if (directoryFactory != null) {
+            editor.setDirectoryFactory(directoryFactory);
+        }
+
         return editor;
+    }
+
+    public void setDirectoryFactory(DirectoryFactory directoryFactory) {
+        this.directoryFactory = directoryFactory;
     }
 
     private IndexCopier getIndexCopier() throws IOException {
