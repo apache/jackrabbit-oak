@@ -57,6 +57,8 @@ import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.common.collect.Maps;
@@ -166,8 +168,9 @@ class SegmentUtils {
         checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
     }
 
-    static void compact(File directory, boolean force) throws IOException, InvalidFileStoreVersionException {
-        FileStore store = openFileStore(directory.getAbsolutePath(), force);
+    static void compact(File directory, boolean force, @Nullable Boolean mmap)
+    throws IOException, InvalidFileStoreVersionException {
+        FileStore store = openFileStore(directory.getAbsolutePath(), force, mmap);
         try {
             boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
             CompactionStrategy compactionStrategy = new CompactionStrategy(

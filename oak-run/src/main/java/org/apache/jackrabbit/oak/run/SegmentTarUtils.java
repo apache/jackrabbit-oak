@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
@@ -195,10 +198,10 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void compact(File directory, boolean force) {
+    static void compact(@Nonnull File directory, @Nullable Boolean mmap) {
         Compact.builder()
                 .withPath(directory)
-                .withForce(force)
+                .withMmap(mmap)
                 .build()
                 .run();
     }
