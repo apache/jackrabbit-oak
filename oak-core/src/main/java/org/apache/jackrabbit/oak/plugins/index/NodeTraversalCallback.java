@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
  * Callback which invoked for any changed node read by IndexUpdate
  * as part of diff traversal
  */
-interface NodeTraversalCallback{
+public interface NodeTraversalCallback{
     NodeTraversalCallback NOOP = new NodeTraversalCallback() {
         @Override
         public void traversedNode() throws CommitFailedException {
