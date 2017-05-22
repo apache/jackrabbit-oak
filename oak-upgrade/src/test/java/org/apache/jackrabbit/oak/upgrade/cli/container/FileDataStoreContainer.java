@@ -18,14 +18,14 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.FileDataStoreFactory;
 
 import com.google.common.io.Closer;
+
+import static org.apache.jackrabbit.oak.upgrade.cli.Util.createTempDir;
 
 public class FileDataStoreContainer implements BlobStoreContainer {
 
@@ -34,7 +34,7 @@ public class FileDataStoreContainer implements BlobStoreContainer {
     private final Closer closer;
     
     public FileDataStoreContainer() throws IOException {
-        this.directory = Files.createTempDirectory(Paths.get("target"), "repo-fds").toFile();
+        this.directory = createTempDir("repo-fds");
         this.closer = Closer.create();
     }
 
