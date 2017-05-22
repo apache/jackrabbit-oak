@@ -73,7 +73,8 @@ public class IndexOptions implements OptionsBean {
                 .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
 
         checkpoint = parser.accepts("checkpoint", "Checkpoint value upto which index would be updated when " +
-                "indexing is performed in read only mode")
+                "indexing is performed in read only mode. For testing purpose it can be set to 'head' to indicate that head " +
+                "state should be used.")
                 .withRequiredArg().ofType(String.class);
 
         consistencyCheck = parser.accepts("index-consistency-check", "Performs consistency check " +

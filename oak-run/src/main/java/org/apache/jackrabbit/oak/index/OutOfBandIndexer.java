@@ -87,6 +87,12 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
      */
     private static final String INDEXER_META = "indexer-info.txt";
 
+    /**
+     * Checkpoint value which indicate that head state needs to be used
+     * This would be mostly used for testing purpose
+     */
+    private static final String HEAD_AS_CHECKPOINT = "head";
+
     private final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
     private final String checkpoint;
@@ -106,6 +112,11 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
     public void reindex() throws CommitFailedException, IOException {
         Stopwatch w = Stopwatch.createStarted();
         NodeState checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
+
+        if (checkpointedState == null && HEAD_AS_CHECKPOINT.equals(checkpoint)) {
+            checkpointedState = indexHelper.getNodeStore().getRoot();
+            log.warn("Using head state for indexing. Such an index cannot be imported back");
+        }
 
         checkNotNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
         copyOnWriteStore = new MemoryNodeStore(checkpointedState);
@@ -192,6 +203,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
 
         for (String indexPath : indexHelper.getIndexPaths()) {
+            //TODO Do it only for lucene indexes for now
             NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexPath);
             idxBuilder.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
             switchLane(idxBuilder);
