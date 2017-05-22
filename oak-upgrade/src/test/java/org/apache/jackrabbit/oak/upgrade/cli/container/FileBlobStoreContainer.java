@@ -18,19 +18,19 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
+
+import static org.apache.jackrabbit.oak.upgrade.cli.Util.createTempDir;
 
 public class FileBlobStoreContainer implements BlobStoreContainer {
 
     private final File directory;
 
     public FileBlobStoreContainer() throws IOException {
-        this.directory = Files.createTempDirectory(Paths.get("target"), "repo-fbs").toFile();
+        this.directory = createTempDir("repo-fbs");
     }
 
     @Override
