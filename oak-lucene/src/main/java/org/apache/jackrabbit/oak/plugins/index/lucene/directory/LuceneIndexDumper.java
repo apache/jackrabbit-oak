@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.io.Closer;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,7 +32,6 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene.isIndexDirName;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene.isSuggestIndexDirName;
 
@@ -63,8 +61,8 @@ public class LuceneIndexDumper {
         try (Closer closer = Closer.create()) {
             NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
             IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx, indexPath).build();
-            indexDir = createIndexDir();
-            writeMeta();
+            indexDir = DirectoryUtils.createIndexDir(baseDir, indexPath);
+            DirectoryUtils.writeMeta(indexDir, indexPath);
             for (String dirName : idx.getChildNodeNames()) {
                 if (NodeStateUtils.isHidden(dirName) &&
                         (isIndexDirName(dirName) || isSuggestIndexDirName(dirName))) {
@@ -82,29 +80,8 @@ public class LuceneIndexDumper {
         return indexDir;
     }
 
-    private void writeMeta() throws IOException {
-        File readMe = new File(indexDir, INDEX_METADATA_FILE_NAME);
-        IndexMeta meta = new IndexMeta(indexPath, System.currentTimeMillis());
-        meta.writeTo(readMe);
-    }
-
-    private File createIndexDir() throws IOException {
-        String subDirPath = IndexRootDirectory.getIndexFolderBaseName(indexPath);
-        File indexDir = new File(baseDir, subDirPath);
-        int count = 0;
-        while (true) {
-            if (indexDir.exists()) {
-                indexDir = new File(baseDir, subDirPath + "_" + count++);
-            } else {
-                break;
-            }
-        }
-        FileUtils.forceMkdir(indexDir);
-        return indexDir;
-    }
-
     private void copyContent(NodeState idx, IndexDefinition defn, File dir, String dirName, Closer closer) throws IOException {
-        File idxDir = createWorkDir(dir, dirName);
+        File idxDir = DirectoryUtils.createSubDir(dir, dirName);
         Directory sourceDir = new OakDirectory(new ReadOnlyBuilder(idx), dirName, defn, true);
         Directory targetDir = FSDirectory.open(idxDir);
 
@@ -115,12 +92,5 @@ public class LuceneIndexDumper {
             sourceDir.copy(targetDir, file, file, IOContext.DEFAULT);
             size += sourceDir.fileLength(file);
         }
-    }
-
-    private static File createWorkDir(File parent, String name) throws IOException {
-        String fsSafeName = IndexRootDirectory.getFSSafeName(name);
-        File dir = new File(parent, fsSafeName);
-        FileUtils.forceMkdir(dir);
-        return dir;
     }
 }
