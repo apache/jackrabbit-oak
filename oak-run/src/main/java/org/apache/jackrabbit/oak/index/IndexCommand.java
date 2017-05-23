@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -67,7 +68,7 @@ public class IndexCommand implements Command {
         try (Closer closer = Closer.create()) {
             closer.register(fixture);
 
-            execute(fixture.getStore(), fixture.getBlobStore(), indexOpts, closer);
+            execute(fixture.getStore(), fixture.getBlobStore(), fixture.getStatisticsProvider(), indexOpts, closer);
             tellReportPaths();
         }
     }
@@ -86,8 +87,9 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void execute(NodeStore store, BlobStore blobStore, IndexOptions indexOpts, Closer closer) throws IOException, CommitFailedException {
-        IndexHelper indexHelper = new IndexHelper(store, blobStore, indexOpts.getOutDir(),
+    private void execute(NodeStore store, BlobStore blobStore, StatisticsProvider statisticsProvider,
+                         IndexOptions indexOpts, Closer closer) throws IOException, CommitFailedException {
+        IndexHelper indexHelper = new IndexHelper(store, blobStore, statisticsProvider, indexOpts.getOutDir(),
                 indexOpts.getWorkDir(), indexOpts.getIndexPaths());
 
         closer.register(indexHelper);
