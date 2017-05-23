@@ -33,6 +33,35 @@ The following runmodes are currently available:
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
 the [Oak Runnable JR2](#jr2) section for more details.
 
+Logging
+-------
+
+Oak run uses [Logback](https://logback.qos.ch/) for logging. To customize the logging
+you can specify a custom logback config file via `logback.configurationFile` system property
+ 
+    java -Dlogback.configurationFile=./logback.xml -jar oak-run-*.jar console /path/to/oak/repository
+    
+See [here](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/src/main/resources/logback.xml) for the default 
+logback config file used
+
+Command Line Format
+-------------------
+
+Oak run uses [joptsimple](http://jopt-simple.github.io/jopt-simple/) library for parsing the command line 
+options. 
+
+* A option's argument can occur:
+    * `--foo=bar` - right up against the option separated by an equals sign (=)
+    * `--foo bar` - in the position on the command line after the option
+* `--foo=bar,baz` - Sets multiple values for option `foo` separated by `,`
+* `--foo` - Enables `foo` option where foo is a boolean option. 
+* Most commands provide help via `-h` option
+* An argument consisting only of two hyphens (--) signals that the remaining arguments are to be treated as non-options.
+
+Refer to [examples](http://jopt-simple.github.io/jopt-simple/examples.html) for more details
+
+----
+
 See the subsections below for more details on how to use these modes.
 
 Backup
