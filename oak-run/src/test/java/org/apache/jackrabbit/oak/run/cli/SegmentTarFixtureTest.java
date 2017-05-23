@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 
 import joptsimple.OptionParser;
-import org.apache.jackrabbit.oak.console.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;

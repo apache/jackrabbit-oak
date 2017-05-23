@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.console;
+package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.Closeable;
 

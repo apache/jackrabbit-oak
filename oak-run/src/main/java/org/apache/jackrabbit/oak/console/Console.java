@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.codehaus.groovy.tools.shell.IO;
