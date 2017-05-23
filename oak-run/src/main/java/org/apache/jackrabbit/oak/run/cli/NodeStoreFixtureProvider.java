@@ -31,8 +31,6 @@ import javax.sql.DataSource;
 import com.google.common.io.Closer;
 import com.mongodb.MongoClientURI;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.console.BlobStoreFixture;
-import org.apache.jackrabbit.oak.console.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
