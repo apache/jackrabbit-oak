@@ -91,10 +91,10 @@ public class DocumentCachingDataStoreStatsTest {
         assertServiceActivated();
 
         ConsolidatedDataStoreCacheStats dataStoreStats =
-            context.registerInjectActivateService(new ConsolidatedDataStoreCacheStats(), null);
+            context.registerInjectActivateService(new ConsolidatedDataStoreCacheStats());
         assertNotNull(context.getService(ConsolidatedDataStoreCacheStatsMBean.class));
 
-        deactivate(dataStoreStats);
+        deactivate(dataStoreStats, context.bundleContext());
         unregisterDocumentNodeStoreService();
         unregisterBlobStore();
         delegateReg.unregister();
@@ -111,7 +111,7 @@ public class DocumentCachingDataStoreStatsTest {
 
         try {
             ConsolidatedDataStoreCacheStats dataStoreStats =
-                context.registerInjectActivateService(new ConsolidatedDataStoreCacheStats(), null);
+                context.registerInjectActivateService(new ConsolidatedDataStoreCacheStats());
             assertNull(context.getService(ConsolidatedDataStoreCacheStatsMBean.class));
         } finally {
             unregisterDocumentNodeStoreService();
@@ -133,7 +133,7 @@ public class DocumentCachingDataStoreStatsTest {
     }
 
     private void unregisterDocumentNodeStoreService() {
-        deactivate(documentNodeStoreService);
+        deactivate(documentNodeStoreService, context.bundleContext());
     }
 
     private ServiceRegistration blobStore;

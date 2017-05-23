@@ -64,7 +64,7 @@ public class PropertyIndexStatsTest {
 
         assertNotNull(context.getService(PropertyIndexStatsMBean.class));
 
-        MockOsgi.deactivate(mbean);
+        MockOsgi.deactivate(mbean, context.bundleContext());
         assertNull(context.getService(PropertyIndexStatsMBean.class));
     }
 

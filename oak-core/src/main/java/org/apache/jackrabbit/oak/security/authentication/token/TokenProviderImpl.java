@@ -57,13 +57,13 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
@@ -199,7 +199,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
         String error = "Failed to create login token. {}";
         User user = getUser(userId);
-        NodeUtil tokenParent = (user == null) ? null : getTokenParent(user);
+        Tree tokenParent = (user == null) ? null : getTokenParent(user);
         if (tokenParent != null) {
             try {
                 String id = user.getID();
@@ -258,7 +258,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             try {
                 User user = getUser(tokenTree);
                 if (user != null) {
-                    return new TokenInfoImpl(new NodeUtil(tokenTree), token, user.getID(), user.getPrincipal());
+                    return new TokenInfoImpl(tokenTree, token, user.getID(), user.getPrincipal());
                 }
             } catch (RepositoryException e) {
                 log.debug("Cannot determine userID/principal from token: {}", e.getMessage());
@@ -273,8 +273,14 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return creationTime + tokenExpiration;
     }
 
-    private static long getExpirationTime(NodeUtil tokenNode, long defaultValue) {
-        return tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, defaultValue);
+    private static long getExpirationTime(@Nonnull Tree tokenTree, long defaultValue) {
+        return TreeUtil.getLong(tokenTree, TOKEN_ATTRIBUTE_EXPIRY, defaultValue);
+    }
+
+    private static void setExpirationTime(@Nonnull Tree tree, long time) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(time);
+        tree.setProperty(TOKEN_ATTRIBUTE_EXPIRY, ISO8601.format(calendar), DATE);
     }
 
     @CheckForNull
@@ -359,15 +365,15 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     }
 
     @CheckForNull
-    private NodeUtil getTokenParent(@Nonnull User user) {
-        NodeUtil tokenParent = null;
+    private Tree getTokenParent(@Nonnull User user) {
+        Tree tokenParent = null;
         String parentPath = null;
         try {
             String userPath = user.getPath();
             parentPath = userPath + '/' + TOKENS_NODE_NAME;
 
-            NodeUtil userNode = new NodeUtil(root.getTree(userPath));
-            tokenParent = userNode.getOrAddChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
+            Tree userNode = root.getTree(userPath);
+            tokenParent = TreeUtil.getOrAddChild(userNode, TOKENS_NODE_NAME, TOKENS_NT_NAME);
 
             root.commit();
         } catch (RepositoryException e) {
@@ -380,7 +386,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             root.refresh();
             Tree parentTree = root.getTree(parentPath);
             if (parentTree.exists()) {
-                tokenParent = new NodeUtil(parentTree);
+                tokenParent = parentTree;
             } else {
                 tokenParent = null;
             }
@@ -401,26 +407,26 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * new token node.
      *
      */
-    private TokenInfo createTokenNode(@Nonnull NodeUtil parent, @Nonnull String tokenName,
+    private TokenInfo createTokenNode(@Nonnull Tree parent, @Nonnull String tokenName,
                                       long expTime, @Nonnull String uuid,
                                       @Nonnull String id, Map<String, ?> attributes)
             throws AccessDeniedException, UnsupportedEncodingException, NoSuchAlgorithmException {
 
-        NodeUtil tokenNode = parent.addChild(tokenName, TOKEN_NT_NAME);
-        tokenNode.setString(JcrConstants.JCR_UUID, uuid);
+        Tree tokenNode = TreeUtil.addChild(parent, tokenName, TOKEN_NT_NAME);
+        tokenNode.setProperty(JcrConstants.JCR_UUID, uuid);
 
         String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
-        String nodeId = getIdentifier(tokenNode.getTree());
+        String nodeId = getIdentifier(tokenNode);
         String token = nodeId + DELIM + key;
 
         String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, id), options);
-        tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
-        tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
+        tokenNode.setProperty(TOKEN_ATTRIBUTE_KEY, keyHash);
+        setExpirationTime(tokenNode, expTime);
 
         for (String name : attributes.keySet()) {
             if (!RESERVED_ATTRIBUTES.contains(name)) {
                 String attr = attributes.get(name).toString();
-                tokenNode.setString(name, attr);
+                tokenNode.setProperty(name, attr);
             }
         }
         return new TokenInfoImpl(tokenNode, token, id, null);
@@ -444,18 +450,18 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         private final Map<String, String> mandatoryAttributes;
         private final Map<String, String> publicAttributes;
 
-        private TokenInfoImpl(@Nonnull NodeUtil tokenNode, @Nonnull String token, @Nonnull String userId, @Nullable Principal principal) {
+        private TokenInfoImpl(@Nonnull Tree tokenTree, @Nonnull String token, @Nonnull String userId, @Nullable Principal principal) {
             this.token = token;
-            this.tokenPath = tokenNode.getTree().getPath();
+            this.tokenPath = tokenTree.getPath();
             this.userId = userId;
             this.principal = principal;
 
-            expirationTime = getExpirationTime(tokenNode, Long.MIN_VALUE);
-            key = tokenNode.getString(TOKEN_ATTRIBUTE_KEY, null);
+            expirationTime = getExpirationTime(tokenTree, Long.MIN_VALUE);
+            key = TreeUtil.getString(tokenTree, TOKEN_ATTRIBUTE_KEY);
 
             mandatoryAttributes = new HashMap();
             publicAttributes = new HashMap();
-            for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
+            for (PropertyState propertyState : tokenTree.getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue(STRING);
                 if (RESERVED_ATTRIBUTES.contains(name)) {
@@ -500,7 +506,6 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             if (options.getConfigValue(PARAM_TOKEN_REFRESH, true)) {
                 Tree tokenTree = getTokenTree(this);
                 if (tokenTree.exists()) {
-                    NodeUtil tokenNode = new NodeUtil(tokenTree);
                     if (isExpired(loginTime)) {
                         log.debug("Attempt to reset an expired token.");
                         return false;
@@ -509,7 +514,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                     if (expirationTime - loginTime <= tokenExpiration / 2) {
                         try {
                             long expTime = createExpirationTime(loginTime, tokenExpiration);
-                            tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
+                            setExpirationTime(tokenTree, expTime);
                             root.commit(CommitMarker.asCommitAttributes());
                             log.debug("Successfully reset token expiration time.");
                             return true;

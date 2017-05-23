@@ -37,7 +37,7 @@
       Size History:
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>38000000</max.jar.size>
+    <max.jar.size>41000000</max.jar.size>
   </properties>
 
   <build>
@@ -171,6 +171,12 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <redirectTestOutputToFile>true</redirectTestOutputToFile>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
@@ -231,7 +237,6 @@
     <dependency>
       <groupId>net.sf.jopt-simple</groupId>
       <artifactId>jopt-simple</artifactId>
-      <version>4.6</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
@@ -295,6 +300,11 @@
       <artifactId>tika-core</artifactId>
       <version>1.5</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.inventory</artifactId>
+      <version>1.0.4</version>
+    </dependency>
 
     <!-- Findbugs annotations -->
     <dependency>
@@ -308,7 +318,27 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-plugins</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-cloud</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-cloud-azure</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>

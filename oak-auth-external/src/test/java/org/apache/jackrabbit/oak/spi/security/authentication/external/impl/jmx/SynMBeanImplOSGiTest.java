@@ -127,7 +127,7 @@ public class SynMBeanImplOSGiTest extends ExternalLoginModuleTestBase {
         context.registerService(ContentRepository.class, getContentRepository());
         context.registerService(SecurityProvider.class, getSecurityProvider());
 
-        MockOsgi.deactivate(externalLoginModuleFactory);
+        MockOsgi.deactivate(externalLoginModuleFactory, context.bundleContext());
         assertSyncBeanRegistration(externalLoginModuleFactory, false);
     }
 

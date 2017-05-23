@@ -30,8 +30,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 
 /**
  * Helper class for the password history feature.
@@ -129,7 +128,7 @@ final class PasswordHistory implements UserConstants {
     @Nonnull
     private static Tree getPasswordTree(@Nonnull Tree userTree, boolean doCreate) throws AccessDeniedException {
         if (doCreate) {
-            return new NodeUtil(userTree).getOrAddChild(UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD).getTree();
+            return TreeUtil.getOrAddChild(userTree, UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD);
         } else {
             return userTree.getChild(UserConstants.REP_PWD);
         }

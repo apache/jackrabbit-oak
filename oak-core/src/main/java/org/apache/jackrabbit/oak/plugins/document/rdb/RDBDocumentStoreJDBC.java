@@ -76,6 +76,8 @@ public class RDBDocumentStoreJDBC {
     private static final String MODCOUNT = NodeDocument.MOD_COUNT;
     private static final String MODIFIED = NodeDocument.MODIFIED_IN_SECS;
 
+    private static final int SCHEMAVERSION = 1;
+
     private final RDBDocumentStoreDB dbInfo;
     private final RDBDocumentSerializer ser;
     private final int queryHitsLimit, queryTimeLimit;
@@ -96,6 +98,9 @@ public class RDBDocumentStoreJDBC {
         t.append("update " + tmd.getName() + " set ");
         t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
         t.append("HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
+        if (tmd.hasVersion()) {
+            t.append("VERSION = " + SCHEMAVERSION + ", ");
+        }
         t.append("DATA = " + stringAppend.getStatementComponent() + " ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
@@ -140,6 +145,9 @@ public class RDBDocumentStoreJDBC {
             t.append("update " + tmd.getName() + " set ");
             t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
             t.append("MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
+            if (tmd.hasVersion()) {
+                t.append("VERSION = " + SCHEMAVERSION + ", ");
+            }
             t.append("DATA = " + stringAppend.getStatementComponent() + " ");
             t.append("where ").append(inClause.getStatementComponent());
             PreparedStatement stmt = connection.prepareStatement(t.toString());
@@ -292,8 +300,9 @@ public class RDBDocumentStoreJDBC {
 
     public <T extends Document> Set<String> insert(Connection connection, RDBTableMetaData tmd, List<T> documents) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement(
-                "insert into " + tmd.getName() + "(ID, MODIFIED, HASBINARY, DELETEDONCE, MODCOUNT, CMODCOUNT, DSIZE, DATA, BDATA) "
-                        + "values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                "insert into " + tmd.getName() + "(ID, MODIFIED, HASBINARY, DELETEDONCE, MODCOUNT, CMODCOUNT, DSIZE, DATA, "
+                        + (tmd.hasVersion() ? "VERSION, " : "") + " BDATA) " + "values (?, ?, ?, ?, ?, ?, ?, ?,"
+                        + (tmd.hasVersion() ? (" " + SCHEMAVERSION + ", ") : "") + " ?)");
 
         List<T> sortedDocs = sortDocuments(documents);
         int[] results;
@@ -370,7 +379,8 @@ public class RDBDocumentStoreJDBC {
         int[] batchResults = new int[0];
 
         PreparedStatement stmt = connection.prepareStatement("update " + tmd.getName()
-            + " set MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ? and MODCOUNT = ?");
+                + " set MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, "
+                + (tmd.hasVersion() ? (" VERSION = " + SCHEMAVERSION + ", ") : "") + "BDATA = ? where ID = ? and MODCOUNT = ?");
         try {
             boolean batchIsEmpty = true;
             for (T document : sortDocuments(documents)) {
@@ -847,7 +857,8 @@ public class RDBDocumentStoreJDBC {
 
         StringBuilder t = new StringBuilder();
         t.append("update " + tmd.getName() + " set ");
-        t.append("MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? ");
+        t.append("MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, "
+                + (tmd.hasVersion() ? (" VERSION = " + SCHEMAVERSION + ", ") : "") + "BDATA = ? ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
             t.append(" and MODCOUNT = ?");

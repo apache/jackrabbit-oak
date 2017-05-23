@@ -37,6 +37,8 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedState
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Defines variation in the capabilities of different RDBs.
  */
@@ -106,8 +108,10 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getTableCreationStatement(String tableName) {
-            return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
+        public String getTableCreationStatement(String tableName, int schema) {
+            return ("create table " + tableName
+                    + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                    + (schema >= 1 ? "VERSION smallint, " : "") + "DATA varchar(16384), BDATA bytea)");
         }
 
         @Override
@@ -149,12 +153,14 @@ public enum RDBDocumentStoreDB {
             return "select cast (days(current_timestamp - current_timezone) - days('1970-01-01') as integer) * 86400 + midnight_seconds(current_timestamp - current_timezone) from sysibm.sysdummy1";
         }
 
-        public String getTableCreationStatement(String tableName) {
+        @Override
+        public String getTableCreationStatement(String tableName, int schema) {
             return "create table " + tableName
-                    + " (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
-                    + 1024 * 1024 * 1024 + "))";
+                    + " (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                    + (schema >= 1 ? "VERSION smallint, " : "") + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
         }
 
+        @Override
         public List<String> getIndexCreationStatements(String tableName) {
             List<String> statements = new ArrayList<String>();
             String pkName = tableName + "_pk";
@@ -228,9 +234,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getTableCreationStatement(String tableName) {
+        public String getTableCreationStatement(String tableName, int schema) {
             // see https://issues.apache.org/jira/browse/OAK-1914
-            return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
+            return ("create table " + tableName
+                    + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, "
+                    + (schema >= 1 ? "VERSION number, " : "") + "DATA varchar(4000), BDATA blob)");
         }
 
         @Override
@@ -272,9 +280,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getTableCreationStatement(String tableName) {
+        public String getTableCreationStatement(String tableName, int schema) {
             // see https://issues.apache.org/jira/browse/OAK-1913
-            return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA longblob)");
+            return ("create table " + tableName
+                    + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                    + (schema >= 1 ? "VERSION smallint, " : "") + "DATA varchar(16000), BDATA longblob)");
         }
 
         @Override
@@ -342,9 +352,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getTableCreationStatement(String tableName) {
+        public String getTableCreationStatement(String tableName, int schema) {
             // see https://issues.apache.org/jira/browse/OAK-2395
-            return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA nvarchar(4000), BDATA varbinary(max))");
+            return ("create table " + tableName
+                    + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                    + (schema >= 1 ? "VERSION smallint, " : "") + "DATA nvarchar(4000), BDATA varbinary(max))");
         }
 
         @Override
@@ -481,11 +493,10 @@ public enum RDBDocumentStoreDB {
      * @param tableName
      * @return the table creation string
      */
-    public String getTableCreationStatement(String tableName) {
-        return "create table "
-                + tableName
-                + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
-                + 1024 * 1024 * 1024 + "))";
+    public String getTableCreationStatement(String tableName, int schema) {
+        return "create table " + tableName
+                + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                + (schema >= 1 ? "VERSION smallint, " : "") + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
     }
 
     public List<String> getIndexCreationStatements(String tableName) {
@@ -502,6 +513,16 @@ public enum RDBDocumentStoreDB {
 
     public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
         return "";
+    }
+
+    /**
+     * Statements needed to upgrade the DB
+     *
+     * @return the table modification string
+     */
+    public String getTableUpgradeStatement(String tableName, int level) {
+        Preconditions.checkArgument(level == 1, "level must be 1");
+        return "alter table " + tableName + " add VERSION smallint";
     }
 
     protected String description;

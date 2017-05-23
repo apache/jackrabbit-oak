@@ -19,10 +19,16 @@ package org.apache.jackrabbit.oak.console;
 
 import java.io.Closeable;
 
+import javax.annotation.CheckForNull;
+
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public interface NodeStoreFixture extends Closeable {
 
     NodeStore getStore();
+
+    @CheckForNull
+    BlobStore getBlobStore();
 
 }

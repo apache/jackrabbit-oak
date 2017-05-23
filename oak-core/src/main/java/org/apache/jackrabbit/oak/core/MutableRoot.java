@@ -56,7 +56,6 @@ import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -160,7 +159,7 @@ class MutableRoot implements Root {
         this.session = checkNotNull(session);
 
         builder = store.getRoot().builder();
-        secureBuilder = new SecureNodeBuilder(builder, permissionProvider, getAcContext());
+        secureBuilder = new SecureNodeBuilder(builder, permissionProvider);
         rootTree = new MutableTree(this, secureBuilder, lastMove);
     }
 
@@ -355,11 +354,6 @@ class MutableRoot implements Root {
     @Nonnull
     private NodeState getRootState() {
         return builder.getNodeState();
-    }
-
-    @Nonnull
-    private Context getAcContext() {
-        return getAcConfig().getContext();
     }
 
     @Nonnull

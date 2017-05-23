@@ -25,6 +25,9 @@ public class RDBOptions {
 
     private boolean dropTablesOnClose = false;
     private String tablePrefix = "";
+    private int initialSchema = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.INITIALSCHEMA", 0);
+    private int upgradeToSchema = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.UPGRADETOSCHEMA",
+            1);
 
     public RDBOptions() {
     }
@@ -35,6 +38,10 @@ public class RDBOptions {
     public RDBOptions dropTablesOnClose(boolean dropTablesOnClose) {
         this.dropTablesOnClose = dropTablesOnClose;
         return this;
+    }
+
+    public boolean isDropTablesOnClose() {
+        return this.dropTablesOnClose;
     }
 
     /**
@@ -49,7 +56,27 @@ public class RDBOptions {
         return this.tablePrefix;
     }
 
-    public boolean isDropTablesOnClose() {
-        return this.dropTablesOnClose;
+    /**
+     * Control over initial DB schema
+     */
+    public RDBOptions initialSchema(int initialSchema) {
+        this.initialSchema = initialSchema;
+        return this;
+    }
+
+    public int getInitialSchema() {
+        return this.initialSchema;
+    }
+
+    /**
+     * Control over DB schema to upgrade to
+     */
+    public RDBOptions upgradeToSchema(int upgradeToSchema) {
+        this.upgradeToSchema = upgradeToSchema;
+        return this;
+    }
+
+    public int getUpgradeToSchema() {
+        return this.upgradeToSchema;
     }
 }

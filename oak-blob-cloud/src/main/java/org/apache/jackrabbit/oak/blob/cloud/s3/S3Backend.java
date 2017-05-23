@@ -109,6 +109,10 @@ public class S3Backend extends AbstractSharedBackend {
             s3service = Utils.openService(properties);
             if (bucket == null || "".equals(bucket.trim())) {
                 bucket = properties.getProperty(S3Constants.S3_BUCKET);
+                // Alternately check if the 'container' property is set
+                if (Strings.isNullOrEmpty(bucket)) {
+                    bucket = properties.getProperty(S3Constants.S3_CONTAINER);
+                }
             }
             secret = properties.getProperty("secret");
             String region = properties.getProperty(S3Constants.S3_REGION);

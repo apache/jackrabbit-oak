@@ -152,7 +152,7 @@ public class SegmentNodeStoreServiceTest {
     }
 
     protected void unregisterSegmentNodeStoreService() {
-        deactivate(segmentNodeStoreService);
+        deactivate(segmentNodeStoreService, context.bundleContext());
     }
 
     private ServiceRegistration blobStore;

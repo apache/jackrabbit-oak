@@ -22,6 +22,8 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -36,11 +38,11 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Implementation of the {@code RepositoryInitializer} interface responsible for
@@ -79,19 +81,20 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
                     null, null, null, null);
 
             // create index definition for "rep:externalId" and "rep:externalPrincipalNames"
-            NodeUtil rootTree = checkNotNull(new NodeUtil(root.getTree("/")));
-            NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
+            Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+            checkState(rootTree.exists());
+            Tree index = TreeUtil.getOrAddChild(rootTree, IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
 
             if (enforceUniqueIds && !index.hasChild("externalId")) {
-                NodeUtil definition = IndexUtils.createIndexDefinition(index, "externalId", true,
-                        new String[]{ExternalIdentityConstants.REP_EXTERNAL_ID}, null);
-                definition.setString("info", "Oak index assuring uniqueness of rep:externalId properties.");
+                Tree definition = IndexUtils.createIndexDefinition(index, "externalId", true,
+                        new String[]{ExternalIdentityConstants.REP_EXTERNAL_ID});
+                definition.setProperty("info", "Oak index assuring uniqueness of rep:externalId properties.");
             }
 
             if (!index.hasChild("externalPrincipalNames")) {
-                NodeUtil definition = IndexUtils.createIndexDefinition(index, "externalPrincipalNames", false,
-                        new String[]{ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES}, null);
-                definition.setString("info", "Oak index used by the principal management provided by the external authentication module.");
+                Tree definition = IndexUtils.createIndexDefinition(index, "externalPrincipalNames", false,
+                        new String[]{ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES});
+                definition.setProperty("info", "Oak index used by the principal management provided by the external authentication module.");
             }
 
             if (root.hasPendingChanges()) {

@@ -18,16 +18,19 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.DB;
 import com.mongodb.Mongo;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReplicaSetStatus;
 import com.mongodb.WriteConcern;
 
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.Test;
 
 import static junitx.framework.ComparableAssert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -81,6 +84,26 @@ public class MongoConnectionTest {
         sufficientReadConcernSingleNode(ReadConcern.DEFAULT, true);
         sufficientReadConcernSingleNode(ReadConcern.LOCAL, true);
         sufficientReadConcernSingleNode(ReadConcern.MAJORITY, true);
+    }
+
+    @Test
+    public void socketKeepAlive() throws Exception {
+        assumeTrue(MongoUtils.isAvailable());
+        MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
+        options.socketKeepAlive(true);
+        MongoConnection c = new MongoConnection(MongoUtils.URL, options);
+        try {
+            assertTrue(c.getDB().getMongo().getMongoOptions().isSocketKeepAlive());
+        } finally {
+            c.close();
+        }
+        // default is without keep-alive
+        c = new MongoConnection(MongoUtils.URL);
+        try {
+            assertFalse(c.getDB().getMongo().getMongoOptions().isSocketKeepAlive());
+        } finally {
+            c.close();
+        }
     }
 
     private void sufficientWriteConcernReplicaSet(WriteConcern w,

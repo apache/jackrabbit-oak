@@ -19,9 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.File;
 import java.io.IOException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.lucene.store.Directory;
+
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
 
 public class DirectoryUtils {
     /**
@@ -54,5 +58,33 @@ public class DirectoryUtils {
             totalFileSize += directory.fileLength(file);
         }
         return totalFileSize;
+    }
+
+    static File createIndexDir(File baseDir, String indexPath) throws IOException {
+        String subDirPath = IndexRootDirectory.getIndexFolderBaseName(indexPath);
+        File indexDir = new File(baseDir, subDirPath);
+        int count = 0;
+        while (true) {
+            if (indexDir.exists()) {
+                indexDir = new File(baseDir, subDirPath + "_" + count++);
+            } else {
+                break;
+            }
+        }
+        FileUtils.forceMkdir(indexDir);
+        return indexDir;
+    }
+
+    static File createSubDir(File indexDir, String name) throws IOException {
+        String fsSafeName = name.replace(":", "");
+        File dir = new File(indexDir, fsSafeName);
+        FileUtils.forceMkdir(dir);
+        return dir;
+    }
+
+    static void writeMeta(File indexDir, String indexPath) throws IOException {
+        File readMe = new File(indexDir, INDEX_METADATA_FILE_NAME);
+        IndexMeta meta = new IndexMeta(indexPath, System.currentTimeMillis());
+        meta.writeTo(readMe);
     }
 }

@@ -32,14 +32,13 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -273,7 +272,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             if (targetTree != null) {
                 checkScope(userPath, targetTree.getPath(), relPath);
             } else {
-                targetTree = new NodeUtil(userTree).getOrAddTree(relPath, JcrConstants.NT_UNSTRUCTURED).getTree();
+                targetTree = Utils.getOrAddTree(userTree, relPath, JcrConstants.NT_UNSTRUCTURED);
                 checkScope(userPath, targetTree.getPath(), relPath);
             }
         } else {

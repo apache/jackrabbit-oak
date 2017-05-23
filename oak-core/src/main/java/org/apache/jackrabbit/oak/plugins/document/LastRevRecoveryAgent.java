@@ -39,6 +39,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -53,6 +54,14 @@ import org.slf4j.LoggerFactory;
  * Utility class for recovering potential missing _lastRev updates of nodes due
  * to crash of a node. The recovery agent is also responsible for document
  * sweeping (reverting uncommitted changes).
+ * <p>
+ * The recovery agent will only sweep documents for a given clusterId if the
+ * root document contains a sweep revision for the clusterId. A missing sweep
+ * revision for a clusterId indicates an upgrade from an earlier Oak version and
+ * a crash before the initial sweep finished. This is not the responsibility of
+ * the recovery agent. An initial sweep for an upgrade must either happen with
+ * the oak-run 'revisions' sweep command or on startup of an upgraded Oak
+ * instance.
  */
 public class LastRevRecoveryAgent {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -131,15 +140,7 @@ public class LastRevRecoveryAgent {
                             "no lastRev for root, using timestamp based on leaseEnd %d - leaseTime %d - asyncDelay %d", leaseEnd,
                             leaseTime, asyncDelay);
                 }
-                if (sweepRev == null) {
-                    // no sweep ever done for this cluster node. this is
-                    // quite unusual and means an upgrade happened for a
-                    // cluster node from 1.6 or older and then crashed
-                    // we need to scan the entire collection
-                    startTime = 0;
-                    reason = "no sweepRevision for cluster node " + clusterId +
-                            ", using timestamp 0 (scanning the entire collection)";
-                } else if (sweepRev.getTimestamp() < startTime) {
+                if (sweepRev != null && sweepRev.getTimestamp() < startTime) {
                     startTime = sweepRev.getTimestamp();
                     reason = "sweepRev: " + sweepRev.toString();
                 }
@@ -190,44 +191,50 @@ public class LastRevRecoveryAgent {
                        final int clusterId, final boolean dryRun)
             throws DocumentStoreException {
         final DocumentStore docStore = nodeStore.getDocumentStore();
+        NodeDocument rootDoc = Utils.getRootDocument(docStore);
 
         // first run a sweep
         final AtomicReference<Revision> sweepRev = new AtomicReference<>();
-        final RevisionContext context = new InactiveRevisionContext(
-                Utils.getRootDocument(docStore), nodeStore, clusterId);
-        final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
-        sweeper.sweep(suspects, new NodeDocumentSweepListener() {
-            @Override
-            public void sweepUpdate(Map<String, UpdateOp> updates)
-                    throws DocumentStoreException {
-                if (dryRun) {
-                    log.info("Dry run of sweeper identified [{}] documents for " +
-                            "cluster node [{}]: {}", updates.size(), clusterId,
-                            updates.values());
-                    return;
+        if (rootDoc.getSweepRevisions().getRevision(clusterId) != null) {
+            // only run a sweep for a cluster node that already has a
+            // sweep revision. Initial sweep is not the responsibility
+            // of the recovery agent.
+            final RevisionContext context = new InactiveRevisionContext(
+                    rootDoc, nodeStore, clusterId);
+            final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
+            sweeper.sweep(suspects, new NodeDocumentSweepListener() {
+                @Override
+                public void sweepUpdate(Map<String, UpdateOp> updates)
+                        throws DocumentStoreException {
+                    if (dryRun) {
+                        log.info("Dry run of sweeper identified [{}] documents for " +
+                                        "cluster node [{}]: {}", updates.size(), clusterId,
+                                updates.values());
+                        return;
+                    }
+                    // create an invalidate entry
+                    JournalEntry inv = JOURNAL.newDocument(docStore);
+                    inv.modified(updates.keySet());
+                    Revision r = context.newRevision().asBranchRevision();
+                    UpdateOp invOp = inv.asUpdateOp(r);
+                    // and reference it from a regular entry
+                    JournalEntry entry = JOURNAL.newDocument(docStore);
+                    entry.invalidate(Collections.singleton(r));
+                    Revision jRev = context.newRevision();
+                    UpdateOp jOp = entry.asUpdateOp(jRev);
+                    if (!docStore.create(JOURNAL, newArrayList(invOp, jOp))) {
+                        String msg = "Unable to create journal entries for " +
+                                "document invalidation.";
+                        throw new DocumentStoreException(msg);
+                    }
+                    sweepRev.set(Utils.max(sweepRev.get(), jRev));
+                    // now that journal entry is in place, perform the actual
+                    // updates on the documents
+                    docStore.createOrUpdate(NODES, newArrayList(updates.values()));
+                    log.info("Sweeper updated {}", updates.keySet());
                 }
-                // create an invalidate entry
-                JournalEntry inv = JOURNAL.newDocument(docStore);
-                inv.modified(updates.keySet());
-                Revision r = context.newRevision().asBranchRevision();
-                UpdateOp invOp = inv.asUpdateOp(r);
-                // and reference it from a regular entry
-                JournalEntry entry = JOURNAL.newDocument(docStore);
-                entry.invalidate(Collections.singleton(r));
-                Revision jRev = context.newRevision();
-                UpdateOp jOp = entry.asUpdateOp(jRev);
-                if (!docStore.create(JOURNAL, newArrayList(invOp, jOp))) {
-                    String msg = "Unable to create journal entries for " +
-                            "document invalidation.";
-                    throw new DocumentStoreException(msg);
-                }
-                sweepRev.set(Utils.max(sweepRev.get(), jRev));
-                // now that journal entry is in place, perform the actual
-                // updates on the documents
-                docStore.createOrUpdate(NODES, newArrayList(updates.values()));
-                log.info("Sweeper updated {}", updates.keySet());
-            }
-        });
+            });
+        }
 
         // now deal with missing _lastRev updates
         UnsavedModifications unsaved = new UnsavedModifications();
@@ -329,7 +336,12 @@ public class LastRevRecoveryAgent {
             // thus it doesn't matter, where exactly the check is done
             // as to whether the recovered lastRev has already been
             // written to the journal.
-            unsaved.persist(nodeStore, new UnsavedModifications.Snapshot() {
+            unsaved.persist(docStore, new Supplier<Revision>() {
+                @Override
+                public Revision get() {
+                    return sweepRev.get();
+                }
+            }, new UnsavedModifications.Snapshot() {
 
                 @Override
                 public void acquiring(Revision mostRecent) {

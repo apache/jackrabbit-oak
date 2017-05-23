@@ -20,18 +20,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 
 import static java.util.Arrays.asList;
 
@@ -100,12 +102,11 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             if (!privilegesTree.exists()) {
                 throw new RepositoryException("Privilege store does not exist.");
             }
-            NodeUtil privilegesNode = new NodeUtil(privilegesTree);
             for (PrivilegeDefinition definition : definitions) {
-                if (privilegesNode.hasChild(definition.getName())) {
+                if (privilegesTree.hasChild(definition.getName())) {
                     throw new RepositoryException("Privilege definition with name '" + definition.getName() + "' already exists.");
                 }
-                writePrivilegeNode(privilegesNode, definition);
+                writePrivilegeNode(privilegesTree, definition);
             }
             /*
             update the property storing the next privilege bits with the
@@ -122,16 +123,16 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         }
     }
 
-    private void writePrivilegeNode(NodeUtil privilegesNode, PrivilegeDefinition definition) throws RepositoryException {
+    private void writePrivilegeNode(Tree privilegesTree, PrivilegeDefinition definition) throws RepositoryException {
         String name = definition.getName();
-        NodeUtil privNode = privilegesNode.addChild(name, NT_REP_PRIVILEGE);
+        Tree privNode = TreeUtil.addChild(privilegesTree, name, NT_REP_PRIVILEGE);
         if (definition.isAbstract()) {
-            privNode.setBoolean(REP_IS_ABSTRACT, true);
+            privNode.setProperty(REP_IS_ABSTRACT, true);
         }
-        String[] declAggrNames = definition.getDeclaredAggregateNames().toArray(new String[definition.getDeclaredAggregateNames().size()]);
-        boolean isAggregate = declAggrNames.length > 0;
+        Set<String> declAggrNames = definition.getDeclaredAggregateNames();
+        boolean isAggregate = declAggrNames.size() > 0;
         if (isAggregate) {
-            privNode.setNames(REP_AGGREGATES, declAggrNames);
+            privNode.setProperty(REP_AGGREGATES, declAggrNames, Type.NAMES);
         }
 
         PrivilegeBits bits;
@@ -142,7 +143,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         } else {
             bits = next();
         }
-        bits.writeTo(privNode.getTree());
+        bits.writeTo(privNode);
     }
 
     private static Collection<PrivilegeDefinition> getBuiltInDefinitions() {

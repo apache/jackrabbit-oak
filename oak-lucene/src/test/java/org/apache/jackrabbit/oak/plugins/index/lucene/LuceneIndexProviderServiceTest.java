@@ -84,7 +84,7 @@ public class LuceneIndexProviderServiceTest {
         context.registerService(MountInfoProvider.class, Mounts.defaultMountInfoProvider());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         context.registerService(ScorerProviderFactory.class, ScorerProviderFactory.DEFAULT);
-        context.registerService(IndexAugmentorFactory.class, mock(IndexAugmentorFactory.class));
+        context.registerService(IndexAugmentorFactory.class, new IndexAugmentorFactory());
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(IndexPathService.class, mock(IndexPathService.class));
         context.registerService(AsyncIndexInfoService.class, mock(AsyncIndexInfoService.class));
@@ -126,7 +126,7 @@ public class LuceneIndexProviderServiceTest {
 
         assertNotNull(context.getService(JournalPropertyService.class));
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -144,7 +144,7 @@ public class LuceneIndexProviderServiceTest {
 
         assertTrue(context.getService(Observer.class) instanceof LuceneIndexProvider);
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -159,7 +159,7 @@ public class LuceneIndexProviderServiceTest {
         assertNotNull(editorProvider);
         assertNotNull(editorProvider.getIndexCopier());
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -171,7 +171,7 @@ public class LuceneIndexProviderServiceTest {
         IndexCopier indexCopier = service.getIndexCopier();
         assertTrue(indexCopier.isPrefetchEnabled());
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -181,7 +181,7 @@ public class LuceneIndexProviderServiceTest {
         MockOsgi.activate(service, context.bundleContext(), config);
 
         assertEquals(LoggingInfoStream.INSTANCE, InfoStream.getDefault());
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -196,7 +196,7 @@ public class LuceneIndexProviderServiceTest {
 
         assertEquals(11 * FileUtils.ONE_MB, textCache.getCacheStats().getMaxTotalWeight());
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
 
         assertNull(context.getService(CacheStatsMBean.class));
     }

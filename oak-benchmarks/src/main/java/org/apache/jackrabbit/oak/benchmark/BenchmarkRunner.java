@@ -29,6 +29,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Counting;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.MoreExecutors;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ListIdentitiesTest;
@@ -44,19 +55,6 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.Counting;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 
 public class BenchmarkRunner {
 
@@ -162,10 +160,11 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> transientWrites = parser.accepts("transient", "Do not save data.")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
-        OptionSpec<Integer> mounts = parser.accepts("mounts", "Number of mounts for the federated node store.")
+        OptionSpec<Integer> mounts = parser.accepts("mounts", "Number of mounts for the composite node store.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(2);
         OptionSpec<Integer> pathsPerMount = parser.accepts("pathsPerMount", "Number of paths per one mount.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1000);
+        OptionSpec<?> verbose = parser.accepts("verbose", "Enable verbose output");
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
@@ -209,9 +208,9 @@ public class BenchmarkRunner {
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
                         dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
                         fdsCache.value(options)),
-                OakRepositoryFixture.getFederatedStore(base.value(options), 256, cacheSize,
+                OakRepositoryFixture.getCompositeStore(base.value(options), 256, cacheSize,
                         mmap.value(options), mounts.value(options), pathsPerMount.value(options)),
-                OakRepositoryFixture.getFederatedMemoryStore(mounts.value(options), pathsPerMount.value(options))
+                OakRepositoryFixture.getCompositeMemoryStore(mounts.value(options), pathsPerMount.value(options))
         };
 
         Benchmark[] allBenchmarks = new Benchmark[] {
@@ -275,7 +274,7 @@ public class BenchmarkRunner {
                     flatStructure.value(options),
                     report.value(options)),
             new CreateNodesBenchmark(),
-            new ManyNodes(),
+            new ManyNodes(options.has(verbose)),
             new ObservationTest(),
             new RevisionGCTest(),
             new ContinuousRevisionGCTest(),

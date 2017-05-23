@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
 public abstract class AbstractRestrictionProvider implements RestrictionProvider, AccessControlConstants {
@@ -126,10 +126,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         // validation of the restrictions is delegated to the commit hook
         // see #validateRestrictions below
         if (!restrictions.isEmpty()) {
-            NodeUtil aceNode = new NodeUtil(aceTree);
-            NodeUtil rNode = aceNode.getOrAddChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+            Tree rTree = TreeUtil.getOrAddChild(aceTree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
             for (Restriction restriction : restrictions) {
-                rNode.getTree().setProperty(restriction.getProperty());
+                rTree.setProperty(restriction.getProperty());
             }
         }
     }

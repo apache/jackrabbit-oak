@@ -758,6 +758,11 @@ Points to note
     * https://cwiki.apache.org/confluence/display/solr/Understanding+Analyzers%2C+Tokenizers%2C+and+Filters
     * https://cwiki.apache.org/confluence/display/solr/CharFilterFactories
     * https://wiki.apache.org/solr/AnalyzersTokenizersTokenFilters#Specifying_an_Analyzer_in_the_schema
+7. When defining synonyms:
+    * in the synonym file, lines like _plane, airplane, aircraft_ refer to tokens that are mutual synoyms whereas lines 
+    like _plane => airplane_ refer to _one way_ synonyms, so that plane will be expanded to airplane but not vice versa
+    * special characters have to be escaped
+    * multi word synonyms need particular attention (see https://lucidworks.com/2014/07/12/solution-for-multi-term-synonyms-in-lucenesolr-using-the-auto-phrasing-tokenfilter)
     
 Note that currently only one analyzer can be configured per index. Its not possible to specify separate
 analyzer for query and index time currently. 

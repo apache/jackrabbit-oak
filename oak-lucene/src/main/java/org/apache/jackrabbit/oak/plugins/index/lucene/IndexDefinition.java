@@ -61,7 +61,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.LimitTokenCountAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
@@ -142,6 +142,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * Hidden node under index definition which is used to store meta info
      */
     static final String STATUS_NODE = ":status";
+
+    /**
+     * Property on status node which refers to the date when the index was lastUpdated
+     * This may not be the same time as when index was closed but the time of checkpoint
+     * upto which index is upto date (OAK-6194)
+     */
+    static final String STATUS_LAST_UPDATED = "lastUpdated";
 
     /**
      * Meta property which provides the unique id

@@ -129,6 +129,7 @@ public class DocumentNodeStoreService {
     private static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
+    private static final boolean DEFAULT_SO_KEEP_ALIVE = false;
     private static final String DEFAULT_PERSISTENT_CACHE = "cache,binary=0";
     private static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
     private static final String PREFIX = "oak.documentstore.";
@@ -145,6 +146,11 @@ public class DocumentNodeStoreService {
      */
     private static final String FWK_PROP_DB = "oak.mongo.db";
 
+    /**
+     * Name of framework property to configure socket keep-alive for MongoDB
+     */
+    private static final String FWK_PROP_SO_KEEP_ALIVE = "oak.mongo.socketKeepAlive";
+
     @Property(value = DEFAULT_URI,
             label = "Mongo URI",
             description = "Mongo connection URI used to connect to Mongo. Refer to " +
@@ -159,6 +165,14 @@ public class DocumentNodeStoreService {
                     "can be overridden via framework property 'oak.mongo.db'"
     )
     private static final String PROP_DB = "db";
+
+    @Property(boolValue = DEFAULT_SO_KEEP_ALIVE,
+            label = "MongoDB socket keep-alive option",
+            description = "Whether socket keep-alive should be enabled for " +
+                    "connections to MongoDB. Note that this value can be " +
+                    "overridden via framework property 'oak.mongo.socketKeepAlive'"
+    )
+    static final String PROP_SO_KEEP_ALIVE = "socketKeepAlive";
 
     @Property(intValue = DEFAULT_CACHE,
             label = "Cache Size (in MB)",
@@ -440,6 +454,7 @@ public class DocumentNodeStoreService {
     private void registerNodeStore() throws IOException {
         String uri = PropertiesUtil.toString(prop(PROP_URI, FWK_PROP_URI), DEFAULT_URI);
         String db = PropertiesUtil.toString(prop(PROP_DB, FWK_PROP_DB), DEFAULT_DB);
+        boolean soKeepAlive = PropertiesUtil.toBoolean(prop(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE), DEFAULT_SO_KEEP_ALIVE);
 
         int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
         int nodeCachePercentage = toInteger(prop(PROP_NODE_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
@@ -535,6 +550,7 @@ public class DocumentNodeStoreService {
             }
 
             mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
+            mkBuilder.setSocketKeepAlive(soKeepAlive);
             mkBuilder.setMongoDB(uri, db, blobCacheSize);
 
             log.info("Connected to database '{}'", db);

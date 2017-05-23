@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.index.IndexCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
 
@@ -40,7 +41,7 @@ public final class AvailableModes {
             .put("graph", new GraphCommand())
             .put("help", new HelpCommand())
             .put("history", new HistoryCommand())
-            .put(IndexCommand.INDEX, new IndexCommand())
+            .put(JsonIndexCommand.INDEX, new JsonIndexCommand())
             .put(PersistentCacheCommand.PERSISTENTCACHE, new PersistentCacheCommand())
             .put("revisions", new RevisionsCommand())
             .put("recovery", new RecoveryCommand())
@@ -52,5 +53,6 @@ public final class AvailableModes {
             .put("tika", new TikaCommand())
             .put("upgrade", new UpgradeCommand())
             .put("unlockupgrade", new UnlockUpgradeCommand())
+            .put(IndexCommand.NAME, new IndexCommand())
             .build());
 }

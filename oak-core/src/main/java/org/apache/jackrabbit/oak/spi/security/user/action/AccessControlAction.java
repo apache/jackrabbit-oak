@@ -149,14 +149,22 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         if (securityProvider == null) {
             throw new IllegalStateException("Not initialized");
         }
-        if (isBuiltInUser(authorizable)) {
-            log.debug("System user: " + authorizable.getID() + "; omit ac setup.");
-            return;
+        if (authorizable.isGroup()) {
+            if (groupPrivilegeNames.length == 0) {
+                log.debug("No privileges configured for groups; omit ac setup.");
+                return;
+            }
+        } else {
+            if (userPrivilegeNames.length == 0) {
+                log.debug("No privileges configured for users; omit ac setup.");
+                return;
+            }
+            if (isBuiltInUser(authorizable)) {
+                log.debug("System user: " + authorizable.getID() + "; omit ac setup.");
+                return;
+            }
         }
-        if (groupPrivilegeNames.length == 0 && userPrivilegeNames.length == 0) {
-            log.debug("No privileges configured for groups and users; omit ac setup.");
-            return;
-        }
+
         Principal principal = authorizable.getPrincipal();
         if (administrativePrincipals.contains(principal.getName())) {
             log.debug("Administrative principal: " + principal.getName() + "; omit ac setup.");
@@ -180,17 +188,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         } else {
             // setup acl according to configuration.
             boolean modified = false;
-            if (authorizable.isGroup()) {
-                // new authorizable is a Group
-                if (groupPrivilegeNames.length > 0) {
-                    modified = acl.addAccessControlEntry(principal, getPrivileges(groupPrivilegeNames, acMgr));
-                }
-            } else {
-                // new authorizable is a User
-                if (userPrivilegeNames.length > 0) {
-                    modified = acl.addAccessControlEntry(principal, getPrivileges(userPrivilegeNames, acMgr));
-                }
-            }
+            String[] privNames = (authorizable.isGroup()) ? groupPrivilegeNames : userPrivilegeNames;
+            modified = acl.addAccessControlEntry(principal, getPrivileges(privNames, acMgr));
             if (modified) {
                 acMgr.setPolicy(path, acl);
             }
@@ -198,9 +197,6 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     }
 
     private boolean isBuiltInUser(@Nonnull Authorizable authorizable) throws RepositoryException {
-        if (authorizable.isGroup()) {
-            return false;
-        }
         ConfigurationParameters userConfig = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
         String userId = authorizable.getID();
         return UserUtil.getAdminId(userConfig).equals(userId) || UserUtil.getAnonymousId(userConfig).equals(userId);

@@ -78,7 +78,7 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
         mixLanguage(t, "e");
         mixLanguage(t, "f");
 
-        NodeUtil n = new NodeUtil(root.getTree("/oak:index"));
+        Tree n = root.getTree("/oak:index");
         createIndexDefinition(n, "nodetype", false, new String[] {
                 JCR_PRIMARYTYPE, JCR_MIXINTYPES }, new String[] { "nt:folder",
                 "mix:language" });
@@ -98,7 +98,7 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
         setTraversalEnabled(false);
         Tree t, t1;
 
-        NodeUtil n = new NodeUtil(root.getTree("/oak:index"));
+        Tree n = root.getTree("/oak:index");
         createIndexDefinition(n, "nodeType", false, new String[] {
                 JCR_PRIMARYTYPE }, new String[] { NT_UNSTRUCTURED });
 

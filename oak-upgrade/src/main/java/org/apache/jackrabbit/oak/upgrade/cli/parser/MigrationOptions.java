@@ -32,6 +32,8 @@ public class MigrationOptions {
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
+    private static final boolean ADD_SECONDARY_METADATA = Boolean.getBoolean("oak.upgrade.addSecondaryMetadata");
+
     private final boolean copyBinaries;
 
     private final boolean disableMmap;
@@ -238,6 +240,8 @@ public class MigrationOptions {
         return forceCheckpoints;
     }
 
+    public boolean isAddSecondaryMetadata() { return ADD_SECONDARY_METADATA; }
+
     public String getSrcUser() {
         return srcUser;
     }
@@ -385,6 +389,10 @@ public class MigrationOptions {
 
         if (forceCheckpoints) {
             log.info("Checkpoints will be migrated even with the custom paths specified");
+        }
+
+        if (ADD_SECONDARY_METADATA) {
+            log.info("Secondary metadata will be added");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);

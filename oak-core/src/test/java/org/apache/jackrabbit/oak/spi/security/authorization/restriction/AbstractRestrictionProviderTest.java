@@ -16,28 +16,30 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -45,8 +47,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
-public class AbstractRestrictionProviderTest extends AbstractSecurityTest implements AccessControlConstants {
+public class AbstractRestrictionProviderTest implements AccessControlConstants {
 
     private String unsupportedPath = null;
     private String testPath = "/testRoot";
@@ -55,16 +58,14 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     private Value[] nameValues;
     private Value nameValue;
 
+    private final NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
     private ValueFactory valueFactory;
     private Map<String, ? extends RestrictionDefinition> supported;
     private AbstractRestrictionProvider restrictionProvider;
 
     @Before
-    @Override
     public void before() throws Exception {
-        super.before();
-
-        valueFactory = new ValueFactoryImpl(root, namePathMapper);
+        valueFactory = new ValueFactoryImpl(Mockito.mock(Root.class), namePathMapper);
         globValue = valueFactory.createValue("*");
         nameValue = valueFactory.createValue("nt:file", PropertyType.NAME);
         nameValues = new Value[] {
@@ -76,27 +77,40 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         RestrictionDefinition nts  = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
         RestrictionDefinition mand = new RestrictionDefinitionImpl("mandatory", Type.BOOLEAN, true);
         supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
-        restrictionProvider = new TestProvider(supported);
-    }
+        restrictionProvider = new AbstractRestrictionProvider(supported) {
+            @Nonnull
+            @Override
+            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+                throw new UnsupportedOperationException();
+            }
 
-    @After
-    @Override
-    public void after() throws Exception {
-        try {
-            root.refresh();
-        } finally {
-            super.after();
-        }
+            @Nonnull
+            @Override
+            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     private Tree getAceTree(Restriction... restrictions) throws Exception {
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
-        NodeUtil tmp = rootNode.addChild("testRoot", JcrConstants.NT_UNSTRUCTURED);
-        Tree ace = tmp.addChild("rep:policy", NT_REP_ACL).addChild("ace0", NT_REP_GRANT_ACE).getTree();
-        restrictionProvider.writeRestrictions(tmp.getTree().getPath(), ace, ImmutableSet.copyOf(restrictions));
+        Tree restrictionsTree = Mockito.mock(Tree.class);;
+        when(restrictionsTree.getName()).thenReturn(REP_RESTRICTIONS);
+        when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, Type.NAME));
+        List<PropertyState> properties = new ArrayList();
+        for (Restriction r : restrictions) {
+            when(restrictionsTree.getProperty(r.getDefinition().getName())).thenReturn(r.getProperty());
+            properties.add(r.getProperty());
+        }
+        when(restrictionsTree.getProperties()).thenReturn((Iterable)properties);
+        when(restrictionsTree.exists()).thenReturn(true);
+
+        Tree ace = Mockito.mock(Tree.class);
+        when(ace.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_GRANT_ACE, Type.NAME));
+        when(ace.getChild(REP_RESTRICTIONS)).thenReturn(restrictionsTree);
+        when(ace.exists()).thenReturn(true);
+
         return ace;
     }
-
 
     @Test
     public void testGetSupportedRestrictions() throws Exception {
@@ -289,30 +303,6 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     }
 
     @Test
-    public void testWriteRestrictions() throws Exception {
-        Restriction r = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
-        Tree aceTree = getAceTree();
-
-        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.<Restriction>of(r));
-
-        assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
-        Tree restr = aceTree.getChild(REP_RESTRICTIONS);
-        assertEquals(r.getProperty(), restr.getProperty(REP_GLOB));
-    }
-
-    @Test
-    public void testWriteInvalidRestrictions() throws Exception {
-        PropertyState ps = PropertyStates.createProperty(REP_GLOB, valueFactory.createValue(false));
-        Tree aceTree = getAceTree();
-
-        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.<Restriction>of(new RestrictionImpl(ps, false)));
-
-        assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
-        Tree restr = aceTree.getChild(REP_RESTRICTIONS);
-        assertEquals(ps, restr.getProperty(REP_GLOB));
-    }
-
-    @Test
     public void testValidateRestrictionsUnsupportedPath() throws Exception {
         // empty restrictions => must succeed
         restrictionProvider.validateRestrictions(null, getAceTree());
@@ -332,8 +322,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void testValidateRestrictionsWrongType() throws Exception {
         Restriction mand = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(true));
         try {
-            Tree ace = getAceTree(mand);
-            new NodeUtil(ace).getChild(REP_RESTRICTIONS).setBoolean(REP_GLOB, true);
+            Tree ace = getAceTree(mand, new RestrictionImpl(PropertyStates.createProperty(REP_GLOB, true), false));
 
             restrictionProvider.validateRestrictions(testPath, ace);
             fail("wrong type with restriction 'rep:glob");
@@ -346,9 +335,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void testValidateRestrictionsUnsupportedRestriction() throws Exception {
         Restriction mand = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(true));
         try {
-            Tree ace = getAceTree(mand);
-            new NodeUtil(ace).getChild(REP_RESTRICTIONS).setString("Unsupported", "value");
-
+            Tree ace = getAceTree(mand, new RestrictionImpl(PropertyStates.createProperty("unsupported", "value"), false));
             restrictionProvider.validateRestrictions(testPath, ace);
             fail("wrong type with restriction 'rep:glob");
         } catch (AccessControlException e) {

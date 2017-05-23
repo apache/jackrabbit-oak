@@ -22,7 +22,6 @@ import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -58,7 +57,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableAct
 import org.apache.jackrabbit.oak.spi.security.user.action.GroupAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -471,7 +470,7 @@ public class UserManagerImpl implements UserManager {
                 // irrespective of password expiry being enabled or not
                 || (forceInitialPwChange && !isNewUser))) {
 
-            Tree pwdTree = new NodeUtil(userTree).getOrAddChild(UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD).getTree();
+            Tree pwdTree = TreeUtil.getOrAddChild(userTree, UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD);
             // System.currentTimeMillis() may be inaccurate on windows. This is accepted for this feature.
             pwdTree.setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, System.currentTimeMillis(), Type.LONG);
         }

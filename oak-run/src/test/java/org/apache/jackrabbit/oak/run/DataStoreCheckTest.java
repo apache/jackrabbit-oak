@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.run;
 import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,8 +31,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
@@ -41,9 +42,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
+import joptsimple.internal.Strings;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
@@ -81,18 +88,53 @@ public class DataStoreCheckTest {
 
     private String dsPath;
 
+    private DataStoreBlobStore setupDataStore;
+
+    private String dsOption;
+
+    private String container;
+
     @Before
     public void setup() throws Exception {
-        OakFileDataStore delegate = new OakFileDataStore();
-        dsPath = temporaryFolder.newFolder().getAbsolutePath();
-        delegate.setPath(dsPath);
-        delegate.init(null);
-        DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
+        if (S3DataStoreUtils.isS3Configured()) {
+            Properties props = S3DataStoreUtils.getS3Config();
+            props.setProperty("cacheSize", "0");
+            container = props.getProperty(S3Constants.S3_BUCKET);
+            DataStore ds = S3DataStoreUtils.getS3DataStore(S3DataStoreUtils.getFixtures().get(0),
+                props,
+                temporaryFolder.newFolder().getAbsolutePath());
+            setupDataStore = new DataStoreBlobStore(ds);
+            cfgFilePath = createTempConfig(temporaryFolder.newFile(), props);
+            dsOption = "s3ds";
+        } else if (AzureDataStoreUtils.isAzureConfigured()) {
+            Properties props = AzureDataStoreUtils.getAzureConfig();
+            props.setProperty("cacheSize", "0");
+            container = props.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
+            DataStore ds = AzureDataStoreUtils.getAzureDataStore(props,
+                temporaryFolder.newFolder().getAbsolutePath());
+            setupDataStore = new DataStoreBlobStore(ds);
+            cfgFilePath = createTempConfig(temporaryFolder.newFile(), props);
+            dsOption = "azureblobds";
+        }
+        else {
+            OakFileDataStore delegate = new OakFileDataStore();
+            dsPath = temporaryFolder.newFolder().getAbsolutePath();
+            delegate.setPath(dsPath);
+            delegate.init(null);
+            setupDataStore = new DataStoreBlobStore(delegate);
+
+            File cfgFile = temporaryFolder.newFile();
+            Properties props = new Properties();
+            props.put("path", dsPath);
+            props.put("minRecordLength", new Long(4096));
+            cfgFilePath = createTempConfig(cfgFile, props);
+            dsOption = "fds";
+        }
 
         File storeFile = temporaryFolder.newFolder();
         storePath = storeFile.getAbsolutePath();
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(storeFile)
-                .withBlobStore(blobStore)
+                .withBlobStore(setupDataStore)
                 .withMaxFileSize(256)
                 .withSegmentCacheSize(64)
                 .build();
@@ -104,7 +146,7 @@ public class DataStoreCheckTest {
         blobsAdded = Sets.newHashSet();
         for (int i = 0; i < numBlobs; i++) {
             SegmentBlob b = (SegmentBlob) store.createBlob(randomStream(i, 18342));
-            Iterator<String> idIter = blobStore.resolveChunks(b.getBlobId());
+            Iterator<String> idIter = setupDataStore.resolveChunks(b.getBlobId());
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
                 blobsAdded.add(chunk);
@@ -115,24 +157,29 @@ public class DataStoreCheckTest {
         store.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.info("Created blobs : {}", blobsAdded);
 
-        File cfgFile = temporaryFolder.newFile();
-        BufferedWriter writer = Files.newWriter(cfgFile, UTF_8);
-        FileIOUtils.writeAsLine(writer, "path=\"" + StringEscapeUtils.escapeJava(dsPath) + "\"",false);
-        writer.close();
-        cfgFilePath = cfgFile.getAbsolutePath();
-
         fileStore.close();
-        blobStore.close();
     }
 
     @After
     public void tearDown() {
         System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err)));
+        if (!Strings.isNullOrEmpty(container)) {
+            try {
+                if (dsOption.equals("s3ds")) {
+                    S3DataStoreUtils.deleteBucket(container, new Date());
+                } else {
+                    AzureDataStoreUtils.deleteContainer(container);
+                }
+            } catch (Exception e) {
+                log.error("Error in cleaning container", e);
+            }
+        }
     }
 
     @Test
     public void testCorrect() throws Exception {
         File dump = temporaryFolder.newFolder();
+        setupDataStore.close();
         testAllParams(dump);
     }
 
@@ -140,17 +187,12 @@ public class DataStoreCheckTest {
     public void testConsistency() throws Exception {
         File dump = temporaryFolder.newFolder();
 
-        // Delete a random blob from datastore
-        OakFileDataStore delegate = new OakFileDataStore();
-        delegate.setPath(dsPath);
-        delegate.init(null);
-        DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
-
         Random rand = new Random();
         String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
-        long count = blobStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
         assertEquals(1, count);
+        setupDataStore.close();
 
         testAllParams(dump);
 
@@ -159,10 +201,10 @@ public class DataStoreCheckTest {
         assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
     }
 
-    public void testAllParams(File dump) throws Exception {
+    private void testAllParams(File dump) throws Exception {
         DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
         List<String> argsList = Lists
-            .newArrayList("--id", "--ref", "--consistency", "--fds", cfgFilePath, "--store", storePath,
+            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath());
 
         checkCommand.execute(argsList.toArray(new String[0]));
@@ -170,16 +212,18 @@ public class DataStoreCheckTest {
 
     @Test
     public void testMissingOpParams() throws Exception {
+        setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--fds", cfgFilePath, "--store", storePath,
+            .newArrayList("--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath());
         log.info("Running testMissinOpParams: {}", argsList);
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "'id'", "'ref'", "'consistency'"));
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "id", "ref", "consistency"));
     }
 
     @Test
     public void testTarNoDS() throws Exception {
+        setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
@@ -190,16 +234,17 @@ public class DataStoreCheckTest {
 
     @Test
     public void testOpNoStore() throws Exception {
+        setupDataStore.close();
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--consistency", "--fds", cfgFilePath,
+            .newArrayList("--consistency", "--" + dsOption, cfgFilePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) ['store']"));
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
 
         argsList = Lists
-            .newArrayList("--ref", "--fds", cfgFilePath,
+            .newArrayList("--ref", "--" + dsOption, cfgFilePath,
                 "--dump", dump.getAbsolutePath());
-        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) ['store']"));
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
     }
 
     public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {
@@ -235,5 +280,11 @@ public class DataStoreCheckTest {
         byte[] data = new byte[size];
         r.nextBytes(data);
         return new ByteArrayInputStream(data);
+    }
+
+    private static String createTempConfig(File cfgFile, Properties props) throws IOException {
+        FileOutputStream fos = FileUtils.openOutputStream(cfgFile);
+        ConfigurationHandler.write(fos, props);
+        return cfgFile.getAbsolutePath();
     }
 }

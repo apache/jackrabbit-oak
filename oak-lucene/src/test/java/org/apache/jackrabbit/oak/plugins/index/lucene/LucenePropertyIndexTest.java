@@ -67,6 +67,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -105,7 +106,10 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -276,6 +280,27 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //Using this version of executeQuery as we don't want a result row quoting the exception
         executeQuery("SELECT * FROM [nt:base] where a='b'", SQL2, NO_BINDINGS);
+    }
+
+    @Test
+    public void testSynonyms() throws Exception {
+        Tree idx = createFulltextIndex(root.getTree("/"), "synonymIndex");
+        TestUtil.useV2(idx);
+
+        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
+        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "Standard");
+        Tree synFilter = anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("Synonym");
+        synFilter.setProperty("synonyms", "syn.txt");
+        synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "plane, airplane, aircraft\nflies=>scars");
+
+        Tree test = root.getTree("/").addChild("test").addChild("node");
+        test.setProperty("foo", "an aircraft flies");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'plane')", asList("/test/node"));
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'airplane')", asList("/test/node"));
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'aircraft')", asList("/test/node"));
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/test') and CONTAINS(*, 'scars')", asList("/test/node"));
     }
 
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
@@ -2539,6 +2564,32 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String clonedDefnPath = "/oak:index/test1/" + INDEX_DEFINITION_NODE;
         assertFalse(NodeStateUtils.getNode(nodeStore.getRoot(), clonedDefnPath).exists());
+    }
+
+    @Test
+    public void storedIndexDefinitionDiff() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        AsyncIndexInfoService asyncService = new AsyncIndexInfoServiceImpl(nodeStore);
+        LuceneIndexInfoProvider indexInfoProvider = new LuceneIndexInfoProvider(nodeStore, asyncService, temporaryFolder.newFolder());
+
+        IndexInfo info = indexInfoProvider.getInfo("/oak:index/test1");
+        assertNotNull(info);
+
+        assertFalse(info.hasIndexDefinitionChangedWithoutReindexing());
+        assertNull(info.getIndexDefinitionDiff());
+
+        Tree idxTree = root.getTree("/oak:index/test1");
+        idxTree.setProperty("foo", "bar");
+        root.commit();
+
+        info = indexInfoProvider.getInfo("/oak:index/test1");
+        assertTrue(info.hasIndexDefinitionChangedWithoutReindexing());
+        assertNotNull(info.getIndexDefinitionDiff());
     }
 
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){

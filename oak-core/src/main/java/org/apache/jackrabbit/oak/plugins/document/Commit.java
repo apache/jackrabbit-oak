@@ -100,13 +100,20 @@ public class Commit {
     UpdateOp getUpdateOperationForNode(String path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
-            String id = Utils.getIdFromPath(path);
-            op = new UpdateOp(id, false);
-            NodeDocument.setModified(op, revision);
-            if (getBranch() != null) {
-                NodeDocument.setBranchCommit(op, revision);
-            }
+            op = createUpdateOp(path, revision, getBranch() != null);
             operations.put(path, op);
+        }
+        return op;
+    }
+
+    static UpdateOp createUpdateOp(String path,
+                                   Revision revision,
+                                   boolean isBranch) {
+        String id = Utils.getIdFromPath(path);
+        UpdateOp op = new UpdateOp(id, false);
+        NodeDocument.setModified(op, revision);
+        if (isBranch) {
+            NodeDocument.setBranchCommit(op, revision);
         }
         return op;
     }

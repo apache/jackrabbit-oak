@@ -72,6 +72,11 @@ class SegmentTarFixture implements NodeStoreFixture {
     }
 
     @Override
+    public BlobStore getBlobStore() {
+        return fileStore.getBlobStore();
+    }
+
+    @Override
     public void close() throws IOException {
         fileStore.close();
     }

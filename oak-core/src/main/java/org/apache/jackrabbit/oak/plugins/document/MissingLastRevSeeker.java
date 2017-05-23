@@ -92,9 +92,9 @@ public class MissingLastRevSeeker {
 
     /**
      * Get the candidates with modified time greater than or equal the specified
-     * {@code startTime}.
+     * {@code startTime} in milliseconds since the start of the epoch.
      *
-     * @param startTime the start time.
+     * @param startTime the start time in milliseconds.
      * @return the candidates
      */
     @Nonnull

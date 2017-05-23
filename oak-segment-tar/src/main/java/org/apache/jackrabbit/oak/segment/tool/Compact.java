@@ -25,7 +25,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 
@@ -50,7 +54,8 @@ public class Compact implements Runnable {
 
         private File path;
 
-        private boolean force;
+        @CheckForNull
+        private Boolean mmap;
 
         private Builder() {
             // Prevent external instantiation.
@@ -68,17 +73,14 @@ public class Compact implements Runnable {
         }
 
         /**
-         * Set whether or not to force compact concurrent commits on top of
-         * already compacted commits after the maximum number of retries has
-         * been reached. Force committing tries to exclusively write lock the
-         * node store.
-         *
-         * @param force {@code true} to force an exclusive commit of the
-         *              compacted state, {@code false} otherwise.
+         * Whether to use memory mapped access or file access.
+         * @param mmap  {@code true} for memory mapped access, {@code false} for file access
+         *              {@code null} to determine the access mode from the system architecture:
+         *              memory mapped on 64 bit systems, file access on  32 bit systems.
          * @return this builder.
          */
-        public Builder withForce(boolean force) {
-            this.force = force;
+        public Builder withMmap(@Nullable Boolean mmap) {
+            this.mmap = mmap;
             return this;
         }
 
@@ -96,8 +98,12 @@ public class Compact implements Runnable {
 
     private final File path;
 
+    @CheckForNull
+    private final Boolean mmap;
+
     private Compact(Builder builder) {
         this.path = builder.path;
+        this.mmap = builder.mmap;
     }
 
     @Override
@@ -133,7 +139,12 @@ public class Compact implements Runnable {
     }
 
     private FileStore newFileStore() throws IOException, InvalidFileStoreVersionException {
-        return fileStoreBuilder(path.getAbsoluteFile()).withGCOptions(defaultGCOptions().setOffline()).build();
+        FileStoreBuilder fileStoreBuilder = fileStoreBuilder(path.getAbsoluteFile())
+                .withGCOptions(defaultGCOptions().setOffline());
+
+        return mmap == null
+            ? fileStoreBuilder.build()
+            : fileStoreBuilder.withMemoryMapping(mmap).build();
     }
 
 }

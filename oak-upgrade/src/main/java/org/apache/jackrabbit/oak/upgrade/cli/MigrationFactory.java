@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ServiceLoader;
 
 import javax.jcr.RepositoryException;
@@ -99,10 +100,7 @@ public class MigrationFactory {
         upgrade.setSkipOnError(!options.isFailOnError());
         upgrade.setEarlyShutdown(options.isEarlyShutdown());
         upgrade.setSkipInitialization(options.isSkipInitialization());
-        ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
-        Iterator<CommitHook> iterator = loader.iterator();
-        ImmutableList.Builder<CommitHook> builder = ImmutableList.<CommitHook> builder().addAll(iterator);
-        upgrade.setCustomCommitHooks(builder.build());
+        upgrade.setCustomCommitHooks(loacCommitHooks());
         return upgrade;
     }
 
@@ -131,7 +129,16 @@ public class MigrationFactory {
         sidegrade.setOnlyVerify(options.isOnlyVerify());
         sidegrade.setSkipCheckpoints(options.isSkipCheckpoints());
         sidegrade.setForceCheckpoints(options.isForceCheckpoints());
+        sidegrade.setMigrateDocumentMetadata(options.isAddSecondaryMetadata());
+        sidegrade.setCustomCommitHooks(loacCommitHooks());
         return sidegrade;
+    }
+
+    private List<CommitHook> loacCommitHooks() {
+        ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
+        Iterator<CommitHook> iterator = loader.iterator();
+        ImmutableList.Builder<CommitHook> builder = ImmutableList.<CommitHook> builder().addAll(iterator);
+        return builder.build();
     }
 
 }

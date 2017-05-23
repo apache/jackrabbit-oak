@@ -56,7 +56,7 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -240,10 +240,9 @@ class UserPrincipalProvider implements PrincipalProvider {
     @Nonnull
     private Set<Group> getGroupMembership(@Nonnull Tree authorizableTree) {
         Set<Group> groupPrincipals = null;
-        NodeUtil authorizableNode = new NodeUtil(authorizableTree);
         boolean doCache = cacheEnabled && UserUtil.isType(authorizableTree, AuthorizableType.USER);
         if (doCache) {
-            groupPrincipals = readGroupsFromCache(authorizableNode);
+            groupPrincipals = readGroupsFromCache(authorizableTree);
         }
 
         // caching not configured or cache expired: use the membershipProvider to calculate
@@ -262,7 +261,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
             // remember the regular groups in case caching is enabled
             if (doCache) {
-                cacheGroups(authorizableNode, groupPrincipals);
+                cacheGroups(authorizableTree, groupPrincipals);
             }
         }
 
@@ -272,31 +271,31 @@ class UserPrincipalProvider implements PrincipalProvider {
         return groupPrincipals;
     }
 
-    private void cacheGroups(@Nonnull NodeUtil authorizableNode, @Nonnull Set<Group> groupPrincipals) {
+    private void cacheGroups(@Nonnull Tree authorizableNode, @Nonnull Set<Group> groupPrincipals) {
         try {
             root.refresh();
-            NodeUtil cache = authorizableNode.getChild(CacheConstants.REP_CACHE);
-            if (cache == null) {
+            Tree cache = authorizableNode.getChild(CacheConstants.REP_CACHE);
+            if (!cache.exists()) {
                 if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
-                    log.debug("Omit cache creation for user without group membership at " + authorizableNode.getTree().getPath());
+                    log.debug("Omit cache creation for user without group membership at " + authorizableNode.getPath());
                     return;
                 } else {
-                    log.debug("Create new group membership cache at " + authorizableNode.getTree().getPath());
-                    cache = authorizableNode.addChild(CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+                    log.debug("Create new group membership cache at " + authorizableNode.getPath());
+                    cache = TreeUtil.addChild(authorizableNode, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
                 }
             }
 
-            cache.setLong(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
+            cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
             String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, new Function<Group, String>() {
                 @Override
                 public String apply(Group input) {
                     return Text.escape(input.getName());
                 }
             }));
-            cache.setString(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, value);
+            cache.setProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, value);
 
             root.commit(CacheValidatorProvider.asCommitAttributes());
-            log.debug("Cached group membership at " + authorizableNode.getTree().getPath());
+            log.debug("Cached group membership at " + authorizableNode.getPath());
 
         } catch (AccessDeniedException e) {
             log.debug("Failed to cache group membership", e.getMessage());
@@ -308,17 +307,17 @@ class UserPrincipalProvider implements PrincipalProvider {
     }
 
     @CheckForNull
-    private Set<Group> readGroupsFromCache(@Nonnull NodeUtil authorizableNode) {
-        NodeUtil principalCache = authorizableNode.getChild(CacheConstants.REP_CACHE);
-        if (principalCache == null) {
-            log.debug("No group cache at " + authorizableNode.getTree().getPath());
+    private Set<Group> readGroupsFromCache(@Nonnull Tree authorizableNode) {
+        Tree principalCache = authorizableNode.getChild(CacheConstants.REP_CACHE);
+        if (!principalCache.exists()) {
+            log.debug("No group cache at " + authorizableNode.getPath());
             return null;
         }
 
         if (isValidCache(principalCache)) {
-            log.debug("Reading group membership at " + authorizableNode.getTree().getPath());
+            log.debug("Reading group membership at " + authorizableNode.getPath());
 
-            String str = principalCache.getString(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, null);
+            String str = TreeUtil.getString(principalCache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES);
             if (str == null || str.isEmpty()) {
                 return new HashSet<Group>(1);
             }
@@ -330,13 +329,13 @@ class UserPrincipalProvider implements PrincipalProvider {
             }
             return groups;
         } else {
-            log.debug("Expired group cache for " + authorizableNode.getTree().getPath());
+            log.debug("Expired group cache for " + authorizableNode.getPath());
             return null;
         }
     }
 
-    private static boolean isValidCache(NodeUtil principalCache)  {
-        long expirationTime = principalCache.getLong(CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
+    private static boolean isValidCache(Tree principalCache)  {
+        long expirationTime = TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
         long now = new Date().getTime();
         return expirationTime > EXPIRATION_NO_CACHE && now < expirationTime;
     }

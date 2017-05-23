@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 import javax.annotation.CheckForNull;
@@ -29,12 +30,13 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Stopwatch;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -43,6 +45,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Commit.createUpdateOp;
 
 /**
  * Keeps track of when nodes where last modified. To be persisted later by
@@ -134,14 +137,16 @@ class UnsavedModifications {
      * will persist a snapshot of the pending revisions and current sweep
      * revision by acquiring the passed lock for a short period of time.
      *
-     * @param store the document node store.
+     * @param store the document store.
+     * @param sweepRevision supplier for the current sweep revision.
      * @param snapshot callback when the snapshot of the pending changes is
      *                 acquired.
      * @param lock the lock to acquire to get a consistent snapshot of the
      *             revisions to write back.
      * @return stats about the write operation.
      */
-    public BackgroundWriteStats persist(@Nonnull DocumentNodeStore store,
+    public BackgroundWriteStats persist(@Nonnull DocumentStore store,
+                                        @Nonnull Supplier<Revision> sweepRevision,
                                         @Nonnull Snapshot snapshot,
                                         @Nonnull Lock lock) {
         BackgroundWriteStats stats = new BackgroundWriteStats();
@@ -149,22 +154,22 @@ class UnsavedModifications {
             return stats;
         }
         checkNotNull(store);
+        checkNotNull(sweepRevision);
+        checkNotNull(snapshot);
         checkNotNull(lock);
 
-        Clock clock = store.getClock();
-
-        long time = clock.getTime();
+        Stopwatch sw = Stopwatch.createStarted();
         // get a copy of the map while holding the lock
         lock.lock();
-        stats.lock = clock.getTime() - time;
-        time = clock.getTime();
-        RevisionVector sweepRevisions;
+        stats.lock = sw.elapsed(TimeUnit.MILLISECONDS);
+        sw.reset().start();
+        Revision sweepRev;
         Map<String, Revision> pending;
         try {
             snapshot.acquiring(getMostRecentRevision());
             pending = Maps.newTreeMap(PathComparator.INSTANCE);
             pending.putAll(map);
-            sweepRevisions = store.getSweepRevisions();
+            sweepRev = sweepRevision.get();
         } finally {
             lock.unlock();
         }
@@ -180,11 +185,11 @@ class UnsavedModifications {
                     // update root individually at the end
                     continue;
                 }
-                updates.add(newUpdateOp(store, p, r));
+                updates.add(newUpdateOp(p, r));
                 pathToRevision.put(p, r);
             }
             if (!updates.isEmpty()) {
-                store.getDocumentStore().createOrUpdate(NODES, updates);
+                store.createOrUpdate(NODES, updates);
                 stats.calls++;
                 for (Map.Entry<String, Revision> entry : pathToRevision.entrySet()) {
                     map.remove(entry.getKey(), entry.getValue());
@@ -198,28 +203,27 @@ class UnsavedModifications {
         // finally update remaining root document
         Revision rootRev = pending.get(ROOT_PATH);
         if (rootRev != null) {
-            UpdateOp rootUpdate = newUpdateOp(store, ROOT_PATH, rootRev);
+            UpdateOp rootUpdate = newUpdateOp(ROOT_PATH, rootRev);
             // also update to most recent sweep revision
-            Revision sweep = sweepRevisions.getRevision(store.getClusterId());
-            if (sweep != null) {
-                NodeDocument.setSweepRevision(rootUpdate, sweep);
-                LOG.debug("Updating _sweepRev to {}", sweep);
+            if (sweepRev != null) {
+                NodeDocument.setSweepRevision(rootUpdate, sweepRev);
+                LOG.debug("Updating _sweepRev to {}", sweepRev);
             }
-            store.getDocumentStore().findAndUpdate(NODES, rootUpdate);
+            store.findAndUpdate(NODES, rootUpdate);
             stats.calls++;
             map.remove(ROOT_PATH, rootRev);
             LOG.debug("Updated _lastRev to {} on {}", rootRev, ROOT_PATH);
 
             int cid = rootRev.getClusterId();
-            if (store.getDocumentStore().find(CLUSTER_NODES, String.valueOf(cid)) != null) {
+            if (store.find(CLUSTER_NODES, String.valueOf(cid)) != null) {
                 UpdateOp update = new UpdateOp(String.valueOf(cid), false);
                 update.equals(Document.ID, null, String.valueOf(cid));
                 update.set(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY, rootRev.toString());
-                store.getDocumentStore().findAndUpdate(CLUSTER_NODES, update);
+                store.findAndUpdate(CLUSTER_NODES, update);
             }
         }
 
-        stats.write = clock.getTime() - time;
+        stats.write = sw.elapsed(TimeUnit.MILLISECONDS);
         return stats;
     }
 
@@ -228,10 +232,8 @@ class UnsavedModifications {
         return map.toString();
     }
 
-    private static UpdateOp newUpdateOp(DocumentNodeStore store,
-                                        String path, Revision r) {
-        Commit commit = new Commit(store, r, null);
-        UpdateOp updateOp = commit.getUpdateOperationForNode(path);
+    private static UpdateOp newUpdateOp(String path, Revision r) {
+        UpdateOp updateOp = createUpdateOp(path, r, false);
         NodeDocument.setLastRev(updateOp, r);
         return updateOp;
     }
