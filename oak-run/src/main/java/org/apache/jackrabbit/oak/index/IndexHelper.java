@@ -67,10 +67,13 @@ class IndexHelper implements Closeable{
     private Executor executor;
     private final Closer closer = Closer.create();
     private final BlobStore blobStore;
+    private final StatisticsProvider statisticsProvider;
 
-    IndexHelper(NodeStore store, BlobStore blobStore, File outputDir, File workDir, List<String> indexPaths) {
+    IndexHelper(NodeStore store, BlobStore blobStore, StatisticsProvider statisticsProvider,
+                File outputDir, File workDir, List<String> indexPaths) {
         this.store = store;
         this.blobStore = blobStore;
+        this.statisticsProvider = statisticsProvider;
         this.outputDir = outputDir;
         this.workDir = workDir;
         this.indexPaths = ImmutableList.copyOf(indexPaths);
@@ -125,7 +128,7 @@ class IndexHelper implements Closeable{
     }
 
     public StatisticsProvider getStatisticsProvider(){
-        return StatisticsProvider.NOOP; //TODO Wire in a real stats provider based on metric
+        return statisticsProvider;
     }
 
     public BlobStore getBlobStore() {
