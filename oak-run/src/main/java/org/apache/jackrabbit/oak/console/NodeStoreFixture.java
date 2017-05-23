@@ -23,6 +23,7 @@ import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 public interface NodeStoreFixture extends Closeable {
 
@@ -30,5 +31,7 @@ public interface NodeStoreFixture extends Closeable {
 
     @CheckForNull
     BlobStore getBlobStore();
+
+    StatisticsProvider getStatisticsProvider();
 
 }
