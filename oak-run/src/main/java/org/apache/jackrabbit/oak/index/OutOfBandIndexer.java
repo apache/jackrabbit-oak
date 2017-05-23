@@ -111,16 +111,10 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
     public void reindex() throws CommitFailedException, IOException {
         Stopwatch w = Stopwatch.createStarted();
-        NodeState checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
 
-        if (checkpointedState == null && HEAD_AS_CHECKPOINT.equals(checkpoint)) {
-            checkpointedState = indexHelper.getNodeStore().getRoot();
-            log.warn("Using head state for indexing. Such an index cannot be imported back");
-        }
+        NodeState checkpointedState = retrieveNodeStateForCheckpoint();
 
-        checkNotNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
         copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-        checkpointInfo = indexHelper.getNodeStore().checkpointInfo(checkpoint);
         //TODO Check for indexPaths being empty
 
         log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint, checkpointInfo);
@@ -211,6 +205,19 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
+    }
+
+    private NodeState retrieveNodeStateForCheckpoint() {
+        NodeState checkpointedState;
+        if (HEAD_AS_CHECKPOINT.equals(checkpoint)) {
+            checkpointedState = indexHelper.getNodeStore().getRoot();
+            log.warn("Using head state for indexing. Such an index cannot be imported back");
+        } else {
+            checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
+            checkNotNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
+            checkpointInfo = indexHelper.getNodeStore().checkpointInfo(checkpoint);
+        }
+        return checkpointedState;
     }
 
     /**
