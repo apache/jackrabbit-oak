@@ -25,13 +25,13 @@ public interface CacheStatsMBean {
     String getName();
 
     /**
-     * Returns the number of times {@link com.google.common.cache.Cache} lookup methods have returned either a cached or
+     * Returns the number of times {@code com.google.common.cache.Cache} lookup methods have returned either a cached or
      * uncached value. This is defined as {@code getHitCount + getMissCount}.
      */
     long getRequestCount();
 
     /**
-     * Returns the number of times {@link com.google.common.cache.Cache} lookup methods have returned a cached value.
+     * Returns the number of times {@code com.google.common.cache.Cache} lookup methods have returned a cached value.
      */
     long getHitCount();
 
@@ -42,8 +42,8 @@ public interface CacheStatsMBean {
      */
     double getHitRate();
     /**
-     * Returns the number of times {@link com.google.common.cache.Cache} lookup methods have returned an uncached (newly
-     * loaded) value, or null. Multiple concurrent calls to {@link com.google.common.cache.Cache} lookup methods on an absent
+     * Returns the number of times {@code com.google.common.cache.Cache} lookup methods have returned an uncached (newly
+     * loaded) value, or null. Multiple concurrent calls to {@code com.google.common.cache.Cache} lookup methods on an absent
      * value can result in multiple misses, all returning the results of a single cache load
      * operation.
      */
@@ -61,14 +61,14 @@ public interface CacheStatsMBean {
     double getMissRate();
 
     /**
-     * Returns the total number of times that {@link com.google.common.cache.Cache} lookup methods attempted to load new
+     * Returns the total number of times that {@code com.google.common.cache.Cache} lookup methods attempted to load new
      * values. This includes both successful load operations, as well as those that threw
      * exceptions. This is defined as {@code getLoadSuccessCount + getLoadExceptionCount}.
      */
     long getLoadCount();
 
     /**
-     * Returns the number of times {@link com.google.common.cache.Cache} lookup methods have successfully loaded a new value.
+     * Returns the number of times {@code com.google.common.cache.Cache} lookup methods have successfully loaded a new value.
      * This is always incremented in conjunction with {@link #getMissCount}, though {@code getMissCount}
      * is also incremented when an exception is encountered during cache loading (see
      * {@link #getLoadExceptionCount}). Multiple concurrent misses for the same key will result in a
@@ -77,7 +77,7 @@ public interface CacheStatsMBean {
     long getLoadSuccessCount();
 
     /**
-     * Returns the number of times {@link com.google.common.cache.Cache} lookup methods threw an exception while loading a
+     * Returns the number of times {@code com.google.common.cache.Cache} lookup methods threw an exception while loading a
      * new value. This is always incremented in conjunction with {@code getMissCount}, though
      * {@code getMissCount} is also incremented when cache loading completes successfully (see
      * {@link #getLoadSuccessCount}). Multiple concurrent misses for the same key will result in a
@@ -107,7 +107,7 @@ public interface CacheStatsMBean {
 
     /**
      * Returns the number of times an entry has been evicted. This count does not include manual
-     * {@linkplain com.google.common.cache.Cache#invalidate invalidations}.
+     * {@code com.google.common.cache.Cache#invalidate invalidations}.
      */
     long getEvictionCount();
 

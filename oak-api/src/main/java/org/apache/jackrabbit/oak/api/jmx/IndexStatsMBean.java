@@ -143,14 +143,14 @@ public interface IndexStatsMBean {
     String getTemporaryCheckpoints();
 
     /**
-     * Returns the number of executions as a {@link org.apache.jackrabbit.api.stats.TimeSeries}.
+     * Returns the number of executions as a {@code org.apache.jackrabbit.api.stats.TimeSeries}.
      *
      * @return the execution count time series
      */
     CompositeData getExecutionCount();
 
     /**
-     * Returns the execution time as a {@link org.apache.jackrabbit.api.stats.TimeSeries}.
+     * Returns the execution time as a {@code org.apache.jackrabbit.api.stats.TimeSeries}.
      *
      * @return the execution times time series
      */
@@ -158,7 +158,7 @@ public interface IndexStatsMBean {
     CompositeData getExecutionTime();
 
     /**
-     * Returns the number of indexed nodes as a {@link org.apache.jackrabbit.api.stats.TimeSeries}.
+     * Returns the number of indexed nodes as a {@code org.apache.jackrabbit.api.stats.TimeSeries}.
      *
      * @return the indexed nodes time series
      */
