@@ -26,7 +26,7 @@ import aQute.bnd.annotation.ProviderType;
 /**
  * MBean for providing repository wide statistics.
  * This MBean exposes the time series provided by
- * {@link org.apache.jackrabbit.api.stats.RepositoryStatistics RepositoryStatistics}
+ * {@code org.apache.jackrabbit.api.stats.RepositoryStatistics RepositoryStatistics}
  * through JMX as {@code CompositeData} of arrays.
  */
 @ProviderType
@@ -34,72 +34,72 @@ public interface RepositoryStatsMBean {
     String TYPE = "RepositoryStats";
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_COUNT
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_COUNT}
      */
     CompositeData getSessionCount();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_LOGIN_COUNTER
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_LOGIN_COUNTER}
      */
     CompositeData getSessionLogin();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_COUNTER
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_COUNTER}
      */
     CompositeData getSessionReadCount();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_DURATION
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_DURATION}
      */
     CompositeData getSessionReadDuration();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_AVERAGE
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_AVERAGE}
      */
     CompositeData getSessionReadAverage();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_WRITE_COUNTER
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_WRITE_COUNTER}
      */
     CompositeData getSessionWriteCount();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_DURATION
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_DURATION}
      */
     CompositeData getSessionWriteDuration();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_WRITE_AVERAGE
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_WRITE_AVERAGE}
      */
     CompositeData getSessionWriteAverage();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_COUNT
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_COUNT}
      */
     CompositeData getQueryCount();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_DURATION
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_DURATION}
      */
     CompositeData getQueryDuration();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_AVERAGE
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_AVERAGE}
      */
     CompositeData getQueryAverage();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_COUNTER
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_COUNTER}
      */
     CompositeData getObservationEventCount();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_DURATION
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_DURATION}
      */
     CompositeData getObservationEventDuration();
 
     /**
-     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_AVERAGE
+     * See {@code org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_AVERAGE}
      */
     CompositeData getObservationEventAverage();
 

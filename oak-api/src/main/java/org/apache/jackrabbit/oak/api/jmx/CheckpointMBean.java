@@ -24,7 +24,7 @@ import javax.management.openmbean.TabularData;
 import aQute.bnd.annotation.ProviderType;
 
 /**
- * MBean for managing {@link org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint checkpoints}.
+ * MBean for managing {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint checkpoints}.
  */
 @ProviderType
 public interface CheckpointMBean {
@@ -39,17 +39,17 @@ public interface CheckpointMBean {
 
     /**
      * Create a new checkpoint with the given {@code lifetime}.
+     * See {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint}
      * @param lifetime
      * @return the id of the newly created checkpoint
-     * @see org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint
      */
     String createCheckpoint(long lifetime);
 
     /**
      * Release the checkpoint with the given {@code id}.
+     * See {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint}
      * @param id
      * @return  {@code true} on success, {@code false} otherwise.
-     * @see org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint
      */
     boolean releaseCheckpoint(String id);
 }
