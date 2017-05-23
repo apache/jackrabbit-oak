@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 class SegmentTarFixture implements NodeStoreFixture {
 
@@ -74,6 +75,11 @@ class SegmentTarFixture implements NodeStoreFixture {
     @Override
     public BlobStore getBlobStore() {
         return fileStore.getBlobStore();
+    }
+
+    @Override
+    public StatisticsProvider getStatisticsProvider() {
+        return StatisticsProvider.NOOP;
     }
 
     @Override

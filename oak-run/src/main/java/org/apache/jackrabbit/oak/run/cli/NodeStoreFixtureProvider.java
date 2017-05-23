@@ -23,16 +23,20 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import javax.sql.DataSource;
 
 import com.google.common.io.Closer;
 import com.mongodb.MongoClientURI;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.console.BlobStoreFixture;
 import org.apache.jackrabbit.oak.console.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -40,7 +44,9 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
+import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 public class NodeStoreFixtureProvider {
@@ -61,19 +67,21 @@ public class NodeStoreFixtureProvider {
             closer.register(blobFixture);
         }
 
+        StatisticsProvider statisticsProvider = createStatsProvider(options, closer);
         NodeStore store = null;
         if (commonOpts.isMongo() || commonOpts.isRDB()) {
-            store = configureDocumentMk(options, blobStore, closer, readOnly);
+            store = configureDocumentMk(options, blobStore, statisticsProvider, closer, readOnly);
         } else {
-            store = configureSegment(options, blobStore, closer, readOnly);
+            store = configureSegment(options, blobStore, statisticsProvider, closer, readOnly);
         }
 
-        return new SimpleNodeStoreFixture(store, blobStore, closer);
+        return new SimpleNodeStoreFixture(store, blobStore, statisticsProvider, closer);
     }
 
-
     private static NodeStore configureDocumentMk(Options options,
-                                                 BlobStore blobStore, Closer closer,
+                                                 BlobStore blobStore,
+                                                 StatisticsProvider statisticsProvider,
+                                                 Closer closer,
                                                  boolean readOnly) throws UnknownHostException {
         DocumentMK.Builder builder = new DocumentMK.Builder();
 
@@ -84,7 +92,7 @@ public class NodeStoreFixtureProvider {
         DocumentNodeStoreOptions docStoreOpts = options.getOptionBean(DocumentNodeStoreOptions.class);
 
         builder.setClusterId(docStoreOpts.getClusterId());
-
+        builder.setStatisticsProvider(statisticsProvider);
         if (readOnly) {
             builder.setReadOnlyMode();
         }
@@ -120,7 +128,7 @@ public class NodeStoreFixtureProvider {
         return builder.getNodeStore();
     }
 
-    private static NodeStore configureSegment(Options options, BlobStore blobStore, Closer closer, boolean readOnly)
+    private static NodeStore configureSegment(Options options, BlobStore blobStore, StatisticsProvider statisticsProvider, Closer closer, boolean readOnly)
             throws IOException, InvalidFileStoreVersionException {
 
         String path = options.getOptionBean(CommonOptions.class).getStoreArg();
@@ -132,16 +140,31 @@ public class NodeStoreFixtureProvider {
 
         NodeStore nodeStore;
         if (readOnly) {
-            ReadOnlyFileStore fileStore = builder.buildReadOnly();
+            ReadOnlyFileStore fileStore = builder
+                    .withStatisticsProvider(statisticsProvider)
+                    .buildReadOnly();
             closer.register(fileStore);
             nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         } else {
-            FileStore fileStore = builder.build();
+            FileStore fileStore = builder
+                    .withStatisticsProvider(statisticsProvider)
+                    .build();
             closer.register(fileStore);
             nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         }
 
         return nodeStore;
+    }
+
+    private static StatisticsProvider createStatsProvider(Options options, Closer closer) {
+        if (options.getCommonOpts().isMetricsEnabled()) {
+            ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+            closer.register(new ExecutorCloser(executorService));
+            MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
+            closer.register(statsProvider);
+            return statsProvider;
+        }
+        return StatisticsProvider.NOOP;
     }
 
     private static Closeable asCloseable(final MongoConnection con) {
@@ -157,9 +180,12 @@ public class NodeStoreFixtureProvider {
         private final Closer closer;
         private final NodeStore nodeStore;
         private final BlobStore blobStore;
+        private final StatisticsProvider statisticsProvider;
 
-        private SimpleNodeStoreFixture(NodeStore nodeStore, BlobStore blobStore, Closer closer) {
+        private SimpleNodeStoreFixture(NodeStore nodeStore, BlobStore blobStore,
+                                       StatisticsProvider statisticsProvider, Closer closer) {
             this.blobStore = blobStore;
+            this.statisticsProvider = statisticsProvider;
             this.closer = closer;
             this.nodeStore = nodeStore;
         }
@@ -172,6 +198,11 @@ public class NodeStoreFixtureProvider {
         @Override
         public BlobStore getBlobStore() {
             return blobStore;
+        }
+
+        @Override
+        public StatisticsProvider getStatisticsProvider() {
+            return statisticsProvider;
         }
 
         @Override
