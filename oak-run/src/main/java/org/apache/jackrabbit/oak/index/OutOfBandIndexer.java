@@ -41,9 +41,11 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
+import org.apache.jackrabbit.oak.plugins.index.progress.NodeCounterMBeanEstimator;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -171,7 +173,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
                 CorruptIndexHandler.NOOP
         );
 
-        configureEstimator(indexUpdate);
+        configureEstimators(indexUpdate);
 
         //Do not use EmptyState as before otherwise the IndexUpdate would
         //unnecessary traverse the whole repo post reindexing. With use of baseState
@@ -265,11 +267,15 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         FileUtils.moveDirectoryToDirectory(getLocalIndexDir(), indexHelper.getOutputDir(), true);
     }
 
-    private void configureEstimator(IndexUpdate indexUpdate) {
+    private void configureEstimators(IndexUpdate indexUpdate) {
         StatisticsProvider statsProvider = indexHelper.getStatisticsProvider();
         if (statsProvider instanceof MetricStatisticsProvider) {
             MetricRegistry registry = ((MetricStatisticsProvider) statsProvider).getRegistry();
             indexUpdate.setTraversalRateEstimator(new MetricRateEstimator(REINDEX_LANE, registry));
         }
+
+        NodeCounter nodeCounter = new NodeCounter(indexHelper.getNodeStore());
+        NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(nodeCounter);
+        indexUpdate.setNodeCountEstimator(estimator);
     }
 }
