@@ -150,7 +150,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
     }
 
     @Override
-    public void traversedNode() throws CommitFailedException {
+    public void traversedNode(PathSource pathSource) throws CommitFailedException {
 
     }
 

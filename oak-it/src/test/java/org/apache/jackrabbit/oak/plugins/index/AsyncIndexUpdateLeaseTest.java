@@ -548,9 +548,9 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         }
 
         @Override
-        public void traversedNode() throws CommitFailedException {
+        public void traversedNode(PathSource pathSource) throws CommitFailedException {
             listener.preTraverseNode();
-            super.traversedNode();
+            super.traversedNode(pathSource);
             listener.postTraverseNode();
         }
 
