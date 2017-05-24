@@ -19,13 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.progress;
 
+import java.util.Set;
+
 public interface NodeCountEstimator {
-    NodeCountEstimator NOOP = path -> -1;
+    NodeCountEstimator NOOP = (basePath, indexPaths) -> -1;
 
     /**
      * Provides an estimate of the sub tree node count at given path
      * @param path path under which count is requested
      * @return estimated count or -1 if unknown
      */
-    long getEstimatedNodeCount(String path);
+    long getEstimatedNodeCount(String basePath, Set<String> indexPaths);
 }

@@ -800,8 +800,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             indexUpdate.setTraversalRateEstimator(new MetricRateEstimator(name, registry));
         }
 
-        NodeCounter nodeCounter = new NodeCounter(store);
-        NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(nodeCounter);
+        NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(store);
         indexUpdate.setNodeCountEstimator(estimator);
     }
 
