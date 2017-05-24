@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
+import org.apache.jackrabbit.oak.plugins.index.progress.NodeCountEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.TraversalRateEstimator;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -160,9 +161,9 @@ public class IndexUpdate implements Editor, PathSource {
         if (!reindex.isEmpty()) {
             log.info("Reindexing will be performed for following indexes: {}",
                     reindex.keySet());
+            rootState.progressReporter.reindexingTraversalStart(getPath());
         }
 
-        rootState.progressReporter.reindexingTraversalStart();
         // no-op when reindex is empty
         CommitFailedException exception = process(
                 wrap(wrapProgress(compose(reindex.values()))), MISSING_NODE, after);
@@ -190,6 +191,10 @@ public class IndexUpdate implements Editor, PathSource {
 
     public void setTraversalRateEstimator(TraversalRateEstimator estimator){
         rootState.progressReporter.setTraversalRateEstimator(estimator);
+    }
+
+    public void setNodeCountEstimator(NodeCountEstimator nodeCountEstimator){
+        rootState.progressReporter.setNodeCountEstimator(nodeCountEstimator);
     }
 
     public String getIndexingStats(){

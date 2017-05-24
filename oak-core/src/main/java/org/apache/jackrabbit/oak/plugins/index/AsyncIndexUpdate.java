@@ -65,7 +65,9 @@ import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler.CorruptIndexInfo;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
+import org.apache.jackrabbit.oak.plugins.index.progress.NodeCounterMBeanEstimator;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -797,6 +799,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             MetricRegistry registry = ((MetricStatisticsProvider) statisticsProvider).getRegistry();
             indexUpdate.setTraversalRateEstimator(new MetricRateEstimator(name, registry));
         }
+
+        NodeCounter nodeCounter = new NodeCounter(store);
+        NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(nodeCounter);
+        indexUpdate.setNodeCountEstimator(estimator);
     }
 
     static String leasify(String name) {
