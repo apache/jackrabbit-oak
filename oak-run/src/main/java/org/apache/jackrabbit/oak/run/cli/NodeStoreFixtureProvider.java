@@ -25,10 +25,12 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.sql.DataSource;
 
 import com.google.common.io.Closer;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.MongoClientURI;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -156,8 +158,8 @@ public class NodeStoreFixtureProvider {
 
     private static StatisticsProvider createStatsProvider(Options options, Closer closer) {
         if (options.getCommonOpts().isMetricsEnabled()) {
-            ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-            closer.register(new ExecutorCloser(executorService));
+            ScheduledExecutorService executorService =
+                    MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
             MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
             closer.register(statsProvider);
             return statsProvider;
