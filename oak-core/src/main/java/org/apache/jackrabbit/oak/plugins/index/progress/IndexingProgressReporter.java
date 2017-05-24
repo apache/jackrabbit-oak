@@ -25,10 +25,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
@@ -41,12 +43,15 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     private static final String INDEX_MSG = "Incremental indexing";
 
     private final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
+    private final Stopwatch watch = Stopwatch.createStarted();
     private final IndexUpdateCallback updateCallback;
     private final NodeTraversalCallback traversalCallback;
     private final Map<String, IndexUpdateState> indexUpdateStates = new HashMap<>();
     private long traversalCount;
     private String messagePrefix = INDEX_MSG;
     private TraversalRateEstimator traversalRateEstimator = new SimpleRateEstimator();
+    private NodeCountEstimator nodeCountEstimator = NodeCountEstimator.NOOP;
+    private long estimatedCount;
 
     public IndexingProgressReporter(IndexUpdateCallback updateCallback,
                                     NodeTraversalCallback traversalCallback) {
@@ -61,8 +66,13 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     /**
      * Invoked to indicate that reindexing phase has started in current
      * indexing cycle
+     * @param path
      */
-    public void reindexingTraversalStart() {
+    public void reindexingTraversalStart(String path) {
+        estimatedCount = nodeCountEstimator.getEstimatedNodeCount(path);
+        if (estimatedCount >= 0) {
+            log.info("Estimated node count to be traversed for reindexing under {} is [{}]", path, estimatedCount);
+        }
         messagePrefix = REINDEX_MSG;
     }
 
@@ -79,7 +89,8 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         if (++traversalCount % 10000 == 0) {
             double rate = traversalRateEstimator.getNodesTraversedPerSecond();
             String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
-            log.info("{} Traversed #{} {} [{}]", messagePrefix, traversalCount, pathSource.getPath(), formattedRate);
+            String estimate = estimatePendingTraversal(rate);
+            log.info("{} Traversed #{} {} [{}] {}", messagePrefix, traversalCount, pathSource.getPath(), formattedRate, estimate);
         }
         traversalCallback.traversedNode(pathSource);
         traversalRateEstimator.traversedNode();
@@ -152,6 +163,26 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
 
     public void setTraversalRateEstimator(TraversalRateEstimator traversalRate) {
         this.traversalRateEstimator = traversalRate;
+    }
+
+    public void setNodeCountEstimator(NodeCountEstimator nodeCountEstimator) {
+        this.nodeCountEstimator = nodeCountEstimator;
+    }
+
+    private String estimatePendingTraversal(double nodesPerSecond) {
+        if (estimatedCount >= 0) {
+            if (estimatedCount > traversalCount){
+                long pending = estimatedCount - traversalCount;
+                long timeRequired = (long)(pending / nodesPerSecond);
+                double percentComplete = ((double) traversalCount/estimatedCount) * 100;
+                return String.format("(Elapsed %s, Expected %s, Completed %1.2f%%)",
+                        watch,
+                        TimeDurationFormatter.forLogging().format(timeRequired, TimeUnit.SECONDS),
+                        percentComplete
+                );
+            }
+        }
+        return "";
     }
 
     private String getReport() {
