@@ -23,11 +23,13 @@ import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -74,6 +76,23 @@ public class FSDirectoryFactoryTest {
         assertEquals(2, indexes.size());
         List<String> idxPaths  = indexes.stream().map (LocalIndexDir::getJcrPath).collect(Collectors.toList());
         assertThat(idxPaths, hasItems("/content/a/en_us/oak:index/fooIndex", "/content/b/en_us/oak:index/fooIndex"));
+    }
+
+    @Test
+    public void reuseExistingDir() throws Exception{
+        IndexDefinition defn = IndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+        FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
+
+        Directory dir = factory.newInstance(defn, idx, ":data", false);
+        File fsDir1 = ((FSDirectory)dir).getDirectory();
+        dir.close();
+
+        Directory dir2 = factory.newInstance(defn, idx, ":data", false);
+        File fsDir2 = ((FSDirectory)dir2).getDirectory();
+        dir2.close();
+
+        assertEquals(fsDir1, fsDir2);
+        assertEquals(1, temporaryFolder.getRoot().list(DirectoryFileFilter.DIRECTORY).length);
     }
 
 }
