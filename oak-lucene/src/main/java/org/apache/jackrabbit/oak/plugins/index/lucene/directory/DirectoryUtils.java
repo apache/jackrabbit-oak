@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.lucene.store.Directory;
@@ -62,16 +63,23 @@ public class DirectoryUtils {
 
     static File createIndexDir(File baseDir, String indexPath) throws IOException {
         String subDirPath = IndexRootDirectory.getIndexFolderBaseName(indexPath);
-        File indexDir = new File(baseDir, subDirPath);
-        int count = 0;
-        while (true) {
-            if (indexDir.exists()) {
-                indexDir = new File(baseDir, subDirPath + "_" + count++);
-            } else {
-                break;
+        IndexRootDirectory rootDir = new IndexRootDirectory(baseDir, false);
+        List<LocalIndexDir> existingDirs = rootDir.getLocalIndexes(indexPath);
+        File indexDir;
+        if (existingDirs.isEmpty()) {
+            indexDir = new File(baseDir, subDirPath);
+            int count = 0;
+            while (true) {
+                if (indexDir.exists()) {
+                    indexDir = new File(baseDir, subDirPath + "_" + count++);
+                } else {
+                    break;
+                }
             }
+            FileUtils.forceMkdir(indexDir);
+        } else {
+            indexDir = existingDirs.get(0).dir;
         }
-        FileUtils.forceMkdir(indexDir);
         return indexDir;
     }
 
