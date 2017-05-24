@@ -105,10 +105,10 @@ final class CugUtil implements CugConstants {
             for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
                 for (String path : supportedPaths) {
                     if (mount.isUnder(path)) {
-                        log.error("Configured supported CUG path '{}' includes node store mount '{}' and will be ignored.", path, mount.getName());
+                        log.error("Configured supported CUG path '{}' includes node store mount '{}'.", path, mount.getName());
                         throw new IllegalStateException();
                     } else if (mount.isMounted(path)) {
-                        log.error("Configured supported CUG path '{}' is part of node store mount '{}' and will be ignored.", path, mount.getName());
+                        log.error("Configured supported CUG path '{}' is part of node store mount '{}'.", path, mount.getName());
                         throw new IllegalStateException();
                     } else {
                         adjustedPaths.add(path);

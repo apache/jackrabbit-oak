@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -50,8 +49,8 @@ import static org.junit.Assert.assertTrue;
 
 public class CugConfigurationTest extends AbstractSecurityTest {
 
-    private CugConfiguration createConfiguration(ConfigurationParameters params) {
-        SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, params)));
+    private static CugConfiguration createConfiguration(ConfigurationParameters params) {
+        SecurityProvider sp = new CugSecurityProvider(ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, params)));
         return new CugConfiguration(sp);
     }
 
@@ -220,10 +219,6 @@ public class CugConfigurationTest extends AbstractSecurityTest {
 
     private static void assertSupportedPaths(@Nonnull CugConfiguration configuration, @Nonnull String... paths) throws Exception {
         Set<String> expected = ImmutableSet.copyOf(paths);
-                assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
-        
-        Field f = CugConfiguration.class.getDeclaredField("supportedPaths");
-        f.setAccessible(true);
-        assertEquals(expected, ((Set) f.get(configuration)));
+        assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
     }
 }
