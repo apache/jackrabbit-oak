@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
+import org.apache.jackrabbit.oak.plugins.index.progress.TraversalRateEstimator;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -185,6 +186,10 @@ public class IndexUpdate implements Editor, PathSource {
 
     public Set<String> getUpdatedIndexPaths(){
         return rootState.progressReporter.getUpdatedIndexPaths();
+    }
+
+    public void setTraversalRateEstimator(TraversalRateEstimator estimator){
+        rootState.progressReporter.setTraversalRateEstimator(estimator);
     }
 
     public String getIndexingStats(){

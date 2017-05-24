@@ -46,6 +46,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     private final Map<String, IndexUpdateState> indexUpdateStates = new HashMap<>();
     private long traversalCount;
     private String messagePrefix = INDEX_MSG;
+    private TraversalRateEstimator traversalRateEstimator = new SimpleRateEstimator();
 
     public IndexingProgressReporter(IndexUpdateCallback updateCallback,
                                     NodeTraversalCallback traversalCallback) {
@@ -76,9 +77,12 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     public void traversedNode(PathSource pathSource) throws CommitFailedException {
         traversalCount++;
         if (++traversalCount % 10000 == 0) {
-            log.info("{} Traversed #{} {}", messagePrefix, traversalCount, pathSource.getPath());
+            double rate = traversalRateEstimator.getNodesTraversedPerSecond();
+            String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
+            log.info("{} Traversed #{} {} [{}]", messagePrefix, traversalCount, pathSource.getPath(), formattedRate);
         }
         traversalCallback.traversedNode(pathSource);
+        traversalRateEstimator.traversedNode();
     }
 
     /**
@@ -144,6 +148,10 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
 
     public boolean somethingIndexed() {
         return indexUpdateStates.values().stream().anyMatch(st -> st.updateCount > 0);
+    }
+
+    public void setTraversalRateEstimator(TraversalRateEstimator traversalRate) {
+        this.traversalRateEstimator = traversalRate;
     }
 
     private String getReport() {
