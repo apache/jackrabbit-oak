@@ -69,7 +69,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
      * @param path
      */
     public void reindexingTraversalStart(String path) {
-        estimatedCount = nodeCountEstimator.getEstimatedNodeCount(path);
+        estimatedCount = nodeCountEstimator.getEstimatedNodeCount(path, getReindexedIndexPaths());
         if (estimatedCount >= 0) {
             log.info("Estimated node count to be traversed for reindexing under {} is [{}]", path, estimatedCount);
         }
