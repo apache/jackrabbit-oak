@@ -115,12 +115,13 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         NodeState checkpointedState = retrieveNodeStateForCheckpoint();
 
         copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        NodeState baseState = copyOnWriteStore.getRoot();
         //TODO Check for indexPaths being empty
 
         log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint, checkpointInfo);
 
         switchIndexLanesAndReindexFlag();
-        preformIndexUpdate();
+        preformIndexUpdate(baseState);
         writeMetaInfo();
         copyIndexFilesToOutput();
 
@@ -153,7 +154,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
     }
 
-    private void preformIndexUpdate() throws IOException, CommitFailedException {
+    private void preformIndexUpdate(NodeState baseState) throws IOException, CommitFailedException {
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
 
         IndexUpdate indexUpdate = new IndexUpdate(
@@ -167,7 +168,11 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
                 CorruptIndexHandler.NOOP
         );
 
-        NodeState before = EmptyNodeState.EMPTY_NODE;
+        //Do not use EmptyState as before otherwise the IndexUpdate would
+        //unnecessary traverse the whole repo post reindexing. With use of baseState
+        //It would only traverse the diff i.e. those index definitions paths
+        //whose lane has been changed
+        NodeState before = baseState;
         NodeState after = copyOnWriteStore.getRoot();
 
         CommitFailedException exception =
