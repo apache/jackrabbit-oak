@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
@@ -66,7 +67,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IndexUpdate implements Editor {
+public class IndexUpdate implements Editor, PathSource {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
 
@@ -158,7 +159,7 @@ public class IndexUpdate implements Editor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        rootState.nodeRead();
+        rootState.nodeRead(this);
         collectIndexEditors(builder.getChildNode(INDEX_DEFINITIONS_NAME), before);
 
         if (!reindex.isEmpty()) {
@@ -317,7 +318,8 @@ public class IndexUpdate implements Editor {
     /**
      * Returns the path of this node, building it lazily when first requested.
      */
-    private String getPath() {
+    @Override
+    public String getPath() {
         if (path == null) {
             path = concat(parent.getPath(), name);
         }
@@ -574,9 +576,9 @@ public class IndexUpdate implements Editor {
             return !reindexedIndexes.isEmpty();
         }
 
-        public void nodeRead() throws CommitFailedException {
+        public void nodeRead(PathSource pathSource) throws CommitFailedException {
             changedNodeCount++;
-            traversalCallback.traversedNode();
+            traversalCallback.traversedNode(pathSource);
         }
 
         public void propertyChanged(String name){

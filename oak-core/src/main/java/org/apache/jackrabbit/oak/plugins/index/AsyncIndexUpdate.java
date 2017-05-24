@@ -380,7 +380,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
-        public void traversedNode() throws CommitFailedException{
+        public void traversedNode(PathSource pathSource) throws CommitFailedException{
             checkIfStopped();
 
             if (indexStats.incTraversal() % LEASE_CHECK_INTERVAL == 0 && isLeaseCheckEnabled(leaseTimeOut)) {
@@ -1392,6 +1392,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     c = c.getChildNode(p);
                 }
                 if (c.exists() && name.equals(c.getString("async"))) {
+                    //TODO Fix this to account for nrt and sync
                     c.setProperty("async", newIndexTaskName);
                     updated.add(path);
                 }
