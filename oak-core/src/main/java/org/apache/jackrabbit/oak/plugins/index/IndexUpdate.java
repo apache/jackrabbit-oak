@@ -36,8 +36,6 @@ import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
 import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
 import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,20 +44,16 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
+import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -165,12 +159,13 @@ public class IndexUpdate implements Editor, PathSource {
         if (!reindex.isEmpty()) {
             log.info("Reindexing will be performed for following indexes: {}",
                     reindex.keySet());
-            rootState.reindexedIndexes.addAll(reindex.keySet());
         }
 
+        rootState.progressReporter.reindexingTraversalStart();
         // no-op when reindex is empty
         CommitFailedException exception = process(
-                wrap(wrapProgress(compose(reindex.values()), "Reindexing")), MISSING_NODE, after);
+                wrap(wrapProgress(compose(reindex.values()))), MISSING_NODE, after);
+        rootState.progressReporter.reindexingTraversalEnd();
         if (exception != null) {
             throw exception;
         }
@@ -185,11 +180,11 @@ public class IndexUpdate implements Editor, PathSource {
     }
 
     public List<String> getReindexStats(){
-        return rootState.getReindexStats();
+        return rootState.progressReporter.getReindexStats();
     }
 
     public Set<String> getUpdatedIndexPaths(){
-        return rootState.getUpdatedIndexPaths();
+        return rootState.progressReporter.getUpdatedIndexPaths();
     }
 
     public String getIndexingStats(){
@@ -241,7 +236,7 @@ public class IndexUpdate implements Editor, PathSource {
                 }
 
                 Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
-                        rootState.newCallback(indexPath, shouldReindex));
+                        rootState.newCallback(indexPath, shouldReindex, getEstimatedCount(definition)));
                 if (editor == null) {
                     rootState.missingProvider.onMissingIndex(type, definition, indexPath);
                 } else if (shouldReindex) {
@@ -269,6 +264,11 @@ public class IndexUpdate implements Editor, PathSource {
                 }
             }
         }
+    }
+
+    private long getEstimatedCount(NodeBuilder indexDefinition) {
+        //TODO Implement the estimate
+        return -1;
     }
 
     static boolean isIncluded(String asyncRef, NodeBuilder definition) {
@@ -334,12 +334,7 @@ public class IndexUpdate implements Editor, PathSource {
         }
 
         if (parent == null){
-            if (rootState.isReindexingPerformed()){
-                log.info(rootState.getReport());
-                log.info("Reindexing completed");
-            } else if (log.isDebugEnabled() && rootState.somethingIndexed()){
-                log.debug(rootState.getReport());
-            }
+            rootState.progressReporter.logReport();
         }
     }
 
@@ -413,7 +408,7 @@ public class IndexUpdate implements Editor, PathSource {
     }
 
     protected Set<String> getReindexedDefinitions() {
-        return reindex.keySet();
+        return rootState.progressReporter.getReindexedIndexPaths();
     }
 
     private void clearCorruptFlag(NodeBuilder definition, String indexPath) {
@@ -433,8 +428,8 @@ public class IndexUpdate implements Editor, PathSource {
         return path + "/" + INDEX_DEFINITIONS_NAME + "/" + indexName;
     }
 
-    private static Editor wrapProgress(Editor editor, String message){
-        return ProgressNotificationEditor.wrap(editor, log, message);
+    private Editor wrapProgress(Editor editor){
+        return rootState.progressReporter.wrapProgress(editor);
     }
 
     public static class MissingIndexProviderStrategy {
@@ -496,14 +491,8 @@ public class IndexUpdate implements Editor, PathSource {
         final NodeState root;
         final CommitInfo commitInfo;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
-        /**
-         * Callback for the update events of the indexing job
-         */
-        final IndexUpdateCallback updateCallback;
-        final NodeTraversalCallback traversalCallback;
-        final Set<String> reindexedIndexes = Sets.newHashSet();
-        final Map<String, CountingCallback> callbacks = Maps.newHashMap();
         final CorruptIndexHandler corruptIndexHandler;
+        final IndexingProgressReporter progressReporter;
         private int changedNodeCount;
         private int changedPropertyCount;
         private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
@@ -514,71 +503,23 @@ public class IndexUpdate implements Editor, PathSource {
             this.provider = checkNotNull(provider);
             this.async = async;
             this.root = checkNotNull(root);
-            this.updateCallback = checkNotNull(updateCallback);
             this.commitInfo = commitInfo;
             this.corruptIndexHandler = corruptIndexHandler;
-            this.traversalCallback = traversalCallback;
+            this.progressReporter = new IndexingProgressReporter(updateCallback, traversalCallback);
         }
 
-        public IndexUpdateCallback newCallback(String indexPath, boolean reindex) {
-            CountingCallback cb = new CountingCallback(indexPath, reindex);
-            callbacks.put(cb.indexPath, cb);
-            return cb;
-        }
-
-        public String getReport() {
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            pw.println("Indexing report");
-            for (CountingCallback cb : callbacks.values()) {
-                if (!log.isDebugEnabled() && !cb.reindex) {
-                    continue;
-                }
-                if (cb.count > 0) {
-                    pw.printf("    - %s%n", cb);
-                }
-            }
-            return sw.toString();
-        }
-
-        public List<String> getReindexStats(){
-            List<String> stats = Lists.newArrayList();
-            for (CountingCallback cb : callbacks.values()){
-                if (cb.reindex) {
-                    stats.add(cb.toString());
-                }
-            }
-            return stats;
-        }
-
-        public Set<String> getUpdatedIndexPaths(){
-            Set<String> indexPaths = Sets.newHashSet();
-            for (CountingCallback cb : callbacks.values()) {
-                indexPaths.add(cb.getIndexPath());
-            }
-            return indexPaths;
-        }
-
-        public boolean somethingIndexed() {
-            for (CountingCallback cb : callbacks.values()) {
-                if (cb.count > 0){
-                    return true;
-                }
-            }
-            return false;
+        public IndexUpdateCallback newCallback(String indexPath, boolean reindex, long estimatedCount) {
+            progressReporter.registerIndex(indexPath, reindex, estimatedCount);
+            return new ReportingCallback(indexPath, reindex);
         }
 
         public boolean isAsync(){
             return async != null;
         }
 
-        public boolean isReindexingPerformed(){
-            return !reindexedIndexes.isEmpty();
-        }
-
         public void nodeRead(PathSource pathSource) throws CommitFailedException {
             changedNodeCount++;
-            traversalCallback.traversedNode(pathSource);
+            progressReporter.traversedNode(pathSource);
         }
 
         public void propertyChanged(String name){
@@ -598,31 +539,18 @@ public class IndexUpdate implements Editor, PathSource {
             this.ignoreReindexFlags = ignoreReindexFlags;
         }
 
-        private class CountingCallback implements ContextAwareCallback, IndexingContext {
+        private class ReportingCallback implements ContextAwareCallback, IndexingContext {
             final String indexPath;
             final boolean reindex;
-            final Stopwatch watch = Stopwatch.createStarted();
-            int count;
 
-            public CountingCallback(String indexPath, boolean reindex) {
+            public ReportingCallback(String indexPath, boolean reindex) {
                 this.indexPath = indexPath;
                 this.reindex = reindex;
             }
 
             @Override
             public void indexUpdate() throws CommitFailedException {
-                count++;
-                if (count % 10000 == 0){
-                    log.info("{} => Indexed {} nodes in {} ...", indexPath, count, watch);
-                    watch.reset().start();
-                }
-                updateCallback.indexUpdate();
-            }
-
-            @Override
-            public String toString() {
-                String reindexMarker = reindex ? "*" : "";
-                return indexPath + reindexMarker + "(" + count + ")";
+               progressReporter.indexUpdate(indexPath);
             }
 
             //~------------------------------< ContextAwareCallback >

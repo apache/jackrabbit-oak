@@ -34,12 +34,7 @@ public interface NodeTraversalCallback{
         String getPath();
     }
 
-    NodeTraversalCallback NOOP = new NodeTraversalCallback() {
-        @Override
-        public void traversedNode(PathSource pathSource) throws CommitFailedException {
-
-        }
-    };
+    NodeTraversalCallback NOOP = pathSource -> {};
 
     void traversedNode(PathSource pathSource) throws CommitFailedException;
 }
