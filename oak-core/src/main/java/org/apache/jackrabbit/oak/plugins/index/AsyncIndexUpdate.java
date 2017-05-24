@@ -760,8 +760,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             mergeWithConcurrencyCheck(store, validatorProviders, builder, beforeCheckpoint,
                     callback.lease, name);
             if (indexUpdate.isReindexingPerformed()) {
-                log.info("[{}] Reindexing completed for indexes: {} in {}",
-                        name, indexUpdate.getReindexStats(), watch);
+                log.info("[{}] Reindexing completed for indexes: {} in {} ({} ms)",
+                        name, indexUpdate.getReindexStats(), 
+                        watch, watch.elapsed(TimeUnit.MILLISECONDS));
                 progressLogged = true;
             }
 
