@@ -274,8 +274,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
             indexUpdate.setTraversalRateEstimator(new MetricRateEstimator(REINDEX_LANE, registry));
         }
 
-        NodeCounter nodeCounter = new NodeCounter(indexHelper.getNodeStore());
-        NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(nodeCounter);
+        NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(indexHelper.getNodeStore());
         indexUpdate.setNodeCountEstimator(estimator);
     }
 }
