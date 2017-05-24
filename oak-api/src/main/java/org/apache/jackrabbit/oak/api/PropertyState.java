@@ -60,7 +60,7 @@ public interface PropertyState {
      * If the target type is not the same as the type of this property an attempt
      * is made to convert the value to the target type. If the conversion fails an
      * exception is thrown. The actual conversions which take place are those defined
-     * in the {@link org.apache.jackrabbit.oak.plugins.value.Conversions} class.
+     * in the {@code org.apache.jackrabbit.oak.plugins.value.Conversions} class.
      * @param type target type
      * @param <T>
      * @return the value of this property
@@ -81,7 +81,7 @@ public interface PropertyState {
      * If the target type is not the same as the type of this property an attempt
      * is made to convert the value to the target type. If the conversion fails an
      * exception is thrown. The actual conversions which take place are those defined
-     * in the {@link org.apache.jackrabbit.oak.plugins.value.Conversions} class.
+     * in the {@code org.apache.jackrabbit.oak.plugins.value.Conversions} class.
      * @param type target type
      * @param index
      * @param <T>

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.console;
+package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.Closeable;
 
@@ -23,6 +23,7 @@ import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 public interface NodeStoreFixture extends Closeable {
 
@@ -30,5 +31,7 @@ public interface NodeStoreFixture extends Closeable {
 
     @CheckForNull
     BlobStore getBlobStore();
+
+    StatisticsProvider getStatisticsProvider();
 
 }

@@ -25,19 +25,24 @@ import java.nio.file.Path;
 
 import com.google.common.io.Closer;
 import joptsimple.OptionParser;
+import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.console.NodeStoreFixture;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class IndexCommand implements Command {
+    private static final Logger log = LoggerFactory.getLogger(IndexCommand.class);
     public static final String NAME = "index";
     public static final String INDEX_DEFINITIONS_JSON = "index-definitions.json";
     public static final String INDEX_INFO_TXT = "index-info.txt";
@@ -66,8 +71,8 @@ public class IndexCommand implements Command {
         NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
         try (Closer closer = Closer.create()) {
             closer.register(fixture);
-
-            execute(fixture.getStore(), fixture.getBlobStore(), indexOpts, closer);
+            cleanWorkDir(indexOpts.getWorkDir());
+            execute(fixture.getStore(), fixture.getBlobStore(), fixture.getStatisticsProvider(), indexOpts, closer);
             tellReportPaths();
         }
     }
@@ -86,8 +91,9 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void execute(NodeStore store, BlobStore blobStore, IndexOptions indexOpts, Closer closer) throws IOException, CommitFailedException {
-        IndexHelper indexHelper = new IndexHelper(store, blobStore, indexOpts.getOutDir(),
+    private void execute(NodeStore store, BlobStore blobStore, StatisticsProvider statisticsProvider,
+                         IndexOptions indexOpts, Closer closer) throws IOException, CommitFailedException {
+        IndexHelper indexHelper = new IndexHelper(store, blobStore, statisticsProvider, indexOpts.getOutDir(),
                 indexOpts.getWorkDir(), indexOpts.getIndexPaths());
 
         closer.register(indexHelper);
@@ -149,6 +155,16 @@ public class IndexCommand implements Command {
             info = dumper.getOutFile();
         }
     }
+
+    private static void cleanWorkDir(File workDir) throws IOException {
+        //TODO Do not clean if restarting
+        String[] dirListing = workDir.list();
+        if (dirListing != null && dirListing.length != 0) {
+            log.info("Cleaning existing work directory {}", workDir.getAbsolutePath());
+            FileUtils.cleanDirectory(workDir);
+        }
+    }
+
 
     static Path getPath(File file) {
         return file.toPath().normalize().toAbsolutePath();

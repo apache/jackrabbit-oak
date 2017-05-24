@@ -77,8 +77,14 @@ public class IndexRootDirectory {
     private final File indexRootDir;
 
     public IndexRootDirectory(File indexRootDir) throws IOException {
+        this(indexRootDir, true);
+    }
+
+    public IndexRootDirectory(File indexRootDir, boolean gcOnStart) throws IOException {
         this.indexRootDir = indexRootDir;
-        gcIndexDirs();
+        if (gcOnStart) {
+            gcIndexDirs();
+        }
     }
 
     public long getSize(){

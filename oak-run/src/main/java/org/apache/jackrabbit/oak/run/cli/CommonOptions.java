@@ -34,11 +34,13 @@ public class CommonOptions implements OptionsBean {
     private final OptionSpec<Void> help;
     private final OptionSpec<Void> readWriteOption;
     private final OptionSpec<String> nonOption;
+    private final OptionSpec<Void> metrics;
     private OptionSet options;
 
     public CommonOptions(OptionParser parser){
         help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         readWriteOption = parser.accepts("read-write", "connect to repository in read-write mode");
+        metrics = parser.accepts("metrics", "Enables Metrics based statistics collection");
         nonOption = parser.nonOptions(DEFAULT_CONNECTION_STRING);
     }
 
@@ -69,6 +71,10 @@ public class CommonOptions implements OptionsBean {
 
     public boolean isSegment(){
         return !isMongo() && !isRDB();
+    }
+
+    public boolean isMetricsEnabled() {
+        return options.has(metrics);
     }
 
     public String getStoreArg() {

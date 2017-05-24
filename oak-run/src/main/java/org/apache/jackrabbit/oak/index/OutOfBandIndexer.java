@@ -111,22 +111,17 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
     public void reindex() throws CommitFailedException, IOException {
         Stopwatch w = Stopwatch.createStarted();
-        NodeState checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
 
-        if (checkpointedState == null && HEAD_AS_CHECKPOINT.equals(checkpoint)) {
-            checkpointedState = indexHelper.getNodeStore().getRoot();
-            log.warn("Using head state for indexing. Such an index cannot be imported back");
-        }
+        NodeState checkpointedState = retrieveNodeStateForCheckpoint();
 
-        checkNotNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
         copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-        checkpointInfo = indexHelper.getNodeStore().checkpointInfo(checkpoint);
+        NodeState baseState = copyOnWriteStore.getRoot();
         //TODO Check for indexPaths being empty
 
         log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint, checkpointInfo);
 
         switchIndexLanesAndReindexFlag();
-        preformIndexUpdate();
+        preformIndexUpdate(baseState);
         writeMetaInfo();
         copyIndexFilesToOutput();
 
@@ -159,7 +154,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
     }
 
-    private void preformIndexUpdate() throws IOException, CommitFailedException {
+    private void preformIndexUpdate(NodeState baseState) throws IOException, CommitFailedException {
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
 
         IndexUpdate indexUpdate = new IndexUpdate(
@@ -173,7 +168,11 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
                 CorruptIndexHandler.NOOP
         );
 
-        NodeState before = EmptyNodeState.EMPTY_NODE;
+        //Do not use EmptyState as before otherwise the IndexUpdate would
+        //unnecessary traverse the whole repo post reindexing. With use of baseState
+        //It would only traverse the diff i.e. those index definitions paths
+        //whose lane has been changed
+        NodeState before = baseState;
         NodeState after = copyOnWriteStore.getRoot();
 
         CommitFailedException exception =
@@ -211,6 +210,19 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
+    }
+
+    private NodeState retrieveNodeStateForCheckpoint() {
+        NodeState checkpointedState;
+        if (HEAD_AS_CHECKPOINT.equals(checkpoint)) {
+            checkpointedState = indexHelper.getNodeStore().getRoot();
+            log.warn("Using head state for indexing. Such an index cannot be imported back");
+        } else {
+            checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
+            checkNotNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
+            checkpointInfo = indexHelper.getNodeStore().checkpointInfo(checkpoint);
+        }
+        return checkpointedState;
     }
 
     /**

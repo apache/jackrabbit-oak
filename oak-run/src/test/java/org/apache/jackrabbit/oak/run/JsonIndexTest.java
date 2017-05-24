@@ -24,11 +24,12 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-import org.apache.jackrabbit.oak.console.NodeStoreFixture;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Test;
 
 public class JsonIndexTest {
@@ -103,6 +104,10 @@ public class JsonIndexTest {
                 return null;
             }
 
+            @Override
+            public StatisticsProvider getStatisticsProvider() {
+                return null;
+            }
         };
     }
     
