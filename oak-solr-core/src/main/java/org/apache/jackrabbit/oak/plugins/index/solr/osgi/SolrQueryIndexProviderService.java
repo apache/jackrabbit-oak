@@ -60,7 +60,7 @@ public class SolrQueryIndexProviderService {
     @Reference
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY,
             policyOption = ReferencePolicyOption.GREEDY,
             policy = ReferencePolicy.DYNAMIC
     )
