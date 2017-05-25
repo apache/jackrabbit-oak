@@ -36,16 +36,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 @Service({ValidatorProvider.class, EditorProvider.class})
 public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
 
+    @Property(
+            boolValue = true,
+            label = "Fail when detecting commits cross-mount references",
+            description = "Commits will fail if set to true when detecting cross-mount references. If set to false the commit information is only logged."
+    )
+    private static final String PROP_FAIL_ON_DETECTION = "failOnDetection";
+    private boolean failOnDetection;
+
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     @Override
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
-        return new CrossMountReferenceValidator(after, mountInfoProvider);
+        return new CrossMountReferenceValidator(after, mountInfoProvider, failOnDetection);
     }
 
     CrossMountReferenceValidatorProvider with(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
+        return this;
+    }
+
+    CrossMountReferenceValidatorProvider withFailOnDetection(boolean failOnDetection) {
+        this.failOnDetection = failOnDetection;
         return this;
     }
 }

@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Map;
@@ -45,6 +47,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 public class CrossMountReferenceValidator extends DefaultValidator {
+
+    private final Logger LOG = LoggerFactory.getLogger(CrossMountReferenceValidator.class);
 
     private static final Filter EMPTY_FILTER = new FilterImpl(null, null, new QueryEngineSettings());
 
@@ -69,6 +73,8 @@ public class CrossMountReferenceValidator extends DefaultValidator {
 
     private final Set<IndexStoreStrategy> uuidStores;
 
+    private final boolean failOnDetection;
+
     private CrossMountReferenceValidator(CrossMountReferenceValidator parent, String name) {
         this.name = name;
         this.parent = parent;
@@ -78,9 +84,10 @@ public class CrossMountReferenceValidator extends DefaultValidator {
         this.newReferences = parent.newReferences;
         this.uuidDefinition = parent.uuidDefinition;
         this.uuidStores = parent.uuidStores;
+        this.failOnDetection = parent.failOnDetection;
     }
 
-    public CrossMountReferenceValidator(NodeState root, MountInfoProvider mip) {
+    public CrossMountReferenceValidator(NodeState root, MountInfoProvider mip, boolean failOnDetection) {
         this.name = null;
         this.parent = null;
         this.path = "/";
@@ -89,6 +96,7 @@ public class CrossMountReferenceValidator extends DefaultValidator {
         this.newReferences = ArrayListMultimap.create();
         this.uuidDefinition = root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("uuid");
         this.uuidStores = Multiplexers.getStrategies(true, mip, uuidDefinition, INDEX_CONTENT_NODE_NAME);
+        this.failOnDetection = failOnDetection;
     }
 
     @Override
@@ -106,16 +114,19 @@ public class CrossMountReferenceValidator extends DefaultValidator {
             String uuid = e.getKey();
             String passivePath = getPathByUuid(uuid);
             if (passivePath == null) {
-                throw new CommitFailedException(INTEGRITY, 1,
-                        "Can't find path for the uuid: " + uuid);
+                LOG.warn("Can't find path for the UUID {}", uuid);
             }
             Mount m1 = mip.getMountByPath(passivePath);
 
             for (String activePath : e.getValue()) {
                 Mount m2 = mip.getMountByPath(activePath);
                 if (!m1.equals(m2)) {
-                    throw new CommitFailedException(INTEGRITY, 1,
-                            "Unable to reference the node [" + passivePath + "] from node [" + activePath + "]. Referencing across the mounts is not allowed.");
+                    if (failOnDetection) {
+                        throw new CommitFailedException(INTEGRITY, 1,
+                                "Unable to reference the node [" + passivePath + "] from node [" + activePath + "]. Referencing across the mounts is not allowed.");
+                    } else {
+                        LOG.warn("Detected a cross-mount reference: {} -> {}", activePath, passivePath);
+                    }
                 }
             }
         }
