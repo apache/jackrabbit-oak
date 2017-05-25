@@ -54,7 +54,7 @@ public class CrossMountReferenceValidatorTest {
                 new IndexUpdateProvider(new CompositeIndexEditorProvider(
                         new PropertyIndexEditorProvider().with(mip),
                         new ReferenceEditorProvider().with(mip))),
-                        new CrossMountReferenceValidatorProvider().with(mip)));
+                        new CrossMountReferenceValidatorProvider().with(mip).withFailOnDetection(true)));
     }
 
     @Test
