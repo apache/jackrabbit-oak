@@ -192,18 +192,20 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     public DataRecord getRecordIfStored(DataIdentifier dataIdentifier)
         throws DataStoreException {
         // Return file attributes from cache only if corresponding file is cached
-        // This avoids downloading the file for just accessing the meta data
+        // This avoids downloading the file for just accessing the meta data.
         File cached = cache.getIfPresent(dataIdentifier.toString());
         if (cached != null && cached.exists()) {
             return new FileCacheDataRecord(this, backend, dataIdentifier, cached.length(),
                 cached.lastModified());
-        }
-
-        // File not in cache so, retrieve the meta data from the backend explicitly
-        try {
-            return backend.getRecord(dataIdentifier);
-        } catch (Exception e) {
-            LOG.error("Error retrieving record [{}] from backend", dataIdentifier, e);
+        } else {
+            // Return the metadata from backend and lazily load the stream
+            try {
+                DataRecord rec = backend.getRecord(dataIdentifier);
+                return new FileCacheDataRecord(this, backend, dataIdentifier, rec.getLength(),
+                    rec.getLastModified());
+            } catch (Exception e) {
+                LOG.error("Error retrieving record [{}]", dataIdentifier, e);
+            }
         }
         return null;
     }
@@ -306,8 +308,21 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
         @Override
         public InputStream getStream() throws DataStoreException {
+            File cached = null;
+            // Need a catch as there's a possibility of eviction of this from cache
             try {
-                return new FileInputStream(store.cache.get(getIdentifier().toString()));
+                cached = store.cache.get(getIdentifier().toString());
+            } catch (final Exception e) {
+                LOG.debug("Error retrieving from cache " + getIdentifier(), e);
+            }
+
+            try {
+                // If cache configured to 0 will return null
+                if (cached == null || !cached.exists()) {
+                    return backend.getRecord(getIdentifier()).getStream();
+                } else {
+                    return new FileInputStream(cached);
+                }
             } catch (final Exception e) {
                 throw new DataStoreException(
                     "Error opening input stream for identifier " + getIdentifier(), e);

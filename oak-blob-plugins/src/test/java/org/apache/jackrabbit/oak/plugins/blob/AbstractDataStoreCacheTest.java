@@ -252,13 +252,14 @@ public class AbstractDataStoreCacheTest {
 
         @Override public void write(DataIdentifier identifier, File file)
             throws DataStoreException {
+            File backendFile = getFile(identifier.toString(), root);
             if (file != null && file.exists()) {
                 try {
-                    FileUtils.copyFile(file, getFile(identifier.toString(), root));
+                    FileUtils.copyFile(file, backendFile);
                 } catch (IOException e) {
                     throw new DataStoreException(e);
                 }
-                _backend.put(identifier, file);
+                _backend.put(identifier, backendFile);
             } else {
                 throw new DataStoreException(
                     String.format("file %s of id %s", new Object[] {file, identifier.toString()}));
