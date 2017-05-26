@@ -672,7 +672,6 @@ public class DocumentBundlingTest {
         merge(builder);
     }
 
-    @Ignore("OAK-6267")
     @Test
     public void recreatedBundledNode2() throws Exception{
         NodeBuilder builder = store.getRoot().builder();

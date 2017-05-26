@@ -102,7 +102,7 @@ class CommitDiff implements NodeStateDiff {
         //TODO [bundling] Handle change of primaryType. Current approach would work
         //but if bundling was enabled for previous nodetype its "side effect"
         //would still impact even though new nodetype does not have bundling enabled
-        BundlingHandler child = bundlingHandler.childChanged(name, after);
+        BundlingHandler child = bundlingHandler.childChanged(name, before, after);
         return after.compareAgainstBaseState(before,
                 new CommitDiff(store, commit, child, builder, blobs));
     }

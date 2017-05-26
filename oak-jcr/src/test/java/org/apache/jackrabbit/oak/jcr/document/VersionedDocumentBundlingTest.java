@@ -117,8 +117,6 @@ public class VersionedDocumentBundlingTest {
         assertNull(getNodeDocument(concat(versionedPath, "jcr:content")));
     }
 
-    //OAK-6267
-    @Ignore("OAK-6267")
     @Test
     public void restoreVersionedNode() throws Exception{
         String assetParentPath = "/bundlingtest/par";

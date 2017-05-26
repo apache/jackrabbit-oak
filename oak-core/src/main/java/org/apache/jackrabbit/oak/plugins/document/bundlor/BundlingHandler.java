@@ -126,17 +126,20 @@ public class BundlingHandler {
         return new BundlingHandler(registry, childContext, childPath, state);
     }
 
-    public BundlingHandler childChanged(String name, NodeState state){
+    public BundlingHandler childChanged(String name, NodeState before, NodeState after){
         String childPath = childPath(name);
         BundlingContext childContext;
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
             childContext = createChildContext(childMatcher);
         } else {
-            childContext = getBundlorContext(childPath, state);
+            //Use the before state for looking up bundlor config
+            //as after state may have been recreated all together
+            //and bundlor config might have got lost
+            childContext = getBundlorContext(childPath, before);
         }
 
-        return new BundlingHandler(registry, childContext,  childPath, state);
+        return new BundlingHandler(registry, childContext,  childPath, after);
     }
 
     public boolean isBundlingRoot() {
