@@ -400,10 +400,10 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         @Override
         protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store,
                                                              String name, long leaseTimeOut, String checkpoint,
-                                                             String afterCheckpoint, AsyncIndexStats indexStats,
+                                                             AsyncIndexStats indexStats,
                                                              AtomicBoolean stopFlag) {
             return new SpecialAsyncUpdateCallback(store, name, leaseTimeOut,
-                    checkpoint, afterCheckpoint, indexStats, stopFlag, listener);
+                    checkpoint, indexStats, stopFlag, listener);
         }
     }
 
@@ -412,16 +412,16 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         private IndexStatusListener listener;
 
         public SpecialAsyncUpdateCallback(NodeStore store, String name,
-                                          long leaseTimeOut, String checkpoint, String afterCheckpoint,
+                                          long leaseTimeOut, String checkpoint,
                                           AsyncIndexStats indexStats, AtomicBoolean stopFlag, IndexStatusListener listener) {
-            super(store, name, leaseTimeOut, checkpoint, afterCheckpoint, indexStats, stopFlag);
+            super(store, name, leaseTimeOut, checkpoint, indexStats, stopFlag);
             this.listener = listener;
         }
 
         @Override
-        protected void prepare() throws CommitFailedException {
+        protected void prepare(String afterCheckpoint) throws CommitFailedException {
             listener.prePrepare();
-            super.prepare();
+            super.prepare(afterCheckpoint);
             listener.postPrepare();
         }
 
