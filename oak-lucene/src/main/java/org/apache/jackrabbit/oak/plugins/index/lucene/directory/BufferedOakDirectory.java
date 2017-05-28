@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Sets;
 
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory.BlobFactory;
@@ -58,6 +59,8 @@ public final class BufferedOakDirectory extends Directory {
 
     private final BlobFactory blobFactory;
 
+    private final BlobDeletionCallback blobDeletionCallback;
+
     private final String dataNodeName;
 
     private final IndexDefinition definition;
@@ -72,17 +75,27 @@ public final class BufferedOakDirectory extends Directory {
 
     private int deleteCount;
 
+
     public BufferedOakDirectory(@Nonnull NodeBuilder builder,
                                 @Nonnull String dataNodeName,
                                 @Nonnull IndexDefinition definition,
                                 @Nullable BlobStore blobStore) {
+        this(builder, dataNodeName, definition, blobStore, BlobDeletionCallback.NOOP);
+    }
+
+    public BufferedOakDirectory(@Nonnull NodeBuilder builder,
+                                @Nonnull String dataNodeName,
+                                @Nonnull IndexDefinition definition,
+                                @Nullable BlobStore blobStore,
+                                @Nonnull BlobDeletionCallback blobDeletionCallback) {
         this.blobFactory = blobStore != null ?
                 new OakDirectory.BlobStoreBlobFactory(blobStore) :
                 new OakDirectory.NodeBuilderBlobFactory(builder);
+        this.blobDeletionCallback = blobDeletionCallback;
         this.dataNodeName = checkNotNull(dataNodeName);
         this.definition = checkNotNull(definition);
         this.base = new OakDirectory(checkNotNull(builder), dataNodeName,
-                definition, false, blobFactory);
+                definition, false, blobFactory, blobDeletionCallback);
         reopenBuffered();
     }
 
@@ -215,6 +228,6 @@ public final class BufferedOakDirectory extends Directory {
         // those are files that were created and later deleted again
         bufferedBuilder = squeeze(bufferedBuilder.getNodeState()).builder();
         buffered = new OakDirectory(bufferedBuilder, dataNodeName,
-                definition, false, blobFactory);
+                definition, false, blobFactory, blobDeletionCallback);
     }
 }

@@ -22,12 +22,11 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.io.IOException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.*;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
@@ -39,10 +38,16 @@ import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 public class DefaultDirectoryFactory implements DirectoryFactory {
     private final IndexCopier indexCopier;
     private final GarbageCollectableBlobStore blobStore;
+    private final BlobDeletionCallback blobDeletionCallback;
 
     public DefaultDirectoryFactory(@Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore) {
+        this(indexCopier, blobStore, BlobDeletionCallback.NOOP);
+    }
+    public DefaultDirectoryFactory(@Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore,
+                                   @Nonnull BlobDeletionCallback blobDeletionCallback) {
         this.indexCopier = indexCopier;
         this.blobStore = blobStore;
+        this.blobDeletionCallback = blobDeletionCallback;
     }
 
     @Override
@@ -70,9 +75,9 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
         }
         if (path == null) {
             if (!remoteDirectory()) {
-                return new BufferedOakDirectory(definition, dirName, indexDefinition, blobStore);
+                return new BufferedOakDirectory(definition, dirName, indexDefinition, blobStore, blobDeletionCallback);
             } else {
-                return new OakDirectory(definition, dirName, indexDefinition, false, blobStore);
+                return new OakDirectory(definition, dirName, indexDefinition, false, blobStore, blobDeletionCallback);
             }
         } else {
             // try {

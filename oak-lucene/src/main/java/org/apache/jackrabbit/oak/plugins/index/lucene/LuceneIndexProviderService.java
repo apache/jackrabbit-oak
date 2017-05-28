@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
@@ -232,6 +233,16 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_DISABLE_STORED_INDEX_DEFINITION = "disableStoredIndexDefinition";
 
+    private static final boolean PROP_DELETED_BLOB_COLLECTION_ENABLED = false;
+    @Property(
+            boolValue = PROP_DELETED_BLOB_COLLECTION_ENABLED,
+            label = "Actively remove deleted index blobs from blob store",
+            description = "Index blobs are explicitly unique and don't require mark-sweek type collection." +
+                    "Turning this on would setup early deletion of blobs from blob collection that are deleted" +
+                    " during indexing."
+    )
+    private static final String PROP_ENABLE_DELETED_BLOB_COLLECTION_DEFINITION = "enableDeletedBlobsCollection";
+
     private Whiteboard whiteboard;
 
     private BackgroundObserver backgroundObserver;
@@ -273,6 +284,8 @@ public class LuceneIndexProviderService {
 
     private IndexCopier indexCopier;
 
+    private ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector activeDeletedBlobCollector;
+
     private File indexDir;
 
     private ExecutorService executorService;
@@ -306,9 +319,19 @@ public class LuceneIndexProviderService {
 
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
+        initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config);
         IndexTracker tracker = createTracker(bundleContext, config);
         indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
+        if (PROP_DELETED_BLOB_COLLECTION_ENABLED && blobStore != null) {
+            File blobCollectorWorkingDir = new File(indexDir, "deleted-blobs");
+            activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.newInstance(blobCollectorWorkingDir, executorService);
+            log.info("Active blob collector initialized at working dir: {}", blobCollectorWorkingDir);
+        } else {
+            activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.NOOP;
+            log.info("Active blob collector set to NOOP. Enable? {}; blobStore: {}",
+                    PROP_DELETED_BLOB_COLLECTION_ENABLED, blobStore);
+        }
         initializeLogging(config);
         initialize();
 
@@ -374,6 +397,21 @@ public class LuceneIndexProviderService {
         InfoStream.setDefault(InfoStream.NO_OUTPUT);
     }
 
+    void initializeIndexDir(BundleContext bundleContext, Map<String, ?> config) {
+        String indexDirPath = PropertiesUtil.toString(config.get(PROP_LOCAL_INDEX_DIR), null);
+        if (Strings.isNullOrEmpty(indexDirPath)) {
+            String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
+            if (repoHome != null){
+                indexDirPath = FilenameUtils.concat(repoHome, "index");
+            }
+        }
+
+        checkNotNull(indexDirPath, "Index directory cannot be determined as neither index " +
+                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME);
+
+        indexDir = new File(indexDirPath);
+    }
+
     IndexCopier getIndexCopier() {
         return indexCopier;
     }
@@ -408,11 +446,11 @@ public class LuceneIndexProviderService {
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
             editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
-                    augmentorFactory,  mountInfoProvider);
+                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector);
             log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
         } else {
             editorProvider = new LuceneIndexEditorProvider(null, tracker, extractedTextCache, augmentorFactory,
-                    mountInfoProvider);
+                    mountInfoProvider, activeDeletedBlobCollector);
         }
         editorProvider.setBlobStore(blobStore);
 
@@ -448,24 +486,13 @@ public class LuceneIndexProviderService {
         if(indexCopier != null){
             return;
         }
-        String indexDirPath = PropertiesUtil.toString(config.get(PROP_LOCAL_INDEX_DIR), null);
         boolean prefetchEnabled = PropertiesUtil.toBoolean(config.get(PROP_PREFETCH_INDEX_FILES),
                 PROP_PREFETCH_INDEX_FILES_DEFAULT);
-        if (Strings.isNullOrEmpty(indexDirPath)) {
-            String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
-            if (repoHome != null){
-                indexDirPath = FilenameUtils.concat(repoHome, "index");
-            }
-        }
-
-        checkNotNull(indexDirPath, "Index directory cannot be determined as neither index " +
-                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME);
 
         if (prefetchEnabled){
             log.info("Prefetching of index files enabled. Index would be opened after copying all new files locally");
         }
 
-        indexDir = new File(indexDirPath);
         indexCopier = new IndexCopier(getExecutorService(), indexDir, prefetchEnabled);
 
         oakRegs.add(registerMBean(whiteboard,

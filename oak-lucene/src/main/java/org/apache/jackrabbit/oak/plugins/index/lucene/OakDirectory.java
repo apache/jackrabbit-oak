@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.security.SecureRandom;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +32,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
@@ -39,6 +41,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -64,6 +67,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -86,6 +90,7 @@ public class OakDirectory extends Directory {
     private final static SecureRandom secureRandom = new SecureRandom();
 
     protected final NodeBuilder builder;
+    protected final String dataNodeName;
     protected final NodeBuilder directoryBuilder;
     private final IndexDefinition definition;
     private LockFactory lockFactory;
@@ -94,6 +99,7 @@ public class OakDirectory extends Directory {
     private final Set<String> fileNamesAtStart;
     private final String indexName;
     private final BlobFactory blobFactory;
+    private final BlobDeletionCallback blobDeletionCallback;
     private volatile boolean dirty;
 
     public OakDirectory(NodeBuilder builder, IndexDefinition definition, boolean readOnly) {
@@ -106,14 +112,28 @@ public class OakDirectory extends Directory {
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
                         boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore) {
-        this(builder, dataNodeName, definition, readOnly,
-                blobStore != null ? new BlobStoreBlobFactory(blobStore) : new NodeBuilderBlobFactory(builder));
+        this(builder, dataNodeName, definition, readOnly, blobStore, BlobDeletionCallback.NOOP);
     }
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
-        boolean readOnly, BlobFactory blobFactory) {
+                        boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore,
+                        @Nonnull BlobDeletionCallback blobDeletionCallback) {
+        this(builder, dataNodeName, definition, readOnly,
+                blobStore != null ? new BlobStoreBlobFactory(blobStore) : new NodeBuilderBlobFactory(builder),
+                blobDeletionCallback);
+    }
+
+    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+                        boolean readOnly, BlobFactory blobFactory) {
+        this(builder, dataNodeName, definition, readOnly, blobFactory, BlobDeletionCallback.NOOP);
+    }
+
+    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+                        boolean readOnly, BlobFactory blobFactory,
+                        @Nonnull BlobDeletionCallback blobDeletionCallback) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
         this.builder = builder;
+        this.dataNodeName = dataNodeName;
         this.directoryBuilder = readOnly ? builder.getChildNode(dataNodeName) : builder.child(dataNodeName);
         this.definition = definition;
         this.readOnly = readOnly;
@@ -121,6 +141,7 @@ public class OakDirectory extends Directory {
         this.fileNamesAtStart = ImmutableSet.copyOf(this.fileNames);
         this.indexName = definition.getIndexName();
         this.blobFactory = blobFactory;
+        this.blobDeletionCallback = blobDeletionCallback;
     }
 
     @Override
@@ -138,6 +159,15 @@ public class OakDirectory extends Directory {
         checkArgument(!readOnly, "Read only directory");
         fileNames.remove(name);
         NodeBuilder f = directoryBuilder.getChildNode(name);
+        PropertyState property = f.getProperty(JCR_DATA);
+        if (property != null) {
+            if (property.getType() == BINARIES || property.getType() == BINARY) {
+                for (Blob b : property.getValue(BINARIES)) {
+                    blobDeletionCallback.deleted(b.toString(),
+                            Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
+                }
+            }
+        }
         f.remove();
         markDirty();
     }
