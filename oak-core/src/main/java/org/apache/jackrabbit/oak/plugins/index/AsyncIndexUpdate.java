@@ -712,7 +712,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         // sure to not delete the reference checkpoint, as the other index
         // task will take care of it
         taskSplitter.maybeSplit(beforeCheckpoint, callback.lease);
-        IndexUpdate indexUpdate;
+        IndexUpdate indexUpdate = null;
         try {
             NodeBuilder builder = store.getRoot().builder();
 
@@ -777,6 +777,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
             corruptIndexHandler.markWorkingIndexes(indexUpdate.getUpdatedIndexPaths());
         } finally {
+            if (indexUpdate != null) {
+                if (updatePostRunStatus) {
+                    indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED);
+                } else {
+                    indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_FAILED);
+                }
+            }
             callback.close();
         }
 

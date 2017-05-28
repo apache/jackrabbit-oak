@@ -51,4 +51,11 @@ public interface IndexingContext {
      * @param e exception stack for failed updated
      */
     void indexUpdateFailed(Exception e);
+
+    /**
+     * registers {@code IndexCommitCallback} instance which can then be
+     * notified of how indexing commit progresses.
+     * @param callback
+     */
+    void registerIndexCommitCallback(IndexCommitCallback callback);
 }

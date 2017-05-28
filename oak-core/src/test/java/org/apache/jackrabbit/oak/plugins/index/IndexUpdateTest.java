@@ -41,6 +41,7 @@ import static org.junit.Assert.fail;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
@@ -720,6 +721,84 @@ public class IndexUpdateTest {
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
         assertFalse(provider.getContext(indexPath).isReindexing());
+    }
+
+    @Test
+    public void indexUpdateToleratesMalignCommitProgressCallback() throws Exception {
+        final IndexUpdateCallback noop = new IndexUpdateCallback() {
+            @Override
+            public void indexUpdate() {
+            }
+        };
+
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        NodeState after = builder.getNodeState();
+
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+        IndexUpdate indexUpdate = new IndexUpdate(provider, null, after, builder,
+                noop);
+        indexUpdate.enter(before, after);
+
+        ContextAwareCallback contextualCallback = (ContextAwareCallback) provider.callback;
+        IndexingContext context = contextualCallback.getIndexingContext();
+
+        context.registerIndexCommitCallback(new IndexCommitCallback() {
+            @Override
+            public void commitProgress(IndexProgress indexProgress) {
+                throw new NullPointerException("Malign callback");
+            }
+        });
+
+        indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED);
+    }
+
+    @Test
+    public void commitProgressCallback() throws Exception {
+        final IndexUpdateCallback noop = new IndexUpdateCallback() {
+            @Override
+            public void indexUpdate() {
+            }
+        };
+
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        NodeState after = builder.getNodeState();
+
+        CallbackCapturingProvider provider = new CallbackCapturingProvider();
+        IndexUpdate indexUpdate = new IndexUpdate(provider, null, after, builder,
+                noop);
+        indexUpdate.enter(before, after);
+
+        ContextAwareCallback contextualCallback = (ContextAwareCallback) provider.callback;
+        IndexingContext context = contextualCallback.getIndexingContext();
+
+        final AtomicInteger numCallbacks = new AtomicInteger();
+        IndexCommitCallback callback1 = new IndexCommitCallback() {
+            @Override
+            public void commitProgress(IndexProgress indexProgress) {
+                numCallbacks.incrementAndGet();
+            }
+        };
+        IndexCommitCallback callback2 = new IndexCommitCallback() {
+            @Override
+            public void commitProgress(IndexProgress indexProgress) {
+                numCallbacks.incrementAndGet();
+            }
+        };
+
+        context.registerIndexCommitCallback(callback1);
+        context.registerIndexCommitCallback(callback2);
+        context.registerIndexCommitCallback(callback1);//intentionally adding same one twice
+
+        for (IndexCommitCallback.IndexProgress progress : IndexCommitCallback.IndexProgress.values()) {
+            numCallbacks.set(0);
+            indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED);
+            assertEquals("Either not all callbacks are called OR same callback got called twice for " + progress,
+                    2, numCallbacks.get());
+        }
     }
 
     private static void markCorrupt(NodeBuilder builder, String indexName) {
