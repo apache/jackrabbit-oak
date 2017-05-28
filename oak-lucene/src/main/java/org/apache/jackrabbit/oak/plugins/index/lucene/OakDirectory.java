@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -83,9 +82,9 @@ public class OakDirectory extends Directory {
     static final String PROP_BLOB_SIZE = "blobSize";
     static final String PROP_UNIQUE_KEY = "uniqueKey";
     static final int UNIQUE_KEY_SIZE = 16;
-    
+
     private final static SecureRandom secureRandom = new SecureRandom();
-    
+
     protected final NodeBuilder builder;
     protected final NodeBuilder directoryBuilder;
     private final IndexDefinition definition;
@@ -93,7 +92,6 @@ public class OakDirectory extends Directory {
     private final boolean readOnly;
     private final Set<String> fileNames = Sets.newConcurrentHashSet();
     private final Set<String> fileNamesAtStart;
-    private final boolean activeDeleteEnabled;
     private final String indexName;
     private final BlobFactory blobFactory;
     private volatile boolean dirty;
@@ -121,7 +119,6 @@ public class OakDirectory extends Directory {
         this.readOnly = readOnly;
         this.fileNames.addAll(getListing());
         this.fileNamesAtStart = ImmutableSet.copyOf(this.fileNames);
-        this.activeDeleteEnabled = definition.getActiveDeleteEnabled();
         this.indexName = definition.getIndexName();
         this.blobFactory = blobFactory;
     }
@@ -141,27 +138,6 @@ public class OakDirectory extends Directory {
         checkArgument(!readOnly, "Read only directory");
         fileNames.remove(name);
         NodeBuilder f = directoryBuilder.getChildNode(name);
-        if (activeDeleteEnabled) {
-            PropertyState property = f.getProperty(JCR_DATA);
-            ArrayList<Blob> data;
-            if (property != null && property.getType() == BINARIES) {
-                data = newArrayList(property.getValue(BINARIES));
-            } else {
-                data = newArrayList();
-            }
-            NodeBuilder trash = builder.child(LuceneIndexConstants.TRASH_CHILD_NAME);
-            long index;
-            if (!trash.hasProperty("index")) {
-                index = 1;
-            } else {    
-                index = trash.getProperty("index").getValue(Type.LONG) + 1;                
-            }
-            trash.setProperty("index", index);
-            NodeBuilder trashEntry = trash.child("run_" + index);
-            trashEntry.setProperty("time", System.currentTimeMillis());
-            trashEntry.setProperty("name", name);
-            trashEntry.setProperty(JCR_DATA, data, BINARIES);
-        }
         f.remove();
         markDirty();
     }
