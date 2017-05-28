@@ -25,6 +25,9 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.IndexingQueue;
@@ -62,9 +65,10 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private LuceneIndexWriterFactory indexWriterFactory;
     private final IndexTracker indexTracker;
     private final MountInfoProvider mountInfoProvider;
+    private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
-    private DirectoryFactory directoryFactory;
+    private DirectoryFactory externallyProvidedDirectoryFactory;
 
     /**
      * Number of indexed Lucene document that can be held in memory
@@ -99,11 +103,21 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                                      ExtractedTextCache extractedTextCache,
                                      @Nullable IndexAugmentorFactory augmentorFactory,
                                      MountInfoProvider mountInfoProvider) {
+        this(indexCopier, indexTracker, extractedTextCache, augmentorFactory, mountInfoProvider,
+                ActiveDeletedBlobCollectorFactory.NOOP);
+    }
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
+                                     @Nullable IndexTracker indexTracker,
+                                     ExtractedTextCache extractedTextCache,
+                                     @Nullable IndexAugmentorFactory augmentorFactory,
+                                     MountInfoProvider mountInfoProvider,
+                                     @Nonnull ActiveDeletedBlobCollector activeDeletedBlobCollector) {
         this.indexCopier = indexCopier;
         this.indexTracker = indexTracker;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
         this.augmentorFactory = augmentorFactory;
         this.mountInfoProvider = checkNotNull(mountInfoProvider);
+        this.activeDeletedBlobCollector = activeDeletedBlobCollector;
     }
 
     @Override
@@ -115,7 +129,9 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
                     "ContextAwareCallback [%s]", callback);
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
-            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, getDirectoryFactory());
+            BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
+            indexingContext.registerIndexCommitCallback(blobDeletionCallback);
+            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, getDirectoryFactory(blobDeletionCallback));
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
             IndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
@@ -188,14 +204,15 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     }
 
     public void setDirectoryFactory(DirectoryFactory directoryFactory) {
-        this.directoryFactory = directoryFactory;
+        this.externallyProvidedDirectoryFactory = directoryFactory;
     }
 
-    private DirectoryFactory getDirectoryFactory() {
-        if (directoryFactory == null) {
-            directoryFactory = new DefaultDirectoryFactory(indexCopier, blobStore);
+    private DirectoryFactory getDirectoryFactory(BlobDeletionCallback blobDeletionCallback) {
+        if (externallyProvidedDirectoryFactory == null) {
+            return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback);
+        } else {
+            return externallyProvidedDirectoryFactory;
         }
-        return directoryFactory;
     }
 
     private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
