@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newIdentityHashSet;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -50,6 +51,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCountEstimator;
@@ -417,6 +419,10 @@ public class IndexUpdate implements Editor, PathSource {
         return compose(children);
     }
 
+    public void commitProgress(IndexProgress indexProgress) {
+        rootState.commitProgress(indexProgress);
+    }
+
     protected Set<String> getReindexedDefinitions() {
         return rootState.progressReporter.getReindexedIndexPaths();
     }
@@ -501,6 +507,7 @@ public class IndexUpdate implements Editor, PathSource {
         final NodeState root;
         final CommitInfo commitInfo;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
+        final Set<IndexCommitCallback> indexCommitCallbacks = newIdentityHashSet();
         final CorruptIndexHandler corruptIndexHandler;
         final IndexingProgressReporter progressReporter;
         private int changedNodeCount;
@@ -549,6 +556,20 @@ public class IndexUpdate implements Editor, PathSource {
             this.ignoreReindexFlags = ignoreReindexFlags;
         }
 
+        void registerIndexCommitCallbackInternal(IndexCommitCallback callback) {
+            indexCommitCallbacks.add(callback);
+        }
+
+        public void commitProgress(IndexProgress indexProgress) {
+            for (IndexCommitCallback icc : indexCommitCallbacks) {
+                try {
+                    icc.commitProgress(indexProgress);
+                } catch (Exception e) {
+                    log.warn("Commit progress callback threw an exception. Saving ourselves.", e);
+                }
+            }
+        }
+
         private class ReportingCallback implements ContextAwareCallback, IndexingContext {
             final String indexPath;
             final boolean reindex;
@@ -595,6 +616,11 @@ public class IndexUpdate implements Editor, PathSource {
             @Override
             public void indexUpdateFailed(Exception e) {
                 corruptIndexHandler.indexUpdateFailed(async, indexPath, e);
+            }
+
+            @Override
+            public void registerIndexCommitCallback(IndexCommitCallback callback) {
+                registerIndexCommitCallbackInternal(callback);
             }
         }
     }

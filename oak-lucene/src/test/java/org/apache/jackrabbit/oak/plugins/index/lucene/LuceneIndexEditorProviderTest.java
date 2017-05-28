@@ -25,6 +25,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
@@ -176,6 +177,11 @@ public class LuceneIndexEditorProviderTest {
         @Override
         public IndexingContext getIndexingContext() {
             return this;
+        }
+
+        @Override
+        public void registerIndexCommitCallback(IndexCommitCallback callback) {
+
         }
     }
 
