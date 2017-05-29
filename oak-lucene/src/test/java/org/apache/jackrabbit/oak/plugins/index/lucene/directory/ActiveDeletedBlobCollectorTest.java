@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
@@ -54,7 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexP
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 public class ActiveDeletedBlobCollectorTest {
     @Rule
@@ -231,6 +232,8 @@ public class ActiveDeletedBlobCollectorTest {
 
     @Test
     public void inaccessibleWorkDirGivesNoop() throws Exception {
+        assumeNotWindows();
+
         File rootDir = blobCollectionRoot.getRoot();
         File unwritableExistingRootFolder = new File(rootDir, "existingRoot");
         FileUtils.forceMkdir(unwritableExistingRootFolder);
@@ -258,6 +261,10 @@ public class ActiveDeletedBlobCollectorTest {
         }
 
         assertThat(blobStore.deletedChunkIds, containsInAnyOrder(chunkIds.toArray()));
+    }
+
+    private static void assumeNotWindows() {
+        assumeTrue(!StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows"));
     }
 
     class ChunkDeletionTrackingBlobStore implements GarbageCollectableBlobStore {
