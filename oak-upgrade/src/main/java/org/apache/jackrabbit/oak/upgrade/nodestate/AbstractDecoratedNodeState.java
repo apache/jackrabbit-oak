@@ -155,7 +155,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @CheckForNull
     public PropertyState getProperty(@Nonnull String name) {
-        PropertyState ps = delegate.getProperty(name);
+        PropertyState ps = decorate(delegate.getProperty(name));
         if (ps == null) {
             for (PropertyState p : getNewPropertyStates()) {
                 if (name.equals(p.getName())) {
