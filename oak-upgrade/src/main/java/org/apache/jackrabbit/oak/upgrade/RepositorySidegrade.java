@@ -362,10 +362,13 @@ public class RepositorySidegrade {
                 LOG.info("Applying diff to {}", checkpoint.getName());
                 tracePaths = false;
             }
+
             NodeState currentRoot = wrapSource(checkpointRoot, tracePaths, true);
-            currentRoot.compareAgainstBaseState(previousRoot, new ApplyDiff(targetRoot));
+            NodeState baseRoot = previousRoot == EmptyNodeState.EMPTY_NODE ? previousRoot : wrapSource(previousRoot, false, true);
+            currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetRoot));
+
             target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            previousRoot = currentRoot;
+            previousRoot = checkpointRoot;
 
             Map<String, String> checkpointInfo = source.checkpointInfo(checkpoint.getName());
             String newCheckpointName = target.checkpoint(checkpoint.getExpiryTime() - System.currentTimeMillis(), checkpointInfo);
@@ -384,8 +387,10 @@ public class RepositorySidegrade {
             LOG.info("Applying diff to head");
             tracePaths = false;
         }
+        
         NodeState currentRoot = wrapSource(sourceRoot, tracePaths, true);
-        currentRoot.compareAgainstBaseState(previousRoot, new ApplyDiff(targetRoot));
+        NodeState baseRoot = previousRoot == EmptyNodeState.EMPTY_NODE ? previousRoot : wrapSource(previousRoot, false, true);
+        currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetRoot));
 
         LOG.info("Rewriting checkpoint names in /:async {}", nameToRevision);
         NodeBuilder async = targetRoot.getChildNode(":async");
