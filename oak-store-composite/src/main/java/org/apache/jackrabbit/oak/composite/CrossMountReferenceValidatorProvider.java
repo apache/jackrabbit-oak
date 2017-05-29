@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -27,11 +30,14 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.framework.BundleContext;
+
+import java.util.Map;
 
 /**
  * {@link Validator} which detects references crossing the mount boundaries
  */
-@Component(label = "Apache Jackrabbit Oak CrossMountReferenceValidatorProvider")
+@Component(label = "Apache Jackrabbit Oak CrossMountReferenceValidatorProvider", policy = ConfigurationPolicy.REQUIRE)
 @Property(name = "type", value = "crossMountRefValidator", propertyPrivate = true)
 @Service({ValidatorProvider.class, EditorProvider.class})
 public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
@@ -46,6 +52,11 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
 
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
+
+    @Activate
+    private void activate(BundleContext bundleContext, Map<String, ?> config) {
+        failOnDetection = PropertiesUtil.toBoolean(config.get(PROP_FAIL_ON_DETECTION), false);
+    }
 
     @Override
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
