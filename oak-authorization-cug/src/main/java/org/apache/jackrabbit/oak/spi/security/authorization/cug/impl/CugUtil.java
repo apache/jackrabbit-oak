@@ -22,9 +22,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,7 +100,6 @@ final class CugUtil implements CugConstants {
     public static Set<String> getSupportedPaths(@Nonnull ConfigurationParameters params, @Nonnull MountInfoProvider mountInfoProvider) {
         Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
         if (!supportedPaths.isEmpty() && mountInfoProvider.hasNonDefaultMounts()) {
-            Set<String> adjustedPaths = Sets.newHashSetWithExpectedSize(supportedPaths.size());
             for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
                 for (String path : supportedPaths) {
                     if (mount.isUnder(path)) {
@@ -110,15 +108,11 @@ final class CugUtil implements CugConstants {
                     } else if (mount.isMounted(path)) {
                         log.error("Configured supported CUG path '{}' is part of node store mount '{}'.", path, mount.getName());
                         throw new IllegalStateException();
-                    } else {
-                        adjustedPaths.add(path);
                     }
                 }
             }
-            return ImmutableSet.copyOf(adjustedPaths);
-        } else {
-            return supportedPaths;
         }
+        return supportedPaths;
     }
 
     public static int getImportBehavior(ConfigurationParameters config) {
