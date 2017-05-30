@@ -368,4 +368,71 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
         assertResultContainsAuthorizables(result, user);
     }
+
+    @Test
+    public void testQueryBoundWithoutSortOrder() throws Exception {
+        ValueFactory vf = getValueFactory(root);
+        Group g = createGroup("g1", null);
+        g.setProperty(propertyName, vf.createValue(50));
+        Group g2 = createGroup("g2", null);
+        g2.setProperty(propertyName, vf.createValue(60));
+        user.setProperty(propertyName, vf.createValue(101));
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setLimit(vf.createValue(100), Long.MAX_VALUE);
+                builder.setCondition(builder.gt(propertyName, vf.createValue(20)));
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user, g, g2);
+    }
+
+    @Test
+    public void testQueryBoundWithSortOrder() throws Exception {
+        ValueFactory vf = getValueFactory(root);
+        Group g = createGroup("g1", null);
+        g.setProperty(propertyName, vf.createValue(50));
+        Group g2 = createGroup("g2", null);
+        g2.setProperty(propertyName, vf.createValue(60));
+        user.setProperty(propertyName, vf.createValue(101));
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setLimit(vf.createValue(100), Long.MAX_VALUE);
+                builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
+                builder.setCondition(builder.gt(propertyName, vf.createValue(20)));
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user);
+    }
+
+    @Test
+    public void testQueryBoundWithSortOrderMissingCondition() throws Exception {
+        ValueFactory vf = getValueFactory(root);
+        Group g = createGroup("g1", null);
+        g.setProperty(propertyName, vf.createValue(50));
+        Group g2 = createGroup("g2", null);
+        g2.setProperty(propertyName, vf.createValue(60));
+        user.setProperty(propertyName, vf.createValue(101));
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setLimit(vf.createValue(100), Long.MAX_VALUE);
+                builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user);
+    }
 }
