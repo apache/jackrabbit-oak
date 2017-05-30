@@ -51,30 +51,31 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
         this.targetType = (targetType == null || AuthorizableType.AUTHORIZABLE == targetType) ? null : targetType;
     }
 
+    @Nullable
     @Override
-    public Authorizable apply(ResultRow row) {
-        if (row != null) {
-            return getAuthorizable(row.getPath());
-        }
-        return null;
+    public Authorizable apply(@Nullable ResultRow row) {
+        return getAuthorizable(row);
     }
 
     //------------------------------------------------------------< private >---
     @CheckForNull
-    private Authorizable getAuthorizable(String resultPath) {
+    private Authorizable getAuthorizable(@CheckForNull ResultRow row) {
         Authorizable authorizable = null;
-        try {
-            Tree tree = root.getTree(resultPath);
-            AuthorizableType type = UserUtil.getType(tree);
-            while (tree.exists() && !tree.isRoot() && type == null) {
-                tree = tree.getParent();
-                type = UserUtil.getType(tree);
+        if (row != null) {
+            String resultPath = row.getPath();
+            try {
+                Tree tree = root.getTree(resultPath);
+                AuthorizableType type = UserUtil.getType(tree);
+                while (tree.exists() && !tree.isRoot() && type == null) {
+                    tree = tree.getParent();
+                    type = UserUtil.getType(tree);
+                }
+                if (tree.exists() && (targetType == null || targetType == type)) {
+                    authorizable = userManager.getAuthorizable(tree);
+                }
+            } catch (RepositoryException e) {
+                log.debug("Failed to access authorizable " + resultPath);
             }
-            if (tree.exists() && (targetType == null || targetType == type)) {
-                authorizable = userManager.getAuthorizable(tree);
-            }
-        } catch (RepositoryException e) {
-            log.debug("Failed to access authorizable " + resultPath);
         }
         return authorizable;
     }

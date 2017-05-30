@@ -16,21 +16,35 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.Query;
+import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -43,7 +57,10 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     private ValueFactory valueFactory;
     private UserQueryManager queryMgr;
     private User user;
+    private String userId;
     private String propertyName;
+
+    private List<Group> groups = new ArrayList();
 
     @Before
     public void before() throws Exception {
@@ -51,6 +68,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         UserManagerImpl userMgr = (UserManagerImpl) getUserManager(root);
         user = getTestUser();
+        userId = user.getID();
         queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getParameters(), root);
 
         valueFactory = new ValueFactoryImpl(root, namePathMapper);
@@ -61,8 +79,48 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Override
     public void after() throws Exception {
-        getQueryEngineSettings().setFailTraversal(true);
-        super.after();
+        try {
+            getQueryEngineSettings().setFailTraversal(true);
+            for (Group g : groups) {
+                g.remove();
+            }
+            if (root.hasPendingChanges()) {
+                root.commit();
+            }
+        } finally {
+            super.after();
+        }
+    }
+
+    private Group createGroup(@Nullable String id, @Nullable Principal principal) throws RepositoryException {
+        Group g;
+        if (id != null) {
+            if (principal != null) {
+                g = getUserManager(root).createGroup(id, principal, null);
+            } else {
+                g = getUserManager(root).createGroup(id);
+            }
+        } else {
+            checkNotNull(principal);
+            g = getUserManager(root).createGroup(principal);
+        }
+        groups.add(g);
+        return g;
+    }
+
+    private static void assertResultContainsAuthorizables(@Nonnull Iterator<Authorizable> result, Authorizable... expected) throws RepositoryException {
+        switch (expected.length) {
+            case 0:
+                assertFalse(result.hasNext());
+                break;
+            case 1:
+                assertTrue(result.hasNext());
+                assertEquals(expected[0].getID(), result.next().getID());
+                assertFalse(result.hasNext());
+                break;
+            default:
+                assertEquals(ImmutableSet.copyOf(expected), ImmutableSet.copyOf(result));
+        }
     }
 
     /**
@@ -135,5 +193,179 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
             user.removeProperty(propertyName);
             root.commit();
         }
+    }
+
+    @Test
+    public void testQueryMaxCountZero() throws Exception {
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> queryBuilder) {
+                queryBuilder.setLimit(0, 0);
+
+            }
+        };
+        assertSame(Iterators.emptyIterator(), queryMgr.findAuthorizables(q));
+    }
+
+    @Test
+    public void testQueryScopeEveryoneNonExisting() throws Exception {
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.nameMatches(userId));
+                builder.setScope(EveryonePrincipal.NAME, false);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user);
+    }
+
+    @Test
+    public void testQueryScopeEveryoneFiltersEveryone() throws Exception {
+        Value v = getValueFactory(root).createValue("value");
+
+        Group g = createGroup(null, EveryonePrincipal.getInstance());
+        g.setProperty(propertyName, v);
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+                builder.setScope(EveryonePrincipal.NAME, false);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user);
+    }
+
+    @Test
+    public void testQueryScopeEveryoneWithIdDiffersPrincipalName() throws Exception {
+        Value v = getValueFactory(root).createValue("value");
+
+        Group g = createGroup("eGroup", EveryonePrincipal.getInstance());
+        g.setProperty(propertyName, v);
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+                builder.setScope("eGroup", false);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user);
+    }
+
+    @Test
+    public void testQueryNoScope() throws Exception {
+        Value v = getValueFactory(root).createValue("value");
+
+        Group g = createGroup(null, EveryonePrincipal.getInstance());
+        g.setProperty(propertyName, v);
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user, g);
+    }
+
+    @Test
+    public void testQueryScopeNotMember() throws Exception {
+        Value v = getValueFactory(root).createValue("value");
+
+        Group g = createGroup("g1", null);
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+                builder.setScope("g1", false);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result);
+    }
+
+    @Test
+    public void testQueryScopeDeclaredMember() throws Exception {
+        Value v = getValueFactory(root).createValue("value");
+
+        Group g = createGroup("g1", null);
+        g.addMember(user);
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+                builder.setScope("g1", false);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user);
+    }
+
+    @Test
+    public void testQueryScopeDeclaredMembership() throws Exception {
+        Value v = getValueFactory(root).createValue("value");
+
+        Group g = createGroup("g1", null);
+        Group g2 = createGroup("g2", null);
+        g.addMember(g2);
+        g2.addMember(user);
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+                builder.setScope("g1", true);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result);
+    }
+
+    @Test
+    public void testQueryScopeInheritedMembership() throws Exception {
+        Value v = getValueFactory(root).createValue("value");
+
+        Group g = createGroup("g1", null);
+        Group g2 = createGroup("g2", null);
+        g.addMember(g2);
+        g2.addMember(user);
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.eq(propertyName, v));
+                builder.setScope("g1", false);
+            }
+        };
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, user);
     }
 }
