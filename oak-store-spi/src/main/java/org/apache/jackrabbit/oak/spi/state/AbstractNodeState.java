@@ -51,7 +51,7 @@ import com.google.common.collect.Iterables;
  * alternatives.
  */
 public abstract class AbstractNodeState implements NodeState {
-    private static final int CHILDREN_CAP = getInteger("children.cap", 100);
+    private static final int CHILDREN_CAP = getInteger("oak.children.cap", 100);
 
     public static boolean isValidName(String name) {
         return name != null && !name.isEmpty() && name.indexOf('/') == -1;
