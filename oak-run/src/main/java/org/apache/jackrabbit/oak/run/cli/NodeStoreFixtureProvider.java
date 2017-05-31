@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
@@ -58,7 +60,7 @@ public class NodeStoreFixtureProvider {
 
     public static NodeStoreFixture create(Options options, boolean readOnly) throws Exception {
         CommonOptions commonOpts = options.getOptionBean(CommonOptions.class);
-
+        Whiteboard wb = options.getWhiteboard();
         Closer closer = Closer.create();
         BlobStoreFixture blobFixture = BlobStoreFixtureProvider.create(options);
         BlobStore blobStore = null;
@@ -68,14 +70,16 @@ public class NodeStoreFixtureProvider {
         }
 
         StatisticsProvider statisticsProvider = createStatsProvider(options, closer);
-        NodeStore store = null;
+        wb.register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
+
+        NodeStore store;
         if (commonOpts.isMongo() || commonOpts.isRDB()) {
             store = configureDocumentMk(options, blobStore, statisticsProvider, closer, readOnly);
         } else {
             store = configureSegment(options, blobStore, statisticsProvider, closer, readOnly);
         }
 
-        return new SimpleNodeStoreFixture(store, blobStore, statisticsProvider, closer);
+        return new SimpleNodeStoreFixture(store, blobStore, wb, closer);
     }
 
     private static NodeStore configureDocumentMk(Options options,
@@ -180,12 +184,12 @@ public class NodeStoreFixtureProvider {
         private final Closer closer;
         private final NodeStore nodeStore;
         private final BlobStore blobStore;
-        private final StatisticsProvider statisticsProvider;
+        private final Whiteboard whiteboard;
 
         private SimpleNodeStoreFixture(NodeStore nodeStore, BlobStore blobStore,
-                                       StatisticsProvider statisticsProvider, Closer closer) {
+                                       Whiteboard whiteboard, Closer closer) {
             this.blobStore = blobStore;
-            this.statisticsProvider = statisticsProvider;
+            this.whiteboard = whiteboard;
             this.closer = closer;
             this.nodeStore = nodeStore;
         }
@@ -201,8 +205,8 @@ public class NodeStoreFixtureProvider {
         }
 
         @Override
-        public StatisticsProvider getStatisticsProvider() {
-            return statisticsProvider;
+        public Whiteboard getWhiteboard() {
+            return whiteboard;
         }
 
         @Override

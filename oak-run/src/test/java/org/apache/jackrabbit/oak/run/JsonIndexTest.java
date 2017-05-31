@@ -29,7 +29,8 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.Test;
 
 public class JsonIndexTest {
@@ -84,6 +85,7 @@ public class JsonIndexTest {
     
     private static NodeStoreFixture memoryFixture() {
         return new NodeStoreFixture() {
+            private final Whiteboard whiteboard = new DefaultWhiteboard();
 
             @Override
             public void close() throws IOException {
@@ -105,8 +107,8 @@ public class JsonIndexTest {
             }
 
             @Override
-            public StatisticsProvider getStatisticsProvider() {
-                return null;
+            public Whiteboard getWhiteboard() {
+                return whiteboard;
             }
         };
     }
@@ -114,8 +116,7 @@ public class JsonIndexTest {
     @Test
     public void readWrite() throws Exception {
         JsonIndexCommand index = new JsonIndexCommand();
-        try (NodeStoreFixture fixture = memoryFixture();
-                ) {
+        try (NodeStoreFixture fixture = memoryFixture()) {
             NodeStore store = fixture.getStore();
             index.session = JsonIndexCommand.openSession(store);
             assertCommand(index, 
