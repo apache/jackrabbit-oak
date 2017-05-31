@@ -37,6 +37,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.junit.Before;
 import org.junit.Test;
@@ -494,5 +495,37 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
         assertEquals(ImmutableList.of(user, g, g2), ImmutableList.copyOf(result));
+    }
+
+    @Test
+    public void testQueryNameMatchesWithUnderscoreId() throws Exception {
+        Group g = createGroup("group_with_underscore", null);
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.nameMatches("group_with_underscore"));
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, g);
+    }
+
+    @Test
+    public void testQueryNameMatchesWithUnderscorePrincipalName() throws Exception {
+        Group g = createGroup("g", new PrincipalImpl("group_with_underscore"));
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.nameMatches("group_with_underscore"));
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertResultContainsAuthorizables(result, g);
     }
 }
