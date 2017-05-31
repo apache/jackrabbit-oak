@@ -159,7 +159,9 @@ public class IndexCommand implements Command {
     }
 
     private static void setupDirectories(IndexOptions indexOpts) throws IOException {
-        FileUtils.cleanDirectory(indexOpts.getOutDir());
+        if (indexOpts.getOutDir().exists()) {
+            FileUtils.cleanDirectory(indexOpts.getOutDir());
+        }
         cleanWorkDir(indexOpts.getWorkDir());
     }
 

@@ -64,7 +64,7 @@ public class IndexOptions implements OptionsBean {
         workDirOpt = parser.accepts("index-temp-dir", "Directory used for storing temporary files")
                 .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
         outputDirOpt = parser.accepts("index-out-dir", "Directory used for output files")
-                .withRequiredArg().ofType(File.class).defaultsTo(new File("."));
+                .withRequiredArg().ofType(File.class).defaultsTo(new File("indexing-result"));
 
         stats = parser.accepts("index-info", "Collects and dumps various statistics related to the indexes");
         definitions = parser.accepts("index-definitions", "Collects and dumps index definitions");
