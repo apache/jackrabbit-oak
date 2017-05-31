@@ -226,6 +226,35 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     }
 
     /**
+     * Add, get forcing load in cache.
+     * @throws Exception
+     */
+    @Test
+    public void syncAddGetLoadCache() throws Exception {
+        LOG.info("Starting syncAddGetForceFromCache");
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        String id = getIdForInputStream(f);
+        FileInputStream fin = new FileInputStream(f);
+        closer.register(fin);
+
+        DataRecord rec = dataStore.addRecord(fin, new BlobOptions().setUpload(SYNCHRONOUS));
+        assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
+
+        // Invalidate from the local cache
+        dataStore.getCache().invalidate(id);
+
+        // Trigger load from backend
+        File cacheDownloaded = dataStore.getCache().get(id);
+        assertTrue(Files.equal(f, cacheDownloaded));
+
+        assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
+
+        LOG.info("Finished syncAddGetLoadCache");
+    }
+
+    /**
      * {@link CompositeDataStoreCache#getIfPresent(String)} when no cache.
      */
     @Test
