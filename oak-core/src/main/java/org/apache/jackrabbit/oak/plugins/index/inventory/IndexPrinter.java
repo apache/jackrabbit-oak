@@ -84,15 +84,15 @@ public class IndexPrinter implements InventoryPrinter {
             pw.println(lane);
             AsyncIndexInfo info = asyncIndexInfoService.getInfo(lane);
             if (info != null) {
-                        pw.printf("    Last Indexed To      : %s%n", formatTime(info.getLastIndexedTo()));
+                        pw.printf("    Last indexed to      : %s%n", formatTime(info.getLastIndexedTo()));
                 IndexStatsMBean stats = info.getStatsMBean();
                 if (stats != null) {
                         pw.printf("    Status              : %s%n", stats.getStatus());
                         pw.printf("    Failing             : %s%n", stats.isFailing());
                         pw.printf("    Paused              : %s%n", stats.isPaused());
                     if (stats.isFailing()) {
-                        pw.printf("    Failing Since       : %s%n", stats.getFailingSince());
-                        pw.printf("    Latest Error        : %s%n", stats.getLatestError());
+                        pw.printf("    Failing since       : %s%n", stats.getFailingSince());
+                        pw.printf("    Latest error        : %s%n", stats.getLatestError());
                     }
                 }
                 pw.println();
@@ -127,12 +127,12 @@ public class IndexPrinter implements InventoryPrinter {
         pw.println(info.getIndexPath());
         pw.printf("    Type                    : %s%n", info.getType());
         if (info.getAsyncLaneName() != null) {
-            pw.printf("    async                   : true%n");
-            pw.printf("    async name              : %s%n", info.getAsyncLaneName());
+            pw.printf("    Async                   : true%n");
+            pw.printf("    Async lane name         : %s%n", info.getAsyncLaneName());
         }
 
         if (info.getIndexedUpToTime() > 0){
-            pw.printf("    Last Indexed Upto       : %s%n", formatTime(info.getIndexedUpToTime()));
+            pw.printf("    Last indexed up to      : %s%n", formatTime(info.getIndexedUpToTime()));
         }
 
         if (info.getLastUpdatedTime() > 0){
