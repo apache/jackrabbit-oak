@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -434,5 +435,49 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
         assertResultContainsAuthorizables(result, user);
+    }
+
+    @Test
+    public void testQuerySortIgnoreCase() throws Exception {
+        ValueFactory vf = getValueFactory(root);
+        Group g = createGroup("g1", null);
+        g.setProperty(propertyName, vf.createValue("aaa"));
+        Group g2 = createGroup("g2", null);
+        g2.setProperty(propertyName, vf.createValue("BBB"));
+        user.setProperty(propertyName, vf.createValue("c"));
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.exists(propertyName));
+                builder.setSortOrder(propertyName, QueryBuilder.Direction.DESCENDING, true);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertEquals(ImmutableList.of(user, g2, g), ImmutableList.copyOf(result));
+    }
+
+    @Test
+    public void testQuerySortRespectCase() throws Exception {
+        ValueFactory vf = getValueFactory(root);
+        Group g = createGroup("g1", null);
+        g.setProperty(propertyName, vf.createValue("aaa"));
+        Group g2 = createGroup("g2", null);
+        g2.setProperty(propertyName, vf.createValue("BBB"));
+        user.setProperty(propertyName, vf.createValue("c"));
+        root.commit();
+
+        Query q = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.exists(propertyName));
+                builder.setSortOrder(propertyName, QueryBuilder.Direction.DESCENDING, false);
+            }
+        };
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+        assertEquals(ImmutableList.of(user, g, g2), ImmutableList.copyOf(result));
     }
 }
