@@ -113,7 +113,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 public void evicted(@Nonnull String key, @Nullable File cachedFile,
                     @Nonnull RemovalCause cause) {
                     try {
-                        if (cachedFile != null && cachedFile.exists()) {
+                        if (cachedFile != null && cachedFile.exists()
+                            && cause != RemovalCause.REPLACED) {
                             DataStoreCacheUtils.recursiveDelete(cachedFile, cacheRoot);
                             LOG.info("File [{}] evicted with reason [{}]", cachedFile, cause
                                 .toString());
