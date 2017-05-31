@@ -29,17 +29,21 @@ import joptsimple.OptionSpec;
 import static java.util.Arrays.asList;
 
 public class BlobStoreOptions implements OptionsBean {
-    public enum Type {FDS, S3, AZURE, NONE}
+    public enum Type {FDS, S3, AZURE, FAKE, NONE}
     private final OptionSpec<String> fdsOption;
     private final OptionSpec<String> s3Option;
     private final OptionSpec<String> azureOption;
     private final OptionSpec<String> fdsPathOption;
+    private final OptionSpec<String> fakeDsPathOption;
     private OptionSet options;
 
     public BlobStoreOptions(OptionParser parser){
         fdsOption = parser.acceptsAll(asList("fds"), "FileDataStore config path")
                 .withRequiredArg().ofType(String.class);
         fdsPathOption = parser.acceptsAll(asList("fds-path"), "FileDataStore path")
+                .withRequiredArg().ofType(String.class);
+        fakeDsPathOption = parser.acceptsAll(asList("fake-ds-path"), "Path to be used to construct a Fake " +
+                "FileDataStore. It return an empty stream for any Blob but allows writes if used in read-write mode")
                 .withRequiredArg().ofType(String.class);
         s3Option = parser.accepts("s3ds", "S3DataStore config path")
                 .withRequiredArg().ofType(String.class);
@@ -89,6 +93,10 @@ public class BlobStoreOptions implements OptionsBean {
         return azureOption.value(options);
     }
 
+    public String getFakeDataStorePath() {
+        return fakeDsPathOption.value(options);
+    }
+
     public Type getBlobStoreType(){
         if (options.has(fdsOption) || options.has(fdsPathOption)){
             return Type.FDS;
@@ -96,6 +104,8 @@ public class BlobStoreOptions implements OptionsBean {
             return Type.S3;
         } else if (options.has(azureOption)){
             return Type.AZURE;
+        } else if (options.has(fakeDsPathOption)){
+            return Type.FAKE;
         }
         return Type.NONE;
     }
