@@ -24,16 +24,17 @@ import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Collections;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.sql.DataSource;
 
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Counting;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.MongoClientURI;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -120,7 +121,7 @@ public class NodeStoreFixtureProvider {
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
-            closer.register(asCloseable(mongo));
+            closer.register(() -> mongo.close());
             builder.setMongoDB(mongo.getDB());
         } else if (commonOpts.isRDB()) {
             RDBStoreOptions rdbOpts = options.getOptionBean(RDBStoreOptions.class);
@@ -166,18 +167,25 @@ public class NodeStoreFixtureProvider {
                     MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
             MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
             closer.register(statsProvider);
+            closer.register(() -> reportMetrics(statsProvider));
             return statsProvider;
         }
         return StatisticsProvider.NOOP;
     }
 
-    private static Closeable asCloseable(final MongoConnection con) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                con.close();
-            }
-        };
+    private static void reportMetrics(MetricStatisticsProvider statsProvider) {
+        MetricRegistry metricRegistry = statsProvider.getRegistry();
+        ConsoleReporter.forRegistry(metricRegistry)
+                .outputTo(System.out)
+                .filter((name, metric) -> {
+                    if (metric instanceof Counting) {
+                        //Only report non zero metrics
+                        return ((Counting) metric).getCount() > 0;
+                    }
+                    return true;
+                })
+                .build()
+                .report();
     }
 
     private static class SimpleNodeStoreFixture implements NodeStoreFixture {
