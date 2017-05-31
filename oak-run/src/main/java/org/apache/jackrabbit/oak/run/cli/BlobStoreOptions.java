@@ -64,7 +64,7 @@ public class BlobStoreOptions implements OptionsBean {
     @Override
     public String description() {
         return "Options related to configuring a BlobStore. All config options here (except --fds-path) refer to " +
-                "path of the config file. The file should be '.config' file confirming to OSGi config admin format ";
+                "the path of the config file. The file should be a '.config' file in the OSGi config admin format.";
     }
 
     @Override

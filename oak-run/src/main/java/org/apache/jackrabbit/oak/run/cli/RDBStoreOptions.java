@@ -53,7 +53,7 @@ public class RDBStoreOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "Options related to configuring RDBDocumentStore for DocumentNodeStore based setups";
+        return "Options related to configuring a RDBDocumentStore for DocumentNodeStore based setups.";
     }
 
     @Override
