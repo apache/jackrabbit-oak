@@ -255,7 +255,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     }
 
     /**
-     * {@link CompositeDataStoreCache#getIfPresent(String)} when no cache.
+     * {@link CompositeDataStoreCache#getIfPresent(String)} when no record.
      */
     @Test
     public void getRecordNotAvailable() throws DataStoreException {
@@ -265,6 +265,53 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertNull(rec);
 
         LOG.info("Finished getRecordNotAvailable");
+    }
+
+    /**
+     * Add in datastore, invalidate from cache and lazy load record stream.
+     */
+    @Test
+    public void lazyLoadStream() throws Exception {
+        LOG.info("Starting lazyLoadStream");
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        String id = getIdForInputStream(f);
+        FileInputStream fin = new FileInputStream(f);
+        closer.register(fin);
+
+        DataRecord rec = dataStore.addRecord(fin);
+        assertEquals(id, rec.getIdentifier().toString());
+
+        //start & finish
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        waitFinish();
+
+        // Invalidate from the local cache
+        dataStore.getCache().invalidate(id);
+
+        // retrieve record from the datastore
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertNotNull(rec);
+        assertEquals(id, rec.getIdentifier().toString());
+
+        // the file should not be in cache
+        File cached = dataStore.getCache().getIfPresent(id);
+        assertNull(cached);
+
+        // assert stream
+        assertFile(rec.getStream(), f, folder);
+
+        // Now should be available in the cache
+        cached = dataStore.getCache().getIfPresent(id);
+        assertNotNull(cached);
+        assertTrue(Files.equal(f, cached));
+
+        dataStore.deleteRecord(new DataIdentifier(id));
+        rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        assertNull(rec);
+
+        LOG.info("Finished lazyLoadStream");
     }
 
     /**
