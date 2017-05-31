@@ -128,10 +128,10 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         switchIndexLanesAndReindexFlag();
         preformIndexUpdate(baseState);
         writeMetaInfo();
-        copyIndexFilesToOutput();
+        File destDir = copyIndexFilesToOutput();
 
         log.info("Indexing completed for indexes {} in {} and index files are copied to {}",
-                indexHelper.getIndexPaths(), w, IndexCommand.getPath(indexHelper.getOutputDir()));
+                indexHelper.getIndexPaths(), w, IndexCommand.getPath(destDir));
     }
 
     private File getLocalIndexDir() throws IOException {
@@ -263,8 +263,10 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         }
     }
 
-    private void copyIndexFilesToOutput() throws IOException {
+    private File copyIndexFilesToOutput() throws IOException {
+        File destDir = new File(indexHelper.getOutputDir(), getLocalIndexDir().getName());
         FileUtils.moveDirectoryToDirectory(getLocalIndexDir(), indexHelper.getOutputDir(), true);
+        return destDir;
     }
 
     private void configureEstimators(IndexUpdate indexUpdate) {
