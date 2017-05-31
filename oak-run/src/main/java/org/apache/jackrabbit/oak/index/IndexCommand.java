@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,8 @@ public class IndexCommand implements Command {
         try (Closer closer = Closer.create()) {
             closer.register(fixture);
             cleanWorkDir(indexOpts.getWorkDir());
-            execute(fixture.getStore(), fixture.getBlobStore(), fixture.getStatisticsProvider(), indexOpts, closer);
+            StatisticsProvider statisticsProvider = WhiteboardUtils.getService(fixture.getWhiteboard(), StatisticsProvider.class);
+            execute(fixture.getStore(), fixture.getBlobStore(), statisticsProvider, indexOpts, closer);
             tellReportPaths();
         }
     }

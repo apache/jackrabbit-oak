@@ -29,6 +29,8 @@ import com.google.common.collect.MutableClassToInstanceMap;
 import com.google.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
@@ -42,6 +44,7 @@ public class Options {
     private String commandName;
     private String summary;
     private String connectionString;
+    private final Whiteboard whiteboard = new DefaultWhiteboard();
 
     public Options(){
         this.oakRunOptions = EnumSet.allOf(OptionBeans.class);
@@ -117,6 +120,10 @@ public class Options {
 
     public CommonOptions getCommonOpts(){
         return getOptionBean(CommonOptions.class);
+    }
+
+    public Whiteboard getWhiteboard() {
+        return whiteboard;
     }
 
     private void configure(OptionSet optionSet){
