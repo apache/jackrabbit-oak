@@ -72,18 +72,18 @@ public class IndexOptions implements OptionsBean {
                 "selected operations need to be performed")
                 .withRequiredArg().ofType(String.class).withValuesSeparatedBy(",");
 
-        checkpoint = parser.accepts("checkpoint", "Checkpoint value upto which index would be updated when " +
-                "indexing is performed in read only mode. For testing purpose it can be set to 'head' to indicate that head " +
+        checkpoint = parser.accepts("checkpoint", "The checkpoint up to which the index is updated, when " +
+                "indexing in read only mode. For testing purpose, it can be set to 'head' to indicate that the head " +
                 "state should be used.")
                 .withRequiredArg().ofType(String.class);
 
         consistencyCheck = parser.accepts("index-consistency-check", "Performs consistency check " +
-                "for indexes as specified by --index-paths. If none specified performs check for all indexes. Currently " +
-                "this is only supported for Lucene indexes. Possible values 1 - Basic check, 2 - Full check (slower)")
+                "for indexes as specified by --index-paths (if this not set, all indexes are checked). Currently " +
+                "only Lucene indexes are supported. Possible values 1 - Basic check, 2 - Full check (slower)")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1);
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
-        reindex = parser.accepts("reindex", "Reindex the indexes").availableIf("index-paths");
+        reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths").availableIf("index-paths");
 
         //Set of options which define action
         actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex);
@@ -102,10 +102,10 @@ public class IndexOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "Index command supports following operations. Most operations are read only. For performing them " +
-                "BloStore related options must be provided as they would access the binaries stored there. \n" +
-                "By default it performs --index-info and --index-definitions operation if no explicit operation is selected. \n" +
-                "Use --index-paths to restrict the set of indexes on which the operation needs to be performed";
+        return "The index command supports the following operations. Most operations are read only.\n" + 
+                "BloStore related options must be provided, as operations access the binaries stored there.\n" +
+                "If no explicit operation is selected, --index-info and --index-definitions operation are performed.\n" +
+                "Use --index-paths to restrict the set of indexes on which the operation needs to be run.";
     }
 
     @Override
