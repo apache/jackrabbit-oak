@@ -72,7 +72,7 @@ public class IndexCommand implements Command {
         NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
         try (Closer closer = Closer.create()) {
             closer.register(fixture);
-            cleanWorkDir(indexOpts.getWorkDir());
+            setupDirectories(indexOpts);
             StatisticsProvider statisticsProvider = WhiteboardUtils.getService(fixture.getWhiteboard(), StatisticsProvider.class);
             execute(fixture.getStore(), fixture.getBlobStore(), statisticsProvider, indexOpts, closer);
             tellReportPaths();
@@ -156,6 +156,11 @@ public class IndexCommand implements Command {
             dumper.dump();
             info = dumper.getOutFile();
         }
+    }
+
+    private static void setupDirectories(IndexOptions indexOpts) throws IOException {
+        FileUtils.cleanDirectory(indexOpts.getOutDir());
+        cleanWorkDir(indexOpts.getWorkDir());
     }
 
     private static void cleanWorkDir(File workDir) throws IOException {
