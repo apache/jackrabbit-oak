@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -178,7 +177,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         assertResultContainsAuthorizables(result);
     }
 
-
     @Test
     public void testFindWithCurrentRelPath() throws Exception {
         user.setProperty(propertyName, v);
@@ -197,7 +195,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         assertResultContainsAuthorizables(result);
     }
 
-    @Ignore("OAK-6290")
     @Test
     public void testFindWithRelPathMultipleSelectorNames() throws Exception {
         user.setProperty(propertyName, v);
@@ -205,8 +202,10 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         g.setProperty("rel/path/to/" + propertyName, v);
         root.commit();
 
-        Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.AUTHORIZABLE, false);
-        assertResultContainsAuthorizables(result, g);
+        for (AuthorizableType type : new AuthorizableType[] {AuthorizableType.AUTHORIZABLE, AuthorizableType.GROUP}) {
+            Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.AUTHORIZABLE, false);
+            assertResultContainsAuthorizables(result, g);
+        }
     }
 
     @Test
