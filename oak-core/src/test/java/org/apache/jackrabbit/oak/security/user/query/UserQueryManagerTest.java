@@ -35,11 +35,11 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -58,8 +58,9 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     private ValueFactory valueFactory;
     private UserQueryManager queryMgr;
     private User user;
-    private String userId;
     private String propertyName;
+
+    private Value v;
 
     private List<Group> groups = new ArrayList();
 
@@ -69,11 +70,11 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         UserManagerImpl userMgr = (UserManagerImpl) getUserManager(root);
         user = getTestUser();
-        userId = user.getID();
         queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getParameters(), root);
 
-        valueFactory = new ValueFactoryImpl(root, namePathMapper);
+        valueFactory = getValueFactory(root);
         propertyName = "testProperty";
+        v = valueFactory.createValue("value");
 
         getQueryEngineSettings().setFailTraversal(false);
     }
@@ -82,6 +83,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     public void after() throws Exception {
         try {
             getQueryEngineSettings().setFailTraversal(true);
+            user.removeProperty(propertyName);
             for (Group g : groups) {
                 g.remove();
             }
@@ -133,15 +135,8 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         user.setProperty(propertyName, vs);
         root.commit();
 
-        try {
-            Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value \\, containing backslash", AuthorizableType.USER, true);
-            assertTrue("expected result", result.hasNext());
-            assertEquals(user.getID(), result.next().getID());
-            assertFalse("expected no more results", result.hasNext());
-        } finally {
-            user.removeProperty(propertyName);
-            root.commit();
-        }
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value \\, containing backslash", AuthorizableType.USER, true);
+        assertResultContainsAuthorizables(result, user);
     }
 
     @Test
@@ -150,50 +145,89 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         user.setProperty(propertyName, vs);
         root.commit();
 
-        try {
-            Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value \\, containing backslash", AuthorizableType.USER, false);
-            assertTrue("expected result", result.hasNext());
-            assertEquals(user.getID(), result.next().getID());
-            assertFalse("expected no more results", result.hasNext());
-        } finally {
-            user.removeProperty(propertyName);
-            root.commit();
-        }
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value \\, containing backslash", AuthorizableType.USER, false);
+        assertResultContainsAuthorizables(result, user);
     }
 
     @Test
     public void testFindNodesNonExactWithApostrophe() throws Exception {
         Value vs = valueFactory.createValue("value ' with apostrophe");
-        try {
-            user.setProperty(propertyName, vs);
-            root.commit();
+        user.setProperty(propertyName, vs);
+        root.commit();
 
-            Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value ' with apostrophe", AuthorizableType.USER, false);
-
-            assertTrue("expected result", result.hasNext());
-            assertEquals(user.getID(), result.next().getID());
-            assertFalse("expected no more results", result.hasNext());
-        } finally {
-            user.removeProperty(propertyName);
-            root.commit();
-        }
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value ' with apostrophe", AuthorizableType.USER, false);
+        assertResultContainsAuthorizables(result, user);
     }
 
     @Test
     public void testFindNodesExactWithApostrophe() throws Exception {
         Value vs = valueFactory.createValue("value ' with apostrophe");
-        try {
-            user.setProperty(propertyName, vs);
-            root.commit();
+        user.setProperty(propertyName, vs);
+        root.commit();
 
-            Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value ' with apostrophe", AuthorizableType.USER, true);
-            assertTrue("expected result", result.hasNext());
-            assertEquals(user.getID(), result.next().getID());
-            assertFalse("expected no more results", result.hasNext());
-        } finally {
-            user.removeProperty(propertyName);
-            root.commit();
-        }
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, "value ' with apostrophe", AuthorizableType.USER, true);
+        assertResultContainsAuthorizables(result, user);
+    }
+
+    @Test
+    public void testFindWithCurrentRelPathTypeMismatch() throws Exception {
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("./" + propertyName, v.getString(), AuthorizableType.GROUP, false);
+        assertResultContainsAuthorizables(result);
+    }
+
+
+    @Test
+    public void testFindWithCurrentRelPath() throws Exception {
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("./" + propertyName, v.getString(), AuthorizableType.USER, false);
+        assertResultContainsAuthorizables(result, user);
+    }
+
+    @Test
+    public void testFindWithRelPath() throws Exception {
+        user.setProperty(propertyName, v);
+        root.commit();
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.USER, false);
+        assertResultContainsAuthorizables(result);
+    }
+
+    @Ignore("OAK-6290")
+    @Test
+    public void testFindWithRelPathMultipleSelectorNames() throws Exception {
+        user.setProperty(propertyName, v);
+        Group g = createGroup("g", null);
+        g.setProperty("rel/path/to/" + propertyName, v);
+        root.commit();
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.AUTHORIZABLE, false);
+        assertResultContainsAuthorizables(result, g);
+    }
+
+    @Test
+    public void testFindWithRelPathTypeMismatch() throws Exception {
+        user.setProperty(propertyName, v);
+        Group g = createGroup("g", null);
+        g.setProperty("rel/path/to/" + propertyName, v);
+        root.commit();
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.USER, false);
+        assertResultContainsAuthorizables(result);
+    }
+
+    @Test
+    public void testFilterDuplicateResults() throws Exception {
+        user.setProperty(propertyName, v);
+        user.setProperty("rel/path/to/" + propertyName, v);
+        root.commit();
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(propertyName, v.getString(), AuthorizableType.AUTHORIZABLE, false);
+        assertResultContainsAuthorizables(result, user);
     }
 
     @Test
@@ -210,6 +244,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeEveryoneNonExisting() throws Exception {
+        String userId = user.getID();
         Query q = new Query() {
             @Override
             public <T> void build(QueryBuilder<T> builder) {
@@ -224,8 +259,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeEveryoneFiltersEveryone() throws Exception {
-        Value v = getValueFactory(root).createValue("value");
-
         Group g = createGroup(null, EveryonePrincipal.getInstance());
         g.setProperty(propertyName, v);
         user.setProperty(propertyName, v);
@@ -245,8 +278,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeEveryoneWithIdDiffersPrincipalName() throws Exception {
-        Value v = getValueFactory(root).createValue("value");
-
         Group g = createGroup("eGroup", EveryonePrincipal.getInstance());
         g.setProperty(propertyName, v);
         user.setProperty(propertyName, v);
@@ -266,8 +297,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryNoScope() throws Exception {
-        Value v = getValueFactory(root).createValue("value");
-
         Group g = createGroup(null, EveryonePrincipal.getInstance());
         g.setProperty(propertyName, v);
         user.setProperty(propertyName, v);
@@ -286,8 +315,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeNotMember() throws Exception {
-        Value v = getValueFactory(root).createValue("value");
-
         Group g = createGroup("g1", null);
         user.setProperty(propertyName, v);
         root.commit();
@@ -306,8 +333,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeDeclaredMember() throws Exception {
-        Value v = getValueFactory(root).createValue("value");
-
         Group g = createGroup("g1", null);
         g.addMember(user);
         user.setProperty(propertyName, v);
@@ -327,8 +352,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeDeclaredMembership() throws Exception {
-        Value v = getValueFactory(root).createValue("value");
-
         Group g = createGroup("g1", null);
         Group g2 = createGroup("g2", null);
         g.addMember(g2);
@@ -350,8 +373,6 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeInheritedMembership() throws Exception {
-        Value v = getValueFactory(root).createValue("value");
-
         Group g = createGroup("g1", null);
         Group g2 = createGroup("g2", null);
         g.addMember(g2);
@@ -372,19 +393,18 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryBoundWithoutSortOrder() throws Exception {
-        ValueFactory vf = getValueFactory(root);
         Group g = createGroup("g1", null);
-        g.setProperty(propertyName, vf.createValue(50));
+        g.setProperty(propertyName, valueFactory.createValue(50));
         Group g2 = createGroup("g2", null);
-        g2.setProperty(propertyName, vf.createValue(60));
-        user.setProperty(propertyName, vf.createValue(101));
+        g2.setProperty(propertyName, valueFactory.createValue(60));
+        user.setProperty(propertyName, valueFactory.createValue(101));
         root.commit();
 
         Query q = new Query() {
             @Override
             public <T> void build(QueryBuilder<T> builder) {
-                builder.setLimit(vf.createValue(100), Long.MAX_VALUE);
-                builder.setCondition(builder.gt(propertyName, vf.createValue(20)));
+                builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
+                builder.setCondition(builder.gt(propertyName, valueFactory.createValue(20)));
             }
         };
 
@@ -394,20 +414,19 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryBoundWithSortOrder() throws Exception {
-        ValueFactory vf = getValueFactory(root);
         Group g = createGroup("g1", null);
-        g.setProperty(propertyName, vf.createValue(50));
+        g.setProperty(propertyName, valueFactory.createValue(50));
         Group g2 = createGroup("g2", null);
-        g2.setProperty(propertyName, vf.createValue(60));
-        user.setProperty(propertyName, vf.createValue(101));
+        g2.setProperty(propertyName, valueFactory.createValue(60));
+        user.setProperty(propertyName, valueFactory.createValue(101));
         root.commit();
 
         Query q = new Query() {
             @Override
             public <T> void build(QueryBuilder<T> builder) {
-                builder.setLimit(vf.createValue(100), Long.MAX_VALUE);
+                builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
-                builder.setCondition(builder.gt(propertyName, vf.createValue(20)));
+                builder.setCondition(builder.gt(propertyName, valueFactory.createValue(20)));
             }
         };
 
@@ -417,18 +436,17 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryBoundWithSortOrderMissingCondition() throws Exception {
-        ValueFactory vf = getValueFactory(root);
         Group g = createGroup("g1", null);
-        g.setProperty(propertyName, vf.createValue(50));
+        g.setProperty(propertyName, valueFactory.createValue(50));
         Group g2 = createGroup("g2", null);
-        g2.setProperty(propertyName, vf.createValue(60));
-        user.setProperty(propertyName, vf.createValue(101));
+        g2.setProperty(propertyName, valueFactory.createValue(60));
+        user.setProperty(propertyName, valueFactory.createValue(101));
         root.commit();
 
         Query q = new Query() {
             @Override
             public <T> void build(QueryBuilder<T> builder) {
-                builder.setLimit(vf.createValue(100), Long.MAX_VALUE);
+                builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
             }
         };
@@ -439,12 +457,11 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQuerySortIgnoreCase() throws Exception {
-        ValueFactory vf = getValueFactory(root);
         Group g = createGroup("g1", null);
-        g.setProperty(propertyName, vf.createValue("aaa"));
+        g.setProperty(propertyName, valueFactory.createValue("aaa"));
         Group g2 = createGroup("g2", null);
-        g2.setProperty(propertyName, vf.createValue("BBB"));
-        user.setProperty(propertyName, vf.createValue("c"));
+        g2.setProperty(propertyName, valueFactory.createValue("BBB"));
+        user.setProperty(propertyName, valueFactory.createValue("c"));
         root.commit();
 
         Query q = new Query() {
@@ -461,12 +478,11 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQuerySortRespectCase() throws Exception {
-        ValueFactory vf = getValueFactory(root);
         Group g = createGroup("g1", null);
-        g.setProperty(propertyName, vf.createValue("aaa"));
+        g.setProperty(propertyName, valueFactory.createValue("aaa"));
         Group g2 = createGroup("g2", null);
-        g2.setProperty(propertyName, vf.createValue("BBB"));
-        user.setProperty(propertyName, vf.createValue("c"));
+        g2.setProperty(propertyName, valueFactory.createValue("BBB"));
+        user.setProperty(propertyName, valueFactory.createValue("c"));
         root.commit();
 
         Query q = new Query() {
