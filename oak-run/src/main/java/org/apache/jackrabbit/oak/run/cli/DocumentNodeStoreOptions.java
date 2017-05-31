@@ -36,9 +36,9 @@ public class DocumentNodeStoreOptions implements OptionsBean {
         clusterId = parser.accepts("clusterId", "Cluster node instance id")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         disableBranchesSpec = parser.
-                accepts("disableBranches", "disable branches");
+                accepts("disableBranches", "Disable branches");
         cacheSizeSpec = parser.
-                accepts("cacheSize", "cache size")
+                accepts("cacheSize", "The cache size")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(0);
     }
 
@@ -54,7 +54,7 @@ public class DocumentNodeStoreOptions implements OptionsBean {
 
     @Override
     public String description() {
-        return "Options related to constructing DocumentNodeStore";
+        return "Options related to constructing a DocumentNodeStore.";
     }
 
     @Override
