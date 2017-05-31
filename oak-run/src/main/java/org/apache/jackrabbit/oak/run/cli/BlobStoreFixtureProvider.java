@@ -99,21 +99,25 @@ public class BlobStoreFixtureProvider {
             delegate.init(null);
         }
         DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
-        return new DataStoreFixture(blobStore, closer);
+        return new DataStoreFixture(blobStore, closer, !options.getCommonOpts().isReadWrite());
     }
 
     private static class DataStoreFixture implements BlobStoreFixture {
         private final DataStoreBlobStore blobStore;
         private final Closer closer;
+        private final boolean readOnly;
+        private final BlobStore readOnlyBlobStore;
 
-        private DataStoreFixture(DataStoreBlobStore blobStore, Closer closer) {
+        private DataStoreFixture(DataStoreBlobStore blobStore, Closer closer, boolean readOnly) {
             this.blobStore = blobStore;
             this.closer = closer;
+            this.readOnly = readOnly;
+            this.readOnlyBlobStore = readOnly ? ReadOnlyBlobStoreWrapper.wrap(blobStore) : null;
         }
 
         @Override
         public BlobStore getBlobStore() {
-            return blobStore;
+            return readOnly ? readOnlyBlobStore : blobStore;
         }
 
         @Override
@@ -139,12 +143,7 @@ public class BlobStoreFixtureProvider {
     }
 
     private static Closeable asCloseable(final File dir) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                FileUtils.deleteDirectory(dir);
-            }
-        };
+        return () -> FileUtils.deleteDirectory(dir);
     }
 
     private static Map<String, ?> asMap(Properties props) {
