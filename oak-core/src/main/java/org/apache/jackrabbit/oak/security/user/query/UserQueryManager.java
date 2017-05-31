@@ -332,9 +332,8 @@ public class UserQueryManager {
         @Override
         public boolean apply(@Nullable Authorizable input) {
             try {
-                if (input != null && !authorizableIds.contains(input.getID())) {
-                    authorizableIds.add(input.getID());
-                    return true;
+                if (input != null) {
+                    return authorizableIds.add(input.getID());
                 }
             } catch (RepositoryException e) {
                 log.debug("Failed to retrieve authorizable ID " + e.getMessage());
