@@ -81,6 +81,11 @@ public class BlobStoreFixtureProvider {
             azureds.init(homeDir.getAbsolutePath());
             closer.register(asCloseable(homeDir));
             delegate = azureds;
+        } else if (bsType == Type.FAKE) {
+            FileDataStore fakeDs = new DummyDataStore();
+            fakeDs.setPath(bsopts.getFakeDataStorePath());
+            fakeDs.init(null);
+            delegate = fakeDs;
         } else {
             FileDataStore fds = new OakFileDataStore();
             delegate = fds;
