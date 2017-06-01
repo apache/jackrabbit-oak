@@ -69,10 +69,13 @@ public class IndexCommand implements Command {
 
         IndexOptions indexOpts = opts.getOptionBean(IndexOptions.class);
 
+        //Clean up before setting up NodeStore as the temp
+        //directory might be used by NodeStore for cache stuff like persistentCache
+        setupDirectories(indexOpts);
+
         NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
         try (Closer closer = Closer.create()) {
             closer.register(fixture);
-            setupDirectories(indexOpts);
             StatisticsProvider statisticsProvider = WhiteboardUtils.getService(fixture.getWhiteboard(), StatisticsProvider.class);
             execute(fixture.getStore(), fixture.getBlobStore(), statisticsProvider, indexOpts, closer);
             tellReportPaths();
