@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import javax.annotation.CheckForNull;
 
@@ -47,10 +48,6 @@ public class VisibleEditor implements Editor {
         this.editor = checkNotNull(editor);
     }
 
-    private boolean isVisible(String name) {
-        return name.charAt(0) != ':';
-    }
-
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
@@ -65,7 +62,7 @@ public class VisibleEditor implements Editor {
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
-        if (isVisible(after.getName())) {
+        if (!isHidden(after.getName())) {
             editor.propertyAdded(after);
         }
     }
@@ -73,7 +70,7 @@ public class VisibleEditor implements Editor {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
-        if (isVisible(after.getName())) {
+        if (!isHidden(after.getName())) {
             editor.propertyChanged(before, after);
         }
     }
@@ -81,7 +78,7 @@ public class VisibleEditor implements Editor {
     @Override
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
-        if (isVisible(before.getName())) {
+        if (!isHidden(before.getName())) {
             editor.propertyDeleted(before);
         }
     }
@@ -89,7 +86,7 @@ public class VisibleEditor implements Editor {
     @Override @CheckForNull
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        if (isVisible(name)) {
+        if (!isHidden(name)) {
             return wrap(editor.childNodeAdded(name, after));
         } else {
             return null;
@@ -100,7 +97,7 @@ public class VisibleEditor implements Editor {
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
-        if (isVisible(name)) {
+        if (!isHidden(name)) {
             return wrap(editor.childNodeChanged(name, before, after));
         } else {
             return null;
@@ -110,7 +107,7 @@ public class VisibleEditor implements Editor {
     @Override @CheckForNull
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        if (isVisible(name)) {
+        if (!isHidden(name)) {
             return wrap(editor.childNodeDeleted(name, before));
         } else {
             return null;
