@@ -27,6 +27,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -49,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -113,6 +115,25 @@ public class VersionedDocumentBundlingTest {
         //Both normal node and versioned nodes should be bundled
         assertNull(getNodeDocument(concat(assetPath, "jcr:content")));
         assertNull(getNodeDocument(concat(versionedPath, "jcr:content")));
+    }
+
+    @Test
+    public void restoreVersionedNode() throws Exception{
+        String assetParentPath = "/bundlingtest/par";
+        Node asset = JcrUtils.getOrCreateByPath(assetParentPath + "/foo.png", "oak:Unstructured", "oak:Asset", s, false);
+        Node assetParent = s.getNode(assetParentPath);
+        assetParent.addMixin(JcrConstants.MIX_VERSIONABLE);
+        asset.addNode("jcr:content", "oak:Unstructured");
+        s.save();
+
+        VersionManager vm = s.getWorkspace().getVersionManager();
+        Version version = vm.checkin(assetParentPath);
+        vm.checkout(assetParentPath);
+
+        asset.getNode("jcr:content").setProperty("foo1", "bar1");
+        s.save();
+
+        vm.restore(version, true);
     }
 
     private void configureBundling() throws ParseException, RepositoryException, IOException {
