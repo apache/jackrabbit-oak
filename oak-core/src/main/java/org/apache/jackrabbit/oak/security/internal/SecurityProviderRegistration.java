@@ -456,8 +456,8 @@ public class SecurityProviderRegistration {
                 return;
             }
 
-            // The preconditions are not satisfied. This may happen when a
-            // dependency is unbound from the current component.
+            // The preconditions are still satisfied. This may happen when a
+            // dependency is unbound while not being listed as required service.
 
             if (preconditions.areSatisfied()) {
                 log.info("Aborting: preconditions are satisfied");
