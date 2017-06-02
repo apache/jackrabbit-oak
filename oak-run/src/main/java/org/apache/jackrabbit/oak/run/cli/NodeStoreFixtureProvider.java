@@ -113,6 +113,15 @@ public class NodeStoreFixtureProvider {
 
         CommonOptions commonOpts = options.getOptionBean(CommonOptions.class);
 
+        if (docStoreOpts.isCacheDistributionDefined()){
+            builder.memoryCacheDistribution(
+                    docStoreOpts.getNodeCachePercentage(),
+                    docStoreOpts.getPrevDocCachePercentage(),
+                    docStoreOpts.getChildrenCachePercentage(),
+                    docStoreOpts.getDiffCachePercentage()
+            );
+        }
+
         if (commonOpts.isMongo()) {
             MongoClientURI uri = new MongoClientURI(commonOpts.getStoreArg());
             if (uri.getDatabase() == null) {
@@ -121,7 +130,7 @@ public class NodeStoreFixtureProvider {
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
-            closer.register(() -> mongo.close());
+            closer.register(mongo::close);
             builder.setMongoDB(mongo.getDB());
         } else if (commonOpts.isRDB()) {
             RDBStoreOptions rdbOpts = options.getOptionBean(RDBStoreOptions.class);
