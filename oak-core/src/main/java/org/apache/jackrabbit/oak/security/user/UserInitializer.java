@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Strings;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -33,7 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -44,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,9 +95,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
-                securityProvider, new QueryEngineSettings(),
-                new CompositeQueryIndexProvider(new PropertyIndexProvider(),
-                        new NodeTypeIndexProvider()));
+                securityProvider, null,
+                new CompositeQueryIndexProvider(new PropertyIndexProvider(), new NodeTypeIndexProvider()));
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
