@@ -26,22 +26,25 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
  * Light weight session to a NodeStore, holding context information.
  */
-public abstract class ConsoleSession {
+public class ConsoleSession {
 
     private final Map<String, Object> context = Maps.newHashMap();
 
     private final NodeStore store;
+    private final Whiteboard whiteboard;
 
-    private ConsoleSession(NodeStore store) {
+    private ConsoleSession(NodeStore store, Whiteboard whiteboard) {
         this.store = store;
+        this.whiteboard = whiteboard;
     }
 
-    public static ConsoleSession create(NodeStore store) {
-        return new DefaultSession(store);
+    public static ConsoleSession create(NodeStore store, Whiteboard whiteboard) {
+        return new ConsoleSession(store, whiteboard);
     }
 
     /**
@@ -113,6 +116,10 @@ public abstract class ConsoleSession {
         return store;
     }
 
+    public Whiteboard getWhiteboard() {
+        return whiteboard;
+    }
+
     /**
      * The node state for the current working path. Possibly non-existent.
      *
@@ -154,12 +161,5 @@ public abstract class ConsoleSession {
      */
     public void refresh() {
         context.put("root", store.getRoot());
-    }
-
-    private static final class DefaultSession extends ConsoleSession {
-
-        DefaultSession(NodeStore store) {
-            super(store);
-        }
     }
 }

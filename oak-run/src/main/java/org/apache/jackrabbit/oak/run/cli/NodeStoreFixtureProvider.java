@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -70,12 +69,12 @@ public class NodeStoreFixtureProvider {
             closer.register(blobFixture);
         }
 
-        StatisticsProvider statisticsProvider = createStatsProvider(options, closer);
+        StatisticsProvider statisticsProvider = createStatsProvider(options, wb, closer);
         wb.register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
 
         NodeStore store;
         if (commonOpts.isMongo() || commonOpts.isRDB()) {
-            store = configureDocumentMk(options, blobStore, statisticsProvider, closer, readOnly);
+            store = configureDocumentMk(options, blobStore, statisticsProvider, closer, wb, readOnly);
         } else {
             store = configureSegment(options, blobStore, statisticsProvider, closer, readOnly);
         }
@@ -87,7 +86,7 @@ public class NodeStoreFixtureProvider {
                                                  BlobStore blobStore,
                                                  StatisticsProvider statisticsProvider,
                                                  Closer closer,
-                                                 boolean readOnly) throws UnknownHostException {
+                                                 Whiteboard wb, boolean readOnly) throws UnknownHostException {
         DocumentMK.Builder builder = new DocumentMK.Builder();
 
         if (blobStore != null) {
@@ -130,12 +129,14 @@ public class NodeStoreFixtureProvider {
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
+            wb.register(MongoConnection.class, mongo, Collections.emptyMap());
             closer.register(mongo::close);
             builder.setMongoDB(mongo.getDB());
         } else if (commonOpts.isRDB()) {
             RDBStoreOptions rdbOpts = options.getOptionBean(RDBStoreOptions.class);
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(commonOpts.getStoreArg(),
                     rdbOpts.getUser(), rdbOpts.getPassword());
+            wb.register(DataSource.class, ds, Collections.emptyMap());
             builder.setRDBConnection(ds);
         }
 
@@ -170,13 +171,14 @@ public class NodeStoreFixtureProvider {
         return nodeStore;
     }
 
-    private static StatisticsProvider createStatsProvider(Options options, Closer closer) {
+    private static StatisticsProvider createStatsProvider(Options options, Whiteboard wb, Closer closer) {
         if (options.getCommonOpts().isMetricsEnabled()) {
             ScheduledExecutorService executorService =
                     MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
             MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
             closer.register(statsProvider);
             closer.register(() -> reportMetrics(statsProvider));
+            wb.register(MetricRegistry.class, statsProvider.getRegistry(), Collections.emptyMap());
             return statsProvider;
         }
         return StatisticsProvider.NOOP;
