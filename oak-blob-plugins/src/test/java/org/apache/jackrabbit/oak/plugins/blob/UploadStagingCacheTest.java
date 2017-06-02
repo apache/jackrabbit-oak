@@ -597,7 +597,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         createUpgradeLoad(home, pendingUploadsFile);
 
         // Start again
-        init(1, new TestStagingUploader(folder.newFolder()), home);
+        init(2, new TestStagingUploader(folder.newFolder()), home);
 
         taskLatch.countDown();
         callbackLatch.countDown();
