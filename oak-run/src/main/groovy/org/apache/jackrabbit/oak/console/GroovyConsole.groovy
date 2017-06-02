@@ -30,6 +30,7 @@ import org.codehaus.groovy.runtime.StackTraceUtils
 import org.codehaus.groovy.tools.shell.*
 import org.codehaus.groovy.tools.shell.Command as ShellCommand
 import org.codehaus.groovy.tools.shell.commands.*
+import org.codehaus.groovy.tools.shell.util.Logger
 import org.codehaus.groovy.tools.shell.util.Preferences
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
@@ -41,11 +42,16 @@ import org.fusesource.jansi.AnsiRenderer
 @CompileStatic
 class GroovyConsole {
     static {
-        // Install the system adapters
-        AnsiConsole.systemInstall()
+        try {
+            // Install the system adapters
+            AnsiConsole.systemInstall()
 
-        // Register jline ansi detector
-        Ansi.setDetector(new AnsiDetector())
+            // Register jline ansi detector
+            Ansi.setDetector(new AnsiDetector())
+        } catch (UnsatisfiedLinkError e){
+            Logger.create(GroovyConsole.class).warn("Error loading console support. Some console features might not work properly. See " +
+                    "https://issues.apache.org/jira/browse/OAK-5961 for details", e)
+        }
     }
 
     private final ConsoleSession session
