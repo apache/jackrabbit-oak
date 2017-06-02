@@ -26,6 +26,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
@@ -42,7 +43,7 @@ public class CugImporterTest extends AbstractCugTest {
     @Override
     public void before() throws Exception {
         super.before();
-        importer = new CugImporter();
+        importer = new CugImporter(Mounts.defaultMountInfoProvider());
     }
 
     @Test(expected = IllegalStateException.class)

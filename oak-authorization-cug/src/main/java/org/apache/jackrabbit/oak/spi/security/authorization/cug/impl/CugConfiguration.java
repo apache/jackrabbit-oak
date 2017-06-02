@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,15 +28,16 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -54,6 +54,8 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -97,6 +99,15 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
     private CugExclude exclude;
 
+    /**
+     * Reference to service implementing {@link MountInfoProvider} to make the
+     * CUG authorization model multiplexing aware.
+     */
+    @Reference
+    private MountInfoProvider mountInfoProvider;
+
+    private Set<String> supportedPaths = ImmutableSet.of();
+
     @SuppressWarnings("UnusedDeclaration")
     public CugConfiguration() {
         super();
@@ -104,12 +115,15 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
 
     public CugConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
+
+        mountInfoProvider = getParameters().getConfigValue(PARAM_MOUNT_PROVIDER, Mounts.defaultMountInfoProvider(), MountInfoProvider.class);
+        supportedPaths = CugUtil.getSupportedPaths(getParameters(), mountInfoProvider);
     }
 
     @Nonnull
     @Override
     public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
-        return new CugAccessControlManager(root, namePathMapper, getSecurityProvider());
+        return new CugAccessControlManager(root, namePathMapper, getSecurityProvider(), supportedPaths);
     }
 
     @Nonnull
@@ -124,7 +138,6 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         ConfigurationParameters params = getParameters();
         boolean enabled = params.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
 
-        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, Collections.<String>emptySet());
         if (!enabled || supportedPaths.isEmpty() || getExclude().isExcluded(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
@@ -170,7 +183,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @Nonnull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.<ProtectedItemImporter>singletonList(new CugImporter());
+        return Collections.<ProtectedItemImporter>singletonList(new CugImporter(mountInfoProvider));
     }
 
     @Nonnull
@@ -182,8 +195,16 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     //----------------------------------------------------< SCR Integration >---
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    protected void activate(Map<String, Object> properties) throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
-        setParameters(ConfigurationParameters.of(properties));
+    protected void activate(Map<String, Object> properties) {
+        ConfigurationParameters params = ConfigurationParameters.of(properties);
+        setParameters(params);
+        supportedPaths = CugUtil.getSupportedPaths(params, mountInfoProvider);
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Modified
+    protected void modified(Map<String, Object> properties) {
+        activate(properties);
     }
 
     //--------------------------------------------------------------------------

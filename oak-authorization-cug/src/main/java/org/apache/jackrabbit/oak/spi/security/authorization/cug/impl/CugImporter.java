@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -50,12 +51,18 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
 
     private static final Logger log = LoggerFactory.getLogger(CugImporter.class);
 
+    private final MountInfoProvider mountInfoProvider;
+
     private boolean initialized;
 
-    private ConfigurationParameters config;
+    private Set<String> supportedPaths;
     private int importBehavior;
 
     private PrincipalManager principalManager;
+
+    CugImporter(@Nonnull MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+    }
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
@@ -64,7 +71,8 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
             throw new IllegalStateException("Already initialized");
         }
         try {
-            config = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters();
+            ConfigurationParameters config = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters();
+            supportedPaths = CugUtil.getSupportedPaths(config, mountInfoProvider);
             importBehavior = CugUtil.getImportBehavior(config);
 
             if (isWorkspaceImport) {
@@ -89,7 +97,7 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
 
     @Override
     public boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo protectedPropInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
-        if (CugUtil.definesCug(parent) && isValid(protectedPropInfo, def) && CugUtil.isSupportedPath(parent.getPath(), config)) {
+        if (CugUtil.definesCug(parent) && isValid(protectedPropInfo, def) && CugUtil.isSupportedPath(parent.getPath(), supportedPaths)) {
             Set<String> principalNames = new HashSet<>();
             for (TextValue txtValue : protectedPropInfo.getTextValues()) {
                 String principalName = txtValue.getString();
