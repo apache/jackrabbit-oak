@@ -16,25 +16,33 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility methods for this CUG implementation package.
  */
 final class CugUtil implements CugConstants {
+
+    private static final Logger log = LoggerFactory.getLogger(CugUtil.class);
 
     private CugUtil(){}
 
@@ -76,17 +84,35 @@ final class CugUtil implements CugConstants {
         return cugTree.hasProperty(CugConstants.HIDDEN_NESTED_CUGS);
     }
 
-    public static boolean isSupportedPath(@Nullable String oakPath, @Nonnull ConfigurationParameters config) {
+    public static boolean isSupportedPath(@Nullable String oakPath, @Nonnull Set<String> supportedPaths) {
         if (oakPath == null) {
             return false;
         } else {
-            for (String supportedPath : config.getConfigValue(CugConfiguration.PARAM_CUG_SUPPORTED_PATHS, new String[0])) {
+            for (String supportedPath : supportedPaths) {
                 if (Text.isDescendantOrEqual(supportedPath, oakPath)) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    public static Set<String> getSupportedPaths(@Nonnull ConfigurationParameters params, @Nonnull MountInfoProvider mountInfoProvider) {
+        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
+        if (!supportedPaths.isEmpty() && mountInfoProvider.hasNonDefaultMounts()) {
+            for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
+                for (String path : supportedPaths) {
+                    if (mount.isUnder(path)) {
+                        log.error("Configured supported CUG path '{}' includes node store mount '{}'.", path, mount.getName());
+                        throw new IllegalStateException();
+                    } else if (mount.isMounted(path)) {
+                        log.error("Configured supported CUG path '{}' is part of node store mount '{}'.", path, mount.getName());
+                        throw new IllegalStateException();
+                    }
+                }
+            }
+        }
+        return supportedPaths;
     }
 
     public static int getImportBehavior(ConfigurationParameters config) {

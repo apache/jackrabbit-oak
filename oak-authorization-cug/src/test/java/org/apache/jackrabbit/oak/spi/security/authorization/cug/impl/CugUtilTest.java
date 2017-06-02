@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.util.Set;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -30,8 +34,10 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -121,13 +127,60 @@ public class CugUtilTest extends AbstractCugTest {
 
     @Test
     public void testIsSupportedPath() {
-        assertFalse(CugUtil.isSupportedPath(null, CUG_CONFIG));
-        assertFalse(CugUtil.isSupportedPath(UNSUPPORTED_PATH, CUG_CONFIG));
+        Set<String> configuredPaths = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.<String>of());
+        assertFalse(CugUtil.isSupportedPath(null, configuredPaths));
+        assertFalse(CugUtil.isSupportedPath(UNSUPPORTED_PATH, configuredPaths));
 
-        assertTrue(CugUtil.isSupportedPath(SUPPORTED_PATH, CUG_CONFIG));
-        assertTrue(CugUtil.isSupportedPath(SUPPORTED_PATH2, CUG_CONFIG));
-        assertTrue(CugUtil.isSupportedPath(SUPPORTED_PATH + "/child", CUG_CONFIG));
-        assertTrue(CugUtil.isSupportedPath(SUPPORTED_PATH2 + "/child", CUG_CONFIG));
+        assertTrue(CugUtil.isSupportedPath(SUPPORTED_PATH, configuredPaths));
+        assertTrue(CugUtil.isSupportedPath(SUPPORTED_PATH2, configuredPaths));
+        assertTrue(CugUtil.isSupportedPath(SUPPORTED_PATH + "/child", configuredPaths));
+        assertTrue(CugUtil.isSupportedPath(SUPPORTED_PATH2 + "/child", configuredPaths));
+    }
+
+    @Test
+    public void testGetSupportedPathsDefaultMountInfoProvider() {
+        Set<String> expected = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.<String>of());
+        assertEquals(expected, CugUtil.getSupportedPaths(CUG_CONFIG, Mounts.defaultMountInfoProvider()));
+    }
+
+    @Test
+    public void testGetSupportedPathsWithDifferentMounts() {
+        Set<String> expected = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.<String>of());
+        MountInfoProvider mip = Mounts.newBuilder().mount("private", "/libs", "/apps", "/nonCugPath").build();
+        assertNotSame(expected, CugUtil.getSupportedPaths(CUG_CONFIG, mip));
+        assertEquals(expected, CugUtil.getSupportedPaths(CUG_CONFIG, mip));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetSupportedPathsMountsAtSupportedPath() {
+        MountInfoProvider mip = Mounts.newBuilder().mount("private", "/libs", SUPPORTED_PATH3).build();
+        CugUtil.getSupportedPaths(CUG_CONFIG, mip);
+    }
+
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetSupportedPathsMountsBelowSupportedPath() {
+        MountInfoProvider mip = Mounts.newBuilder().mount("private", "/libs", "/apps" ).build();
+        CugUtil.getSupportedPaths(ConfigurationParameters.of(PARAM_CUG_SUPPORTED_PATHS, new String[] {"/"}), mip);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetSupportedPathsMountsBelowSupportedPath2() {
+        MountInfoProvider mip = Mounts.newBuilder().mount("private", "/libs", SUPPORTED_PATH + "/any/path/below").build();
+        CugUtil.getSupportedPaths(CUG_CONFIG, mip);
+    }
+
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetSupportedPathsMountsAboveSupportedPath() {
+        MountInfoProvider mip = Mounts.newBuilder().mount("private", PathUtils.ROOT_PATH).build();
+        CugUtil.getSupportedPaths(CUG_CONFIG, mip);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetSupportedPathsMountsAboveSupportedPath2() {
+        MountInfoProvider mip = Mounts.newBuilder().mount("private", PathUtils.getAncestorPath(SUPPORTED_PATH3, 2)).build();
+        CugUtil.getSupportedPaths(CUG_CONFIG, mip);
     }
 
     @Test

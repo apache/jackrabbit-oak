@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -50,9 +49,14 @@ import static org.junit.Assert.assertTrue;
 
 public class CugConfigurationTest extends AbstractSecurityTest {
 
-    private CugConfiguration createConfiguration(ConfigurationParameters params) {
-        SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, params)));
+    private static CugConfiguration createConfiguration(ConfigurationParameters params) {
+        SecurityProvider sp = new CugSecurityProvider(ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, params)));
         return new CugConfiguration(sp);
+    }
+
+    @Test
+    public void testEmptyConstructor() {
+        assertEquals(ConfigurationParameters.EMPTY, new CugConfiguration().getParameters());
     }
 
     @Test
@@ -198,9 +202,19 @@ public class CugConfigurationTest extends AbstractSecurityTest {
     public void testActivate() throws Exception {
         CugConfiguration cugConfiguration = new CugConfiguration(getSecurityProvider());
         cugConfiguration.activate(ImmutableMap.of(
+                CugConstants.PARAM_CUG_ENABLED, false,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {"/content", "/anotherContent"}
         ));
         assertSupportedPaths(cugConfiguration, "/content", "/anotherContent");
+    }
+
+    @Test
+    public void testModified() throws Exception {
+        CugConfiguration cugConfiguration = new CugConfiguration(getSecurityProvider());
+        cugConfiguration.modified(ImmutableMap.of(
+                CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/changed"}
+        ));
+        assertSupportedPaths(cugConfiguration, "/changed");
     }
 
     private static void assertSupportedPaths(@Nonnull CugConfiguration configuration, @Nonnull String... paths) throws Exception {
