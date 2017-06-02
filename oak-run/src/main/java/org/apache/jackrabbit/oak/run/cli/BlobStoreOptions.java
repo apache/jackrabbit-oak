@@ -43,7 +43,7 @@ public class BlobStoreOptions implements OptionsBean {
         fdsPathOption = parser.acceptsAll(asList("fds-path"), "FileDataStore path")
                 .withRequiredArg().ofType(String.class);
         fakeDsPathOption = parser.acceptsAll(asList("fake-ds-path"), "Path to be used to construct a Fake " +
-                "FileDataStore. It return an empty stream for any Blob but allows writes if used in read-write mode")
+                "FileDataStore. It return an empty stream for any Blob but allows writes if used in read-write mode. (for testing purpose only)")
                 .withRequiredArg().ofType(String.class);
         s3Option = parser.accepts("s3ds", "S3DataStore config path")
                 .withRequiredArg().ofType(String.class);
