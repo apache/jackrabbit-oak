@@ -51,6 +51,9 @@ public class FacetHelper {
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
 
+    private FacetHelper() {
+    }
+
     public static FacetsConfig getFacetsConfig(NodeBuilder definition) {
         return new NodeStateFacetsConfig(definition);
     }
