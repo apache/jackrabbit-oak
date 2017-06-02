@@ -3058,6 +3058,21 @@ public class DocumentNodeStoreTest {
         }
     }
 
+    // OAK-6294
+    @Test
+    public void missingLastRevInApplyChanges() throws CommitFailedException {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        DocumentNodeState root = ns.getRoot();
+
+        RevisionVector before = root.getLastRevision();
+        Revision rev = Revision.newRevision(1);
+        RevisionVector after = new RevisionVector(Revision.newRevision(1));
+
+        ns.getNode("/foo", before);
+
+        ns.applyChanges(before, after, rev, "/foo", false, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+    }
+
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;

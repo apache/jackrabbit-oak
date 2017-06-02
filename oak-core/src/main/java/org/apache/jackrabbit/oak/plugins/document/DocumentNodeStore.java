@@ -1387,6 +1387,9 @@ public final class DocumentNodeStore
                 String p = PathUtils.getAncestorPath(path, depth - i);
                 PathRev key = new PathRev(p, beforeState.getLastRevision());
                 beforeState = nodeCache.getIfPresent(key);
+                if (beforeState == missing) {
+                    beforeState = null;
+                }
             }
             DocumentNodeState.Children children = null;
             if (beforeState != null) {
