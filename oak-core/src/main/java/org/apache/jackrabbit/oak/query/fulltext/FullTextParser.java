@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.query.fulltext;
 import java.text.ParseException;
 import java.util.ArrayList;
 
-import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
-
 
 /**
  * A parser for fulltext condition literals. The grammar is defined in the
@@ -37,6 +35,14 @@ import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
  * </pre>
  */
 public class FullTextParser {
+
+    /**
+     * Compatibility for Jackrabbit 2.0 single quoted phrase queries.
+     * (contains(., "word ''hello world'' word")
+     * These are queries that delimit a phrase with a single quote
+     * instead, as in the spec, using double quotes.
+     */
+    private static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
 
     private String propertyName;
     private String text;
@@ -120,7 +126,7 @@ public class FullTextParser {
                     buff.append(c);
                 }
             }
-        } else if (c == '\'' && FullTextSearchImpl.JACKRABBIT_2_SINGLE_QUOTED_PHRASE) {
+        } else if (c == '\'' && JACKRABBIT_2_SINGLE_QUOTED_PHRASE) {
             // basically the same as double quote
             parseIndex++;
             while (true) {

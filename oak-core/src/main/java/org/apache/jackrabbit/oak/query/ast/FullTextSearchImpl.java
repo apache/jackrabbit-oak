@@ -42,14 +42,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
  */
 public class FullTextSearchImpl extends ConstraintImpl {
 
-    /**
-     * Compatibility for Jackrabbit 2.0 single quoted phrase queries.
-     * (contains(., "word ''hello world'' word") 
-     * These are queries that delimit a phrase with a single quote
-     * instead, as in the spec, using double quotes.
-     */
-    public static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
-
     final String selectorName;
     private final String relativePath;
     final String propertyName;
