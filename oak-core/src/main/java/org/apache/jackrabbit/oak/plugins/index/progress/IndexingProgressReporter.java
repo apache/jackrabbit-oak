@@ -85,7 +85,6 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     }
 
     public void traversedNode(PathSource pathSource) throws CommitFailedException {
-        traversalCount++;
         if (++traversalCount % 10000 == 0) {
             double rate = traversalRateEstimator.getNodesTraversedPerSecond();
             String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
