@@ -29,7 +29,10 @@ import org.slf4j.LoggerFactory;
  */
 public class FilterIterators {
     
-    private static final Logger LOG = LoggerFactory.getLogger(FilterIterators.class);    
+    private static final Logger LOG = LoggerFactory.getLogger(FilterIterators.class);
+
+    private FilterIterators() {
+    }
 
     /**
      * Verify the number of in-memory nodes is below the limit.
