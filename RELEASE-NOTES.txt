@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.25
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.26
 
 Introduction
 ------------
@@ -7,46 +7,49 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.25 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.26 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.25
+Changes in Oak 1.2.26
 ---------------------
 
 Technical task
 
-    [OAK-4793] - Check usage of DocumentStoreException in RDBDocumentStore
-    [OAK-5627] - RDBDocumentStore: improve long query logging
-    [OAK-5852] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.75
+    [OAK-5652] - RDB*Store: update Oracle JDBC driver reference to 12.1.0.2.0
+    [OAK-5667] - RDBDocumentStore: remove support for DBs without support for CASE statements in SELECT
+    [OAK-6134] - RDB*Store: update PostgreSQL JDBC
+    [OAK-6143] - RDB*store fixtures: shorten table name prefixes for Oracle
+    [OAK-6226] - RDBDocumentStoreDB: missing @Override statements
+    [OAK-6244] - RDB*Store: update postgresql JDBC driver reference to 42.1.1
+    [OAK-6247] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.78
 
 
 Bug
 
-    [OAK-4114] - Cached lucene index gets corrupted in case of unclean shutdown and journal rollback in SegmentNodeStore
-    [OAK-4548] - SegmentDataStoreBlobGCIT failures
-    [OAK-5876] - SplitDocumentCleanup should implement Closeable
-    [OAK-5930] - incorrect test assumption in CacheConsistencyTestBase wrt batching
+    [OAK-4148] - RAT plugin complains about derby files
+    [OAK-5993] - Utils.isIdFromLongPath() may throw StringIndexOutOfBoundsException
+    [OAK-6086] - Incorrect usage of RDBDocumentStore.unwrap()
+    [OAK-6266] - SolrQueryIndexProviderService should always have NodeAggregator
+
+
+Improvement
+
+    [OAK-4136] - release profile in maven
+    [OAK-4859] - Warn if lease update is invoked with large delay
 
 
 Task
 
-    [OAK-4774] - Check usage of DocumentStoreException in MongoDocumentStore
-    [OAK-5997] - Update Oak 1.2 and 1.4 to Jackrabbit 2.12.7
-
-
-
-Test
-
-    [OAK-4802] - Basic cache consistency test on exception
-
+    [OAK-6132] - Backport oak-upgrade to 1.0 and 1.2
+    [OAK-6159] - BlobReferenceIterator: improve test coverage for RDB
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.24 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.25 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
