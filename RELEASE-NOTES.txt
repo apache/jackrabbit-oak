@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.7.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.7.1
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.7.0 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.7.1 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.6.x
 release.
@@ -15,551 +15,74 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.7.0
+Changes in Oak 1.7.1
 ---------------------
-
-Sub-task
-
-    [OAK-5869] - Annotate documents with branch commits
-    [OAK-5964] - Invalidate documents through journal
-    [OAK-5968] - Introduce RevisionContext.getClock()
 
 Technical task
 
-    [OAK-3690] - Decouple SegmentBufferWriter from SegmentStore
-    [OAK-5554] - RDB*Store: update postgresql JDBC driver reference to
-    9.4.1212
-    [OAK-5555] - RDB*Store: update Tomcat JDBC pool dependency to
-    7.0.73
-    [OAK-5627] - RDBDocumentStore: improve long query logging
-    [OAK-5652] - RDB*Store: update Oracle JDBC driver reference to
-    12.1.0.2.0
-    [OAK-5653] - RDB*Store: update Derby to release 10.13
-    [OAK-5667] - RDBDocumentStore: remove support for DBs without
-    support for CASE statements in SELECT
-    [OAK-5751] - RDBDocumentStore: properly handle null values for
-    system properties
-    [OAK-5852] - RDB*Store: update Tomcat JDBC pool dependency to
-    7.0.75
-    [OAK-5855] - RDBDocumentStore: improve query support for VersionGC
-    [OAK-5977] - Document enhancements in S3DataStore in 1.6
-    [OAK-5981] - SegmentTar version check with disabled mmaping
-    [OAK-6083] - RDBDocumentStore: implement support for
-    VersionGCSupport extensions added for OAK-4780
-    [OAK-6134] - RDB*Store: update PostgreSQL JDBC
-    [OAK-6140] - Create RDB-specific BlobReferenceIterator
-    [OAK-6143] - RDB*store fixtures: shorten table name prefixes for
-    Oracle
-    [OAK-6176] - Service to provide access to async indexer state
-    [OAK-6192] - Lucene IndexInfoProvider implementation
-    [OAK-6207] - RDBDocumentStore: allow schema evolution part 2:
-    record schema version when updating/inserting rows
-    [OAK-6216] - Property IndexInfoProvider implementation
-    [OAK-6224] - Enable dumping index definitions and stats via
-    oak-run
-    [OAK-6226] - RDBDocumentStoreDB: missing @Override statements
-    [OAK-6228] - Enable index consistency check via oak-run
-    [OAK-6231] - Enable dumping index content via oak-run
-    [OAK-6236] - Improve the help output from oak-run commands
-    [OAK-6244] - RDB*Store: update postgresql JDBC driver reference to
-    42.1.1
-    [OAK-6247] - RDB*Store: update Tomcat JDBC pool dependency to
-    7.0.78
+    [OAK-4612] - Multiplexing support for CugPermissionProvider
+    [OAK-6196] - Improve Javadoc of multiplexing SPI
+    [OAK-6270] - There should be a way for editors to be notified by
+    AsyncIndexUpdate about success/failure of indexing commit
+    [OAK-6282] - Implement a DummyDataStore to be used to test setup
+    with no BlobStore access
 
 Bug
 
-    [OAK-4390] - DocumentStoreStatsIT.update fails when RDB's append
-    mode is disabled
-    [OAK-4529] - DocumentNodeStore does not have a repository software
-    version range check
-    [OAK-5301] - Possible null dereference in MapRecord
-    [OAK-5355] - Too eager refreshing of tree permissions in
-    SecureNodeBuilder
-    [OAK-5357] - StringUtils conversion functions can throw
-    NullPointerException
-    [OAK-5441] - Test failure: BasicServerTest.testServerOk() Address
-    already in use
-    [OAK-5450] - Documented example for relativeNode in index
-    aggregation does not work.
-    [OAK-5500] - Oak Standalone throws ClassNotFoundException:
-    remoting/protectedHandlersConfig.xml
-    [OAK-5501] - Oak Standalone: Webdav configuration is set to
-    remoting mode by default
-    [OAK-5536] - Facets on relative properties do not work properly
-    [OAK-5557] - incomplete diffManyChildren during commitHook
-    evaluation in a persisted branch
     [OAK-5573] -
     org.apache.jackrabbit.oak.segment.standby.StandbyTestIT.testSyncLoop
-    [OAK-5580] - Show statistics about I/O operations in the check
-    command
-    [OAK-5590] - The check command doesn't do any check when "deep"
-    option is not provided
-    [OAK-5601] - documentMk backgroundRead should handle missing
-    journal entries
-    [OAK-5619] - withIncludeAncestorsRemove reports unrelated
-    top-level node deletion
-    [OAK-5626] - ChangeProcessor doesn't reset 'blocking' flag when
-    items from queue gets removed and commit-rate-limiter is null
-    [OAK-5636] - potential NPE in ReplicaSetInfo
-    [OAK-5649] - Error in RefreshPolicy can lead to IndexNode lock
-    leak
-    [OAK-5651] - java.lang.IllegalStateException logged when migrating
-    Segment to Document
-    [OAK-5657] - leverage project.version in oak-examples
-    [OAK-5668] - Test failure:
-    observation.ObservationQueueFullWarnTest.warnOnRepeatedQueueFull
-    [OAK-5703] - The replica set info gets invalid cluster id
-    [OAK-5705] - Negative cost calculation for native Solr query
-    [OAK-5738] - Potential NPE in LargeLdapProviderTest
-    [OAK-5750] - Test failure: PojoSR
-    run.osgi.SecurityProviderRegistrationTest
-    [OAK-5753] - Consistency check incorrectly fails for broken
-    partial paths
-    [OAK-5773] - BlobCache does not implement Closeable
-    [OAK-5783] - Test failure:
-    security.authentication.ldap.LdapProviderTest.testSplitDNIntermediatePath2
-    [OAK-5836] - Permissions.isAggregate returns true for
-    NO_PERMISSION placeholder
-    [OAK-5850] - Weight reported by the record cache is off by one
-    [OAK-5854] - Incorrect VersionGarbageCollector log message
-    [OAK-5862] - Consistency check outputs wrong number of binary
-    properties in debug messages
-    [OAK-5863] - SegmentNodeBuilder getNodeState can trigger eager
-    flush of child node builder
-    [OAK-5864] - Missing license header: ThrowingCallbackHandler
-    [OAK-5867] - Oak Lucene depends on 'org.junit' OSGi package
-    [OAK-5874] - Duplicate uploads might happen with
-    AbstractSharedCachingDataStore
-    [OAK-5875] - project.version in oak-example fails release-plugin
-    [OAK-5876] - SplitDocumentCleanup should implement Closeable
-    [OAK-5878] - SplitDocumentCleanup iterates twice over
-    splitDocGarbage
-    [OAK-5879] - CompositeConfiguration: service ranking not respected
-    upon later comparision
-    [OAK-5887] - Stricter validation on primary type change
-    [OAK-5888] - ReferenceBinaryIT fails after switching to
-    oak-segment-tar
-    [OAK-5891] - Test failure: org.apache.jackrabbit.oak.osgi.OSGiIT
-    [OAK-5906] - PrivilegeContext.definesLocation returns true for
-    siblings of privilege root path
-    [OAK-5908] - BlobIdTracker should not resurrect deleted blob ids
-    in a clustered/shared setup after GC
-    [OAK-5909] - PrivilegeContext.definesContextRoot should take
-    primary type into account
-    [OAK-5916] - OOM in SegmentReferenceLimitTestIT
-    [OAK-5920] - Checkpoint migration will fail if the
-    MissingBlobStore is used
-    [OAK-5930] - incorrect test assumption in CacheConsistencyTestBase
-    wrt batching
-    [OAK-5933] - Checkpoints are not sorted correctly in
-    RepositorySidegrade
-    [OAK-5934] - AbstractSharedCachingDataStore initializes a loader
-    which closes input stream retrieved prematurely
-    [OAK-5943] - oak-examples/standalone using Spring fwk version
-    referencing vulnerable version of commons-collections
-    [OAK-5947] - Allowing non-admin user to set repository permissions
-    fails
-    [OAK-5948] - SegmentCompactionIT skips compaction runs because
-    they are too frequent
-    [OAK-5952] - Wrong eviction count reported by PriorityCache
-    statistics
-    [OAK-5955] - Don't expose SegmentRevisionGCMBean on standby
-    instances
-    [OAK-5966] - Not able to connect in read only mode with old
-    DocumentNodeStore repo
-    [OAK-5971] - Offline compaction corrupts the journal
-    [OAK-5979] - FileStore version check should disable memory mapping
-    [OAK-5993] - Utils.isIdFromLongPath() may throw
-    StringIndexOutOfBoundsException
-    [OAK-6006] - MultiplexingNodeStore sometimes fails to release
-    checkpoint
-    [OAK-6010] - UserContext.definesProperties doesn't respect system
-    user nt
-    [OAK-6011] - Test failure: JdbcToSegmentTest:validateMigration
-    [OAK-6016] - DocumentNodeStore.compare() fails with
-    IllegalStateException in read-only mode
-    [OAK-6023] - UserImporter: handlePropInfo for rep:authorizableId
-    never returns true
-    [OAK-6028] - UserImporter.start: should return false for User tree
-    [OAK-6033] - Test failure:
-    CompactionAndCleanupIT.concurrentCleanup
-    [OAK-6037] - Bulk and data segments are used as input for cleanup
-    [OAK-6041] - o.a.j.oak.plugins.identifier.ClusterRepositoryInfo
-    should have private constructor
-    [OAK-6043] - org.apache.jackrabbit.oak.commons.jmx.JmxUtil must
-    have a private constructor
-    [OAK-6044] - org.apache.jackrabbit.oak.util.OakVersion must have
-    private constructor
-    [OAK-6045] -
-    org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain must have
-    private constructor
-    [OAK-6046] - Include references from unpersisted segments when
-    running cleanup
-    [OAK-6047] - incorrect metatype annotations
-    [OAK-6048] - Java 8 compilation failure in
-    ConfigurationParametersTest.java
-    [OAK-6049] - incorrect metatype annotations in
-    CustomRestrictionProvider exercise
-    [OAK-6056] - Refactor SegmentStream to reduce buffering
-    [OAK-6057] - incorrect system property check in blob/upgrade tests
-    [OAK-6060] - Build failures on travis-ci
-    [OAK-6063] - Oak run console not loading
-    [OAK-6064] - Oak run logging not working
-    [OAK-6078] - oak.util.ApproximateCounter must have private
-    constructor
-    [OAK-6086] - Incorrect usage of RDBDocumentStore.unwrap()
-    [OAK-6090] - Move exercise code to separate packages to avoid
-    build warnings
-    [OAK-6094] - Test failure: SecondaryStoreConfigIT
-    [OAK-6110] - Offline compaction uses too much memory
-    [OAK-6127] - Incorrect annotation for aggregator parameter in
-    EventQueue constructor
-    [OAK-6133] - Incorrect parent pom reference
-    [OAK-6149] - AtomicCounter fails with LuceneIndexEditorProvider
-    [OAK-6150] - Javadoc plugin fails on Java 8
-    [OAK-6151] - Minor bugs in AccessControlImporter
-    [OAK-6152] - AccessControlImporter doesn't handle multivalued
-    restrictions
-    [OAK-6155] - AccessControlManagerImpl: removing entries through
-    principal-set-acl fails
-    [OAK-6158] - AccessControlManagerImpl: adding mv-restrictions with
-    principal-based-entry fails
-    [OAK-6160] - PrincipalAcl.equals doesn't include principal
-    [OAK-6164] - IOUtils.nextPowerOf2() returns lower power of 2 for
-    very high int values
-    [OAK-6168] - UserUtil.getAuthorizableRootPath when user/group path
-    are equal or nested
-    [OAK-6174] - Test failure: VersionGCTest.gcMonitorStatusUpdates
-    [OAK-6181] - MongoMissingLastRevSeeker may return incomplete
-    candidate set
-    [OAK-6203] - Skip the WikipediaImport benchmark if no dump is
-    specified
-    [OAK-6204] - Reduce the verboseness of the ManyNodes benchmark
-    [OAK-6205] - SecureNodeBuild keeps unused Context field
-    [OAK-6208] - oak-run compact should have an option to
-    disable/enable memory mapping
-    [OAK-6219] - Test failure: OSGiIT
-    [OAK-6229] - NPE when running datastorecheck command with S3
-    [OAK-6230] - Minor cleanup for S3 tests
-    [OAK-6233] - Typed properties not handled properly in the
-    initialization of DataStore in oak-run
-    [OAK-6250] - oak-run enforcer fails on size
-
-Documentation
-
-    [OAK-3914] - Copy on read mbean is not properly documented anymore
-    [OAK-4030] - DocumentNodeStore: required server time accuracy
-    [OAK-4414] - Document IndexStatsMBean features
-    [OAK-5665] - use of -R in diagnostic-build.md
-    [OAK-5692] - Oak Lucene analyzers docs unclear on viable
-    configurations
-    [OAK-5938] - Sort runmodes in README.md
-    [OAK-5946] - Document indexing flow
-    [OAK-5974] - Move references to various third party link to
-    separate page from main page
-    [OAK-6253] - Document logging and option format in oak-run
-
-Epic
-
-    [OAK-3341] - lucene technical debt
-    [OAK-4933] - Create a data store implementation that integrates
-    with Microsoft Azure Blob Storage
-    [OAK-5599] - Slim oak-run
-    [OAK-5664] - Require Java 8
+    [OAK-6267] - Version restore fails if restore would not change
+    bundling root but changes bundled nodes
+    [OAK-6273] -
+    FilteringNodeStateTest#shouldHaveCorrectChildOrderProperty is
+    failing
+    [OAK-6277] - UserQueryManager: redundant check for colliding bound
+    and offset
+    [OAK-6278] - UserQueryManager: scope filtering for everyone
+    groupId compares to principal name
+    [OAK-6283] - FileCache should ignore when file evicted with
+    replacement
+    [OAK-6290] - UserQueryManager.findAuthorizables fails with
+    IllegalArgumentException when there are multiple selectors
+    [OAK-6292] - SecurityProviderRegistration.maybeUnregister: typo on
+    comment
+    [OAK-6293] - Enable test log creation for oak-blob-plugins
+    [OAK-6300] - CacheConsistencyTestBase: potential NPE in teardown
 
 Improvement
 
-    [OAK-3070] - Use a lower bound in VersionGC query to avoid
-    checking unmodified once deleted docs
-    [OAK-3342] - move benchmarks in oak-benchmark module
-    [OAK-3801] - Move solr dependency into oak-benchmarks module
-    [OAK-4462] - LoginModuleImpl: option to have AuthInfo populated
-    with userId instead of loginName
-    [OAK-4619] - Unify RecordCacheStats and CacheStats
-    [OAK-4839] - Allow to register DocumentNodeStore as a
-    NodeStoreProvider
-    [OAK-4920] - DefaultSyncHandler.listIdentities() search too broad,
-    triggers traversal warning
-    [OAK-5052] - Make update.limit configurable via OSGi
-    [OAK-5222] - Optimize the multiplexing node store
-    [OAK-5275] - The check command should accept the path to the store
-    as a positional argument
-    [OAK-5276] - The check command overloads the meaning of the "deep"
-    option
-    [OAK-5277] - The check command defines a useless default value for
-    the "bin" option
-    [OAK-5302] - Remove legacy upgrade code from
-    AbstractFileStore.collectFiles
-    [OAK-5412] - Use GCMonitor for revision gc task run in
-    DocumentNodeStore
-    [OAK-5483] - Move TemporaryPort to the oak-commons module
-    [OAK-5505] - Delete o.a.j.o.segment.http.HttpStore
-    [OAK-5514] - Standby Automatic Cleanup should be on by default
-    [OAK-5515] - Allow to ignore writes for some of the read-only
-    paths
-    [OAK-5559] - Reduce reads with overlapping previous documents
-    [OAK-5571] - VersionGarbageCollector can remove leaf nodes eagerly
-    [OAK-5572] - Enable instrumentation of I/O operations
-    [OAK-5589] - GlobbingPathFilter constructor is expensive
-    [OAK-5594] - leaderboard of consolidated listener stats should
-    show path as well
-    [OAK-5595] - The check command should do deep traversals by
-    default
-    [OAK-5604] - The check command should accept a non-argument "bin"
-    option for checking binaries
-    [OAK-5605] - Speed up time to cancel revision GC
-    [OAK-5617] - Metrics for DocumentStore.remove()
-    [OAK-5620] - Simplify consistency check
-    [OAK-5631] - IOMonitor should expose the time spent reading
-    segments
-    [OAK-5632] - IOMonitor should expose the time spent writing
-    segments
-    [OAK-5637] - Increase time granularity in IOMonitor
-    [OAK-5654] - Improve log output with UserImporter
-    [OAK-5666] - oak-upgrade should validate the paths
-    [OAK-5690] - Remove duplicated code from TarRevisions and
-    ReadOnlyRevisions
-    [OAK-5691] - Remove duplicated code from FileStore and
-    ReadOnlyFileStore
-    [OAK-5704] - VersionGC: reset _deletedOnce for documents that have
-    been resurrected
-    [OAK-5742] - more logging when ChangeProcessor.stopAndWait fails
-    [OAK-5743] - UserQueryManager: omits nt-name when searching for
-    properties without path deliminator
-    [OAK-5752] - Remove duplicate code for background operation timing
-    log
-    [OAK-5761] - Move commit value resolution to DocumentNodeStore
-    [OAK-5784] - hashCode of RestrictionImpl doesn't include value
-    [OAK-5794] - Track time to check GC candidate nodes
-    [OAK-5827] - Don't use SHA-1 for new DataStore binaries
-    [OAK-5835] - JournalReader should include timestamp information
-    (if available)
-    [OAK-5837] - Consistency check should log more details when
-    traversing a corrupt node
-    [OAK-5861] - SegmentGCOptions toString duplicates
-    gcSizeDeltaEstimation info
-    [OAK-5873] - Improve SegmentNodeStoreService OSGi description for
-    customBlobStore to remove default False
-    [OAK-5881] - Reduce code duplication in
-    ConfigurationParameters.Milliseconds.of
-    [OAK-5886] - Confusing log message from lease update
-    [OAK-5890] - Benchmarks: add utility for system login to
-    AbstractTest
-    [OAK-5892] - ResultRowToAuthorizable: create user/group from tree
-    [OAK-5893] - Async index abort should work even during traversals
-    without index updates
-    [OAK-5894] - IndexDefinitionBuilder shouldn't set type=lucene if
-    type=disabled in existing tree
-    [OAK-5895] - Avoid jcr-path conversion in AuthorizableIterator
-    [OAK-5900] - Add Nonnull Annotation to
-    TokenInfo.matches(TokenCredentials)
-    [OAK-5901] - Minor improvements to TokenProviderImpl and
-    TokenValidator
-    [OAK-5910] - Reduce copying of data when reading mmapped records
-    [OAK-5921] - Make import org.apache.log4j optional
-    [OAK-5926] - Readability of membership code
-    [OAK-5929] - Redundant test for null with
-    AuthorizableImpl.checkValidTree implementations
-    [OAK-5936] - Remove unused depth parameter
-    SegmentWriteOperation#writeNode and related methods
-    [OAK-5939] - MembershipWriter.removeMembers writes back too often
-    [OAK-5940] - Remove CachedNodeDocument
-    [OAK-5941] - Improve the checkpoint release & retrieve for
-    multiplexing node store
-    [OAK-5951] - Enable Metrics for SegmentCompactionIT test
-    [OAK-5953] - PriorityCache statistics should support load
-    exception count
-    [OAK-5954] - Unify and simplify the deduplication caches
-    [OAK-5956] - Improve cache statistics of the segment cache
-    [OAK-5957] - Avoid direct access to fields in DocumentNodeStore
-    [OAK-5959] - Hide DocumentNodeStore.backgroundRead()
-    [OAK-5961] - Handle scenario where jansi library cannot be loaded
-    [OAK-5967] - Null instances for SegmentId and RecordId
-    [OAK-5969] - SegmentCompactionIT should expose SegmentNodeStore
-    statistics via JMX
-    [OAK-5985] - add CloseableIterator similar to CloseableIterable
-    [OAK-5988] - Hide DocumentNodeStore.backgroundWrite()
-    [OAK-5989] - Create a partial index on _deletedOnce instead of
-    sparse index
-    [OAK-5991] - FileStoreBuilder should print out a more helpful
-    error message when buildReadOnly fails
-    [OAK-5996] - Revisions.setHead(Function) should return the new
-    head or null instead of boolean
-    [OAK-6000] - Support for the checkpoint metadata retrieval/update
-    in oak-run
-    [OAK-6001] - Remove unused code from FileStore and TarWriter
-    [OAK-6002] - Encapsulate TAR files handling in its own class
-    [OAK-6003] - Allow to migrate checkpoints for all type of
-    sidegrades
-    [OAK-6005] - Add record id of the compacted root to the GC journal
-    [OAK-6012] - Add annotation with ImpersonationImpl
-    [OAK-6013] - Add annotations to AuthorizablePropertiesImpl
-    [OAK-6014] - AuthorizablePropertiesImpl.removeProperty if
-    non-existing property outside of scope
-    [OAK-6018] - UserImporter: session field can avoided by passing to
-    init method
-    [OAK-6019] - UserImporter: Redundant assignment of UserManager
-    [OAK-6020] - add a Guava Stopwatch like duration formatter
-    [OAK-6026] - spi.xml.PropInfo: missing error msg in case of
-    multivalue mismatch
-    [OAK-6027] - UserImporter.Impersonators : use Oak path to user
-    instead of ID
-    [OAK-6029] - UserImporter.startChildInfo: rather check state than
-    for currentMembership being null
-    [OAK-6032] - Enable tests from SegmentCachingDataStoreStatsTest
-    [OAK-6034] - Move security related service trackers from
-    spi.whiteboard to oak.security package space
-    [OAK-6035] - Mark AbstractLoginModule and Authentication as
-    provider types
-    [OAK-6036] - Remove WhiteboardUtils#registerObserver method
-    [OAK-6038] - Drop dependency of spi.security.* tests from
-    AbstractSecurityTest
-    [OAK-6039] - TarFiles shouldn't need to regularly create a new
-    list of TarReader instances
-    [OAK-6040] - FileStore: Log version at creation time
-    [OAK-6042] - Allow to support mount path fragments under specified
-    subtrees
-    [OAK-6050] - Unify used version of osgi-mock
-    [OAK-6052] - Cleanup blocks writers
-    [OAK-6053] - Move OakInitializer from
-    org.apache.jackrabbit.oak.spi.lifecycle to o.a.j.oak
-    [OAK-6059] - Revert VersionGC supplier change
-    [OAK-6068] - Assign meaningful names to cold standby threads
-    [OAK-6070] - Location of ClusterRepositoryInfo in
-    o.a.j.oak.plugins.identifier package
-    [OAK-6072] - Move check for cyclic membership to GroupImpl
-    [OAK-6073] - Get rid of dependency from oak-blob-azure from
-    oak-core
-    [OAK-6122] - enforce oak-run size
-    [OAK-6126] - ValueImpl can be package private
-    [OAK-6129] - Create compound index on _sdType and _sdMaxRevTime
-    [OAK-6131] - No need to rebuild the counter/uuid index anymore
-    [OAK-6136] - Extract the multiplexing implementation code into a
-    separate bundle
-    [OAK-6145] - Move MembershipWriter#setMembers() to oak-upgrade
-    [OAK-6146] - LoginModuleImpl could also clear local state after
-    successful commit
-    [OAK-6154] - Use Closer in DocumentNodeStoreService
-    [OAK-6169] - Add "/jcr:root" to o.a.j.oak.spi.query.QueryConstants
-    [OAK-6177] - AddMembersTest should add unique items to groups
-    [OAK-6179] - Simplify collecting Oak setup details via Felix
-    Inventory
-    [OAK-6184] - Avoid repository read for built-in aggregations upon
-    PrivilegeBitsProvider.getAggregatedPrivilegeNames
-    [OAK-6188] - Allow to exclude nodes containing name fragment
-    during the migration
-    [OAK-6190] - Allow to migrate checkpoints even if the custom
-    include paths are specified
-    [OAK-6195] - Reduce visibility of some member of Segment
-    [OAK-6197] - Remove DocumentNodeStore dependency in
-    UnsavedModifications
-    [OAK-6198] - Fix formatting of README.md
-    [OAK-6210] - Provide a consistent and extensible way to handle
-    oak-run options while creating NodeStore
-    [OAK-6212] - AccessControlAction: minor improvement when user or
-    group privileges are empty
-    [OAK-6213] - Remove force flag from oak-run compact
-    [OAK-6223] - Expose socket keep-alive option
-    [OAK-6242] - Add 'container' as an acceptable property name for s3
-    bucket
-    [OAK-6263] - Create test covering removal of a referenced node
-
-New Feature
-
-    [OAK-3711] - Clean up _revision entries on commit root documents
-    [OAK-5210] - Ability to resolve principal name from
-    ExternalIdentityRef without IDP roundtrip
-    [OAK-5558] - Consistency checker for Lucene indexes
-    [OAK-5634] - Expose IOMonitor stats via JMX
-    [OAK-5741] - DocumentStore UpdateOp: support removal of properties
-    [OAK-5898] - Revision GC command line tool
-    [OAK-5903] - Authentication: add extension to retrieve user
-    principal
-    [OAK-6080] - Index report service
-    [OAK-6161] - Continuous flag for revisions collect command
-    [OAK-6215] - Dump index stats and index definitions
-    [OAK-6240] - Sidegrade support for DocumentNodeStore to Secondary
-    NodeStore
+    [OAK-3498] - DN can't be used as the group name in the external
+    auth handler
+    [OAK-4513] - Detect and log references across stores
+    [OAK-5525] - VisibleEditor should use the NodeStateUtils to
+    determine visibility
+    [OAK-5935] - AbstractSharedCachingDataStore#getRecordIfStored
+    should use the underlying cache.get
+    [OAK-6256] - Prevent creating the across-mounts references
+    [OAK-6272] - AbstractNodeState.toString does not scale to many
+    child nodes
+    [OAK-6289] - Unreferenced argument reference in method
+    SegmentBufferWriter.writeRecordId
+    [OAK-6296] - Move JACKRABBIT_2_SINGLE_QUOTED_PHRASE from
+    o.a.j.oak.query.ask.FullTextSearchImpl to
+    oak.fulltext.FullTextParser
+    [OAK-6298] - FacetHelper should have private constructor
+    [OAK-6299] - FilterIterators should have a private constructor
+    [OAK-6301] - Make QueryEngineSettingsMBeanImpl an inner class of
+    o.a.j.oak.Oak
+    [OAK-6302] - UserInitializer: createSystemRoot can get null value
+    for QueryEngineSettings
 
 Task
 
-    [OAK-3134] - Identify functionality offered by oak-run
-    [OAK-3766] - Investigate and remove dependencies from oak-run
-    [OAK-4780] - VersionGarbageCollector should be able to run
-    incrementally
-    [OAK-4893] - Document conflict handling
-    [OAK-5409] - Update Oak trunk to Jackrabbit 2.15.0
-    [OAK-5600] - Test coverage for CheckCommand
-    [OAK-5623] - Enforce minimum line coverage for security related
-    modules
-    [OAK-5641] - Update AWS sdk dependency to latest version in
-    oak-blob-cloud
-    [OAK-5702] - Update Felix JAAS to 1.0.2
-    [OAK-5834] - Remove the deprecated oak-segment module
-    [OAK-5868] - oak-upgrade should reference oak-segment using a
-    non-snapshot version
-    [OAK-5883] - Update Oak trunk to Jackrabbit 2.15.1
-    [OAK-5945] - update h2db dependency
-    [OAK-6055] - update to latest apache parent pom (18)
-    [OAK-6082] - Service to determine index paths
-    [OAK-6089] - update maven plugins
-    [OAK-6091] - Location of TimeDurationFormatter (and test) in
-    o.a.j.oak.util
-    [OAK-6092] - Find a new home for ApproximateCounter
-    [OAK-6093] - Find a new home for NodeUtil and TreeUtil including
-    cleanup
-    [OAK-6095] - Get rid of dependency from oak-segment-tar to
-    oak-core tests
-    [OAK-6097] - Reflect Modularisation in JIRA
-    [OAK-6101] - Consistent naming of oak modules
-    [OAK-6107] - Move README of oak-core to oak-api
-    [OAK-6108] - Move DataStoreTextProviderService and
-    DataStoreTextWriter to plugins.index.datastore
-    [OAK-6114] - Move InitialContent to package
-    org.apache.jackrabbit.oak
-    [OAK-6130] - Update Oak trunk to Jackrabbit 2.15.2
-    [OAK-6159] - BlobReferenceIterator: improve test coverage for RDB
-    [OAK-6162] - BlobReferenceIterator refactoring
-    [OAK-6171] - Refactor MongoBlobReferenceIterator
-    [OAK-6194] - Pass the checkpoint time as part of CommitInfo in
-    AsyncIndexUpdate
-    [OAK-6232] - Utility class to dump lucene index content
-    [OAK-6234] - Update jopt-simple version to 5.0.3
-    [OAK-6243] - Refactor directory construction logic via
-    DirectoryFactory
-    [OAK-6249] - FSDirectoryFactory to manage indexes on local file
-    system
+    [OAK-6280] - Expose whiteboard from NodeStoreFixture to provide
+    access to NodeStore components
+    [OAK-6281] - Dump metrics data to system out if metrics option is
+    enabled
 
 Test
 
-    [OAK-5663] - Improve LogCustomizer to allow filtering on log
-    messages too
-    [OAK-5689] - AbstractSecurityTest: enforce test-failure for
-    traversal queries
-    [OAK-5785] - JCR tests: enforce failure upon query traversal
-    [OAK-5793] - Improve coverage for spi.security code in oak-core
-    [OAK-5866] - Some tests do not dispose fixture
-    [OAK-5870] - Reduce serverSelectionTimeoutMS for tests on MongoDB
-    [OAK-5911] - Test utility methods for setting Clock in Revision
-    [OAK-5912] - SecondaryStoreConfigIT fails when MongoDB is
-    available
-    [OAK-5913] - DataStoreTrackerGCTest uses different Clocks for
-    tests
-    [OAK-5962] - Disable caching for S3 integration tests
-    [OAK-6007] - Introduce a FailingDocumentStore
-    [OAK-6008] - Create test base with a two node cluster
-    [OAK-6017] - Reset timestamps on Revision.setClock()
-    [OAK-6022] - ReadPreferenceIT uses incorrect clock
-    [OAK-6024] - Use of DocumentMKBuilderProvider with virtual clock
-    is fragile
-    [OAK-6112] - Empty mongo.url default value in oak-parent
-    [OAK-6119] - Build error on travis with Java 8
-    [OAK-6128] - Speed up ValidNamesTest
-    [OAK-6163] - Add unit test coverage for IOUtils.writeInt/writeLong
-    and IOUtils.readInt/readLong
-    [OAK-6173] - Add unit test coverage for IOUtils.copy
-    [OAK-6175] - Add unit test coverage for
-    IOUtils.humanReadableByteCount
+    [OAK-5882] - Improve coverage for oak.security code in oak-core
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
