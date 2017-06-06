@@ -117,6 +117,13 @@
       <version>${jackrabbit.version}</version>
     </dependency>
 
+    <!-- it has to match the version used in jackrabbit-core -->
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>3.6.0</version>
+    </dependency>
+
     <dependency>
       <groupId>commons-lang</groupId>
       <artifactId>commons-lang</artifactId>
