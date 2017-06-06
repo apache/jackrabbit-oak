@@ -18,6 +18,11 @@ Apache Jackrabbit is a project of the Apache Software Foundation.
 Changes in Oak 1.7.1
 ---------------------
 
+Sub-task
+
+    [OAK-6227] - There should be a way to retrieve oldest timestamp to
+    keep from nodestores
+
 Technical task
 
     [OAK-4612] - Multiplexing support for CugPermissionProvider
@@ -31,6 +36,8 @@ Bug
 
     [OAK-5573] -
     org.apache.jackrabbit.oak.segment.standby.StandbyTestIT.testSyncLoop
+    [OAK-6266] - SolrQueryIndexProviderService should always have
+    NodeAggregator
     [OAK-6267] - Version restore fails if restore would not change
     bundling root but changes bundled nodes
     [OAK-6273] -
@@ -48,9 +55,13 @@ Bug
     comment
     [OAK-6293] - Enable test log creation for oak-blob-plugins
     [OAK-6300] - CacheConsistencyTestBase: potential NPE in teardown
+    [OAK-6306] - upgrade uses lucene wrong version (transient
+    dependency)
 
 Improvement
 
+    [OAK-2808] - Active deletion of 'deleted' Lucene index files from
+    DataStore without relying on full scale Blob GC
     [OAK-3498] - DN can't be used as the group name in the external
     auth handler
     [OAK-4513] - Detect and log references across stores
@@ -72,6 +83,7 @@ Improvement
     o.a.j.oak.Oak
     [OAK-6302] - UserInitializer: createSystemRoot can get null value
     for QueryEngineSettings
+    [OAK-6307] - Function to find all large docs in Mongo
 
 Task
 
