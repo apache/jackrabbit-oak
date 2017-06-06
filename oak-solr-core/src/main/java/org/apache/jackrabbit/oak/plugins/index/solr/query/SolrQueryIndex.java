@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.OakS
 import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
@@ -365,7 +364,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                                     for (Map.Entry<String, List<String>> entry : value.entrySet()) {
                                         // all highlighted values end up in 'rep:excerpt', regardless of field match
                                         for (String v : entry.getValue()) {
-                                            doc.addField(QueryImpl.REP_EXCERPT, v);
+                                            doc.addField(QueryConstants.REP_EXCERPT, v);
                                         }
                                     }
                                 }
@@ -533,9 +532,9 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         } else return (!configuration.useForPropertyRestrictions() // Solr index not used for properties
                 || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(property.propertyName)) // not explicitly contained in the used properties
                 || property.propertyName.contains("/") // no child-level property restrictions
-                || QueryImpl.REP_EXCERPT.equals(property.propertyName) // rep:excerpt is not handled at the property level
-                || QueryImpl.OAK_SCORE_EXPLANATION.equals(property.propertyName) // score explain is not handled at the property level
-                || QueryImpl.REP_FACET.equals(property.propertyName) // rep:facet is not handled at the property level
+                || QueryConstants.REP_EXCERPT.equals(property.propertyName) // rep:excerpt is not handled at the property level
+                || QueryConstants.OAK_SCORE_EXPLANATION.equals(property.propertyName) // score explain is not handled at the property level
+                || QueryConstants.REP_FACET.equals(property.propertyName) // rep:facet is not handled at the property level
                 || QueryConstants.RESTRICTION_LOCAL_NAME.equals(property.propertyName)
                 || property.propertyName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX)
                 || configuration.getIgnoredProperties().contains(property.propertyName));
@@ -737,11 +736,11 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 @Override
                 public PropertyValue getValue(String columnName) {
                     // overlay the score
-                    if (QueryImpl.JCR_SCORE.equals(columnName)) {
+                    if (QueryConstants.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
                     }
-                    if (columnName.startsWith(QueryImpl.REP_FACET)) {
-                        String facetFieldName = columnName.substring(QueryImpl.REP_FACET.length() + 1, columnName.length() - 1);
+                    if (columnName.startsWith(QueryConstants.REP_FACET)) {
+                        String facetFieldName = columnName.substring(QueryConstants.REP_FACET.length() + 1, columnName.length() - 1);
                         FacetField facetField = null;
                         for (FacetField ff : currentRow.facetFields) {
                             if (ff.getName().equals(facetFieldName + "_facet")) {
@@ -761,7 +760,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                             return null;
                         }
                     }
-                    if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
+                    if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(currentRow.suggestion);
                     }
                     Collection<Object> fieldValues = currentRow.doc.getFieldValues(columnName);

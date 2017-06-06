@@ -33,7 +33,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 
 /**
  * A facet result is a wrapper for {@link javax.jcr.query.QueryResult} capable of returning information about facets
@@ -49,8 +49,8 @@ public class FacetResult {
             if (rows.hasNext()) {
                 Row row = rows.nextRow();
                 for (String column : queryResult.getColumnNames()) {
-                    if (column.startsWith(QueryImpl.REP_FACET)) {
-                        String dimension = column.substring(QueryImpl.REP_FACET.length() + 1, column.length() - 1);
+                    if (column.startsWith(QueryConstants.REP_FACET)) {
+                        String dimension = column.substring(QueryConstants.REP_FACET.length() + 1, column.length() - 1);
                         Value value = row.getValue(column);
                         if (value != null) {
                             String jsonFacetString = value.getString();

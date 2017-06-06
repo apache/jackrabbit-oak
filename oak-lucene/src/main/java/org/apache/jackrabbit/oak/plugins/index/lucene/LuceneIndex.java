@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -107,7 +106,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
-import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.lucene.search.BooleanClause.Occur.*;
 
 /**
@@ -366,7 +365,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                             LOG.debug("... took {} ms", time);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
-                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
+                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryConstants.REP_EXCERPT);
                             boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
 
                             Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
@@ -714,7 +713,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
 
             String name = pr.propertyName;
-            if (QueryImpl.REP_EXCERPT.equals(name) || QueryImpl.OAK_SCORE_EXPLANATION.equals(name) || QueryImpl.REP_FACET.equals(name)) {
+            if (QueryConstants.REP_EXCERPT.equals(name) || QueryConstants.OAK_SCORE_EXPLANATION.equals(name) || QueryConstants.REP_FACET.equals(name)) {
                 continue;
             }
             if (JCR_PRIMARYTYPE.equals(name)) {
@@ -1182,13 +1181,13 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 @Override
                 public PropertyValue getValue(String columnName) {
                     // overlay the score
-                    if (QueryImpl.JCR_SCORE.equals(columnName)) {
+                    if (QueryConstants.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
                     }
-                    if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
+                    if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
                     }
-                    if (QueryImpl.REP_EXCERPT.equals(columnName)) {
+                    if (QueryConstants.REP_EXCERPT.equals(columnName)) {
                         return PropertyValues.newString(currentRow.excerpt);
                     }
                     return pathRow.getValue(columnName);
