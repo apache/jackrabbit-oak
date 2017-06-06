@@ -58,7 +58,7 @@ public class CompositeNodeStoreService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private MountInfoProvider mountInfoProvider;
 
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class)
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class, target="(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))")
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
 
     @Property(label = "Ignore read only writes",
@@ -158,6 +158,9 @@ public class CompositeNodeStoreService {
 
     private String getMountName(NodeStoreWithProps ns) {
         String role = ns.getRole();
+        if (role == null) {
+            return null;
+        }
         if (!role.startsWith(MOUNT_ROLE_PREFIX)) {
             return null;
         }
