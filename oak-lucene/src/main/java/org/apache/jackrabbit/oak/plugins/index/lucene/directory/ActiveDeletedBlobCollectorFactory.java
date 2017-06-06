@@ -315,13 +315,15 @@ public class ActiveDeletedBlobCollectorFactory {
                 while (deletedBlobs.peek() != null) {
                     localDeletedBlobs.add(deletedBlobs.poll());
                 }
-                File outFile = new File(rootDirectory, getBlobFileName());
-                try {
-                    long start = PERF_LOG.start();
-                    FileUtils.writeLines(outFile, localDeletedBlobs, true);
-                    PERF_LOG.end(start, 1, "Flushing deleted blobs");
-                } catch (IOException e) {
-                    LOG.error("Couldn't write out to " + outFile, e);
+                if (localDeletedBlobs.size() > 0) {
+                    File outFile = new File(rootDirectory, getBlobFileName());
+                    try {
+                        long start = PERF_LOG.start();
+                        FileUtils.writeLines(outFile, localDeletedBlobs, true);
+                        PERF_LOG.end(start, 1, "Flushing deleted blobs");
+                    } catch (IOException e) {
+                        LOG.error("Couldn't write out to " + outFile, e);
+                    }
                 }
             }
 
