@@ -26,7 +26,7 @@ public interface NodeCountEstimator {
 
     /**
      * Provides an estimate of the sub tree node count at given path
-     * @param path path under which count is requested
+     * @param basePath path under which count is requested
      * @return estimated count or -1 if unknown
      */
     long getEstimatedNodeCount(String basePath, Set<String> indexPaths);

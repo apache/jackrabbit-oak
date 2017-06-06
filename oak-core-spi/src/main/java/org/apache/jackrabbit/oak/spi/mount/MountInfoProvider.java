@@ -86,7 +86,7 @@ public interface MountInfoProvider {
      * @param path the path under which mounts are to be foud
      * @return a collection of mounts, possibly empty
      * 
-     * @se {@link Mount#isDirectlyUnder(String)}
+     * @see Mount#isDirectlyUnder(String)
      */
     @Nonnull
     Collection<Mount> getMountsPlacedDirectlyUnder(String path);
