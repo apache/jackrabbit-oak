@@ -52,7 +52,7 @@ public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
     }
 
     @Override
-    protected long getOldestCheckpointCreationTimestamp() {
+    public long getOldestCheckpointCreationTimestamp() {
         long minTimestamp = Long.MAX_VALUE;
         for (ChildNodeEntry cne : store.getCheckpoints().getChildNodeEntries()) {
             NodeState checkpoint = cne.getNodeState();

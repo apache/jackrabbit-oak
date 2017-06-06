@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.management.NotCompliantMBeanException;
-import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -736,21 +735,11 @@ public class LuceneIndexProviderService {
     private long getSafeTimestampForDeletedBlobs(CheckpointMBean checkpointMBean) {
         long timestamp = clock.getTime() - TimeUnit.SECONDS.toMillis(MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
 
-        CompositeData data = checkpointMBean.getOldestCheckpointCreationTime();
-        Object timestampObj = data.get("timestamp");
-        String timestampStr = null;
-        if (timestampObj != null) {
-            timestampStr = timestampObj.toString();
-        }
-        try {
-            long minCheckpointTimestamp = Long.parseLong(timestampStr);
-            if (minCheckpointTimestamp < timestamp) {
-                log.info("Oldest checkpoint time data ({}) is older than buffer period for deleted blobs." +
-                        " Using that instead", data);
-                timestamp = minCheckpointTimestamp;
-            }
-        } catch (NumberFormatException nfe) {
-            log.warn("Couldn't find timestamp in checkpoint mbean output: {}", data);
+        long minCheckpointTimestamp = checkpointMBean.getOldestCheckpointCreationTimestamp();
+        if (minCheckpointTimestamp < timestamp) {
+            log.info("Oldest checkpoint timestamp ({}) is older than buffer period ({}) for deleted blobs." +
+                    " Using that instead", minCheckpointTimestamp, timestamp);
+            timestamp = minCheckpointTimestamp;
         }
 
         return timestamp;
