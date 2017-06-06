@@ -21,18 +21,22 @@ package org.apache.jackrabbit.oak.commons.jmx;
 
 import static javax.management.openmbean.SimpleType.STRING;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.management.openmbean.ArrayType;
+import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
+import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 
 /**
@@ -85,6 +89,26 @@ public abstract class AbstractCheckpointMBean implements CheckpointMBean {
 
             collectCheckpoints(tab);
             return tab;
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    protected abstract long getOldestCheckpointCreationTimestamp();
+
+    @Override
+    public CompositeData getOldestCheckpointCreationTime() {
+        try {
+            Map<String, Object> values = Maps.newHashMap();
+            long timestamp = getOldestCheckpointCreationTimestamp();
+            values.put("timestamp", timestamp);
+            values.put("time", new Date(timestamp));
+            CompositeDataSupport csd = new CompositeDataSupport(
+              new CompositeType("OldestCheckpointTime", "Creation time of oldest checkpoint",
+                      new String[]{"timestamp", "time"}, new String[]{"epoch timestamp", "human readable date"},
+                      new OpenType[]{SimpleType.LONG, SimpleType.DATE}), values);
+
+            return csd;
         } catch (OpenDataException e) {
             throw new IllegalStateException(e);
         }
