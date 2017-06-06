@@ -52,10 +52,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class ActiveDeletedBlobCollectorFactory {
     public interface ActiveDeletedBlobCollector {
+        /**
+         * @return an instance of {@link BlobDeletionCallback} that can be used to track deleted blobs
+         */
         BlobDeletionCallback getBlobDeletionCallback();
         void purgeBlobsDeleted(long before, GarbageCollectableBlobStore blobStore);
     }
-//                        LOG.info("Added {} to delete.", info);
 
     public static ActiveDeletedBlobCollector NOOP = new ActiveDeletedBlobCollector() {
         @Override
@@ -70,6 +72,14 @@ public class ActiveDeletedBlobCollectorFactory {
     };
 
     public interface BlobDeletionCallback extends IndexCommitCallback {
+        /**
+         * Tracks deleted blobs. From the pov of this interface, blobId is an opaque string
+         * that needs to be tracked.
+         * @param blobId blobId representing deleted blob. In theory, it has nothing to do with
+         *               blobs though.
+         * @param ids Information that can be useful for debugging - this is not used for purging
+         *            blobs.
+         */
         void deleted(String blobId, Iterable<String> ids);
         BlobDeletionCallback NOOP = new BlobDeletionCallback() {
             @Override
@@ -143,6 +153,11 @@ public class ActiveDeletedBlobCollectorFactory {
             this.deletedBlobsFileWriter = new DeletedBlobsFileWriter();
         }
 
+        /**
+         * Purges blobs form blob-store which were tracked earlier to deleted.
+         * @param before only purge blobs which were deleted before this timestamps
+         * @param blobStore
+         */
         public void purgeBlobsDeleted(long before, @Nonnull GarbageCollectableBlobStore blobStore) {
             long numBlobsDeleted = 0;
             long numChunksDeleted = 0;
@@ -181,13 +196,15 @@ public class ActiveDeletedBlobCollectorFactory {
                                         break;
                                     }
 
-                                    long deleted = blobStore.countDeleteChunks(
-                                            Lists.newArrayList(blobStore.resolveChunks(deletedBlobId)), 0);
-                                    if (deleted < 1) {
-                                        LOG.warn("Blob {} in file {} not deleted", deletedBlobId, deletedBlobListFile);
-                                    } else {
-                                        numBlobsDeleted++;
-                                        numChunksDeleted += deleted;
+                                    List<String> chunkIds = Lists.newArrayList(blobStore.resolveChunks(deletedBlobId));
+                                    if (chunkIds.size() > 0) {
+                                        long deleted = blobStore.countDeleteChunks(chunkIds, 0);
+                                        if (deleted < 1) {
+                                            LOG.warn("Blob {} in file {} not deleted", deletedBlobId, deletedBlobListFile);
+                                        } else {
+                                            numBlobsDeleted++;
+                                            numChunksDeleted += deleted;
+                                        }
                                     }
                                 } catch (NumberFormatException nfe) {
                                     LOG.warn("Couldn't parse blobTimestamp(" + parsedDeletedBlobIdLine[1] +
@@ -333,6 +350,10 @@ public class ActiveDeletedBlobCollectorFactory {
             }
         }
 
+        /**
+         * This implementation would track deleted blobs and then pass them onto
+         * {@link ActiveDeletedBlobCollectorImpl} on a successful commit
+         */
         private class DeletedBlobCollector implements BlobDeletionCallback {
             List<BlobIdInfoStruct> deletedBlobs = new ArrayList<>();
 

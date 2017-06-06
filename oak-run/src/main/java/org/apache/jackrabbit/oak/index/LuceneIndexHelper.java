@@ -28,6 +28,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 
@@ -44,19 +45,30 @@ class LuceneIndexHelper implements Closeable {
     }
 
     public LuceneIndexEditorProvider createEditorProvider() throws IOException {
-        LuceneIndexEditorProvider editor =  new LuceneIndexEditorProvider(
-                getIndexCopier(),
-                textCache,
-                null,
-                indexHelper.getMountInfoProvider()
-        );
+        LuceneIndexEditorProvider editor;
+        if (directoryFactory != null) {
+            editor = new LuceneIndexEditorProvider(
+                    getIndexCopier(),
+                    textCache,
+                    null,
+                    indexHelper.getMountInfoProvider()
+            ) {
+                @Override
+                protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback) {
+                    return directoryFactory;
+                }
+            };
+        } else {
+            editor = new LuceneIndexEditorProvider(
+                    getIndexCopier(),
+                    textCache,
+                    null,
+                    indexHelper.getMountInfoProvider()
+            );
+        }
 
         if (indexHelper.getBlobStore() instanceof GarbageCollectableBlobStore) {
             editor.setBlobStore((GarbageCollectableBlobStore) indexHelper.getBlobStore());
-        }
-
-        if (directoryFactory != null) {
-            editor.setDirectoryFactory(directoryFactory);
         }
 
         return editor;
