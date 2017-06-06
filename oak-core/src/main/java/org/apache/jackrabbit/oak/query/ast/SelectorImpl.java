@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
@@ -386,10 +387,10 @@ public class SelectorImpl extends SourceImpl {
         for (ColumnImpl c : query.getColumns()) {
             if (c.getSelector().equals(this)) {
                 String columnName = c.getColumnName();
-                if (columnName.equals(QueryImpl.REP_EXCERPT) || columnName.equals(QueryImpl.OAK_SCORE_EXPLANATION)) {
+                if (columnName.equals(QueryConstants.REP_EXCERPT) || columnName.equals(QueryConstants.OAK_SCORE_EXPLANATION)) {
                     f.restrictProperty(columnName, Operator.NOT_EQUAL, null);
-                } else if (columnName.startsWith(QueryImpl.REP_FACET)) {
-                    f.restrictProperty(QueryImpl.REP_FACET, Operator.EQUAL, PropertyValues.newString(columnName));
+                } else if (columnName.startsWith(QueryConstants.REP_FACET)) {
+                    f.restrictProperty(QueryConstants.REP_FACET, Operator.EQUAL, PropertyValues.newString(columnName));
                 }
             }
         }
@@ -648,7 +649,7 @@ public class SelectorImpl extends SourceImpl {
         if ((t == null || !t.exists()) && (currentRow == null || !currentRow.isVirtualRow())) {
             return null;
         }
-        if (oakPropertyName.equals(QueryImpl.JCR_PATH)) {
+        if (oakPropertyName.equals(QueryConstants.JCR_PATH)) {
             String path = currentPath();
             String local = getLocalPath(path);
             if (local == null) {
@@ -656,17 +657,17 @@ public class SelectorImpl extends SourceImpl {
                 return null;
             }
             result = PropertyValues.newString(local);
-        } else if (oakPropertyName.equals(QueryImpl.JCR_SCORE)) {
-            result = currentRow.getValue(QueryImpl.JCR_SCORE);
-        } else if (oakPropertyName.equals(QueryImpl.REP_EXCERPT)) {
-            result = currentRow.getValue(QueryImpl.REP_EXCERPT);
-        } else if (oakPropertyName.equals(QueryImpl.OAK_SCORE_EXPLANATION)) {
-            result = currentRow.getValue(QueryImpl.OAK_SCORE_EXPLANATION);
-        } else if (oakPropertyName.equals(QueryImpl.REP_SPELLCHECK)) {
-            result = currentRow.getValue(QueryImpl.REP_SPELLCHECK);
-        } else if (oakPropertyName.equals(QueryImpl.REP_SUGGEST)) {
-            result = currentRow.getValue(QueryImpl.REP_SUGGEST);
-        } else if (oakPropertyName.startsWith(QueryImpl.REP_FACET)) {
+        } else if (oakPropertyName.equals(QueryConstants.JCR_SCORE)) {
+            result = currentRow.getValue(QueryConstants.JCR_SCORE);
+        } else if (oakPropertyName.equals(QueryConstants.REP_EXCERPT)) {
+            result = currentRow.getValue(QueryConstants.REP_EXCERPT);
+        } else if (oakPropertyName.equals(QueryConstants.OAK_SCORE_EXPLANATION)) {
+            result = currentRow.getValue(QueryConstants.OAK_SCORE_EXPLANATION);
+        } else if (oakPropertyName.equals(QueryConstants.REP_SPELLCHECK)) {
+            result = currentRow.getValue(QueryConstants.REP_SPELLCHECK);
+        } else if (oakPropertyName.equals(QueryConstants.REP_SUGGEST)) {
+            result = currentRow.getValue(QueryConstants.REP_SUGGEST);
+        } else if (oakPropertyName.startsWith(QueryConstants.REP_FACET)) {
             result = currentRow.getValue(oakPropertyName);
         } else {
             result = PropertyValues.create(t.getProperty(oakPropertyName));

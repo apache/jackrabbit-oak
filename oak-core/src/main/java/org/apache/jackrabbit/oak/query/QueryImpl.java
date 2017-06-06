@@ -81,6 +81,7 @@ import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
@@ -102,42 +103,6 @@ import com.google.common.collect.Ordering;
  * Represents a parsed query.
  */
 public class QueryImpl implements Query {
-    
-    /**
-     * The "jcr:path" pseudo-property.
-     */
-    // TODO jcr:path isn't an official feature, support it?
-    public static final String JCR_PATH = "jcr:path";
-
-    /**
-     * The "jcr:score" pseudo-property.
-     */
-    public static final String JCR_SCORE = "jcr:score";
-
-    /**
-     * The "rep:excerpt" pseudo-property.
-     */
-    public static final String REP_EXCERPT = "rep:excerpt";
-
-    /**
-     * The "rep:facet" pseudo-property.
-     */
-    public static final String REP_FACET = "rep:facet";
-
-    /**
-     * The "oak:explainScore" pseudo-property.
-     */
-    public static final String OAK_SCORE_EXPLANATION = "oak:scoreExplanation";
-
-    /**
-     * The "rep:spellcheck" pseudo-property.
-     */
-    public static final String REP_SPELLCHECK = "rep:spellcheck()";
-
-    /**
-     * The "rep:suggest" pseudo-property.
-     */
-    public static final String REP_SUGGEST = "rep:suggest()";
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
     
@@ -443,7 +408,7 @@ public class QueryImpl implements Query {
         for (int i = 0; i < columns.length; i++) {
             ColumnImpl c = columns[i];
             boolean distinct = true;
-            if (JCR_SCORE.equals(c.getPropertyName())) {
+            if (QueryConstants.JCR_SCORE.equals(c.getPropertyName())) {
                 distinct = false;
             }
             distinctColumns[i] = distinct;

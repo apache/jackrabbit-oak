@@ -55,7 +55,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -137,7 +136,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.NAT
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 import static org.apache.lucene.search.BooleanClause.Occur.*;
@@ -407,10 +406,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             Facets facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
                             PERF_LOGGER.end(f, -1, "facets retrieved");
 
-                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
+                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryConstants.REP_EXCERPT);
                             boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
 
-                            restriction = filter.getPropertyRestriction(QueryImpl.OAK_SCORE_EXPLANATION);
+                            restriction = filter.getPropertyRestriction(QueryConstants.OAK_SCORE_EXPLANATION);
                             boolean addExplain = restriction != null && restriction.isNotNullRestriction();
 
                             Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
@@ -997,8 +996,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String name = pr.propertyName;
 
-            if (QueryImpl.REP_EXCERPT.equals(name) || QueryImpl.OAK_SCORE_EXPLANATION.equals(name)
-                    || QueryImpl.REP_FACET.equals(name)) {
+            if (QueryConstants.REP_EXCERPT.equals(name) || QueryConstants.OAK_SCORE_EXPLANATION.equals(name)
+                    || QueryConstants.REP_FACET.equals(name)) {
                 continue;
             }
 
@@ -1627,19 +1626,19 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 @Override
                 public PropertyValue getValue(String columnName) {
                     // overlay the score
-                    if (QueryImpl.JCR_SCORE.equals(columnName)) {
+                    if (QueryConstants.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
                     }
-                    if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
+                    if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(currentRow.suggestion);
                     }
-                    if (QueryImpl.OAK_SCORE_EXPLANATION.equals(columnName)) {
+                    if (QueryConstants.OAK_SCORE_EXPLANATION.equals(columnName)) {
                         return PropertyValues.newString(currentRow.explanation);
                     }
-                    if (QueryImpl.REP_EXCERPT.equals(columnName)) {
+                    if (QueryConstants.REP_EXCERPT.equals(columnName)) {
                         return PropertyValues.newString(currentRow.excerpt);
                     }
-                    if (columnName.startsWith(QueryImpl.REP_FACET)) {
+                    if (columnName.startsWith(QueryConstants.REP_FACET)) {
                         String facetFieldName = FacetHelper.parseFacetField(columnName);
                         Facets facets = currentRow.facets;
                         try {
