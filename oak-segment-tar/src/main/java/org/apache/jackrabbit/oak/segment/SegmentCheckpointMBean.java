@@ -51,6 +51,19 @@ public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
         }
     }
 
+    @Override
+    protected long getOldestCheckpointCreationTimestamp() {
+        long minTimestamp = Long.MAX_VALUE;
+        for (ChildNodeEntry cne : store.getCheckpoints().getChildNodeEntries()) {
+            NodeState checkpoint = cne.getNodeState();
+            PropertyState p = checkpoint.getProperty("created");
+            if (p != null) {
+                minTimestamp = Math.min(minTimestamp, p.getValue(Type.LONG));
+            }
+        }
+        return (minTimestamp==Long.MAX_VALUE)?0:minTimestamp;
+    }
+
     private static String getDate(NodeState checkpoint, String name) {
         PropertyState p = checkpoint.getProperty(name);
         if (p == null) {

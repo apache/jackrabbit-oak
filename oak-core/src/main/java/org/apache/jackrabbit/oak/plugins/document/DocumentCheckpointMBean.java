@@ -55,6 +55,18 @@ public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
     }
 
     @Override
+    protected long getOldestCheckpointCreationTimestamp() {
+        Map<Revision, Info> checkpoints = store.getCheckpoints().getCheckpoints();
+
+        long minTimestamp = Long.MAX_VALUE;
+        for (Entry<Revision, Info> checkpoint : checkpoints.entrySet()) {
+            minTimestamp = Math.min(minTimestamp, checkpoint.getKey().getTimestamp());
+        }
+
+        return (minTimestamp==Long.MAX_VALUE)?0:minTimestamp;
+    }
+
+    @Override
     public String createCheckpoint(long lifetime) {
         return store.checkpoint(lifetime);
     }
