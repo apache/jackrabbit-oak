@@ -115,7 +115,6 @@ public class ActiveDeletedBlobCollectorFactory {
      * due deleted blob
      */
     static class ActiveDeletedBlobCollectorImpl implements ActiveDeletedBlobCollector {
-
         private static PerfLogger PERF_LOG = new PerfLogger(
                 LoggerFactory.getLogger(ActiveDeletedBlobCollectorImpl.class.getName() + ".perf"));
         private static Logger LOG = LoggerFactory.getLogger(ActiveDeletedBlobCollectorImpl.class.getName());

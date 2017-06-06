@@ -35,6 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
@@ -88,6 +89,7 @@ public class LuceneIndexProviderServiceTest {
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(IndexPathService.class, mock(IndexPathService.class));
         context.registerService(AsyncIndexInfoService.class, mock(AsyncIndexInfoService.class));
+        context.registerService(CheckpointMBean.class, mock(CheckpointMBean.class));
         MockOsgi.injectServices(service, context.bundleContext());
     }
 
