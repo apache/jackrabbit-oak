@@ -163,7 +163,13 @@ public class OakDirectory extends Directory {
         if (property != null) {
             if (property.getType() == BINARIES || property.getType() == BINARY) {
                 for (Blob b : property.getValue(BINARIES)) {
-                    blobDeletionCallback.deleted(b.toString(),
+                    //Mark the blob as deleted. Also, post index path, type of directory
+                    //(:suggest, :data, etc) and filename being deleted
+                    String blobId = b.getContentIdentity();
+                    if (blobId == null) {
+                        blobId = b.toString();
+                    }
+                    blobDeletionCallback.deleted(blobId,
                             Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
                 }
             }

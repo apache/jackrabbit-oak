@@ -68,7 +68,6 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
-    private DirectoryFactory externallyProvidedDirectoryFactory;
 
     /**
      * Number of indexed Lucene document that can be held in memory
@@ -131,7 +130,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
             BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
             indexingContext.registerIndexCommitCallback(blobDeletionCallback);
-            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, getDirectoryFactory(blobDeletionCallback));
+            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, newDirectoryFactory(blobDeletionCallback));
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
             IndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
@@ -203,16 +202,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
 
-    public void setDirectoryFactory(DirectoryFactory directoryFactory) {
-        this.externallyProvidedDirectoryFactory = directoryFactory;
-    }
-
-    private DirectoryFactory getDirectoryFactory(BlobDeletionCallback blobDeletionCallback) {
-        if (externallyProvidedDirectoryFactory == null) {
-            return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback);
-        } else {
-            return externallyProvidedDirectoryFactory;
-        }
+    protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback) {
+        return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback);
     }
 
     private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
