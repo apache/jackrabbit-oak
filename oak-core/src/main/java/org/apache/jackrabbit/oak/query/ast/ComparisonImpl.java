@@ -144,8 +144,8 @@ public class ComparisonImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         PropertyValue v = operand2.currentValue();
-        if (!PropertyValues.canConvert(
-                operand2.getPropertyType(), 
+        if (!ValueConverter.canConvert(
+                operand2.getPropertyType(),
                 operand1.getPropertyType())) {
             throw new IllegalArgumentException(
                     "Unsupported conversion from property type " + 
