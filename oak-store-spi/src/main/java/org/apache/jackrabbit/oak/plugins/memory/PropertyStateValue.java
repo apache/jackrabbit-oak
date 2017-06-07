@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.spi.query;
+package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,7 +40,7 @@ public class PropertyStateValue implements PropertyValue {
 
     private final PropertyState ps;
 
-    protected PropertyStateValue(PropertyState ps) {
+    PropertyStateValue(PropertyState ps) {
         this.ps = ps;
     }
 

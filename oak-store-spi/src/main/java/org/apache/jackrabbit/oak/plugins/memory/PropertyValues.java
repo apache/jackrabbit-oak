@@ -16,32 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.spi.query;
-
-import static com.google.common.collect.Iterables.contains;
+package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
-import java.net.URI;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.DecimalPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+
+import static com.google.common.collect.Iterables.contains;
 
 /**
  * Utility class for creating {@link PropertyValue} instances.
@@ -240,120 +227,6 @@ public final class PropertyValues {
 
     // --
 
-    /**
-     * Converts the given value to a value of the specified target type. The
-     * conversion is performed according to the rules described in
-     * "3.6.4 Property Type Conversion" in the JCR 2.0 specification.
-     * 
-     * @param value the value to convert
-     * @param targetType the target property type 
-     * @param mapper the name mapper or {@code null} if no name/path mapping is required.
-     * @return the converted value
-     * @throws IllegalArgumentException if mapping is illegal
-     */
-    public static PropertyValue convert(@Nonnull PropertyValue value, int targetType, @Nullable NamePathMapper mapper) {
-        int sourceType = value.getType().tag();
-        if (sourceType == targetType) {
-            return value;
-        }
-        switch (targetType) {
-        case PropertyType.BINARY:
-            Blob blob = value.getValue(Type.BINARY);
-            return newBinary(blob);
-        case PropertyType.BOOLEAN:
-            return newBoolean(value.getValue(Type.BOOLEAN));
-        case PropertyType.DATE:
-            return newDate(value.getValue(Type.DATE));
-        case PropertyType.DOUBLE:
-            return newDouble(value.getValue(Type.DOUBLE));
-        case PropertyType.LONG:
-            return newLong(value.getValue(Type.LONG));
-        case PropertyType.DECIMAL:
-            return newDecimal(value.getValue(Type.DECIMAL));
-        }
-        // for other types, the value is first converted to a string
-        String v = value.getValue(Type.STRING);
-        switch (targetType) {
-        case PropertyType.STRING:
-            return newString(v);
-        case PropertyType.PATH:
-            switch (sourceType) {
-            case PropertyType.BINARY:
-            case PropertyType.STRING:
-            case PropertyType.NAME:
-                return newPath(v);
-            case PropertyType.URI:
-                URI uri = URI.create(v);
-                if (uri.isAbsolute()) {
-                    // uri contains scheme
-                    throw new IllegalArgumentException(
-                            "Failed to convert URI " + v + " to PATH");
-                }
-                String p = uri.getPath();
-                if (p.startsWith("./")) {
-                    p = p.substring(2);
-                }
-                return newPath(v);
-            }
-            break;
-        case PropertyType.NAME: 
-            switch (sourceType) {
-            case PropertyType.BINARY:
-            case PropertyType.STRING:
-            case PropertyType.PATH:
-                // path might be a name (relative path of length 1)
-                // try conversion via string
-                return newName(getOakPath(v, mapper));
-            case PropertyType.URI:
-                URI uri = URI.create(v);
-                if (uri.isAbsolute()) {
-                    // uri contains scheme
-                    throw new IllegalArgumentException(
-                            "Failed to convert URI " + v + " to PATH");
-                }
-                String p = uri.getPath();
-                if (p.startsWith("./")) {
-                    p = p.substring(2);
-                }
-                return newName(getOakPath(v, mapper));
-            }
-            break;
-        case PropertyType.REFERENCE:
-            switch (sourceType) {
-            case PropertyType.BINARY:
-            case PropertyType.STRING:
-            case PropertyType.WEAKREFERENCE:
-                return newReference(v);
-            }
-            break;
-        case PropertyType.WEAKREFERENCE:
-            switch (sourceType) {
-            case PropertyType.BINARY:
-            case PropertyType.STRING:
-            case PropertyType.REFERENCE:
-                return newWeakReference(v);
-            }
-            break;
-        case PropertyType.URI:
-            switch (sourceType) {
-            case PropertyType.BINARY:
-            case PropertyType.STRING:
-                return newUri(v);
-            case PropertyType.NAME:
-                // prefix name with "./" (JCR 2.0 spec 3.6.4.8)
-                return newUri("./" + v);
-            case PropertyType.PATH:
-                // prefix name with "./" (JCR 2.0 spec 3.6.4.9)
-                return newUri("./" + v);
-            }
-        }
-        throw new IllegalArgumentException(
-                "Unsupported conversion from property type " + 
-                        PropertyType.nameFromValue(sourceType) + 
-                        " to property type " +
-                        PropertyType.nameFromValue(targetType));
-    }
-    
     public static boolean canConvert(int sourceType, int targetType) {
         if (sourceType == targetType || 
                 sourceType == PropertyType.UNDEFINED ||
@@ -393,19 +266,6 @@ public final class PropertyValues {
             return true;
         }
         return false;
-    }
-
-    public static String getOakPath(@Nonnull String jcrPath, @CheckForNull NamePathMapper mapper) {
-        if (mapper == null) {
-            // to simplify testing, a getNamePathMapper isn't required
-            return jcrPath;
-        }
-        String p = mapper.getOakPath(jcrPath);
-        if (p == null) {
-            throw new IllegalArgumentException("Not a valid JCR path: "
-                    + jcrPath);
-        }
-        return p;
     }
 
 }

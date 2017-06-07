@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
 import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
 

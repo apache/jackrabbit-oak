@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -26,7 +23,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Node;
@@ -43,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -54,13 +51,15 @@ import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
 
 /**
  * Implementation of {@link ValueFactory} interface.
