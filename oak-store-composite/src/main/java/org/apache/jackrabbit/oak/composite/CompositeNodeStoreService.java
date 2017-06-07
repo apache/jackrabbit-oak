@@ -25,12 +25,16 @@ import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -45,6 +49,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class CompositeNodeStoreService {
@@ -70,6 +76,8 @@ public class CompositeNodeStoreService {
     private ComponentContext context;
 
     private ServiceRegistration nsReg;
+
+    private Registration checkpointReg;
 
     private ObserverTracker observerTracker;
 
@@ -142,8 +150,14 @@ public class CompositeNodeStoreService {
         observerTracker = new ObserverTracker(store);
         observerTracker.start(context.getBundleContext());
 
-        LOG.info("Registering the composite node store");
+        Whiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        checkpointReg = registerMBean(whiteboard,
+                CheckpointMBean.class,
+                new CompositeCheckpointMBean(store),
+                CheckpointMBean.TYPE,
+                "Composite node store checkpoint management");
 
+        LOG.info("Registering the composite node store");
         nsReg = context.getBundleContext().registerService(
                 new String[]{
                         NodeStore.class.getName()
@@ -176,6 +190,10 @@ public class CompositeNodeStoreService {
             LOG.info("Unregistering the composite node store");
             nsReg.unregister();
             nsReg = null;
+        }
+        if (checkpointReg != null) {
+            checkpointReg.unregister();
+            checkpointReg = null;
         }
         if (observerTracker != null) {
             observerTracker.stop();
