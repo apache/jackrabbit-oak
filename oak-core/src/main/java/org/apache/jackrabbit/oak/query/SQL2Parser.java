@@ -54,7 +54,7 @@ import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -796,7 +796,7 @@ public class SQL2Parser {
         int propertyType = getPropertyTypeFromName(currentToken);
         read();
 
-        PropertyValue v = PropertyValues.convert(value, propertyType, null);
+        PropertyValue v = ValueConverter.convert(value, propertyType, null);
         if (v == null) {
             throw getSyntaxError("data type (STRING|BINARY|...)");
         }

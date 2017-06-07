@@ -23,7 +23,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.query.ValueConverter;
 
 /**
  * The base class for all abstract syntax tree nodes.
@@ -130,7 +130,7 @@ abstract class AstElement {
             return v;
         }
         try {
-            return PropertyValues.convert(v, type, query.getNamePathMapper());
+            return ValueConverter.convert(v, type, query.getNamePathMapper());
         } catch (IllegalArgumentException e) {
             // not possible to convert
             return v;

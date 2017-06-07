@@ -53,7 +53,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.spi.query.PropertyValues.newReference;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newReference;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
