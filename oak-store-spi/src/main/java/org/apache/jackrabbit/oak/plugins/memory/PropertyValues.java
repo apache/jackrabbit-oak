@@ -227,45 +227,4 @@ public final class PropertyValues {
 
     // --
 
-    public static boolean canConvert(int sourceType, int targetType) {
-        if (sourceType == targetType || 
-                sourceType == PropertyType.UNDEFINED ||
-                targetType == PropertyType.UNDEFINED) {
-            return true;
-        }
-        switch (targetType) {
-        case PropertyType.BINARY:
-        case PropertyType.BOOLEAN:
-        case PropertyType.DATE:
-        case PropertyType.DOUBLE:
-        case PropertyType.LONG:
-        case PropertyType.DECIMAL:
-        case PropertyType.STRING:
-            return true;
-        case PropertyType.NAME: 
-        case PropertyType.PATH:
-        case PropertyType.URI:
-            switch (sourceType) {
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-            case PropertyType.URI:
-                return true;
-            }
-            break;
-        case PropertyType.REFERENCE:
-        case PropertyType.WEAKREFERENCE:
-            switch (sourceType) {
-            case PropertyType.REFERENCE:
-            case PropertyType.WEAKREFERENCE:
-                return true;
-            }
-            break;
-        }        
-        if (sourceType == PropertyType.STRING || 
-                sourceType == PropertyType.BINARY) {
-            return true;
-        }
-        return false;
-    }
-
 }
