@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -165,6 +166,7 @@ public class ActiveDeletedBlobCollectorTest {
         verifyBlobsDeleted("blobId1", "blobId2", "blobId3");
     }
 
+    @Ignore("OAK-6314")
     @Test
     public void multiThreadedCommits() throws Exception {
         clock = Clock.SIMPLE;
