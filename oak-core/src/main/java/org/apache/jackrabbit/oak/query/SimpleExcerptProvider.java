@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.query.fulltext;
+package org.apache.jackrabbit.oak.query;
 
 import java.util.BitSet;
 import java.util.HashSet;
@@ -27,8 +27,6 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.query.Query;
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
@@ -41,19 +39,19 @@ import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
 /**
  * This class can extract excerpts from node.
  */
-public class SimpleExcerptProvider {
+class SimpleExcerptProvider {
 
-    public static final String REP_EXCERPT_FN = "rep:excerpt(.)";
-    public static final String EXCERPT_END = "</span></div>";
-    public static final String EXCERPT_BEGIN = "<div><span>";
+    static final String REP_EXCERPT_FN = "rep:excerpt(.)";
+    static final String EXCERPT_END = "</span></div>";
+    static final String EXCERPT_BEGIN = "<div><span>";
 
     private static int maxFragmentSize = 150;
 
     private SimpleExcerptProvider() {
     }
 
-    public static String getExcerpt(String path, String columnName,
-                                    Query query, boolean highlight) {
+    static String getExcerpt(String path, String columnName,
+                             Query query, boolean highlight) {
         if (path == null) {
             return null;
         }
@@ -254,7 +252,7 @@ public class SimpleExcerptProvider {
         }
     }
 
-    public static PropertyValue getExcerpt(PropertyValue value) {
+    static PropertyValue getExcerpt(PropertyValue value) {
         Splitter listSplitter = Splitter.on(',').trimResults().omitEmptyStrings();
         StringBuilder excerpt = new StringBuilder(EXCERPT_BEGIN);
         for (String v : listSplitter.splitToList(value.toString())) {
