@@ -61,6 +61,7 @@ class ImmutableRecordNumbers implements RecordNumbers {
         }
     }
 
+    @Nonnull
     @Override
     public Iterator<Entry> iterator() {
         return new AbstractIterator<Entry>() {

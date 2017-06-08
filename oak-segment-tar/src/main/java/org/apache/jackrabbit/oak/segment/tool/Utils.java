@@ -26,17 +26,16 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 
 final class Utils {
 
@@ -71,7 +70,7 @@ final class Utils {
         if (journal.exists()) {
             try (JournalReader journalReader = new JournalReader(journal)) {
                 Iterator<String> revisionIterator = Iterators.transform(journalReader, new Function<JournalEntry, String>() {
-                    @Nullable
+                    @Nonnull
                     @Override
                     public String apply(JournalEntry entry) {
                         return entry.getRevision();

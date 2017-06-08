@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.Iterator;
 
+import javax.annotation.Nonnull;
+
 /**
  * An implementation of {@link SegmentReferences} that throws {@link
  * IllegalStateException}s every time it's used. This instance is used in
@@ -32,6 +34,7 @@ class IllegalSegmentReferences implements SegmentReferences {
         throw new IllegalStateException("invalid use");
     }
 
+    @Nonnull
     @Override
     public Iterator<SegmentId> iterator() {
         throw new IllegalStateException("invalid use");
