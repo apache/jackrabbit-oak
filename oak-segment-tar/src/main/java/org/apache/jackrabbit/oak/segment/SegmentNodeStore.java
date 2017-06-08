@@ -149,9 +149,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public static final String CHECKPOINTS = "checkpoints";
 
     @Nonnull
-    private final SegmentReader reader;
-
-    @Nonnull
     private final SegmentWriter writer;
 
     @Nonnull
@@ -163,7 +160,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
     private final SegmentNodeStoreStats stats;
 
     private SegmentNodeStore(SegmentNodeStoreBuilder builder) {
-        this.reader = builder.reader;
         this.writer = builder.writer;
         this.blobStore = builder.blobStore;
         
