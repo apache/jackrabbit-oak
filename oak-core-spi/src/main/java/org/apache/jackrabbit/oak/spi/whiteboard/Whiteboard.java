@@ -39,4 +39,15 @@ public interface Whiteboard {
      */
     <T> Tracker<T> track(Class<T> type);
 
+    /**
+     * Starts tracking services of the given type, with given attributes.
+     *
+     * @param type type of the services to track
+     * @param filterProperties only services with these properties will be tracked.
+     *                         Null keys are not permitted. Null values means that
+     *                         the property should be absent.
+     * @return service tracker
+     */
+    <T> Tracker<T> track(Class<T> type, Map<String, String> filterProperties);
+
 }

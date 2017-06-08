@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
+import javax.annotation.Nonnull;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newIdentityHashSet;
 import static java.util.Collections.emptyList;
@@ -26,13 +27,14 @@ import static java.util.Collections.emptyList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DefaultWhiteboard implements Whiteboard {
 
-    private final Map<Class<?>, Set<Object>> registry = newHashMap();
+    private final Map<Class<?>, Set<Service>> registry = newHashMap();
 
-    private synchronized <T> void registered(Class<T> type, T service) {
-        Set<Object> services = registry.get(type);
+    private synchronized <T> void registered(Class<T> type, Service service) {
+        Set<Service> services = registry.get(type);
         if (services == null) {
             services = newIdentityHashSet();
             registry.put(type, services);
@@ -40,8 +42,8 @@ public class DefaultWhiteboard implements Whiteboard {
         services.add(service);
     }
 
-    private synchronized <T> void unregistered(Class<T> type, T service) {
-        Set<Object> services = registry.get(type);
+    private synchronized <T> void unregistered(Class<T> type, Service service) {
+        Set<Service> services = registry.get(type);
         if (services != null) {
             services.remove(service);
         }
@@ -49,9 +51,26 @@ public class DefaultWhiteboard implements Whiteboard {
 
     @SuppressWarnings("unchecked")
     private synchronized <T> List<T> lookup(Class<T> type) {
-        Set<Object> services = registry.get(type);
+        Set<Service> services = registry.get(type);
         if (services != null) {
-            return (List<T>) newArrayList(services);
+            return (List<T>) services
+                    .stream()
+                    .map(Service::getService)
+                    .collect(Collectors.toList());
+        } else {
+            return emptyList();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private synchronized <T> List<T> lookup(Class<T> type, Map<String, String> filterProperties) {
+        Set<Service> services = registry.get(type);
+        if (services != null) {
+            return (List<T>) services
+                    .stream()
+                    .filter(s -> s.matches(filterProperties))
+                    .map(Service::getService)
+                    .collect(Collectors.toList());
         } else {
             return emptyList();
         }
@@ -65,11 +84,14 @@ public class DefaultWhiteboard implements Whiteboard {
         checkNotNull(type);
         checkNotNull(service);
         checkArgument(type.isInstance(service));
-        registered(type, service);
+
+        Service s = new Service(service, properties);
+
+        registered(type, s);
         return new Registration() {
             @Override
             public void unregister() {
-                unregistered(type, service);
+                unregistered(type, s);
             }
         };
     }
@@ -88,4 +110,53 @@ public class DefaultWhiteboard implements Whiteboard {
         };
     }
 
+    @Override
+    public <T> Tracker<T> track(Class<T> type, Map<String, String> filterProperties) {
+
+        checkNotNull(type);
+        return new Tracker<T>() {
+            @Override
+            public List<T> getServices() {
+                return lookup(type, filterProperties);
+            }
+            @Override
+            public void stop() {
+            }
+        };
+    }
+
+    private static class Service {
+
+        private final Object service;
+
+        private final Map<?, ?> properties;
+
+        private Service(@Nonnull Object service, Map<?, ?> properties) {
+            checkNotNull(service);
+            this.service = service;
+            this.properties = properties;
+        }
+
+        private Object getService() {
+            return service;
+        }
+
+        private boolean matches(Map<String, String> properties) {
+            return properties.entrySet().stream()
+                    .allMatch(this::propertyMatches);
+        }
+
+        private  boolean propertyMatches(Map.Entry<String, String> filterEntry) {
+            String key = filterEntry.getKey();
+            String expectedValue = filterEntry.getValue();
+            if (properties == null || !properties.containsKey(key)) {
+                return expectedValue == null;
+            }
+            Object value = properties.get(key);
+            if (value == null) {
+                return expectedValue == null;
+            }
+            return value.toString().equals(expectedValue);
+        }
+    }
 }
