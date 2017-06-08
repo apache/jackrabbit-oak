@@ -108,8 +108,6 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final SegmentWriter segmentWriter;
 
-    private final int maxFileSize;
-
     @Nonnull
     private final GarbageCollector garbageCollector;
 
@@ -191,7 +189,6 @@ public class FileStore extends AbstractFileStore {
                 .withWriterPool()
                 .with(builder.getCacheManager())
                 .build(this);
-        this.maxFileSize = builder.getMaxFileSize() * MB;
         this.garbageCollector = new GarbageCollector(
                 builder.getGcOptions(), builder.getGcListener(), new GCJournal(directory), builder.getCacheManager());
 
@@ -210,7 +207,7 @@ public class FileStore extends AbstractFileStore {
                 .withTarRecovery(recovery)
                 .withIOMonitor(ioMonitor)
                 .withFileStoreStats(stats)
-                .withMaxFileSize(maxFileSize)
+                .withMaxFileSize(builder.getMaxFileSize() * MB)
                 .build();
         this.stats.init(this.tarFiles.size());
 
