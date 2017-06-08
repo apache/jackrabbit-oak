@@ -224,7 +224,7 @@ public class LockBasedScheduler implements Scheduler {
         }
     }
 
-    private NodeState execute(Commit commit) throws CommitFailedException, InterruptedException {
+    private NodeState execute(Commit commit) throws CommitFailedException {
         // only do the merge if there are some changes to commit
         if (commit.hasChanges()) {
             refreshHead(true);
