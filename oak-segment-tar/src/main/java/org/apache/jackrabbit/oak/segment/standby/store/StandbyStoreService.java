@@ -101,7 +101,7 @@ public class StandbyStoreService {
     @Reference(policy = STATIC, policyOption = GREEDY)
     private SegmentStoreProvider storeProvider = null;
 
-    private Closer closer = Closer.create();
+    private final Closer closer = Closer.create();
 
     @Activate
     private void activate(ComponentContext context) {
