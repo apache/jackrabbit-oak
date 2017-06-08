@@ -600,18 +600,18 @@ class TarFiles implements Closeable {
                     // index and a higher generation was created. Third, all the
                     // content from the original TAR reader could be swept.
 
-                    TarReader cleandedReader = cleaned.get(reader);
-                    if (cleandedReader != null) {
+                    TarReader cleanedReader = cleaned.get(reader);
+                    if (cleanedReader != null) {
 
                         // We are either in the first or in the second case.
                         // Save the TAR reader (either the original or the one
                         // with a higher generation) in the resulting linked list.
 
-                        swept = new Node(cleandedReader, swept);
-                        reclaimed += cleandedReader.size();
+                        swept = new Node(cleanedReader, swept);
+                        reclaimed += cleanedReader.size();
                     }
 
-                    if (cleandedReader != reader) {
+                    if (cleanedReader != reader) {
 
                         // We are either in the second or third case. Save the
                         // original TAR reader in a list of TAR readers that
