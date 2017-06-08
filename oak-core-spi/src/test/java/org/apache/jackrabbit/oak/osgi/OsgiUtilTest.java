@@ -17,12 +17,20 @@
 
 package org.apache.jackrabbit.oak.osgi;
 
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.component.ComponentContext;
 
 import java.util.Dictionary;
+import java.util.Map;
 
+import static com.google.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.appendEscapedLdapValue;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.appendLdapFilterAttribute;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.getFilter;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookup;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupFrameworkThenConfiguration;
@@ -204,4 +212,27 @@ public class OsgiUtilTest {
         assertEquals("fvalue", lookupFrameworkThenConfiguration(componentContext, "cname", "fname"));
     }
 
+    @Test
+    public void filterBuilding() throws InvalidSyntaxException {
+        StringBuilder b = new StringBuilder();
+
+        assertEquals("foo\\\\bar\\(foo\\)bar\\*foo", appendEscapedLdapValue(b, "foo\\bar(foo)bar*foo").toString());
+        b.setLength(0);
+
+        assertEquals("(foo=bar)", appendLdapFilterAttribute(b, "foo", "bar").toString());
+        b.setLength(0);
+
+        assertEquals("(foo=\\(bar\\))", appendLdapFilterAttribute(b, "foo", "(bar)").toString());
+        b.setLength(0);
+
+        assertEquals("(!(foo=*))", appendLdapFilterAttribute(b, "foo", null).toString());
+        b.setLength(0);
+
+        Map<String, String> m = newLinkedHashMap();
+        m.put("foo", "bar");
+        m.put("empty", null);
+        m.put("escaped", "*xyz)");
+        assertEquals(FrameworkUtil.createFilter("(&(objectClass=java.lang.String)(foo=bar)(!(empty=*))(escaped=\\*xyz\\)))"), getFilter(String.class, m));
+        b.setLength(0);
+    }
 }

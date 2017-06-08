@@ -22,7 +22,9 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.getFilter;
 
 import java.util.Collections;
 import java.util.Dictionary;
@@ -33,11 +35,13 @@ import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
@@ -101,6 +105,15 @@ public class OsgiWhiteboard implements Whiteboard {
      */
     @Override
     public <T> Tracker<T> track(final Class<T> type) {
+        return track(type, emptyMap());
+    }
+
+    @Override
+    public <T> Tracker<T> track(Class<T> type, Map<String, String> filterProperties) {
+        return track(type, getFilter(type, filterProperties));
+    }
+
+    private <T> Tracker<T> track(Class<T> type, Filter filter) {
         checkNotNull(type);
         final AtomicReference<List<T>> list =
                 new AtomicReference<List<T>>(Collections.<T>emptyList());
@@ -143,8 +156,8 @@ public class OsgiWhiteboard implements Whiteboard {
                         context.ungetService(reference);
                     }
                 };
-        final ServiceTracker tracker =
-                new ServiceTracker(context, type.getName(), customizer);
+
+        final ServiceTracker tracker = new ServiceTracker(context, filter, customizer);
         tracker.open();
         return new Tracker<T>() {
             @Override
