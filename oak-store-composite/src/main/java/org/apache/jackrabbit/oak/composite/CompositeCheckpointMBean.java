@@ -20,6 +20,11 @@ import org.apache.jackrabbit.oak.commons.jmx.AbstractCheckpointMBean;
 
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.TabularDataSupport;
+import java.util.Date;
+import java.util.Map;
+import java.util.stream.StreamSupport;
+
+import static org.apache.jackrabbit.oak.composite.CompositeNodeStore.CHECKPOINT_METADATA;
 
 public class CompositeCheckpointMBean extends AbstractCheckpointMBean {
 
@@ -42,12 +47,35 @@ public class CompositeCheckpointMBean extends AbstractCheckpointMBean {
     @Override
     protected void collectCheckpoints(TabularDataSupport tab) throws OpenDataException {
         for (String id : store.checkpoints()) {
-            tab.put(id, toCompositeData(id, "", "", store.checkpointInfo(id)));
+            Map<String, String> info = store.allCheckpointInfo(id);
+            tab.put(id, toCompositeData(
+                    id,
+                    getDate(info, CHECKPOINT_METADATA + "created"),
+                    getDate(info, CHECKPOINT_METADATA + "expires"),
+                    store.checkpointInfo(id)));
         }
     }
 
     @Override
     public long getOldestCheckpointCreationTimestamp() {
-        return 0;
+        return StreamSupport.stream(store.checkpoints().spliterator(), false)
+                .map(store::allCheckpointInfo)
+                .map(i -> i.get(CHECKPOINT_METADATA + "created"))
+                .mapToLong(l -> l == null ? 0 : Long.valueOf(l))
+                .sorted()
+                .findFirst()
+                .orElse(0);
+    }
+
+    private static String getDate(Map<String, String> info, String name) {
+        String p = info.get(name);
+        if (p == null) {
+            return "NA";
+        }
+        try {
+            return new Date(Long.valueOf(p)).toString();
+        } catch (NumberFormatException e) {
+            return "NA";
+        }
     }
 }
