@@ -169,6 +169,15 @@ public interface RepositoryManagementMBean {
     CompositeData startRevisionGC();
 
     /**
+     * Initiate a revision garbage collection operation
+     *
+     * @return  the status of the operation right after it was initiated
+     */
+    @Nonnull
+    @Description("Initiates a revision garbage collection operation for a given role")
+    CompositeData startRevisionGCForRole(String role);
+
+    /**
      * Cancel a running revision garbage collection operation. Does nothing
      * if revision garbage collection is not running.
      *
