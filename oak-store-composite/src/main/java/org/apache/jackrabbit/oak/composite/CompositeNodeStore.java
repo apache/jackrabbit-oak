@@ -385,6 +385,8 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
         private final List<String> ignoreReadOnlyWritePaths = Lists.newArrayList();
 
+        private boolean partialReadOnly = true;
+
         public Builder(MountInfoProvider mip, NodeStore globalStore) {
             this.mip = checkNotNull(mip, "mountInfoProvider");
             this.globalStore = checkNotNull(globalStore, "globalStore");
@@ -404,24 +406,28 @@ public class CompositeNodeStore implements NodeStore, Observable {
             return this;
         }
 
+        public Builder setPartialReadOnly(boolean partialReadOnly) {
+            this.partialReadOnly = partialReadOnly;
+            return this;
+        }
+
         public CompositeNodeStore build() {
-            checkReadWriteMountsNumber();
             checkMountsAreConsistentWithMounts();
+            if (partialReadOnly) {
+                assertPartialMountsAreReadOnly();
+            }
             return new CompositeNodeStore(mip, globalStore, nonDefaultStores, ignoreReadOnlyWritePaths);
         }
 
-        private void checkReadWriteMountsNumber() {
+        public void assertPartialMountsAreReadOnly() {
             List<String> readWriteMountNames = Lists.newArrayList();
-            if (!mip.getDefaultMount().isReadOnly()) {
-                readWriteMountNames.add(mip.getDefaultMount().getName());
-            }
             for (Mount mount : mip.getNonDefaultMounts()) {
                 if (!mount.isReadOnly()) {
                     readWriteMountNames.add(mount.getName());
                 }
             }
-            checkArgument(readWriteMountNames.size() <= 1,
-                    "Expected at most 1 write-enabled mount, but got %s: %s.", readWriteMountNames.size(), readWriteMountNames);
+            checkArgument(readWriteMountNames.isEmpty(),
+                    "Following partial mounts are write-enabled: ", readWriteMountNames);
         }
 
         private void checkMountsAreConsistentWithMounts() {
