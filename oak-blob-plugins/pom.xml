@@ -37,6 +37,14 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <instructions>
+            <Export-Package>
+              org.apache.jackrabbit.oak.plugins.blob,
+              org.apache.jackrabbit.oak.plugins.blob.datastore,
+            </Export-Package>
+          </instructions>
+        </configuration>
       </plugin>
     </plugins>
   </build>
