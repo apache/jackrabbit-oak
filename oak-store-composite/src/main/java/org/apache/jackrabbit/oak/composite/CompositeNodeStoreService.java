@@ -73,6 +73,12 @@ public class CompositeNodeStoreService {
     )
     private static final String PROP_IGNORE_READ_ONLY_WRITES = "ignoreReadOnlyWrites";
 
+    @Property(label = "Read-only mounts",
+            description = "The partial stores should be configured as read-only",
+            boolValue = true
+    )
+    private static final String PROP_PARTIAL_READ_ONLY = "partialReadOnly";
+
     private ComponentContext context;
 
     private ServiceRegistration nsReg;
@@ -83,10 +89,13 @@ public class CompositeNodeStoreService {
 
     private String[] ignoreReadOnlyWritePaths;
 
+    private boolean partialReadOnly;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) {
         this.context = context;
         ignoreReadOnlyWritePaths = PropertiesUtil.toStringArray(config.get(PROP_IGNORE_READ_ONLY_WRITES));
+        partialReadOnly = PropertiesUtil.toBoolean(config.get(PROP_PARTIAL_READ_ONLY), true);
         registerCompositeNodeStore();
     }
 
@@ -126,6 +135,7 @@ public class CompositeNodeStoreService {
         LOG.info("Node stores for all configured mounts are available");
 
         CompositeNodeStore.Builder builder = new CompositeNodeStore.Builder(mountInfoProvider, globalNs.getNodeStoreProvider().getNodeStore());
+        builder.setPartialReadOnly(partialReadOnly);
         for (String p : ignoreReadOnlyWritePaths) {
             builder.addIgnoredReadOnlyWritePath(p);
         }
