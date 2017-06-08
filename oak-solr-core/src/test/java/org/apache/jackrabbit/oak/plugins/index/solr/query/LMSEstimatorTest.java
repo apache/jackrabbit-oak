@@ -53,18 +53,22 @@ public class LMSEstimatorTest {
         docs.setNumFound(actualCount);
 
         long estimate = lmsEstimator.estimate(filter);
+        assertEquals(estimate, lmsEstimator.estimate(filter));
         long diff = actualCount - estimate;
 
         // update causes weights adjustment
         lmsEstimator.update(filter, docs);
         long estimate2 = lmsEstimator.estimate(filter);
+        assertEquals(estimate2, lmsEstimator.estimate(filter));
         long diff2 = actualCount - estimate2;
         assertTrue(diff2 < diff); // new estimate is more accurate than previous one
 
         // update doesn't cause weight adjustments therefore estimates stays unchanged
         lmsEstimator.update(filter, docs);
         long estimate3 = lmsEstimator.estimate(filter);
-        assertEquals(estimate3, estimate2);
+        assertEquals(estimate3, lmsEstimator.estimate(filter));
+        long diff3 = actualCount - estimate3;
+        assertTrue(diff3 < diff2);
     }
 
     @Test
