@@ -22,6 +22,8 @@ import static java.util.Arrays.fill;
 
 import java.util.Iterator;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.AbstractIterator;
 
 /**
@@ -54,6 +56,7 @@ class MutableRecordNumbers implements RecordNumbers {
             : entries[index * 2];
     }
 
+    @Nonnull
     @Override
     public synchronized Iterator<Entry> iterator() {
         return new AbstractIterator<Entry>() {

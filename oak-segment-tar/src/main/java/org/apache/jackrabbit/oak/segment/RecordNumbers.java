@@ -21,6 +21,8 @@ import static com.google.common.collect.Iterators.emptyIterator;
 
 import java.util.Iterator;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 
 /**
@@ -37,6 +39,7 @@ interface RecordNumbers extends Iterable<Entry> {
             return -1;
         }
 
+        @Nonnull
         @Override
         public Iterator<Entry> iterator() {
             return emptyIterator();

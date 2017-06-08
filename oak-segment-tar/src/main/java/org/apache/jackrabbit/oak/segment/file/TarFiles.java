@@ -45,6 +45,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
@@ -183,6 +185,7 @@ class TarFiles implements Closeable {
     private static Iterable<TarReader> iterable(final Node head) {
         return new Iterable<TarReader>() {
 
+            @Nonnull
             @Override
             public Iterator<TarReader> iterator() {
                 return new Iterator<TarReader>() {
