@@ -959,7 +959,7 @@ public class FileStore extends AbstractFileStore {
                 @Nonnull final SegmentGCOptions gcOptions,
                 @Nonnull final RecordId compactedRootId) {
             return new CompactionResult(newGeneration) {
-                int oldGeneration = newGeneration - gcOptions.getRetainedGenerations();
+                final int oldGeneration = newGeneration - gcOptions.getRetainedGenerations();
 
                 @Override
                 Predicate<Integer> reclaimer() {
@@ -1008,7 +1008,7 @@ public class FileStore extends AbstractFileStore {
                 final int currentGeneration,
                 @Nonnull final SegmentGCOptions gcOptions) {
             return new CompactionResult(currentGeneration) {
-                int oldGeneration = currentGeneration - gcOptions.getRetainedGenerations();
+                final int oldGeneration = currentGeneration - gcOptions.getRetainedGenerations();
                 @Override
                 Predicate<Integer> reclaimer() {
                     return CompactionResult.newOldReclaimer(oldGeneration);
