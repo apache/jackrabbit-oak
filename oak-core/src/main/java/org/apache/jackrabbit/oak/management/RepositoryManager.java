@@ -194,24 +194,36 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     @Nonnull
     @Override
     public CompositeData cancelRevisionGC() {
+        return cancelRevisionGCForRole(null);
+    }
+
+    @Nonnull
+    @Override
+    public CompositeData cancelRevisionGCForRole(String role) {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
             @Nonnull
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.cancelRevisionGC());
             }
-        }).toCompositeData();
+        }, singletonMap("role", role)).toCompositeData();
     }
 
     @Override
     public CompositeData getRevisionGCStatus() {
+        return getRevisionGCStatusForRole(null);
+    }
+
+    @Nonnull
+    @Override
+    public CompositeData getRevisionGCStatusForRole(String role) {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
             @Nonnull
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.getRevisionGCStatus());
             }
-        }).toCompositeData();
+        }, singletonMap("role", role)).toCompositeData();
     }
 
     @Override
