@@ -58,6 +58,7 @@
               org.apache.jackrabbit.oak.plugins.index.nodetype,
               org.apache.jackrabbit.oak.plugins.index.property,
               org.apache.jackrabbit.oak.plugins.index.property.jmx,
+              org.apache.jackrabbit.oak.plugins.index.property.strategy,
               org.apache.jackrabbit.oak.plugins.index.reference,
               org.apache.jackrabbit.oak.plugins.itemsave,
               org.apache.jackrabbit.oak.plugins.lock,
@@ -86,8 +87,10 @@
               org.apache.jackrabbit.oak.spi.security.user.util,
               org.apache.jackrabbit.oak.spi.xml,
               org.apache.jackrabbit.oak.query,
+              org.apache.jackrabbit.oak.query.ast,
               org.apache.jackrabbit.oak.query.fulltext,
               org.apache.jackrabbit.oak.query.facet,
+              org.apache.jackrabbit.oak.query.index,
               org.apache.jackrabbit.oak.security,
               org.apache.jackrabbit.oak.util,
             </Export-Package>

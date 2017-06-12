@@ -22,10 +22,12 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.solr.common.SolrDocumentList;
 
 /**
- * A very simple estimator for no. of entries in the index using least mean square update method but not the full stochastic
- * gradient descent algorithm (yet?), on a linear interpolation model.
+ * A very simple estimator for no. of entries in the index using least mean square update method for linear regression.
  */
 class LMSEstimator {
+
+    private static final double DEFAULT_ALPHA = 0.03;
+    private static final int DEFAULT_THRESHOLD = 5;
 
     private double[] weights;
     private final double alpha;
@@ -38,23 +40,25 @@ class LMSEstimator {
     }
 
     LMSEstimator(double[] weights) {
-        this(0.03, weights, 5);
+        this(DEFAULT_ALPHA, weights, DEFAULT_THRESHOLD);
     }
 
     LMSEstimator() {
-        this(0.03, new double[5], 5);
+        this(DEFAULT_ALPHA, new double[5], 5);
     }
 
     synchronized void update(Filter filter, SolrDocumentList docs) {
         double[] updatedWeights = new double[weights.length];
+
+        // least mean square cost
         long estimate = estimate(filter);
         long numFound = docs.getNumFound();
-        long diff = numFound - estimate;
-        double delta = Math.pow(diff, 2) / 2;
+        long residual = numFound - estimate;
+        double delta = Math.pow(residual, 2);
+
         if (Math.abs(delta) > threshold) {
             for (int i = 0; i < updatedWeights.length; i++) {
-                double errors = delta * getInput(filter, i);
-                updatedWeights[i] = weights[i] + (diff > 0 ? 1 : -1) * alpha * errors;
+                updatedWeights[i] = weights[i] + alpha * residual * getInput(filter, i);
             }
             // weights updated
             weights = Arrays.copyOf(updatedWeights, 5);

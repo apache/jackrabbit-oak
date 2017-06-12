@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 public interface IndexUpdateCallback {
+    IndexUpdateCallback NOOP = () -> {};
 
     /**
      * Invoked by the {@link org.apache.jackrabbit.oak.plugins.index.IndexEditor} for every NodeState

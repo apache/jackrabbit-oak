@@ -63,7 +63,6 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -117,7 +116,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     public CugConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
 
-        mountInfoProvider = getParameters().getConfigValue(AccessControlConstants.PARAM_MOUNT_PROVIDER, Mounts.defaultMountInfoProvider(), MountInfoProvider.class);
+        mountInfoProvider = getParameters().getConfigValue(PARAM_MOUNT_PROVIDER, Mounts.defaultMountInfoProvider(), MountInfoProvider.class);
         supportedPaths = CugUtil.getSupportedPaths(getParameters(), mountInfoProvider);
     }
 

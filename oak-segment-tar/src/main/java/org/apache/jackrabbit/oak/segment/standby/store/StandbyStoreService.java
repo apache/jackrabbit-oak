@@ -22,7 +22,6 @@ import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
 import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
@@ -101,7 +100,7 @@ public class StandbyStoreService {
     @Reference(policy = STATIC, policyOption = GREEDY)
     private SegmentStoreProvider storeProvider = null;
 
-    private Closer closer = Closer.create();
+    private final Closer closer = Closer.create();
 
     @Activate
     private void activate(ComponentContext context) {
@@ -171,7 +170,7 @@ public class StandbyStoreService {
         return new Closeable() {
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 r.unregister();
             }
 

@@ -17,26 +17,34 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby;
+package org.apache.jackrabbit.oak.api.jmx;
 
-import java.io.File;
+import aQute.bnd.annotation.ProviderType;
 
-import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
-import org.junit.Rule;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
+import javax.management.openmbean.TabularData;
 
-public class StandbyTest extends TestBase {
+/**
+ * MBean for managing the copy-on-write node store
+ */
+@ProviderType
+public interface CopyOnWriteStoreMBean {
+    String TYPE = "CopyOnWriteStoreManager";
 
-    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
+    /**
+     * Enabled the temporary, copy-on-write store
+     * @return the operation status
+     */
+    String enableCopyOnWrite();
 
-    private TemporaryFileStore serverFileStore = new TemporaryFileStore(folder, false);
+    /**
+     * Disables the temporary store and switched the repository back to the "normal" mode.
+     * @return the operation status
+     */
+    String disableCopyOnWrite();
 
-    private TemporaryFileStore clientFileStore = new TemporaryFileStore(folder, true);
-
-    @Rule
-    public RuleChain chain = RuleChain.outerRule(folder)
-            .around(serverFileStore)
-            .around(clientFileStore);
-
+    /**
+     * Returns the copy-on-write status
+     * @return status of the copy-on-write mode
+     */
+    String getStatus();
 }

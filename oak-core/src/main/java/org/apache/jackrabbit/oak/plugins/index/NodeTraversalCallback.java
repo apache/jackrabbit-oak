@@ -26,13 +26,15 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
  * as part of diff traversal
  */
 public interface NodeTraversalCallback{
-    NodeTraversalCallback NOOP = new NodeTraversalCallback() {
-        @Override
-        public void traversedNode() throws CommitFailedException {
+    /**
+     * Provides a way to lazily construct the path
+     * and provides access to the current path
+     */
+    interface PathSource {
+        String getPath();
+    }
 
-        }
-    };
+    NodeTraversalCallback NOOP = pathSource -> {};
 
-
-    void traversedNode() throws CommitFailedException;
+    void traversedNode(PathSource pathSource) throws CommitFailedException;
 }

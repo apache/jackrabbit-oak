@@ -351,6 +351,7 @@ public class MapRecord extends Record {
                     newArrayListWithCapacity(buckets.size());
             for (final MapRecord bucket : buckets) {
                 entries.add(new Iterable<MapEntry>() {
+                    @Nonnull
                     @Override
                     public Iterator<MapEntry> iterator() {
                         return bucket.getEntries(diffKey, diffValue).iterator();

@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.query.xpath;
 
 import java.util.ArrayList;
 
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.xpath.Expression.AndCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 
 /**
  * An xpath statement.
@@ -158,14 +158,14 @@ public class Statement {
         
         // select ...
         buff.append("select ");
-        buff.append(new Expression.Property(columnSelector, QueryImpl.JCR_PATH, false).toString());
+        buff.append(new Expression.Property(columnSelector, QueryConstants.JCR_PATH, false).toString());
         if (selectors.size() > 1) {
-            buff.append(" as ").append('[').append(QueryImpl.JCR_PATH).append(']');
+            buff.append(" as ").append('[').append(QueryConstants.JCR_PATH).append(']');
         }
         buff.append(", ");
-        buff.append(new Expression.Property(columnSelector, QueryImpl.JCR_SCORE, false).toString());
+        buff.append(new Expression.Property(columnSelector, QueryConstants.JCR_SCORE, false).toString());
         if (selectors.size() > 1) {
-            buff.append(" as ").append('[').append(QueryImpl.JCR_SCORE).append(']');
+            buff.append(" as ").append('[').append(QueryConstants.JCR_SCORE).append(']');
         }
         if (columnList.isEmpty()) {
             buff.append(", ");

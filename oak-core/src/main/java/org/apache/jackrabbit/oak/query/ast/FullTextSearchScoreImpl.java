@@ -25,9 +25,9 @@ import java.util.Set;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
@@ -64,7 +64,7 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        PropertyValue p = selector.currentOakProperty(QueryImpl.JCR_SCORE);
+        PropertyValue p = selector.currentOakProperty(QueryConstants.JCR_SCORE);
         if (p == null) {
             // TODO if score() is not supported by the index, use the value 0.0?
             return PropertyValues.newDouble(0.0);
@@ -83,7 +83,7 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
                 // not supported
                 return;
             }
-            f.restrictProperty(QueryImpl.JCR_SCORE, operator, v);
+            f.restrictProperty(QueryConstants.JCR_SCORE, operator, v);
         }
     }
     

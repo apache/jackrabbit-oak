@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
@@ -168,7 +167,7 @@ class IndexPlanner {
                     // function-based indexes were handled before
                     continue;
                 }
-                if (QueryImpl.REP_FACET.equals(pr.propertyName)) {
+                if (QueryConstants.REP_FACET.equals(pr.propertyName)) {
                     String value = pr.first.getValue(Type.STRING);
                     facetFields.add(FacetHelper.parseFacetField(value));
                 }

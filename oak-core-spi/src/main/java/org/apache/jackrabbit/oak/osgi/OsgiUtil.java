@@ -18,7 +18,13 @@
 package org.apache.jackrabbit.oak.osgi;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.Filter;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.component.ComponentContext;
+
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -153,4 +159,46 @@ public class OsgiUtil {
         return string;
     }
 
+    /**
+     * Create a {@link Filter} using the passed Class as an objectClass and the map
+     * as the filter attributes.
+     * @param clazz the target objectClass
+     * @param attributes target attributes (null value for the absence)
+     * @return OSGi filter representing the input
+     */
+    public static Filter getFilter(Class<?> clazz, Map<String, String> attributes) {
+        StringBuilder filterBuilder = new StringBuilder("(&");
+        appendLdapFilterAttribute(filterBuilder, Constants.OBJECTCLASS, clazz.getName());
+        for (Map.Entry<String, String> e : attributes.entrySet()) {
+            appendLdapFilterAttribute(filterBuilder, e.getKey(), e.getValue());
+        }
+        filterBuilder.append(')');
+        try {
+            return FrameworkUtil.createFilter(filterBuilder.toString());
+        } catch(InvalidSyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    static StringBuilder appendLdapFilterAttribute(StringBuilder filterBuilder, String key, String value) {
+        if (value == null) {
+            filterBuilder.append("(!(").append(key).append("=*))");
+        } else {
+            filterBuilder.append("(").append(key).append("=");
+            appendEscapedLdapValue(filterBuilder, value);
+            filterBuilder.append(")");
+        }
+        return filterBuilder;
+    }
+
+    static StringBuilder appendEscapedLdapValue(StringBuilder filterBuilder, String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if ((c == '\\') || (c == '(') || (c == ')') || (c == '*')) {
+                filterBuilder.append('\\');
+            }
+            filterBuilder.append(c);
+        }
+        return filterBuilder;
+    }
 }

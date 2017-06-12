@@ -61,7 +61,7 @@ public class Console {
         }
 
         GroovyConsole console =
-                new GroovyConsole(ConsoleSession.create(fixture.getStore()), new IO(), fixture);
+                new GroovyConsole(ConsoleSession.create(fixture.getStore(), fixture.getWhiteboard()), new IO(), fixture);
 
         int code = 0;
         if(!scriptArgs.isEmpty()){

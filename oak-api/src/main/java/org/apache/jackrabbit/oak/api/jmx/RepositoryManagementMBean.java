@@ -169,6 +169,15 @@ public interface RepositoryManagementMBean {
     CompositeData startRevisionGC();
 
     /**
+     * Initiate a revision garbage collection operation
+     *
+     * @return  the status of the operation right after it was initiated
+     */
+    @Nonnull
+    @Description("Initiates a revision garbage collection operation for a given role")
+    CompositeData startRevisionGCForRole(String role);
+
+    /**
      * Cancel a running revision garbage collection operation. Does nothing
      * if revision garbage collection is not running.
      *
@@ -179,6 +188,16 @@ public interface RepositoryManagementMBean {
     CompositeData cancelRevisionGC();
 
     /**
+     * Cancel a running revision garbage collection operation for a given role.
+     * Does nothing if revision garbage collection is not running.
+     *
+     * @return  the status of the operation right after it was initiated
+     */
+    @Nonnull
+    @Description("Cancel a running revision garbage collection operation. Does nothing if revision garbage collection is not running.")
+    CompositeData cancelRevisionGCForRole(String role);
+
+    /**
      * Revision garbage collection status
      *
      * @return  the status of the ongoing operation or if none the terminal
@@ -187,6 +206,16 @@ public interface RepositoryManagementMBean {
     @Nonnull
     @Description("Revision garbage collection status")
     CompositeData getRevisionGCStatus();
+
+    /**
+     * Revision garbage collection status for a given role.
+     *
+     * @return  the status of the ongoing operation or if none the terminal
+     * status of the last operation or <em>Status not available</em> if none.
+     */
+    @Nonnull
+    @Description("Revision garbage collection status for a given role")
+    CompositeData getRevisionGCStatusForRole(String role);
 
     /**
      * Creates a new checkpoint of the latest root of the tree. The checkpoint

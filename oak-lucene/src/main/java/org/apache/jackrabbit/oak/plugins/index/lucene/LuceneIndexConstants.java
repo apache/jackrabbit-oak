@@ -97,11 +97,6 @@ public interface LuceneIndexConstants {
     String ORDERED_PROP_NAMES = "orderedProps";
 
     /**
-     * Actively the data store files after this many hours.
-     */
-    String ACTIVE_DELETE = "activeDelete";
-
-    /**
      * Size in bytes used for splitting the index files when storing them in NodeStore
      */
     String BLOB_SIZE = "blobSize";

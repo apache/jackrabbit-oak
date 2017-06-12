@@ -33,6 +33,9 @@ import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
+/**
+ * Default {@link Mount} implementation for non-default mounts.
+ */
 final class MountInfo implements Mount {
 
     private static final Function<String, String> SANITIZE_PATH =  new Function<String, String>() {

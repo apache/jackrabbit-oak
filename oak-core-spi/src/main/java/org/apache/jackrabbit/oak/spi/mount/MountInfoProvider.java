@@ -26,6 +26,11 @@ import javax.annotation.Nonnull;
 
 import aQute.bnd.annotation.ProviderType;
 
+/**
+ * Holds information related to the {@link Mount}s configured in a <tt>ContentRepository</tt>.
+ * 
+ * <p>The configuration may either be trivial - only a default mount is configured, or defining at least one non-default mount.</p>
+ */
 @ProviderType
 public interface MountInfoProvider {
 
@@ -41,6 +46,8 @@ public interface MountInfoProvider {
 
     /**
      * Set of non default mount points configured for the setup
+     * 
+     * @return a collection of mounts, possibly empty
      */
     @Nonnull
     Collection<Mount> getNonDefaultMounts();
@@ -50,13 +57,15 @@ public interface MountInfoProvider {
      *
      * @param name name of the mount
      * @return mount instance for given mount name. If no mount exists for given name
-     * null would be returned
+     * <tt>null</tt> would be returned
      */
     @CheckForNull
     Mount getMountByName(String name);
 
     /**
      * Return true if there are explicit mounts configured
+     * 
+     * @return true if at least one non-default mount is configured, false otherwise
      */
     boolean hasNonDefaultMounts();
 
@@ -65,15 +74,27 @@ public interface MountInfoProvider {
      *
      * @param path the path under which mounts are to be found
      * @return a collection of mounts, possibly empty
+     * 
+     * @see Mount#isUnder(String)
      */
     @Nonnull
     Collection<Mount> getMountsPlacedUnder(String path);
 
+    /**
+     * Returns all mounts placed directly under the specified path
+     * 
+     * @param path the path under which mounts are to be foud
+     * @return a collection of mounts, possibly empty
+     * 
+     * @see Mount#isDirectlyUnder(String)
+     */
     @Nonnull
     Collection<Mount> getMountsPlacedDirectlyUnder(String path);
 
     /**
      * Returns the default mount
+     * 
+     * @return the default mount
      */
     @Nonnull
     Mount getDefaultMount();

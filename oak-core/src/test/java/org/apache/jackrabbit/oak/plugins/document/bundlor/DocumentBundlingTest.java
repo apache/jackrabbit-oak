@@ -45,6 +45,10 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -54,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -665,6 +670,43 @@ public class DocumentBundlingTest {
         fileNode.child("jcr:content").setProperty("jcr:data", "foo2");
         builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
         merge(builder);
+    }
+
+    @Test
+    public void recreatedBundledNode2() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        builder = store.getRoot().builder();
+        builder.child("a");
+        //In this case we recreate the node in CommitHook
+        store.merge(builder, new EditorHook(new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                                        NodeBuilder builder, CommitInfo info) throws CommitFailedException {
+                return new BookRecreatingEditor(builder);
+            }
+        }), CommitInfo.EMPTY);
+    }
+
+    private static class BookRecreatingEditor extends DefaultEditor {
+        final NodeBuilder builder;
+
+        private BookRecreatingEditor(NodeBuilder builder) {
+            this.builder = builder;
+        }
+
+        @Override
+        public void enter(NodeState before, NodeState after) throws CommitFailedException {
+            builder.child("test").remove();
+
+            NodeBuilder book = builder.child("test").child("book.jpg");
+            book.setProperty(JCR_PRIMARYTYPE, "nt:file");
+            book.child("jcr:content");
+        }
     }
 
     @Test

@@ -38,9 +38,9 @@ public class CommonOptions implements OptionsBean {
     private OptionSet options;
 
     public CommonOptions(OptionParser parser){
-        help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
-        readWriteOption = parser.accepts("read-write", "connect to repository in read-write mode");
-        metrics = parser.accepts("metrics", "Enables Metrics based statistics collection");
+        help = parser.acceptsAll(asList("h", "?", "help"), "Show help").forHelp();
+        readWriteOption = parser.accepts("read-write", "Connect to repository in read-write mode");
+        metrics = parser.accepts("metrics", "Enables metrics based statistics collection");
         nonOption = parser.nonOptions(DEFAULT_CONNECTION_STRING);
     }
 

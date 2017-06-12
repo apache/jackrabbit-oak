@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.commons.jmx;
 
 import static javax.management.openmbean.SimpleType.STRING;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -88,6 +89,14 @@ public abstract class AbstractCheckpointMBean implements CheckpointMBean {
         } catch (OpenDataException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    @Override
+    public abstract long getOldestCheckpointCreationTimestamp();
+
+    @Override
+    public Date getOldestCheckpointCreationDate() {
+        return new Date(getOldestCheckpointCreationTimestamp());
     }
 
     /**

@@ -309,6 +309,25 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     }
 
     /**
+     * test eviction on replacement.
+     * @throws Exception
+     */
+    @Test
+    public void evictReplace() throws Exception {
+        LOG.info("Started evictReplace");
+
+        File f = createFile(0, loader, cache, folder);
+        assertCache(0, cache, f);
+
+        // Again put in cache to trigger eviction with replacement
+        cache.put(ID_PREFIX + 0, f);
+        // File should still be present
+        assertCache(0, cache, f);
+
+        LOG.info("Finished evictReplace");
+    }
+
+    /**
      * Retrieve and invalidate concurrently.
      * @throws Exception
      */

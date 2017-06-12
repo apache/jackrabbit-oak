@@ -401,6 +401,8 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
     @Test
     public void testLeaseUpdateAndNumberOfChanges() throws Exception {
+        // take care of initial reindex before
+        new AsyncIndexUpdate(name, store, provider).run();
         final long lease = 50;
         testContent(store, AsyncUpdateCallback.LEASE_CHECK_INTERVAL / 2);
         Set<Long> leaseTimes = Sets.newHashSet();
@@ -546,9 +548,9 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         }
 
         @Override
-        public void traversedNode() throws CommitFailedException {
+        public void traversedNode(PathSource pathSource) throws CommitFailedException {
             listener.preTraverseNode();
-            super.traversedNode();
+            super.traversedNode(pathSource);
             listener.postTraverseNode();
         }
 

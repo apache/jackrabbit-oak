@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.management;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.fromCompositeData;
@@ -28,7 +29,9 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.s
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.toTabularData;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.unavailable;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
@@ -65,7 +68,16 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     }
 
     private <T> Status execute(Class<T> serviceType, Function<T, Status> operation) {
-        Tracker<T> tracker = whiteboard.track(serviceType);
+        return execute(serviceType, operation, Collections.emptyMap());
+    }
+
+    private <T> Status execute(Class<T> serviceType, Function<T, Status> operation, Map<String, String> filter) {
+        Tracker<T> tracker;
+        if (filter.isEmpty()) {
+            tracker = whiteboard.track(serviceType);
+        } else {
+            tracker = whiteboard.track(serviceType, filter);
+        }
         try {
             List<T> services = tracker.getServices();
             if (services.size() == 1) {
@@ -165,36 +177,53 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
 
     @Override
     public CompositeData startRevisionGC() {
+        return startRevisionGCForRole(null);
+    }
+
+    @Override
+    public CompositeData startRevisionGCForRole(String role) {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
             @Nonnull
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.startRevisionGC());
             }
-        }).toCompositeData();
+        }, singletonMap("role", role)).toCompositeData();
     }
 
     @Nonnull
     @Override
     public CompositeData cancelRevisionGC() {
+        return cancelRevisionGCForRole(null);
+    }
+
+    @Nonnull
+    @Override
+    public CompositeData cancelRevisionGCForRole(String role) {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
             @Nonnull
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.cancelRevisionGC());
             }
-        }).toCompositeData();
+        }, singletonMap("role", role)).toCompositeData();
     }
 
     @Override
     public CompositeData getRevisionGCStatus() {
+        return getRevisionGCStatusForRole(null);
+    }
+
+    @Nonnull
+    @Override
+    public CompositeData getRevisionGCStatusForRole(String role) {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
             @Nonnull
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.getRevisionGCStatus());
             }
-        }).toCompositeData();
+        }, singletonMap("role", role)).toCompositeData();
     }
 
     @Override

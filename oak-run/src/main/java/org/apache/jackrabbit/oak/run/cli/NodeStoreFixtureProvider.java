@@ -19,20 +19,21 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.concurrent.Executors;
+import java.util.Collections;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.sql.DataSource;
 
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Counting;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.MongoClientURI;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
@@ -58,7 +60,7 @@ public class NodeStoreFixtureProvider {
 
     public static NodeStoreFixture create(Options options, boolean readOnly) throws Exception {
         CommonOptions commonOpts = options.getOptionBean(CommonOptions.class);
-
+        Whiteboard wb = options.getWhiteboard();
         Closer closer = Closer.create();
         BlobStoreFixture blobFixture = BlobStoreFixtureProvider.create(options);
         BlobStore blobStore = null;
@@ -67,22 +69,24 @@ public class NodeStoreFixtureProvider {
             closer.register(blobFixture);
         }
 
-        StatisticsProvider statisticsProvider = createStatsProvider(options, closer);
-        NodeStore store = null;
+        StatisticsProvider statisticsProvider = createStatsProvider(options, wb, closer);
+        wb.register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
+
+        NodeStore store;
         if (commonOpts.isMongo() || commonOpts.isRDB()) {
-            store = configureDocumentMk(options, blobStore, statisticsProvider, closer, readOnly);
+            store = configureDocumentMk(options, blobStore, statisticsProvider, closer, wb, readOnly);
         } else {
             store = configureSegment(options, blobStore, statisticsProvider, closer, readOnly);
         }
 
-        return new SimpleNodeStoreFixture(store, blobStore, statisticsProvider, closer);
+        return new SimpleNodeStoreFixture(store, blobStore, wb, closer);
     }
 
     private static NodeStore configureDocumentMk(Options options,
                                                  BlobStore blobStore,
                                                  StatisticsProvider statisticsProvider,
                                                  Closer closer,
-                                                 boolean readOnly) throws UnknownHostException {
+                                                 Whiteboard wb, boolean readOnly) throws UnknownHostException {
         DocumentMK.Builder builder = new DocumentMK.Builder();
 
         if (blobStore != null) {
@@ -108,6 +112,15 @@ public class NodeStoreFixtureProvider {
 
         CommonOptions commonOpts = options.getOptionBean(CommonOptions.class);
 
+        if (docStoreOpts.isCacheDistributionDefined()){
+            builder.memoryCacheDistribution(
+                    docStoreOpts.getNodeCachePercentage(),
+                    docStoreOpts.getPrevDocCachePercentage(),
+                    docStoreOpts.getChildrenCachePercentage(),
+                    docStoreOpts.getDiffCachePercentage()
+            );
+        }
+
         if (commonOpts.isMongo()) {
             MongoClientURI uri = new MongoClientURI(commonOpts.getStoreArg());
             if (uri.getDatabase() == null) {
@@ -116,12 +129,14 @@ public class NodeStoreFixtureProvider {
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
-            closer.register(asCloseable(mongo));
+            wb.register(MongoConnection.class, mongo, Collections.emptyMap());
+            closer.register(mongo::close);
             builder.setMongoDB(mongo.getDB());
         } else if (commonOpts.isRDB()) {
             RDBStoreOptions rdbOpts = options.getOptionBean(RDBStoreOptions.class);
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(commonOpts.getStoreArg(),
                     rdbOpts.getUser(), rdbOpts.getPassword());
+            wb.register(DataSource.class, ds, Collections.emptyMap());
             builder.setRDBConnection(ds);
         }
 
@@ -156,36 +171,44 @@ public class NodeStoreFixtureProvider {
         return nodeStore;
     }
 
-    private static StatisticsProvider createStatsProvider(Options options, Closer closer) {
+    private static StatisticsProvider createStatsProvider(Options options, Whiteboard wb, Closer closer) {
         if (options.getCommonOpts().isMetricsEnabled()) {
             ScheduledExecutorService executorService =
                     MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
             MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
             closer.register(statsProvider);
+            closer.register(() -> reportMetrics(statsProvider));
+            wb.register(MetricRegistry.class, statsProvider.getRegistry(), Collections.emptyMap());
             return statsProvider;
         }
         return StatisticsProvider.NOOP;
     }
 
-    private static Closeable asCloseable(final MongoConnection con) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                con.close();
-            }
-        };
+    private static void reportMetrics(MetricStatisticsProvider statsProvider) {
+        MetricRegistry metricRegistry = statsProvider.getRegistry();
+        ConsoleReporter.forRegistry(metricRegistry)
+                .outputTo(System.out)
+                .filter((name, metric) -> {
+                    if (metric instanceof Counting) {
+                        //Only report non zero metrics
+                        return ((Counting) metric).getCount() > 0;
+                    }
+                    return true;
+                })
+                .build()
+                .report();
     }
 
     private static class SimpleNodeStoreFixture implements NodeStoreFixture {
         private final Closer closer;
         private final NodeStore nodeStore;
         private final BlobStore blobStore;
-        private final StatisticsProvider statisticsProvider;
+        private final Whiteboard whiteboard;
 
         private SimpleNodeStoreFixture(NodeStore nodeStore, BlobStore blobStore,
-                                       StatisticsProvider statisticsProvider, Closer closer) {
+                                       Whiteboard whiteboard, Closer closer) {
             this.blobStore = blobStore;
-            this.statisticsProvider = statisticsProvider;
+            this.whiteboard = whiteboard;
             this.closer = closer;
             this.nodeStore = nodeStore;
         }
@@ -201,8 +224,8 @@ public class NodeStoreFixtureProvider {
         }
 
         @Override
-        public StatisticsProvider getStatisticsProvider() {
-            return statisticsProvider;
+        public Whiteboard getWhiteboard() {
+            return whiteboard;
         }
 
         @Override

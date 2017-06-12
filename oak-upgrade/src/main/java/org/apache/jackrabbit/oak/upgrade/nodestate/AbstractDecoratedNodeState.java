@@ -155,16 +155,16 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @CheckForNull
     public PropertyState getProperty(@Nonnull String name) {
-        if (delegate.hasProperty(name)) {
-            return decorate(delegate.getProperty(name));
-        } else {
+        PropertyState ps = decorate(delegate.getProperty(name));
+        if (ps == null) {
             for (PropertyState p : getNewPropertyStates()) {
                 if (name.equals(p.getName())) {
-                    return p;
+                    ps = p;
+                    break;
                 }
             }
-            return null;
         }
+        return ps;
     }
 
     @Override

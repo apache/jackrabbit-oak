@@ -17,10 +17,10 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.query.fulltext;
+package org.apache.jackrabbit.oak.query;
 
 import static com.google.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.oak.query.fulltext.SimpleExcerptProvider.highlight;
+import static org.apache.jackrabbit.oak.query.SimpleExcerptProvider.highlight;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Random;

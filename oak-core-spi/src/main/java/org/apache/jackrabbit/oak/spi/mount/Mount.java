@@ -22,10 +22,10 @@ package org.apache.jackrabbit.oak.spi.mount;
 import aQute.bnd.annotation.ProviderType;
 
 /**
- * A ContentRepository represents one big tree. A Mount
- * refers to a set of paths in that tree which are possibly
- * stored in a separate physical persistent stores. In a
- * default setup all paths belong to a default Mount.
+ * Refers to a set of paths from a <tt>ContentRepository</tt> that are possibly 
+ * stored in a separate physical persistent store.
+ * 
+ * <p>In a default setup all paths belong to a default Mount.</p>
  */
 @ProviderType
 public interface Mount {
@@ -44,8 +44,9 @@ public interface Mount {
 
     /**
      * Checks whether current mount is the default mount.
-     * Default mount includes the root path and all other
-     * paths which are not part of any other mount
+     * 
+     * <p>The Default mount includes the root path and all other
+     * paths which are not part of any other mount.</p>
      *
      * @return true if this mount represents the
      * default mount
@@ -55,7 +56,8 @@ public interface Mount {
     /**
      * Returns fragment name which can be used to construct node name
      * used for storing meta content belonging to path under this
-     * <code>Mount</code>. Such a node name would be used by NodeStore
+     * <code>Mount</code>. 
+     * Such a node name would be used by NodeStore
      * to determine the storage for nodes under those paths.
      *
      * <p>Fragment name  is formatted as 'oak:mount-&lt;mount name&gt;'
@@ -86,14 +88,26 @@ public interface Mount {
     /**
      * Checks if given path belongs to this <code>Mount</code>
      *
+     * <p>A path belongs to a Mount in two scenarios:</p>
+     * <ol>
+     *   <li>The path is below a fragment-supported path and the path contains a fragment name.</li>
+     *   <li>The path of this mount is the most specific ancestor for the specified path.</li>
+     * </ol>
+     * 
+     * <p>The fragment check has a higher priority, and the presence of a fragment name in the path
+     * always decides the mount this path belongs to.</p>
+     *
      * @param path path to check
      * @return true if path belong to this mount
+     * 
+     * @see #getPathFragmentName()
      */
     boolean isMounted(String path);
 
     /**
-     * Checks if this mount falls under given path. For e.g. if a
-     * mount consist of '/etc/config'. Then if path is
+     * Checks if this mount falls under given path. 
+     * 
+     * <p>For e.g. if a mount consist of '/etc/config'. Then if path is
      * <ul>
      *     <li>/etc - Then it returns true</li>
      *     <li>/etc/config - Then it returns false</li>
@@ -105,5 +119,19 @@ public interface Mount {
      */
     boolean isUnder(String path);
 
+    /**
+     * Checks if this mount directly falls under given path. 
+     * 
+     * <p>For e.g. if a mount consist of '/etc/my/config'. Then if path is
+     * <ul>
+     *     <li>/etc - Then it returns false</li>
+     *     <li>/etc/my - Then it returns true</li>
+     *     <li>/etc/my/config- Then it returns false</li>
+     *     <li>/lib - Then it returns false</li>
+     * </ul>
+     *
+     * @param path path to check
+     * @return true if this Mount is rooted directly under given path
+     */
     boolean isDirectlyUnder(String path);
 }

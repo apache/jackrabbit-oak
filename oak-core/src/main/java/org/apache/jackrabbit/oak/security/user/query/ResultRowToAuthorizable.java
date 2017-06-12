@@ -26,7 +26,9 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
@@ -51,30 +53,31 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
         this.targetType = (targetType == null || AuthorizableType.AUTHORIZABLE == targetType) ? null : targetType;
     }
 
+    @Nullable
     @Override
-    public Authorizable apply(ResultRow row) {
-        if (row != null) {
-            return getAuthorizable(row.getPath());
-        }
-        return null;
+    public Authorizable apply(@Nullable ResultRow row) {
+        return getAuthorizable(row);
     }
 
     //------------------------------------------------------------< private >---
     @CheckForNull
-    private Authorizable getAuthorizable(String resultPath) {
+    private Authorizable getAuthorizable(@CheckForNull ResultRow row) {
         Authorizable authorizable = null;
-        try {
-            Tree tree = root.getTree(resultPath);
-            AuthorizableType type = UserUtil.getType(tree);
-            while (tree.exists() && !tree.isRoot() && type == null) {
-                tree = tree.getParent();
-                type = UserUtil.getType(tree);
+        if (row != null) {
+            String resultPath = row.getValue(QueryConstants.JCR_PATH).getValue(Type.STRING);
+            try {
+                Tree tree = root.getTree(resultPath);
+                AuthorizableType type = UserUtil.getType(tree);
+                while (tree.exists() && !tree.isRoot() && type == null) {
+                    tree = tree.getParent();
+                    type = UserUtil.getType(tree);
+                }
+                if (tree.exists() && (targetType == null || targetType == type)) {
+                    authorizable = userManager.getAuthorizable(tree);
+                }
+            } catch (RepositoryException e) {
+                log.debug("Failed to access authorizable " + resultPath);
             }
-            if (tree.exists() && (targetType == null || targetType == type)) {
-                authorizable = userManager.getAuthorizable(tree);
-            }
-        } catch (RepositoryException e) {
-            log.debug("Failed to access authorizable " + resultPath);
         }
         return authorizable;
     }

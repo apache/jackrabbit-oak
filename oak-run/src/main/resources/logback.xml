@@ -43,6 +43,8 @@
 
   <!-- For index tooling -->
   <logger name="org.apache.jackrabbit.oak.index" level="INFO"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.index.IndexUpdate" level="INFO"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.index.progress" level="INFO"/>
 
   <!-- Display information messages from oak-run check (oak-segment) -->
   <logger name="org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker" level="DEBUG"/>

@@ -30,8 +30,6 @@ import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 
-import static java.util.Arrays.asList;
-
 /**
  * A simple and inefficient implementation to manage mount points
  */

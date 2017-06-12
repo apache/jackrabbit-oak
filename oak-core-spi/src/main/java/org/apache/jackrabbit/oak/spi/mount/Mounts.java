@@ -28,6 +28,10 @@ import java.util.List;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 
+/**
+ * Provides helper methods for creating {@link MountInfoProvider} instances.
+ *
+ */
 public final class Mounts {
 
     private Mounts() {
@@ -143,43 +147,95 @@ public final class Mounts {
         }
     }
 
+    /**
+     * Returns a {@link MountInfoProvider} which is configured only with the default Mount
+     * 
+     * @return the default MountInfoProvider
+     */
     public static MountInfoProvider defaultMountInfoProvider() {
         return DEFAULT_PROVIDER;
     }
 
+    /**
+     * Returns the default {@link Mount}
+     * 
+     * @return the default mount 
+     */
     public static Mount defaultMount() {
         return DEFAULT_MOUNT;
     }
 
+    /**
+     * Creates a new default (root) mount with the specified non-default mounts
+     * 
+     * @param mounts the mounts to configure
+     * @return the created mount
+     */
     public static Mount defaultMount(Collection<Mount> mounts) {
         return new DefaultMount(mounts);
     }
 
+    /**
+     * Creates a new Builder instance for configuring more complex mount setups
+     * 
+     * @return a new builder instance
+     */
     public static Builder newBuilder(){
         return new Builder();
     }
 
+    /**
+     * Provides a fluent API from creating {@link MountInfoProvider} instances
+     */
     public static final class Builder {
         private final List<Mount> mounts = Lists.newArrayListWithCapacity(1);
 
         private Builder() {
         }
 
+        /**
+         * Adds a new read-write {@link Mount} with the specified name and paths
+         * 
+         * @param name the name of the mount
+         * @param paths the paths handled by the mount
+         * @return this builder instance
+         */
         public Builder mount(String name, String... paths) {
             mounts.add(new MountInfo(name, false, singletonList("/"), asList(paths)));
             return this;
         }
 
+        /**
+         * Adds a new read-only Mount with the specified name and paths
+         * 
+         * @param name the name of the mount
+         * @param paths the paths handled by the mount
+         * @return this builder instance
+         */
         public Builder readOnlyMount(String name, String... paths) {
             mounts.add(new MountInfo(name, true, singletonList("/"), asList(paths)));
             return this;
         }
 
+        /**
+         * Adds a new Mount instance with the specified parameters
+         * 
+         * @param name the name of the mount
+         * @param readOnly true for read-only paths, false otherwise
+         * @param pathsSupportingFragments the paths supporting fragments, see {@link Mount#getPathFragmentName()}
+         * @param paths the paths handled by the mount
+         * @return this builder instance
+         */
         public Builder mount(String name, boolean readOnly, List<String> pathsSupportingFragments, List<String> paths) {
             mounts.add(new MountInfo(name, readOnly, pathsSupportingFragments, paths));
             return this;
         }
 
+        /**
+         * Creates a new {@link MountInfoProvider}
+         * 
+         * @return a newly-created MountInfoProvider
+         */
         public MountInfoProvider build() {
             return new SimpleMountInfoProvider(mounts);
         }

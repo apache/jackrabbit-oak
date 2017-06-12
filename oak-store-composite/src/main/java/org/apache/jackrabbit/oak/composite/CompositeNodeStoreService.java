@@ -25,12 +25,16 @@ import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -46,6 +50,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class CompositeNodeStoreService {
 
@@ -58,7 +64,7 @@ public class CompositeNodeStoreService {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private MountInfoProvider mountInfoProvider;
 
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class)
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class, target="(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))")
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
 
     @Property(label = "Ignore read only writes",
@@ -67,18 +73,29 @@ public class CompositeNodeStoreService {
     )
     private static final String PROP_IGNORE_READ_ONLY_WRITES = "ignoreReadOnlyWrites";
 
+    @Property(label = "Read-only mounts",
+            description = "The partial stores should be configured as read-only",
+            boolValue = true
+    )
+    private static final String PROP_PARTIAL_READ_ONLY = "partialReadOnly";
+
     private ComponentContext context;
 
     private ServiceRegistration nsReg;
+
+    private Registration checkpointReg;
 
     private ObserverTracker observerTracker;
 
     private String[] ignoreReadOnlyWritePaths;
 
+    private boolean partialReadOnly;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) {
         this.context = context;
         ignoreReadOnlyWritePaths = PropertiesUtil.toStringArray(config.get(PROP_IGNORE_READ_ONLY_WRITES));
+        partialReadOnly = PropertiesUtil.toBoolean(config.get(PROP_PARTIAL_READ_ONLY), true);
         registerCompositeNodeStore();
     }
 
@@ -118,6 +135,7 @@ public class CompositeNodeStoreService {
         LOG.info("Node stores for all configured mounts are available");
 
         CompositeNodeStore.Builder builder = new CompositeNodeStore.Builder(mountInfoProvider, globalNs.getNodeStoreProvider().getNodeStore());
+        builder.setPartialReadOnly(partialReadOnly);
         for (String p : ignoreReadOnlyWritePaths) {
             builder.addIgnoredReadOnlyWritePath(p);
         }
@@ -142,8 +160,14 @@ public class CompositeNodeStoreService {
         observerTracker = new ObserverTracker(store);
         observerTracker.start(context.getBundleContext());
 
-        LOG.info("Registering the composite node store");
+        Whiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        checkpointReg = registerMBean(whiteboard,
+                CheckpointMBean.class,
+                new CompositeCheckpointMBean(store),
+                CheckpointMBean.TYPE,
+                "Composite node store checkpoint management");
 
+        LOG.info("Registering the composite node store");
         nsReg = context.getBundleContext().registerService(
                 new String[]{
                         NodeStore.class.getName()
@@ -158,6 +182,9 @@ public class CompositeNodeStoreService {
 
     private String getMountName(NodeStoreWithProps ns) {
         String role = ns.getRole();
+        if (role == null) {
+            return null;
+        }
         if (!role.startsWith(MOUNT_ROLE_PREFIX)) {
             return null;
         }
@@ -173,6 +200,10 @@ public class CompositeNodeStoreService {
             LOG.info("Unregistering the composite node store");
             nsReg.unregister();
             nsReg = null;
+        }
+        if (checkpointReg != null) {
+            checkpointReg.unregister();
+            checkpointReg = null;
         }
         if (observerTracker != null) {
             observerTracker.stop();

@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
 /**
  * {@code RestrictionImpl}

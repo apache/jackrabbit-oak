@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.junit.Before;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -97,7 +98,7 @@ public abstract class AbstractQueryTest {
 
     /**
      * Override this method to add your default index definition
-     * 
+     *
      * {@link #createTestIndexNode(Tree, String)} for a helper method
      */
     protected void createTestIndexNode() throws Exception {
@@ -132,7 +133,7 @@ public abstract class AbstractQueryTest {
         // resolving the whole path on disk
         File input = new File(AbstractQueryTest.class.getResource(file).getPath());
         File output = new File("target/" + shortClassName + "_" + file);
-        
+
         InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
         ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
@@ -286,7 +287,7 @@ public abstract class AbstractQueryTest {
     protected List<String> assertQuery(String sql, List<String> expected) {
         return assertQuery(sql, SQL2, expected);
     }
-    
+
     protected void assertResultSize(String query, String language, long expected) {
         long time = System.currentTimeMillis();
         try {
@@ -316,7 +317,7 @@ public abstract class AbstractQueryTest {
         return paths;
 
     }
-    
+
     protected static void assertResult(@Nonnull List<String> expected, @Nonnull List<String> actual) {
         for (String p : checkNotNull(expected)) {
             assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
@@ -329,14 +330,14 @@ public abstract class AbstractQueryTest {
     protected void setTraversalEnabled(boolean traversalEnabled) {
         ((QueryEngineImpl) qe).setTraversalEnabled(traversalEnabled);
     }
-    
+
     protected void setQuerySelectionMode(@Nonnull QuerySelectionMode querySelectionMode) {
         ((QueryEngineImpl) qe).setQuerySelectionMode(checkNotNull(querySelectionMode));
     }
 
     protected static String readRow(ResultRow row, boolean pathOnly) {
         if (pathOnly) {
-            return row.getValue(QueryImpl.JCR_PATH).getValue(Type.STRING);
+            return row.getValue(QueryConstants.JCR_PATH).getValue(Type.STRING);
         }
         StringBuilder buff = new StringBuilder();
         PropertyValue[] values = row.getValues();

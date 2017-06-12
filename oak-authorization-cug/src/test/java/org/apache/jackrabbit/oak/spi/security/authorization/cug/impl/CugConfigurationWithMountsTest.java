@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -35,7 +34,7 @@ public class CugConfigurationWithMountsTest extends AbstractSecurityTest {
     private static CugConfiguration createConfiguration(MountInfoProvider mip) {
         ConfigurationParameters params = ConfigurationParameters.of(
                 AbstractCugTest.CUG_CONFIG,
-                ConfigurationParameters.of(AccessControlConstants.PARAM_MOUNT_PROVIDER, mip));
+                ConfigurationParameters.of(CugConstants.PARAM_MOUNT_PROVIDER, mip));
 
         SecurityProvider sp = new CugSecurityProvider(ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, params)));
         return new CugConfiguration(sp);
@@ -46,7 +45,7 @@ public class CugConfigurationWithMountsTest extends AbstractSecurityTest {
         CugConfiguration configuration = createConfiguration(Mounts.defaultMountInfoProvider());
 
         ConfigurationParameters params = configuration.getParameters();
-        assertSame(Mounts.defaultMountInfoProvider(), params.get(AccessControlConstants.PARAM_MOUNT_PROVIDER));
+        assertSame(Mounts.defaultMountInfoProvider(), params.get(CugConstants.PARAM_MOUNT_PROVIDER));
     }
 
     @Test(expected = IllegalStateException.class)

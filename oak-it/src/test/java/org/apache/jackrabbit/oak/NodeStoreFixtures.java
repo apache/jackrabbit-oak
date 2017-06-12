@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.cow.COWStoreFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.DocumentRdbFixture;
@@ -48,6 +49,8 @@ public class NodeStoreFixtures {
 
     public static final NodeStoreFixture COMPOSITE_MEM = new CompositeMemoryStoreFixture();
 
+    public static final NodeStoreFixture COW_DOCUMENT = new COWStoreFixture();
+
     public static Collection<Object[]> asJunitParameters(Set<FixturesHelper.Fixture> fixtures) {
         List<NodeStoreFixture> configuredFixtures = new ArrayList<NodeStoreFixture>();
         if (fixtures.contains(FixturesHelper.Fixture.DOCUMENT_NS)) {
@@ -70,6 +73,9 @@ public class NodeStoreFixtures {
         }
         if (fixtures.contains(FixturesHelper.Fixture.COMPOSITE_MEM)) {
             configuredFixtures.add(COMPOSITE_MEM);
+        }
+        if (fixtures.contains(FixturesHelper.Fixture.COW_DOCUMENT)) {
+            configuredFixtures.add(COW_DOCUMENT);
         }
 
         Collection<Object[]> result = new ArrayList<Object[]>();

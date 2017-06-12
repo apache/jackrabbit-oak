@@ -23,6 +23,8 @@ import javax.management.openmbean.TabularData;
 
 import aQute.bnd.annotation.ProviderType;
 
+import java.util.Date;
+
 /**
  * MBean for managing {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint checkpoints}.
  */
@@ -36,6 +38,16 @@ public interface CheckpointMBean {
      * @return
      */
     TabularData listCheckpoints();
+
+    /**
+     * @return creation timestamp of oldest checkpoint.
+     */
+    long getOldestCheckpointCreationTimestamp();
+
+    /**
+     * @return creation date of oldest checkpoint.
+     */
+    Date getOldestCheckpointCreationDate();
 
     /**
      * Create a new checkpoint with the given {@code lifetime}.

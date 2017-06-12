@@ -234,25 +234,11 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     }
 
     /**
-     * Write a record id, and marks the record id as referenced (removes it from
-     * the unreferenced set).
-     *
-     * @param recordId the record id
-     */
-    public void writeRecordId(RecordId recordId) {
-        writeRecordId(recordId, true);
-    }
-
-    /**
-     * Write a record ID. Optionally, mark this record ID as being a reference.
-     * If a record ID is marked as a reference, the referenced record can't be a
-     * root record in this segment.
+     * Write a record ID.
      *
      * @param recordId  the record ID.
-     * @param reference {@code true} if this record ID is a reference, {@code
-     *                  false} otherwise.
      */
-    public void writeRecordId(RecordId recordId, boolean reference) {
+    public void writeRecordId(RecordId recordId) {
         checkNotNull(recordId);
         checkState(segmentReferences.size() + 1 < 0xffff,
                 "Segment cannot have more than 0xffff references");

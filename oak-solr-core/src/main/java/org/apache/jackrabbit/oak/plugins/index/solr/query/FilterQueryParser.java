@@ -22,7 +22,6 @@ import java.util.List;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.slf4j.Logger;
@@ -98,11 +98,11 @@ class FilterQueryParser {
                     continue;
                 }
                 // facets
-                if (QueryImpl.REP_FACET.equals(pr.propertyName)) {
+                if (QueryConstants.REP_FACET.equals(pr.propertyName)) {
                     solrQuery.setFacetMinCount(1);
                     solrQuery.setFacet(true);
                     String value = pr.first.getValue(Type.STRING);
-                    solrQuery.addFacetField(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1) + "_facet");
+                    solrQuery.addFacetField(value.substring(QueryConstants.REP_FACET.length() + 1, value.length() - 1) + "_facet");
                 }
 
                 // native query support
@@ -233,7 +233,7 @@ class FilterQueryParser {
             solrQuery.addFilterQuery(ptQueryBuilder.toString());
         }
 
-        if (filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryImpl.REP_EXCERPT)) {
+        if (filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryConstants.REP_EXCERPT)) {
             if (!solrQuery.getHighlight()) {
                 // enable highlighting
                 solrQuery.setHighlight(true);

@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.util.ISO9075;
@@ -144,7 +144,13 @@ public class NodeNameImpl extends DynamicOperandImpl {
         // Name escaping (convert _x0020_ to space)
         name = ISO9075.decode(name);
         // normalize paths (./name > name)
-        name = PropertyValues.getOakPath(name, query.getNamePathMapper());
+        if (query.getNamePathMapper() != null) {
+            String mappedName = query.getNamePathMapper().getOakPath(name);
+            if (mappedName == null) {
+                throw new IllegalArgumentException("Not a valid JCR name: " + name);
+            }
+            name = mappedName;
+        }
         if (PathUtils.isAbsolute(name)) {
             throw new IllegalArgumentException("Not a valid JCR name: "
                     + name + " (absolute paths are not names)");

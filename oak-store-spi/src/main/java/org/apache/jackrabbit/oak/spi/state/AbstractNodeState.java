@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import static java.lang.Integer.getInteger;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -50,6 +51,7 @@ import com.google.common.collect.Iterables;
  * alternatives.
  */
 public abstract class AbstractNodeState implements NodeState {
+    private static final int CHILDREN_CAP = getInteger("oak.children.cap", 100);
 
     public static boolean isValidName(String name) {
         return name != null && !name.isEmpty() && name.indexOf('/') == -1;
@@ -207,7 +209,12 @@ public abstract class AbstractNodeState implements NodeState {
             separator = ", ";
             builder.append(property);
         }
+        int count = CHILDREN_CAP;
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            if (count-- == 0) {
+                builder.append("...");
+                break;
+            }
             builder.append(separator);
             separator = ", ";
             builder.append(entry);
