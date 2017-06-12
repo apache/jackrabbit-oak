@@ -55,7 +55,7 @@
  *  This is obviously correct but may be slow.
  *  {@link org.apache.jackrabbit.oak.composite.CompositionContext#getContributingStores(java.lang.String, com.google.common.base.Function)}
  */
-@Version("0.1.0")
+@Version("0.2.0")
 package org.apache.jackrabbit.oak.composite;
 
 import aQute.bnd.annotation.Version;
