@@ -50,6 +50,9 @@ public final class RootFactory {
         return ImmutableRoot.getInstance(root);
     }
 
+    /**
+     * @deprecated with Oak 1.7.2 due to the usage of deprecated {@link QueryEngineSettings}
+     */
     @Nonnull
     public static Root createSystemRoot(@Nonnull NodeStore store,
                                         @Nullable CommitHook hook,

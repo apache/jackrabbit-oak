@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.query;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -25,7 +25,9 @@ import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.junit.Test;
 
 /**

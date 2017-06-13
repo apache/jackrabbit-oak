@@ -28,6 +28,8 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
+
 import org.junit.Test;
 
 import com.google.common.collect.Lists;

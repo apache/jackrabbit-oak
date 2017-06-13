@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -27,8 +28,8 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 
 /**
  * The filter for an index lookup that contains a number of restrictions that
@@ -47,7 +48,7 @@ public interface Filter {
      * Get the list of property restrictions, if any. Each property may contain
      * multiple restrictions, for example x=1 and x=2. For this case, only
      * multi-valued properties match that contain both 1 and 2.
-     * 
+     *
      * @return the conditions (an empty collection if not used)
      */
     Collection<PropertyRestriction> getPropertyRestrictions();
@@ -59,14 +60,14 @@ public interface Filter {
      */
     @Deprecated
     Collection<String> getFulltextConditions();
-    
+
     /**
      * Get the fulltext search condition expression, if any.
-     * 
+     *
      * @return the condition (null if none)
      */
     FullTextExpression getFullTextConstraint();
-    
+
     QueryEngineSettings getQueryEngineSettings();
 
     /**
@@ -78,7 +79,7 @@ public interface Filter {
 
     /**
      * Whether the filter contains a native condition.
-     * 
+     *
      * @return true if it does
      */
     boolean containsNativeConstraint();
@@ -86,16 +87,16 @@ public interface Filter {
     /**
      * Get the most restrictive property restriction for the given property, if
      * any.
-     * 
+     *
      * @param propertyName the property name
      * @return the first restriction, or null if there is no restriction for
      *         this property
      */
     PropertyRestriction getPropertyRestriction(String propertyName);
-    
+
     /**
      * Get the all property restriction for the given property.
-     * 
+     *
      * @param propertyName the property name
      * @return the list of restrictions (possibly empty, never null)
      */
@@ -114,10 +115,10 @@ public interface Filter {
      * @return the path
      */
     String getPath();
-    
+
     /**
      * Get the plan for the path.
-     * 
+     *
      * @return the plan
      */
     String getPathPlan();
@@ -164,16 +165,16 @@ public interface Filter {
     /**
      * Get the complete query statement. The statement should only be used for
      * logging purposes.
-     * 
+     *
      * @return the query statement (possibly null)
      */
     @Nullable
     String getQueryStatement();
-    
+
     /**
      * If the filter condition can not possibly match any row, due to a
      * contradiction in the query (for example "x=1 and x=2").
-     * 
+     *
      * @return true if the filter condition can not match any row
      */
     boolean isAlwaysFalse();
@@ -213,7 +214,7 @@ public interface Filter {
          * value should be taken into consideration
          */
         public boolean isLike;
-        
+
         /**
          * A list of possible values, for conditions of the type
          * "x=1 or x=2 or x=3".
@@ -225,11 +226,11 @@ public interface Filter {
          * If not restricted, this field is set to PropertyType.UNDEFINED.
          */
         public int propertyType = PropertyType.UNDEFINED;
-        
+
         public boolean isNullRestriction() {
             return first == null && last == null && list == null && lastIncluding && firstIncluding;
         }
-        
+
         public boolean isNotNullRestriction() {
             return first == null && last == null && list == null && !lastIncluding && !firstIncluding;
         }
@@ -238,7 +239,7 @@ public interface Filter {
         public String toString() {
             return (toStringFromTo() + " " + toStringList()).trim();
         }
-        
+
         private String toStringList() {
             if (list == null) {
                 return "";
@@ -254,7 +255,7 @@ public interface Filter {
             buff.append(')');
             return buff.toString();
         }
-        
+
         private String toStringFromTo() {
             if (isNullRestriction()) {
                 return "is null";
@@ -270,10 +271,10 @@ public interface Filter {
             String li = last == null ? "" : (lastIncluding ? "]" : ")");
             return fi + f + ".." + l + li;
         }
-        
+
         /**
          * How restrictive a condition is.
-         * 
+         *
          * @return 0 for "is not null", 10 for equality, and 5 for everything
          *         else
          */
@@ -362,14 +363,14 @@ public interface Filter {
             }
             return true;
         }
-        
+
     }
 
     /**
      * The path restriction type.
      */
     enum PathRestriction {
-        
+
         /**
          * All nodes.
          */
@@ -408,5 +409,105 @@ public interface Filter {
         }
 
     }
+
+    Filter EMPTY_FILTER = new Filter() {
+
+        private final QueryEngineSettings EMPTY_SETTINGS = new QueryEngineSettings();
+
+        @Override
+        public Collection<PropertyRestriction> getPropertyRestrictions() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public Collection<String> getFulltextConditions() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public FullTextExpression getFullTextConstraint() {
+            return null;
+        }
+
+        @Override
+        public QueryEngineSettings getQueryEngineSettings() {
+            return EMPTY_SETTINGS;
+        }
+
+        @Override
+        public boolean isAccessible(String path) {
+            return false;
+        }
+
+        @Override
+        public boolean containsNativeConstraint() {
+            return false;
+        }
+
+        @Override
+        public PropertyRestriction getPropertyRestriction(String propertyName) {
+            return null;
+        }
+
+        @Override
+        public List<PropertyRestriction> getPropertyRestrictions(String propertyName) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public PathRestriction getPathRestriction() {
+            return PathRestriction.NO_RESTRICTION;
+        }
+
+        @Override
+        public String getPath() {
+            return PathUtils.ROOT_PATH;
+        }
+
+        @Override
+        public String getPathPlan() {
+            return PathRestriction.NO_RESTRICTION.toString();
+        }
+
+        @Nullable
+        @Override
+        public String getNodeType() {
+            return null;
+        }
+
+        @Override
+        public boolean matchesAllTypes() {
+            return false;
+        }
+
+        @Nonnull
+        @Override
+        public Set<String> getSupertypes() {
+            return Collections.emptySet();
+        }
+
+        @Nonnull
+        @Override
+        public Set<String> getPrimaryTypes() {
+            return Collections.emptySet();
+        }
+
+        @Nonnull
+        @Override
+        public Set<String> getMixinTypes() {
+            return Collections.emptySet();
+        }
+
+        @Nullable
+        @Override
+        public String getQueryStatement() {
+            return null;
+        }
+
+        @Override
+        public boolean isAlwaysFalse() {
+            return false;
+        }
+    };
 
 }

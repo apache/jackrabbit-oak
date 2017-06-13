@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.solr.common.SolrDocumentList;
 import org.junit.Test;

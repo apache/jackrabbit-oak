@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.junit.Test;
 
 public class NativeQueryTest {
