@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.api.jmx;
 
+import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
 import aQute.bnd.annotation.ProviderType;
@@ -48,6 +49,12 @@ public interface CheckpointMBean {
      * @return creation date of oldest checkpoint.
      */
     Date getOldestCheckpointCreationDate();
+
+    /**
+     * @return creation information about oldest checkpoint.
+     */
+    @Deprecated
+    CompositeData getOldestCheckpointCreationTime();
 
     /**
      * Create a new checkpoint with the given {@code lifetime}.
