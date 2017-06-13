@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
@@ -50,7 +51,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
@@ -103,15 +103,16 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     public void before() throws Exception {
         super.before();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
+        Tree rootNode = root.getTree("/");
 
-        NodeUtil test = rootNode.addChild("test", NT_OAK_UNSTRUCTURED);
-        test.addChild("child", NT_OAK_UNSTRUCTURED);
-        NodeUtil a = test.addChild("a", NT_OAK_UNSTRUCTURED);
-        a.addChild("b2", NT_OAK_UNSTRUCTURED);
-        a.addChild("b", NT_OAK_UNSTRUCTURED).addChild("c", NT_OAK_UNSTRUCTURED);
+        Tree test = TreeUtil.addChild(rootNode, "test", NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(test, "child", NT_OAK_UNSTRUCTURED);
+        Tree a = TreeUtil.addChild(test, "a", NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(a, "b2", NT_OAK_UNSTRUCTURED);
+        Tree b = TreeUtil.addChild(a, "b", NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(b, "c", NT_OAK_UNSTRUCTURED);
 
-        rootNode.addChild("test2", NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(rootNode, "test2", NT_OAK_UNSTRUCTURED);
 
         AccessControlManager acMgr = getAccessControlManager(root);
         Principal everyone = EveryonePrincipal.getInstance();
@@ -235,14 +236,13 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     List<AggregatedPermissionProvider> getAggregatedProviders(@Nonnull String workspaceName,
                                                               @Nonnull AuthorizationConfiguration config,
                                                               @Nonnull Set<Principal> principals) {
+        ImmutableList<AggregatedPermissionProvider> l = ImmutableList.of(
+                    (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
+                    getTestPermissionProvider());
         if (reverseOrder()) {
-            return ImmutableList.of(
-                    (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
-                    getTestPermissionProvider());
+            return l.reverse();
         } else {
-            return ImmutableList.of(
-                    (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
-                    getTestPermissionProvider());
+            return l;
         }
     }
 
