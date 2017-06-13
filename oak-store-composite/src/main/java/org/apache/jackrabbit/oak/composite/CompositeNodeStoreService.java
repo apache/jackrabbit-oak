@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.google.common.collect.Sets.newIdentityHashSet;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
@@ -80,6 +81,8 @@ public class CompositeNodeStoreService {
     private static final String PROP_PARTIAL_READ_ONLY = "partialReadOnly";
 
     private ComponentContext context;
+
+    private Set<NodeStoreProvider> nodeStoresInUse = newIdentityHashSet();
 
     private ServiceRegistration nsReg;
 
@@ -135,6 +138,8 @@ public class CompositeNodeStoreService {
         LOG.info("Node stores for all configured mounts are available");
 
         CompositeNodeStore.Builder builder = new CompositeNodeStore.Builder(mountInfoProvider, globalNs.getNodeStoreProvider().getNodeStore());
+        nodeStoresInUse.add(globalNs.getNodeStoreProvider());
+
         builder.setPartialReadOnly(partialReadOnly);
         for (String p : ignoreReadOnlyWritePaths) {
             builder.addIgnoredReadOnlyWritePath(p);
@@ -148,6 +153,7 @@ public class CompositeNodeStoreService {
             if (mountName != null) {
                 builder.addMount(mountName, ns.getNodeStoreProvider().getNodeStore());
                 LOG.info("Mounting {} as {}", getDescription(ns), mountName);
+                nodeStoresInUse.add(ns.getNodeStoreProvider());
             }
         }
 
@@ -209,6 +215,7 @@ public class CompositeNodeStoreService {
             observerTracker.stop();
             observerTracker = null;
         }
+        nodeStoresInUse.clear();
     }
 
     protected void bindNodeStore(NodeStoreProvider ns, Map<String, ?> config) {
@@ -220,8 +227,9 @@ public class CompositeNodeStoreService {
             return;
         }
 
-        unregisterCompositeNodeStore();
-        registerCompositeNodeStore();
+        if (nsReg == null) {
+            registerCompositeNodeStore();
+        }
     }
 
     protected void unbindNodeStore(NodeStoreProvider ns) {
@@ -237,8 +245,9 @@ public class CompositeNodeStoreService {
             return;
         }
 
-        unregisterCompositeNodeStore();
-        registerCompositeNodeStore();
+        if (nsReg != null && nodeStoresInUse.contains(ns)) {
+            unregisterCompositeNodeStore();
+        }
     }
 
     private static class NodeStoreWithProps {
