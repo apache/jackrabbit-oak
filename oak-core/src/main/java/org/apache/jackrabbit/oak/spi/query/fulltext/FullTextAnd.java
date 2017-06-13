@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.query.fulltext;
+package org.apache.jackrabbit.oak.spi.query.fulltext;
 
 import java.util.ArrayList;
 import java.util.List;
