@@ -53,6 +53,17 @@ public interface IndexConstants {
     String VALUE_PATTERN = "valuePattern";
 
     /**
+     * A list of prefixes to be excluded from the index.
+     */
+    String VALUE_EXCLUDED_PREFIXES = "valueExcludedPrefixes";
+    
+    /**
+     * A list of prefixes to be included from the index.
+     * Include has higher priority than exclude.
+     */
+    String VALUE_INCLUDED_PREFIXES = "valueIncludedPrefixes";
+
+    /**
      * Marks a unique property index.
      */
     String UNIQUE_PROPERTY_NAME = "unique";

@@ -26,10 +26,12 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
@@ -85,8 +87,6 @@ public class PropertyIndexPlan {
 
     private final boolean unique;
     
-    private final ValuePattern valuePattern;
-
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
         this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
@@ -98,7 +98,6 @@ public class PropertyIndexPlan {
         this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
         this.properties = newHashSet(definition.getNames(PROPERTY_NAMES));
-        this.valuePattern = new ValuePattern(definition.getString(IndexConstants.VALUE_PATTERN));
         pathFilter = PathFilter.from(definition.builder());
         this.strategies = getStrategies(definition, mountInfoProvider);
         this.filter = filter;
@@ -108,6 +107,8 @@ public class PropertyIndexPlan {
         this.matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
         this.matchesNodeTypes =
                 matchesAllTypes || any(types, in(filter.getSupertypes()));
+
+        ValuePattern valuePattern = new ValuePattern(definition);
 
         double bestCost = Double.POSITIVE_INFINITY;
         Set<String> bestValues = emptySet();
@@ -145,25 +146,21 @@ public class PropertyIndexPlan {
                         // of the child node (well, we could, for some node types)
                         continue;
                     }
-                    Set<String> values = getValues(restriction, new ValuePattern(null));
+                    Set<String> values = getValues(restriction, new ValuePattern());
                     if (valuePattern.matchesAll()) {
                         // matches all values: not a problem
                     } else if (values == null) {
                         // "is not null" condition, but we have a value pattern
                         // that doesn't match everything
-                        // so we can't use that index
-                        continue;
-                    } else {
-                        boolean allValuesMatches = true;
-                        for (String v : values) {
-                            if (!valuePattern.matches(v)) {
-                                allValuesMatches = false;
-                                break;
-                            }
+                        String prefix = getLongestPrefix(filter, property);
+                        if (!valuePattern.matchesPrefix(prefix)) {
+                            // region match which is not fully in the pattern
+                            continue;
                         }
+                    } else {
                         // we have a value pattern, for example (a|b),
                         // but we search (also) for 'c': can't match
-                        if (!allValuesMatches) {
+                        if (!valuePattern.matchesAll(values)) {
                             continue;
                         }
                     }
@@ -194,6 +191,50 @@ public class PropertyIndexPlan {
         this.depth = bestDepth;
         this.values = bestValues;
         this.cost = COST_OVERHEAD + bestCost;
+    }
+
+    /**
+     * Get the longest prefix of restrictions on a property.
+     * 
+     * @param filter the filter with all restrictions
+     * @param property the property
+     * @return the longest prefix, or null if none
+     */
+    public static String getLongestPrefix(Filter filter, String property) {
+        boolean first = false, last = false;
+        List<String> list = new ArrayList<>();
+        for(PropertyRestriction p : filter.getPropertyRestrictions(property)) {
+            if (p.isLike) {
+                continue;
+            }
+            if (p.first != null) {
+                if (p.first.isArray()) {
+                    return null;
+                }
+                list.add(p.first.getValue(Type.STRING));
+                first = true;
+            } 
+            if (p.last != null) {
+                if (p.last.isArray()) {
+                    return null;
+                }
+                list.add(p.last.getValue(Type.STRING));
+                last = true;
+            }
+        }
+        if (!first || !last) {
+            return null;
+        }
+        String prefix = list.get(0);
+        for (String s : list) {
+            while (!s.startsWith(prefix)) {
+                prefix = prefix.substring(0, prefix.length() - 1);
+                if (prefix.isEmpty()) {
+                    return null;
+                }
+            }
+        }
+        return prefix;
     }
 
     private static Set<String> getValues(PropertyRestriction restriction, ValuePattern pattern) {

@@ -41,12 +41,14 @@ import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -514,6 +516,96 @@ public class PropertyIndexTest {
         // expected: no index for value a
         assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
 
+    }    
+    
+    @Test
+    public void valuePatternExclude() throws Exception {
+        NodeState root = EMPTY_NODE;
+        // Add index definitions
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder indexDef = createIndexDefinition(
+                index, "fooIndex", true, false,
+                ImmutableSet.of("foo"), null);
+        indexDef.setProperty(IndexConstants.VALUE_EXCLUDED_PREFIXES, "test");
+        valuePatternExclude0(builder);
+    }
+
+    @Test
+    public void valuePatternExclude2() throws Exception {
+        NodeState root = EMPTY_NODE;
+        // Add index definitions
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder indexDef = createIndexDefinition(
+                index, "fooIndex", true, false,
+                ImmutableSet.of("foo"), null);
+        PropertyState ps = PropertyStates.createProperty(
+                IndexConstants.VALUE_EXCLUDED_PREFIXES,
+                Arrays.asList("test"),
+                Type.STRINGS);
+        indexDef.setProperty(ps);
+        valuePatternExclude0(builder);
+    }
+
+    private void valuePatternExclude0(NodeBuilder builder) throws CommitFailedException {
+        NodeState before = builder.getNodeState();
+        
+        // Add some content and process it through the property index hook
+        builder.child("a")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "a");
+        builder.child("a1")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "a1");
+        builder.child("b")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "b");
+        builder.child("c")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "c");
+        NodeState after = builder.getNodeState();
+
+        // Add an index
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
+
+        // Query the index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(ImmutableSet.of("a"), find(lookup, "foo", "a", f));
+        assertEquals(ImmutableSet.of("a1"), find(lookup, "foo", "a1", f));
+        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "b", f));
+
+        // expected: no index for "is not null", "= 'test'", "like 't%'"
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("test"));
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+        f = createFilter(after, NT_UNSTRUCTURED);
+        f.restrictProperty("foo", Operator.LIKE, PropertyValues.newString("t%"));
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+        f = createFilter(after, NT_UNSTRUCTURED);
+        
+        
+        // expected: index for "like 'a%'"
+        f.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("a"));
+        f.restrictProperty("foo", Operator.LESS_OR_EQUAL, PropertyValues.newString("a0"));
+        assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
+        f = createFilter(after, NT_UNSTRUCTURED);
+        
+        // expected: index for value c
+        ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
+        list.add(PropertyValues.newString("c"));
+        f.restrictPropertyAsList("foo", list);
+        assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
+
+        // expected: index for value a
+        f = createFilter(after, NT_UNSTRUCTURED);
+        list = new ArrayList<PropertyValue>();
+        list.add(PropertyValues.newString("a"));
+        f.restrictPropertyAsList("foo", list);
+        assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
     }    
 
     @Test(expected = CommitFailedException.class)
