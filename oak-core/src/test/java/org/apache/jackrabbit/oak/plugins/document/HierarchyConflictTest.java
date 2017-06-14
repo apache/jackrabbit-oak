@@ -208,7 +208,7 @@ public class HierarchyConflictTest {
                         return null;
                     }
                 }),
-                new ConflictHook(new AnnotatingConflictHandler()),
+                ConflictHook.of(new AnnotatingConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider()));
         store.merge(root, hooks, CommitInfo.EMPTY);
     }
