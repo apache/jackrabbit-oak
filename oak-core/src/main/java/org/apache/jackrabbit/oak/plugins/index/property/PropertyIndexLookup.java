@@ -123,7 +123,7 @@ public class PropertyIndexLookup {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
         List<Iterable<String>> iterables = Lists.newArrayList();
-        ValuePattern pattern = new ValuePattern(indexMeta.getString(IndexConstants.VALUE_PATTERN));
+        ValuePattern pattern = new ValuePattern(indexMeta);
         for (IndexStoreStrategy s : getStrategies(indexMeta)) {
             iterables.add(s.query(filter, propertyName, indexMeta,
                     encode(value, pattern)));
@@ -144,7 +144,7 @@ public class PropertyIndexLookup {
             return Double.POSITIVE_INFINITY;
         }
         Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
-        ValuePattern pattern = new ValuePattern(indexMeta.getString(IndexConstants.VALUE_PATTERN));
+        ValuePattern pattern = new ValuePattern(indexMeta);
         double cost = strategies.isEmpty() ? MAX_COST : COST_OVERHEAD;
         for (IndexStoreStrategy s : strategies) {
             cost += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);

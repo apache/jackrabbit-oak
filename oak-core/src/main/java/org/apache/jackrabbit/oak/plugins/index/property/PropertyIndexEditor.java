@@ -130,7 +130,7 @@ class PropertyIndexEditor implements IndexEditor {
         } else {
             this.propertyNames = newHashSet(names.getValue(NAMES));
         }
-        this.valuePattern = new ValuePattern(definition.getString(IndexConstants.VALUE_PATTERN));
+        this.valuePattern = new ValuePattern(definition);
 
         // get declaring types, and all their subtypes
         // TODO: should we reindex when type definitions change?
