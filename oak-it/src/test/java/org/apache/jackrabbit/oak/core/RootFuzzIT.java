@@ -95,12 +95,12 @@ public class RootFuzzIT {
         counter = 0;
 
         store1 = fixture.createNodeStore();
-        root1 = RootFactory.createSystemRoot(store1, null, null, null, null, null);
+        root1 = RootFactory.createSystemRoot(store1, null, null, null, null);
         root1.getTree("/").addChild("root");
         root1.commit();
 
         store2 = fixture.createNodeStore();
-        root2 = RootFactory.createSystemRoot(store2, null, null, null, null, null);
+        root2 = RootFactory.createSystemRoot(store2, null, null, null, null);
         root2.getTree("/").addChild("root");
         root2.commit();
     }

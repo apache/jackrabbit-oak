@@ -160,7 +160,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
 
             Root root = RootFactory.createSystemRoot(store,
                     new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
-                    null, null, null, null);
+                    null, null, null);
             if (registerCugNodeTypes(root)) {
                 NodeState target = store.getRoot();
                 target.compareAgainstBaseState(base, new ApplyDiff(builder));

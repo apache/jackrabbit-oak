@@ -137,7 +137,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         registerBuiltIn(RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(
                         new NamespaceEditorProvider(),
-                        new TypeEditorProvider())), null, null, null, null));
+                        new TypeEditorProvider())), null, null, null));
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }

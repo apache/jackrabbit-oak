@@ -95,7 +95,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
-                securityProvider, null,
+                securityProvider,
                 new CompositeQueryIndexProvider(new PropertyIndexProvider(), new NodeTypeIndexProvider()));
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
