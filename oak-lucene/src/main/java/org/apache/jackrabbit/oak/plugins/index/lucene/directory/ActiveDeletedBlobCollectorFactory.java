@@ -42,9 +42,9 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -148,7 +148,7 @@ public class ActiveDeletedBlobCollectorFactory {
             this.clock = clock;
             this.rootDirectory = rootDirectory;
             this.executorService = executorService;
-            this.deletedBlobs = new ArrayBlockingQueue<>(1000); //1000 items should be ok for async index commits
+            this.deletedBlobs = new LinkedBlockingQueue<>(100000);
             this.deletedBlobsFileWriter = new DeletedBlobsFileWriter();
         }
 
