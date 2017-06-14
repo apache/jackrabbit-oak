@@ -64,7 +64,22 @@ public final class RootFactory {
                 (hook == null) ? EmptyHook.INSTANCE : hook,
                 (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
                 (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
-                (queryEngineSettings == null) ? new QueryEngineSettings() : queryEngineSettings,
+                (queryEngineSettings == null) ? new org.apache.jackrabbit.oak.spi.query.QueryEngineSettings() : queryEngineSettings,
+                (indexProvider == null) ? new CompositeQueryIndexProvider(): indexProvider);
+
+    }
+
+    @Nonnull
+    public static Root createSystemRoot(@Nonnull NodeStore store,
+                                        @Nullable CommitHook hook,
+                                        @Nullable String workspaceName,
+                                        @Nullable SecurityProvider securityProvider,
+                                        @Nullable QueryIndexProvider indexProvider) {
+        return new SystemRoot(store,
+                (hook == null) ? EmptyHook.INSTANCE : hook,
+                (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
+                (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
+                new org.apache.jackrabbit.oak.spi.query.QueryEngineSettings(),
                 (indexProvider == null) ? new CompositeQueryIndexProvider(): indexProvider);
 
     }

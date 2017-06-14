@@ -59,7 +59,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             NodeState base = squeeze(builder.getNodeState());
             NodeStore store = new MemoryNodeStore(base);
             try {
-                Root systemRoot = RootFactory.createSystemRoot(store, null, null, null, null, null);
+                Root systemRoot = RootFactory.createSystemRoot(store, null, null, null, null);
                 new PrivilegeDefinitionWriter(systemRoot).writeBuiltInDefinitions();
             } catch (RepositoryException e) {
                 log.error("Failed to register built-in privileges", e);

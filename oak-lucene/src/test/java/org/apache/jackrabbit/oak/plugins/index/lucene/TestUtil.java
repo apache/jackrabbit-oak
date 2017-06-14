@@ -196,7 +196,7 @@ public class TestUtil {
         Root root = RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(
                         new NamespaceEditorProvider(),
-                        new TypeEditorProvider())), null, null, null, null);
+                        new TypeEditorProvider())), null, null, null);
         NodeTypeRegistry.register(root, IOUtils.toInputStream(nodeTypeDefn), "test node types");
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));

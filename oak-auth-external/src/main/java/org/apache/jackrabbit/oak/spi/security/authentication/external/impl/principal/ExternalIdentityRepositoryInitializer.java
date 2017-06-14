@@ -78,7 +78,7 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
 
             Root root = RootFactory.createSystemRoot(store,
                     new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
-                    null, null, null, null);
+                    null, null, null);
 
             // create index definition for "rep:externalId" and "rep:externalPrincipalNames"
             Tree rootTree = root.getTree(PathUtils.ROOT_PATH);

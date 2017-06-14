@@ -101,7 +101,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
 
                         Root root = RootFactory.createSystemRoot(store, new EditorHook(
                             new CompositeEditorProvider(new NamespaceEditorProvider(),
-                                new TypeEditorProvider())), null, null, null, null);
+                                new TypeEditorProvider())), null, null, null);
 
                         NodeTypeRegistry.register(root, stream, "testing node types");
 
