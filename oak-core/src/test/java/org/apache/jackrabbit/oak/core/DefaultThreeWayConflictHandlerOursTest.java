@@ -31,13 +31,13 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class DefaultConflictHandlerOursTest {
+public class DefaultThreeWayConflictHandlerOursTest {
 
     private static final String OUR_VALUE = "our value";
     private static final String THEIR_VALUE = "their value";
@@ -49,7 +49,7 @@ public class DefaultConflictHandlerOursTest {
     public void setUp() throws CommitFailedException {
         ContentSession session = new Oak()
                 .with(new OpenSecurityProvider())
-                .with(DefaultConflictHandler.OURS)
+                .with(DefaultThreeWayConflictHandler.OURS)
                 .createContentSession();
 
         // Add test content

@@ -98,7 +98,7 @@ public class NodeStoreDiffTest {
         //For now exception would be thrown
         ns.merge(b1,
                 new CompositeHook(
-                        new ConflictHook(new AnnotatingConflictHandler()),
+                        ConflictHook.of(new AnnotatingConflictHandler()),
                         new EditorHook(new ConflictValidatorProvider())
                 ),
                 CommitInfo.EMPTY);

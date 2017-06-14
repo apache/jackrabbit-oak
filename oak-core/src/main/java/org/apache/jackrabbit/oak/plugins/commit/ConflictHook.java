@@ -22,26 +22,40 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This commit hook implementation is responsible for resolving
  * conflicts. It does so by detecting the presence of conflict
  * markers added by the Microkernel and delegating to a
- * {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler}
+ * {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler}
  * for resolving the conflicts.
  *
  * @see org.apache.jackrabbit.oak.spi.state.NodeStore#rebase(org.apache.jackrabbit.oak.spi.state.NodeBuilder)
  */
 public class ConflictHook implements CommitHook {
-    private final ConflictHandler conflictHandler;
+    private final ThreeWayConflictHandler conflictHandler;
+
+    /**
+     * @deprecated Use {@link #of(ThreeWayConflictHandler)} instead.
+     */
+    @Deprecated
+    public static final ConflictHook of(ConflictHandler handler) {
+        return of(ConflictHandlers.wrap(handler));
+    }
+
+    public static final ConflictHook of(ThreeWayConflictHandler handler) {
+        return new ConflictHook(handler);
+    }
 
     /**
      * Create a new instance of the conflict hook using the
      * passed conflict handler for resolving conflicts.
      * @param conflictHandler  a conflict handler
      */
-    public ConflictHook(ConflictHandler conflictHandler) {
+    public ConflictHook(ThreeWayConflictHandler conflictHandler) {
         this.conflictHandler = conflictHandler;
     }
 

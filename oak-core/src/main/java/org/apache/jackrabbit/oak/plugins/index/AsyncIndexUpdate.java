@@ -850,7 +850,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         editorProviders.addAll(validatorProviders);
         CompositeHook hooks = new CompositeHook(
                 ResetCommitAttributeHook.INSTANCE,
-                new ConflictHook(new AnnotatingConflictHandler()),
+                ConflictHook.of(new AnnotatingConflictHandler()),
                 new EditorHook(CompositeEditorProvider.compose(editorProviders)),
                 concurrentUpdateCheck);
         try {

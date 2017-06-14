@@ -96,8 +96,9 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
      *
      * @param builder  parent builder
      * @param after  changed property
+     * @param base  base property
      */
-    protected abstract void changeDeletedProperty(NodeBuilder builder, PropertyState after);
+    protected abstract void changeDeletedProperty(NodeBuilder builder, PropertyState after, PropertyState base);
 
     /**
      * Called when the property {@code after} was changed on the branch but was
@@ -145,8 +146,9 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
      * @param builder  parent builder
      * @param name  name of the changed node
      * @param after  changed node
+     * @param base  base node
      */
-    protected abstract void changeDeletedNode(NodeBuilder builder, String name, NodeState after);
+    protected abstract void changeDeletedNode(NodeBuilder builder, String name, NodeState after, NodeState base);
 
     /**
      * Called when the node {@code before} was deleted in the branch but was
@@ -181,7 +183,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
     public boolean propertyChanged(PropertyState before, PropertyState after) {
         PropertyState other = builder.getProperty(before.getName());
         if (other == null) {
-            changeDeletedProperty(builder, after);
+            changeDeletedProperty(builder, after, before);
         } else if (other.equals(before)) {
             builder.setProperty(after);
         } else if (!other.equals(after)) {
@@ -220,7 +222,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
         } else if (after.equals(before)) {
             return false;
         } else {
-            changeDeletedNode(builder, name, after);
+            changeDeletedNode(builder, name, after, before);
         }
         return true;
     }

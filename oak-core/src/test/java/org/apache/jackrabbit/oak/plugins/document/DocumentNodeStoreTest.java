@@ -1930,7 +1930,7 @@ public class DocumentNodeStoreTest {
                             hookList.add(hook);
                         }
                         hookList.add(blockingHook);
-                        hookList.add(new ConflictHook(new AnnotatingConflictHandler()));
+                        hookList.add(ConflictHook.of(new AnnotatingConflictHandler()));
                         hookList.add(new EditorHook(new ConflictValidatorProvider()));
                         store.merge(builder, CompositeHook.compose(hookList), CommitInfo.EMPTY);
                     } catch (CommitFailedException cfe) {

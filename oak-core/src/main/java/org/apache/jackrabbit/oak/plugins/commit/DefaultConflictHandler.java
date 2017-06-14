@@ -27,7 +27,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * This implementation of a {@link ConflictHandler} always returns the same resolution.
  * It can be used to implement default behaviour or as a base class for more specialised
  * implementations.
+ * @deprecated Use {@link org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler} instead.
  */
+@Deprecated
 public class DefaultConflictHandler implements ConflictHandler {
 
     /**

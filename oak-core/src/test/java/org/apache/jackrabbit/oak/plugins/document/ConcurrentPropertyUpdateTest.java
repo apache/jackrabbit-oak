@@ -46,7 +46,7 @@ public class ConcurrentPropertyUpdateTest extends BaseDocumentMKTest {
     private static final int NUM_THREADS = 2;
 
     private static final CommitHook HOOK = new CompositeHook(
-            new ConflictHook(new AnnotatingConflictHandler()),
+            ConflictHook.of(new AnnotatingConflictHandler()),
             new EditorHook(new ConflictValidatorProvider()));
 
     private ExecutorService service = Executors.newFixedThreadPool(NUM_THREADS);
