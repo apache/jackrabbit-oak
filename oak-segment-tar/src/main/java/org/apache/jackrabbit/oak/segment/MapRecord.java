@@ -305,8 +305,14 @@ public class MapRecord extends Record {
             List<MapRecord> buckets = getBucketList(segment);
             List<Iterable<String>> keys =
                     newArrayListWithCapacity(buckets.size());
-            for (MapRecord bucket : buckets) {
-                keys.add(bucket.getKeys());
+            for (final MapRecord bucket : buckets) {
+                keys.add(new Iterable<String>() {
+                    @Nonnull
+                    @Override
+                    public Iterator<String> iterator() {
+                        return bucket.getKeys().iterator();
+                    }
+                });
             }
             return concat(keys);
         }
