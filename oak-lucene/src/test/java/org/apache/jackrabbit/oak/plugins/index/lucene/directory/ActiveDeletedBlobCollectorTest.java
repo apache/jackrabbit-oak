@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -43,6 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -55,7 +55,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexP
 import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 public class ActiveDeletedBlobCollectorTest {
@@ -166,13 +168,12 @@ public class ActiveDeletedBlobCollectorTest {
         verifyBlobsDeleted("blobId1", "blobId2", "blobId3");
     }
 
-    @Ignore("OAK-6314")
     @Test
     public void multiThreadedCommits() throws Exception {
-        clock = Clock.SIMPLE;
         ExecutorService executorService = Executors.newFixedThreadPool(3);
-        adbc = ActiveDeletedBlobCollectorFactory.newInstance(
-                new File(blobCollectionRoot.getRoot(), "b"), executorService);
+        File rootDirectory = new File(blobCollectionRoot.getRoot(), "b");
+        FileUtils.forceMkdir(rootDirectory);
+        adbc = new ActiveDeletedBlobCollectorImpl(clock, rootDirectory, executorService);
 
         int numThreads = 4;
         int numBlobsPerThread = 500;
@@ -214,10 +215,8 @@ public class ActiveDeletedBlobCollectorTest {
             t.join();
         }
 
-        // Push one more commit to flush out any remaining ones
-        adbc.getBlobDeletionCallback().commitProgress(COMMIT_SUCCEDED);
-
-        executorService.awaitTermination(100, TimeUnit.MILLISECONDS);
+        boolean timeout = executorService.awaitTermination(100, TimeUnit.MILLISECONDS);
+        assertFalse(timeout);
 
         List<String> deletedChunks = new ArrayList<>(numThreads*numBlobsPerThread*2);
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
@@ -227,7 +226,36 @@ public class ActiveDeletedBlobCollectorTest {
             }
         }
 
-        adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+        // Blocking queue doesn't supply all the items immediately.
+        // So, we'd push "MARKER*" blob ids and purge until some marker blob
+        // gets purged. BUT, we'd time-out this activity in 3 seconds
+        long until = Clock.SIMPLE.getTime() + TimeUnit.SECONDS.toMillis(3);
+        List<String> markerChunks = Lists.newArrayList();
+        int i = 0;
+        while (Clock.SIMPLE.getTime() < until) {
+            // Push commit with a marker blob-id and wait for it to be purged
+            BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+            String markerBlobId = "MARKER-" + (i++);
+            bdc.deleted(markerBlobId, Lists.newArrayList(markerBlobId));
+            bdc.commitProgress(COMMIT_SUCCEDED);
+
+            Iterators.addAll(markerChunks, blobStore.resolveChunks(markerBlobId));
+            clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(5));
+            adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+
+            if (blobStore.markerChunkDeleted) {
+                break;
+            }
+        }
+
+        assertTrue("Timed out while waiting for marker chunk to be purged", blobStore.markerChunkDeleted);
+
+        // don't care how many marker blobs are purged
+        blobStore.deletedChunkIds.removeAll(markerChunks);
+
+        HashSet<String> list = new HashSet<>(deletedChunks);
+        list.removeAll(blobStore.deletedChunkIds);
+        assertTrue("size: " + list.size() + "; list: " + list.toString(), list.isEmpty());
 
         assertThat(blobStore.deletedChunkIds, containsInAnyOrder(deletedChunks.toArray()));
     }
@@ -271,6 +299,7 @@ public class ActiveDeletedBlobCollectorTest {
 
     class ChunkDeletionTrackingBlobStore implements GarbageCollectableBlobStore {
         List<String> deletedChunkIds = Lists.newArrayList();
+        volatile boolean markerChunkDeleted = false;
 
         @Override
         public String writeBlob(InputStream in) throws IOException {
@@ -350,13 +379,26 @@ public class ActiveDeletedBlobCollectorTest {
         @Override
         public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
             deletedChunkIds.addAll(chunkIds);
+            setMarkerChunkDeletedFlag(chunkIds);
             return true;
         }
 
         @Override
         public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
             deletedChunkIds.addAll(chunkIds);
+            setMarkerChunkDeletedFlag(chunkIds);
             return chunkIds.size();
+        }
+
+        private void setMarkerChunkDeletedFlag(List<String> deletedChunkIds) {
+            if (!markerChunkDeleted) {
+                for (String chunkId : deletedChunkIds) {
+                    if (chunkId.startsWith("MARKER")) {
+                        markerChunkDeleted = true;
+                        break;
+                    }
+                }
+            }
         }
 
         @Override
