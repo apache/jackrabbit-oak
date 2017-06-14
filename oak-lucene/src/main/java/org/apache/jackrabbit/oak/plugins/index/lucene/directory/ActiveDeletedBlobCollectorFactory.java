@@ -155,13 +155,14 @@ public class ActiveDeletedBlobCollectorFactory {
         /**
          * Purges blobs form blob-store which were tracked earlier to deleted.
          * @param before only purge blobs which were deleted before this timestamps
-         * @param blobStore
+         * @param blobStore used to purge blobs/chunks
          */
         public void purgeBlobsDeleted(long before, @Nonnull GarbageCollectableBlobStore blobStore) {
             long numBlobsDeleted = 0;
             long numChunksDeleted = 0;
 
             long lastCheckedBlobTimestamp = readLastCheckedBlobTimestamp();
+            String currInUseFileName = deletedBlobsFileWriter.inUseFileName;
             deletedBlobsFileWriter.releaseInUseFile();
             for (File deletedBlobListFile : FileUtils.listFiles(rootDirectory, blobFileNameFilter, null)) {
                 if (deletedBlobListFile.getName().equals(deletedBlobsFileWriter.inUseFileName)) {
@@ -219,7 +220,10 @@ public class ActiveDeletedBlobCollectorFactory {
                         LOG.warn("Couldn't read deleted blob list file - " + deletedBlobListFile, ioe);
                     }
 
-                    if (!deletedBlobListFile.delete()) {
+                    // OAK-6314 revealed that blobs appended might not be immediately available. So, we'd skip
+                    // the file that was being processed when purge started - next cycle would re-process and
+                    // delete
+                    if (!deletedBlobListFile.getName().equals(currInUseFileName) && !deletedBlobListFile.delete()) {
                         LOG.warn("File {} couldn't be deleted while all blobs listed in it have been purged", deletedBlobListFile);
                     }
                 } else {
@@ -232,6 +236,10 @@ public class ActiveDeletedBlobCollectorFactory {
 
         private long readLastCheckedBlobTimestamp() {
             File blobCollectorInfoFile = new File(rootDirectory, "collection-info.txt");
+            if (!blobCollectorInfoFile.exists()) {
+                LOG.debug("Couldn't read last checked blob timestamp (file not found). Would do a bit more scan");
+                return -1;
+            }
             InputStream is = null;
             Properties p;
             try {
@@ -239,7 +247,8 @@ public class ActiveDeletedBlobCollectorFactory {
                 p = new Properties();
                 p.load(is);
             } catch (IOException e) {
-                LOG.info("Couldn't read last checked blob timestamp... would do a bit more scan");
+                LOG.warn("Couldn't read last checked blob timestamp from {} ... would do a bit more scan",
+                        blobCollectorInfoFile, e);
                 return -1;
             } finally {
                 org.apache.commons.io.IOUtils.closeQuietly(is);
@@ -292,16 +301,23 @@ public class ActiveDeletedBlobCollectorFactory {
         }
 
         private void addDeletedBlobs(Collection<BlobIdInfoStruct> deletedBlobs) {
+            int addedForFlush = 0;
             for (BlobIdInfoStruct info : deletedBlobs) {
                 try {
                     if (!this.deletedBlobs.offer(info, 1, TimeUnit.SECONDS)) {
                         LOG.warn("Timed out while offer-ing {} into queue.", info);
                     }
+                    if (LOG.isDebugEnabled()) {
+                        addedForFlush++;
+                    }
                 } catch (InterruptedException e) {
                     LOG.warn("Interrupted while adding " + info, e);
                 }
             }
-            LOG.debug("Added {} to be flushed", deletedBlobs.size());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Added {} (out of {} tried) to be flushed. QSize: {}",
+                        addedForFlush, deletedBlobs.size(), this.deletedBlobs.size());
+            }
             deletedBlobsFileWriter.scheduleFileFlushIfNeeded();
         }
 
@@ -312,9 +328,7 @@ public class ActiveDeletedBlobCollectorFactory {
 
             private synchronized void flushDeletedBlobs() {
                 List<BlobIdInfoStruct> localDeletedBlobs = new LinkedList<>();
-                while (deletedBlobs.peek() != null) {
-                    localDeletedBlobs.add(deletedBlobs.poll());
-                }
+                deletedBlobs.drainTo(localDeletedBlobs);
                 if (localDeletedBlobs.size() > 0) {
                     File outFile = new File(rootDirectory, getBlobFileName());
                     try {
@@ -323,6 +337,9 @@ public class ActiveDeletedBlobCollectorFactory {
                         PERF_LOG.end(start, 1, "Flushing deleted blobs");
                     } catch (IOException e) {
                         LOG.error("Couldn't write out to " + outFile, e);
+                    }
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Flushed {} blobs to {}", localDeletedBlobs.size(), outFile.getName());
                     }
                 }
             }
