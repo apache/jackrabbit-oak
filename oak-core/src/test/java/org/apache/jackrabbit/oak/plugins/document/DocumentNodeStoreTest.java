@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -3056,6 +3057,25 @@ public class DocumentNodeStoreTest {
         } finally {
             ns2.dispose();
         }
+    }
+
+    // OAK-6294
+    @Test
+    public void missingLastRevInApplyChanges() throws CommitFailedException {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        DocumentNodeState root = ns.getRoot();
+
+        RevisionVector before = root.getLastRevision();
+        Revision rev = ns.newRevision();
+        RevisionVector after = new RevisionVector(ns.newRevision());
+
+        String path = "/foo";
+        ns.getNode(path, before);
+        assertNotNull(ns.getNodeCache().getIfPresent(new PathRev(path, before)));
+
+        ns.applyChanges(before, after, rev, path, false,
+                emptyList(), emptyList(), emptyList());
+        assertNull(ns.getNodeCache().getIfPresent(new PathRev(path, before)));
     }
 
     private static class WriteCountingStore extends MemoryDocumentStore {
