@@ -246,6 +246,7 @@ db
 socketKeepAlive
 : Default - false
 : Enables socket keep-alive for MongoDB connections
+: Since 1.8.0, 1.6.2, 1.4.16
 
 cache
 : Default - 256
