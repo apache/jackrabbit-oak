@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.reverse;
@@ -45,7 +44,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -53,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -69,7 +66,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.management.NotCompliantMBeanException;
-import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -84,9 +80,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -126,10 +120,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.OakVersion;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
-import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -491,8 +483,6 @@ public final class DocumentNodeStore
 
     private final DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
 
-    private final StatisticsProvider statisticsProvider;
-
     private final BundlingConfigHandler bundlingConfigHandler = new BundlingConfigHandler();
 
     private final BundledDocumentDiffer bundledDocDiffer = new BundledDocumentDiffer(this);
@@ -526,7 +516,6 @@ public final class DocumentNodeStore
             }
         });
         this.blobStore = builder.getBlobStore();
-        this.statisticsProvider = builder.getStatisticsProvider();
         this.nodeStoreStatsCollector = builder.getNodeStoreStatsCollector();
         if (builder.isUseSimpleRevision()) {
             this.simpleRevisionCounter = new AtomicInteger(0);
@@ -707,7 +696,7 @@ public final class DocumentNodeStore
         }
         journalCache = builder.getJournalCache();
 
-        this.mbean = createMBean();
+        this.mbean = createMBean(builder);
         LOG.info("ChangeSetBuilder enabled and size set to maxItems: {}, maxDepth: {}", changeSetMaxItems, changeSetMaxDepth);
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}, updateLimit: {} ({})",
                 clusterId, updateLimit,
@@ -2939,141 +2928,17 @@ public final class DocumentNodeStore
         }
     }
 
-    //-----------------------------< DocumentNodeStoreMBean >---------------------------------
-
     public DocumentNodeStoreMBean getMBean() {
         return mbean;
     }
 
-    private DocumentNodeStoreMBean createMBean(){
+    private DocumentNodeStoreMBean createMBean(DocumentMK.Builder builder) {
         try {
-            return new MBeanImpl();
+            return new DocumentNodeStoreMBeanImpl(this,
+                    builder.getStatisticsProvider().getStats(),
+                    clusterNodes.values());
         } catch (NotCompliantMBeanException e) {
             throw new IllegalStateException(e);
-        }
-    }
-
-    private class MBeanImpl extends AnnotatedStandardMBean implements DocumentNodeStoreMBean {
-        private final String ISO_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS zzz";
-        private final TimeZone TZ_UTC = TimeZone.getTimeZone("UTC");
-
-        protected MBeanImpl() throws NotCompliantMBeanException {
-            super(DocumentNodeStoreMBean.class);
-        }
-
-        @Override
-        public String getRevisionComparatorState() {
-            return "";
-        }
-
-        @Override
-        public String getHead(){
-            return getRoot().getRootRevision().toString();
-        }
-
-        @Override
-        public int getClusterId() {
-            return clusterId;
-        }
-
-        @Override
-        public int getUnmergedBranchCount() {
-            return branches.size();
-        }
-
-        @Override
-        public String[] getInactiveClusterNodes() {
-            return toArray(transform(filter(clusterNodes.values(),
-                    new Predicate<ClusterNodeInfoDocument>() {
-                        @Override
-                        public boolean apply(ClusterNodeInfoDocument input) {
-                            return !input.isActive();
-                        }
-                    }),
-                    new Function<ClusterNodeInfoDocument, String>() {
-                        @Override
-                        public String apply(ClusterNodeInfoDocument input) {
-                            return input.getClusterId() + "=" + input.getCreated();
-                        }
-                    }), String.class);
-        }
-
-        @Override
-        public String[] getActiveClusterNodes() {
-            return toArray(transform(filter(clusterNodes.values(),
-                    new Predicate<ClusterNodeInfoDocument>() {
-                        @Override
-                        public boolean apply(ClusterNodeInfoDocument input) {
-                            return input.isActive();
-                        }
-                    }),
-                    new Function<ClusterNodeInfoDocument, String>() {
-                        @Override
-                        public String apply(ClusterNodeInfoDocument input) {
-                            return input.getClusterId() + "=" + input.getLeaseEndTime();
-                        }
-                    }), String.class);
-        }
-
-        @Override
-        public String[] getLastKnownRevisions() {
-            return toArray(transform(filter(getHeadRevision(), new Predicate<Revision>() {
-                        @Override
-                        public boolean apply(Revision input) {
-                            return input.getClusterId() != getClusterId();
-                        }
-                    }),
-                    new Function<Revision, String>() {
-                        @Override
-                        public String apply(Revision input) {
-                            return input.getClusterId() + "=" + input.toString();
-                        }
-                    }), String.class);
-        }
-
-        @Override
-        public String formatRevision(String rev, boolean utc){
-            Revision r = Revision.fromString(rev);
-            final SimpleDateFormat sdf = new SimpleDateFormat(ISO_FORMAT);
-            if (utc) {
-                sdf.setTimeZone(TZ_UTC);
-            }
-            return sdf.format(r.getTimestamp());
-        }
-
-        @Override
-        public long determineServerTimeDifferenceMillis() {
-            return store.determineServerTimeDifferenceMillis();
-        }
-
-        @Override
-        public CompositeData getMergeSuccessHistory() {
-            return getTimeSeriesData(DocumentNodeStoreStats.MERGE_SUCCESS_COUNT, "Merge Success Count");
-        }
-
-        @Override
-        public CompositeData getMergeFailureHistory() {
-            return getTimeSeriesData(DocumentNodeStoreStats.MERGE_FAILED_EXCLUSIVE, "Merge failure count");
-        }
-
-        @Override
-        public CompositeData getExternalChangeCountHistory() {
-            return getTimeSeriesData(DocumentNodeStoreStats.BGR_NUM_CHANGES_RATE, "Count of nodes modified by other " +
-                    "cluster nodes since last background read");
-        }
-
-        @Override
-        public CompositeData getBackgroundUpdateCountHistory() {
-            return getTimeSeriesData(DocumentNodeStoreStats.BGW_NUM_WRITES_RATE, "Count of nodes updated as part of " +
-                    "background update");
-        }
-
-        private CompositeData getTimeSeriesData(String name, String desc){
-            return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);
-        }
-
-        private TimeSeries getTimeSeries(String name) {
-            return statisticsProvider.getStats().getTimeSeries(name, true);
         }
     }
 
