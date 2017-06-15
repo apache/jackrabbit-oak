@@ -1284,20 +1284,16 @@ public final class DocumentNodeStore
                 String p = concat(parent.getPath(), input);
                 DocumentNodeState result = getNode(p, readRevision);
                 if (result == null) {
-                    //This is very unexpected situation - parent's child list declares the child to exist, while
-                    //its node state is null. Let's put some extra effort to do some logging
+                    // This is very unexpected situation - parent's child list
+                    // declares the child to exist, while its node state is
+                    // null. Let's put some extra effort to do some logging
+                    // and invalidate the affected cache entries.
                     String id = Utils.getIdFromPath(p);
-                    String cachedDocStr, uncachedDocStr;
-                    try {
-                        cachedDocStr = store.find(Collection.NODES, id).asString();
-                    } catch (DocumentStoreException dse) {
-                        cachedDocStr = dse.toString();
-                    }
-                    try {
-                        uncachedDocStr = store.find(Collection.NODES, id, 0).asString();
-                    } catch (DocumentStoreException dse) {
-                        uncachedDocStr = dse.toString();
-                    }
+                    String cachedDocStr = docAsString(id, true);
+                    String uncachedDocStr = docAsString(id, false);
+                    nodeCache.invalidate(new PathRev(p, readRevision));
+                    nodeChildrenCache.invalidate(childNodeCacheKey(
+                            parent.getPath(), readRevision, name));
                     String exceptionMsg = String.format(
                             "Aborting getChildNodes() - DocumentNodeState is null for %s at %s " +
                                     "{\"cachedDoc\":{%s}, \"uncachedDoc\":{%s}}",
@@ -1306,6 +1302,24 @@ public final class DocumentNodeStore
                 }
                 return result.withRootRevision(parent.getRootRevision(),
                         parent.isFromExternalChange());
+            }
+
+            private String docAsString(String id, boolean cached) {
+                try {
+                    NodeDocument doc;
+                    if (cached) {
+                        doc = store.find(Collection.NODES, id);
+                    } else {
+                        doc = store.find(Collection.NODES, id, 0);
+                    }
+                    if (doc == null) {
+                        return "<null>";
+                    } else {
+                        return doc.asString();
+                    }
+                } catch (DocumentStoreException e) {
+                    return e.toString();
+                }
             }
         });
     }
