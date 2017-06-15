@@ -3078,6 +3078,43 @@ public class DocumentNodeStoreTest {
         assertNull(ns.getNodeCache().getIfPresent(new PathRev(path, before)));
     }
 
+    // OAK-6351
+    @Test
+    public void inconsistentNodeChildrenCache() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a");
+        builder.child("b");
+        merge(ns, builder);
+        builder = ns.getRoot().builder();
+        builder.child("b").remove();
+        merge(ns, builder);
+        RevisionVector head = ns.getHeadRevision();
+
+        // simulate an incorrect cache entry
+        PathRev key = new PathRev("/", head);
+        DocumentNodeState.Children c = new DocumentNodeState.Children();
+        c.children.add("a");
+        c.children.add("b");
+        ns.getNodeChildrenCache().put(key, c);
+
+        try {
+            for (ChildNodeEntry entry : ns.getRoot().getChildNodeEntries()) {
+                entry.getName();
+            }
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            // expected
+        }
+        // next attempt must succeed
+        List<String> names = Lists.newArrayList();
+        for (ChildNodeEntry entry : ns.getRoot().getChildNodeEntries()) {
+            names.add(entry.getName());
+        }
+        assertEquals(1L, names.size());
+        assertTrue(names.contains("a"));
+    }
+
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;
