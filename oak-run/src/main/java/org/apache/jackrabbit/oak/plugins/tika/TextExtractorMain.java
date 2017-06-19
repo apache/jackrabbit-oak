@@ -99,6 +99,14 @@ public class TextExtractorMain {
 
             checkNotNull(blobStore, "This command requires an external BlobStore configured");
 
+            if (generate){
+                checkNotNull(dataFile, "Data file path not provided");
+                log.info("Generated csv data to be stored in {}", dataFile.getAbsolutePath());
+                BinaryResourceProvider brp = new NodeStoreBinaryResourceProvider(nodeStore, blobStore);
+                CSVFileGenerator generator = new CSVFileGenerator(dataFile);
+                generator.generate(brp.getBinaries(path));
+            }
+
             if (report || extract) {
                 checkArgument(dataFile.exists(),
                         "Data file %s does not exist", dataFile.getAbsolutePath());
@@ -110,14 +118,6 @@ public class TextExtractorMain {
                 stats = new BinaryStats(tikaConfigFile, binaryResourceProvider);
                 String summary = stats.getSummary();
                 log.info(summary);
-            }
-
-            if (generate){
-                checkNotNull(dataFile, "Data file path not provided");
-                log.info("Generated csv data to be stored in {}", dataFile.getAbsolutePath());
-                BinaryResourceProvider brp = new NodeStoreBinaryResourceProvider(nodeStore, blobStore);
-                CSVFileGenerator generator = new CSVFileGenerator(dataFile);
-                generator.generate(brp.getBinaries(path));
             }
 
             if (extract) {
