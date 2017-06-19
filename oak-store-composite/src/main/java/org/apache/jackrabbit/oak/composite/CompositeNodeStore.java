@@ -254,7 +254,11 @@ public class CompositeNodeStore implements NodeStore, Observable {
             String checkpoint = mns.getNodeStore().checkpoint(lifetime, properties);
             globalProperties.put(CHECKPOINT_METADATA_MOUNT + mns.getMount().getName(), checkpoint);
         }
-        return ctx.getGlobalStore().getNodeStore().checkpoint(lifetime, globalProperties);
+        String newCheckpoint = ctx.getGlobalStore().getNodeStore().checkpoint(lifetime, globalProperties);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Created checkpoint {}. Debug info:\n{}", newCheckpoint, checkpointDebugInfo());
+        }
+        return newCheckpoint;
     }
 
     @Override
@@ -327,6 +331,9 @@ public class CompositeNodeStore implements NodeStore, Observable {
                 released = nodeStore.getNodeStore().release(partialCheckpoint);
             }
             result &= released;
+        }
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Released checkpoint {}. Result: {}. Debug info:\n{}", checkpoint, result, checkpointDebugInfo());
         }
         return result;
     }
