@@ -105,7 +105,8 @@ to validate if `PreExtractedTextProvider` is being used.
 
 ### Oak Run Indexing
 
-<<TBD>>
+Configure the directory storing pre extracted text via `--pre-extracted-text-dir` option in `index` command.
+See [oak run indexing](oak-run-indexing.md)
 
 
 [oak-run-1.7.1]: https://repo1.maven.org/maven2/org/apache/jackrabbit/oak-run/1.7.1/oak-run-1.7.1.jar
