@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.7.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.7.2
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.7.1 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.7.2 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.6.x
 release.
@@ -15,86 +15,74 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.7.1
+Changes in Oak 1.7.2
 ---------------------
-
-Sub-task
-
-    [OAK-6227] - There should be a way to retrieve oldest timestamp to
-    keep from nodestores
 
 Technical task
 
-    [OAK-4612] - Multiplexing support for CugPermissionProvider
-    [OAK-6196] - Improve Javadoc of multiplexing SPI
-    [OAK-6270] - There should be a way for editors to be notified by
-    AsyncIndexUpdate about success/failure of indexing commit
-    [OAK-6282] - Implement a DummyDataStore to be used to test setup
-    with no BlobStore access
+    [OAK-6248] - Enable use of pre extracted text cache
+    [OAK-6286] - Use BlobStore in read only mode by default unless
+    read-write mode enabled
 
 Bug
 
-    [OAK-5573] -
-    org.apache.jackrabbit.oak.segment.standby.StandbyTestIT.testSyncLoop
-    [OAK-6266] - SolrQueryIndexProviderService should always have
-    NodeAggregator
-    [OAK-6267] - Version restore fails if restore would not change
-    bundling root but changes bundled nodes
-    [OAK-6273] -
-    FilteringNodeStateTest#shouldHaveCorrectChildOrderProperty is
-    failing
-    [OAK-6277] - UserQueryManager: redundant check for colliding bound
-    and offset
-    [OAK-6278] - UserQueryManager: scope filtering for everyone
-    groupId compares to principal name
-    [OAK-6283] - FileCache should ignore when file evicted with
-    replacement
-    [OAK-6290] - UserQueryManager.findAuthorizables fails with
-    IllegalArgumentException when there are multiple selectors
-    [OAK-6292] - SecurityProviderRegistration.maybeUnregister: typo on
-    comment
-    [OAK-6293] - Enable test log creation for oak-blob-plugins
-    [OAK-6300] - CacheConsistencyTestBase: potential NPE in teardown
-    [OAK-6306] - upgrade uses lucene wrong version (transient
-    dependency)
+    [OAK-6294] - The "missing" node cache value breaks the
+    DocumentNodeStore#applyChanges
+    [OAK-6314] - ActiveDeletedBlobCollectorTest.multiThreadedCommits
+    is failing intermittently for a few users
+    [OAK-6321] - oak-blob-plugins exports all packages
+    [OAK-6335] - Baseline check fails in oak-api
+    [OAK-6338] - AbstractCompositeProviderTest reverse order flag is
+    ignored
+    [OAK-6365] - oak-store-spi fails on javadoc
 
 Improvement
 
-    [OAK-2808] - Active deletion of 'deleted' Lucene index files from
-    DataStore without relying on full scale Blob GC
-    [OAK-3498] - DN can't be used as the group name in the external
-    auth handler
-    [OAK-4513] - Detect and log references across stores
-    [OAK-5525] - VisibleEditor should use the NodeStateUtils to
-    determine visibility
-    [OAK-5935] - AbstractSharedCachingDataStore#getRecordIfStored
-    should use the underlying cache.get
-    [OAK-6256] - Prevent creating the across-mounts references
-    [OAK-6272] - AbstractNodeState.toString does not scale to many
-    child nodes
-    [OAK-6289] - Unreferenced argument reference in method
-    SegmentBufferWriter.writeRecordId
-    [OAK-6296] - Move JACKRABBIT_2_SINGLE_QUOTED_PHRASE from
-    o.a.j.oak.query.ask.FullTextSearchImpl to
-    oak.fulltext.FullTextParser
-    [OAK-6298] - FacetHelper should have private constructor
-    [OAK-6299] - FilterIterators should have a private constructor
-    [OAK-6301] - Make QueryEngineSettingsMBeanImpl an inner class of
-    o.a.j.oak.Oak
-    [OAK-6302] - UserInitializer: createSystemRoot can get null value
-    for QueryEngineSettings
-    [OAK-6307] - Function to find all large docs in Mongo
+    [OAK-3381] - Provide Common Ancestor To ConflictHandler
+    [OAK-4637] - Property index: include/exclude key pattern list
+    [OAK-6295] - Move constants from oak.query.QueryImpl to
+    oak.spi.query.QueryConstants
+    [OAK-6323] - Remove StandbyTest
+    [OAK-6324] - Remove SegmentNodeStoreFactoryTest#nodeStoreProvider
+    [OAK-6326] - Remove unused field SegmentNodeStore.reader
+    [OAK-6327] - Convert FileStore.maxFileSize fiels into local
+    variable
+    [OAK-6328] - Declare StandbyStoreService.closer final
+    [OAK-6329] - Declare immutable field of FileStore.CompactionResult
+    final
+    [OAK-6330] - LockBasedScheduler.execute declares exception that is
+    never thrown
+    [OAK-6331] - Closeable.close in StandbyStoreService declares
+    exception that is never thrown
+    [OAK-6332] - Add missing @Nonnull annotations
+    [OAK-6348] - Active deletion of blobs should have larger queue for
+    blobs being deleted
+    [OAK-6349] - Randomized permission tests
+    [OAK-6351] - Invalidate cache entries when getChildNodes() is
+    aborted
+    [OAK-6354] - Move DocumentNodeStoreMBean implementation in
+    separate file
+    [OAK-6361] - Oak run tika command should connect to NodeStore in
+    read only mode
+    [OAK-6362] - Use NodeStoreFixtureProvider in tika command of
+    oak-run
+    [OAK-6363] - BlobStoreFixtureProvider should support '.cfg' files
+    also
+    [OAK-6364] - BlobStoreFixtureProvider should configure a default
+    'secret' value if none specified
+
+New Feature
+
+    [OAK-3712] - Clean up uncommitted changes
 
 Task
 
-    [OAK-6280] - Expose whiteboard from NodeStoreFixture to provide
-    access to NodeStore components
-    [OAK-6281] - Dump metrics data to system out if metrics option is
-    enabled
-
-Test
-
-    [OAK-5882] - Improve coverage for oak.security code in oak-core
+    [OAK-6304] - Cyclic dependency between oak.spi.query an
+    oak.query.*
+    [OAK-6311] - Move generic part of PropertyStateValue and
+    PropertyValues to oak-store-spi
+    [OAK-6343] - Add replacement for deprecated
+    RootFactory.createSystemRoot
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
