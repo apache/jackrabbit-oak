@@ -101,6 +101,8 @@ public class IndexCommand implements Command {
         IndexHelper indexHelper = new IndexHelper(store, blobStore, statisticsProvider, indexOpts.getOutDir(),
                 indexOpts.getWorkDir(), indexOpts.getIndexPaths());
 
+        configurePreExtractionSupport(indexOpts, indexHelper);
+
         closer.register(indexHelper);
 
         dumpIndexStats(indexOpts, indexHelper);
@@ -108,6 +110,14 @@ public class IndexCommand implements Command {
         performConsistencyCheck(indexOpts, indexHelper);
         dumpIndexContents(indexOpts, indexHelper);
         reindexIndex(indexOpts, indexHelper);
+    }
+
+    private void configurePreExtractionSupport(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {
+        File preExtractedTextDir = indexOpts.getPreExtractedTextDir();
+        if (preExtractedTextDir != null) {
+            indexHelper.setPreExtractedTextDir(preExtractedTextDir);
+            log.info("Using pre-extracted text directory {}", getPath(preExtractedTextDir));
+        }
     }
 
     private void reindexIndex(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {

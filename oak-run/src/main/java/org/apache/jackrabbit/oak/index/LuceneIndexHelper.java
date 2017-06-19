@@ -22,10 +22,7 @@ package org.apache.jackrabbit.oak.index;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
@@ -35,9 +32,6 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 class LuceneIndexHelper implements Closeable {
     private final IndexHelper indexHelper;
     private IndexCopier indexCopier;
-    //TODO Set pre extracted text provider
-    private final ExtractedTextCache textCache =
-            new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
     private DirectoryFactory directoryFactory;
 
     LuceneIndexHelper(IndexHelper indexHelper) {
@@ -49,7 +43,7 @@ class LuceneIndexHelper implements Closeable {
         if (directoryFactory != null) {
             editor = new LuceneIndexEditorProvider(
                     getIndexCopier(),
-                    textCache,
+                    indexHelper.getExtractedTextCache(),
                     null,
                     indexHelper.getMountInfoProvider()
             ) {
@@ -61,7 +55,7 @@ class LuceneIndexHelper implements Closeable {
         } else {
             editor = new LuceneIndexEditorProvider(
                     getIndexCopier(),
-                    textCache,
+                    indexHelper.getExtractedTextCache(),
                     null,
                     indexHelper.getMountInfoProvider()
             );
