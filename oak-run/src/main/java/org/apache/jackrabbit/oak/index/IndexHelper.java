@@ -35,6 +35,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -42,8 +43,10 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
+import org.apache.jackrabbit.oak.plugins.index.datastore.DataStoreTextWriter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexPrinter;
+import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -68,6 +71,7 @@ class IndexHelper implements Closeable{
     private final Closer closer = Closer.create();
     private final BlobStore blobStore;
     private final StatisticsProvider statisticsProvider;
+    private ExtractedTextCache extractedTextCache;
 
     IndexHelper(NodeStore store, BlobStore blobStore, StatisticsProvider statisticsProvider,
                 File outputDir, File workDir, List<String> indexPaths) {
@@ -141,6 +145,17 @@ class IndexHelper implements Closeable{
             closer.register(luceneIndexHelper);
         }
         return luceneIndexHelper;
+    }
+
+    public ExtractedTextCache getExtractedTextCache() {
+        if (extractedTextCache == null) {
+            extractedTextCache = new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
+        }
+        return extractedTextCache;
+    }
+
+    public void setPreExtractedTextDir(File dir) throws IOException {
+        getExtractedTextCache().setExtractedTextProvider(new DataStoreTextWriter(dir, true));
     }
 
     @Override

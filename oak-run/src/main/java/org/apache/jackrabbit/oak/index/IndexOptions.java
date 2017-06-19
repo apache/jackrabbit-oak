@@ -39,15 +39,11 @@ import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
 
 public class IndexOptions implements OptionsBean {
 
-    public static final OptionsBeanFactory FACTORY = new OptionsBeanFactory() {
-        @Override
-        public OptionsBean newInstance(OptionParser parser) {
-            return new IndexOptions(parser);
-        }
-    };
+    public static final OptionsBeanFactory FACTORY = IndexOptions::new;
 
     private final OptionSpec<File> workDirOpt;
     private final OptionSpec<File> outputDirOpt;
+    private final OptionSpec<File> preExtractedTextOpt;
     private final OptionSpec<Void> stats;
     private final OptionSpec<Void> definitions;
     private final OptionSpec<Void> dumpIndex;
@@ -65,6 +61,8 @@ public class IndexOptions implements OptionsBean {
                 .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
         outputDirOpt = parser.accepts("index-out-dir", "Directory used for output files")
                 .withRequiredArg().ofType(File.class).defaultsTo(new File("indexing-result"));
+        preExtractedTextOpt = parser.accepts("pre-extracted-text-dir", "Directory storing pre extracted text")
+                .withRequiredArg().ofType(File.class);
 
         stats = parser.accepts("index-info", "Collects and dumps various statistics related to the indexes");
         definitions = parser.accepts("index-definitions", "Collects and dumps index definitions");
@@ -126,6 +124,10 @@ public class IndexOptions implements OptionsBean {
 
     public File getOutDir() {
         return outputDirOpt.value(options);
+    }
+
+    public File getPreExtractedTextDir() {
+        return preExtractedTextOpt.value(options);
     }
 
     public boolean dumpStats(){
