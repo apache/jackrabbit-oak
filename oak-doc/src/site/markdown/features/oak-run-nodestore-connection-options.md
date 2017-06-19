@@ -1,0 +1,62 @@
+# Oak Run NodeStore Connection
+
+`@since Oak 1.7.1`
+
+This page provide details around various options supported by some of the oak-run commands to connect
+to NodeStore repository. By default most of these commands (unless documented) would connect in read only
+mode.
+
+These options are supported by following command (See [OAK-6210][OAK-6210])
+
+* console
+* index
+* tika
+
+Depending on your setup you would need to configure the NodeStore and BlobStore in use for commands to work.
+Some commands may not require the BlobStore details. Check the specific oak-run command help to see if
+access to BlobStore is required or not. 
+
+## NodeStore
+
+### SegmentNodeStore
+
+To connect to SegmentNodeStore just specify the path to folder used by SegmentNodeStore for storing the
+repository content
+
+    java -jar oak-run <command> /path/to/segmentstore
+    
+### DocumentNodeStore - Mongo
+
+To connect to Mongo specify the MongoURI
+
+    java -jar oak-run <command> mongodb://server:port
+    
+It support some other options like cache size, cache distribution etc. Refer to help output via `-h` to
+see supported options
+
+### DocumentNodeStore - RDB
+
+<<TBD>>
+
+## BlobStore
+
+### FileDataStore
+
+Specify the path to directory used by `FileDataStore` via `--fds-path` option
+
+    java -jar oak-run <command> /path/to/segmentstore --fds-path=/path/to/fds
+    
+### S3DataStore
+
+Specify the path to config file which contains connection details related to S3 bucket to be used via `-s3ds` option
+
+    java -jar oak-run <command> /path/to/segmentstore --s3ds=/path/to/S3DataStore.config
+    
+The file should be a valid config file as configured S3DataStore in OSGi setup for pid 
+`org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore.config`. 
+
+Do change the `path` property to location based on system from where command is being used. If you are running
+the command on the setup where the Oak application is running then ensure that `path` is set to a different 
+location.
+    
+[OAK-6210]: https://issues.apache.org/jira/browse/OAK-6210
