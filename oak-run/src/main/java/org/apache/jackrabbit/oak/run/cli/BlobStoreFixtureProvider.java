@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Map;
@@ -35,6 +36,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -105,8 +107,18 @@ public class BlobStoreFixtureProvider {
         return new DataStoreFixture(blobStore, closer, !options.getCommonOpts().isReadWrite());
     }
 
-    private static Properties loadConfig(String cfgPath) throws IOException {
-        Properties props = loadAndTransformProps(cfgPath);
+    static Properties loadConfig(String cfgPath) throws IOException {
+        String extension = FilenameUtils.getExtension(cfgPath);
+        Properties props;
+        if ("config".equals(extension)){
+            props = loadAndTransformProps(cfgPath);
+        } else {
+            props = new Properties();
+            try(InputStream is = FileUtils.openInputStream(new File(cfgPath))){
+                props.load(is);
+            }
+        }
+
         configureDefaultProps(props);
         return props;
     }
