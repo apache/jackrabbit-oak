@@ -31,16 +31,6 @@ To define a property index, you have to add an index definition node that:
     This is a multi-valued property, and must not be empty.
     It usually contains only _one_ property name.
     All nodes that have _any_ of those properties are stored in this index.
-* `includedPaths` (String, multi-valued):
-    the paths that are included ('/' if not set).
-    Since Oak version 1.4 (OAK-3263).
-    The index is only used if the query has a path restriction that is not excluded,
-    and part of the included paths.
-* `excludedPaths` (String, multi-valued):
-    the paths where this index is excluded (none if not set).
-    Since Oak version 1.4 (OAK-3263).
-    The index is only used if the query has a path restriction that is not excluded,
-    and part of the included paths.
     
 It is recommended to index one property per index.
 (If multiple properties are indexed within one index, 
@@ -54,6 +44,34 @@ Optionally you can specify:
   property is added. Ensure you set declaringNodeTypes, 
   otherwise all nodes of the repository are affected (which is most likely not what you want),
   and you are not able to version the node.
+  * `includedPaths` (String, multi-valued):
+    the paths that are included ('/' if not set).
+    Since Oak version 1.4 (OAK-3263).
+    The index is only used if the query has a path restriction that is not excluded,
+    and part of the included paths.
+* `excludedPaths` (String, multi-valued):
+    the paths where this index is excluded (none if not set).
+    Since Oak version 1.4 (OAK-3263).
+    The index is only used if the query has a path restriction that is not excluded,
+    and part of the included paths.
+* `valuePattern` (String)
+    A regular expression of all indexed values.
+    The index is used for equality conditions where the value matches the pattern,
+    and for "in(...)" queries where all values match the pattern.
+    The index is not used for "like" conditions.
+    Since Oak version 1.7.2 (OAK-4637).
+* `valueExcludedPrefixes`
+    The index is used for equality conditions where the value does not start with the given prefix,
+    and the prefix does not start with the value, 
+    similarly for "in(...)" conditions,
+    and similarly for "like" conditions.
+    and for "in(...)" queries where all values match the pattern.
+    Since Oak version 1.7.2 (OAK-4637).
+* `valueIncludedPrefixes`
+    The index is used for equality conditions where the value starts with the given prefix,
+    similarly for "in(...)" conditions,
+    and similarly for "like" conditions.
+    Since Oak version 1.7.2 (OAK-4637).
 * `entryCount` (Long): the estimated number of path entries in the index, 
   to override the cost estimation (a high entry count means a high cost).
 * `keyCount` (Long), the estimated number of keys in the index,
