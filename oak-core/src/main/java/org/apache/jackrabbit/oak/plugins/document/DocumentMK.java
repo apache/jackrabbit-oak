@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Suppliers.memoize;
+import static com.google.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
 
@@ -37,6 +39,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalCause;
@@ -555,7 +558,7 @@ public class DocumentMK {
         public static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
         public static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
         private DocumentNodeStore nodeStore;
-        private DocumentStore documentStore;
+        private Supplier<DocumentStore> documentStoreSupplier = ofInstance(new MemoryDocumentStore());
         private String mongoUri;
         private boolean socketKeepAlive;
         private MongoStatus mongoStatus;
@@ -670,9 +673,12 @@ public class DocumentMK {
             }
 
             this.mongoStatus = status;
-            if (this.documentStore == null) {
-                this.documentStore = new MongoDocumentStore(db, this);
-            }
+            this.documentStoreSupplier = memoize(new Supplier<DocumentStore>() {
+                @Override
+                public DocumentStore get() {
+                    return new MongoDocumentStore(db, DocumentMK.Builder.this);
+                }
+            });
 
             if (this.blobStore == null) {
                 GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
@@ -750,7 +756,7 @@ public class DocumentMK {
          * @return this
          */
         public Builder setRDBConnection(DataSource ds, RDBOptions options) {
-            this.documentStore = new RDBDocumentStore(ds, this, options);
+            this.documentStoreSupplier = ofInstance(new RDBDocumentStore(ds, this, options));
             if(blobStore == null) {
                 GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
                 setBlobStore(s);
@@ -765,7 +771,7 @@ public class DocumentMK {
          * @return this
          */
         public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-            this.documentStore = new RDBDocumentStore(documentStoreDataSource, this);
+            this.documentStoreSupplier = ofInstance(new RDBDocumentStore(documentStoreDataSource, this));
             if(blobStore == null) {
                 GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
                 setBlobStore(s);
@@ -851,15 +857,12 @@ public class DocumentMK {
          * @return this
          */
         public Builder setDocumentStore(DocumentStore documentStore) {
-            this.documentStore = documentStore;
+            this.documentStoreSupplier = ofInstance(documentStore);
             return this;
         }
 
         public DocumentStore getDocumentStore() {
-            if (documentStore == null) {
-                documentStore = new MemoryDocumentStore();
-            }
-            return documentStore;
+            return documentStoreSupplier.get();
         }
 
         public DocumentNodeStore getNodeStore() {
