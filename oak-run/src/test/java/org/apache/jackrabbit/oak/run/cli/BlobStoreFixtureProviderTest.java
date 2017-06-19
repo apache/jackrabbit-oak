@@ -22,8 +22,14 @@ package org.apache.jackrabbit.oak.run.cli;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Properties;
 
 import joptsimple.OptionParser;
+import org.apache.commons.io.FileUtils;
+import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -33,6 +39,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -69,6 +77,41 @@ public class BlobStoreFixtureProviderTest {
             }
 
         }
+    }
+
+    @Test
+    public void configLoading() throws Exception {
+        Properties p = new Properties();
+        p.put("foo", "bar");
+        p.put("a", "b");
+
+        File config = new File(temporaryFolder.getRoot(), "test.cfg");
+        try (OutputStream os = FileUtils.openOutputStream(config)) {
+            p.store(os, null);
+        }
+
+        Properties p2 = BlobStoreFixtureProvider.loadConfig(config.getAbsolutePath());
+        assertEquals("bar", p2.getProperty("foo"));
+        assertNotNull(p2.getProperty("secret"));
+    }
+
+    @Test
+    public void configLoading_OSGi() throws Exception {
+        Dictionary<String, Object> p = new Hashtable<String, Object>();
+        p.put("foo", "bar");
+        p.put("a", 1);
+        p.put("b", new int[]{1, 2});
+
+        File config = new File(temporaryFolder.getRoot(), "test.config");
+        try (OutputStream os = FileUtils.openOutputStream(config)) {
+            ConfigurationHandler.write(os, p);
+        }
+
+        Properties p2 = BlobStoreFixtureProvider.loadConfig(config.getAbsolutePath());
+        assertEquals("bar", p2.getProperty("foo"));
+        assertEquals(1, p2.get("a"));
+        assertArrayEquals(new int[]{1, 2}, (int[]) p2.get("b"));
+        assertNotNull(p2.getProperty("secret"));
     }
 
     private Options createFDSOptions(String... args) throws IOException {
