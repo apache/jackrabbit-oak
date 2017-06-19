@@ -299,7 +299,9 @@ public class TextExtractorMain {
             closer.register(asCloseable(mongo));
             DocumentNodeStore store = new DocumentMK.Builder()
                     .setBlobStore(blobStore)
-                    .setMongoDB(mongo.getDB()).getNodeStore();
+                    .setMongoDB(mongo.getDB())
+                    .setReadOnlyMode()
+                    .getNodeStore();
             closer.register(asCloseable(store));
             return store;
         }
