@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -42,6 +43,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -263,6 +265,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
     @Override
     public Map<String, String> checkpointInfo(String checkpoint) {
         if (!checkpointExists(ctx.getGlobalStore().getNodeStore(), checkpoint)) {
+            LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo());
             return Collections.emptyMap();
         }
         return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint), new Predicate<String>() {
@@ -280,6 +283,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
     @Override
     public NodeState retrieve(String checkpoint) {
         if (!checkpointExists(ctx.getGlobalStore().getNodeStore(), checkpoint)) {
+            LOG.warn("Checkpoint {} doesn't exist on the global store. Debug info:\n{}", checkpoint, checkpointDebugInfo());
             return null;
         }
         Map<String, String> props = ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint);
@@ -296,6 +300,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
             nodeStates.put(nodeStore, nodeState);
         }
         if (any(nodeStates.values(), isNull())) {
+            LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo());
             return null;
         }
         return new CompositeNodeState("/", nodeStates, ctx);
@@ -351,6 +356,42 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
     private static boolean checkpointExists(NodeStore nodeStore, String checkpoint) {
         return Iterables.any(nodeStore.checkpoints(), Predicates.equalTo(checkpoint));
+    }
+
+    private String checkpointDebugInfo() {
+        StringBuilder builder = new StringBuilder();
+        for (MountedNodeStore mns : ctx.getAllMountedNodeStores()) {
+            Mount mount = mns.getMount();
+            NodeStore nodeStore = mns.getNodeStore();
+
+            builder.append("Mount: ").append(mount.isDefault() ? "[default]" : mount.getName()).append('\n');
+            builder.append("Checkpoints:").append('\n');
+            for (String checkpoint : nodeStore.checkpoints()) {
+                builder.append(" - ").append(checkpoint).append(": ").append(nodeStore.checkpointInfo(checkpoint)).append('\n');
+            }
+            builder.append("/:async node: ");
+            NodeState asyncNode = nodeStore.getRoot().getChildNode(":async");
+            if (asyncNode.exists()) {
+                builder.append("{");
+                Iterator<? extends PropertyState> i = asyncNode.getProperties().iterator();
+                while (i.hasNext()) {
+                    PropertyState p = i.next();
+                    if (p.isArray()) {
+                        builder.append(p.getName()).append(": [...]");
+                    } else {
+                        builder.append(p.toString());
+                    }
+                    if (i.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append("}");
+            } else {
+                builder.append("N/A");
+            }
+            builder.append('\n');
+        }
+        return builder.toString();
     }
 
     @Override
