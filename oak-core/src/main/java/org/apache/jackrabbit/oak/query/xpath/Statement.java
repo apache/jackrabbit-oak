@@ -29,6 +29,10 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
  * An xpath statement.
  */
 public class Statement {
+    
+    private static final UnsupportedOperationException TOO_MANY_UNION = 
+            new UnsupportedOperationException("Too many union queries");
+    private final static int MAX_UNION = Integer.getInteger("oak.xpathMaxUnion", 1000);
 
     boolean explain;
     boolean measure;
@@ -62,7 +66,12 @@ public class Statement {
         where = where.optimize();
         optimizeSelectorNodeTypes();
         ArrayList<Expression> unionList = new ArrayList<Expression>();
-        addToUnionList(where, unionList);
+        try {
+            addToUnionList(where, unionList);
+        } catch (UnsupportedOperationException e) {
+            // too many union
+            return this;
+        }
         if (unionList.size() == 1) {
             return this;
         }
@@ -140,6 +149,9 @@ public class Statement {
                 addToUnionList(new AndCondition(and.left, or.right), unionList);
                 return;
             }
+        }
+        if (unionList.size() > MAX_UNION) {
+            throw TOO_MANY_UNION;
         }
         unionList.add(condition);
     }
@@ -304,7 +316,12 @@ public class Statement {
             if (measure) {
                 buff.append("measure ");
             }
-            buff.append(s1).append(" union ").append(s2);
+            try {
+                buff.append(s1).append(" union ").append(s2);
+            } catch (OutOfMemoryError | StackOverflowError e) {
+System.out.println("OOME");                
+                throw e;
+            }
             // order by ...
             if (orderList != null && !orderList.isEmpty()) {
                 buff.append(" order by ");
