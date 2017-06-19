@@ -20,7 +20,6 @@ import com.google.common.collect.Iterables;
 import com.mongodb.DB;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
@@ -30,7 +29,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-@Ignore
 public class DocumentMKBuilderTest extends AbstractMongoConnectionTest {
 
     private static final long CACHE_SIZE = 8 * 1024 * 1024;
