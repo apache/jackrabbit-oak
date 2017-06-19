@@ -291,7 +291,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
         nodeStates.put(ctx.getGlobalStore(), ctx.getGlobalStore().getNodeStore().retrieve(checkpoint));
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
             NodeState nodeState = null;
-            String partialCheckpoint = getPartialCheckpointName(nodeStore, checkpoint, props);
+            String partialCheckpoint = getPartialCheckpointName(nodeStore, checkpoint, props, true);
             if (partialCheckpoint == null && nodeStore.getMount().isReadOnly()) {
                 nodeState = nodeStore.getNodeStore().getRoot();
             } else if (partialCheckpoint != null) {
@@ -322,7 +322,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
                 continue;
             }
             boolean released = false;
-            String partialCheckpoint = getPartialCheckpointName(nodeStore, checkpoint, props);
+            String partialCheckpoint = getPartialCheckpointName(nodeStore, checkpoint, props, false);
             if (partialCheckpoint != null) {
                 released = nodeStore.getNodeStore().release(partialCheckpoint);
             }
@@ -331,7 +331,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
         return result;
     }
 
-    private String getPartialCheckpointName(MountedNodeStore nodeStore, String globalCheckpoint, Map<String, String> globalCheckpointProperties) {
+    private String getPartialCheckpointName(MountedNodeStore nodeStore, String globalCheckpoint, Map<String, String> globalCheckpointProperties, boolean resolveByName) {
         Set<String> validCheckpointNames = ImmutableSet.copyOf(nodeStore.getNodeStore().checkpoints());
         String result = globalCheckpointProperties.get(CHECKPOINT_METADATA_MOUNT + nodeStore.getMount().getName());
         if (result != null && validCheckpointNames.contains(result)) {
