@@ -53,7 +53,7 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
 
     /**
      * Create a new {@code CompositeConflictHandler} with an initial set of
-     * backing handler. Use {@link #addHandler(PartialConflictHandler)} to add additional
+     * backing handler. Use {@link #addHandler(ThreeWayConflictHandler)} to add additional
      * handlers.
      * @param handlers  the backing handlers
      */
@@ -63,7 +63,7 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
 
     /**
      * Create a new {@code CompositeConflictHandler} with no backing handlers.
-     * backing handler. Use {@link #addHandler(PartialConflictHandler)} to add handlers.
+     * backing handler. Use {@link #addHandler(ThreeWayConflictHandler)} to add handlers.
      */
     public CompositeConflictHandler() {
         this.handlers = newLinkedList();
