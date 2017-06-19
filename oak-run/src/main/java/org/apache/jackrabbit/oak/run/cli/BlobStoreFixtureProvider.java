@@ -27,6 +27,7 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 
@@ -66,18 +67,20 @@ public class BlobStoreFixtureProvider {
         DataStore delegate;
         if (bsType == Type.S3){
             SharedS3DataStore s3ds = new SharedS3DataStore();
-            Properties props = loadAndTransformProps(bsopts.getS3ConfigPath());
+            Properties props = loadConfig(bsopts.getS3ConfigPath());
             s3ds.setProperties(props);
             File homeDir =  Files.createTempDir();
             closer.register(asCloseable(homeDir));
+            populate(s3ds, asMap(props), false);
             s3ds.init(homeDir.getAbsolutePath());
             delegate = s3ds;
         } else if(bsType == Type.AZURE){
             AzureDataStore azureds = new AzureDataStore();
             String cfgPath = bsopts.getAzureConfigPath();
-            Properties props = loadAndTransformProps(cfgPath);
+            Properties props = loadConfig(cfgPath);
             azureds.setProperties(props);
             File homeDir =  Files.createTempDir();
+            populate(azureds, asMap(props), false);
             azureds.init(homeDir.getAbsolutePath());
             closer.register(asCloseable(homeDir));
             delegate = azureds;
@@ -100,6 +103,18 @@ public class BlobStoreFixtureProvider {
         }
         DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
         return new DataStoreFixture(blobStore, closer, !options.getCommonOpts().isReadWrite());
+    }
+
+    private static Properties loadConfig(String cfgPath) throws IOException {
+        Properties props = loadAndTransformProps(cfgPath);
+        configureDefaultProps(props);
+        return props;
+    }
+
+    private static void configureDefaultProps(Properties props) {
+        if (!props.containsKey("secret")){
+            props.setProperty("secret", UUID.randomUUID().toString());
+        }
     }
 
     private static class DataStoreFixture implements BlobStoreFixture {
