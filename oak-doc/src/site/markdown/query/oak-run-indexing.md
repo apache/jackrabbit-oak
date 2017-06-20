@@ -10,6 +10,8 @@ operations supported by this command.
 The `index` command supports connecting to different NodeStores via various options which are documented 
 [here](../features/oak-run-nodestore-connection-options.md). Example below assume a setup consisting of 
 SegmentNodeStore and FileDataStore. Depending on setup use the appropriate connection options.
+
+By default the tool would generate output file in directory `indexing-result` which is referred to as output directory.
  
 Unless specified all operations connect to the repository in read only mode
 
@@ -27,7 +29,7 @@ Also refer to help output via `-h` command for some other options
     java -jar oak-run*.jar index --fds-path=/path/to/datastore  /path/to/segmentstore/ --index-info 
 
 Generates a report consisting of various stats related to indexes present in the given repository. The generated
-report is stored by default in `index-info.txt`
+report is stored by default in `<output dir>/index-info.txt`
 
 Supported for all index types
 
@@ -35,7 +37,7 @@ Supported for all index types
 
     java -jar oak-run*.jar index --fds-path=/path/to/datastore  /path/to/segmentstore/ --index-definitions
      
-`--index-definitions` operation dumps the index definition in json format to a file `index-definitions.json`. The json
+`--index-definitions` operation dumps the index definition in json format to a file `<output dir>/index-definitions.json`. The json
 file contains index definitions keyed against the index paths
 
 Supported for all index types
@@ -59,6 +61,8 @@ Supported for only Lucene indexes.
   are valid
 * Level 2 - Specified as `--index-consistency-check=2`. Performs a more through check to determine if all index files
   are valid and no corruption has happened. This check is slower
+  
+It would generate a report in `<output dir>/index-consistency-check-report.txt`
 
 Supported for only Lucene indexes.
 
