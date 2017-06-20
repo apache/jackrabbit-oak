@@ -348,14 +348,16 @@ public class CompositeNodeStore implements NodeStore, Observable {
             return globalCheckpoint;
         }
 
-        String nameProp = globalCheckpointProperties.get("name");
-        if (nameProp == null) {
-            return null;
-        }
-        for (String c : validCheckpointNames) {
-            Map<String, String> partialCheckpointProperties = nodeStore.getNodeStore().checkpointInfo(c);
-            if (nameProp.equals(partialCheckpointProperties.get("name"))) {
-                return c;
+        if (resolveByName) {
+            String nameProp = globalCheckpointProperties.get("name");
+            if (nameProp == null) {
+                return null;
+            }
+            for (String c : validCheckpointNames) {
+                Map<String, String> partialCheckpointProperties = nodeStore.getNodeStore().checkpointInfo(c);
+                if (nameProp.equals(partialCheckpointProperties.get("name"))) {
+                    return c;
+                }
             }
         }
         return null;
