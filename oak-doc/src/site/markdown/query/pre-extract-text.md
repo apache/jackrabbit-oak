@@ -62,6 +62,9 @@ This would generate a csv file with content like below
 ...
 ```
 
+By default it scans whole repository. If you need to restrict it to look up under certain path then specify the path via 
+`--path` option.
+
 ### Step 3 - Perform the text extraction
 
 Once the csv file is generated we need to perform the text extraction. To do that we would need to download the 
@@ -81,6 +84,18 @@ the BlobStore which is in use like FileDataStore or S3DataStore. Above command w
 using multiple threads and store the extracted text in directory specified by `--store-path`. 
 
 Currently extracted text files are stored as files per blob in a format which is same one used with `FileDataStore`
+In addition to that it creates 2 files
+
+* blobs_error.txt - File containing blobIds for which text extraction ended in error
+* blobs_empty.txt - File containing blobIds for which no text was extracted
+
+This phase is incremental i.e. if run multiple times and same `--store-path` is specified then it would avoid
+extracting text from previously processed binaries.
+
+Further the `extract` phase only needs access to `BlobStore` and does not require access to NodeStore. So this 
+can be run from a different machine (possibly more powerful to allow use of multiple cores) to speed up text 
+extraction. One can also split the csv into multiple chunks and process them on different machines and then merge the 
+stores later. Just ensure that at merge time blobs*.txt files are also merged
 
 Note that we need to launch the command with `-cp` instead of `-jar` as we need to include classes outside of oak-run jar 
 like tika-app
