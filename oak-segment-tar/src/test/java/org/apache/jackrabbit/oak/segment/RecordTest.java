@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -142,6 +143,15 @@ public class RecordTest {
             count++;
         }
         assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, count);
+    }
+
+    @Test
+    @Ignore("OAK-6372")  // FIXME OAK-6372: ListRecord cannot handle more than 16581375 entries
+    public void testLargeListRecord() throws IOException {
+        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
+
+        ListRecord one = writeList(LEVEL_SIZE * LEVEL_SIZE * LEVEL_SIZE + 1, blockId);
+        one.getEntry(0);
     }
 
     private ListRecord writeList(int size, RecordId id) throws IOException {
