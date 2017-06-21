@@ -86,9 +86,12 @@ public class WhiteboardUtils {
             Hashtable<String, String> table = new Hashtable<String, String>(attrs);
             table.put("type", JmxUtil.quoteValueIfRequired(type));
             table.put("name", JmxUtil.quoteValueIfRequired(name));
-            return whiteboard.register(iface, bean, ImmutableMap.of(
-                    "jmx.objectname",
-                    new ObjectName(JMX_OAK_DOMAIN, table)));
+
+            ImmutableMap.Builder properties = ImmutableMap.builder();
+            properties.put("jmx.objectname", new ObjectName(JMX_OAK_DOMAIN, table));
+            properties.putAll(attrs);
+
+            return whiteboard.register(iface, bean, properties.build());
         } catch (MalformedObjectNameException e) {
             throw new IllegalArgumentException(e);
         }
