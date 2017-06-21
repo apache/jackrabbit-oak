@@ -65,6 +65,9 @@ public class XPathTest {
         String xpath = buff.toString();
         String sql2 = new XPathToSQL2Converter().convert(xpath);
         assertTrue("Length: " + sql2.length(), sql2.length() < 200000);
+        SQL2Parser p = new SQL2Parser(null, nodeTypes, new QueryEngineSettings());
+        Query q = p.parse(sql2, false);
+        q.buildAlternativeQuery();
     }
     
     @Test
