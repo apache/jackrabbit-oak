@@ -45,14 +45,14 @@ To generate the csv file use the `--generate` action
 
         java -jar oak-run.jar tika \
         --fds-path /path/to/datastore \
-        --nodestore /path/to/segmentstore --data-file oak-binary-stats.csv --generate
+        /path/to/segmentstore --data-file oak-binary-stats.csv --generate
 
 If connecting to S3 this command can take long time because checking binary id currently triggers download of the 
 actual binary content which we do not require. To speed up here we can use the Fake DataStore support of oak-run
 
         java -jar oak-run.jar tika \
         --fake-ds-path=temp \
-        --nodestore /path/to/segmentstore --data-file oak-binary-stats.csv --generate
+        /path/to/segmentstore --data-file oak-binary-stats.csv --generate
         
 This would generate a csv file with content like below
 
