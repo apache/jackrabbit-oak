@@ -131,8 +131,9 @@ public class CompositeNodeStore implements NodeStore, Observable {
         }
 
         // run commit hooks and apply the changes to the builder instance
-        NodeState processed = commitHook.processCommit(getRoot(), rebase(nodeBuilder), info);
-        processed.compareAgainstBaseState(builder.getNodeState(), new ApplyDiff(nodeBuilder));
+        NodeState rebased = rebase(nodeBuilder);
+        NodeState processed = commitHook.processCommit(nodeBuilder.getBaseState(), rebased, info);
+        processed.compareAgainstBaseState(rebased, new ApplyDiff(nodeBuilder));
 
         assertNoChangesOnReadOnlyMounts(nodeBuilder);
 
