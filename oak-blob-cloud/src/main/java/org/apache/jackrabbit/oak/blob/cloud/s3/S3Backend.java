@@ -164,13 +164,13 @@ public class S3Backend extends AbstractSharedBackend {
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
-            LOG.debug("  error ", e);
-            Map<String, String> filteredMap = Maps.newHashMap();
+            LOG.error("Error ", e);
+            Map<String, Object> filteredMap = Maps.newHashMap();
             if (properties != null) {
-                filteredMap = Maps.filterKeys(Maps.fromProperties(properties), new Predicate<String>() {
+                filteredMap = Maps.filterKeys(Utils.asMap(properties), new Predicate<String>() {
                     @Override public boolean apply(String input) {
-                        return !input.equals(S3Constants.ACCESS_KEY) && !input.equals(S3Constants
-                            .SECRET_KEY);
+                        return !input.equals(S3Constants.ACCESS_KEY) &&
+                            !input.equals(S3Constants.SECRET_KEY);
                     }
                 });
             }
