@@ -769,7 +769,11 @@ public class FileStore extends AbstractFileStore {
                 return new Compactor(segmentReader, writer, getBlobStore(), cancel, gcOptions)
                         .compact(EMPTY_NODE, head, EMPTY_NODE);
             } else {
-                return new SegmentNodeState(segmentReader, writer, getBlobStore(), writer.writeNode(head, cancel));
+                RecordId id = writer.writeNode(head, cancel);
+                if (id == null) {
+                    return null;
+                }
+                return new SegmentNodeState(segmentReader, writer, getBlobStore(), id);
             }
         }
 
