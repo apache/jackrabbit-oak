@@ -73,7 +73,7 @@ with Oak 1.7.2 jar.
 
 To perform the text extraction use the `--extract` action
 
-        java -cp tika-app-1.15.jar:oak-run.jar \
+        java -cp oak-run.jar:tika-app-1.15.jar \
         org.apache.jackrabbit.oak.run.Main tika \
         --data-file binary-stats.csv \
         --store-path ./store  \
@@ -98,7 +98,8 @@ extraction. One can also split the csv into multiple chunks and process them on 
 stores later. Just ensure that at merge time blobs*.txt files are also merged
 
 Note that we need to launch the command with `-cp` instead of `-jar` as we need to include classes outside of oak-run jar 
-like tika-app
+like tika-app. Also ensure that oak-run comes before in classpath. This is required due to some old classes being packaged 
+in tika-app 
 
 ## B - PreExtractedTextProvider
 
