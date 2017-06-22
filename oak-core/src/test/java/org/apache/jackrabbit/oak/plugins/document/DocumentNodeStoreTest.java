@@ -3115,6 +3115,27 @@ public class DocumentNodeStoreTest {
         assertTrue(names.contains("a"));
     }
 
+    // OAK-6383
+    @Ignore("OAK-6383")
+    @Test
+    public void disableBranches() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder().disableBranches()
+                .setUpdateLimit(100).clock(clock)
+                .setAsyncDelay(0).getNodeStore();
+        RevisionVector head = ns.getHeadRevision();
+        NodeBuilder b = ns.getRoot().builder();
+        for (int i = 0; i < 100; i++) {
+            b.child("node-" + i).setProperty("p", "v");
+        }
+        assertEquals(head, ns.getHeadRevision());
+        clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(5));
+        ns.runBackgroundOperations();
+        assertEquals(head, ns.getHeadRevision());
+    }
+
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;
