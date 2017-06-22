@@ -74,7 +74,7 @@ public class DefaultThreeWayConflictHandlerTheirsTest {
     }
 
     @Test
-    public void testAddExistingProperties() throws CommitFailedException {
+    public void testAddExistingProperty() throws CommitFailedException {
         theirRoot.getTree("/").setProperty("p", THEIR_VALUE);
         theirRoot.getTree("/").setProperty("q", THEIR_VALUE);
         ourRoot.getTree("/").setProperty("p", OUR_VALUE);
@@ -115,6 +115,18 @@ public class DefaultThreeWayConflictHandlerTheirsTest {
         PropertyState p = ourRoot.getTree("/").getProperty("a");
         assertNotNull(p);
         assertEquals(THEIR_VALUE, p.getValue(STRING));
+    }
+
+    @Test
+    public void testDeleteDeletedProperty() throws CommitFailedException {
+        theirRoot.getTree("/").removeProperty("a");
+        ourRoot.getTree("/").removeProperty("a");
+
+        theirRoot.commit();
+        ourRoot.commit();
+
+        PropertyState p = ourRoot.getTree("/").getProperty("a");
+        assertNull(p);
     }
 
     @Test
@@ -168,4 +180,14 @@ public class DefaultThreeWayConflictHandlerTheirsTest {
         assertEquals(THEIR_VALUE, n.getProperty("p").getValue(STRING));
     }
 
+    @Test
+    public void testDeleteDeletedNode() throws CommitFailedException {
+        theirRoot.getTree("/x").remove();
+        ourRoot.getTree("/x").remove();
+
+        theirRoot.commit();
+        ourRoot.commit();
+
+        assertFalse(ourRoot.getTree("/x").exists());
+    }
 }

@@ -164,13 +164,11 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     private void applyPropertyResolution(Resolution resolution, ConflictType conflictType, String name, PropertyState ours) {
         NodeBuilder conflictMarker = getConflictMarker(conflictType);
         if (resolution == Resolution.OURS) {
-            if (DELETE_CHANGED_PROPERTY == conflictType) {
+            if (DELETE_CHANGED_PROPERTY == conflictType || DELETE_DELETED_PROPERTY == conflictType) {
                 target.removeProperty(name);
-            }
-            else {
+            } else {
                 target.setProperty(ours);
             }
-
         }
         NodeBuilder baseClean = conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.BASE);
         if (baseClean.exists()) {
@@ -185,10 +183,9 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     private void applyResolution(Resolution resolution, ConflictType conflictType, String name, NodeState ours) {
         NodeBuilder conflictMarker = getConflictMarker(conflictType);
         if (resolution == Resolution.OURS) {
-            if (DELETE_CHANGED_NODE == conflictType) {
+            if (DELETE_CHANGED_NODE == conflictType || DELETE_DELETED_NODE == conflictType) {
                 removeChild(target, name);
-            }
-            else {
+            } else {
                 addChild(target, name, ours);
             }
         }
