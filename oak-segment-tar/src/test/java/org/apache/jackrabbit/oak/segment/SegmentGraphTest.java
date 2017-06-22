@@ -41,7 +41,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
-
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.Graph;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -71,18 +71,18 @@ public class SegmentGraphTest {
             SegmentNodeState root = store.getHead();
             segments.add(getSegmentId(root));
 
-            SegmentWriter w1 = segmentWriterBuilder("writer1").build(store);
-            SegmentWriter w2 = segmentWriterBuilder("writer2").build(store);
-            SegmentWriter w3 = segmentWriterBuilder("writer3").build(store);
+            DefaultSegmentWriter w1 = segmentWriterBuilder("writer1").build(store);
+            DefaultSegmentWriter w2 = segmentWriterBuilder("writer2").build(store);
+            DefaultSegmentWriter w3 = segmentWriterBuilder("writer3").build(store);
 
-            SegmentPropertyState p1 = w1.writeProperty(createProperty("p1", "v1"));
+            SegmentPropertyState p1 = new SegmentPropertyState(store.getReader(), w1.writeProperty(createProperty("p1", "v1")), "p1", Type.STRING);
             segments.add(getSegmentId(p1));
 
-            SegmentPropertyState p2 = w2.writeProperty(createProperty("p2", "v2"));
+            SegmentPropertyState p2 = new SegmentPropertyState(store.getReader(), w2.writeProperty(createProperty("p2", "v2")), "p2", Type.STRING);
             segments.add(getSegmentId(p2));
             filteredSegments.add(getSegmentId(p2));
 
-            SegmentPropertyState p3 = w3.writeProperty(createProperty("p3", "v3"));
+            SegmentPropertyState p3 = new SegmentPropertyState(store.getReader(), w3.writeProperty(createProperty("p3", "v3")), "p3", Type.STRING);
             segments.add(getSegmentId(p3));
             filteredSegments.add(getSegmentId(p3));
 
@@ -91,7 +91,7 @@ public class SegmentGraphTest {
             builder.setProperty(p2);
             builder.setProperty(p3);
 
-            SegmentNodeState n3 = w3.writeNode(builder.getNodeState());
+            SegmentNodeState n3 = new SegmentNodeState(store.getReader(), w3, store.getBlobStore(), w3.writeNode(builder.getNodeState()));
             segments.add(getSegmentId(n3));
             filteredSegments.add(getSegmentId(n3));
             addReference(references, getSegmentId(n3), getSegmentId(p1));
@@ -99,7 +99,7 @@ public class SegmentGraphTest {
             addReference(filteredReferences, getSegmentId(n3), getSegmentId(p2));
 
             // Cyclic reference
-            SegmentNodeState n1 = w1.writeNode(builder.getNodeState());
+            SegmentNodeState n1 = new SegmentNodeState(store.getReader(), w1, store.getBlobStore(), w1.writeNode(builder.getNodeState()));
             addReference(references, getSegmentId(n1), getSegmentId(p2));
             addReference(references, getSegmentId(n1), getSegmentId(p3));
 

@@ -69,7 +69,7 @@ public class Compactor {
 
     private final BlobStore blobStore;
 
-    private final SegmentWriter writer;
+    private final DefaultSegmentWriter writer;
 
     private final ProgressTracker progress = new ProgressTracker();
 
@@ -132,7 +132,7 @@ public class Compactor {
     private final PriorityCache<RecordId, RecordId> nodeCache =
             new PriorityCache<>((int) nextPowerOfTwo(cacheSize/10*9));
 
-    public Compactor(SegmentReader reader, SegmentWriter writer,
+    public Compactor(SegmentReader reader, DefaultSegmentWriter writer,
             BlobStore blobStore, Supplier<Boolean> cancel, SegmentGCOptions gc) {
         this.reader = reader;
         this.writer = writer;
@@ -144,8 +144,8 @@ public class Compactor {
 
     private SegmentNodeBuilder process(NodeState before, NodeState after,
             NodeState onto) throws IOException {
-        SegmentNodeBuilder builder = new SegmentNodeBuilder(
-                writer.writeNode(onto), writer);
+        SegmentNodeState node = new SegmentNodeState(reader, writer, blobStore, writer.writeNode(onto));
+        SegmentNodeBuilder builder = new SegmentNodeBuilder(node, blobStore, reader, writer);
         new CompactDiff(builder).diff(before, after);
         return builder;
     }
@@ -238,8 +238,7 @@ public class Compactor {
                 id = ((SegmentNodeState) after).getRecordId();
                 RecordId compactedId = nodeCache.get(id, 0);
                 if (compactedId != null) {
-                    builder.setChildNode(name, new SegmentNodeState(reader,
-                            writer, compactedId));
+                    builder.setChildNode(name, new SegmentNodeState(reader, writer, blobStore, compactedId));
                     return true;
                 }
             }
@@ -250,12 +249,12 @@ public class Compactor {
                 if (eagerFlush) {
                     child = builder.setChildNode(name);
                 } else {
-                    child = writer.writeNode(EMPTY_NODE).builder();
+                    child = new SegmentNodeState(reader, writer, blobStore, writer.writeNode(EMPTY_NODE)).builder();
                 }
                 boolean success = new CompactDiff(child, path, name).diff(
                         EMPTY_NODE, after);
                 if (success) {
-                    SegmentNodeState state = writer.writeNode(child.getNodeState());
+                    SegmentNodeState state = new SegmentNodeState(reader, writer, blobStore, writer.writeNode(child.getNodeState()));
                     builder.setChildNode(name, state);
                     if (id != null) {
                         nodeCache.put(id, state.getRecordId(), 0, cost(state));
@@ -280,8 +279,7 @@ public class Compactor {
                 id = ((SegmentNodeState) after).getRecordId();
                 RecordId compactedId = nodeCache.get(id, 0);
                 if (compactedId != null) {
-                    builder.setChildNode(name, new SegmentNodeState(reader,
-                            writer, compactedId));
+                    builder.setChildNode(name, new SegmentNodeState(reader, writer, blobStore, compactedId));
                     return true;
                 }
             }
@@ -296,7 +294,7 @@ public class Compactor {
                 boolean success = new CompactDiff(child, path, name).diff(
                         before, after);
                 if (success) {
-                    SegmentNodeState state = writer.writeNode(child.getNodeState());
+                    SegmentNodeState state = new SegmentNodeState(reader, writer, blobStore, writer.writeNode(child.getNodeState()));
                     if (id != null) {
                         nodeCache.put(id, state.getRecordId(), 0, cost(state));
                     }
@@ -365,11 +363,11 @@ public class Compactor {
 
                 // if the blob is external, just clone it
                 if (sb.isExternal()) {
-                    return writer.writeBlob(sb);
+                    return new SegmentBlob(blobStore, writer.writeBlob(sb));
                 }
                 // if the blob is inlined, just clone it
                 if (sb.length() < Segment.MEDIUM_LIMIT) {
-                    SegmentBlob clone = writer.writeBlob(blob);
+                    SegmentBlob clone = new SegmentBlob(blobStore, writer.writeBlob(blob));
                     blobCache.put(id, clone.getRecordId(), 0, cost(clone));
                     return clone;
                 }
@@ -394,7 +392,7 @@ public class Compactor {
                 }
 
                 // if not, clone the large blob and keep track of the result
-                sb = writer.writeBlob(blob);
+                sb = new SegmentBlob(blobStore, writer.writeBlob(blob));
                 blobCache.put(id, sb.getRecordId(), 0, cost(sb));
 
                 if (dedup) {
@@ -419,7 +417,7 @@ public class Compactor {
     private static String getBlobKey(Blob blob) throws IOException {
         InputStream stream = blob.getNewStream();
         try {
-            byte[] buffer = new byte[SegmentWriter.BLOCK_SIZE];
+            byte[] buffer = new byte[DefaultSegmentWriter.BLOCK_SIZE];
             int n = IOUtils.readFully(stream, buffer, 0, buffer.length);
             return blob.length() + ":" + Hashing.sha1().hashBytes(buffer, 0, n);
         } finally {

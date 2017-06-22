@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
  * overrun be calling any of the write methods.
  * <p>
  * Instances of this class are <em>not thread safe</em>. See also the class comment of
- * {@link SegmentWriter}.
+ * {@link DefaultSegmentWriter}.
  */
 public class SegmentBufferWriter implements WriteOperationHandler {
 

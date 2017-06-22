@@ -51,7 +51,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,9 +122,9 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         });
         this.blobStore = builder.getBlobStore();
         this.segmentCache = new SegmentCache(builder.getSegmentCacheSize());
-        this.segmentReader = new CachingSegmentReader(new Supplier<SegmentWriter>() {
+        this.segmentReader = new CachingSegmentReader(new Supplier<DefaultSegmentWriter>() {
             @Override
-            public SegmentWriter get() {
+            public DefaultSegmentWriter get() {
                 return getWriter();
             }
         }, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
@@ -195,7 +195,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     @Nonnull
-    public abstract SegmentWriter getWriter();
+    public abstract DefaultSegmentWriter getWriter();
 
     @Nonnull
     public SegmentReader getReader() {

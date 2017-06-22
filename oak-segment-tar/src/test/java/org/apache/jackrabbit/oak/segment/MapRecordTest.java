@@ -29,13 +29,12 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
 
 /**
  * Test case for segment node state comparisons.
@@ -47,8 +46,12 @@ public class MapRecordTest {
 
     private NodeBuilder builder;
 
+    // TODO frm replace this with JUnit test initialization
     public MapRecordTest() throws IOException {
-        builder = new MemoryStore().getWriter().writeNode(EMPTY_NODE).builder();
+        MemoryStore store = new MemoryStore();
+        RecordId id = store.getWriter().writeNode(EMPTY_NODE);
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), store.getWriter(), store.getBlobStore(), id);
+        builder = node.builder();
     }
 
     @Test

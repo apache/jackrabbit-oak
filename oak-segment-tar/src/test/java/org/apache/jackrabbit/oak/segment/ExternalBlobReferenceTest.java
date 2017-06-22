@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -32,6 +32,7 @@ import java.io.InputStream;
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentTestConstants;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.After;
 import org.junit.Before;
@@ -104,7 +105,7 @@ public class ExternalBlobReferenceTest {
         doReturn(blobId).when(blobStore).writeBlob(any(InputStream.class));
         doReturn(blobLength).when(blobStore).getBlobLength(blobId);
 
-        SegmentBlob blob = fileStore.getWriter().writeStream(newRandomInputStream(blobLength));
+        SegmentBlob blob = new SegmentBlob(blobStore, fileStore.getWriter().writeStream(newRandomInputStream(blobLength)));
 
         assertEquals(blobLength, blob.length());
     }

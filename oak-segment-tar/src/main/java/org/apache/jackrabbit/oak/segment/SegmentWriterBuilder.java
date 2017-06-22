@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 
 /**
- * Builder for building {@link SegmentWriter} instances.
+ * Builder for building {@link DefaultSegmentWriter} instances.
  * The returned instances are thread safe if {@link #withWriterPool()}
  * was specified and <em>not</em> thread sage if {@link #withoutWriterPool()}
  * was specified (default).
@@ -142,8 +142,8 @@ public final class SegmentWriterBuilder {
      * Build a {@code SegmentWriter} for a {@code FileStore}.
      */
     @Nonnull
-    public SegmentWriter build(@Nonnull FileStore store) {
-        return new SegmentWriter(
+    public DefaultSegmentWriter build(@Nonnull FileStore store) {
+        return new DefaultSegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),
@@ -159,8 +159,8 @@ public final class SegmentWriterBuilder {
      * {@code UnsupportedOperationException} to be thrown.
      */
     @Nonnull
-    public SegmentWriter build(@Nonnull ReadOnlyFileStore store) {
-        return new SegmentWriter(
+    public DefaultSegmentWriter build(@Nonnull ReadOnlyFileStore store) {
+        return new DefaultSegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),
@@ -184,8 +184,8 @@ public final class SegmentWriterBuilder {
      * Build a {@code SegmentWriter} for a {@code MemoryStore}.
      */
     @Nonnull
-    public SegmentWriter build(@Nonnull MemoryStore store) {
-        return new SegmentWriter(
+    public DefaultSegmentWriter build(@Nonnull MemoryStore store) {
+        return new DefaultSegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
                 store.getSegmentIdProvider(),

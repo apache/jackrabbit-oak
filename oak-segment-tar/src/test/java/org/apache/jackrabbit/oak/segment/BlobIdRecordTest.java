@@ -126,9 +126,9 @@ public class BlobIdRecordTest {
     @Test
     public void shortReferencesShouldHaveBlobIdType() throws Exception {
         try (FileStore ss = newFileStore(new ShortIdMappingBlobStore())) {
-            SegmentWriter sw = segmentWriterBuilder("test").build(ss);
+            DefaultSegmentWriter sw = segmentWriterBuilder("test").build(ss);
             byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
-            SegmentBlob sb = sw.writeBlob(new ArrayBasedBlob(content));
+            SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
             assertRecordTypeEquals(sb, RecordType.BLOB_ID);
         }
     }
@@ -136,9 +136,9 @@ public class BlobIdRecordTest {
     @Test
     public void longReferencesShouldHaveBlobIdType() throws Exception {
         try (FileStore ss = newFileStore(new LongIdMappingBlobStore())) {
-            SegmentWriter sw = segmentWriterBuilder("test").build(ss);
+            DefaultSegmentWriter sw = segmentWriterBuilder("test").build(ss);
             byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
-            SegmentBlob sb = sw.writeBlob(new ArrayBasedBlob(content));
+            SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
             assertRecordTypeEquals(sb, RecordType.BLOB_ID);
         }
     }

@@ -66,13 +66,13 @@ import com.google.common.base.Suppliers;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.Compactor;
+import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
@@ -106,7 +106,7 @@ public class FileStore extends AbstractFileStore {
     private static final AtomicLong GC_COUNT = new AtomicLong(0);
 
     @Nonnull
-    private final SegmentWriter segmentWriter;
+    private final DefaultSegmentWriter segmentWriter;
 
     @Nonnull
     private final GarbageCollector garbageCollector;
@@ -268,10 +268,10 @@ public class FileStore extends AbstractFileStore {
             @Override
             public RecordId get() {
                 try {
-                    SegmentWriter writer = segmentWriterBuilder("init").build(FileStore.this);
+                    DefaultSegmentWriter writer = segmentWriterBuilder("init").build(FileStore.this);
                     NodeBuilder builder = EMPTY_NODE.builder();
                     builder.setChildNode("root", EMPTY_NODE);
-                    SegmentNodeState node = writer.writeNode(builder.getNodeState());
+                    SegmentNodeState node = new SegmentNodeState(segmentReader, writer, getBlobStore(), writer.writeNode(builder.getNodeState()));
                     writer.flush();
                     return node.getRecordId();
                 } catch (IOException e) {
@@ -398,7 +398,7 @@ public class FileStore extends AbstractFileStore {
 
     @Override
     @Nonnull
-    public SegmentWriter getWriter() {
+    public DefaultSegmentWriter getWriter() {
         return segmentWriter;
     }
 
@@ -667,7 +667,7 @@ public class FileStore extends AbstractFileStore {
 
                 SegmentNodeState before = getHead();
                 CancelCompactionSupplier cancel = new CancelCompactionSupplier(FileStore.this);
-                SegmentWriter writer = segmentWriterBuilder("c")
+                DefaultSegmentWriter writer = segmentWriterBuilder("c")
                         .with(cacheManager)
                         .withGeneration(newGeneration)
                         .withoutWriterPool()
@@ -763,18 +763,18 @@ public class FileStore extends AbstractFileStore {
             }
         }
 
-        private SegmentNodeState compact(NodeState head, SegmentWriter writer, Supplier<Boolean> cancel)
+        private SegmentNodeState compact(NodeState head, DefaultSegmentWriter writer, Supplier<Boolean> cancel)
         throws IOException {
             if (gcOptions.isOffline()) {
                 return new Compactor(segmentReader, writer, getBlobStore(), cancel, gcOptions)
                         .compact(EMPTY_NODE, head, EMPTY_NODE);
             } else {
-                return writer.writeNode(head, cancel);
+                return new SegmentNodeState(segmentReader, writer, getBlobStore(), writer.writeNode(head, cancel));
             }
         }
 
         @CheckForNull
-        private SegmentNodeState forceCompact(@Nonnull final SegmentWriter writer,
+        private SegmentNodeState forceCompact(@Nonnull final DefaultSegmentWriter writer,
                                               @Nonnull final Supplier<Boolean> cancel)
         throws InterruptedException {
             RecordId compactedId = revisions.setHead(new Function<RecordId, RecordId>() {
