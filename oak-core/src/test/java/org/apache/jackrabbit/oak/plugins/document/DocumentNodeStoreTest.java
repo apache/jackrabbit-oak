@@ -3116,7 +3116,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-6383
-    @Ignore("OAK-6383")
     @Test
     public void disableBranches() throws Exception {
         Clock clock = new Clock.Virtual();
