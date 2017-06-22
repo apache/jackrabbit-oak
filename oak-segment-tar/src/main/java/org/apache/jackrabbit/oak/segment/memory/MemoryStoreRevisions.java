@@ -45,7 +45,7 @@ public class MemoryStoreRevisions implements Revisions {
         if (head == null) {
             NodeBuilder builder = EMPTY_NODE.builder();
             builder.setChildNode("root", EMPTY_NODE);
-            head = store.getWriter().writeNode(builder.getNodeState()).getRecordId();
+            head = store.getWriter().writeNode(builder.getNodeState());
             store.getWriter().flush();
         }
     }

@@ -25,12 +25,12 @@ import javax.annotation.Nonnull;
 
 /**
  * A {@code WriteOperationHandler} executes {@link WriteOperation WriteOperation}s and as
- * such serves as a bridge between {@link SegmentWriter} and {@link SegmentBufferWriter}.
+ * such serves as a bridge between {@link DefaultSegmentWriter} and {@link SegmentBufferWriter}.
  */
 interface WriteOperationHandler {
 
     /**
-     * A {@code WriteOperation} encapsulates an operation on a {@link SegmentWriter}.
+     * A {@code WriteOperation} encapsulates an operation on a {@link DefaultSegmentWriter}.
      * Executing it performs the actual act of persisting changes to a
      * {@link SegmentBufferWriter}.
      */

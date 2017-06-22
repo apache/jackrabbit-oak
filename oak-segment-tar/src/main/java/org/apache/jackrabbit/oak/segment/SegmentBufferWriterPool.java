@@ -42,7 +42,7 @@ import com.google.common.util.concurrent.Monitor.Guard;
  * which it passes to its {@link #execute(WriteOperation) execute} method.
  * <p>
  * Instances of this class are thread safe. See also the class comment of
- * {@link SegmentWriter}.
+ * {@link DefaultSegmentWriter}.
  */
 public class SegmentBufferWriterPool implements WriteOperationHandler {
 

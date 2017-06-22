@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -755,14 +756,16 @@ public class CompactionAndCleanupIT {
     @Test
     public void cleanupCyclicGraph() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
-        final SegmentWriter writer = fileStore.getWriter();
+        final SegmentReader reader = fileStore.getReader();
+        final DefaultSegmentWriter writer = fileStore.getWriter();
+        final BlobStore blobStore = fileStore.getBlobStore();
         final SegmentNodeState oldHead = fileStore.getHead();
 
         final SegmentNodeState child = run(new Callable<SegmentNodeState>() {
             @Override
             public SegmentNodeState call() throws Exception {
                 NodeBuilder builder = EMPTY_NODE.builder();
-                return writer.writeNode(EMPTY_NODE);
+                return new SegmentNodeState(reader, writer, blobStore, writer.writeNode(EMPTY_NODE));
             }
         });
         SegmentNodeState newHead = run(new Callable<SegmentNodeState>() {
@@ -770,7 +773,7 @@ public class CompactionAndCleanupIT {
             public SegmentNodeState call() throws Exception {
                 NodeBuilder builder = oldHead.builder();
                 builder.setChildNode("child", child);
-                return writer.writeNode(builder.getNodeState());
+                return new SegmentNodeState(reader, writer, blobStore, writer.writeNode(builder.getNodeState()));
             }
         });
 

@@ -81,7 +81,7 @@ public class SegmentBufferWriterTest {
         }
 
         try (FileStore store = openFileStore()) {
-            SegmentWriter writer = segmentWriterBuilder("t").build(store);
+            DefaultSegmentWriter writer = segmentWriterBuilder("t").build(store);
             writer.writeString("test");
             writer.flush();
         }

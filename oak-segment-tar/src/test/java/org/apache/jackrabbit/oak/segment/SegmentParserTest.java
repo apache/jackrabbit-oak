@@ -59,7 +59,7 @@ import org.junit.Test;
 
 public class SegmentParserTest {
     private MemoryStore store;
-    private SegmentWriter writer;
+    private DefaultSegmentWriter writer;
 
     private static class TestParser extends SegmentParser {
         private final String name;
@@ -142,7 +142,7 @@ public class SegmentParserTest {
 
     @Test
     public void emptyNode() throws IOException {
-        SegmentNodeState node = writer.writeNode(EMPTY_NODE);
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EMPTY_NODE));
         NodeInfo info = new TestParser(store.getReader(), "emptyNode") {
             @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
         }.parseNode(node.getRecordId());
@@ -156,7 +156,7 @@ public class SegmentParserTest {
     public void singleChildNode() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("child");
-        SegmentNodeState node = writer.writeNode(builder.getNodeState());
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo info = new TestParser(store.getReader(), "singleChildNode") {
             @Override protected void onNode(RecordId parentId, RecordId nodeId) { }
             @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
@@ -173,7 +173,7 @@ public class SegmentParserTest {
         builder.setChildNode("one");
         builder.setChildNode("two");
         builder.setProperty("three", 42);
-        SegmentNodeState node = writer.writeNode(builder.getNodeState());
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo info = new TestParser(store.getReader(), "node") {
             @Override protected void onNode(RecordId parentId, RecordId nodeId) { }
             @Override protected void onTemplate(RecordId parentId, RecordId templateId) { }
@@ -194,7 +194,7 @@ public class SegmentParserTest {
         builder.setProperty("p", 1);
         builder.setProperty("jcr:primaryType", "type", NAME);
         builder.setProperty("jcr:mixinTypes", ImmutableList.of("type1", "type2"), NAMES);
-        SegmentNodeState node = writer.writeNode(builder.getNodeState());
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo nodeInfo = new TestParser(store.getReader(), "template") {
             @Override
             protected void onTemplate(RecordId parentId, RecordId templateId) {
@@ -217,7 +217,7 @@ public class SegmentParserTest {
     @Test
     public void emptyMap() throws IOException {
         Map<String, RecordId> empty = newHashMap();
-        MapRecord map = writer.writeMap(null, empty);
+        MapRecord map = new MapRecord(store.getReader(), writer.writeMap(null, empty));
         MapInfo mapInfo = new TestParser(store.getReader(), "emptyMap") {
             @Override protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) { }
         }.parseMap(null, map.getRecordId(), map);
@@ -227,8 +227,8 @@ public class SegmentParserTest {
     @Test
     public void nonEmptyMap() throws IOException {
         Random rnd = new Random();
-        MapRecord base = writer.writeMap(null, createMap(33, rnd));
-        MapRecord map = writer.writeMap(base, createMap(1, rnd));
+        MapRecord base = new MapRecord(store.getReader(), writer.writeMap(null, createMap(33, rnd)));
+        MapRecord map = new MapRecord(store.getReader(), writer.writeMap(base, createMap(1, rnd)));
         MapInfo mapInfo = new TestParser(store.getReader(), "nonEmptyMap") {
             @Override
             protected void onMapDiff(RecordId parentId, RecordId mapId, MapRecord map) {
@@ -267,7 +267,7 @@ public class SegmentParserTest {
     public void singleValueProperty() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("p", 1);
-        SegmentNodeState node = writer.writeNode(builder.getNodeState());
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo nodeInfo = new TestParser(store.getReader(), "singleValueProperty") {
             @Override
             protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
@@ -285,7 +285,7 @@ public class SegmentParserTest {
     public void multiValueProperty() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("p", ImmutableList.of(1L, 2L, 3L, 4L), LONGS);
-        SegmentNodeState node = writer.writeNode(builder.getNodeState());
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo nodeInfo = new TestParser(store.getReader(), "multiValueProperty") {
             @Override
             protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
@@ -301,7 +301,7 @@ public class SegmentParserTest {
 
     @Test
     public void smallBlob() throws IOException {
-        SegmentBlob blob = writer.writeBlob(createRandomBlob(4));
+        SegmentBlob blob = new SegmentBlob(store.getBlobStore(), writer.writeBlob(createRandomBlob(4)));
         ValueInfo valueInfo = new TestParser(store.getReader(), "smallBlob") {
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {
@@ -316,7 +316,7 @@ public class SegmentParserTest {
 
     @Test
     public void mediumBlob() throws IOException {
-        SegmentBlob blob = writer.writeBlob(createRandomBlob(SMALL_LIMIT));
+        SegmentBlob blob = new SegmentBlob(store.getBlobStore(), writer.writeBlob(createRandomBlob(SMALL_LIMIT)));
         ValueInfo valueInfo = new TestParser(store.getReader(), "mediumBlob") {
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {
@@ -331,7 +331,7 @@ public class SegmentParserTest {
 
     @Test
     public void longBlob() throws IOException {
-        SegmentBlob blob = writer.writeBlob(createRandomBlob(MEDIUM_LIMIT));
+        SegmentBlob blob = new SegmentBlob(store.getBlobStore(), writer.writeBlob(createRandomBlob(MEDIUM_LIMIT)));
         ValueInfo valueInfo = new TestParser(store.getReader(), "longBlob") {
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {

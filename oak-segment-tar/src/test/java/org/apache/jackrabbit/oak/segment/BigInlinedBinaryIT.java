@@ -22,7 +22,7 @@ import static java.lang.Long.signum;
 import static java.lang.System.getProperty;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
-import static org.apache.jackrabbit.oak.segment.SegmentWriter.BLOCK_SIZE;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriter.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;

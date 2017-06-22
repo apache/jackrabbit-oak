@@ -29,7 +29,7 @@ import java.io.File;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.junit.Rule;
@@ -57,7 +57,7 @@ public class DefaultStandbyReferenceReaderTest {
     @Test
     public void shouldReturnEmptyReferences() throws Exception {
         try (FileStore store = newFileStore()) {
-            SegmentWriter writer = segmentWriterBuilder("test").build(store);
+            DefaultSegmentWriter writer = segmentWriterBuilder("test").build(store);
 
             RecordId id = writer.writeString("test");
             writer.flush();
@@ -71,7 +71,7 @@ public class DefaultStandbyReferenceReaderTest {
     @Test
     public void shouldReturnReferences() throws Exception {
         try (FileStore store = newFileStore()) {
-            SegmentWriter writer = segmentWriterBuilder("test").build(store);
+            DefaultSegmentWriter writer = segmentWriterBuilder("test").build(store);
 
             RecordId a = writer.writeString("test");
             writer.flush();

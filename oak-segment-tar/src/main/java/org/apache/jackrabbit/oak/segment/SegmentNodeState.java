@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -63,8 +64,10 @@ public class SegmentNodeState extends Record implements NodeState {
     @Nonnull
     private final SegmentReader reader;
 
+    private final BlobStore blobStore;
+
     @Nonnull
-    private final Supplier<SegmentWriter> writer;
+    private final Supplier<DefaultSegmentWriter> writer;
 
     private volatile RecordId templateId = null;
 
@@ -72,18 +75,21 @@ public class SegmentNodeState extends Record implements NodeState {
 
     SegmentNodeState(
             @Nonnull SegmentReader reader,
-            @Nonnull Supplier<SegmentWriter> writer,
+            @Nonnull Supplier<DefaultSegmentWriter> writer,
+            BlobStore blobStore,
             @Nonnull RecordId id) {
         super(id);
         this.reader = checkNotNull(reader);
         this.writer = checkNotNull(memoize(writer));
+        this.blobStore = blobStore;
     }
 
-    SegmentNodeState(
+    public SegmentNodeState(
             @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer,
+            @Nonnull DefaultSegmentWriter writer,
+            BlobStore blobStore,
             @Nonnull RecordId id) {
-        this(reader, Suppliers.ofInstance(writer), id);
+        this(reader, Suppliers.ofInstance(writer), blobStore, id);
     }
 
     RecordId getTemplateId() {
@@ -448,7 +454,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @Nonnull
     public SegmentNodeBuilder builder() {
-        return new SegmentNodeBuilder(this, writer.get());
+        return new SegmentNodeBuilder(this, blobStore, reader, writer.get());
     }
 
     @Override

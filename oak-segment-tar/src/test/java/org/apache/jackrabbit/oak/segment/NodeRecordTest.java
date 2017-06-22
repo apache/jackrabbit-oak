@@ -61,8 +61,9 @@ public class NodeRecordTest {
     @Test
     public void unreferencedNodeRecordShouldBeRoot() throws Exception {
         try (FileStore store = newFileStore()) {
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
-            SegmentNodeState state = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            DefaultSegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
+            // TODO frm this line does not seem to do anything useful
+            SegmentNodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
             writer.flush();
         }
     }
@@ -70,18 +71,18 @@ public class NodeRecordTest {
     @Test
     public void stableIdShouldPersistAcrossGenerations() throws Exception {
         try (FileStore store = newFileStore()) {
-            SegmentWriter writer;
+            DefaultSegmentWriter writer;
 
             writer = SegmentWriterBuilder.segmentWriterBuilder("1").withGeneration(1).build(store);
-            SegmentNodeState one = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            SegmentNodeState one = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
             writer.flush();
 
             writer = SegmentWriterBuilder.segmentWriterBuilder("2").withGeneration(2).build(store);
-            SegmentNodeState two = writer.writeNode(one);
+            SegmentNodeState two = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(one));
             writer.flush();
 
             writer = SegmentWriterBuilder.segmentWriterBuilder("3").withGeneration(3).build(store);
-            SegmentNodeState three = writer.writeNode(two);
+            SegmentNodeState three = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(two));
             writer.flush();
 
             assertArrayEquals(asByteArray(three.getStableIdBytes()), asByteArray(two.getStableIdBytes()));
@@ -104,7 +105,7 @@ public class NodeRecordTest {
             // otherwise the write of some records (in this case, template
             // records) will be cached and prevent this test to fail.
 
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test")
+            DefaultSegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test")
                     .withGeneration(generation)
                     .withWriterPool()
                     .with(nodesOnlyCache())
@@ -115,18 +116,19 @@ public class NodeRecordTest {
             // Write a new node with a non trivial template. This record will
             // belong to generation 1.
 
-            SegmentNodeState base = writer.writeNode(EmptyNodeState.EMPTY_NODE.builder()
+            RecordId baseId = writer.writeNode(EmptyNodeState.EMPTY_NODE.builder()
                     .setProperty("a", "a")
                     .setProperty("k", "v1")
                     .getNodeState()
             );
+            SegmentNodeState base = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), baseId);
             writer.flush();
 
             generation.set(2);
 
             // Compact that same record to generation 2.
 
-            SegmentNodeState compacted = writer.writeNode(base);
+            SegmentNodeState compacted = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(base));
             writer.flush();
 
             // Assert that even if the two records have the same stable ID,

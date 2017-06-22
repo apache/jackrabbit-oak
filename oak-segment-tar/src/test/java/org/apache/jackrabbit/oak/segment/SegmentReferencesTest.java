@@ -44,7 +44,7 @@ public class SegmentReferencesTest {
 
             // Write two records, one referencing the other.
 
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
+            DefaultSegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
             RecordId stringId = writer.writeString("test");
             RecordId listId = writer.writeList(Arrays.asList(stringId, stringId));
             writer.flush();
@@ -66,7 +66,7 @@ public class SegmentReferencesTest {
 
             // Write two records, one referencing the other.
 
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
+            DefaultSegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
 
             RecordId stringId = writer.writeString("test");
             writer.flush();

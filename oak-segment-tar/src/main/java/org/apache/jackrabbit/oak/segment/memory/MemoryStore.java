@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
@@ -58,7 +58,7 @@ public class MemoryStore implements SegmentStore {
     private final SegmentReader segmentReader;
 
     @Nonnull
-    private final SegmentWriter segmentWriter;
+    private final DefaultSegmentWriter segmentWriter;
 
     private final ConcurrentMap<SegmentId, Segment> segments =
             Maps.newConcurrentMap();
@@ -71,9 +71,9 @@ public class MemoryStore implements SegmentStore {
             }
         });
         this.revisions = new MemoryStoreRevisions();
-        Supplier<SegmentWriter> getWriter = new Supplier<SegmentWriter>() {
+        Supplier<DefaultSegmentWriter> getWriter = new Supplier<DefaultSegmentWriter>() {
             @Override
-            public SegmentWriter get() {
+            public DefaultSegmentWriter get() {
                 return getWriter();
             }
         };
@@ -84,7 +84,7 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Nonnull
-    public SegmentWriter getWriter() {
+    public DefaultSegmentWriter getWriter() {
         return segmentWriter;
     }
 

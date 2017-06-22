@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     private final TarFiles tarFiles;
 
     @Nonnull
-    private final SegmentWriter writer;
+    private final DefaultSegmentWriter writer;
 
     private ReadOnlyRevisions revisions;
 
@@ -149,7 +149,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     @Nonnull
     @Override
-    public SegmentWriter getWriter() {
+    public DefaultSegmentWriter getWriter() {
         return writer;
     }
 
