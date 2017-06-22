@@ -2335,7 +2335,7 @@ public final class DocumentNodeStore
     }
 
     private void maybeRefreshHeadRevision() {
-        if (isDisposed.get()) {
+        if (isDisposed.get() || isDisableBranches()) {
             return;
         }
         // check if local head revision is outdated and needs an update
