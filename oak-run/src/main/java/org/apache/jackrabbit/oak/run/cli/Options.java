@@ -77,7 +77,7 @@ public class Options {
         configure(optionSet);
         checkForHelp(parser);
         if (checkNonOptions) {
-            checkNonOptions(parser);
+            checkNonOptions();
         }
         return optionSet;
     }
@@ -140,11 +140,11 @@ public class Options {
         }
     }
 
-    private void checkNonOptions(OptionParser parser) throws IOException {
+    public void checkNonOptions() throws IOException {
         //Some non option should be provided to enable
         if (optionBeans.containsKey(CommonOptions.class)
                 && getCommonOpts().getNonOptions().isEmpty()){
-            parser.printHelpOn(System.out);
+            System.out.println("NodeStore details not provided");
             systemExit(1);
         }
     }

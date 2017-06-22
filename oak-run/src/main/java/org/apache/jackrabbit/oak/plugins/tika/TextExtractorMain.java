@@ -54,9 +54,16 @@ public class TextExtractorMain {
         opts.setSummary("Provides text extraction related operations");
         opts.setConnectionString(CommonOptions.DEFAULT_CONNECTION_STRING);
         opts.registerOptionsFactory(TikaCommandOptions.FACTORY);
-        opts.parseAndConfigure(parser, args);
+
+        //NodeStore is only required for generate command. So make it optional
+        opts.parseAndConfigure(parser, args, false);
 
         TikaCommandOptions tikaOpts = opts.getOptionBean(TikaCommandOptions.class);
+
+        //If generate then check that NodeStore is specified
+        if (tikaOpts.generate()) {
+            opts.checkNonOptions();
+        }
 
         try (Closer closer = Closer.create()) {
             boolean report = tikaOpts.report();
