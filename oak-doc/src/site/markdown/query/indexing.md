@@ -483,6 +483,13 @@ Reindexing of existing indexes is required in the following scenarios:
   In this case, the property indexes need to be either fully rebuilt,
   or (as an alternative) copy or migrate the content again using a newer version of Oak.
   See also [OAK-4684][OAK-4684].
+* H: If a binary is missing after reindexing.
+  This can happen in the following case:
+  When reindexing or creating a new index takes multiple days, 
+  and during that time, after one day or later, datastore garbage collection was run concurrently.
+  Some binaries created during by reindexing can get missing because 
+  datastore garbage collection removes unreferenced binaries older than one day.
+  Indexing or reindexing using oak-run is not affected by this.  
 
 New indexes are built automatically once the index definition is stored.
 To reindex an _existing_ index (when needed), set the `reindex` property to `true` in the respective index definition:
