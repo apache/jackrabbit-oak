@@ -41,8 +41,7 @@ import com.google.common.util.concurrent.Monitor.Guard;
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
  * which it passes to its {@link #execute(WriteOperation) execute} method.
  * <p>
- * Instances of this class are thread safe. See also the class comment of
- * {@link DefaultSegmentWriter}.
+ * Instances of this class are thread safe.
  */
 public class SegmentBufferWriterPool implements WriteOperationHandler {
 

@@ -757,7 +757,7 @@ public class CompactionAndCleanupIT {
     public void cleanupCyclicGraph() throws Exception {
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build();
         final SegmentReader reader = fileStore.getReader();
-        final DefaultSegmentWriter writer = fileStore.getWriter();
+        final SegmentWriter writer = fileStore.getWriter();
         final BlobStore blobStore = fileStore.getBlobStore();
         final SegmentNodeState oldHead = fileStore.getHead();
 

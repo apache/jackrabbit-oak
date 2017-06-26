@@ -67,7 +67,7 @@ public class SegmentNodeState extends Record implements NodeState {
     private final BlobStore blobStore;
 
     @Nonnull
-    private final Supplier<DefaultSegmentWriter> writer;
+    private final Supplier<SegmentWriter> writer;
 
     private volatile RecordId templateId = null;
 
@@ -75,7 +75,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     SegmentNodeState(
             @Nonnull SegmentReader reader,
-            @Nonnull Supplier<DefaultSegmentWriter> writer,
+            @Nonnull Supplier<SegmentWriter> writer,
             BlobStore blobStore,
             @Nonnull RecordId id) {
         super(id);
@@ -86,7 +86,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     public SegmentNodeState(
             @Nonnull SegmentReader reader,
-            @Nonnull DefaultSegmentWriter writer,
+            @Nonnull SegmentWriter writer,
             BlobStore blobStore,
             @Nonnull RecordId id) {
         this(reader, Suppliers.ofInstance(writer), blobStore, id);

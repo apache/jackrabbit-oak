@@ -27,6 +27,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 
@@ -48,7 +49,7 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
         .build(store);
  * </pre>
  */
-public final class SegmentWriterBuilder {
+public final class DefaultSegmentWriterBuilder {
 
     @Nonnull
     private final String name;
@@ -61,15 +62,19 @@ public final class SegmentWriterBuilder {
     @Nonnull
     private WriterCacheManager cacheManager = new WriterCacheManager.Default();
 
-    private SegmentWriterBuilder(@Nonnull String name) { this.name = checkNotNull(name); }
+    private GCNodeWriteMonitor compactionMonitor = GCNodeWriteMonitor.EMPTY;
+
+    private DefaultSegmentWriterBuilder(@Nonnull String name) {
+        this.name = checkNotNull(name);
+    }
 
     /**
      * Set the {@code name} of this builder. This name will appear in the segment's
      * meta data.
      */
     @Nonnull
-    public static SegmentWriterBuilder segmentWriterBuilder(@Nonnull String name) {
-        return new SegmentWriterBuilder(name);
+    public static DefaultSegmentWriterBuilder defaultSegmentWriterBuilder(@Nonnull String name) {
+        return new DefaultSegmentWriterBuilder(name);
     }
 
     /**
@@ -84,7 +89,7 @@ public final class SegmentWriterBuilder {
      * is created by the returned writer.
      */
     @Nonnull
-    public SegmentWriterBuilder withGeneration(@Nonnull Supplier<Integer> generation) {
+    public DefaultSegmentWriterBuilder withGeneration(@Nonnull Supplier<Integer> generation) {
         this.generation = checkNotNull(generation);
         return this;
     }
@@ -94,7 +99,7 @@ public final class SegmentWriterBuilder {
      * segment writer.
      */
     @Nonnull
-    public SegmentWriterBuilder withGeneration(int generation) {
+    public DefaultSegmentWriterBuilder withGeneration(int generation) {
         this.generation = Suppliers.ofInstance(generation);
         return this;
     }
@@ -104,7 +109,7 @@ public final class SegmentWriterBuilder {
      * The returned instance is thread safe.
      */
     @Nonnull
-    public SegmentWriterBuilder withWriterPool() {
+    public DefaultSegmentWriterBuilder withWriterPool() {
         this.pooled = true;
         return this;
     }
@@ -114,7 +119,7 @@ public final class SegmentWriterBuilder {
      * The returned instance is <em>not</em> thread safe.
      */
     @Nonnull
-    public SegmentWriterBuilder withoutWriterPool() {
+    public DefaultSegmentWriterBuilder withoutWriterPool() {
         this.pooled = false;
         return this;
     }
@@ -123,7 +128,7 @@ public final class SegmentWriterBuilder {
      * Specify the {@code cacheManager} used by the returned writer.
      */
     @Nonnull
-    public SegmentWriterBuilder with(WriterCacheManager cacheManager) {
+    public DefaultSegmentWriterBuilder with(WriterCacheManager cacheManager) {
         this.cacheManager = checkNotNull(cacheManager);
         return this;
     }
@@ -133,8 +138,13 @@ public final class SegmentWriterBuilder {
      * @see #with(WriterCacheManager)
      */
     @Nonnull
-    public SegmentWriterBuilder withoutCache() {
+    public DefaultSegmentWriterBuilder withoutCache() {
         this.cacheManager = Empty.INSTANCE;
+        return this;
+    }
+
+    public DefaultSegmentWriterBuilder withCompactionMonitor(GCNodeWriteMonitor compactionMonitor) {
+        this.compactionMonitor = compactionMonitor;
         return this;
     }
 
@@ -149,7 +159,8 @@ public final class SegmentWriterBuilder {
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled)
+                createWriter(store, pooled),
+                compactionMonitor
         );
     }
 
@@ -177,7 +188,9 @@ public final class SegmentWriterBuilder {
                     public void flush(@Nonnull SegmentStore store) {
                         throw new UnsupportedOperationException("Cannot write to read-only store");
                     }
-                });
+                },
+                compactionMonitor
+        );
     }
 
     /**
@@ -191,7 +204,8 @@ public final class SegmentWriterBuilder {
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled)
+                createWriter(store, pooled),
+                compactionMonitor
         );
     }
 

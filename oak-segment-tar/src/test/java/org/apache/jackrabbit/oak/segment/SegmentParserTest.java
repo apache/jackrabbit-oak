@@ -28,12 +28,12 @@ import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.LONG;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.MEDIUM;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.SMALL;
-import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.TestUtils.newRecordId;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -58,8 +58,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class SegmentParserTest {
+
     private MemoryStore store;
-    private DefaultSegmentWriter writer;
+
+    private SegmentWriter writer;
 
     private static class TestParser extends SegmentParser {
         private final String name;
@@ -137,7 +139,7 @@ public class SegmentParserTest {
     @Before
     public void setup() throws IOException {
         store = new MemoryStore();
-        writer = segmentWriterBuilder("").build(store);
+        writer = defaultSegmentWriterBuilder("").build(store);
     }
 
     @Test

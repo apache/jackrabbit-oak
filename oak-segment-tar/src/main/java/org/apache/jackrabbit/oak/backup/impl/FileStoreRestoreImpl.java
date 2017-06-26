@@ -32,9 +32,11 @@ import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.slf4j.Logger;
@@ -67,13 +69,14 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
                     "r",
                     gen
             );
-            DefaultSegmentWriter writer = new DefaultSegmentWriter(
+            SegmentWriter writer = new DefaultSegmentWriter(
                     store,
                     store.getReader(),
                     store.getSegmentIdProvider(),
                     store.getBlobStore(),
                     new WriterCacheManager.Default(),
-                    bufferWriter
+                    bufferWriter,
+                    GCNodeWriteMonitor.EMPTY
             );
             SegmentGCOptions gcOptions = defaultGCOptions().setOffline();
             Compactor compactor = new Compactor(

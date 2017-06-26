@@ -31,6 +31,9 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * Converts nodes, properties, values, etc. to records and persists them.
+ */
 public interface SegmentWriter {
 
     void flush() throws IOException;

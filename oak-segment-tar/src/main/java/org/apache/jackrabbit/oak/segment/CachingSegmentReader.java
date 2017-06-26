@@ -40,7 +40,7 @@ public class CachingSegmentReader implements SegmentReader {
     public static final int DEFAULT_TEMPLATE_CACHE_MB = 64;
 
     @Nonnull
-    private final Supplier<DefaultSegmentWriter> writer;
+    private final Supplier<SegmentWriter> writer;
 
     @CheckForNull
     private final BlobStore blobStore;
@@ -68,7 +68,7 @@ public class CachingSegmentReader implements SegmentReader {
      * @param templateCacheMB the size of the template cache in MBs or {@code 0} for no cache.
      */
     public CachingSegmentReader(
-            @Nonnull Supplier<DefaultSegmentWriter> writer,
+            @Nonnull Supplier<SegmentWriter> writer,
             @Nullable BlobStore blobStore,
             long stringCacheMB,
             long templateCacheMB) {

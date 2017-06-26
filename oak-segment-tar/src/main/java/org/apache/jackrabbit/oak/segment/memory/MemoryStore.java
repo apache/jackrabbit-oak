@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.memory;
 
-import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentMap;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -40,7 +39,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
@@ -58,7 +57,7 @@ public class MemoryStore implements SegmentStore {
     private final SegmentReader segmentReader;
 
     @Nonnull
-    private final DefaultSegmentWriter segmentWriter;
+    private final SegmentWriter segmentWriter;
 
     private final ConcurrentMap<SegmentId, Segment> segments =
             Maps.newConcurrentMap();
@@ -71,20 +70,14 @@ public class MemoryStore implements SegmentStore {
             }
         });
         this.revisions = new MemoryStoreRevisions();
-        Supplier<DefaultSegmentWriter> getWriter = new Supplier<DefaultSegmentWriter>() {
-            @Override
-            public DefaultSegmentWriter get() {
-                return getWriter();
-            }
-        };
-        this.segmentReader = new CachingSegmentReader(getWriter, null, 16, 2);
-        this.segmentWriter = segmentWriterBuilder("sys").withWriterPool().build(this);
+        this.segmentReader = new CachingSegmentReader(this::getWriter, null, 16, 2);
+        this.segmentWriter = defaultSegmentWriterBuilder("sys").withWriterPool().build(this);
         revisions.bind(this);
         segmentWriter.flush();
     }
 
     @Nonnull
-    public DefaultSegmentWriter getWriter() {
+    public SegmentWriter getWriter() {
         return segmentWriter;
     }
 

@@ -33,7 +33,6 @@ import java.util.concurrent.ExecutionException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Supplier;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -51,7 +50,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,12 +121,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         });
         this.blobStore = builder.getBlobStore();
         this.segmentCache = new SegmentCache(builder.getSegmentCacheSize());
-        this.segmentReader = new CachingSegmentReader(new Supplier<DefaultSegmentWriter>() {
-            @Override
-            public DefaultSegmentWriter get() {
-                return getWriter();
-            }
-        }, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
+        this.segmentReader = new CachingSegmentReader(this::getWriter, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
         this.memoryMapping = builder.getMemoryMapping();
         this.ioMonitor = builder.getIOMonitor();
     }
@@ -195,7 +189,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     @Nonnull
-    public abstract DefaultSegmentWriter getWriter();
+    public abstract SegmentWriter getWriter();
 
     @Nonnull
     public SegmentReader getReader() {

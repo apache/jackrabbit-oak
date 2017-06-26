@@ -53,7 +53,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     private final SegmentReader reader;
 
     @Nonnull
-    private final DefaultSegmentWriter writer;
+    private final SegmentWriter writer;
 
     /**
      * Local update counter for the root builder.
@@ -69,7 +69,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
      */
     private long updateCount;
 
-    SegmentNodeBuilder(@Nonnull SegmentNodeState base, BlobStore blobStore, SegmentReader reader, @Nonnull DefaultSegmentWriter writer) {
+    SegmentNodeBuilder(@Nonnull SegmentNodeState base, BlobStore blobStore, SegmentReader reader, @Nonnull SegmentWriter writer) {
         super(base);
         this.blobStore = blobStore;
         this.reader = reader;
@@ -77,7 +77,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
         this.updateCount = 0;
     }
 
-    private SegmentNodeBuilder(SegmentNodeBuilder parent, String name, BlobStore blobStore, SegmentReader reader, @Nonnull DefaultSegmentWriter writer) {
+    private SegmentNodeBuilder(SegmentNodeBuilder parent, String name, BlobStore blobStore, SegmentReader reader, @Nonnull SegmentWriter writer) {
         super(parent, name);
         this.blobStore = blobStore;
         this.reader = reader;
