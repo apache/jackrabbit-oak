@@ -59,16 +59,6 @@ public class NodeRecordTest {
     }
 
     @Test
-    public void unreferencedNodeRecordShouldBeRoot() throws Exception {
-        try (FileStore store = newFileStore()) {
-            DefaultSegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
-            // TODO frm this line does not seem to do anything useful
-            SegmentNodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
-            writer.flush();
-        }
-    }
-
-    @Test
     public void stableIdShouldPersistAcrossGenerations() throws Exception {
         try (FileStore store = newFileStore()) {
             DefaultSegmentWriter writer;
