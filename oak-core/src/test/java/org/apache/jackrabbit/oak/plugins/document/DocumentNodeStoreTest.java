@@ -3139,7 +3139,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-6392
-    @Ignore("OAK-6392")
     @Test
     public void disabledBranchesWithBackgroundWrite() throws Exception {
         final Thread current = Thread.currentThread();
