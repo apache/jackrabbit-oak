@@ -69,7 +69,7 @@ public class Compactor {
 
     private final BlobStore blobStore;
 
-    private final DefaultSegmentWriter writer;
+    private final SegmentWriter writer;
 
     private final ProgressTracker progress = new ProgressTracker();
 
@@ -132,7 +132,7 @@ public class Compactor {
     private final PriorityCache<RecordId, RecordId> nodeCache =
             new PriorityCache<>((int) nextPowerOfTwo(cacheSize/10*9));
 
-    public Compactor(SegmentReader reader, DefaultSegmentWriter writer,
+    public Compactor(SegmentReader reader, SegmentWriter writer,
             BlobStore blobStore, Supplier<Boolean> cancel, SegmentGCOptions gc) {
         this.reader = reader;
         this.writer = writer;
@@ -417,7 +417,7 @@ public class Compactor {
     private static String getBlobKey(Blob blob) throws IOException {
         InputStream stream = blob.getNewStream();
         try {
-            byte[] buffer = new byte[DefaultSegmentWriter.BLOCK_SIZE];
+            byte[] buffer = new byte[SegmentStream.BLOCK_SIZE];
             int n = IOUtils.readFully(stream, buffer, 0, buffer.length);
             return blob.length() + ":" + Hashing.sha1().hashBytes(buffer, 0, n);
         } finally {

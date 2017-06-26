@@ -61,17 +61,17 @@ public class NodeRecordTest {
     @Test
     public void stableIdShouldPersistAcrossGenerations() throws Exception {
         try (FileStore store = newFileStore()) {
-            DefaultSegmentWriter writer;
+            SegmentWriter writer;
 
-            writer = SegmentWriterBuilder.segmentWriterBuilder("1").withGeneration(1).build(store);
+            writer = DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder("1").withGeneration(1).build(store);
             SegmentNodeState one = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
             writer.flush();
 
-            writer = SegmentWriterBuilder.segmentWriterBuilder("2").withGeneration(2).build(store);
+            writer = DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder("2").withGeneration(2).build(store);
             SegmentNodeState two = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(one));
             writer.flush();
 
-            writer = SegmentWriterBuilder.segmentWriterBuilder("3").withGeneration(3).build(store);
+            writer = DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder("3").withGeneration(3).build(store);
             SegmentNodeState three = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(two));
             writer.flush();
 
@@ -95,7 +95,7 @@ public class NodeRecordTest {
             // otherwise the write of some records (in this case, template
             // records) will be cached and prevent this test to fail.
 
-            DefaultSegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test")
+            SegmentWriter writer = DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder("test")
                     .withGeneration(generation)
                     .withWriterPool()
                     .with(nodesOnlyCache())

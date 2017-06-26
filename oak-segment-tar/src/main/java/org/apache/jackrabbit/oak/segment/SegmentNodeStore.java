@@ -72,7 +72,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         private final SegmentReader reader;
 
         @Nonnull
-        private final DefaultSegmentWriter writer;
+        private final SegmentWriter writer;
 
         @CheckForNull
         private final BlobStore blobStore;
@@ -87,7 +87,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         private SegmentNodeStoreBuilder(
                 @Nonnull Revisions revisions,
                 @Nonnull SegmentReader reader,
-                @Nonnull DefaultSegmentWriter writer,
+                @Nonnull SegmentWriter writer,
                 @Nullable BlobStore blobStore) {
             this.revisions = revisions;
             this.reader = reader;
@@ -138,7 +138,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public static SegmentNodeStoreBuilder builder(
             @Nonnull Revisions revisions,
             @Nonnull SegmentReader reader,
-            @Nonnull DefaultSegmentWriter writer,
+            @Nonnull SegmentWriter writer,
             @Nullable BlobStore blobStore) {
         return new SegmentNodeStoreBuilder(checkNotNull(revisions),
                 checkNotNull(reader), checkNotNull(writer), blobStore);
@@ -149,7 +149,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public static final String CHECKPOINTS = "checkpoints";
 
     @Nonnull
-    private final DefaultSegmentWriter writer;
+    private final SegmentWriter writer;
 
     @Nonnull
     private final Scheduler scheduler;

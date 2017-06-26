@@ -80,16 +80,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@code SegmentWriter} converts nodes, properties, values, etc. to records
- * and persists them with the help of a {@link WriteOperationHandler}. All
- * public methods of this class are thread safe if and only if the {@link
- * WriteOperationHandler} passed to the constructor is thread safe.
+ * Converts nodes, properties, values, etc. to records and persists them with
+ * the help of a {@link WriteOperationHandler}. All public methods of this class
+ * are thread safe if and only if the {@link WriteOperationHandler} passed to
+ * the constructor is thread safe.
  */
 public class DefaultSegmentWriter implements SegmentWriter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(org.apache.jackrabbit.oak.segment.DefaultSegmentWriter.class);
-
-    static final int BLOCK_SIZE = 1 << 12; // 4kB
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultSegmentWriter.class);
 
     @Nonnull
     private final WriterCacheManager cacheManager;
@@ -110,7 +108,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
     private final WriteOperationHandler writeOperationHandler;
 
     @Nonnull
-    private GCNodeWriteMonitor compactionMonitor = GCNodeWriteMonitor.EMPTY;
+    private final GCNodeWriteMonitor compactionMonitor;
 
     /**
      * Create a new instance of a {@code SegmentWriter}. Note the thread safety
@@ -131,7 +129,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
             @Nonnull SegmentIdProvider idProvider,
             @Nullable BlobStore blobStore,
             @Nonnull WriterCacheManager cacheManager,
-            @Nonnull WriteOperationHandler writeOperationHandler
+            @Nonnull WriteOperationHandler writeOperationHandler,
+            GCNodeWriteMonitor compactionMonitor
     ) {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
@@ -139,6 +138,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         this.blobStore = blobStore;
         this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
+        this.compactionMonitor = checkNotNull(compactionMonitor);
     }
 
     @Override
@@ -574,13 +574,13 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             int pos = 0;
             List<RecordId> blockIds = newArrayListWithExpectedSize(
-                    data.length / BLOCK_SIZE + 1);
+                    data.length / SegmentStream.BLOCK_SIZE + 1);
 
             // write as many full bulk segments as possible
             while (pos + Segment.MAX_SEGMENT_SIZE <= data.length) {
                 SegmentId bulkId = idProvider.newBulkSegmentId();
                 store.writeSegment(bulkId, data, pos, Segment.MAX_SEGMENT_SIZE);
-                for (int i = 0; i < Segment.MAX_SEGMENT_SIZE; i += BLOCK_SIZE) {
+                for (int i = 0; i < Segment.MAX_SEGMENT_SIZE; i += SegmentStream.BLOCK_SIZE) {
                     blockIds.add(new RecordId(bulkId, i));
                 }
                 pos += Segment.MAX_SEGMENT_SIZE;
@@ -588,7 +588,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             // inline the remaining data as block records
             while (pos < data.length) {
-                int len = min(BLOCK_SIZE, data.length - pos);
+                int len = min(SegmentStream.BLOCK_SIZE, data.length - pos);
                 blockIds.add(writeBlock(data, pos, len));
                 pos += len;
             }
@@ -710,7 +710,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             n += read(stream, data, n, Segment.MAX_SEGMENT_SIZE - n);
             long length = n;
             List<RecordId> blockIds =
-                    newArrayListWithExpectedSize(2 * n / BLOCK_SIZE);
+                    newArrayListWithExpectedSize(2 * n / SegmentStream.BLOCK_SIZE);
 
             // Write the data to bulk segments and collect the list of block ids
             while (n != 0) {
@@ -718,7 +718,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 LOG.debug("Writing bulk segment {} ({} bytes)", bulkId, n);
                 store.writeSegment(bulkId, data, 0, n);
 
-                for (int i = 0; i < n; i += BLOCK_SIZE) {
+                for (int i = 0; i < n; i += SegmentStream.BLOCK_SIZE) {
                     blockIds.add(new RecordId(bulkId, data.length - n + i));
                 }
 
@@ -1097,10 +1097,6 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return true;
             }
         }
-    }
-
-    public void setCompactionMonitor(@Nonnull GCNodeWriteMonitor compactionMonitor) {
-        this.compactionMonitor = compactionMonitor;
     }
 
 }

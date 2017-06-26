@@ -76,7 +76,7 @@ public class RecordTest {
 
     private FileStore store;
 
-    private DefaultSegmentWriter writer;
+    private SegmentWriter writer;
 
     private final Random random = new Random(0xcafefaceL);
 
@@ -176,8 +176,8 @@ public class RecordTest {
         checkRandomStreamRecord(0x80);
         checkRandomStreamRecord(0x4079);
         checkRandomStreamRecord(0x4080);
-        checkRandomStreamRecord(DefaultSegmentWriter.BLOCK_SIZE);
-        checkRandomStreamRecord(DefaultSegmentWriter.BLOCK_SIZE + 1);
+        checkRandomStreamRecord(SegmentStream.BLOCK_SIZE);
+        checkRandomStreamRecord(SegmentStream.BLOCK_SIZE + 1);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE + 1);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE * 2);
