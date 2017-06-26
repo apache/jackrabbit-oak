@@ -54,5 +54,6 @@ public final class AvailableModes {
             .put("upgrade", new UpgradeCommand())
             .put("unlockupgrade", new UnlockUpgradeCommand())
             .put(IndexCommand.NAME, new IndexCommand())
+            .put("server", new ServerCommand())
             .build());
 }

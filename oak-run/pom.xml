@@ -35,9 +35,12 @@
     <groovy.version>2.4.7</groovy.version>
     <!--
       Size History:
+      + 47 MB release profile build slightly bigger jar (OAK-6252)
+      + 46 MB re-introduced the ServerCommand and required dependencies (OAK-6252)
+      + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>41000000</max.jar.size>
+    <max.jar.size>47000000</max.jar.size>
   </properties>
 
   <build>
@@ -233,6 +236,21 @@
       <version>${project.version}</version>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-http</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-remote</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-jcr-server</artifactId>
+      <version>${jackrabbit.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>net.sf.jopt-simple</groupId>
@@ -308,6 +326,11 @@
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.inventory</artifactId>
       <version>1.0.4</version>
+    </dependency>
+    <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-servlet</artifactId>
+        <version>${jetty.version}</version>
     </dependency>
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
