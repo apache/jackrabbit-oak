@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -61,6 +62,8 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -72,6 +75,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
+import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +87,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAnce
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
+    
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
     private final NodeStore nodeStore;
@@ -225,6 +230,32 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         return list.toArray(new String[0]);
     }
+    
+    @Override
+    public String[] getFieldTermsInfo(String indexPath, String field, int max) throws IOException {
+        TreeSet<String> indexes = new TreeSet<String>();
+        if (indexPath == null || indexPath.isEmpty()) {
+            indexes.addAll(indexTracker.getIndexNodePaths());
+        } else {
+            indexes.add(indexPath);
+        }
+        ArrayList<String> list = new ArrayList<String>();
+        for (String path : indexes) {
+            IndexNode indexNode = null;
+            try {
+                indexNode = indexTracker.acquireIndexNode(path);
+                if (indexNode != null) {
+                    IndexSearcher searcher = indexNode.getSearcher();
+                    list.addAll(getFieldTerms(path, field, max, searcher));
+                }
+            } finally {
+                if (indexNode != null) {
+                    indexNode.release();
+                }
+            }
+        }
+        return list.toArray(new String[0]);
+    }    
 
     @Override
     public String getStoredIndexDefinition(@Name("indexPath") String indexPath) {
@@ -343,7 +374,69 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         return list;
     }
-
+    
+    private static ArrayList<String> getFieldTerms(String path, 
+            String field, int max, IndexSearcher searcher) throws IOException {
+        if (field == null || field.isEmpty()) {
+            ArrayList<String> list = new ArrayList<String>();
+            IndexReader reader = searcher.getIndexReader();
+            Fields fields = MultiFields.getFields(reader);
+            if (fields != null) {
+                for(String f : fields) {
+                    list.addAll(getFieldTerms(path, f, max, searcher));
+                }
+            }
+            return list;
+        }
+        IndexReader reader = searcher.getIndexReader();
+        Terms terms = MultiFields.getTerms(reader, field);
+        ArrayList<String> result = new ArrayList<>();        
+        if (terms == null) {
+            return result;
+        }
+        TermsEnum iterator = terms.iterator(null);
+        BytesRef byteRef = null;
+        class Entry implements Comparable<Entry> {
+            String term;
+            int count;
+            @Override
+            public int compareTo(Entry o) {
+                int c = Integer.compare(count, o.count);
+                if (c == 0) {
+                    c = term.compareTo(o.term);
+                }
+                return -c;
+            }
+        }
+        ArrayList<Entry> list = new ArrayList<>();        
+        long totalCount = 0;
+        while((byteRef = iterator.next()) != null) {       
+            Entry e = new Entry();
+            e.term = byteRef.utf8ToString();
+            e.count = iterator.docFreq();
+            totalCount += e.count;
+            if (e.count > 1) {
+                list.add(e);
+            }
+            if (max > 0 && list.size() > 2 * max) {
+                sortAndTruncateList(list, max);
+            }
+        }
+        sortAndTruncateList(list, max);
+        result.add(totalCount + " (total for field " + field + ")");
+        for(Entry e : list) {
+            result.add(e.count + " " + e.term);
+        }
+        return result;
+    }
+    
+    static <T extends Comparable<T>> void sortAndTruncateList(ArrayList<T> list, int max) {
+        Collections.sort(list);
+        if (max > 0 && list.size() > max) {
+            list.subList(max, list.size()).clear();
+        }
+    }
+    
     private static String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel, int maxPathCount)
             throws IOException {
         Set<String> paths = Sets.newHashSet();
