@@ -61,6 +61,20 @@ public interface LuceneIndexMBean {
             @Description("The index path (empty for all indexes)")
                     String indexPath
     ) throws IOException;
+    
+    @Description("Retrieves the terms, and number of documents for each term, for an index. " +
+            "This allows to closely investigate what is stored in the index.")
+    String[] getFieldTermsInfo(
+            @Name("indexPath")
+            @Description("The index path (empty for all indexes)")
+                    String indexPath,
+            @Name("field")
+            @Description("The field name (empty for all fields)")
+                    String field,
+            @Name("max")
+            @Description("The maximum number of entries to return (e.g. 100)")
+                    int max
+    ) throws IOException;
 
     @Description("Returns the stored index definition for index at given path in string form")
     String getStoredIndexDefinition(@Name("indexPath") String indexPath);
