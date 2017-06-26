@@ -432,7 +432,7 @@ public class FileStoreBuilder {
     public WriterCacheManager getCacheManager() {
         if (cacheManager == null) {
             cacheManager = new EvictingWriteCacheManager(stringDeduplicationCacheSize,
-                    templateDeduplicationCacheSize, nodeDeduplicationCacheSize, statsProvider);
+                    templateDeduplicationCacheSize, nodeDeduplicationCacheSize);
         }
         return cacheManager;
     }
@@ -463,12 +463,10 @@ public class FileStoreBuilder {
         public EvictingWriteCacheManager(
                 int stringCacheSize,
                 int templateCacheSize,
-                int nodeCacheSize,
-                @Nonnull StatisticsProvider statisticsProvider) {
+                int nodeCacheSize) {
             super(RecordCache.factory(stringCacheSize, new StringCacheWeigher()),
                 RecordCache.factory(templateCacheSize, new TemplateCacheWeigher()),
-                PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()),
-                statisticsProvider);
+                PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()));
         }
 
         void evictOldGeneration(final int newGeneration) {

@@ -46,7 +46,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.segment.MapEntry.newModifiedMapEntry;
 import static org.apache.jackrabbit.oak.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.segment.RecordWriters.newNodeStateWriter;
-import static org.apache.jackrabbit.oak.segment.WriterCacheManager.Operation.COMPACT;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -264,7 +263,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 @Nonnull
                 @Override
                 public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
-                    return with(writer, true).writeNode(state);
+                    return with(writer).writeNode(state);
                 }
             });
         } catch (SegmentWriteOperation.CancelledWriteException ignore) {
@@ -315,19 +314,14 @@ public class DefaultSegmentWriter implements SegmentWriter {
         public abstract RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException;
 
         @Nonnull
-        SegmentWriteOperation with(@Nonnull SegmentBufferWriter writer, boolean compacting) {
+        SegmentWriteOperation with(@Nonnull SegmentBufferWriter writer) {
             checkState(this.writer == null);
             this.writer = writer;
             int generation = writer.getGeneration();
-            this.stringCache = cacheManager.getStringCache(generation, COMPACT);
-            this.templateCache = cacheManager.getTemplateCache(generation, COMPACT);
-            this.nodeCache = cacheManager.getNodeCache(generation, COMPACT);
+            this.stringCache = cacheManager.getStringCache(generation);
+            this.templateCache = cacheManager.getTemplateCache(generation);
+            this.nodeCache = cacheManager.getNodeCache(generation);
             return this;
-        }
-
-        @Nonnull
-        SegmentWriteOperation with(@Nonnull SegmentBufferWriter writer) {
-            return with(writer, false);
         }
 
         private RecordId writeMap(@Nullable MapRecord base,

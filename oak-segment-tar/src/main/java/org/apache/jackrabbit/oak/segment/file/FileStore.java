@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 import org.apache.jackrabbit.oak.segment.file.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,10 +188,15 @@ public class FileStore extends AbstractFileStore {
                     }
                 })
                 .withWriterPool()
-                .with(builder.getCacheManager())
+                .with(builder.getCacheManager()
+                        .withAccessTracking("WRITE", builder.getStatsProvider()))
                 .build(this);
         this.garbageCollector = new GarbageCollector(
-                builder.getGcOptions(), builder.getGcListener(), new GCJournal(directory), builder.getCacheManager());
+                builder.getGcOptions(),
+                builder.getGcListener(),
+                new GCJournal(directory),
+                builder.getCacheManager(),
+                builder.getStatsProvider());
 
         Manifest manifest = Manifest.empty();
 
@@ -548,6 +554,9 @@ public class FileStore extends AbstractFileStore {
         @Nonnull
         private final GCNodeWriteMonitor compactionMonitor;
 
+        @Nonnull
+        private final StatisticsProvider statisticsProvider;
+
         private volatile boolean cancelled;
 
         /** Timestamp of the last time {@link #gc()} was successfully invoked. 0 if never. */
@@ -557,12 +566,14 @@ public class FileStore extends AbstractFileStore {
                 @Nonnull SegmentGCOptions gcOptions,
                 @Nonnull GCListener gcListener,
                 @Nonnull GCJournal gcJournal,
-                @Nonnull WriterCacheManager cacheManager) {
+                @Nonnull WriterCacheManager cacheManager,
+                @Nonnull StatisticsProvider statisticsProvider) {
             this.gcOptions = gcOptions;
             this.gcListener = gcListener;
             this.gcJournal = gcJournal;
             this.cacheManager = cacheManager;
             this.compactionMonitor = gcOptions.getGCNodeWriteMonitor();
+            this.statisticsProvider = statisticsProvider;
         }
 
         synchronized void run() throws IOException {
@@ -668,7 +679,8 @@ public class FileStore extends AbstractFileStore {
                 SegmentNodeState before = getHead();
                 CancelCompactionSupplier cancel = new CancelCompactionSupplier(FileStore.this);
                 SegmentWriter writer = defaultSegmentWriterBuilder("c")
-                        .with(cacheManager)
+                        .with(cacheManager
+                                .withAccessTracking("COMPACT", statisticsProvider))
                         .withGeneration(newGeneration)
                         .withoutWriterPool()
                         .withCompactionMonitor(compactionMonitor)
