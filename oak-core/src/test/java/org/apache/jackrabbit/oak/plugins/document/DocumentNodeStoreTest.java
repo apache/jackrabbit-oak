@@ -27,12 +27,15 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_T
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
+import static org.hamcrest.CoreMatchers.everyItem;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -3133,6 +3136,62 @@ public class DocumentNodeStoreTest {
         clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(5));
         ns.runBackgroundOperations();
         assertEquals(head, ns.getHeadRevision());
+    }
+
+    // OAK-6392
+    @Ignore("OAK-6392")
+    @Test
+    public void disabledBranchesWithBackgroundWrite() throws Exception {
+        final Thread current = Thread.currentThread();
+        final Set<Integer> updates = Sets.newHashSet();
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
+                if (Thread.currentThread() != current) {
+                    updates.add(updateOps.size());
+                }
+                return super.createOrUpdate(collection, updateOps);
+            }
+        };
+        final DocumentNodeStore ns = builderProvider.newBuilder().disableBranches()
+                .setDocumentStore(store).setUpdateLimit(20).setAsyncDelay(0)
+                .getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        for (int i = 0; i < 30; i++) {
+            builder.child("node-" + i).child("test");
+        }
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+        final AtomicBoolean running = new AtomicBoolean(true);
+        Thread bgThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (running.get()) {
+                    ns.runBackgroundOperations();
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                }
+            }
+        });
+        bgThread.start();
+
+        for (int j = 0; j < 20; j++) {
+            builder = ns.getRoot().builder();
+            for (int i = 0; i < 30; i++) {
+                builder.child("node-" + i).child("test").setProperty("p", j);
+            }
+            merge(ns, builder);
+        }
+        running.set(false);
+        bgThread.join();
+        // background thread must always update _lastRev from an entire
+        // branch commit and never partially
+        assertThat(updates, everyItem(is(30)));
+        assertEquals(1, updates.size());
     }
 
     private static class WriteCountingStore extends MemoryDocumentStore {
