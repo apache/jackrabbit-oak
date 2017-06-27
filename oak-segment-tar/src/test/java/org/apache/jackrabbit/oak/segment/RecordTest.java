@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -444,13 +443,6 @@ public class RecordTest {
         builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);
         NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertNotNull(state.getProperty("jcr:mixinTypes"));
-    }
-
-    @Test
-    public void testCancel() throws IOException {
-        NodeBuilder builder = EMPTY_NODE.builder();
-        RecordId id = writer.writeNode(builder.getNodeState(), Suppliers.ofInstance(true));
-        assertNull(id);
     }
 
 }

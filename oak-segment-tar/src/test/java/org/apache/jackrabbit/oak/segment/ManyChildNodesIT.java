@@ -21,6 +21,7 @@ import static java.lang.Integer.getInteger;
 import static java.lang.System.getProperty;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -35,6 +36,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -103,15 +105,22 @@ public class ManyChildNodesIT {
     public void manyChildNodesOC() throws Exception {
         try (FileStore fileStore = createFileStore()) {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
-            NodeBuilder root = nodeStore.getRoot().builder();
-            addManyNodes(root);
-            nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            nodeStore.checkpoint(Long.MAX_VALUE);
+            NodeBuilder builder = nodeStore.getRoot().builder();
+            addManyNodes(builder);
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            NodeState uncompactedRoot = nodeStore.getRoot();
             assertTrue(fileStore.compact());
+            NodeState compactedRoot = nodeStore.getRoot();
+            assertTrue(uncompactedRoot != compactedRoot);
+            assertEquals(uncompactedRoot, compactedRoot);
         }
     }
 
     private static void addManyNodes(NodeBuilder builder) {
         for (int k = 0; k < NODE_COUNT; k++) {
+            if (k % 10000 == 0) System.out.println(k);
             builder.setChildNode("c-" + k);
         }
     }

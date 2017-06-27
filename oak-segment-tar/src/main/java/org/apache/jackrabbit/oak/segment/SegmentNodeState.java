@@ -115,6 +115,15 @@ public class SegmentNodeState extends Record implements NodeState {
         return reader.readMap(segment.readRecordId(getRecordNumber(), 0, 2));
     }
 
+    @Nonnull
+    static String getStableId(@Nonnull ByteBuffer stableId) {
+        ByteBuffer buffer = stableId.duplicate();
+        long msb = buffer.getLong();
+        long lsb = buffer.getLong();
+        int offset = buffer.getInt();
+        return new UUID(msb, lsb) + ":" + offset;
+    }
+
     /**
      * Returns the stable id of this node. In contrast to the node's record id
      * (which is technically the node's address) the stable id doesn't change
@@ -122,12 +131,8 @@ public class SegmentNodeState extends Record implements NodeState {
      *
      * @return  stable id
      */
-    String getStableId() {
-        ByteBuffer buffer = getStableIdBytes();
-        long msb = buffer.getLong();
-        long lsb = buffer.getLong();
-        int offset = buffer.getInt();
-        return new UUID(msb, lsb) + ":" + offset;
+    public String getStableId() {
+        return getStableId(getStableIdBytes());
     }
 
     /**
@@ -138,7 +143,7 @@ public class SegmentNodeState extends Record implements NodeState {
      *
      * @return the stable ID of this node.
      */
-    ByteBuffer getStableIdBytes() {
+    public ByteBuffer getStableIdBytes() {
         // The first record id of this node points to the stable id.
         RecordId id = getSegment().readRecordId(getRecordNumber());
 
