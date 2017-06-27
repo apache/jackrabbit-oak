@@ -785,6 +785,17 @@ public class FileStore extends AbstractFileStore {
             }
         }
 
+        /**
+         * Compact {@code uncompacted} on top of an optional {@code base}.
+         * @param base         the base state to compact onto or {@code null} for an empty state.
+         * @param uncompacted  the uncompacted state to compact
+         * @param compactor    the compactor for creating the new generation of the
+         *                     uncompacted state.
+         * @param writer       the segment writer used by {@code compactor} for writing to the
+         *                     new generation.
+         * @return  compacted clone of {@code uncompacted} or null if cancelled.
+         * @throws IOException
+         */
         @CheckForNull
         private SegmentNodeState compact(
                 @Nullable SegmentNodeState base,
@@ -792,13 +803,19 @@ public class FileStore extends AbstractFileStore {
                 @Nonnull OnlineCompactor compactor,
                 @Nonnull SegmentWriter writer)
         throws IOException {
+            // Collect a chronologically ordered list of roots for the base and the uncompacted
+            // state. This list consists of all checkpoints followed by the root.
             LinkedHashMap<String, NodeState> baseRoots = collectRoots(base);
             LinkedHashMap<String, NodeState> uncompactedRoots = collectRoots(uncompacted);
+
+            // Compact the list of uncompacted roots to a list of compacted roots.
             LinkedHashMap<String, NodeState> compactedRoots = compact(baseRoots, uncompactedRoots, compactor);
             if (compactedRoots == null) {
                 return null;
             }
 
+            // Build a compacted super root by replacing the uncompacted roots with
+            // the compacted ones in the original node.
             SegmentNodeBuilder builder = uncompacted.builder();
             for (Entry<String, NodeState> compactedRoot : compactedRoots.entrySet()) {
                 String path = compactedRoot.getKey();
@@ -806,10 +823,16 @@ public class FileStore extends AbstractFileStore {
                 NodeBuilder childBuilder = getChild(builder, getParentPath(path));
                 childBuilder.setChildNode(getName(path), state);
             }
+
+            // Use the segment writer of the *new generation* to persist the compacted super root.
             RecordId nodeId = writer.writeNode(builder.getNodeState(), uncompacted.getStableIdBytes());
             return new SegmentNodeState(segmentReader, segmentWriter, getBlobStore(), nodeId);
         }
 
+        /**
+         * Compact a list of uncompacted roots on top of base roots of the same key or
+         * an empty node if none.
+         */
         @CheckForNull
         private LinkedHashMap<String, NodeState> compact(
                 @Nonnull LinkedHashMap<String, NodeState> baseRoots,
@@ -838,6 +861,11 @@ public class FileStore extends AbstractFileStore {
             return compactedRoots;
         }
 
+        /**
+         * Collect a chronologically ordered list of roots for the base and the uncompacted
+         * state from a {@code superRoot} . This list consists of all checkpoints followed by
+         * the root.
+         */
         @Nonnull
         private LinkedHashMap<String, NodeState> collectRoots(@Nullable SegmentNodeState superRoot) {
             LinkedHashMap<String, NodeState> roots = newLinkedHashMap();

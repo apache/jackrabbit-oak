@@ -46,6 +46,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Instances of this class can be used to compact a node state. I.e. to create a clone
+ * of a given node state without value sharing except for binaries. Binaries that are
+ * stored in a list of bulk segments will still value share the bulk segments (but not
+ * the list records).
+ * A node can either be compacted on its own or alternatively the difference between
+ * two nodes can be compacted on top of an already compacted node.
+ */
 public class OnlineCompactor {
     private static final Logger log = LoggerFactory.getLogger(OnlineCompactor.class);
 
@@ -61,6 +69,13 @@ public class OnlineCompactor {
     @Nonnull
     private final Supplier<Boolean> cancel;
 
+    /**
+     * Create a new instance based on the passed arguments.
+     * @param reader     segment reader used to read from the segments
+     * @param writer     segment writer used to serialise to segments
+     * @param blobStore  the blob store or {@code null} if none
+     * @param cancel     a flag that can be used to cancel the compaction process
+     */
     public OnlineCompactor(
             @Nonnull SegmentReader reader,
             @Nonnull SegmentWriter writer,
@@ -72,11 +87,25 @@ public class OnlineCompactor {
         this.cancel = checkNotNull(cancel);
     }
 
+    /**
+     * Compact a given {@code state}
+     * @param state  the node state to compact
+     * @return       the compacted node state or {@code null} if cancelled.
+     * @throws IOException
+     */
     @CheckForNull
     public SegmentNodeState compact(@Nonnull NodeState state) throws IOException {
         return compact(EMPTY_NODE, state, EMPTY_NODE);
     }
 
+    /**
+     * compact the differences between {@code after} and {@code before} on top of {@code ont}.
+     * @param before   the node state to diff against from {@code after}
+     * @param after    the node state diffed against {@code before}
+     * @param onto     the node state compacted onto
+     * @return         the compacted node state or {@code null} if cancelled.
+     * @throws IOException
+     */
     @CheckForNull
     public SegmentNodeState compact(
             @Nonnull NodeState before,
