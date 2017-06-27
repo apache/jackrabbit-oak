@@ -43,8 +43,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Instances of this class can be used to compact a node state. I.e. to create a clone
@@ -55,7 +53,6 @@ import org.slf4j.LoggerFactory;
  * two nodes can be compacted on top of an already compacted node.
  */
 public class OnlineCompactor {
-    private static final Logger log = LoggerFactory.getLogger(OnlineCompactor.class);
 
     /**
      * Number of content updates that need to happen before the updates
