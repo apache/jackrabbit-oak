@@ -43,7 +43,7 @@ public interface SegmentWriter {
      * @param base    base map relative to which the {@code changes} are applied
      *                ot {@code null} for the empty map.
      * @param changes the changed mapping to apply to the {@code base} map.
-     * @return the map record written
+     * @return the record id of the map written
      * @throws IOException
      */
     @Nonnull
@@ -76,7 +76,7 @@ public interface SegmentWriter {
      * Write a blob (as list of block records)
      *
      * @param blob blob to write
-     * @return The segment blob written
+     * @return the record id of the blob written
      * @throws IOException
      */
     @Nonnull
@@ -88,7 +88,7 @@ public interface SegmentWriter {
      * @param bytes  source buffer
      * @param offset offset within the source buffer
      * @param length number of bytes to write
-     * @return block record identifier
+     * @return the record id of the block written
      */
     @Nonnull
     // TODO frm this method is only used from test code, should it be removed?
@@ -99,7 +99,7 @@ public interface SegmentWriter {
      * closed</em> by this method.
      *
      * @param stream stream to be written
-     * @return blob for the passed {@code stream}
+     * @return the record id of the stream written
      * @throws IOException if the input stream could not be read or the output
      *                     could not be written
      */
@@ -110,7 +110,7 @@ public interface SegmentWriter {
      * Write a property.
      *
      * @param state the property to write
-     * @return the property state written
+     * @return the record id of the property state written
      * @throws IOException
      */
     @Nonnull
@@ -123,7 +123,7 @@ public interface SegmentWriter {
      *
      * @param state node state to write
      * @param stableIdBytes the stableId that should be assigned to the node or {@code null}.
-     * @return segment node state equal to {@code state}
+     * @return the record id of the segment node state written
      * @throws IOException
      */
     @Nonnull
