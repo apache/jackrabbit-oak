@@ -247,4 +247,19 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         // UNDEFINED for a unknown restriction name:
         assertEquals(PropertyType.UNDEFINED, acl.getRestrictionType("unknownRestrictionName"));
     }
+
+    @Test
+    public void testIsMultiValueRestriction() throws RepositoryException {
+        AbstractAccessControlList acl = createEmptyACL();
+        for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getTestPath())) {
+            boolean isMv = acl.isMultiValueRestriction(getNamePathMapper().getJcrName(def.getName()));
+
+            assertEquals(def.getRequiredType().isArray(), isMv);
+        }
+    }
+
+    @Test
+    public void testIsMultiValueRestrictionForUnknownName() throws RepositoryException {
+        assertFalse(createEmptyACL().isMultiValueRestriction("unknownRestrictionName"));
+    }
 }
