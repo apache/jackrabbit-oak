@@ -43,6 +43,7 @@ import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -64,6 +65,7 @@ public class SegmentNodeState extends Record implements NodeState {
     @Nonnull
     private final SegmentReader reader;
 
+    @Nullable
     private final BlobStore blobStore;
 
     @Nonnull
@@ -76,7 +78,7 @@ public class SegmentNodeState extends Record implements NodeState {
     SegmentNodeState(
             @Nonnull SegmentReader reader,
             @Nonnull Supplier<SegmentWriter> writer,
-            BlobStore blobStore,
+            @Nullable BlobStore blobStore,
             @Nonnull RecordId id) {
         super(id);
         this.reader = checkNotNull(reader);
@@ -87,7 +89,7 @@ public class SegmentNodeState extends Record implements NodeState {
     public SegmentNodeState(
             @Nonnull SegmentReader reader,
             @Nonnull SegmentWriter writer,
-            BlobStore blobStore,
+            @Nullable BlobStore blobStore,
             @Nonnull RecordId id) {
         this(reader, Suppliers.ofInstance(writer), blobStore, id);
     }
