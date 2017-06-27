@@ -368,7 +368,7 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    @Ignore
+    @Ignore("OAK-6399") // FIXME OAK-6399: this test fails because the content based binary deduplication feature is missing in OnlineCompactor
     public void offlineCompactionBinC1() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
                 .withBinaryDeduplication();
