@@ -28,6 +28,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
@@ -94,6 +95,17 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
                         "org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl"
                 },
                 unbounded = PropertyUnbounded.ARRAY
+        ),
+        @Property(
+                name = "authorizationCompositionType",
+                label = "Authorization Composition Type",
+                description = "The Composite Authorization model uses this flag to determine what type of logic "
+                        + "to apply to the existing providers (default value is AND).",
+                value = "AND",
+                options = {
+                        @PropertyOption(name = "AND", value = "AND"),
+                        @PropertyOption(name = "OR", value = "OR")
+                }
         )
 })
 @References({
@@ -184,6 +196,7 @@ public class SecurityProviderRegistration {
 
             this.context = context;
         }
+        this.authorizationConfiguration.withCompositionType(getAuthorizationCompositionType(configuration));
 
         maybeRegister();
     }
@@ -199,6 +212,7 @@ public class SecurityProviderRegistration {
                 preconditions.addPrecondition(pid);
             }
         }
+        this.authorizationConfiguration.withCompositionType(getAuthorizationCompositionType(configuration));
 
         maybeUnregister();
         maybeRegister();
@@ -572,12 +586,16 @@ public class SecurityProviderRegistration {
         preconditions.removeCandidate(pid);
     }
 
-    private String getServicePid(Map<String, Object> properties) {
+    private static String getServicePid(Map<String, Object> properties) {
         return PropertiesUtil.toString(properties.get(Constants.SERVICE_PID), null);
     }
 
-    private String[] getRequiredServicePids(Map<String, Object> configuration) {
+    private static String[] getRequiredServicePids(Map<String, Object> configuration) {
         return PropertiesUtil.toStringArray(configuration.get("requiredServicePids"), new String[]{});
     }
 
+    @Nonnull
+    private static String getAuthorizationCompositionType(Map<String, Object> properties) {
+        return PropertiesUtil.toString(properties.get("authorizationCompositionType"), "AND");
+    }
 }

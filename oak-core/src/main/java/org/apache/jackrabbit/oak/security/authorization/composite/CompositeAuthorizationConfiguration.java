@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.base.Function;
@@ -77,12 +78,50 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     private static final Logger log = LoggerFactory.getLogger(CompositeAuthorizationConfiguration.class);
 
+    public enum CompositionType {
+
+        /**
+         * Break as soon as any one of the aggregated permission providers
+         * denies a privilege (default setup)
+         */
+        AND,
+
+        /**
+         * Check all aggregated permission providers for one that could provide
+         * a privilege (multiplexing setup)
+         */
+        OR;
+
+        /**
+         * Returns the corresponding composition type.
+         * @param type
+         *            String representation of the composition type, or
+         *            {@code null}
+         * @return corresponding composition type, or {@code AND} if the
+         *         provided type is {@code null}
+         */
+        public static CompositionType fromString(@Nullable String type) {
+            String or = OR.name();
+            if (or.equals(type) || or.toLowerCase().equals(type)) {
+                return OR;
+            } else {
+                return AND;
+            }
+        }
+    }
+
+    private CompositionType compositionType = CompositionType.AND;
+
     public CompositeAuthorizationConfiguration() {
         super(AuthorizationConfiguration.NAME);
     }
 
     public CompositeAuthorizationConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(AuthorizationConfiguration.NAME, securityProvider);
+    }
+
+    public void withCompositionType(@Nullable String ct) {
+        this.compositionType = CompositionType.fromString(ct);
     }
 
     @Nonnull
@@ -134,7 +173,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getPermissionProvider(root, workspaceName, principals);
             default:
-                List<AggregatedPermissionProvider> aggrPermissionProviders = new ArrayList(configurations.size());
+                List<AggregatedPermissionProvider> aggrPermissionProviders = new ArrayList<>(configurations.size());
                 for (AuthorizationConfiguration conf : configurations) {
                     PermissionProvider pProvider = conf.getPermissionProvider(root, workspaceName, principals);
                     if (pProvider instanceof AggregatedPermissionProvider) {
@@ -152,7 +191,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                         pp = aggrPermissionProviders.get(0);
                         break;
                     default :
-                        pp = new CompositePermissionProvider(root, aggrPermissionProviders, getContext());
+                        pp = new CompositePermissionProvider(root, aggrPermissionProviders, getContext(), compositionType);
                 }
                 return pp;
         }
