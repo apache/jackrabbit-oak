@@ -692,9 +692,9 @@ public class FileStore extends AbstractFileStore {
                                 .withAccessTracking("COMPACT", statisticsProvider))
                         .withGeneration(newGeneration)
                         .withoutWriterPool()
-                        .withCompactionMonitor(compactionMonitor)
                         .build(FileStore.this);
-                OnlineCompactor compactor = new OnlineCompactor(segmentReader, writer, getBlobStore(), cancel);
+                OnlineCompactor compactor = new OnlineCompactor(
+                        segmentReader, writer, getBlobStore(), cancel, compactionMonitor::onNode);
 
                 SegmentNodeState after = compact(null, before, compactor, writer);
                 if (after == null) {

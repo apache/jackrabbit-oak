@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.slf4j.Logger;
@@ -81,8 +80,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     backup.getSegmentIdProvider(),
                     backup.getBlobStore(),
                     new WriterCacheManager.Default(),
-                    bufferWriter,
-                    GCNodeWriteMonitor.EMPTY
+                    bufferWriter
             );
             Compactor compactor = new Compactor(
                     backup.getReader(),

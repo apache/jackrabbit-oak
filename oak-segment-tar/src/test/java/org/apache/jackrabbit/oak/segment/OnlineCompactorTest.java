@@ -119,7 +119,7 @@ public class OnlineCompactorTest {
     @Nonnull
     private static OnlineCompactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c").withGeneration(1).build(fileStore);
-        return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel);
+        return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, () -> {});
     }
 
     private static void addNodes(SegmentNodeStore nodeStore, int count)

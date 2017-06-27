@@ -27,7 +27,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 
@@ -61,8 +60,6 @@ public final class DefaultSegmentWriterBuilder {
 
     @Nonnull
     private WriterCacheManager cacheManager = new WriterCacheManager.Default();
-
-    private GCNodeWriteMonitor compactionMonitor = GCNodeWriteMonitor.EMPTY;
 
     private DefaultSegmentWriterBuilder(@Nonnull String name) {
         this.name = checkNotNull(name);
@@ -143,11 +140,6 @@ public final class DefaultSegmentWriterBuilder {
         return this;
     }
 
-    public DefaultSegmentWriterBuilder withCompactionMonitor(GCNodeWriteMonitor compactionMonitor) {
-        this.compactionMonitor = compactionMonitor;
-        return this;
-    }
-
     /**
      * Build a {@code SegmentWriter} for a {@code FileStore}.
      */
@@ -159,8 +151,7 @@ public final class DefaultSegmentWriterBuilder {
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled),
-                compactionMonitor
+                createWriter(store, pooled)
         );
     }
 
@@ -188,8 +179,7 @@ public final class DefaultSegmentWriterBuilder {
                     public void flush(@Nonnull SegmentStore store) {
                         throw new UnsupportedOperationException("Cannot write to read-only store");
                     }
-                },
-                compactionMonitor
+                }
         );
     }
 
@@ -204,8 +194,7 @@ public final class DefaultSegmentWriterBuilder {
                 store.getSegmentIdProvider(),
                 store.getBlobStore(),
                 cacheManager,
-                createWriter(store, pooled),
-                compactionMonitor
+                createWriter(store, pooled)
         );
     }
 

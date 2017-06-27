@@ -73,22 +73,28 @@ public class OnlineCompactor {
     @Nonnull
     private final Supplier<Boolean> cancel;
 
+    @Nonnull
+    private final Runnable onNode;
+
     /**
      * Create a new instance based on the passed arguments.
      * @param reader     segment reader used to read from the segments
      * @param writer     segment writer used to serialise to segments
      * @param blobStore  the blob store or {@code null} if none
      * @param cancel     a flag that can be used to cancel the compaction process
+     * @param onNode     notification call back for each compacted node
      */
     public OnlineCompactor(
             @Nonnull SegmentReader reader,
             @Nonnull SegmentWriter writer,
             @Nullable BlobStore blobStore,
-            @Nonnull Supplier<Boolean> cancel) {
+            @Nonnull Supplier<Boolean> cancel,
+            @Nonnull Runnable onNode) {
         this.writer = checkNotNull(writer);
         this.reader = checkNotNull(reader);
         this.blobStore = blobStore;
         this.cancel = checkNotNull(cancel);
+        this.onNode = checkNotNull(onNode);
     }
 
     /**
@@ -165,6 +171,7 @@ public class OnlineCompactor {
                 NodeState nodeState = builder.getNodeState();
                 checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
                 RecordId nodeId = writer.writeNode(nodeState, getStableIdBytes(after));
+                onNode.run();
                 return new SegmentNodeState(reader, writer, blobStore, nodeId);
             } else {
                 return null;
