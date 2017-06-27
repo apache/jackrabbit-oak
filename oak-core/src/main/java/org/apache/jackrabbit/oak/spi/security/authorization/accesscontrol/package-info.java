@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.4.0")
+@Version("1.5.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
-
 import aQute.bnd.annotation.Export;
 import aQute.bnd.annotation.Version;
