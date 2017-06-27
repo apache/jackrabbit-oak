@@ -810,7 +810,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         indexUpdate.setNodeCountEstimator(estimator);
     }
 
-    static String leasify(String name) {
+    public static String leasify(String name) {
         return name + "-lease";
     }
 
