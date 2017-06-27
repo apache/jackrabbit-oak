@@ -367,7 +367,7 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    @Ignore
+    @Ignore // TODO michid fix offlineCompactionBinC1
     public void offlineCompactionBinC1() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
                 .withBinaryDeduplication();
@@ -1106,7 +1106,7 @@ public class CompactionAndCleanupIT {
 
             // A final bit of content
             builder = nodeStore.getRoot().builder();
-            for (int k = 0; k < 10000; k++) {
+            for (int k = 0; k < 10000; k++) {  // michid don't hc
                 builder.setChildNode("b-" + k);
             }
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
