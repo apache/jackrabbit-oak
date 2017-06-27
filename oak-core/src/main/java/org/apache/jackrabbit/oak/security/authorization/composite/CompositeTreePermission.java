@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
+import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.OR;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -24,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -37,6 +41,7 @@ final class CompositeTreePermission implements TreePermission {
 
     private final ImmutableTree tree;
     private final TreeType type;
+    private final CompositionType compositionType;
 
     private final TreeTypeProvider typeProvider;
     private final AggregatedPermissionProvider[] providers;
@@ -46,7 +51,9 @@ final class CompositeTreePermission implements TreePermission {
     private Boolean canRead;
     private Boolean canReadProperties;
 
-    private CompositeTreePermission(@Nonnull ImmutableTree tree, @Nonnull TreeType type, @Nonnull TreeTypeProvider typeProvider, @Nonnull AggregatedPermissionProvider[] providers, @Nonnull TreePermission[] treePermissions, int cnt) {
+    private CompositeTreePermission(@Nonnull ImmutableTree tree, @Nonnull TreeType type,
+            @Nonnull TreeTypeProvider typeProvider, @Nonnull AggregatedPermissionProvider[] providers,
+            @Nonnull TreePermission[] treePermissions, int cnt, @Nonnull CompositionType compositionType) {
         this.tree = tree;
         this.type = type;
 
@@ -54,9 +61,11 @@ final class CompositeTreePermission implements TreePermission {
         this.providers = providers;
         this.treePermissions = treePermissions;
         this.childSize = providers.length - cnt;
+        this.compositionType = compositionType;
     }
 
-    static TreePermission create(@Nonnull ImmutableTree rootTree, @Nonnull TreeTypeProvider typeProvider, @Nonnull AggregatedPermissionProvider[] providers) {
+    static TreePermission create(@Nonnull ImmutableTree rootTree, @Nonnull TreeTypeProvider typeProvider,
+            @Nonnull AggregatedPermissionProvider[] providers, @Nonnull CompositionType compositionType) {
         switch (providers.length) {
             case 0 : return TreePermission.EMPTY;
             case 1 : return providers[0].getTreePermission(rootTree, TreeType.DEFAULT, TreePermission.EMPTY);
@@ -70,7 +79,8 @@ final class CompositeTreePermission implements TreePermission {
                     }
                     treePermissions[i] = tp;
                 }
-                return new CompositeTreePermission(rootTree, TreeType.DEFAULT, typeProvider, providers, treePermissions, cnt);
+            return new CompositeTreePermission(rootTree, TreeType.DEFAULT, typeProvider, providers, treePermissions,
+                    cnt, compositionType);
         }
     }
 
@@ -115,7 +125,8 @@ final class CompositeTreePermission implements TreePermission {
                         j++;
                     }
                 }
-                return new CompositeTreePermission(tree, type, parentPermission.typeProvider, pvds, tps, cnt);
+            return new CompositeTreePermission(tree, type, parentPermission.typeProvider, pvds, tps, cnt,
+                    parentPermission.compositionType);
         }
     }
 
@@ -158,7 +169,10 @@ final class CompositeTreePermission implements TreePermission {
                 long supported = providers[i].supportedPermissions(tp, null, Permissions.READ_PROPERTY);
                 if (doEvaluate(supported)) {
                     readable = tp.canReadProperties();
-                    if (!readable) {
+                    if (!readable && compositionType == AND) {
+                        break;
+                    }
+                    if (readable && compositionType == OR) {
                         break;
                     }
                 }
@@ -188,11 +202,20 @@ final class CompositeTreePermission implements TreePermission {
             TreePermission tp = treePermissions[i];
             long supported = providers[i].supportedPermissions(tp, property, permissions);
             if (doEvaluate(supported)) {
-                isGranted = (property == null) ? tp.isGranted(supported) : tp.isGranted(supported, property);
-                coveredPermissions |= supported;
-
-                if (!isGranted) {
-                    return false;
+                if (compositionType == AND) {
+                    isGranted = (property == null) ? tp.isGranted(supported) : tp.isGranted(supported, property);
+                    if (!isGranted) {
+                        return false;
+                    }
+                    coveredPermissions |= supported;
+                } else {
+                    for (long p : Permissions.aggregates(permissions)) {
+                        boolean aGrant = (property == null) ? tp.isGranted(p) : tp.isGranted(p, property);
+                        if (aGrant) {
+                            coveredPermissions |= p;
+                            isGranted = true;
+                        }
+                    }
                 }
             }
         }
@@ -209,8 +232,11 @@ final class CompositeTreePermission implements TreePermission {
             long supported = providers[i].supportedPermissions(tp, property, (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
             if (doEvaluate(supported)) {
                 readable = (property == null) ? tp.canRead() : tp.canRead(property);
-                if (!readable) {
-                    break;
+                if (!readable && compositionType == AND) {
+                    return false;
+                }
+                if (readable && compositionType == OR) {
+                    return true;
                 }
             }
         }

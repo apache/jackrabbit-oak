@@ -23,14 +23,16 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -50,8 +52,8 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
-        rootNode.addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree rootNode = root.getTree("/");
+        TreeUtil.addChild(rootNode, "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         root.commit();
 
         readOnlyRoot = RootFactory.createReadOnlyRoot(root);
@@ -72,7 +74,8 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
     }
 
     private TreePermission createRootTreePermission(AggregatedPermissionProvider... providers) {
-        return new CompositePermissionProvider(readOnlyRoot, Arrays.asList(providers), Context.DEFAULT).getTreePermission(rootTree, TreePermission.EMPTY);
+        return new CompositePermissionProvider(readOnlyRoot, Arrays.asList(providers), Context.DEFAULT, CompositionType.AND)
+                .getTreePermission(rootTree, TreePermission.EMPTY);
     }
 
     private static void assertCompositeTreePermission(boolean expected, @Nonnull TreePermission tp) {
