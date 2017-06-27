@@ -60,7 +60,7 @@ public class GCNodeWriteMonitor {
         this.gcProgressLog = gcProgressLog;
     }
 
-    public synchronized void compacted() {
+    public synchronized void onNode() {
         nodes++;
         if (gcProgressLog > 0 && nodes % gcProgressLog == 0) {
             long ms = System.currentTimeMillis() - start;

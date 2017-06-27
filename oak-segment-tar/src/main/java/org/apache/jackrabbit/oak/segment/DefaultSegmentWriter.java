@@ -69,7 +69,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -105,9 +104,6 @@ public class DefaultSegmentWriter implements SegmentWriter {
     @Nonnull
     private final WriteOperationHandler writeOperationHandler;
 
-    @Nonnull
-    private final GCNodeWriteMonitor compactionMonitor;
-
     /**
      * Create a new instance of a {@code SegmentWriter}. Note the thread safety
      * properties pointed out in the class comment.
@@ -127,8 +123,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             @Nonnull SegmentIdProvider idProvider,
             @Nullable BlobStore blobStore,
             @Nonnull WriterCacheManager cacheManager,
-            @Nonnull WriteOperationHandler writeOperationHandler,
-            GCNodeWriteMonitor compactionMonitor
+            @Nonnull WriteOperationHandler writeOperationHandler
     ) {
         this.store = checkNotNull(store);
         this.reader = checkNotNull(reader);
@@ -136,7 +131,6 @@ public class DefaultSegmentWriter implements SegmentWriter {
         this.blobStore = blobStore;
         this.cacheManager = checkNotNull(cacheManager);
         this.writeOperationHandler = checkNotNull(writeOperationHandler);
-        this.compactionMonitor = checkNotNull(compactionMonitor);
     }
 
     @Override
@@ -814,7 +808,6 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 // generation (e.g. due to compaction). Put it into the cache for
                 // deduplication of hard links to it (e.g. checkpoints).
                 nodeCache.put(getStableId(stableIdBytes), recordId, cost(state));
-                compactionMonitor.compacted();
             }
             return recordId;
         }
