@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
@@ -48,8 +49,10 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     private static final int UPDATE_LIMIT =
             Integer.getInteger("update.limit", 10000);
 
+    @Nullable
     private final BlobStore blobStore;
 
+    @Nonnull
     private final SegmentReader reader;
 
     @Nonnull
@@ -69,7 +72,11 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
      */
     private long updateCount;
 
-    SegmentNodeBuilder(@Nonnull SegmentNodeState base, BlobStore blobStore, SegmentReader reader, @Nonnull SegmentWriter writer) {
+    SegmentNodeBuilder(
+            @Nonnull SegmentNodeState base,
+            @Nullable BlobStore blobStore,
+            @Nonnull SegmentReader reader,
+            @Nonnull SegmentWriter writer) {
         super(base);
         this.blobStore = blobStore;
         this.reader = reader;
@@ -77,7 +84,12 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
         this.updateCount = 0;
     }
 
-    private SegmentNodeBuilder(SegmentNodeBuilder parent, String name, BlobStore blobStore, SegmentReader reader, @Nonnull SegmentWriter writer) {
+    private SegmentNodeBuilder(
+            @Nonnull SegmentNodeBuilder parent,
+            @Nonnull String name,
+            @Nullable BlobStore blobStore,
+            @Nonnull SegmentReader reader,
+            @Nonnull SegmentWriter writer) {
         super(parent, name);
         this.blobStore = blobStore;
         this.reader = reader;
