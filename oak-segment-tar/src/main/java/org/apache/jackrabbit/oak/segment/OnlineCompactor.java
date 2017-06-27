@@ -46,10 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO michid doc
-// TODO michid unify with Compactor?!
-// TODO michid add progress tracker!?
-// TODO michid logging
 public class OnlineCompactor {
     private static final Logger log = LoggerFactory.getLogger(OnlineCompactor.class);
 
@@ -115,7 +111,7 @@ public class OnlineCompactor {
         private long modCount;
 
         private void updated() throws IOException {
-            if (++modCount % 10000 == 0) {  // michid don't hc
+            if (++modCount % 10000 == 0) {
                 RecordId newBaseId = writer.writeNode(builder.getNodeState(), null);
                 SegmentNodeState newBase = new SegmentNodeState(reader, writer, blobStore, newBaseId);
                 builder = new MemoryNodeBuilder(newBase);
@@ -207,7 +203,6 @@ public class OnlineCompactor {
         }
     }
 
-    // TODO michid deduplicate binaries, strings here?
     @Nonnull
     private static PropertyState compact(@Nonnull PropertyState property) {
         String name = property.getName();

@@ -692,7 +692,7 @@ public class FileStore extends AbstractFileStore {
                                 .withAccessTracking("COMPACT", statisticsProvider))
                         .withGeneration(newGeneration)
                         .withoutWriterPool()
-                        .withCompactionMonitor(compactionMonitor) // TODO michid move this into the compactor
+                        .withCompactionMonitor(compactionMonitor)
                         .build(FileStore.this);
                 OnlineCompactor compactor = new OnlineCompactor(segmentReader, writer, getBlobStore(), cancel);
 
@@ -785,8 +785,6 @@ public class FileStore extends AbstractFileStore {
             }
         }
 
-        // TODO michid fix offline compaction
-        // michid doc
         @CheckForNull
         private SegmentNodeState compact(
                 @Nullable SegmentNodeState base,
@@ -812,7 +810,6 @@ public class FileStore extends AbstractFileStore {
             return new SegmentNodeState(segmentReader, segmentWriter, getBlobStore(), nodeId);
         }
 
-        // michid doc
         @CheckForNull
         private LinkedHashMap<String, NodeState> compact(
                 @Nonnull LinkedHashMap<String, NodeState> baseRoots,
@@ -841,7 +838,6 @@ public class FileStore extends AbstractFileStore {
             return compactedRoots;
         }
 
-        // michid doc
         @Nonnull
         private LinkedHashMap<String, NodeState> collectRoots(@Nullable SegmentNodeState superRoot) {
             LinkedHashMap<String, NodeState> roots = newLinkedHashMap();
@@ -872,7 +868,6 @@ public class FileStore extends AbstractFileStore {
             return builder;
         }
 
-        // michid doc
         private SegmentNodeState forceCompact(
                 @Nonnull final SegmentNodeState base,
                 @Nonnull final OnlineCompactor compactor,
