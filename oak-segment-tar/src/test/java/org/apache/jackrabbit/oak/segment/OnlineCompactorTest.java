@@ -30,8 +30,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-// michid unify with CompactorTest!?
-// michid implement more tests, check coverage
 public class OnlineCompactorTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
