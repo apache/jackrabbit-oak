@@ -57,6 +57,13 @@ import org.slf4j.LoggerFactory;
 public class OnlineCompactor {
     private static final Logger log = LoggerFactory.getLogger(OnlineCompactor.class);
 
+    /**
+     * Number of content updates that need to happen before the updates
+     * are automatically purged to the underlying segments.
+     */
+    static final int UPDATE_LIMIT =
+            Integer.getInteger("compaction.update.limit", 10000);
+
     @Nonnull
     private final SegmentWriter writer;
 
@@ -140,7 +147,7 @@ public class OnlineCompactor {
         private long modCount;
 
         private void updated() throws IOException {
-            if (++modCount % 10000 == 0) {
+            if (++modCount % UPDATE_LIMIT == 0) {
                 RecordId newBaseId = writer.writeNode(builder.getNodeState(), null);
                 SegmentNodeState newBase = new SegmentNodeState(reader, writer, blobStore, newBaseId);
                 builder = new MemoryNodeBuilder(newBase);

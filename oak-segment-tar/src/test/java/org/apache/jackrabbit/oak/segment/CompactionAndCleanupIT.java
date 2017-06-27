@@ -31,6 +31,7 @@ import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.OnlineCompactor.UPDATE_LIMIT;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -1106,7 +1107,7 @@ public class CompactionAndCleanupIT {
 
             // A final bit of content
             builder = nodeStore.getRoot().builder();
-            for (int k = 0; k < 10000; k++) {
+            for (int k = 0; k < UPDATE_LIMIT; k++) {
                 builder.setChildNode("b-" + k);
             }
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
