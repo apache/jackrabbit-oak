@@ -21,6 +21,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Before;
 import org.junit.Test;
@@ -193,7 +194,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
     }
 
     @Test
-    public void testGetProtectedItemImporter() {
+    public void testGetProtectedItemImporters() {
         assertTrue(compositeConfiguration.getProtectedItemImporters().isEmpty());
 
         addConfiguration(new SecurityConfiguration.Default());
@@ -209,5 +210,25 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         addConfiguration(withImporter);
 
         assertEquals(1, compositeConfiguration.getProtectedItemImporters().size());
+    }
+
+
+    @Test
+    public void testGetConflictHandlers() {
+        assertTrue(compositeConfiguration.getConflictHandlers().isEmpty());
+
+        addConfiguration(new SecurityConfiguration.Default());
+        assertTrue(compositeConfiguration.getConflictHandlers().isEmpty());
+
+        SecurityConfiguration withConflictHandler = new SecurityConfiguration.Default() {
+            @Nonnull
+            @Override
+            public List<ThreeWayConflictHandler> getConflictHandlers() {
+                return ImmutableList.of(Mockito.mock(ThreeWayConflictHandler.class));
+            }
+        };
+        addConfiguration(withConflictHandler);
+
+        assertEquals(1, compositeConfiguration.getConflictHandlers().size());
     }
 }

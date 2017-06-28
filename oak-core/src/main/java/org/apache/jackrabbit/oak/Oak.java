@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -145,6 +146,8 @@ public class Oak {
     private final List<Observer> observers = Lists.newArrayList();
 
     private List<EditorProvider> editorProviders = newArrayList();
+
+    private CompositeConflictHandler conflictHandler;
 
     private SecurityProvider securityProvider;
 
@@ -484,6 +487,10 @@ public class Oak {
             if (ri != RepositoryInitializer.DEFAULT) {
                 initializers.add(ri);
             }
+
+            for (ThreeWayConflictHandler tch : sc.getConflictHandlers()) {
+                with(tch);
+            }
         }
         return this;
     }
@@ -505,7 +512,18 @@ public class Oak {
     public Oak with(@Nonnull ThreeWayConflictHandler conflictHandler) {
         checkNotNull(conflictHandler);
         withEditorHook();
-        commitHooks.add(new ConflictHook(conflictHandler));
+
+        if (this.conflictHandler == null) {
+            if (conflictHandler instanceof CompositeConflictHandler) {
+                this.conflictHandler = (CompositeConflictHandler) conflictHandler;
+            } else {
+                this.conflictHandler = new CompositeConflictHandler();
+                this.conflictHandler.addHandler(conflictHandler);
+            }
+            commitHooks.add(new ConflictHook(conflictHandler));
+        } else {
+            this.conflictHandler.addHandler(conflictHandler);
+        }
         return this;
     }
 

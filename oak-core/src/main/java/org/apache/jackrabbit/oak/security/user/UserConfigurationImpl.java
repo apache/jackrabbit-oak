@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -178,6 +179,12 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
         return ImmutableList.of(new UserValidatorProvider(getParameters()), new CacheValidatorProvider(principals));
+    }
+
+    @Nonnull
+    @Override
+    public List<ThreeWayConflictHandler> getConflictHandlers() {
+        return ImmutableList.of(new RepMembersConflictHandler());
     }
 
     @Nonnull

@@ -28,6 +28,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import aQute.bnd.annotation.ProviderType;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeWorkspaceInitializer;
@@ -51,6 +53,7 @@ import org.osgi.framework.Constants;
  * Abstract base implementation for {@link SecurityConfiguration}s that can
  * combine different implementations.
  */
+@ProviderType
 public abstract class CompositeConfiguration<T extends SecurityConfiguration> implements SecurityConfiguration {
 
     /**
@@ -210,6 +213,12 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
                 return securityConfiguration.getValidators(workspaceName, principals, moveTracker);
             }
         })));
+    }
+
+    @Nonnull
+    @Override
+    public List<ThreeWayConflictHandler> getConflictHandlers() {
+        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getConflictHandlers())));
     }
 
     @Nonnull
