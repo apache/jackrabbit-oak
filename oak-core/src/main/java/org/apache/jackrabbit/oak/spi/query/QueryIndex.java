@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +29,6 @@ import aQute.bnd.annotation.ProviderType;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -612,4 +612,9 @@ public interface QueryIndex {
         }
     }
 
+    interface NodeAggregator {
+
+        Iterator<String> getParents(NodeState rootState, String path);
+
+    }
 }

@@ -21,7 +21,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -37,10 +36,10 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
-    private final NodeAggregator aggregator;
+    private final QueryIndex.NodeAggregator aggregator;
 
     public SolrQueryIndexProvider(@Nonnull SolrServerProvider solrServerProvider, @Nonnull OakSolrConfigurationProvider oakSolrConfigurationProvider,
-                                  @Nullable NodeAggregator nodeAggregator) {
+                                  @Nullable QueryIndex.NodeAggregator nodeAggregator) {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
         this.solrServerProvider = solrServerProvider;
         this.aggregator = nodeAggregator;

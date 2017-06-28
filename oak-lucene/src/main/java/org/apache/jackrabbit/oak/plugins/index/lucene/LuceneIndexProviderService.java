@@ -56,7 +56,6 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
@@ -72,6 +71,7 @@ import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -110,7 +110,7 @@ public class LuceneIndexProviderService {
             policyOption = ReferencePolicyOption.GREEDY,
             policy = ReferencePolicy.DYNAMIC
     )
-    private NodeAggregator nodeAggregator;
+    private QueryIndex.NodeAggregator nodeAggregator;
 
     private static final boolean PROP_DISABLED_DEFAULT = false;
 
@@ -745,12 +745,12 @@ public class LuceneIndexProviderService {
         return timestamp;
     }
 
-    protected void bindNodeAggregator(NodeAggregator aggregator) {
+    protected void bindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;
         initialize();
     }
 
-    protected void unbindNodeAggregator(NodeAggregator aggregator) {
+    protected void unbindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
         this.nodeAggregator = null;
         initialize();
     }
