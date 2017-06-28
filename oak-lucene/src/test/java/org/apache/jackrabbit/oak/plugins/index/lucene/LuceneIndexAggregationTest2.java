@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -58,6 +57,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
@@ -180,7 +180,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
         root.commit();
     }
 
-    private static NodeAggregator getNodeAggregator() {
+    private static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
             .newRuleWithName(NT_FILE, newArrayList("jcr:content"))
             .newRuleWithName(NT_TEST_PAGE, newArrayList("jcr:content"))
