@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
@@ -163,6 +164,12 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
         @Nonnull
         @Override
         public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+            return Collections.EMPTY_LIST;
+        }
+
+        @Nonnull
+        @Override
+        public List<ThreeWayConflictHandler> getConflictHandlers() {
             return Collections.EMPTY_LIST;
         }
 

@@ -23,8 +23,10 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
@@ -33,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 /**
  * Base interface for all security related configurations.
  */
+@ProviderType
 public interface SecurityConfiguration {
 
     /**
@@ -99,6 +102,14 @@ public interface SecurityConfiguration {
                                                     @Nonnull MoveTracker moveTracker);
 
     /**
+     * Returns the list of conflict handlers available for this security configuration.
+     *
+     * @return A list of {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler}.
+     */
+    @Nonnull
+    List<ThreeWayConflictHandler> getConflictHandlers();
+
+    /**
      * @return The list of protected item importers defined by this configuration.
      */
     @Nonnull
@@ -150,6 +161,12 @@ public interface SecurityConfiguration {
         @Override
         public List<? extends ValidatorProvider> getValidators(
                 @Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+            return Collections.emptyList();
+        }
+
+        @Nonnull
+        @Override
+        public List<ThreeWayConflictHandler> getConflictHandlers() {
             return Collections.emptyList();
         }
 
