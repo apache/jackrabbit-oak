@@ -23,8 +23,11 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.security.authorization.composite.MultiplexingPermissionProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -64,6 +67,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
+    private final MountInfoProvider mountInfoProvider;
 
     private NodeBuilder permissionRoot;
     private PrivilegeBitsProvider bitsProvider;
@@ -75,9 +79,10 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private Map<String, PermissionStoreEditor> modified = new HashMap<String, PermissionStoreEditor>();
     private Map<String, PermissionStoreEditor> deleted = new HashMap<String, PermissionStoreEditor>();
 
-    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider) {
+    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider, MountInfoProvider mountInfoProvider) {
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
+        this.mountInfoProvider = mountInfoProvider;
     }
 
     //---------------------------------------------------------< CommitHook >---
@@ -121,9 +126,19 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     }
 
     @Nonnull
-    private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder) {
+    private static NodeBuilder getPermissionRoot(NodeBuilder rootBuilder) {
         // permission root has been created during workspace initialization
-        return rootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE).getChildNode(workspaceName);
+        return rootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE);
+    }
+
+    @Nonnull
+    private NodeBuilder getPermissionRoot(String path) {
+        Mount m = mountInfoProvider.getMountByPath(path);
+        String ws = workspaceName;
+        if (!m.isDefault()) {
+            ws = MultiplexingPermissionProvider.getWorkspaceName(m, ws);
+        }
+        return permissionRoot.getChildNode(ws);
     }
 
     private final class Diff extends DefaultNodeStateDiff {
@@ -199,7 +214,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
 
         private PermissionStoreEditor createPermissionStoreEditor(@Nonnull String nodeName, @Nonnull NodeState nodeState) {
-            return new PermissionStoreEditor(parentPath, nodeName, nodeState, permissionRoot, isACE, isGrantACE, bitsProvider, restrictionProvider);
+            return new PermissionStoreEditor(parentPath, nodeName, nodeState, getPermissionRoot(parentPath), isACE, isGrantACE, bitsProvider, restrictionProvider);
         }
     }
 }

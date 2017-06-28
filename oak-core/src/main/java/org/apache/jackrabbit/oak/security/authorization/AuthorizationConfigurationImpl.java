@@ -17,19 +17,20 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.composite.MultiplexingPermissionProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
@@ -48,6 +50,9 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -56,12 +61,15 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Default implementation of the {@code AccessControlConfiguration}.
@@ -104,6 +112,9 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 })
 public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
 
+    @Reference
+    private MountInfoProvider mountInfoProvider;
+
     public AuthorizationConfigurationImpl() {
         super();
     }
@@ -116,6 +127,8 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     public AuthorizationConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
+        mountInfoProvider = getParameters().getConfigValue(AccessControlConstants.PARAM_MOUNT_PROVIDER,
+                Mounts.defaultMountInfoProvider(), MountInfoProvider.class);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -134,7 +147,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Nonnull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
-        return new AuthorizationInitializer();
+        return new AuthorizationInitializer(mountInfoProvider);
     }
 
     @Nonnull
@@ -142,7 +155,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
         return ImmutableList.of(
                 new VersionablePathHook(workspaceName),
-                new PermissionHook(workspaceName, getRestrictionProvider()));
+                new PermissionHook(workspaceName, getRestrictionProvider(), mountInfoProvider));
     }
 
     @Nonnull
@@ -157,7 +170,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Nonnull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.<ProtectedItemImporter>singletonList(new AccessControlImporter());
+        return ImmutableList.of(new AccessControlImporter());
     }
 
     //-----------------------------------------< AccessControlConfiguration >---
@@ -180,8 +193,22 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
+            @Nonnull Set<Principal> principals) {
         Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
-        return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(), getParameters(), ctx);
+
+        if (mountInfoProvider.hasNonDefaultMounts()) {
+            List<AggregatedPermissionProvider> agg = new ArrayList<>();
+            agg.add(new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(),
+                    getParameters(), ctx));
+            for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
+                String ws = MultiplexingPermissionProvider.getWorkspaceName(m, workspaceName);
+                agg.add(new PermissionProviderImpl(root, ws, principals, getRestrictionProvider(), getParameters(),
+                        ctx));
+            }
+            return new MultiplexingPermissionProvider(root, agg, ctx);
+        }
+        return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(), getParameters(),
+                ctx);
     }
 }

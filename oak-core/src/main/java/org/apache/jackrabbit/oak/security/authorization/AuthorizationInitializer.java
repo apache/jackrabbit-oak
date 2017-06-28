@@ -20,9 +20,12 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
+import org.apache.jackrabbit.oak.security.authorization.composite.MultiplexingPermissionProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -39,6 +42,12 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
  * </ul>.
  */
 class AuthorizationInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {
+
+    private final MountInfoProvider mountInfoProvider;
+
+    public AuthorizationInitializer(MountInfoProvider mountInfoProvider) {
+            this.mountInfoProvider = mountInfoProvider;
+    }
 
     @Override
     public void initialize(NodeBuilder builder, String workspaceName) {
@@ -61,6 +70,12 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
         }
         if (!permissionStore.hasChildNode(workspaceName)) {
             permissionStore.child(workspaceName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+        }
+        for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
+            String ws =  MultiplexingPermissionProvider.getWorkspaceName(m, workspaceName);
+            if (!permissionStore.hasChildNode(ws)) {
+                permissionStore.child(ws).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+            }
         }
     }
 
