@@ -68,7 +68,7 @@ final class ImpersonationDelegator implements Impersonation {
 
     @Override
     public boolean grantImpersonation(final Principal principal) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>("grantImpersonation") {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("grantImpersonation", true) {
             @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
@@ -79,7 +79,7 @@ final class ImpersonationDelegator implements Impersonation {
 
     @Override
     public boolean revokeImpersonation(final Principal principal) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>("revokeImpersonation") {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("revokeImpersonation", true) {
             @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {

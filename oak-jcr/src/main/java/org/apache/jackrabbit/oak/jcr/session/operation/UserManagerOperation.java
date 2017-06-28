@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.jcr.session.operation;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -26,8 +27,12 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 public abstract class UserManagerOperation<T> extends SessionOperation<T> {
     private final SessionDelegate delegate;
 
-    protected UserManagerOperation(SessionDelegate delegate, String name) {
-        super(name);
+    protected UserManagerOperation(@Nonnull SessionDelegate delegate, @Nonnull String name) {
+        this(delegate, name, false);
+    }
+
+    protected UserManagerOperation(@Nonnull SessionDelegate delegate, @Nonnull String name, boolean update) {
+        super(name, update);
         this.delegate = delegate;
     }
 
