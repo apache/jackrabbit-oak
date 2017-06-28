@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
@@ -59,6 +60,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nullable;
+
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -66,9 +69,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -1418,6 +1424,55 @@ public class CompactionAndCleanupIT {
     private static void addContent(NodeBuilder builder) {
         for (int k = 0; k < 10000; k++) {
             builder.setProperty(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        }
+    }
+
+    private static BlobStore newBlobStore(File directory) {
+        OakFileDataStore delegate = new OakFileDataStore();
+        delegate.setPath(directory.getAbsolutePath());
+        delegate.init(null);
+        return new DataStoreBlobStore(delegate);
+    }
+
+
+    @Test
+    public void binaryRetentionWithDS()
+    throws IOException, InvalidFileStoreVersionException, CommitFailedException {
+        try (FileStore fileStore = fileStoreBuilder(new File(getFileStoreFolder(), "segmentstore"))
+                .withBlobStore(newBlobStore(new File(getFileStoreFolder(), "blobstore")))
+                .withGCOptions(defaultGCOptions().setGcSizeDeltaEstimation(0))
+                .build())
+        {
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+            NodeBuilder builder = nodeStore.getRoot().builder();
+            builder.setProperty("bin", createBlob(nodeStore, 1000000));
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            class RefCollector implements ReferenceCollector {
+                final Set<String> references;
+
+                RefCollector(Set<String> references) {this.references = references;}
+
+                @Override
+                public void addReference(String reference, @Nullable String nodeId) {
+                    references.add(reference);
+                }
+            }
+
+            Set<String> expectedReferences = newHashSet();
+            ReferenceCollector refCollector = new RefCollector(expectedReferences);
+            fileStore.collectBlobReferences(refCollector);
+
+            for(int k = 1; k <= 3; k++) {
+                fileStore.gc();
+                Set<String> actualReferences = newHashSet();
+                refCollector = new RefCollector(actualReferences);
+                fileStore.collectBlobReferences(refCollector);
+                assertEquals("Binary should be retained after " + k + "-th gc cycle",
+                        expectedReferences, actualReferences);
+            }
         }
     }
 }

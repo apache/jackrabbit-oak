@@ -716,12 +716,10 @@ class TarReader implements Closeable {
     }
 
     /**
-     * Collect the references of those blobs that are reachable from any segment with a
-     * generation at or above {@code minGeneration}.
-     * @param collector
-     * @param minGeneration
+     * Collect the references of those blobs that are reachable from any segment and
+     * are not reclaimable according to the {@code reclaim} predicate.
      */
-    void collectBlobReferences(@Nonnull ReferenceCollector collector, int minGeneration) {
+    void collectBlobReferences(@Nonnull ReferenceCollector collector, Predicate<Integer> reclaim) {
         Map<Integer, Map<UUID, Set<String>>> generations = getBinaryReferences();
 
         if (generations == null) {
@@ -729,7 +727,7 @@ class TarReader implements Closeable {
         }
 
         for (Entry<Integer, Map<UUID, Set<String>>> entry : generations.entrySet()) {
-            if (entry.getKey() < minGeneration) {
+            if (reclaim.apply(entry.getKey())) {
                 continue;
             }
 
