@@ -668,9 +668,8 @@ class TarFiles implements Closeable {
         return result;
     }
 
-    void collectBlobReferences(ReferenceCollector collector, int minGeneration) throws IOException {
+    void collectBlobReferences(ReferenceCollector collector, Predicate<Integer> reclaim) throws IOException {
         Node head;
-
         lock.writeLock().lock();
         try {
             if (writer != null) {
@@ -682,7 +681,7 @@ class TarFiles implements Closeable {
         }
 
         for (TarReader reader : iterable(head)) {
-            reader.collectBlobReferences(collector, minGeneration);
+            reader.collectBlobReferences(collector, reclaim);
         }
     }
 

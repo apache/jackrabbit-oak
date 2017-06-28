@@ -989,8 +989,8 @@ public class FileStore extends AbstractFileStore {
          */
         synchronized void collectBlobReferences(ReferenceCollector collector) throws IOException {
             segmentWriter.flush();
-            int minGeneration = getGcGeneration() - gcOptions.getRetainedGenerations() + 1;
-            tarFiles.collectBlobReferences(collector, minGeneration);
+            int oldGeneration = getGcGeneration() - gcOptions.getRetainedGenerations();
+            tarFiles.collectBlobReferences(collector, CompactionResult.newOldReclaimer(oldGeneration));
         }
 
         void cancel() {
