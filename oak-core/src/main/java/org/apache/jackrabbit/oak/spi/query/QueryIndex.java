@@ -128,7 +128,7 @@ public interface QueryIndex {
     /**
      *  A marker interface which means this index supports executing native queries
      */
-    public interface NativeQueryIndex {
+    interface NativeQueryIndex {
         // a marker interface
     }
 
@@ -138,7 +138,7 @@ public interface QueryIndex {
      * query engine does not verify the fulltext constraint(s) for the given
      * selector.
      */
-    public interface FulltextQueryIndex extends QueryIndex, NativeQueryIndex {
+    interface FulltextQueryIndex extends QueryIndex, NativeQueryIndex {
 
         /**
          * Returns the NodeAggregator responsible for providing the aggregation
@@ -151,7 +151,7 @@ public interface QueryIndex {
 
     }
 
-    public interface AdvanceFulltextQueryIndex extends FulltextQueryIndex, AdvancedQueryIndex {
+    interface AdvanceFulltextQueryIndex extends FulltextQueryIndex, AdvancedQueryIndex {
         // a marker interface
     }
 
@@ -160,7 +160,7 @@ public interface QueryIndex {
      * (returning the rows in a specific order), and that can provide detailed
      * information about the cost.
      */
-    public interface AdvancedQueryIndex {
+    interface AdvancedQueryIndex {
 
         /**
          * Return the possible index plans for the given filter and sort order.
@@ -206,7 +206,7 @@ public interface QueryIndex {
      * An index plan.
      */
     @ProviderType
-    public interface IndexPlan extends Cloneable{
+    interface IndexPlan extends Cloneable{
 
         /**
          * The cost to execute the query once. The returned value should
@@ -331,7 +331,7 @@ public interface QueryIndex {
         /**
          * A builder for index plans.
          */
-        public class Builder {
+        class Builder {
 
             protected double costPerExecution = 1.0;
             protected double costPerEntry = 1.0;
@@ -565,7 +565,7 @@ public interface QueryIndex {
     /**
      * A sort order entry.
      */
-    static class OrderEntry {
+    class OrderEntry {
 
         /**
          * The property name on where to sort.
