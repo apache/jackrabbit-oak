@@ -27,7 +27,11 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BINARY_REFERENCES_MAGIC;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.INDEX_MAGIC;
 
 import java.io.Closeable;
 import java.io.File;
@@ -57,50 +61,6 @@ class TarWriter implements Closeable {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarWriter.class);
-
-    /**
-     * Magic byte sequence at the end of the index block.
-     * <p>
-     * <ul>
-     * <li>For each segment in that file, an index entry that contains the UUID,
-     * the offset within the file and the size of the segment. Sorted by UUID,
-     * to allow using interpolation search.</li>
-     * <li>
-     * The index footer, which contains metadata of the index (the size,
-     * checksum).</li>
-     * </ul>
-     */
-    static final int INDEX_MAGIC =
-            ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
-
-    /**
-     * Magic byte sequence at the end of the graph block.
-     * <p>
-     * The file is read from the end (the tar file is read from the end: the
-     * last entry is the index, then the graph). File format:
-     * <ul>
-     * <li>0 padding to make the footer end at a 512 byte boundary</li>
-     * <li>The list of UUIDs (segments included the graph; this includes
-     * segments in this tar file, and referenced segments in tar files with a
-     * lower sequence number). 16 bytes each.</li>
-     * <li>The graph data. The index of the source segment UUID (in the above
-     * list, 4 bytes), then the list of referenced segments (the indexes of
-     * those; 4 bytes each). Then the list is terminated by -1.</li>
-     * <li>The last part is the footer, which contains metadata of the graph
-     * (size, checksum, the number of UUIDs).</li>
-     * </ul>
-     * 
-     */
-    static final int GRAPH_MAGIC =
-            ('\n' << 24) + ('0' << 16) + ('G' << 8) + '\n';
-
-    /**
-     * Magic sequence at the end of the binary references block.
-     */
-    static final int BINARY_REFERENCES_MAGIC = ('\n' << 24) + ('0' << 16) + ('B' << 8) + '\n';
-
-    /** The tar file block size. */
-    static final int BLOCK_SIZE = 512;
 
     private static final byte[] ZERO_BYTES = new byte[BLOCK_SIZE];
 
