@@ -31,6 +31,10 @@ import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BINARY_REFERENCES_MAGIC;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.INDEX_MAGIC;
 
 import java.io.Closeable;
 import java.io.File;
@@ -69,9 +73,6 @@ class TarReader implements Closeable {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
 
-    /** Magic byte sequence at the end of the index block. */
-    private static final int INDEX_MAGIC = TarWriter.INDEX_MAGIC;
-
     /**
      * Pattern of the segment entry names. Note the trailing (\\..*)? group
      * that's included for compatibility with possible future extensions.
@@ -79,9 +80,6 @@ class TarReader implements Closeable {
     private static final Pattern NAME_PATTERN = Pattern.compile(
             "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
             + "(\\.([0-9a-f]{8}))?(\\..*)?");
-
-    /** The tar file block size. */
-    private static final int BLOCK_SIZE = TarWriter.BLOCK_SIZE;
 
     static int getEntrySize(int size) {
         return BLOCK_SIZE + size + TarWriter.getPaddingSize(size);
@@ -1012,7 +1010,7 @@ class TarReader implements Closeable {
         int size = meta.getInt();
         int magic = meta.getInt();
 
-        if (magic != TarWriter.BINARY_REFERENCES_MAGIC) {
+        if (magic != BINARY_REFERENCES_MAGIC) {
             log.warn("Invalid binary references magic number");
             return null;
         }
@@ -1092,7 +1090,7 @@ class TarReader implements Closeable {
         int bytes = meta.getInt();
         int magic = meta.getInt();
 
-        if (magic != TarWriter.GRAPH_MAGIC) {
+        if (magic != GRAPH_MAGIC) {
             log.warn("Invalid graph magic number in {}", file);
             return null;
         }
