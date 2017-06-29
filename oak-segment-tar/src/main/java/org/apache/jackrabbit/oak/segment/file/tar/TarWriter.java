@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment.file;
+
+package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -26,7 +27,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
-import static org.apache.jackrabbit.oak.segment.file.FileStore.FILE_NAME_FORMAT;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
 
 import java.io.Closeable;
 import java.io.File;
@@ -168,7 +169,7 @@ class TarWriter implements Closeable {
      */
     TarWriter(File file, IOMonitor ioMonitor) {
         this.file = file;
-        this.monitor = FileStoreMonitor.DEFAULT;
+        this.monitor = new FileStoreMonitorAdapter();
         this.writeIndex = -1;
         this.ioMonitor = ioMonitor;
     }

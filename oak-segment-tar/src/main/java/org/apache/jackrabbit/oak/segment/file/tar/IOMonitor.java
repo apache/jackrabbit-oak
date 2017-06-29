@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment.file.tar;
 
 import java.io.File;
 

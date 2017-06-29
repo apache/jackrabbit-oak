@@ -15,30 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment.file.tar;
 
-import java.io.File;
+import java.io.IOException;
+import java.util.UUID;
 
-public class IOMonitorAdapter implements IOMonitor {
+public interface EntryRecovery {
 
-    @Override
-    public void beforeSegmentRead(File file, long msb, long lsb, int length) {
-        // Intentionally left blank
-    }
+    void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, int generation) throws IOException;
 
-    @Override
-    public void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed) {
-        // Intentionally left blank
-    }
+    void recoverGraphEdge(UUID from, UUID to);
 
-    @Override
-    public void beforeSegmentWrite(File file, long msb, long lsb, int length) {
-        // Intentionally left blank
-    }
-
-    @Override
-    public void afterSegmentWrite(File file, long msb, long lsb, int length, long elapsed) {
-        // Intentionally left blank
-    }
+    void recoverBinaryReference(int generation, UUID segmentId, String reference);
 
 }

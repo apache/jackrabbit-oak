@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment.file.tar;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -23,7 +23,7 @@ import java.util.UUID;
 /**
  * A strategy for the recovery of segments.
  */
-interface TarRecovery {
+public interface TarRecovery {
 
     /**
      * Recover the data and meta-data of the given segment. The implementor of
@@ -33,10 +33,10 @@ interface TarRecovery {
      *
      * @param uuid   the identifier of the segment.
      * @param data   the raw data of the segment.
-     * @param writer the destination of the recovered data.
+     * @param entryRecovery the destination of the recovered data.
      * @throws IOException if an I/O error occurs while recovering the data of
      *                     the segment.
      */
-    void recoverEntry(UUID uuid, byte[] data, TarWriter writer) throws IOException;
+    void recoverEntry(UUID uuid, byte[] data, EntryRecovery entryRecovery) throws IOException;
 
 }
