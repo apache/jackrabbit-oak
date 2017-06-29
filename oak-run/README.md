@@ -15,7 +15,6 @@ The following runmodes are currently available:
     * debug           : Print status information about an Oak repository.
     * explore         : Starts a GUI browser based on java swing.
     * garbage         : Identifies blob garbage on a DocumentMK repository
-    * graph           : Export the segment graph of a segment store to a file.
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
     * recovery        : Run a _lastRev recovery on a MongoMK repository
@@ -129,33 +128,6 @@ The 'explore' mode starts a desktop browser GUI based on java swing which allows
 browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
-
-Graph
------
-
-The 'graph' mode export the segment graph of a file store to a text file in the
-[Guess GDF format](https://gephi.github.io/users/supported-graph-formats/gdf-format/),
-which is easily imported into [Gephi](https://gephi.github.io).
-
-As the GDF format only supports integer values but the segment time stamps are encoded as long
-values an optional 'epoch' argument can be specified. If no epoch is given on the command line
-the start of the day of the last modified date of the 'journal.log' is used. The epoch specifies
-a negative offset translating all timestamps into a valid int range.
-
-    $ java -jar oak-run-*.jar graph [File] <options>
-
-    [File] -- Path to segment store (required)
-
-    Option           Description
-    ------           -----------
-    --epoch <Long>   Epoch of the segment time stamps
-                       (derived from journal.log if not
-                       given)
-    --output <File>  Output file (default: segments.gdf)
-    --gc             Write the gc generation graph instead of the full graph
-    --pattern        Regular exception specifying which
-                       nodes to include (optional). Ignore
-                       when --gc is specified.
 
 History
 -------

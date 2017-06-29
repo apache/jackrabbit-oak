@@ -38,7 +38,6 @@ public final class AvailableModes {
             .put("debug", new DebugCommand())
             .put("explore", new ExploreCommand())
             .put("garbage", new GarbageCommand())
-            .put("graph", new GraphCommand())
             .put("help", new HelpCommand())
             .put("history", new HistoryCommand())
             .put(JsonIndexCommand.INDEX, new JsonIndexCommand())

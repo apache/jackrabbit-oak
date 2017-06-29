@@ -23,16 +23,15 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -48,14 +47,10 @@ import org.apache.jackrabbit.oak.segment.tool.DebugSegments;
 import org.apache.jackrabbit.oak.segment.tool.DebugStore;
 import org.apache.jackrabbit.oak.segment.tool.DebugTars;
 import org.apache.jackrabbit.oak.segment.tool.Diff;
-import org.apache.jackrabbit.oak.segment.tool.GenerationGraph;
 import org.apache.jackrabbit.oak.segment.tool.History;
 import org.apache.jackrabbit.oak.segment.tool.Restore;
 import org.apache.jackrabbit.oak.segment.tool.Revisions;
-import org.apache.jackrabbit.oak.segment.tool.SegmentGraph;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import com.google.common.io.Closer;
 
 final class SegmentTarUtils {
 
@@ -152,32 +147,6 @@ final class SegmentTarUtils {
                 .build()
                 .run();
         ;
-    }
-
-    static void graph(File path, boolean gcGraph, Date epoch, String regex, OutputStream out) {
-        if (gcGraph) {
-            generationGraph(path, out);
-        } else {
-            segmentGraph(path, epoch, regex, out);
-        }
-    }
-
-    private static void generationGraph(File path, OutputStream out) {
-        GenerationGraph.builder()
-                .withPath(path)
-                .withOutput(out)
-                .build()
-                .run();
-    }
-
-    private static void segmentGraph(File path, Date epoch, String regex, OutputStream out) {
-        SegmentGraph.builder()
-                .withPath(path)
-                .withEpoch(epoch)
-                .withFilter(regex)
-                .withOutput(out)
-                .build()
-                .run();
     }
 
     static void history(File directory, File journal, String path, int depth) {
