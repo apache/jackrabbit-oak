@@ -515,8 +515,6 @@ class TarReader implements Closeable {
 
     private final ByteBuffer index;
 
-    private volatile boolean closed;
-
     private volatile boolean hasGraph;
 
     private final IOMonitor ioMonitor;
@@ -530,36 +528,6 @@ class TarReader implements Closeable {
 
     long size() {
         return file.length();
-    }
-
-    /**
-     * Returns the number of segments in this tar file.
-     *
-     * @return number of segments
-     */
-    // TODO frm this method is not used
-    int count() {
-        return index.capacity() / TarEntry.SIZE;
-    }
-
-    /**
-     * Iterates over all entries in this tar file and calls
-     * {@link TarEntryVisitor#visit(long, long, File, int, int)} on them.
-     *
-     * @param visitor entry visitor
-     */
-    // TODO frm this method is not used
-    void accept(TarEntryVisitor visitor) {
-        int position = index.position();
-        while (position < index.limit()) {
-            visitor.visit(
-                    index.getLong(position),
-                    index.getLong(position + 8),
-                    file,
-                    index.getInt(position + 16),
-                    index.getInt(position + 20));
-            position += TarEntry.SIZE;
-        }
     }
 
     /**
@@ -691,14 +659,12 @@ class TarReader implements Closeable {
     /**
      * Read the references of an entry in this TAR file.
      *
-     * @param entry An entry in this TAR file.
      * @param id    The identifier of the entry.
      * @param graph The content of the graph of this TAR file.
      * @return The references of the provided TAR entry.
      */
     @Nonnull
-    // TODO frm remove the unused parameter 'entry'
-    private static List<UUID> getReferences(TarEntry entry, UUID id, Map<UUID, List<UUID>> graph) {
+    private static List<UUID> getReferences(UUID id, Map<UUID, List<UUID>> graph) {
         List<UUID> references = graph.get(id);
 
         if (references == null) {
@@ -795,7 +761,7 @@ class TarReader implements Closeable {
                 reclaim.add(id);
             } else {
                 if (isDataSegmentId(entry.lsb())) {
-                    for (UUID refId : getReferences(entry, id, graph)) {
+                    for (UUID refId : getReferences(id, graph)) {
                         if (!isDataSegmentId(refId.getLeastSignificantBits())) {
                             // keep the extra check for bulk segments for the case where a
                             // pre-compiled graph is not available (graph == null) and
@@ -961,17 +927,8 @@ class TarReader implements Closeable {
         }
     }
 
-    /**
-     * Check if this {@link TarReader} is closed.
-     * @return {@code true} if this instance is close, {@code false} otherwise.
-     */
-    boolean isClosed() {
-        return closed;
-    }
-
     @Override
     public void close() throws IOException {
-        closed = true;
         access.close();
     }
 
