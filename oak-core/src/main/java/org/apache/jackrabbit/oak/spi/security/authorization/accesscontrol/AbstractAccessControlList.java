@@ -128,7 +128,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
         return PropertyType.UNDEFINED;
     }
 
-    // OAK-6389 @Override
+    @Override
     public boolean isMultiValueRestriction(String restrictionName) throws RepositoryException {
         for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             String jcrName = namePathMapper.getJcrName(definition.getName());
