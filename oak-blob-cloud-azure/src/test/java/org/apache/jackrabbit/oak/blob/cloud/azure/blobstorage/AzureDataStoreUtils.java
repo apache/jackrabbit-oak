@@ -52,9 +52,13 @@ public class AzureDataStoreUtils extends DataStoreUtils {
      */
     public static boolean isAzureConfigured() {
         Properties props = getAzureConfig();
+        //need either access keys or sas
         if (!props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY) || !props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME)
-            || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
-            return false;
+                || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
+            if (!props.containsKey(AzureConstants.AZURE_SAS) || !props.containsKey(AzureConstants.AZURE_BLOB_ENDPOINT)
+                    || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
+                return false;
+            }
         }
         return true;
     }
