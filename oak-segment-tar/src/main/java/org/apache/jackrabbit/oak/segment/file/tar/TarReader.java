@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
@@ -63,7 +62,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -539,6 +537,7 @@ class TarReader implements Closeable {
      *
      * @return number of segments
      */
+    // TODO frm this method is not used
     int count() {
         return index.capacity() / TarEntry.SIZE;
     }
@@ -549,6 +548,7 @@ class TarReader implements Closeable {
      *
      * @param visitor entry visitor
      */
+    // TODO frm this method is not used
     void accept(TarEntryVisitor visitor) {
         int position = index.position();
         while (position < index.limit()) {
@@ -706,61 +706,6 @@ class TarReader implements Closeable {
         }
 
         return references;
-    }
-
-    /**
-     * Build the graph of segments reachable from an initial set of segments
-     * @param roots     the initial set of segments
-     * @param visitor   visitor receiving call back while following the segment graph
-     * @throws IOException
-     */
-    // TODO frm remove this method, see OAK-6021
-    public void traverseSegmentGraph(
-        @Nonnull Set<UUID> roots,
-        @Nonnull SegmentGraphVisitor visitor) throws IOException {
-        checkNotNull(roots);
-        checkNotNull(visitor);
-        Map<UUID, List<UUID>> graph = getGraph(false);
-
-        TarEntry[] entries = getEntries();
-        for (int i = entries.length - 1; i >= 0; i--) {
-            TarEntry entry = entries[i];
-            UUID id = new UUID(entry.msb(), entry.lsb());
-            if (roots.remove(id) && isDataSegmentId(entry.lsb())) {
-                // this is a referenced data segment, so follow the graph
-                for (UUID refId : getReferences(entry, id, graph)) {
-                    visitor.accept(id, refId);
-                    roots.add(refId);
-                }
-            } else {
-                // this segment is not referenced anywhere
-                visitor.accept(id, null);
-            }
-        }
-    }
-
-    /**
-     * Calculate the ids of the segments directly referenced from {@code referenceIds}
-     * through forward references.
-     *
-     * @param referencedIds  The initial set of ids to start from. On return it
-     *                       contains the set of direct forward references.
-     *
-     * @throws IOException
-     */
-    // TODO frm remove this method, see OAK-6021
-    void calculateForwardReferences(Set<UUID> referencedIds) throws IOException {
-        Map<UUID, List<UUID>> graph = getGraph(false);
-        TarEntry[] entries = getEntries();
-        for (int i = entries.length - 1; i >= 0; i--) {
-            TarEntry entry = entries[i];
-            UUID id = new UUID(entry.msb(), entry.lsb());
-            if (referencedIds.remove(id)) {
-                if (isDataSegmentId(entry.lsb())) {
-                    referencedIds.addAll(getReferences(entry, id, graph));
-                }
-            }
-        }
     }
 
     /**

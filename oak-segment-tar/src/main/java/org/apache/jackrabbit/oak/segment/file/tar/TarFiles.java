@@ -51,7 +51,6 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -238,20 +237,6 @@ public class TarFiles implements Closeable {
             }
         }
         return dataFiles;
-    }
-
-    private static void includeForwardReferences(Node head, Set<UUID> referencedIds) throws IOException {
-        Set<UUID> references = newHashSet(referencedIds);
-        do {
-            // Add direct forward references
-            for (TarReader reader : iterable(head)) {
-                reader.calculateForwardReferences(references);
-                if (references.isEmpty()) {
-                    break; // Optimisation: bail out if no references left
-                }
-            }
-            // ... as long as new forward references are found.
-        } while (referencedIds.addAll(references));
     }
 
     public static Builder builder() {
@@ -751,22 +736,6 @@ public class TarFiles implements Closeable {
             index.put(reader.getFile().getAbsolutePath(), reader.getUUIDs());
         }
         return index;
-    }
-
-    public void traverseSegmentGraph(Set<UUID> roots, SegmentGraphVisitor visitor) throws IOException {
-        Node head;
-
-        lock.readLock().lock();
-        try {
-            head = readers;
-        } finally {
-            lock.readLock().unlock();
-        }
-
-        includeForwardReferences(head, roots);
-        for (TarReader reader : iterable(head)) {
-            reader.traverseSegmentGraph(roots, visitor);
-        }
     }
 
 }

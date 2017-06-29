@@ -34,7 +34,6 @@ import javax.annotation.Nonnull;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -98,19 +97,6 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         if (revisions.setHead(currentHead, newHead)) {
             currentHead = newHead;
         }
-    }
-
-    /**
-     * Build the graph of segments reachable from an initial set of segments
-     * 
-     * @param roots
-     *            the initial set of segments
-     * @param visitor
-     *            visitor receiving call back while following the segment graph
-     * @throws IOException
-     */
-    public void traverseSegmentGraph(@Nonnull Set<UUID> roots, @Nonnull SegmentGraphVisitor visitor) throws IOException {
-        tarFiles.traverseSegmentGraph(roots, visitor);
     }
 
     @Override
