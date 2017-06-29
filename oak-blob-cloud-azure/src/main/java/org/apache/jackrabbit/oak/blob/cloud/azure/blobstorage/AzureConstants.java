@@ -21,42 +21,52 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 public final class AzureConstants {
     /**
-     * Azure Stoage Account name
+     * Azure storage account name
      */
     public static final String AZURE_STORAGE_ACCOUNT_NAME = "accessKey";
 
     /**
-     * Azure Stoage Account Key
+     * Azure storage account key
      */
     public static final String AZURE_STORAGE_ACCOUNT_KEY = "secretKey";
 
     /**
-     * Azure Blob Storage container name
+     * Azure shared access signature token
+     */
+    public static final String AZURE_SAS = "azureSas";
+
+    /**
+     * Azure blob endpoint
+     */
+    public static final String AZURE_BLOB_ENDPOINT = "azureBlobEndpoint";
+
+    /**
+     * Azure blob storage container name
      */
     public static final String AZURE_BLOB_CONTAINER_NAME = "container";
 
     /**
-     * Azure Blob Storage request timeout.
+     * Azure blob storage request timeout
      */
     public static final String AZURE_BLOB_REQUEST_TIMEOUT = "socketTimeout";
 
     /**
-     * Azure Blob Storage maximum retries per request.
+     * Azure blob storage maximum retries per request
      */
     public static final String AZURE_BLOB_MAX_REQUEST_RETRY = "maxErrorRetry";
 
     /**
-     * Azure Blob Storage maximum connections per operation (default 1)
+     * Azure blob storage maximum connections per operation (default 1)
      */
     public static final String AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION = "maxConnections";
 
     /**
-     *  Constant to set proxy host.
+     *  Proxy host
      */
     public static final String PROXY_HOST = "proxyHost";
 
     /**
-     *  Constant to set proxy port.
+     *  Proxy port
      */
     public static final String PROXY_PORT = "proxyPort";
 
