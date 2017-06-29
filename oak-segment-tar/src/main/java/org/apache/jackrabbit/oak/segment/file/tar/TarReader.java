@@ -81,7 +81,7 @@ class TarReader implements Closeable {
             "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
             + "(\\.([0-9a-f]{8}))?(\\..*)?");
 
-    static int getEntrySize(int size) {
+    private static int getEntrySize(int size) {
         return BLOCK_SIZE + size + TarWriter.getPaddingSize(size);
     }
 
