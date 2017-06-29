@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment.file.tar;
 
 import java.util.Comparator;
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
@@ -40,7 +40,7 @@ public class TarWriterTest {
     @Test
     public void createNextGenerationTest() throws IOException {
         int counter = 2222;
-        TarWriter t0 = new TarWriter(folder.newFolder(), FileStoreMonitor.DEFAULT, counter, new IOMonitorAdapter());
+        TarWriter t0 = new TarWriter(folder.newFolder(), new FileStoreMonitorAdapter(), counter, new IOMonitorAdapter());
 
         // not dirty, will not create a new writer
         TarWriter t1 = t0.createNextGeneration();
@@ -58,6 +58,30 @@ public class TarWriterTest {
         assertNotEquals(t1, t2);
         assertTrue(t1.isClosed());
         assertTrue(t2.getFile().getName().contains("" + (counter + 1)));
+    }
+
+    private static class TestFileStoreMonitor extends FileStoreMonitorAdapter {
+
+        long written;
+
+        @Override
+        public void written(long bytes) {
+            written += bytes;
+        }
+
+    }
+
+    @Test
+    public void testFileStoreMonitor() throws Exception {
+        TestFileStoreMonitor monitor = new TestFileStoreMonitor();
+        try (TarWriter writer = new TarWriter(folder.getRoot(), monitor, 0, new IOMonitorAdapter())) {
+            long sizeBefore = writer.fileLength();
+            long writtenBefore = monitor.written;
+            writer.writeEntry(0, 0, new byte[42], 0, 42, 0);
+            long sizeAfter = writer.fileLength();
+            long writtenAfter = monitor.written;
+            assertEquals(sizeAfter - sizeBefore, writtenAfter - writtenBefore);
+        }
     }
 
 }

@@ -17,29 +17,13 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment.file.tar;
 
 /**
  * FileStoreMonitor are notified for any writes or deletes
  * performed by FileStore
  */
-interface FileStoreMonitor {
-    FileStoreMonitor DEFAULT = new FileStoreMonitor() {
-        @Override
-        public void written(long bytes) {
-
-        }
-
-        @Override
-        public void reclaimed(long bytes) {
-
-        }
-        
-        @Override
-        public void flushed() {
-            
-        }
-    };
+public interface FileStoreMonitor {
 
     /**
      * Notifies the monitor when data is written
@@ -59,4 +43,5 @@ interface FileStoreMonitor {
      * Notifies the monitor when journal data is flushed to disk.
      */
     void flushed();
+
 }

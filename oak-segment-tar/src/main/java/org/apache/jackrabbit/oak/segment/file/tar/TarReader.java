@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment.file;
+
+package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -30,8 +31,6 @@ import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
-import static org.apache.jackrabbit.oak.segment.file.TarWriter.BINARY_REFERENCES_MAGIC;
-import static org.apache.jackrabbit.oak.segment.file.TarWriter.GRAPH_MAGIC;
 
 import java.io.Closeable;
 import java.io.File;
@@ -213,7 +212,24 @@ class TarReader implements Closeable {
         try (TarWriter writer = new TarWriter(file, ioMonitor)) {
             for (Entry<UUID, byte[]> entry : entries.entrySet()) {
                 try {
-                    recovery.recoverEntry(entry.getKey(), entry.getValue(), writer);
+                    recovery.recoverEntry(entry.getKey(), entry.getValue(), new EntryRecovery() {
+
+                        @Override
+                        public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, int generation) throws IOException {
+                            writer.writeEntry(msb, lsb, data, offset, size, generation);
+                        }
+
+                        @Override
+                        public void recoverGraphEdge(UUID from, UUID to) {
+                            writer.addGraphEdge(from, to);
+                        }
+
+                        @Override
+                        public void recoverBinaryReference(int generation, UUID segmentId, String reference) {
+                            writer.addBinaryReference(generation, segmentId, reference);
+                        }
+
+                    });
                 } catch (IOException e) {
                     throw new IOException(String.format("Unable to recover entry %s for file %s", entry.getKey(), file), e);
                 }
@@ -996,7 +1012,7 @@ class TarReader implements Closeable {
         int size = meta.getInt();
         int magic = meta.getInt();
 
-        if (magic != BINARY_REFERENCES_MAGIC) {
+        if (magic != TarWriter.BINARY_REFERENCES_MAGIC) {
             log.warn("Invalid binary references magic number");
             return null;
         }
@@ -1076,7 +1092,7 @@ class TarReader implements Closeable {
         int bytes = meta.getInt();
         int magic = meta.getInt();
 
-        if (magic != GRAPH_MAGIC) {
+        if (magic != TarWriter.GRAPH_MAGIC) {
             log.warn("Invalid graph magic number in {}", file);
             return null;
         }
