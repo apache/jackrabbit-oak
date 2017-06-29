@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,7 +51,6 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStats;
 import org.slf4j.Logger;
@@ -669,7 +669,7 @@ public class TarFiles implements Closeable {
         return result;
     }
 
-    public void collectBlobReferences(ReferenceCollector collector, Predicate<Integer> reclaim) throws IOException {
+    public void collectBlobReferences(Consumer<String> collector, Predicate<Integer> reclaim) throws IOException {
         Node head;
         lock.writeLock().lock();
         try {
