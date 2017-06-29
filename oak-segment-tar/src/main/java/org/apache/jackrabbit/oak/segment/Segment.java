@@ -86,26 +86,15 @@ public class Segment {
     static final int RECORD_ID_BYTES = 2 + 4;
 
     /**
-     * The limit on segment references within one segment. Since record
-     * identifiers use one byte to indicate the referenced segment, a single
-     * segment can hold references to up to 255 segments plus itself.
-     */
-    static final int SEGMENT_REFERENCE_LIMIT = (1 << 8) - 1; // 255
-
-    /**
      * The number of bytes (or bits of address space) to use for the
      * alignment boundary of segment records.
      */
     static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
 
     /**
-     * Maximum segment size. Record identifiers are stored as three-byte
-     * sequences with the first byte indicating the segment and the next
-     * two the offset within that segment. Since all records are aligned
-     * at four-byte boundaries, the two bytes can address up to 256kB of
-     * record data.
+     * Maximum segment size
      */
-    static final int MAX_SEGMENT_SIZE = 1 << (16 + RECORD_ALIGN_BITS); // 256kB
+    static final int MAX_SEGMENT_SIZE = 1 << 18; // 256kB
 
     /**
      * The size limit for small values. The variable length of small values
