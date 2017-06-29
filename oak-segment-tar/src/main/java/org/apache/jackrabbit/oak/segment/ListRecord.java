@@ -32,7 +32,7 @@ import java.util.List;
  */
 class ListRecord extends Record {
 
-    static final int LEVEL_SIZE = Segment.SEGMENT_REFERENCE_LIMIT;
+    static final int LEVEL_SIZE = 255;
 
     private final int size;
 

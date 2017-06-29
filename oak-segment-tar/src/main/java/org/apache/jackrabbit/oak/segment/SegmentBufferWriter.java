@@ -186,7 +186,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[2] = 'K';
         buffer[3] = SegmentVersion.asByte(LATEST_VERSION);
         buffer[4] = 0; // reserved
-        buffer[5] = 0; // refcount
+        buffer[5] = 0; // reserved
 
         buffer[GC_GENERATION_OFFSET] = (byte) (generation >> 24);
         buffer[GC_GENERATION_OFFSET + 1] = (byte) (generation >> 16);
