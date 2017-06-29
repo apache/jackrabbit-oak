@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
@@ -62,7 +63,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.slf4j.Logger;
@@ -774,14 +774,13 @@ class TarReader implements Closeable {
      * returns {@code false}, entries from that generation will be inspected for
      * references.
      * <p>
-     * The provided {@link ReferenceCollector} is callback object that will be
-     * invoked for every reference found in the inspected entries.
+     * The provided {@link Consumer} is callback object that will be invoked for
+     * every reference found in the inspected entries.
      *
-     * @param collector      An instance of {@link ReferenceCollector}.
+     * @param collector      An instance of {@link Consumer}.
      * @param skipGeneration An instance of {@link Predicate}.
      */
-    // TODO frm this package depends on org.apache.jackrabbit.oak.plugins.blob only because of ReferenceCollector
-    void collectBlobReferences(@Nonnull ReferenceCollector collector, Predicate<Integer> skipGeneration) {
+    void collectBlobReferences(@Nonnull Consumer<String> collector, Predicate<Integer> skipGeneration) {
         Map<Integer, Map<UUID, Set<String>>> generations = getBinaryReferences();
 
         if (generations == null) {
@@ -795,7 +794,7 @@ class TarReader implements Closeable {
 
             for (Set<String> references : entry.getValue().values()) {
                 for (String reference : references) {
-                    collector.addReference(reference, null);
+                    collector.accept(reference);
                 }
             }
         }

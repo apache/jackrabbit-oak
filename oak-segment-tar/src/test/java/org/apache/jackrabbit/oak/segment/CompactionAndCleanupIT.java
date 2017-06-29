@@ -60,15 +60,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nullable;
-
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -1305,14 +1302,7 @@ public class CompactionAndCleanupIT {
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         ExecutorService executorService = newFixedThreadPool(300);
         final AtomicInteger counter = new AtomicInteger();
-        final ReferenceCollector dummyCollector = new ReferenceCollector() {
-            
-            @Override
-            public void addReference(String reference, String nodeId) {
-                // do nothing
-            }
-        };
-        
+
         try {
             Callable<Void> concurrentWriteTask = new Callable<Void>() {
                 @Override
@@ -1336,7 +1326,9 @@ public class CompactionAndCleanupIT {
             Callable<Void> concurrentReferenceCollector = new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    fileStore.collectBlobReferences(dummyCollector);
+                    fileStore.collectBlobReferences(s -> {
+                        // Do nothing.
+                    });
                     return null;
                 }
             };
@@ -1450,26 +1442,13 @@ public class CompactionAndCleanupIT {
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             fileStore.flush();
 
-            class RefCollector implements ReferenceCollector {
-                final Set<String> references;
-
-                RefCollector(Set<String> references) {this.references = references;}
-
-                @Override
-                public void addReference(String reference, @Nullable String nodeId) {
-                    references.add(reference);
-                }
-            }
-
             Set<String> expectedReferences = newHashSet();
-            ReferenceCollector refCollector = new RefCollector(expectedReferences);
-            fileStore.collectBlobReferences(refCollector);
+            fileStore.collectBlobReferences(expectedReferences::add);
 
             for(int k = 1; k <= 3; k++) {
                 fileStore.gc();
                 Set<String> actualReferences = newHashSet();
-                refCollector = new RefCollector(actualReferences);
-                fileStore.collectBlobReferences(refCollector);
+                fileStore.collectBlobReferences(actualReferences::add);
                 assertEquals("Binary should be retained after " + k + "-th gc cycle",
                         expectedReferences, actualReferences);
             }

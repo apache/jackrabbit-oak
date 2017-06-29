@@ -59,6 +59,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -400,7 +401,7 @@ public class FileStore extends AbstractFileStore {
      * running.
      * @param collector  reference collector called back for each blob reference found
      */
-    public void collectBlobReferences(ReferenceCollector collector) throws IOException {
+    public void collectBlobReferences(Consumer<String> collector) throws IOException {
         garbageCollector.collectBlobReferences(collector);
     }
 
@@ -988,7 +989,7 @@ public class FileStore extends AbstractFileStore {
          * running.
          * @param collector  reference collector called back for each blob reference found
          */
-        synchronized void collectBlobReferences(ReferenceCollector collector) throws IOException {
+        synchronized void collectBlobReferences(Consumer<String> collector) throws IOException {
             segmentWriter.flush();
             int oldGeneration = getGcGeneration() - gcOptions.getRetainedGenerations();
             tarFiles.collectBlobReferences(collector, CompactionResult.newOldReclaimer(oldGeneration));

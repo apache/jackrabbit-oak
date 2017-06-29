@@ -43,7 +43,6 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -121,16 +120,13 @@ public class ExternalBlobIT {
         cb.setProperty("anotherBlob3", createBlob(Segment.MEDIUM_LIMIT + 1));
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        final List<String> refrences = Lists.newArrayList();
-        store.collectBlobReferences(new ReferenceCollector() {
-            @Override
-            public void addReference(String reference, String nodeId) {
+        final List<String> references = Lists.newArrayList();
+        store.collectBlobReferences(reference -> {
                 assertNotNull(reference);
-                refrences.add(reference);
-            }
+                references.add(reference);
         });
 
-        assertEquals(noOfBlobs + 2, refrences.size());
+        assertEquals(noOfBlobs + 2, references.size());
     }
 
     private Blob testCreateAndRead(Blob blob) throws Exception {
