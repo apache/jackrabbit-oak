@@ -24,6 +24,15 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# OAK-5949
+
+xpath2sql /jcr:root/home//element(*,rep:Authorizable)[jcr:like(@rep:authorizableId,'@')]
+select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where [rep:authorizableId] like '@'
+  and isdescendantnode(a, '/home')
+  /* xpath ... */
+
 # OAK-4387
 xpath2sql /jcr:root/content/text/element/rep:excerpt/jcr:content//element(*,nt:unstructured)
 select [jcr:path], [jcr:score], *

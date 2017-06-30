@@ -937,6 +937,7 @@ public class XPathToSQL2Converter {
             readDecimal(i - 1, i);
             return;
         case CHAR_STRING:
+            currentTokenQuoted = true;
             if (chars[i - 1] == '\'') {
                 readString(i, '\'');
             } else {
