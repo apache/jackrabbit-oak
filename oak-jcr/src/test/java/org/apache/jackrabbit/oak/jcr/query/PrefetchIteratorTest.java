@@ -24,6 +24,8 @@ import static org.junit.Assert.fail;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.jcr.query.PrefetchIterator.PrefetchOptions;
 import org.junit.Test;
 
@@ -31,6 +33,52 @@ import org.junit.Test;
  * Test the PrefetchIterator class.
  */
 public class PrefetchIteratorTest {
+    
+    @Test
+    public void testFastSize() {
+        Iterable<Integer> s;
+        PrefetchIterator<Integer> it;
+        s = seq(0, 21);
+        it = new PrefetchIterator<Integer>(s.iterator(), 
+                new PrefetchOptions() { {
+                    size = -1;
+                    fastSize = true;
+                    fastSizeCallback = new Result() {
+
+                        @Override
+                        public String[] getColumnNames() {
+                            return null;
+                        }
+
+                        @Override
+                        public String[] getColumnSelectorNames() {
+                            return null;
+                        }
+
+                        @Override
+                        public Iterable<? extends ResultRow> getRows() {
+                            return null;
+                        }
+
+                        @Override
+                        public String[] getSelectorNames() {
+                            return null;
+                        }
+
+                        @Override
+                        public long getSize() {
+                            return 100;
+                        }
+
+                        @Override
+                        public long getSize(SizePrecision precision, long max) {
+                            return 100;
+                        }
+                        
+                    };
+                } });
+        assertEquals(21, it.size());
+    }
     
     @Test
     public void testKnownSize() {
@@ -106,7 +154,7 @@ public class PrefetchIteratorTest {
                 }
                 String m = "s:" + size + " b:" + readBefore;
                 int max = testTimeout <= 0 ? 20 : 30;
-                if (size > max && readBefore <= size) {
+                if (size > max && readBefore < size) {
                     assertEquals(m, -1, it.size());
                     // calling it twice must not change the result
                     assertEquals(m, -1, it.size());
