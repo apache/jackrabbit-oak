@@ -1243,14 +1243,17 @@ public class SQL2Parser {
             readDecimal(i - 1, i);
             return;
         case CHAR_BRACKETED:
+            currentTokenQuoted = true;
             readString(i, ']');
             currentTokenType = IDENTIFIER;
             currentToken = currentValue.getValue(Type.STRING);
             return;
         case CHAR_STRING:
+            currentTokenQuoted = true;
             readString(i, '\'');
             return;
         case CHAR_QUOTED:
+            currentTokenQuoted = true;
             readString(i, '\"');
             if (supportSQL1) {
                 // for SQL-2, this is a literal, as defined in
