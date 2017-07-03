@@ -1041,11 +1041,13 @@ provide better performance and hence faster indexing times.
 
 **indexPath**
 
+_Not required from Oak 1.6 , 1.4.7+_ 
+
 To speed up the indexing with CopyOnWrite you would also need to set `indexPath`
 in index definition to the path of index in the repository. For e.g. if your
 index is defined at `/oak:index/lucene` then value of `indexPath` should be set 
 to `/oak:index/lucene`. This would enable the indexer to perform any read 
-during the indexing process locally and thus avoid costly read from remote
+during the indexing process locally and thus avoid costly read from remote.
 
 For more details refer to [OAK-2247][OAK-2247]. This feature can be enabled via
 [Lucene Index provider service configuration](#osgi-config)
