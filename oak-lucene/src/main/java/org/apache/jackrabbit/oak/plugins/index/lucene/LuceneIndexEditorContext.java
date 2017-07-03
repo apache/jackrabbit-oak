@@ -140,7 +140,7 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
             //OAK-2029 Record the last updated status so
             //as to make IndexTracker detect changes when index
             //is stored in file system
-            NodeBuilder status = definitionBuilder.child(":status");
+            NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
             status.setProperty(IndexDefinition.STATUS_LAST_UPDATED, getUpdatedTime(currentTime), Type.DATE);
             status.setProperty("indexedNodes", indexedNodes);
 
