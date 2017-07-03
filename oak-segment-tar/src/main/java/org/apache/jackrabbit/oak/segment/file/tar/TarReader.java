@@ -752,9 +752,6 @@ class TarReader implements Closeable {
             } else {
                 for (UUID refId : getReferences(id, graph)) {
                     if (context.shouldFollow(id, refId)) {
-                        // keep the extra check for bulk segments for the case where a
-                        // pre-compiled graph is not available (graph == null) and
-                        // getReferences also includes data references
                         references.add(refId);
                     }
                 }
