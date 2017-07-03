@@ -175,25 +175,8 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
 
     public void enableReindexMode(){
         reindex = true;
-        IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
-        definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
-
-        //Avoid obtaining the latest NodeState from builder as that would force purge of current transient state
-        //as index definition does not get modified as part of IndexUpdate run in most case we rely on base state
-        //For case where index definition is rewritten there we get fresh state
-        NodeState defnState = indexDefnRewritten ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
-        if (!IndexDefinition.isDisableStoredIndexDefinition()) {
-            definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
-        }
-        String uid = configureUniqueId(definitionBuilder);
-
-        //Refresh the index definition based on update builder state
-        definition = IndexDefinition
-                .newBuilder(root, defnState, indexingContext.getIndexPath())
-                .version(version)
-                .uid(uid)
-                .reindex()
-                .build();
+        ReindexOperations reindexOps = new ReindexOperations(root, definitionBuilder, definition.getIndexPath());
+        definition = reindexOps.apply(indexDefnRewritten);
     }
 
     public long incIndexedNodes() {
