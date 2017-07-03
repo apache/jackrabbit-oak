@@ -225,7 +225,7 @@ public class FileStore extends AbstractFileStore {
                 .withMemoryMapping(memoryMapping)
                 .withTarRecovery(recovery)
                 .withIOMonitor(ioMonitor)
-                .withFileStoreStats(stats)
+                .withFileStoreMonitor(stats)
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
                 .build();
         this.stats.init(this.tarFiles.size());
