@@ -64,7 +64,7 @@ class TarWriter implements Closeable {
 
     private static final byte[] ZERO_BYTES = new byte[BLOCK_SIZE];
 
-    static final int getPaddingSize(int size) {
+    static int getPaddingSize(int size) {
         int remainder = size % BLOCK_SIZE;
         if (remainder > 0) {
             return BLOCK_SIZE - remainder;
