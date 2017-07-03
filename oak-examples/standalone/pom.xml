@@ -35,7 +35,6 @@
   <description>Standalone application based on Spring Boot then embeds a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tika.version>1.7</tika.version>
     <skip.deployment>true</skip.deployment>
     <slf4j.version>1.7.21</slf4j.version>
     <slf4j.api.version>1.7.21</slf4j.api.version>

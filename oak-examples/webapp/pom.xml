@@ -36,7 +36,6 @@
 
   <properties>
     <tomcat.version>7.0.40</tomcat.version>
-    <tika.version>1.7</tika.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
