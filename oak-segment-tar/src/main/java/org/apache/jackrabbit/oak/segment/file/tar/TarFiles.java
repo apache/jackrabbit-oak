@@ -50,7 +50,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.segment.file.FileStoreStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,7 +110,7 @@ public class TarFiles implements Closeable {
 
         private IOMonitor ioMonitor;
 
-        private FileStoreStats fileStoreStats;
+        private FileStoreMonitor fileStoreMonitor;
 
         private long maxFileSize;
 
@@ -141,8 +140,8 @@ public class TarFiles implements Closeable {
             return this;
         }
 
-        public Builder withFileStoreStats(FileStoreStats fileStoreStats) {
-            this.fileStoreStats = checkNotNull(fileStoreStats);
+        public Builder withFileStoreMonitor(FileStoreMonitor fileStoreStats) {
+            this.fileStoreMonitor = checkNotNull(fileStoreStats);
             return this;
         }
 
@@ -161,7 +160,7 @@ public class TarFiles implements Closeable {
             checkState(directory != null, "Directory not specified");
             checkState(tarRecovery != null, "TAR recovery strategy not specified");
             checkState(ioMonitor != null, "I/O monitor not specified");
-            checkState(readOnly || fileStoreStats != null, "File store statistics not specified");
+            checkState(readOnly || fileStoreMonitor != null, "File store statistics not specified");
             checkState(readOnly || maxFileSize != 0, "Max file size not specified");
             return new TarFiles(this);
         }
@@ -307,7 +306,7 @@ public class TarFiles implements Closeable {
         if (indices.length > 0) {
             writeNumber = indices[indices.length - 1] + 1;
         }
-        writer = new TarWriter(builder.directory, builder.fileStoreStats, writeNumber, builder.ioMonitor);
+        writer = new TarWriter(builder.directory, builder.fileStoreMonitor, writeNumber, builder.ioMonitor);
     }
 
     @Override
