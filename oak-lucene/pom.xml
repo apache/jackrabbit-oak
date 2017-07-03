@@ -33,7 +33,6 @@
   <description>Oak Lucene integration subproject</description>
 
   <properties>
-    <tika.version>1.5</tika.version>
     <known.issues>
       <!-- Jackrabbit query tests -->
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
