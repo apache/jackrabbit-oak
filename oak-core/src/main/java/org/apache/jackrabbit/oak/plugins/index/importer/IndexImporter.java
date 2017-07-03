@@ -112,7 +112,7 @@ public class IndexImporter {
         mergeWithConcurrentCheck(nodeStore, builder);
     }
 
-    void importIndexData() throws CommitFailedException {
+    void importIndexData() throws CommitFailedException, IOException {
         NodeState root = nodeStore.getRoot();
         NodeBuilder builder = root.builder();
         for (IndexInfo indexInfo : asyncLaneToIndexMapping.values()) {
