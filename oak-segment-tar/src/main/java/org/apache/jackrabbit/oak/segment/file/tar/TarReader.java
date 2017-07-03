@@ -138,31 +138,25 @@ class TarReader implements Closeable {
         }
     }
 
-    static TarReader openRO(Map<Character, File> files, boolean memoryMapping, boolean recover, TarRecovery recovery, IOMonitor ioMonitor) throws IOException {
+    static TarReader openRO(Map<Character, File> files, boolean memoryMapping, TarRecovery recovery, IOMonitor ioMonitor) throws IOException {
         // for readonly store only try the latest generation of a given
         // tar file to prevent any rollback or rewrite
         File file = files.get(Collections.max(files.keySet()));
-
         TarReader reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
         if (reader != null) {
             return reader;
         }
-        if (recover) {
-            log.warn(
-                    "Could not find a valid tar index in {}, recovering read-only",
-                    file);
-            // collecting the entries (without touching the original file) and
-            // writing them into an artificial tar file '.ro.bak'
-            LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
-            collectFileEntries(file, entries, false);
-            file = findAvailGen(file, ".ro.bak");
-            generateTarFile(entries, file, recovery, ioMonitor);
-            reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
-            if (reader != null) {
-                return reader;
-            }
+        log.warn("Could not find a valid tar index in {}, recovering read-only", file);
+        // collecting the entries (without touching the original file) and
+        // writing them into an artificial tar file '.ro.bak'
+        LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+        collectFileEntries(file, entries, false);
+        file = findAvailGen(file, ".ro.bak");
+        generateTarFile(entries, file, recovery, ioMonitor);
+        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
+        if (reader != null) {
+            return reader;
         }
-
         throw new IOException("Failed to open tar file " + file);
     }
 
