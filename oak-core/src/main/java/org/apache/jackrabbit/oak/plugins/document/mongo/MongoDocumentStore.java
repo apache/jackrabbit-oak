@@ -612,6 +612,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
+            if (limit >= 0) {
+                cursor.limit(limit);
+            }
             if (!disableIndexHint && !hasModifiedIdCompoundIndex) {
                 cursor.hint(hint);
             }
