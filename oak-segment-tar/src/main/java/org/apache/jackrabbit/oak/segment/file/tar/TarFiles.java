@@ -49,7 +49,6 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStats;
 import org.slf4j.Logger;
@@ -275,7 +274,7 @@ public class TarFiles implements Closeable {
     /**
      * If {@code true}, a user requested this instance to close. This flag is
      * used in long running, background operations - like {@link
-     * #cleanup(Supplier, Predicate)} - to be responsive to termination.
+     * #cleanup(CleanupContext)} - to be responsive to termination.
      */
     private volatile boolean shutdown;
 
@@ -514,7 +513,7 @@ public class TarFiles implements Closeable {
         writer = newWriter;
     }
 
-    public CleanupResult cleanup(Supplier<Set<UUID>> referencesSupplier, Predicate<Integer> reclaimPredicate) throws IOException {
+    public CleanupResult cleanup(CleanupContext context) throws IOException {
         CleanupResult result = new CleanupResult();
         result.removableFiles = new ArrayList<>();
         result.reclaimedSegmentIds = new HashSet<>();
@@ -531,7 +530,7 @@ public class TarFiles implements Closeable {
                 lock.writeLock().unlock();
             }
             head = readers;
-            references = referencesSupplier.get();
+            references = new HashSet<>(context.initialReferences());
         } finally {
             lock.readLock().unlock();
         }
@@ -550,7 +549,7 @@ public class TarFiles implements Closeable {
                 result.interrupted = true;
                 return result;
             }
-            reader.mark(references, reclaim, reclaimPredicate);
+            reader.mark(references, reclaim, context);
         }
 
         for (TarReader reader : cleaned.keySet()) {
@@ -704,7 +703,7 @@ public class TarFiles implements Closeable {
         for (TarReader reader : iterable(head)) {
             if (fileName.equals(reader.getFile().getName())) {
                 index = reader.getUUIDs();
-                graph = reader.getGraph(false);
+                graph = reader.getGraph();
                 break;
             }
         }
