@@ -1225,7 +1225,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     // OAK-6410
-    @Ignore("OAK-6410")
     @Test
     public void setInexistentProperty() throws RepositoryException {
         Node node = getNode(TEST_PATH);
