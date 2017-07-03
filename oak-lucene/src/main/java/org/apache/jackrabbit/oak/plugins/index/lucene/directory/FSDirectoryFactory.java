@@ -43,11 +43,17 @@ public class FSDirectoryFactory implements DirectoryFactory {
                                  String dirName, boolean reindex) throws IOException {
         File indexDir = DirectoryUtils.createIndexDir(baseDir, definition.getIndexPath());
         File readMe = new File(indexDir, INDEX_METADATA_FILE_NAME);
-        if (!readMe.exists()) {
-            DirectoryUtils.writeMeta(indexDir, definition.getIndexPath());
-        }
         File subDir = DirectoryUtils.createSubDir(indexDir, dirName);
         FileUtils.forceMkdir(subDir);
+
+        IndexMeta meta;
+        if (!readMe.exists()) {
+            meta = new IndexMeta(definition.getIndexPath());
+        } else {
+            meta = new IndexMeta(readMe);
+        }
+        meta.addDirectoryMapping(dirName, subDir.getName());
+        DirectoryUtils.writeMeta(indexDir, meta);
         return FSDirectory.open(subDir, NoLockFactory.getNoLockFactory());
     }
 

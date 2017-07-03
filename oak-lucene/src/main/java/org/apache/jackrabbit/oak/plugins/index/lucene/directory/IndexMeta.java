@@ -19,15 +19,21 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+
+import javax.annotation.CheckForNull;
+
+import com.google.common.collect.Maps;
+import org.apache.commons.io.FileUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -35,23 +41,65 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Represents the index metadata file content as present in index-details.txt
  */
 final class IndexMeta implements Comparable<IndexMeta> {
+    public static final String DIR_PREFIX = "dir.";
     final String indexPath;
     final long creationTime;
     final int metaFormatVersion = 1;
+    private final Map<String, String> properties;
+
+    public IndexMeta(String indexPath) {
+        this(indexPath, System.currentTimeMillis(), Collections.emptyMap());
+    }
 
     public IndexMeta(String indexPath, long creationTime) {
+        this(indexPath, creationTime, Collections.emptyMap());
+    }
+
+    public IndexMeta(String indexPath, long creationTime, Map<String, String> properties) {
         this.indexPath = indexPath;
         this.creationTime = creationTime;
+        this.properties = new HashMap<>(properties);
     }
 
     public IndexMeta(File file) throws IOException {
         Properties p = loadFromFile(file);
         this.indexPath = checkNotNull(p.getProperty("indexPath"));
         this.creationTime = Long.valueOf(checkNotNull(p.getProperty("creationTime")));
+        this.properties = new HashMap<>(Maps.fromProperties(p));
+    }
+
+    public void addDirectoryMapping(String jcrDirName, String fsDirName){
+        properties.put(keyFromFSDirName(fsDirName), jcrDirName);
+    }
+
+    @CheckForNull
+    public String getJcrNameFromFSName(String fsDirName) {
+        String nameKey = keyFromFSDirName(fsDirName);
+        for (Map.Entry<String, String> e : properties.entrySet()) {
+            if (nameKey.equals(e.getKey())){
+                return e.getValue();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the file system name for the given JCR name which
+     * represents a directory on the file system
+     */
+    @CheckForNull
+    public String getFSNameFromJCRName(String jcrDirName) {
+        for (Map.Entry<String, String> e : properties.entrySet()) {
+            if (e.getKey().startsWith(DIR_PREFIX) && jcrDirName.equals(e.getValue())){
+                return e.getKey().substring(DIR_PREFIX.length());
+            }
+        }
+        return null;
     }
 
     public void writeTo(File file) throws IOException {
         Properties p = new Properties();
+        p.putAll(properties);
         p.setProperty("metaFormatVersion", String.valueOf(metaFormatVersion));
         p.setProperty("indexPath", indexPath);
         p.setProperty("creationTime", String.valueOf(creationTime));
@@ -74,10 +122,14 @@ final class IndexMeta implements Comparable<IndexMeta> {
         return String.format("%s, %tc", indexPath, creationTime);
     }
 
+    private static String keyFromFSDirName(String fsDirName) {
+        return DIR_PREFIX + fsDirName;
+    }
+
     private static Properties loadFromFile(File file) throws IOException {
         InputStream is = null;
         try {
-            is = new BufferedInputStream(new FileInputStream(file));
+            is = FileUtils.openInputStream(file);
             Properties p = new Properties();
             p.load(is);
             return p;

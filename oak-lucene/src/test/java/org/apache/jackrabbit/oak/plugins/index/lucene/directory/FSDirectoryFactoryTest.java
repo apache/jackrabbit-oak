@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -93,6 +94,24 @@ public class FSDirectoryFactoryTest {
 
         assertEquals(fsDir1, fsDir2);
         assertEquals(1, temporaryFolder.getRoot().list(DirectoryFileFilter.DIRECTORY).length);
+    }
+
+    @Test
+    public void directoryMapping() throws Exception{
+        IndexDefinition defn = IndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+        FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
+
+        Directory dir1 = factory.newInstance(defn, idx, ":data", false);
+        dir1.close();
+        Directory dir2 = factory.newInstance(defn, idx, ":some-other-data", false);
+        dir2.close();
+
+        IndexRootDirectory idxDir = new IndexRootDirectory(temporaryFolder.getRoot());
+        LocalIndexDir indexDir = idxDir.getLocalIndexes("/fooIndex").get(0);
+
+        for (File dir : indexDir.dir.listFiles((FileFilter)DirectoryFileFilter.DIRECTORY)){
+            assertNotNull(indexDir.indexMeta.getJcrNameFromFSName(dir.getName()));
+        }
     }
 
 }

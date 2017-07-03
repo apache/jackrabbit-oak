@@ -34,6 +34,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createFile;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -71,5 +72,9 @@ public class LuceneIndexDumperTest {
 
         assertEquals(3, indexDir.listFiles().length); // 2 dir + 1 meta
         assertEquals(dumper.getSize(), size);
+
+        IndexMeta meta = new IndexMeta(new File(indexDir, INDEX_METADATA_FILE_NAME));
+        assertNotNull(meta.getFSNameFromJCRName(":data"));
+        assertNotNull(meta.getFSNameFromJCRName(":data2"+ MultiplexersLucene.INDEX_DIR_SUFFIX));
     }
 }
