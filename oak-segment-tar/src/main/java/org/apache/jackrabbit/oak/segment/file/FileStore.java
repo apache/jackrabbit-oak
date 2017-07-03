@@ -167,21 +167,6 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final SegmentNotFoundExceptionListener snfeListener;
 
-    private final Supplier<Set<UUID>> referencesSupplier = new Supplier<Set<UUID>>() {
-
-        @Override
-        public Set<UUID> get() {
-            Set<UUID> references = newHashSet();
-            for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                if (id.isBulkSegmentId()) {
-                    references.add(id.asUUID());
-                }
-            }
-            return references;
-        }
-
-    };
-
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
@@ -944,7 +929,13 @@ public class FileStore extends AbstractFileStore {
 
                 @Override
                 public Collection<UUID> initialReferences() {
-                    return referencesSupplier.get();
+                    Set<UUID> references = newHashSet();
+                    for (SegmentId id : tracker.getReferencedSegmentIds()) {
+                        if (id.isBulkSegmentId()) {
+                            references.add(id.asUUID());
+                        }
+                    }
+                    return references;
                 }
 
                 @Override
