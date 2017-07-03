@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,6 +58,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexOutput;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
@@ -248,6 +252,14 @@ public class TestUtil {
     public static Tree enableIndexingMode(Tree tree, IndexingMode indexingMode){
         tree.setProperty(createAsyncProperty(indexingMode));
         return tree;
+    }
+
+    public static int createFile(Directory dir, String fileName, String content) throws IOException {
+        byte[] data = content.getBytes();
+        IndexOutput o = dir.createOutput(fileName, IOContext.DEFAULT);
+        o.writeBytes(data, data.length);
+        o.close();
+        return data.length;
     }
 
     private static PropertyState createAsyncProperty(String indexingMode) {

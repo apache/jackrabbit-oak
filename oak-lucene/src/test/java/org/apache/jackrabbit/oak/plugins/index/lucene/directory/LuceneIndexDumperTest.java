@@ -20,9 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
-import java.io.IOException;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
@@ -31,12 +29,11 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexOutput;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -74,13 +71,5 @@ public class LuceneIndexDumperTest {
 
         assertEquals(3, indexDir.listFiles().length); // 2 dir + 1 meta
         assertEquals(dumper.getSize(), size);
-    }
-
-    private int createFile(Directory dir, String fileName, String content) throws IOException {
-        byte[] data = content.getBytes();
-        IndexOutput o = dir.createOutput(fileName, IOContext.DEFAULT);
-        o.writeBytes(data, data.length);
-        o.close();
-        return data.length;
     }
 }
