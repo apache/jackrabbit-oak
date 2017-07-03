@@ -130,12 +130,12 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * Hidden node under index definition which is used to store the index definition
      * nodestate as it was at time of reindexing
      */
-    static final String INDEX_DEFINITION_NODE = ":index-definition";
+    public static final String INDEX_DEFINITION_NODE = ":index-definition";
 
     /**
      * Hidden node under index definition which is used to store meta info
      */
-    static final String STATUS_NODE = ":status";
+    public static final String STATUS_NODE = ":status";
 
     /**
      * Property on status node which refers to the date when the index was lastUpdated
@@ -147,7 +147,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     /**
      * Meta property which provides the unique id
      */
-    static final String PROP_UID = "uid";
+    public static final String PROP_UID = "uid";
 
     private static String TYPES_ALLOW_ALL_NAME = "all";
 
