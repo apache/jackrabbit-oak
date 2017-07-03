@@ -1446,7 +1446,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 PropertyDelegate property = dlg.getPropertyOrNull(oakName);
-                if (!isCheckedOut() && getOPV(dlg.getTree(), property.getPropertyState()) != OnParentVersionAction.IGNORE) {
+                if (property != null &&
+                        !isCheckedOut() &&
+                        getOPV(dlg.getTree(), property.getPropertyState()) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
                             "Cannot remove property. Node [%s] is checked in.", getNodePath()));
                 }
