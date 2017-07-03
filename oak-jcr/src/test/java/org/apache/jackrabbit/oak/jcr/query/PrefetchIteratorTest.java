@@ -32,6 +32,15 @@ import org.junit.Test;
 public class PrefetchIteratorTest {
 
     @Test
+    public void testFastSize() {
+        Iterable<Integer> s;
+        PrefetchIterator<Integer> it;
+        s = seq(0, 21);
+        it = new PrefetchIterator<Integer>(s.iterator(), 20, 10, 100, -1, null);
+        assertEquals(21, it.size());
+    }
+
+    @Test
     public void testKnownSize() {
         Iterable<Integer> s;
         PrefetchIterator<Integer> it;
@@ -45,7 +54,7 @@ public class PrefetchIteratorTest {
     public void testTimeout() {
         Iterable<Integer> s;
         PrefetchIterator<Integer> it;
-        
+
         // long delay (10 ms per row)
         long timeout = 10;
         s = seq(0, 100, 10);
@@ -67,7 +76,7 @@ public class PrefetchIteratorTest {
                 // every 3th time, use a timeout
                 long timeout = size % 3 == 0 ? 100 : 0;
                 Iterable<Integer> s = seq(0, size);
-                PrefetchIterator<Integer> it = 
+                PrefetchIterator<Integer> it =
                         new PrefetchIterator<Integer>(s.iterator(), 20, timeout, 30, -1, null);
                 for (int x : seq(0, readBefore)) {
                     boolean hasNext = it.hasNext();
@@ -81,7 +90,7 @@ public class PrefetchIteratorTest {
                 }
                 String m = "s:" + size + " b:" + readBefore;
                 int max = timeout <= 0 ? 20 : 30;
-                if (size > max && readBefore <= size) {
+                if (size > max && readBefore < size) {
                     assertEquals(m, -1, it.size());
                     // calling it twice must not change the result
                     assertEquals(m, -1, it.size());
@@ -111,10 +120,10 @@ public class PrefetchIteratorTest {
             }
         }
     }
-    
+
     /**
      * Create an integer sequence.
-     * 
+     *
      * @param start the first value
      * @param limit the last value + 1
      * @return a sequence of the values [start .. limit-1]
@@ -122,10 +131,10 @@ public class PrefetchIteratorTest {
     private static Iterable<Integer> seq(final int start, final int limit) {
         return seq(start, limit, 0);
     }
-    
+
     /**
      * Create an integer sequence.
-     * 
+     *
      * @param start the first value
      * @param limit the last value + 1
      * @param sleep the time to wait for each element
@@ -164,5 +173,5 @@ public class PrefetchIteratorTest {
             }
         };
     }
-    
+
 }
