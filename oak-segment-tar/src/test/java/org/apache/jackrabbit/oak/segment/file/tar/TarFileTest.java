@@ -178,7 +178,7 @@ public class TarFileTest {
                 Map<UUID, List<UUID>> graph = newHashMap();
                 graph.put(new UUID(2, 1), newArrayList(new UUID(2, 2)));
 
-                assertEquals(graph, swept.getGraph(false));
+                assertEquals(graph, swept.getGraph());
             }
         }
     }

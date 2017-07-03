@@ -29,7 +29,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BINARY_REFERENCES_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
@@ -62,7 +61,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -740,12 +738,12 @@ class TarReader implements Closeable {
      * returns {@code true} for that segment. When this method returns, this set
      * contains segments that are not marked and can be removed.
      *
-     * @param bulkRefs          The set of bulk segments to keep.
-     * @param reclaim           The set of segments to remove.
-     * @param reclaimGeneration An instance of {@link Predicate}.
+     * @param references  The set of bulk segments to keep.
+     * @param reclaimable The set of segments to remove.
+     * @param context     An instance of {@link CleanupContext}.
      */
-    void mark(Set<UUID> bulkRefs, Set<UUID> reclaim, Predicate<Integer> reclaimGeneration) throws IOException {
-        Map<UUID, List<UUID>> graph = getGraph(true);
+    void mark(Set<UUID> references, Set<UUID> reclaimable, CleanupContext context) throws IOException {
+        Map<UUID, List<UUID>> graph = getGraph();
         TarEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
             // A bulk segments is *always* written before any data segment referencing it.
@@ -755,19 +753,15 @@ class TarReader implements Closeable {
             // CPU on subsequent look-ups.
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
-            if ((!isDataSegmentId(entry.lsb()) && !bulkRefs.remove(id)) ||
-                (isDataSegmentId(entry.lsb()) && reclaimGeneration.apply(entry.generation()))) {
-                // non referenced bulk segment or old data segment
-                reclaim.add(id);
+            if (context.shouldReclaim(id, entry.generation(), references.remove(id))) {
+                reclaimable.add(id);
             } else {
-                if (isDataSegmentId(entry.lsb())) {
-                    for (UUID refId : getReferences(id, graph)) {
-                        if (!isDataSegmentId(refId.getLeastSignificantBits())) {
-                            // keep the extra check for bulk segments for the case where a
-                            // pre-compiled graph is not available (graph == null) and
-                            // getReferences also includes data references
-                            bulkRefs.add(refId);
-                        }
+                for (UUID refId : getReferences(id, graph)) {
+                    if (context.shouldFollow(id, refId)) {
+                        // keep the extra check for bulk segments for the case where a
+                        // pre-compiled graph is not available (graph == null) and
+                        // getReferences also includes data references
+                        references.add(refId);
                     }
                 }
             }
@@ -877,7 +871,7 @@ class TarReader implements Closeable {
 
         // Reconstruct the graph index for non-cleaned segments.
 
-        Map<UUID, List<UUID>> graph = getGraph(false);
+        Map<UUID, List<UUID>> graph = getGraph();
 
         for (Entry<UUID, List<UUID>> e : graph.entrySet()) {
             if (cleaned.contains(e.getKey())) {
@@ -936,16 +930,14 @@ class TarReader implements Closeable {
      * Loads and parses the optional pre-compiled graph entry from the given tar
      * file.
      *
-     * @param bulkOnly If {@code true}, only vertices pointing to bulk segments
-     *                 are included in the graph.
      * @return The parsed graph, or {@code null} if one was not found.
      */
-    Map<UUID, List<UUID>> getGraph(boolean bulkOnly) throws IOException {
+    Map<UUID, List<UUID>> getGraph() throws IOException {
         ByteBuffer graph = loadGraph();
         if (graph == null) {
             return null;
         } else {
-            return parseGraph(graph, bulkOnly);
+            return parseGraph(graph);
         }
     }
 
@@ -1142,7 +1134,7 @@ class TarReader implements Closeable {
         return buffer;
     }
 
-    private static Map<UUID, List<UUID>> parseGraph(ByteBuffer buffer, boolean bulkOnly) {
+    private static Map<UUID, List<UUID>> parseGraph(ByteBuffer buffer) {
         int nEntries = buffer.getInt(buffer.limit() - 12);
 
         Map<UUID, List<UUID>> graph = newHashMapWithExpectedSize(nEntries);
@@ -1155,14 +1147,9 @@ class TarReader implements Closeable {
             List<UUID> vertices = newArrayListWithCapacity(nVertices);
 
             for (int j = 0; j < nVertices; j++) {
-                long vmsb = buffer.getLong();
-                long vlsb = buffer.getLong();
-
-                if (bulkOnly && SegmentId.isDataSegmentId(vlsb)) {
-                    continue;
-                }
-
-                vertices.add(new UUID(vmsb, vlsb));
+                long vMsb = buffer.getLong();
+                long vLsb = buffer.getLong();
+                vertices.add(new UUID(vMsb, vLsb));
             }
 
             graph.put(new UUID(msb, lsb), vertices);

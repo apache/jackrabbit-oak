@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.CLEANUP;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION_FORCE_COMPACT;
@@ -49,6 +50,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -72,7 +74,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.segment.OnlineCompactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -85,6 +86,7 @@ import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
+import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -929,6 +931,35 @@ public class FileStore extends AbstractFileStore {
                 : null;
         }
 
+        private CleanupContext newCleanupContext(Predicate<Integer> old) {
+            return new CleanupContext() {
+
+                private boolean isUnreferencedBulkSegment(UUID id, boolean referenced) {
+                    return !isDataSegmentId(id.getLeastSignificantBits()) && !referenced;
+                }
+
+                private boolean isOldDataSegment(UUID id, int generation) {
+                    return isDataSegmentId(id.getLeastSignificantBits()) && old.apply(generation);
+                }
+
+                @Override
+                public Collection<UUID> initialReferences() {
+                    return referencesSupplier.get();
+                }
+
+                @Override
+                public boolean shouldReclaim(UUID id, int generation, boolean referenced) {
+                    return isUnreferencedBulkSegment(id, referenced) || isOldDataSegment(id, generation);
+                }
+
+                @Override
+                public boolean shouldFollow(UUID from, UUID to) {
+                    return !isDataSegmentId(to.getLeastSignificantBits());
+                }
+
+            };
+        }
+
         /**
          * Cleanup segments whose generation matches the {@link CompactionResult#reclaimer()} predicate.
          * @return list of files to be removed
@@ -947,7 +978,7 @@ public class FileStore extends AbstractFileStore {
             // to clear stale weak references in the SegmentTracker
             System.gc();
 
-            CleanupResult cleanupResult = tarFiles.cleanup(referencesSupplier, compactionResult.reclaimer());
+            CleanupResult cleanupResult = tarFiles.cleanup(newCleanupContext(compactionResult.reclaimer()));
             if (cleanupResult.isInterrupted()) {
                 gcListener.info("TarMK GC #{}: cleanup interrupted", GC_COUNT);
             }
