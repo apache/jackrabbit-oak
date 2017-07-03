@@ -90,9 +90,8 @@ public class DirectoryUtils {
         return dir;
     }
 
-    static void writeMeta(File indexDir, String indexPath) throws IOException {
+    static void writeMeta(File indexDir, IndexMeta meta) throws IOException {
         File readMe = new File(indexDir, INDEX_METADATA_FILE_NAME);
-        IndexMeta meta = new IndexMeta(indexPath, System.currentTimeMillis());
         meta.writeTo(readMe);
     }
 }
