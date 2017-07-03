@@ -520,4 +520,25 @@ public class PathUtilsTest extends TestCase {
         assertEquals(newHashSet("/a", "/b"), includes);
         assertEquals(newHashSet(), excludes);
     }
+
+    public void testDenotesCurrent(){
+
+        assertFalse( PathUtils.denotesCurrent("a") );
+
+        assertTrue( PathUtils.denotesCurrent(".") );
+
+        assertFalse( PathUtils.denotesCurrent("..") );
+
+    }
+
+    public void testDenotesParent(){
+
+        assertFalse( PathUtils.denotesParent("a") );
+
+        assertFalse( PathUtils.denotesParent(".") );
+
+        assertTrue( PathUtils.denotesParent("..") );
+
+    }
+
 }
