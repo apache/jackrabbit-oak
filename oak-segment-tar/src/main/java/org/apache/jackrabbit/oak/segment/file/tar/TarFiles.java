@@ -293,7 +293,7 @@ public class TarFiles implements Closeable {
         for (Integer index : indices) {
             TarReader r;
             if (builder.readOnly) {
-                r = TarReader.openRO(map.get(index), memoryMapping, true, builder.tarRecovery, ioMonitor);
+                r = TarReader.openRO(map.get(index), memoryMapping, builder.tarRecovery, ioMonitor);
             } else {
                 r = TarReader.open(map.get(index), memoryMapping, builder.tarRecovery, ioMonitor);
             }
