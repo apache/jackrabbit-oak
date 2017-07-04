@@ -1224,6 +1224,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("newValue", p3.getString());
     }
 
+    // OAK-6410
+    @Test
+    public void setInexistentProperty() throws RepositoryException {
+        Node node = getNode(TEST_PATH);
+        node.addMixin(JcrConstants.MIX_VERSIONABLE);
+        node.getSession().save();
+        node.getSession().getWorkspace().getVersionManager().checkin(TEST_PATH);
+        node.setProperty("inexistent", (Value) null);
+    }
+
     @Test
     public void setDoubleNaNProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
