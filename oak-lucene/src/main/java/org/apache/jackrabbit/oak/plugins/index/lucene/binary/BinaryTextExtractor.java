@@ -19,15 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.binary;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import com.google.common.io.CountingInputStream;
 import org.apache.commons.io.IOUtils;
@@ -43,7 +39,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Field;
 import org.apache.tika.config.TikaConfig;
-import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
@@ -52,7 +47,6 @@ import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
@@ -67,12 +61,10 @@ public class BinaryTextExtractor {
     private final IndexDefinition definition;
     private final boolean reindex;
     private Parser parser;
-    private TikaConfigHolder tikaConfig;
     /**
      * The media types supported by the parser used.
      */
     private Set<MediaType> supportedMediaTypes;
-    private Set<MediaType> nonIndexedMediaType;
 
     public BinaryTextExtractor(ExtractedTextCache extractedTextCache, IndexDefinition definition, boolean reindex) {
         this.extractedTextCache = extractedTextCache;
@@ -200,13 +192,6 @@ public class BinaryTextExtractor {
 
     //~-------------------------------------------< Tika >
 
-    public TikaConfig getTikaConfig(){
-        if (tikaConfig == null) {
-            tikaConfig = initializeTikaConfig(definition);
-        }
-        return tikaConfig.config;
-    }
-
     private Parser getParser() {
         if (parser == null){
             parser = initializeTikaParser(definition);
@@ -217,78 +202,24 @@ public class BinaryTextExtractor {
     private boolean isSupportedMediaType(String type) {
         if (supportedMediaTypes == null) {
             supportedMediaTypes = getParser().getSupportedTypes(new ParseContext());
-            nonIndexedMediaType = getNonIndexedMediaTypes();
         }
-        MediaType mediaType = MediaType.parse(type);
-        return supportedMediaTypes.contains(mediaType) && !nonIndexedMediaType.contains(mediaType);
+        return supportedMediaTypes.contains(MediaType.parse(type));
     }
 
-    private Set<MediaType> getNonIndexedMediaTypes() {
-        InputStream configStream = null;
-        String configSource = null;
+    private static Parser initializeTikaParser(IndexDefinition definition) {
+        ClassLoader current = Thread.currentThread().getContextClassLoader();
         try {
             if (definition.hasCustomTikaConfig()) {
-                configSource = String.format("Custom config at %s", definition.getIndexPath());
-                configStream = definition.getTikaConfig();
-            } else {
-                URL configUrl = LuceneIndexEditorContext.class.getResource("tika-config.xml");
-                configSource = "Default : tika-config.xml";
-                if (configUrl != null) {
-                    configStream = configUrl.openStream();
-                }
-            }
-
-            if (configStream != null) {
-                return TikaParserConfig.getNonIndexedMediaTypes(configStream);
-            }
-        } catch (TikaException | IOException | SAXException e) {
-            log.warn("Tika configuration not available : " + configSource, e);
-        } finally {
-            IOUtils.closeQuietly(configStream);
-        }
-        return Collections.emptySet();
-    }
-
-
-    private static TikaConfigHolder initializeTikaConfig(@Nullable  IndexDefinition definition) {
-        ClassLoader current = Thread.currentThread().getContextClassLoader();
-        InputStream configStream = null;
-        String configSource = null;
-
-        try {
-            Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
-            if (definition != null && definition.hasCustomTikaConfig()) {
                 log.debug("[{}] Using custom tika config", definition.getIndexName());
-                configSource = "Custom config at " + definition.getIndexPath();
-                configStream = definition.getTikaConfig();
-            } else {
-                URL configUrl = LuceneIndexEditorContext.class.getResource("tika-config.xml");
-                if (configUrl != null) {
-                    configSource = configUrl.toString();
-                    configStream = configUrl.openStream();
+                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
+                InputStream is = definition.getTikaConfig();
+                try {
+                    return new AutoDetectParser(getTikaConfig(is, definition));
+                } finally {
+                    IOUtils.closeQuietly(is);
                 }
             }
-
-            if (configStream != null) {
-                return new TikaConfigHolder(new TikaConfig(configStream), configSource);
-            }
-        } catch (TikaException | IOException | SAXException e) {
-            log.warn("Tika configuration not available : " + configSource, e);
-        } finally {
-            IOUtils.closeQuietly(configStream);
-            Thread.currentThread().setContextClassLoader(current);
-        }
-        return new TikaConfigHolder(TikaConfig.getDefaultConfig(), "Default Config");
-    }
-
-    private Parser initializeTikaParser(IndexDefinition definition) {
-        ClassLoader current = Thread.currentThread().getContextClassLoader();
-        try {
-            if (definition.hasCustomTikaConfig()) {
-                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
-                return new AutoDetectParser(getTikaConfig());
-            }
-        } finally {
+        }finally {
             Thread.currentThread().setContextClassLoader(current);
         }
         return defaultParser;
@@ -296,32 +227,33 @@ public class BinaryTextExtractor {
 
     private static AutoDetectParser createDefaultParser() {
         ClassLoader current = Thread.currentThread().getContextClassLoader();
-        TikaConfigHolder configHolder = null;
-        try {
-            configHolder = initializeTikaConfig(null);
-            Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
-            log.info("Loaded default Tika Config from classpath {}", configHolder);
-            return new AutoDetectParser(configHolder.config);
-        } catch (Exception e) {
-            log.warn("Tika configuration not available : " + configHolder, e);
-        } finally {
-            Thread.currentThread().setContextClassLoader(current);
+        URL configUrl = LuceneIndexEditorContext.class.getResource("tika-config.xml");
+        InputStream is = null;
+        if (configUrl != null) {
+            try {
+                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
+                is = configUrl.openStream();
+                TikaConfig config = new TikaConfig(is);
+                log.info("Loaded default Tika Config from classpath {}", configUrl);
+                return new AutoDetectParser(config);
+            } catch (Exception e) {
+                log.warn("Tika configuration not available : " + configUrl, e);
+            } finally {
+                IOUtils.closeQuietly(is);
+                Thread.currentThread().setContextClassLoader(current);
+            }
+        } else {
+            log.warn("Default Tika configuration not found");
         }
         return new AutoDetectParser();
     }
 
-    private static final class TikaConfigHolder{
-        final TikaConfig config;
-        final String sourceInfo;
-
-        public TikaConfigHolder(TikaConfig config, String sourceInfo) {
-            this.config = config;
-            this.sourceInfo = sourceInfo;
+    private static TikaConfig getTikaConfig(InputStream configStream, Object source){
+        try {
+            return new TikaConfig(configStream);
+        } catch (Exception e) {
+            log.warn("Tika configuration not available : "+source, e);
         }
-
-        @Override
-        public String toString() {
-            return sourceInfo;
-        }
+        return TikaConfig.getDefaultConfig();
     }
 }
