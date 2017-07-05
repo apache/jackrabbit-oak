@@ -89,9 +89,9 @@ public final class SweepHelper {
             }
 
             private void trackStats(Iterable<UpdateOp> ops) {
-                boolean bcUpdate = false;
-                boolean revertUpdate = false;
                 for (UpdateOp op : ops) {
+                    boolean bcUpdate = false;
+                    boolean revertUpdate = false;
                     for (UpdateOp.Operation o : op.getChanges().values()) {
                         if (o.type == SET_MAP_ENTRY) {
                             bcUpdate = true;
@@ -99,12 +99,12 @@ public final class SweepHelper {
                             revertUpdate = true;
                         }
                     }
-                }
-                if (bcUpdate) {
-                    bcUpdates.incrementAndGet();
-                }
-                if (revertUpdate) {
-                    revertUpdates.incrementAndGet();
+                    if (bcUpdate) {
+                        bcUpdates.incrementAndGet();
+                    }
+                    if (revertUpdate) {
+                        revertUpdates.incrementAndGet();
+                    }
                 }
             }
         });
