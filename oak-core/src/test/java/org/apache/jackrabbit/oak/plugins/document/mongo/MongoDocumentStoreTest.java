@@ -25,10 +25,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -62,6 +65,20 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS, Document.ID));
         assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS));
         assertTrue(hasIndex(store.getDBCollection(Collection.JOURNAL), JournalEntry.MODIFIED));
+    }
+
+    @Ignore("OAK-6423")
+    @Test
+    public void oak6423() throws Exception {
+        MongoConnection c = connectionFactory.getConnection();
+        assertNotNull(c);
+        DocumentMK.Builder builder = new DocumentMK.Builder();
+        TestStore s = new TestStore(c.getDB(), builder);
+        if (new MongoStatus(mongoConnection.getDB()).isVersion(3, 2)) {
+            assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
+        } else {
+            assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE, NodeDocument.MODIFIED_IN_SECS));
+        }
     }
 
     static final class TestStore extends MongoDocumentStore {
