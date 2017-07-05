@@ -68,14 +68,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentBufferWriter.class);
 
-    /**
-     * Enable an extra check logging warnings should this writer create segments
-     * referencing segments from an older generation.
-     *
-     * @see #checkGCGeneration(SegmentId)
-     */
-    private static final boolean ENABLE_GENERATION_CHECK = Boolean.getBoolean("enable-generation-check");
-
     private static final class Statistics {
 
         int segmentIdCount;
@@ -241,7 +233,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         checkNotNull(recordId);
         checkState(segmentReferences.size() + 1 < 0xffff,
                 "Segment cannot have more than 0xffff references");
-        checkGCGeneration(recordId.getSegmentId());
 
         writeShort(toShort(writeSegmentIdReference(recordId.getSegmentId())));
         writeInt(recordId.getRecordNumber());
@@ -261,29 +252,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         }
 
         return segmentReferences.addOrReference(id);
-    }
-
-    /**
-     * Check that the generation of a segment matches the generation of this writer and logs
-     * a warning otherwise.
-     * This check is skipped if the {@link #ENABLE_GENERATION_CHECK} is not set.
-     *
-     * @param id  id of the segment to check
-     */
-    private void checkGCGeneration(SegmentId id) {
-        if (ENABLE_GENERATION_CHECK) {
-            try {
-                if (isDataSegmentId(id.getLeastSignificantBits())) {
-                    if (id.getGcGeneration() < generation) {
-                        LOG.warn("Detected reference from {} to segment {} from a previous gc generation.",
-                                info(this.segment), info(id.getSegment()), new Exception());
-                    }
-                }
-            } catch (SegmentNotFoundException snfe) {
-                LOG.warn("Detected reference from {} to non existing segment {}",
-                        info(this.segment), id, snfe);
-            }
-        }
     }
 
     private static String info(Segment segment) {
