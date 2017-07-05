@@ -41,7 +41,7 @@
         * [Cache Invalidation](#cache-invalidation)
         * [Cache Configuration](#cache-configuration)
     * [Unlock upgrade](#unlockUpgrade)
-    * [Revision Garbage Collection](#revisionGC)
+    * [Revision Garbage Collection](#revision-gc)
 
 One of the plugins in Oak stores data in a document oriented format. 
 The plugin implements the low level `NodeStore` interface.
