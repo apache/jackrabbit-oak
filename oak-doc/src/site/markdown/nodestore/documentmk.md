@@ -618,6 +618,9 @@ example unlocks an upgrade to 1.8 with a DocumentNodeStore on MongoDB:
 Please note that unlocking an upgrade is only possible when all cluster nodes
 are inactive, otherwise the command will refuse to change the format version.
 
+See also detailed instructions for various [upgrade](document/upgrade.html)
+paths.
+
 ## <a name="secondary-store"></a> Secondary Store
 
 `@since Oak 1.6`
