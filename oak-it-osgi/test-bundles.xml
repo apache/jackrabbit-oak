@@ -47,6 +47,7 @@
         <include>org.apache.jackrabbit:oak-core-spi</include>
         <include>org.apache.jackrabbit:oak-store-spi</include>
         <include>org.apache.jackrabbit:oak-blob-plugins</include>
+        <include>io.dropwizard.metrics:metrics-core</include>
       </includes>
     </dependencySet>
   </dependencySets>
