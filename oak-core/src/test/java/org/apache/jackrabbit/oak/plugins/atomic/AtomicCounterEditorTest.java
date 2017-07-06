@@ -108,11 +108,31 @@ public class AtomicCounterEditorTest {
         public String getInstanceId() {
             return "1";
         }
+
+        @Override
+        public String getVisibilityToken() {
+            return "";
+        }
+
+        @Override
+        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+            return true;
+        }
     };
     private static final Clusterable CLUSTER_2 = new Clusterable() {
         @Override
         public String getInstanceId() {
             return "2";
+        }
+
+        @Override
+        public String getVisibilityToken() {
+            return "";
+        }
+
+        @Override
+        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+            return true;
         }
     };
     private static final EditorHook HOOK_NO_CLUSTER = new EditorHook(

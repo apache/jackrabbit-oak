@@ -59,10 +59,14 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -3192,6 +3196,129 @@ public class DocumentNodeStoreTest {
         assertThat(updates, everyItem(is(30)));
         assertEquals(1, updates.size());
     }
+    
+    // OAK-6276
+    @Test
+    public void visibilityToken() throws Exception {
+        DocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setAsyncDelay(0)
+                .setClusterId(1).getNodeStore();
+        ns1.getRoot();
+        ns1.runBackgroundOperations();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setAsyncDelay(0)
+                .setClusterId(2).getNodeStore();
+        ns2.getRoot();
+        
+        String vt1 = ns1.getVisibilityToken();
+        String vt2 = ns2.getVisibilityToken();
+        
+        assertTrue(ns1.isVisible(vt1, -1));
+        assertTrue(ns1.isVisible(vt1, 1));
+        assertTrue(ns1.isVisible(vt1, 100000000));
+        assertTrue(ns2.isVisible(vt2, -1));
+        assertTrue(ns2.isVisible(vt2, 1));
+        assertTrue(ns2.isVisible(vt2, 100000000));
+
+        assertFalse(ns1.isVisible(vt2, -1));
+        assertFalse(ns1.isVisible(vt2, 1));
+        assertTrue(ns2.isVisible(vt1, -1));
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+        assertTrue(ns1.isVisible(vt2, -1));
+        assertTrue(ns2.isVisible(vt1, -1));
+        
+        vt1 = ns1.getVisibilityToken();
+        vt2 = ns2.getVisibilityToken();
+        assertTrue(ns1.isVisible(vt1, -1));
+        assertTrue(ns2.isVisible(vt2, -1));
+        assertTrue(ns1.isVisible(vt2, -1));
+        assertTrue(ns2.isVisible(vt1, -1));
+        assertTrue(ns1.isVisible(vt1, 100000000));
+        assertTrue(ns2.isVisible(vt2, 100000000));
+        assertTrue(ns1.isVisible(vt2, 100000000));
+        assertTrue(ns2.isVisible(vt1, 100000000));
+        
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.setProperty("p1", "1");
+        ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.setProperty("p2", "2");
+        ns2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue(ns1.isVisible(vt1, -1));
+        assertTrue(ns2.isVisible(vt2, -1));
+        assertTrue(ns1.isVisible(vt2, -1));
+        assertTrue(ns2.isVisible(vt1, -1));
+        
+        vt1 = ns1.getVisibilityToken();
+        vt2 = ns2.getVisibilityToken();
+        assertTrue(ns1.isVisible(vt1, -1));
+        assertTrue(ns2.isVisible(vt2, -1));
+        assertFalse(ns1.isVisible(vt2, -1));
+        assertFalse(ns2.isVisible(vt1, -1));
+        assertFalse(ns1.isVisible(vt2, 1));
+        assertFalse(ns2.isVisible(vt1, 1));
+
+        ns1.runBackgroundOperations();
+        assertTrue(ns1.isVisible(vt1, -1));
+        assertTrue(ns2.isVisible(vt2, -1));
+        assertFalse(ns1.isVisible(vt2, -1));
+        assertFalse(ns2.isVisible(vt1, -1));
+        assertFalse(ns1.isVisible(vt2, 1));
+        assertFalse(ns2.isVisible(vt1, 1));
+
+        ns2.runBackgroundOperations();
+        assertTrue(ns1.isVisible(vt1, -1));
+        assertTrue(ns2.isVisible(vt2, -1));
+        assertFalse(ns1.isVisible(vt2, -1));
+        assertFalse(ns1.isVisible(vt2, 1));
+        assertTrue(ns2.isVisible(vt1, -1));
+
+        ns1.runBackgroundOperations();
+        assertTrue(ns1.isVisible(vt1, -1));
+        assertTrue(ns2.isVisible(vt2, -1));
+        assertTrue(ns1.isVisible(vt2, -1));
+        assertTrue(ns2.isVisible(vt1, -1));
+        
+        vt1 = ns1.getVisibilityToken();
+        vt2 = ns2.getVisibilityToken();
+        assertTrue(ns1.isVisible(vt2, -1));
+        assertTrue(ns2.isVisible(vt1, -1));
+
+        b1 = ns1.getRoot().builder();
+        b1.setProperty("p1", "1b");
+        ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        vt1 = ns1.getVisibilityToken();
+        assertFalse(ns2.isVisible(vt1, -1));
+        final String finalVt1 = vt1;
+        Future<Void> asyncResult = Executors.newFixedThreadPool(1).submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                assertTrue(ns2.isVisible(finalVt1, 10000));
+                return null;
+            }
+        });
+        try{
+            asyncResult.get(500, TimeUnit.MILLISECONDS);
+            fail("should have thrown a timeout exception");
+        } catch(TimeoutException te) {
+            // ok
+        }
+        ns1.runBackgroundOperations();
+        try{
+            asyncResult.get(500, TimeUnit.MILLISECONDS);
+            fail("should have thrown a timeout exception");
+        } catch(TimeoutException te) {
+            // ok
+        }
+        ns2.runBackgroundOperations();
+        asyncResult.get(6000, TimeUnit.MILLISECONDS);
+    }
+
 
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();

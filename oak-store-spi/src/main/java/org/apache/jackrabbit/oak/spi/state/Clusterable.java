@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Interface for bearing cluster node specific information.
@@ -32,4 +33,58 @@ public interface Clusterable {
      */
     @Nonnull
     String getInstanceId();
+
+    /**
+     * Returns the visibility token of the underlying NodeStore. A 'visibility
+     * token' is an opaque String that can be used to verify if changes done on
+     * one NodeStore are visible on another NodeStore of the same cluster. This
+     * can be achieved by generating such a visibility token on the source
+     * NodeStore, passing it on to the target NodeStore (by whatever means) and
+     * checking for visibility on that target NodeStore.
+     * <p/>
+     * The visibility check returns true if the target NodeStore sees at least
+     * all the changes that the source NodeStore saw at time of visibility token
+     * generation. Once a visibility token is visible on a particular NodeStore
+     * it will always return true ever after. This also implies that the
+     * visibility check can only state whether at least all source changes are
+     * visible on the target and that it is independent of any further
+     * modifications.
+     * <p/>
+     * When source and target NodeStore are identical, the visibility check is
+     * expected to return true, immediately. This is based on the assumption
+     * that with a session.refresh() on that NodeStore you'll always get the
+     * latest changes applied by any other session locally.
+     * <p/>
+     * Visibility tokens are meant to be lightweight and are not expected to be
+     * persisted by the implementor. Nevertheless they should survive their
+     * validity in the case of crashes of the source and/or the target instance.
+     */
+    @Nullable
+    String getVisibilityToken();
+
+    /**
+     * Checks if the underlying NodeStore sees at least the changes that were
+     * visible at the time the visibility token was created on potentially
+     * another instance if in a clustered NodeStore setup.
+     * <p/>
+     * If the visibility token was created on the underlying NodeStore this
+     * check always returns true, immediately.
+     * 
+     * @param visibilityToken
+     *            the visibility token that was created on another instance in a
+     *            clustered NodeStore setup. Providing null is not supported and
+     *            might throw a RuntimeException
+     * @param maxWaitMillis
+     *            if &gt;-1 waits (at max this many milliseconds if &gt;0,
+     *            forever if ==0) until the underlying NodeStore sees at least
+     *            the changes represented by the provided visibility token. if
+     *            &lt; 0 the method does not wait
+     * @return true if the underlying NodeStore sees at least the changes that
+     *         were visible at the time the visibility token was created
+     * @throws InterruptedException
+     *             (optionally) thrown if interrupted while waiting
+     * @see VisibilityTokenProvider VisibilityTokenProvider for a definition and
+     *      usage of visibility tokens
+     */
+    boolean isVisible(@Nonnull String visibilityToken, long maxWaitMillis) throws InterruptedException;
 }
