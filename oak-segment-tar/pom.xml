@@ -171,11 +171,6 @@
             <artifactId>commons-io</artifactId>
             <scope>provided</scope>
         </dependency>
-         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math3</artifactId>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
@@ -205,6 +200,11 @@
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.scr.annotations</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>3.1.0</version>
         </dependency>
 
         <!-- Netty -->
@@ -318,12 +318,7 @@
             <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-            <version>3.1.0</version>
-            <scope>test</scope>
-        </dependency>
+        
         <!-- FIXME: test dependency of oak-core due to usage of InitialContent for test setup -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
