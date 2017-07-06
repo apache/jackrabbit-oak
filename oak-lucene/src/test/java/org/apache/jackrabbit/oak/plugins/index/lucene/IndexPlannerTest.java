@@ -351,7 +351,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void propertyIndexCostActualByDefault() throws Exception{
+    public void propertyIndexCostActualOverriddenByEntryCount() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         long entryCount = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
         defn.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, entryCount);
@@ -368,7 +368,7 @@ public class IndexPlannerTest {
     }
 
     @Test
-    public void propertyIndexCostActualOverriddenByEntryCount() throws Exception{
+    public void propertyIndexCostActualByDefault() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
