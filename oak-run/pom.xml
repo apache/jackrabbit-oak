@@ -35,12 +35,13 @@
     <groovy.version>2.4.7</groovy.version>
     <!--
       Size History:
+      + 48 MB added commons-math3 dependency to oak-segment-tar
       + 47 MB release profile build slightly bigger jar (OAK-6252)
       + 46 MB re-introduced the ServerCommand and required dependencies (OAK-6252)
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>47000000</max.jar.size>
+    <max.jar.size>48200000</max.jar.size>
   </properties>
 
   <build>
