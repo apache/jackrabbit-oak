@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
-import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -51,6 +50,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.SlidingWindowReservoir;
 
 public class LockBasedScheduler implements Scheduler {
 
@@ -114,11 +116,11 @@ public class LockBasedScheduler implements Scheduler {
             .parseBoolean(System.getProperty("oak.segmentNodeStore.commitFairLock", "true"));
 
     /**
-     * Flag controlling the commit time percentile to wait for the lock in order
+     * Flag controlling the commit time quantile to wait for the lock in order
      * to increase chances of returning an up to date state.
      */
-    private static final int SCHEDULER_FETCH_COMMIT_DELAY_PERCENTILE = Integer
-            .getInteger("oak.scheduler.fetch.commitDelayPercentile", 50);
+    private static final double SCHEDULER_FETCH_COMMIT_DELAY_QUANTILE = Double
+            .parseDouble(System.getProperty("oak.scheduler.fetch.commitDelayQuantile", "0.5"));
     
     /**
      * Sets the number of seconds to wait for the attempt to grab the lock to
@@ -145,7 +147,7 @@ public class LockBasedScheduler implements Scheduler {
 
     private final SegmentNodeStoreStats stats;
     
-    private final SynchronizedDescriptiveStatistics commitTimeStats = new SynchronizedDescriptiveStatistics(1000);
+    private Histogram commitTimeHistogram = new Histogram(new SlidingWindowReservoir(1000));
     
 
     public LockBasedScheduler(LockBasedSchedulerBuilder builder) {
@@ -162,7 +164,7 @@ public class LockBasedScheduler implements Scheduler {
 
     @Override
     public NodeState getHeadNodeState() {
-        long delay = (long) commitTimeStats.getPercentile(SCHEDULER_FETCH_COMMIT_DELAY_PERCENTILE);
+        long delay = (long) commitTimeHistogram.getSnapshot().getValue(SCHEDULER_FETCH_COMMIT_DELAY_QUANTILE);
         try {
             if (commitSemaphore.tryAcquire(delay, NANOSECONDS)) {
                 try {
@@ -227,7 +229,7 @@ public class LockBasedScheduler implements Scheduler {
 
                 long afterCommitTime = System.nanoTime();
                 stats.committedAfter(afterCommitTime - beforeCommitTime);
-                commitTimeStats.addValue(afterCommitTime - beforeCommitTime);
+                commitTimeHistogram.update(afterCommitTime - beforeCommitTime);
                 stats.onCommit();
 
                 return merged;
