@@ -25,7 +25,7 @@ import com.mongodb.DB;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -146,7 +146,7 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.activate(service, context.bundleContext(), config);
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         MongoDocumentStore mds = getMongoDocumentStore(store);
-        DB db = MongoDocumentStoreHelper.getDB(mds);
+        DB db = MongoDocumentStoreTestHelper.getDB(mds);
         assertTrue(db.getMongo().getMongoOptions().isSocketKeepAlive());
     }
 
