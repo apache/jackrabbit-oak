@@ -181,5 +181,15 @@ public class AsyncIndexerServiceTest {
         public String getInstanceId() {
             return "foo";
         }
+
+        @Override
+        public String getVisibilityToken() {
+            return "";
+        }
+
+        @Override
+        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+            return true;
+        }
     }
 }

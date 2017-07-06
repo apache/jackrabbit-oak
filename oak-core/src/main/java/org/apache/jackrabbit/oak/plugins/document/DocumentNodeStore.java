@@ -69,6 +69,7 @@ import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
@@ -3170,6 +3171,52 @@ public final class DocumentNodeStore
     @Override
     public String getInstanceId() {
         return String.valueOf(getClusterId());
+    }
+    
+    @Override
+    public String getVisibilityToken() {
+        final DocumentNodeState theRoot = root;
+        if (theRoot == null) {
+            // unlikely but for paranoia reasons...
+            return "";
+        }
+        return theRoot.getRootRevision().asString();
+    }
+    
+    private boolean isVisible(RevisionVector rv) {
+        // do not synchronize, take a local copy instead
+        final DocumentNodeState localRoot = root;
+        if (localRoot == null) {
+            // unlikely but for paranoia reasons...
+            return false;
+        }
+        return Utils.isGreaterOrEquals(localRoot.getRootRevision(), rv);
+    }
+    
+    @Override
+    public boolean isVisible(@Nonnull String visibilityToken, long maxWaitMillis) throws InterruptedException {
+        if (Strings.isNullOrEmpty(visibilityToken)) {
+            // we've asked for @Nonnull..
+            // hence throwing an exception
+            throw new IllegalArgumentException("visibilityToken must not be null or empty");
+        }
+        // 'fromString' would throw a RuntimeException if it can't parse 
+        // that would be re thrown automatically
+        final RevisionVector visibilityTokenRv = RevisionVector.fromString(visibilityToken);
+
+        if (isVisible(visibilityTokenRv)) {
+            // the simple case
+            return true;
+        }
+        
+        // otherwise wait until the visibility token's revisions all become visible
+        // (or maxWaitMillis has passed)
+        commitQueue.suspendUntilAll(Sets.newHashSet(visibilityTokenRv), maxWaitMillis);
+        
+        // if we got interrupted above would throw InterruptedException
+        // otherwise, we don't know why suspendUntilAll returned, so
+        // check the final isVisible state and return it
+        return isVisible(visibilityTokenRv);
     }
 
     public DocumentNodeStoreStatsCollector getStatsCollector() {

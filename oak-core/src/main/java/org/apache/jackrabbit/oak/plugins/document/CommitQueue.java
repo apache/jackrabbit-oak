@@ -112,15 +112,39 @@ final class CommitQueue {
      *     <li>the thread is interrupted</li>
      * </ul>
      *
-     * @param conflictRevisions the revisions to become visible.
+     * @param revisions the revisions to become visible.
      */
-    void suspendUntilAll(@Nonnull Set<Revision> conflictRevisions) {
+    void suspendUntilAll(@Nonnull Set<Revision> revisions) {
+        try {
+            suspendUntilAll(revisions, suspendTimeout);
+        } catch (InterruptedException e) {
+            LOG.debug("The suspended thread has been interrupted", e);
+        }        
+    }
+    
+    /**
+     * Suspends until for each of given revisions one of the following happens:
+     * <ul>
+     *     <li>the given revision is visible from the current headRevision</li>
+     *     <li>the given revision is canceled from the commit queue</li>
+     *     <li>the suspend timeout is reached</li>
+     *     <li>the thread is interrupted</li>
+     * </ul>
+     *
+     * @param revisions the revisions to become visible.
+     * @param suspendTimeoutMillis how long to suspend at max
+     * @throws InterruptedException thrown when this thread has its interrupted
+     * status set or was interrupted while waiting. The current thread's
+     * interrupted status is cleared when this exception is thrown.
+     */
+    void suspendUntilAll(@Nonnull Set<Revision> revisions, long suspendTimeoutMillis) 
+            throws InterruptedException {
         Semaphore s;
         int addedRevisions;
         synchronized (suspendedCommits) {
             RevisionVector headRevision = context.getHeadRevision();
-            Set<Revision> afterHead = new HashSet<Revision>(conflictRevisions.size());
-            for (Revision r : conflictRevisions) {
+            Set<Revision> afterHead = new HashSet<Revision>(revisions.size());
+            for (Revision r : revisions) {
                 if (headRevision.isRevisionNewer(r)) {
                     afterHead.add(r);
                 }
@@ -131,9 +155,7 @@ final class CommitQueue {
             addedRevisions = afterHead.size();
         }
         try {
-            s.tryAcquire(addedRevisions, suspendTimeout, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            LOG.debug("The suspended thread has been interrupted", e);
+            s.tryAcquire(addedRevisions, suspendTimeoutMillis, TimeUnit.MILLISECONDS);
         } finally {
             synchronized (suspendedCommits) {
                 suspendedCommits.remove(s);
