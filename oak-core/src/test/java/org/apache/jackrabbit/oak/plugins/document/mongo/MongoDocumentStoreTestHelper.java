@@ -20,7 +20,7 @@ import com.mongodb.DB;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 
-public final class MongoDocumentStoreHelper {
+public final class MongoDocumentStoreTestHelper {
 
     public static DB getDB(MongoDocumentStore store) {
         return store.getDBCollection(Collection.NODES).getDB();
