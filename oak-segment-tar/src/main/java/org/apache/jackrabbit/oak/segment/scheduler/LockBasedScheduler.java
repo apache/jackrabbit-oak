@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.scheduler;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Thread.currentThread;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 
 import java.io.Closeable;
@@ -32,6 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
+import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -135,6 +137,9 @@ public class LockBasedScheduler implements Scheduler {
     protected final AtomicReference<SegmentNodeState> head;
 
     private final SegmentNodeStoreStats stats;
+    
+    private final SynchronizedDescriptiveStatistics commitTimeStats = new SynchronizedDescriptiveStatistics(1000);
+    
 
     public LockBasedScheduler(LockBasedSchedulerBuilder builder) {
         if (COMMIT_FAIR_LOCK) {
@@ -150,12 +155,17 @@ public class LockBasedScheduler implements Scheduler {
 
     @Override
     public NodeState getHeadNodeState() {
-        if (commitSemaphore.tryAcquire()) {
-            try {
-                refreshHead(true);
-            } finally {
-                commitSemaphore.release();
-            }
+        long delay = (long) commitTimeStats.getPercentile(50);
+        try {
+            if (commitSemaphore.tryAcquire(delay, NANOSECONDS)) {
+                try {
+                    refreshHead(true);
+                } finally {
+                    commitSemaphore.release();
+                }
+            } 
+        } catch (InterruptedException e) {
+            currentThread().interrupt();
         }
         return head.get();
     }
@@ -210,6 +220,7 @@ public class LockBasedScheduler implements Scheduler {
 
                 long afterCommitTime = System.nanoTime();
                 stats.committedAfter(afterCommitTime - beforeCommitTime);
+                commitTimeStats.addValue(afterCommitTime - beforeCommitTime);
                 stats.onCommit();
 
                 return merged;
