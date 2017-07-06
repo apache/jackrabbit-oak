@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
@@ -67,7 +66,6 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         assertTrue(hasIndex(store.getDBCollection(Collection.JOURNAL), JournalEntry.MODIFIED));
     }
 
-    @Ignore("OAK-6423")
     @Test
     public void oak6423() throws Exception {
         MongoConnection c = connectionFactory.getConnection();

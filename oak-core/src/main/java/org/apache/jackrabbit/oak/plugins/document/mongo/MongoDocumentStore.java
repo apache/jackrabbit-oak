@@ -281,12 +281,20 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
         // index on _deleted for fast lookup of potentially garbage
         // depending on the MongoDB version, create a partial index
-        if (mongoStatus.isVersion(3, 2)
-                && initialDocsCount == 0) {
-            createPartialIndex(nodes, new String[]{DELETED_ONCE, MODIFIED_IN_SECS},
-                    new boolean[]{true, true}, "{" + DELETED_ONCE + ":true}");
-        } else {
-            createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
+        if (initialDocsCount == 0) {
+            if (mongoStatus.isVersion(3, 2)) {
+                createPartialIndex(nodes, new String[]{DELETED_ONCE, MODIFIED_IN_SECS},
+                        new boolean[]{true, true}, "{" + DELETED_ONCE + ":true}");
+            } else {
+                createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
+            }
+        } else if (!hasIndex(nodes, DELETED_ONCE, MODIFIED_IN_SECS)) {
+            LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
+                    "Revision GC performance it is recommended to create a " +
+                    "partial index for the 'nodes' collection on " +
+                    "{_deletedOnce:1, _modified:1} with a partialFilterExpression " +
+                    "{_deletedOnce:true}. Partial indexes require MongoDB 3.2 " +
+                    "or higher.");
         }
 
         // compound index on _sdType and _sdMaxRevTime
