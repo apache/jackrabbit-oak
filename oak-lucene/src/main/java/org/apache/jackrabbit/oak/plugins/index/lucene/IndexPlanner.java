@@ -58,6 +58,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 class IndexPlanner {
+    private static final String FLAG_ENTRY_COUNT = "oak.lucene.useActualEntryCount";
     private static final Logger log = LoggerFactory.getLogger(IndexPlanner.class);
     private final IndexDefinition definition;
     private final Filter filter;
@@ -65,6 +66,15 @@ class IndexPlanner {
     private final List<OrderEntry> sortOrder;
     private IndexNode indexNode;
     private PlanResult result;
+    private static boolean useActualEntryCount = false;
+
+    static {
+        useActualEntryCount = Boolean.parseBoolean(System.getProperty(FLAG_ENTRY_COUNT, "true"));
+        if (!useActualEntryCount) {
+            log.info("System property {} found to be false. IndexPlanner would use a default entryCount of 1000 instead" +
+                    " of using the actual entry count", FLAG_ENTRY_COUNT);
+        }
+    }
 
     public IndexPlanner(IndexNode indexNode,
                         String indexPath,
@@ -104,6 +114,11 @@ class IndexPlanner {
                 ", filter=" + filter +
                 ", sortOrder=" + sortOrder +
                 '}';
+    }
+
+    //For tests
+    static void setUseActualEntryCount(boolean useActualEntryCount) {
+        IndexPlanner.useActualEntryCount = useActualEntryCount;
     }
 
     private IndexPlan.Builder getPlanBuilder() {
@@ -474,14 +489,23 @@ class IndexPlanner {
     }
 
     private long estimatedEntryCount() {
+        int numOfDocs = getReader().numDocs();
+        if (useActualEntryCount) {
+            return definition.isEntryCountDefined() ? definition.getEntryCount() : numOfDocs;
+        } else {
+            return estimatedEntryCount_Compat(numOfDocs);
+        }
+    }
+
+    private long estimatedEntryCount_Compat(int numOfDocs) {
         //Other index only compete in case of property indexes. For fulltext
         //index return true count so as to allow multiple property indexes
         //to be compared fairly
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft != null && definition.isFullTextEnabled()){
-            return definition.getFulltextEntryCount(getReader().numDocs());
+            return definition.getFulltextEntryCount(numOfDocs);
         }
-        return Math.min(definition.getEntryCount(), getReader().numDocs());
+        return Math.min(definition.getEntryCount(), numOfDocs);
     }
 
     private String getPathPrefix() {
