@@ -24,7 +24,7 @@ import com.google.common.collect.Maps;
 import com.mongodb.DB;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -71,7 +71,7 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.activate(service, context.bundleContext(), config);
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         MongoDocumentStore mds = getMongoDocumentStore(store);
-        DB db = MongoDocumentStoreHelper.getDB(mds);
+        DB db = MongoDocumentStoreTestHelper.getDB(mds);
         assertTrue(db.getMongo().getMongoOptions().isSocketKeepAlive());
     }
 
