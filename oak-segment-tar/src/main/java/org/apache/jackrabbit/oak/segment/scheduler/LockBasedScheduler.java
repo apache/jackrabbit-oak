@@ -114,11 +114,18 @@ public class LockBasedScheduler implements Scheduler {
             .parseBoolean(System.getProperty("oak.segmentNodeStore.commitFairLock", "true"));
 
     /**
+     * Flag controlling the commit time percentile to wait for the lock in order
+     * to increase chances of returning an up to date state.
+     */
+    private static final int SCHEDULER_FETCH_COMMIT_DELAY_PERCENTILE = Integer
+            .getInteger("oak.scheduler.fetch.commitDelayPercentile", 50);
+    
+    /**
      * Sets the number of seconds to wait for the attempt to grab the lock to
      * create a checkpoint
      */
     private final int checkpointsLockWaitTime = Integer.getInteger("oak.checkpoints.lockWaitTime", 10);
-
+    
     static final String ROOT = "root";
 
     /**
@@ -155,7 +162,7 @@ public class LockBasedScheduler implements Scheduler {
 
     @Override
     public NodeState getHeadNodeState() {
-        long delay = (long) commitTimeStats.getPercentile(50);
+        long delay = (long) commitTimeStats.getPercentile(SCHEDULER_FETCH_COMMIT_DELAY_PERCENTILE);
         try {
             if (commitSemaphore.tryAcquire(delay, NANOSECONDS)) {
                 try {
