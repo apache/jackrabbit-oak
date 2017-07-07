@@ -91,6 +91,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
 import static org.apache.commons.io.FileUtils.ONE_MB;
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
@@ -106,9 +107,10 @@ public class LuceneIndexProviderService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policyOption = ReferencePolicyOption.GREEDY,
-            policy = ReferencePolicy.DYNAMIC
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY
     )
     private QueryIndex.NodeAggregator nodeAggregator;
 
@@ -268,8 +270,9 @@ public class LuceneIndexProviderService {
     @Reference
     private StatisticsProvider statisticsProvider;
 
-    @Reference(policy = ReferencePolicy.DYNAMIC,
+    @Reference(
             cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
             policyOption = ReferencePolicyOption.GREEDY
     )
     private volatile PreExtractedTextProvider extractedTextProvider;
@@ -286,9 +289,11 @@ public class LuceneIndexProviderService {
     @Reference
     private AsyncIndexInfoService asyncIndexInfoService;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-        policyOption = ReferencePolicyOption.GREEDY,
-        policy = ReferencePolicy.DYNAMIC
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY,
+            target = ONLY_STANDALONE_TARGET
     )
     private GarbageCollectableBlobStore blobStore;
 
@@ -335,10 +340,10 @@ public class LuceneIndexProviderService {
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config);
         IndexTracker tracker = createTracker(bundleContext, config);
-        indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
+        initializeIndexProvider(tracker);
+
         initializeActiveBlobCollector(whiteboard, config);
         initializeLogging(config);
-        initialize();
 
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, null));
         registerObserver(bundleContext, config);
@@ -425,16 +430,12 @@ public class LuceneIndexProviderService {
         return extractedTextCache;
     }
 
-    private void initialize(){
-        if(indexProvider == null){
-            return;
-        }
-
+    private void initializeIndexProvider(IndexTracker tracker) {
+        indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
         if(nodeAggregator != null){
             log.debug("Using NodeAggregator {}", nodeAggregator.getClass());
+            indexProvider.setAggregator(nodeAggregator);
         }
-
-        indexProvider.setAggregator(nodeAggregator);
     }
 
     private void initializeLogging(Map<String, ?> config) {
@@ -655,10 +656,8 @@ public class LuceneIndexProviderService {
                         "always" : "only during reindexing phase";
                 log.info("Registering PreExtractedTextProvider {} with extracted text cache. " +
                         "It would be used {}",  provider, usage);
-            } else {
-                log.info("Unregistering PreExtractedTextProvider with extracted text cache");
+                extractedTextCache.setExtractedTextProvider(provider);
             }
-            extractedTextCache.setExtractedTextProvider(provider);
         }
     }
 
@@ -690,17 +689,6 @@ public class LuceneIndexProviderService {
             }
         };
         oakRegs.add(whiteboard.register(GCMonitor.class, gcMonitor, emptyMap()));
-    }
-
-    private void registerBlobStore(GarbageCollectableBlobStore blobStore) {
-        if (editorProvider != null){
-            if (blobStore != null){
-                log.info("Registering blobStore {} with editorProvider. ", blobStore);
-            } else {
-                log.info("Unregistering blobStore");
-            }
-            editorProvider.setBlobStore(blobStore);
-        }
     }
 
     private void registerIndexInfoProvider(BundleContext bundleContext) {
@@ -743,35 +731,5 @@ public class LuceneIndexProviderService {
         }
 
         return timestamp;
-    }
-
-    protected void bindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
-        this.nodeAggregator = aggregator;
-        initialize();
-    }
-
-    protected void unbindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
-        this.nodeAggregator = null;
-        initialize();
-    }
-
-    protected void bindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
-        this.extractedTextProvider = preExtractedTextProvider;
-        registerExtractedTextProvider(preExtractedTextProvider);
-    }
-
-    protected void unbindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
-        this.extractedTextProvider = null;
-        registerExtractedTextProvider(null);
-    }
-
-    protected void bindBlobStore(GarbageCollectableBlobStore blobStore) {
-        this.blobStore = blobStore;
-        registerBlobStore(blobStore);
-    }
-
-    protected void unbindBlobStore(GarbageCollectableBlobStore blobStore) {
-        this.blobStore = null;
-        registerBlobStore(blobStore);
     }
 }
