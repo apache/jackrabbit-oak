@@ -45,6 +45,23 @@
             </Export-Package>
           </instructions>
         </configuration>
+        <executions>
+          <execution>
+            <id>baseline</id>
+            <goals>
+              <goal>baseline</goal>
+            </goals>
+            <phase>pre-integration-test</phase>
+            <configuration>
+              <!--
+                This is required as classes present in this module
+                were part of oak-core. This should be removed
+                post 1.8 release
+              -->
+              <comparisonArtifactId>oak-core</comparisonArtifactId>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
