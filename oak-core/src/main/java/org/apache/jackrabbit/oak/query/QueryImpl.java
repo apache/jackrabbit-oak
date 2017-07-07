@@ -992,6 +992,13 @@ public class QueryImpl implements Query {
                     // TODO limit is after all conditions
                     long entryCount = Math.min(maxEntryCount, p.getEstimatedEntryCount());
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
+
+                    if (LOG.isDebugEnabled()) {
+                        String plan = advIndex.getPlanDescription(p, rootState);
+                        String msg = String.format("cost for [%s] of type (%s) with plan [%s] is %1.2f", p.getPlanName(), indexName, plan, c);
+                        logDebug(msg);
+                    }
+
                     if (c < cost) {
                         cost = c;
                         indexPlan = p;
