@@ -160,6 +160,8 @@
                 <logResults>false</logResults>
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
+                <!-- Set the comparisonVersion to last release from stable branch-->
+                <comparisonVersion>1.6.2</comparisonVersion>
                 <filters>
                   <!-- Disable baseline for explicitly NOT managed packages. See OAK-3842 -->
                   <filter>!org.apache.jackrabbit.oak.cache</filter>

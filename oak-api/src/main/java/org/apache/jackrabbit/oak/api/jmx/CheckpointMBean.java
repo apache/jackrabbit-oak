@@ -51,12 +51,6 @@ public interface CheckpointMBean {
     Date getOldestCheckpointCreationDate();
 
     /**
-     * @return creation information about oldest checkpoint.
-     */
-    @Deprecated
-    CompositeData getOldestCheckpointCreationTime();
-
-    /**
      * Create a new checkpoint with the given {@code lifetime}.
      * See {@code org.apache.jackrabbit.oak.spi.state.NodeStore#checkpoint}
      * @param lifetime

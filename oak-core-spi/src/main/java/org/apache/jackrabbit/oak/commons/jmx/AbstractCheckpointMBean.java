@@ -102,24 +102,6 @@ public abstract class AbstractCheckpointMBean implements CheckpointMBean {
         return new Date(getOldestCheckpointCreationTimestamp());
     }
 
-    @Override
-    public CompositeData getOldestCheckpointCreationTime() {
-        try {
-            Map<String, Object> values = Maps.newHashMap();
-            long timestamp = getOldestCheckpointCreationTimestamp();
-            Date date = getOldestCheckpointCreationDate();
-            values.put("timestamp", timestamp);
-            values.put("time", date);
-            CompositeDataSupport csd = new CompositeDataSupport(
-                    new CompositeType("OldestCheckpointTime", "Creation time of oldest checkpoint",
-                            new String[]{"timestamp", "time"}, new String[]{"epoch timestamp", "human readable date"},
-                            new OpenType[]{SimpleType.LONG, SimpleType.DATE}), values);
-
-            return csd;
-        } catch (OpenDataException e) {
-            throw new IllegalStateException(e);
-        }
-    }
 
     /**
      * Utility method for converting the fields associated with a checkpoint to
