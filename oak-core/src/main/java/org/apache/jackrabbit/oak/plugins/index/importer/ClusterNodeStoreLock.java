@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
@@ -84,6 +85,12 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
         async.removeProperty(leaseName);
         NodeStoreUtils.mergeWithConcurrentCheck(nodeStore, builder);
         log.info("Remove the lock for async indexer lane [{}]", token.laneName);
+    }
+
+    public boolean isLocked(String asyncIndexerLane) {
+        NodeState async = nodeStore.getRoot().getChildNode(":async");
+        String leaseName = AsyncIndexUpdate.leasify(asyncIndexerLane);
+        return async.hasProperty(leaseName);
     }
 }
 

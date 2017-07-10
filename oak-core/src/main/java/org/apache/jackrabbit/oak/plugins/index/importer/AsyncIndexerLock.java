@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
  * Lock used to prevent AsyncIndexUpdate from running when Index import
  * is in progress
  */
-interface AsyncIndexerLock<T extends AsyncIndexerLock.LockToken> {
+public interface AsyncIndexerLock<T extends AsyncIndexerLock.LockToken> {
 
     AsyncIndexerLock NOOP_LOCK = new AsyncIndexerLock() {
         private final LockToken noopToken = new LockToken() {};
