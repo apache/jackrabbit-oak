@@ -103,7 +103,6 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
     private final String checkpoint;
     private Map<String, String> checkpointInfo = Collections.emptyMap();
     private NodeStore copyOnWriteStore;
-    private LuceneIndexHelper luceneIndexHelper;
     private File localIndexDir;
 
     //TODO Support for providing custom index definition i.e. where definition is not
@@ -198,10 +197,9 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
     }
 
     private IndexEditorProvider createLuceneEditorProvider() throws IOException {
-        luceneIndexHelper = new LuceneIndexHelper(indexHelper);
+        LuceneIndexHelper luceneIndexHelper = indexHelper.getLuceneIndexHelper();
         DirectoryFactory dirFactory = new FSDirectoryFactory(getLocalIndexDir());
         luceneIndexHelper.setDirectoryFactory(dirFactory);
-        closer.register(luceneIndexHelper);
         return luceneIndexHelper.createEditorProvider();
     }
 
