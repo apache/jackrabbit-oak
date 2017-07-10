@@ -20,14 +20,9 @@
 package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.jcr.Node;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import com.google.common.io.Files;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -35,15 +30,10 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import static java.nio.charset.Charset.defaultCharset;
-import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -52,18 +42,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class IndexCommandIT {
-
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
-    private RepositoryFixture fixture;
-
-    @After
-    public void cleaup() throws IOException {
-        if (fixture != null) {
-            fixture.close();
-        }
-    }
+public class IndexCommandIT extends AbstractIndexCommandTest {
 
     @Test
     public void dumpStatsAndInfo() throws Exception{
@@ -241,46 +220,4 @@ public class IndexCommandIT {
         assertEquals(1, idxDirs.size());
     }
 
-    private void createTestData(boolean asyncIndex) throws IOException, RepositoryException {
-        fixture = new RepositoryFixture(temporaryFolder.newFolder());
-        indexIndexDefinitions();
-        createLuceneIndex(asyncIndex);
-        addTestContent();
-    }
-
-    private void indexIndexDefinitions() throws IOException, RepositoryException {
-        //By default Oak index definitions are not indexed
-        //so add them to declaringNodeTypes
-        Session session = fixture.getAdminSession();
-        Node nodeType = session.getNode("/oak:index/nodetype");
-        nodeType.setProperty(IndexConstants.DECLARING_NODE_TYPES, new String[] {"oak:QueryIndexDefinition"}, PropertyType.NAME);
-        session.save();
-        session.logout();
-    }
-
-    private void addTestContent() throws IOException, RepositoryException {
-        Session session = fixture.getAdminSession();
-        for (int i = 0; i < 100; i++) {
-            getOrCreateByPath("/testNode/a"+i,
-                    "oak:Unstructured", session).setProperty("foo", "bar");
-        }
-        session.save();
-        session.logout();
-    }
-
-    private void createLuceneIndex(boolean asyncIndex) throws IOException, RepositoryException {
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
-        if (!asyncIndex) {
-            idxBuilder.noAsync();
-        }
-        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
-
-        Session session = fixture.getAdminSession();
-        Node fooIndex = getOrCreateByPath("/oak:index/fooIndex",
-                "oak:QueryIndexDefinition", session);
-
-        idxBuilder.build(fooIndex);
-        session.save();
-        session.logout();
-    }
 }
