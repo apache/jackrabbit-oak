@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -125,6 +126,7 @@ public class LuceneIndexProviderServiceTest {
         assertNotNull(FieldUtils.readDeclaredField(service, "documentQueue", true));
 
         assertNotNull(context.getService(JournalPropertyService.class));
+        assertNotNull(context.getService(IndexImporterProvider.class));
 
         MockOsgi.deactivate(service, context.bundleContext());
     }

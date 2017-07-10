@@ -57,7 +57,9 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
@@ -350,6 +352,7 @@ public class LuceneIndexProviderService {
         registerLocalIndexObserver(bundleContext, tracker, config);
         registerIndexEditor(bundleContext, tracker, config);
         registerIndexInfoProvider(bundleContext);
+        registerIndexImporterProvider(bundleContext);
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
@@ -694,6 +697,11 @@ public class LuceneIndexProviderService {
     private void registerIndexInfoProvider(BundleContext bundleContext) {
         IndexInfoProvider infoProvider = new LuceneIndexInfoProvider(nodeStore, asyncIndexInfoService, getIndexCheckDir());
         regs.add(bundleContext.registerService(IndexInfoProvider.class.getName(), infoProvider, null));
+    }
+
+    private void registerIndexImporterProvider(BundleContext bundleContext) {
+        LuceneIndexImporter importer = new LuceneIndexImporter(blobStore);
+        regs.add(bundleContext.registerService(IndexImporterProvider.class.getName(), importer, null));
     }
 
     private void initializeActiveBlobCollector(Whiteboard whiteboard, Map<String, ?> config) {
