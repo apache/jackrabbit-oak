@@ -264,10 +264,19 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 LOG.debug("Completed snapshot in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
                 watch = Stopwatch.createStarted();
-                datastore.addMetadataRecord(store.getBlobRecordsFile(),
-                    (prefix + instanceId + mergedFileSuffix));
+
+                File recs = store.getBlobRecordsFile();
+                datastore.addMetadataRecord(recs,
+                    (prefix + instanceId + System.currentTimeMillis() + mergedFileSuffix));
                 LOG.info("Added blob id metadata record in DataStore in [{}]",
                     watch.elapsed(TimeUnit.MILLISECONDS));
+
+                try {
+                    forceDelete(recs);
+                    LOG.info("Deleted blob record file after snapshot and upload {}", recs);
+                } catch (IOException e) {
+                    LOG.debug("Failed to delete file {}", recs, e);
+                }
             }
         } catch (Exception e) {
             LOG.error("Error taking snapshot", e);
