@@ -28,9 +28,11 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
@@ -255,32 +257,32 @@ public class DataStoreTrackerGCTest {
         return set;
     }
 
-    @Test
-    public void differentCluster() throws Exception {
-        // Add blobs to cluster1
-        Cluster cluster1 = new Cluster("cluster1");
+    private void clusterGCInternal(Cluster cluster1, Cluster cluster2, boolean same) throws Exception {
         BlobStore s1 = cluster1.blobStore;
         BlobIdTracker tracker1 = (BlobIdTracker) ((BlobTrackingStore) s1).getTracker();
         DataStoreState state1 = init(cluster1.nodeStore, 0);
+        cluster1.nodeStore.runBackgroundOperations();
         ScheduledFuture<?> scheduledFuture1 = newSingleThreadScheduledExecutor()
             .schedule(tracker1.new SnapshotJob(), 0, MILLISECONDS);
         scheduledFuture1.get();
-        // All blobs added should be tracked now
-        assertEquals(state1.blobsAdded, retrieveTracked(tracker1));
 
         // Add blobs to cluster1
-        Cluster cluster2 = new Cluster("cluster2");
         BlobStore s2 = cluster2.blobStore;
         BlobIdTracker tracker2 = (BlobIdTracker) ((BlobTrackingStore) s2).getTracker();
-        DataStoreState state2 = init(cluster2.nodeStore, 0);
+        cluster2.nodeStore.runBackgroundOperations();
+        DataStoreState state2 = init(cluster2.nodeStore, 20);
+        cluster2.nodeStore.runBackgroundOperations();
+        cluster1.nodeStore.runBackgroundOperations();
+
         ScheduledFuture<?> scheduledFuture2 = newSingleThreadScheduledExecutor()
             .schedule(tracker2.new SnapshotJob(), 0, MILLISECONDS);
         scheduledFuture2.get();
 
-        // All blobs added should be tracked now
-        assertEquals(state2.blobsAdded, retrieveTracked(tracker2));
-        cluster2.gc.collectGarbage(true);
-
+        // Run first round of GC
+        // If not same cluster need to mark references on other repositories
+        if (!same) {
+            cluster2.gc.collectGarbage(true);
+        }
         // do a gc on cluster1 with sweep
         cluster1.gc.collectGarbage(false);
         Set<String> existingAfterGC = iterate(s1);
@@ -293,6 +295,62 @@ public class DataStoreTrackerGCTest {
             union(state1.blobsPresent, state2.blobsPresent),
             retrieveTracked(tracker1));
 
+        // Again create snapshots at both cluster nodes to synchronize the latest state of
+        // local references with datastore at each node
+        scheduledFuture1 = newSingleThreadScheduledExecutor()
+            .schedule(tracker1.new SnapshotJob(), 0, MILLISECONDS);
+        scheduledFuture1.get();
+        scheduledFuture2 = newSingleThreadScheduledExecutor()
+            .schedule(tracker2.new SnapshotJob(), 0, MILLISECONDS);
+        scheduledFuture2.get();
+
+
+        // Capture logs for the second round of gc
+        LogCustomizer customLogs = LogCustomizer
+            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .enable(Level.WARN)
+            .filter(Level.WARN)
+            .contains("Error occurred while deleting blob with id")
+            .create();
+        customLogs.starting();
+
+        if (!same) {
+            cluster2.gc.collectGarbage(true);
+        }
+        cluster1.gc.collectGarbage(false);
+
+        existingAfterGC = iterate(s1);
+        assertEquals(0, customLogs.getLogs().size());
+
+        customLogs.finished();
+        // Check the state of the blob store after gc
+        assertEquals(
+            union(state1.blobsPresent, state2.blobsPresent), existingAfterGC);
+    }
+
+    /**
+     * Tests GC twice on a 2 node shared datastore setup.
+     * @throws Exception
+     */
+    @Test
+    public void differentClusterGC() throws Exception {
+        Cluster cluster1 = new Cluster("cluster1");
+        Cluster cluster2 = new Cluster("cluster2");
+
+        clusterGCInternal(cluster1, cluster2, false);
+    }
+
+    /**
+     * Tests GC twice on 2 node cluster setup.
+     * @throws Exception
+     */
+    @Test
+    public void sameClusterGC() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        Cluster cluster1 = new Cluster("cluster1-1", store);
+        Cluster cluster2 = new Cluster("cluster1-2", store);
+
+        clusterGCInternal(cluster1, cluster2, true);
     }
 
     private Set<String> iterate(BlobStore blobStore) throws Exception {
@@ -325,8 +383,8 @@ public class DataStoreTrackerGCTest {
         Random rand = new Random(47);
         for (int i = idStart; i < idStart + maxDeleted; i++) {
             int n = rand.nextInt(number);
-            if (!processed.contains(n)) {
-                processed.add(n);
+            if (!processed.contains(idStart + n)) {
+                processed.add(idStart + n);
             }
         }
         DataStoreState state = new DataStoreState();
@@ -374,10 +432,14 @@ public class DataStoreTrackerGCTest {
         BlobIdTracker tracker;
 
         public Cluster(String clusterId) throws Exception {
+            this(clusterId, new MemoryDocumentStore());
+        }
+
+        public Cluster(String clusterId, MemoryDocumentStore store) throws Exception {
             blobStore = getBlobStore(blobStoreRoot);
             nodeStore = builderProvider.newBuilder()
                 .setAsyncDelay(0)
-                .setDocumentStore(new MemoryDocumentStore())
+                .setDocumentStore(store)
                 .setBlobStore(blobStore)
                 .getNodeStore();
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
