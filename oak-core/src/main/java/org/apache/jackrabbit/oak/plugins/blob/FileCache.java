@@ -236,9 +236,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     @Nullable
     public File getIfPresent(String key) {
         try {
-            if (cache.containsKey(key)) {
-                return cache.get(key);
-            }
+            return cache.getIfPresent(key);
         } catch (Exception e) {
             LOG.error("Error in retrieving [{}] from cache", key, e);
         }
