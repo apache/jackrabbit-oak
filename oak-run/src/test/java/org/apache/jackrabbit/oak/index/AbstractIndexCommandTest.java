@@ -53,7 +53,17 @@ public class AbstractIndexCommandTest {
         }
         indexIndexDefinitions();
         createLuceneIndex(asyncIndex);
-        addTestContent();
+        addTestContent(fixture, "/testNode/a", 100);
+    }
+
+    protected void addTestContent(RepositoryFixture fixture, String basePath, int count) throws IOException, RepositoryException {
+        Session session = fixture.getAdminSession();
+        for (int i = 0; i < count; i++) {
+            getOrCreateByPath(basePath+i,
+                    "oak:Unstructured", session).setProperty("foo", "bar");
+        }
+        session.save();
+        session.logout();
     }
 
     private void indexIndexDefinitions() throws IOException, RepositoryException {
@@ -62,16 +72,6 @@ public class AbstractIndexCommandTest {
         Session session = fixture.getAdminSession();
         Node nodeType = session.getNode("/oak:index/nodetype");
         nodeType.setProperty(IndexConstants.DECLARING_NODE_TYPES, new String[] {"oak:QueryIndexDefinition"}, PropertyType.NAME);
-        session.save();
-        session.logout();
-    }
-
-    private void addTestContent() throws IOException, RepositoryException {
-        Session session = fixture.getAdminSession();
-        for (int i = 0; i < 100; i++) {
-            getOrCreateByPath("/testNode/a"+i,
-                    "oak:Unstructured", session).setProperty("foo", "bar");
-        }
         session.save();
         session.logout();
     }

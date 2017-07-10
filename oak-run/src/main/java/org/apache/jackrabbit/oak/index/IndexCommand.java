@@ -110,6 +110,7 @@ public class IndexCommand implements Command {
         performConsistencyCheck(indexOpts, indexHelper);
         dumpIndexContents(indexOpts, indexHelper);
         reindexIndex(indexOpts, indexHelper);
+        importIndex(indexOpts, indexHelper);
     }
 
     private void configurePreExtractionSupport(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {
@@ -133,6 +134,13 @@ public class IndexCommand implements Command {
             try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, checkpoint)) {
                 indexer.reindex();
             }
+        }
+    }
+
+    private void importIndex(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
+        if (indexOpts.isImportIndex()) {
+            File importDir = indexOpts.getIndexImportDir();
+            new IndexImporterSupport(indexHelper).importIndex(importDir);
         }
     }
 

@@ -180,44 +180,6 @@ public class IndexCommandIT extends AbstractIndexCommandTest {
         assertEquals(2, reindexCount.getValue(Type.LONG).longValue());
     }
 
-    @Test
-    public void reindexOutOfBand() throws Exception{
-        createTestData(true);
-        fixture.getAsyncIndexUpdate("async").run();
 
-        String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
-
-        //Close the repository so as all changes are flushed
-        fixture.close();
-
-        IndexCommand command = new IndexCommand();
-
-        File outDir = temporaryFolder.newFolder();
-        File storeDir = fixture.getDir();
-        String[] args = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-paths=/oak:index/fooIndex",
-                "--checkpoint="+checkpoint,
-                "--reindex",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                storeDir.getAbsolutePath()
-        };
-
-        command.execute(args);
-
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
-        NodeStore store2 = fixture2.getNodeStore();
-        PropertyState reindexCount = getNode(store2.getRoot(), "/oak:index/fooIndex").getProperty(IndexConstants.REINDEX_COUNT);
-        assertEquals(1, reindexCount.getValue(Type.LONG).longValue());
-
-        File indexes = new File(outDir, OutOfBandIndexer.LOCAL_INDEX_ROOT_DIR);
-        assertTrue(indexes.exists());
-
-        IndexRootDirectory idxRoot = new IndexRootDirectory(indexes);
-        List<LocalIndexDir> idxDirs = idxRoot.getAllLocalIndexes();
-
-        assertEquals(1, idxDirs.size());
-    }
 
 }
