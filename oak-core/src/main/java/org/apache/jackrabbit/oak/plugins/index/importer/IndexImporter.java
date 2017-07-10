@@ -66,6 +66,8 @@ public class IndexImporter {
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
+        checkArgument(indexDir.exists() && indexDir.isDirectory(), "Path [%s] does not point " +
+                "to existing directory", indexDir.getAbsolutePath());
         this.nodeStore = nodeStore;
         this.indexDir = indexDir;
         this.indexEditorProvider = indexEditorProvider;
