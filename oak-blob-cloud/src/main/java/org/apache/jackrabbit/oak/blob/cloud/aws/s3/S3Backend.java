@@ -214,10 +214,10 @@ public class S3Backend implements SharedS3Backend {
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
-            LOG.debug("  error ", e);
-            Map<String, String> filteredMap = Maps.newHashMap();
+            LOG.error("  error ", e);
+            Map<String, Object> filteredMap = Maps.newHashMap();
             if (prop != null) {
-                filteredMap = Maps.filterKeys(Maps.fromProperties(prop), new Predicate<String>() {
+                filteredMap = Maps.filterKeys(Utils.asMap(prop), new Predicate<String>() {
                     @Override public boolean apply(String input) {
                         return !input.equals(S3Constants.ACCESS_KEY) && !input.equals(S3Constants
                             .SECRET_KEY);
