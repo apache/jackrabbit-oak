@@ -150,36 +150,4 @@ public class IndexCommandIT extends AbstractIndexCommandTest {
         File dumpDir = new File(outDir, IndexDumper.INDEX_DUMPS_DIR);
         assertTrue(dumpDir.exists());
     }
-
-    @Test
-    public void reindex() throws Exception{
-        createTestData(true);
-        fixture.getAsyncIndexUpdate("async").run();
-        //Close the repository so as all changes are flushed
-        fixture.close();
-
-        IndexCommand command = new IndexCommand();
-
-        File outDir = temporaryFolder.newFolder();
-        File storeDir = fixture.getDir();
-        String[] args = {
-                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
-                "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-paths=/oak:index/fooIndex",
-                "--read-write=true",
-                "--reindex",
-                "--", // -- indicates that options have ended and rest needs to be treated as non option
-                storeDir.getAbsolutePath()
-        };
-
-        command.execute(args);
-
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
-        NodeStore store2 = fixture2.getNodeStore();
-        PropertyState reindexCount = getNode(store2.getRoot(), "/oak:index/fooIndex").getProperty(IndexConstants.REINDEX_COUNT);
-        assertEquals(2, reindexCount.getValue(Type.LONG).longValue());
-    }
-
-
-
 }
