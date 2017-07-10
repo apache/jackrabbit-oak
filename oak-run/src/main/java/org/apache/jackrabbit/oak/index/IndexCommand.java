@@ -22,20 +22,20 @@ package org.apache.jackrabbit.oak.index;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,11 +72,15 @@ public class IndexCommand implements Command {
         //directory might be used by NodeStore for cache stuff like persistentCache
         setupDirectories(indexOpts);
 
-        NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-        try (Closer closer = Closer.create()) {
-            closer.register(fixture);
-            execute(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(), indexOpts, closer);
-            tellReportPaths();
+        if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
+            performReindexInReadWriteMode(indexOpts);
+        } else {
+            try (Closer closer = Closer.create()) {
+                NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                closer.register(fixture);
+                execute(fixture, indexOpts, closer);
+                tellReportPaths();
+            }
         }
     }
 
@@ -94,14 +98,9 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void execute(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
-                         IndexOptions indexOpts, Closer closer) throws IOException, CommitFailedException {
-        IndexHelper indexHelper = new IndexHelper(store, blobStore, whiteboard, indexOpts.getOutDir(),
-                indexOpts.getWorkDir(), indexOpts.getIndexPaths());
-
-        configurePreExtractionSupport(indexOpts, indexHelper);
-
-        closer.register(indexHelper);
+    private void execute(NodeStoreFixture fixture,  IndexOptions indexOpts, Closer closer)
+            throws IOException, CommitFailedException {
+        IndexHelper indexHelper = createIndexHelper(fixture, indexOpts, closer);
 
         dumpIndexStats(indexOpts, indexHelper);
         dumpIndexDefinitions(indexOpts, indexHelper);
@@ -109,6 +108,18 @@ public class IndexCommand implements Command {
         dumpIndexContents(indexOpts, indexHelper);
         reindexIndex(indexOpts, indexHelper);
         importIndex(indexOpts, indexHelper);
+    }
+
+    @NotNull
+    private IndexHelper createIndexHelper(NodeStoreFixture fixture,
+                                          IndexOptions indexOpts, Closer closer) throws IOException {
+        IndexHelper indexHelper = new IndexHelper(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(),
+                indexOpts.getOutDir(),  indexOpts.getWorkDir(), indexOpts.getIndexPaths());
+
+        configurePreExtractionSupport(indexOpts, indexHelper);
+
+        closer.register(indexHelper);
+        return indexHelper;
     }
 
     private void configurePreExtractionSupport(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {
@@ -124,21 +135,65 @@ public class IndexCommand implements Command {
             return;
         }
 
-        if (opts.getCommonOpts().isReadWrite()) {
-            new ReIndexer(indexHelper).reindex();
-        } else {
-            String checkpoint = indexOpts.getCheckpoint();
-            checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
-            try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, checkpoint)) {
-                indexer.reindex();
-            }
+        String checkpoint = indexOpts.getCheckpoint();
+        reindex(indexHelper, checkpoint);
+    }
+
+    private void reindex(IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
+        checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
+        try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, checkpoint)) {
+            indexer.reindex();
         }
     }
 
     private void importIndex(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
         if (indexOpts.isImportIndex()) {
             File importDir = indexOpts.getIndexImportDir();
-            new IndexImporterSupport(indexHelper).importIndex(importDir);
+            importIndex(indexHelper, importDir);
+        }
+    }
+
+    private void importIndex(IndexHelper indexHelper, File importDir) throws IOException, CommitFailedException {
+        new IndexImporterSupport(indexHelper).importIndex(importDir);
+    }
+
+    private void performReindexInReadWriteMode(IndexOptions indexOpts) throws Exception {
+        //TODO To support restart we need to store this checkpoint somewhere
+        String checkpoint = connectInReadWriteModeAndCreateCheckPoint(indexOpts);
+        log.info("Created checkpoint [{}] for indexing", checkpoint);
+
+        log.info("Proceeding to reindex with read only access to NodeStore");
+        File indexDir = performReindexInReadOnlyMode(indexOpts, checkpoint);
+
+        log.info("Proceeding to import index data from [{}] by connecting to NodeStore in read-write mode", getPath(indexDir));
+        connectInReadWriteModeAndImportIndex(indexOpts, indexDir);
+
+        log.info("Indexes imported successfully");
+    }
+
+    private File performReindexInReadOnlyMode(IndexOptions indexOpts, String checkpoint) throws Exception {
+        try (Closer closer = Closer.create()) {
+            NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts, true);
+            closer.register(fixture);
+            IndexHelper indexHelper = createIndexHelper(fixture, indexOpts, closer);
+            reindex(indexHelper, checkpoint);
+            return new File(indexOpts.getOutDir(), OutOfBandIndexer.LOCAL_INDEX_ROOT_DIR);
+        }
+    }
+
+    private String connectInReadWriteModeAndCreateCheckPoint(IndexOptions indexOpts) throws Exception {
+        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
+            return fixture.getStore().checkpoint(TimeUnit.DAYS.toMillis(100),
+                    ImmutableMap.of("creator", "oak-run-indexer"));
+        }
+    }
+
+    private void connectInReadWriteModeAndImportIndex(IndexOptions indexOpts, File indexDir) throws Exception {
+        try (Closer closer = Closer.create()) {
+            NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+            closer.register(fixture);
+            IndexHelper indexHelper = createIndexHelper(fixture, indexOpts, closer);
+            importIndex(indexHelper, indexDir);
         }
     }
 

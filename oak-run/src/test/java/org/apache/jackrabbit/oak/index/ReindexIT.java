@@ -56,7 +56,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-public class IndexImportIT extends AbstractIndexCommandTest {
+public class ReindexIT extends AbstractIndexCommandTest {
 
     @Test
     public void reindexOutOfBand() throws Exception{
@@ -103,7 +103,7 @@ public class IndexImportIT extends AbstractIndexCommandTest {
         createTestData(true);
         fixture.getAsyncIndexUpdate("async").run();
 
-        int fooCount = getFooCount(fixture);
+        int fooCount = getFooCount(fixture, "foo");
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
 
         //Close the repository so as all changes are flushed
@@ -139,7 +139,7 @@ public class IndexImportIT extends AbstractIndexCommandTest {
         assertThat(explain, containsString("traverse"));
         assertThat(explain, not(containsString(TEST_INDEX_PATH)));
 
-        int foo2Count = getFooCount(fixture2);
+        int foo2Count = getFooCount(fixture2, "foo");
         assertEquals(fooCount + 100, foo2Count);
         assertNotNull(fixture2.getNodeStore().retrieve(checkpoint));
         fixture2.close();
@@ -166,7 +166,7 @@ public class IndexImportIT extends AbstractIndexCommandTest {
         //Phase 4 - Validate the import
 
         RepositoryFixture fixture4 = new RepositoryFixture(storeDir);
-        int foo4Count = getFooCount(fixture4);
+        int foo4Count = getFooCount(fixture4, "foo");
 
         //new count should be same as previous
         assertEquals(foo2Count, foo4Count);
@@ -184,6 +184,50 @@ public class IndexImportIT extends AbstractIndexCommandTest {
         fixture4.close();
     }
 
+    @Test
+    public void reindexInReadWriteMode() throws Exception{
+        createTestData(true);
+        fixture.getAsyncIndexUpdate("async").run();
+        addTestContent(fixture, "/testNode/c", "bar", 100);
+        indexBarPropertyAlso(fixture);
+
+        String explain = getQueryPlan(fixture, "select * from [nt:base] where [bar] is not null");
+        assertThat(explain, containsString("traverse"));
+        assertThat(explain, not(containsString(TEST_INDEX_PATH)));
+
+        explain = getQueryPlan(fixture, "select * from [nt:base] where [foo] is not null");
+        assertThat(explain, containsString(TEST_INDEX_PATH));
+
+        fixture.close();
+
+        IndexCommand command = new IndexCommand();
+
+        File outDir = temporaryFolder.newFolder();
+        File storeDir = fixture.getDir();
+        String[] args = {
+                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-out-dir="  + outDir.getAbsolutePath(),
+                "--index-paths=/oak:index/fooIndex",
+                "--reindex",
+                "--read-write",
+                "--", // -- indicates that options have ended and rest needs to be treated as non option
+                storeDir.getAbsolutePath()
+        };
+
+        command.execute(args);
+
+        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+
+        explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
+        assertThat(explain, containsString(TEST_INDEX_PATH));
+
+        explain = getQueryPlan(fixture2, "select * from [nt:base] where [foo] is not null");
+        assertThat(explain, containsString(TEST_INDEX_PATH));
+
+        int barCount = getFooCount(fixture2, "bar");
+        assertEquals(100, barCount);
+    }
+
     private void indexBarPropertyAlso(RepositoryFixture fixture2) throws IOException, RepositoryException {
         Session session = fixture2.getAdminSession();
         NodeState idxState = NodeStateUtils.getNode(fixture2.getNodeStore().getRoot(), TEST_INDEX_PATH);
@@ -197,10 +241,10 @@ public class IndexImportIT extends AbstractIndexCommandTest {
         session.logout();
     }
 
-    private int getFooCount(RepositoryFixture fixture) throws IOException, RepositoryException {
+    private int getFooCount(RepositoryFixture fixture, String propName) throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
-        String explanation = getQueryPlan(fixture, "select * from [nt:base] where [foo] is not null");
+        String explanation = getQueryPlan(fixture, "select * from [nt:base] where ["+propName+"] is not null");
         assertThat(explanation, containsString("/oak:index/fooIndex"));
 
         Query q = qm.createQuery("select * from [nt:base] where [foo] is not null", Query.JCR_SQL2);
