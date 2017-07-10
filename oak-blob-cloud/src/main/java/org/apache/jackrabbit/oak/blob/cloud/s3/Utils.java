@@ -21,8 +21,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Properties;
 
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -221,5 +223,13 @@ public final class Utils {
         cc.setMaxConnections(maxConnections);
         cc.setMaxErrorRetry(maxErrorRetry);
         return cc;
+    }
+
+    public static Map<String, Object> asMap(Properties props) {
+        Map<String, Object> map = Maps.newHashMap();
+        for (Object key : props.keySet()) {
+            map.put((String)key, props.get(key));
+        }
+        return map;
     }
 }

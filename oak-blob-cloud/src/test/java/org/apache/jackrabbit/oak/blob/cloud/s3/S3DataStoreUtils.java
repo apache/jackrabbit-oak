@@ -122,7 +122,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
 
     public static DataStore getS3DataStore(String className, Properties props, String homeDir) throws Exception {
         DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
-        PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+        PropertiesUtil.populate(ds, Utils.asMap(props), false);
         // Set the props object
         if (S3.getName().equals(className)) {
             ((S3DataStore) ds).setProperties(props);
