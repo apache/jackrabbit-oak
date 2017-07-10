@@ -101,4 +101,12 @@ public class AsyncLaneSwitcherTest {
         assertNull(builder.getProperty(ASYNC_PROPERTY_NAME));
     }
 
+    @Test
+    public void switchAndRevertMulti() throws Exception{
+        builder.setProperty(ASYNC_PROPERTY_NAME, asList("async", "nrt"), Type.STRINGS);
+
+        AsyncLaneSwitcher.switchLane(builder, "foo");
+        AsyncLaneSwitcher.revertSwitch(builder, "foo");
+    }
+
 }
