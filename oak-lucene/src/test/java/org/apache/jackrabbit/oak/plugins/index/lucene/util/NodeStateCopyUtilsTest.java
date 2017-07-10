@@ -132,6 +132,27 @@ public class NodeStateCopyUtilsTest {
     }
 
     @Test
+    public void copyToJcrAndHiddenProps() throws Exception{
+        repository = new Jcr().with(new OpenSecurityProvider()).createRepository();
+
+        Tree srcTree = TreeFactory.createTree(builder);
+        srcTree.addChild("a").setProperty("foo", "y");
+        srcTree.addChild("a").setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+        builder.child(":hidden-node").setProperty("x", "y");
+        builder.setProperty(":hidden-prop", "y");
+
+        Session session = repository.login(null, null);
+        Node node = session.getRootNode();
+        Node test = node.addNode("test", NT_OAK_UNSTRUCTURED);
+
+        NodeStateCopyUtils.copyToNode(builder.getNodeState(), test);
+        session.save();
+
+        test = session.getNode("/test");
+        assertEquals("y", test.getProperty("a/foo").getString());
+    }
+
+    @Test
     public void copyToJcrVariousProps() throws Exception{
         repository = new Jcr().with(new OpenSecurityProvider()).createRepository();
 
