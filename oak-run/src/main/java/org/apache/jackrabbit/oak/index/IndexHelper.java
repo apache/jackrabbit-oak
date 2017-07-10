@@ -55,11 +55,15 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class IndexHelper implements Closeable{
+import static com.google.common.base.Preconditions.checkNotNull;
+
+public class IndexHelper implements Closeable{
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore store;
     private final File outputDir;
@@ -68,6 +72,7 @@ class IndexHelper implements Closeable{
     private IndexPathService indexPathService;
     private AsyncIndexInfoService asyncIndexInfoService;
     private final List<String> indexPaths;
+    private final Whiteboard whiteboard;
     private LuceneIndexHelper luceneIndexHelper;
     private Executor executor;
     private final Closer closer = Closer.create();
@@ -75,11 +80,12 @@ class IndexHelper implements Closeable{
     private final StatisticsProvider statisticsProvider;
     private ExtractedTextCache extractedTextCache;
 
-    IndexHelper(NodeStore store, BlobStore blobStore, StatisticsProvider statisticsProvider,
+    IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
                 File outputDir, File workDir, List<String> indexPaths) {
         this.store = store;
         this.blobStore = blobStore;
-        this.statisticsProvider = statisticsProvider;
+        this.whiteboard = whiteboard;
+        this.statisticsProvider = checkNotNull(WhiteboardUtils.getService(whiteboard, StatisticsProvider.class));
         this.outputDir = outputDir;
         this.workDir = workDir;
         this.indexPaths = ImmutableList.copyOf(indexPaths);
