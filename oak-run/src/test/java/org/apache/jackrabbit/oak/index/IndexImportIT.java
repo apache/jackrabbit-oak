@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
@@ -38,11 +39,16 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.importer.ClusterNodeStoreLock;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -124,8 +130,14 @@ public class IndexImportIT extends AbstractIndexCommandTest {
         //import
 
         RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
-        addTestContent(fixture2, "/testNode/b", 100);
+        addTestContent(fixture2, "/testNode/b", "foo", 100);
+        addTestContent(fixture2, "/testNode/c", "bar", 100);
+        indexBarPropertyAlso(fixture2);
         fixture2.getAsyncIndexUpdate("async").run();
+
+        String explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
+        assertThat(explain, containsString("traverse"));
+        assertThat(explain, not(containsString(TEST_INDEX_PATH)));
 
         int foo2Count = getFooCount(fixture2);
         assertEquals(fooCount + 100, foo2Count);
@@ -165,13 +177,31 @@ public class IndexImportIT extends AbstractIndexCommandTest {
         //Lock should also be released
         ClusterNodeStoreLock clusterLock = new ClusterNodeStoreLock(fixture4.getNodeStore());
         assertFalse(clusterLock.isLocked("async"));
+
+        //Updates to the index definition should have got picked up
+        String explain4 = getQueryPlan(fixture4, "select * from [nt:base] where [bar] is not null");
+        assertThat(explain4, containsString(TEST_INDEX_PATH));
         fixture4.close();
+    }
+
+    private void indexBarPropertyAlso(RepositoryFixture fixture2) throws IOException, RepositoryException {
+        Session session = fixture2.getAdminSession();
+        NodeState idxState = NodeStateUtils.getNode(fixture2.getNodeStore().getRoot(), TEST_INDEX_PATH);
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder(
+                new MemoryNodeBuilder(idxState), false);
+        idxb.indexRule("nt:base").property("bar").propertyIndex();
+
+        Node idxNode = session.getNode(TEST_INDEX_PATH);
+        idxb.build(idxNode);
+        session.save();
+        session.logout();
     }
 
     private int getFooCount(RepositoryFixture fixture) throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
-        assertFooIndexBeingUsed(qm);
+        String explanation = getQueryPlan(fixture, "select * from [nt:base] where [foo] is not null");
+        assertThat(explanation, containsString("/oak:index/fooIndex"));
 
         Query q = qm.createQuery("select * from [nt:base] where [foo] is not null", Query.JCR_SQL2);
         QueryResult result = q.execute();
@@ -180,11 +210,15 @@ public class IndexImportIT extends AbstractIndexCommandTest {
         return size;
     }
 
-    private static void assertFooIndexBeingUsed(QueryManager qm) throws RepositoryException {
-        Query explain = qm.createQuery("explain select * from [nt:base] where [foo] is not null", Query.JCR_SQL2);
+    private static String getQueryPlan(RepositoryFixture fixture, String query) throws RepositoryException, IOException {
+        Session session = fixture.getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Query explain = qm.createQuery("explain "+query, Query.JCR_SQL2);
         QueryResult explainResult = explain.execute();
         Row explainRow = explainResult.getRows().nextRow();
-        assertThat(explainRow.getValue("plan").getString(), containsString("/oak:index/fooIndex"));
+        String explanation = explainRow.getValue("plan").getString();
+        session.logout();
+        return explanation;
     }
 
 }

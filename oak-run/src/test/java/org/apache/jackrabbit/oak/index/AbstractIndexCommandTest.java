@@ -36,6 +36,7 @@ import org.junit.rules.TemporaryFolder;
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 
 public class AbstractIndexCommandTest {
+    public static final String TEST_INDEX_PATH = "/oak:index/fooIndex";
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
     protected RepositoryFixture fixture;
@@ -53,14 +54,14 @@ public class AbstractIndexCommandTest {
         }
         indexIndexDefinitions();
         createLuceneIndex(asyncIndex);
-        addTestContent(fixture, "/testNode/a", 100);
+        addTestContent(fixture, "/testNode/a", "foo", 100);
     }
 
-    protected void addTestContent(RepositoryFixture fixture, String basePath, int count) throws IOException, RepositoryException {
+    protected void addTestContent(RepositoryFixture fixture, String basePath, String propName, int count) throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         for (int i = 0; i < count; i++) {
             getOrCreateByPath(basePath+i,
-                    "oak:Unstructured", session).setProperty("foo", "bar");
+                    "oak:Unstructured", session).setProperty(propName, "bar");
         }
         session.save();
         session.logout();
@@ -84,7 +85,7 @@ public class AbstractIndexCommandTest {
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
 
         Session session = fixture.getAdminSession();
-        Node fooIndex = getOrCreateByPath("/oak:index/fooIndex",
+        Node fooIndex = getOrCreateByPath(TEST_INDEX_PATH,
                 "oak:QueryIndexDefinition", session);
 
         idxBuilder.build(fooIndex);
