@@ -35,8 +35,7 @@ import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,8 +75,7 @@ public class IndexCommand implements Command {
         NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
         try (Closer closer = Closer.create()) {
             closer.register(fixture);
-            StatisticsProvider statisticsProvider = WhiteboardUtils.getService(fixture.getWhiteboard(), StatisticsProvider.class);
-            execute(fixture.getStore(), fixture.getBlobStore(), statisticsProvider, indexOpts, closer);
+            execute(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(), indexOpts, closer);
             tellReportPaths();
         }
     }
@@ -96,9 +94,9 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void execute(NodeStore store, BlobStore blobStore, StatisticsProvider statisticsProvider,
+    private void execute(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
                          IndexOptions indexOpts, Closer closer) throws IOException, CommitFailedException {
-        IndexHelper indexHelper = new IndexHelper(store, blobStore, statisticsProvider, indexOpts.getOutDir(),
+        IndexHelper indexHelper = new IndexHelper(store, blobStore, whiteboard, indexOpts.getOutDir(),
                 indexOpts.getWorkDir(), indexOpts.getIndexPaths());
 
         configurePreExtractionSupport(indexOpts, indexHelper);
