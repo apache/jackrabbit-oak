@@ -70,15 +70,13 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
                 new ByteArrayInputStream("the quick brown fox jumps over the lazy dog.".getBytes('utf-8')))
         session.save()
 
+        SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
+                NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
+        getRegistry ( ).registerService ( QueryIndex.NodeAggregator.class.name, agg, null )
+
         //The lucene index is set to synched mode
         retry(30, 200) {
             String query = "SELECT * FROM [nt:base] as f WHERE CONTAINS (f.*, 'dog')"
-            assert [ '/myFile/jcr:content' ] as HashSet == execute ( query )
-
-            SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                    NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
-            getRegistry ( ).registerService ( QueryIndex.NodeAggregator.class.name, agg, null )
-
             assert [ "/myFile", '/myFile/jcr:content' ] as HashSet == execute ( query )
             return true
         }
