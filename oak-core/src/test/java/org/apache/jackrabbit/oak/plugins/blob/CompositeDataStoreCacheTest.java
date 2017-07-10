@@ -182,7 +182,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         File file = cache.getIfPresent((Object) (ID_PREFIX + 0));
         assertNull(file);
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 0, 0);
-        assertCacheStats(cache.getDownloadCache().getStats(), 0, 0, 0, 0);
+        assertCacheStats(cache.getDownloadCache().getStats(), 0, 0, 0, 1);
 
         LOG.info("Finished getIfPresentObjectNoCache");
     }
@@ -381,7 +381,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
         assertEquals(0, cache.getStagingCacheStats().getLoadSuccessCount());
 
-        assertCacheStats(cache.getCacheStats(), 1, 4 * 1024, 0, 2);
+        assertCacheStats(cache.getCacheStats(), 1, 4 * 1024, 0, 3);
         assertEquals(1, cache.getCacheStats().getLoadCount());
         assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
 
@@ -414,7 +414,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
         assertEquals(0, cache.getStagingCacheStats().getLoadSuccessCount());
 
-        assertCacheStats(cache.getCacheStats(), 0, 0, 0, 2);
+        assertCacheStats(cache.getCacheStats(), 0, 0, 0, 3);
         assertEquals(1, cache.getCacheStats().getLoadCount());
         assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
 
