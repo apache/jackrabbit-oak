@@ -43,11 +43,13 @@ public class IndexOptions implements OptionsBean {
 
     private final OptionSpec<File> workDirOpt;
     private final OptionSpec<File> outputDirOpt;
+    private final OptionSpec<File> indexImportDir;
     private final OptionSpec<File> preExtractedTextOpt;
     private final OptionSpec<Void> stats;
     private final OptionSpec<Void> definitions;
     private final OptionSpec<Void> dumpIndex;
     private final OptionSpec<Void> reindex;
+    private final OptionSpec<Void> importIndex;
     private final OptionSpec<Integer> consistencyCheck;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
@@ -83,8 +85,15 @@ public class IndexOptions implements OptionsBean {
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
         reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths").availableIf("index-paths");
 
+        importIndex = parser.accepts("index-import", "Imports index");
+
+        indexImportDir = parser.accepts("index-import-dir", "Directory containing index files. This " +
+                "is required when --index-import operation is selected")
+                .requiredIf(importIndex)
+                .withRequiredArg().ofType(File.class);
+
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex);
+        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
         operationNames = collectionOperationNames(actionOpts);
     }
 
@@ -130,6 +139,10 @@ public class IndexOptions implements OptionsBean {
         return preExtractedTextOpt.value(options);
     }
 
+    public File getIndexImportDir() {
+        return indexImportDir.value(options);
+    }
+
     public boolean dumpStats(){
         return options.has(stats) || !anyActionSelected();
     }
@@ -152,6 +165,10 @@ public class IndexOptions implements OptionsBean {
 
     public boolean isReindex() {
         return options.has(reindex);
+    }
+
+    public boolean isImportIndex() {
+        return options.has(importIndex);
     }
 
     public String getCheckpoint(){
