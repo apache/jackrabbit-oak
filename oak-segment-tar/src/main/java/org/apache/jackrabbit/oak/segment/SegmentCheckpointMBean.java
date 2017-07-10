@@ -29,11 +29,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.commons.jmx.AbstractCheckpointMBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code CheckpointMBean} implementation for the {@code SegmentNodeStore}.
  */
 public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final SegmentNodeStore store;
 
     public SegmentCheckpointMBean(SegmentNodeStore store) {
@@ -75,11 +78,14 @@ public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
 
     @Override
     public String createCheckpoint(long lifetime) {
-        return store.checkpoint(lifetime);
+        String cp = store.checkpoint(lifetime);
+        log.info("Created checkpoint [{}] with lifetime {}", cp, lifetime);
+        return cp;
     }
 
     @Override
     public boolean releaseCheckpoint(String checkpoint) {
+        log.info("Released checkpoint [{}]", checkpoint);
         return store.release(checkpoint);
     }
 
