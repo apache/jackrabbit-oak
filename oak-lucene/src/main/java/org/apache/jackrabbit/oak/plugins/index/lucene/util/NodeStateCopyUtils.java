@@ -27,12 +27,14 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -58,8 +60,13 @@ final class NodeStateCopyUtils {
         Tree src = TreeFactory.createReadOnlyTree(state);
         for (Tree srcChild : src.getChildren()){
             String childName = srcChild.getName();
+
+            if (NodeStateUtils.isHidden(childName)){
+                continue;
+            }
+
             NodeState childState = state.getChildNode(childName);
-            Node child = node.addNode(childName, primaryType(childState));
+            Node child = JcrUtils.getOrAddNode(node, childName, primaryType(childState));
             copyToNode(childState, child);
         }
     }
@@ -85,6 +92,10 @@ final class NodeStateCopyUtils {
                 for (String n : ps.getValue(NAMES)) {
                     node.addMixin(n);
                 }
+                continue;
+            }
+
+            if (NodeStateUtils.isHidden(name)){
                 continue;
             }
 
