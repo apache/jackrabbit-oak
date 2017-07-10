@@ -31,6 +31,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
@@ -50,6 +51,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -135,8 +137,9 @@ class IndexHelper implements Closeable{
         return statisticsProvider;
     }
 
-    public BlobStore getBlobStore() {
-        return blobStore;
+    @CheckForNull
+    public GarbageCollectableBlobStore getGCBlobStore() {
+        return blobStore instanceof GarbageCollectableBlobStore ? (GarbageCollectableBlobStore) blobStore : null;
     }
 
     public LuceneIndexHelper getLuceneIndexHelper(){

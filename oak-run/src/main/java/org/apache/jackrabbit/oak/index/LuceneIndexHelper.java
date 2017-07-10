@@ -61,9 +61,7 @@ class LuceneIndexHelper implements Closeable {
             );
         }
 
-        if (indexHelper.getBlobStore() instanceof GarbageCollectableBlobStore) {
-            editor.setBlobStore((GarbageCollectableBlobStore) indexHelper.getBlobStore());
-        }
+        editor.setBlobStore(indexHelper.getGCBlobStore());
 
         return editor;
     }
