@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
-import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
@@ -85,12 +85,6 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
      * stored
      */
     public static final String LOCAL_INDEX_ROOT_DIR = "indexes";
-    /**
-     * File name stored in final index directory which contains meta
-     * information like checkpoint details. This can be used by
-     * importer while importing the indexes
-     */
-    private static final String INDEXER_META = "indexer-info.txt";
 
     /**
      * Checkpoint value which indicate that head state needs to be used
@@ -254,11 +248,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
     }
 
     private void writeMetaInfo() throws IOException {
-        Properties props = new Properties();
-        props.put("checkpoint", checkpoint);
-        try (OutputStream os = FileUtils.openOutputStream(new File(getLocalIndexDir(), INDEXER_META))) {
-            props.store(os, "Indexer info");
-        }
+        new IndexerInfo(getLocalIndexDir(), checkpoint).save();
     }
 
     private File copyIndexFilesToOutput() throws IOException {
