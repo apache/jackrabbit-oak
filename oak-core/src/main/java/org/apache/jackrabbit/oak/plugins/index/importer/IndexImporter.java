@@ -28,6 +28,7 @@ import java.util.Map;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -201,11 +202,10 @@ public class IndexImporter {
             NodeState indexState = NodeStateUtils.getNode(rootState, indexPath);
             checkArgument(indexState.exists(), "No index node found at path [%s]", indexPath);
 
-            //TODO Also check for previous lane in case of reattempt
             String type = indexState.getString(IndexConstants.TYPE_PROPERTY_NAME);
             checkNotNull(type, "No 'type' property found for index at path [%s]", indexPath);
 
-            String asyncName = IndexUtils.getAsyncLaneName(indexState, indexPath);
+            String asyncName = getAsyncLaneName(indexPath, indexState);
             if (asyncName == null) {
                 asyncName = ASYNC_LANE_SYNC;
             }
@@ -213,6 +213,23 @@ public class IndexImporter {
             map.put(asyncName, new IndexInfo(indexPath, e.getValue(), asyncName, type));
         }
         return map;
+    }
+
+    /**
+     * Determines the async lane name. This method also check if lane was previously switched
+     * then it uses the actual lane name prior to switch was done
+     *
+     * @param indexPath path of index. Mostly used in reporting exception
+     * @param indexState nodeState for index at given path
+     *
+     * @return async lane name or null which would be the case for sync indexes
+     */
+    static String getAsyncLaneName(String indexPath, NodeState indexState) {
+        PropertyState asyncPrevious = indexState.getProperty(AsyncLaneSwitcher.ASYNC_PREVIOUS);
+        if (asyncPrevious != null && !AsyncLaneSwitcher.isNone(asyncPrevious)){
+            return IndexUtils.getAsyncLaneName(indexState, indexPath, asyncPrevious);
+        }
+        return IndexUtils.getAsyncLaneName(indexState, indexPath);
     }
 
     private void releaseCheckpoint() {
