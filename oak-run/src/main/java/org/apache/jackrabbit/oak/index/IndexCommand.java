@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -186,9 +188,16 @@ public class IndexCommand implements Command {
     }
 
     private String connectInReadWriteModeAndCreateCheckPoint(IndexOptions indexOpts) throws Exception {
+        String checkpoint = indexOpts.getCheckpoint();
+        if (checkpoint != null){
+            log.info("Using provided checkpoint [{}]", checkpoint);
+            return checkpoint;
+        }
+
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
-            return fixture.getStore().checkpoint(TimeUnit.DAYS.toMillis(100),
-                    ImmutableMap.of("creator", "oak-run-indexer"));
+            return fixture.getStore().checkpoint(TimeUnit.DAYS.toMillis(100), ImmutableMap.of(
+                    "creator", IndexCommand.class.getSimpleName(),
+                    "created", now()));
         }
     }
 
@@ -250,6 +259,10 @@ public class IndexCommand implements Command {
             log.info("Cleaning existing work directory {}", workDir.getAbsolutePath());
             FileUtils.cleanDirectory(workDir);
         }
+    }
+
+    private static String now() {
+        return ISO8601.format(Calendar.getInstance());
     }
 
 
