@@ -35,6 +35,7 @@ import com.google.common.io.Closer;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.MongoClientURI;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
@@ -140,7 +141,10 @@ public class NodeStoreFixtureProvider {
             builder.setRDBConnection(ds);
         }
 
-        return builder.getNodeStore();
+        DocumentNodeStore dns = builder.getNodeStore();
+        closer.register(() -> dns.dispose());
+
+        return dns;
     }
 
     private static NodeStore configureSegment(Options options, BlobStore blobStore, StatisticsProvider statisticsProvider, Closer closer, boolean readOnly)
