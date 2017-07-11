@@ -107,7 +107,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         this.checkpoint = checkNotNull(checkpoint);
     }
 
-    public void reindex() throws CommitFailedException, IOException {
+    public File reindex() throws CommitFailedException, IOException {
         Stopwatch w = Stopwatch.createStarted();
 
         NodeState checkpointedState = retrieveNodeStateForCheckpoint();
@@ -125,6 +125,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
         log.info("Indexing completed for indexes {} in {} and index files are copied to {}",
                 indexHelper.getIndexPaths(), w, IndexCommand.getPath(destDir));
+        return destDir;
     }
 
     private File getLocalIndexDir() throws IOException {

@@ -145,7 +145,9 @@ public class IndexCommand implements Command {
     private void reindex(IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
         checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
         try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, checkpoint)) {
-            indexer.reindex();
+            File destDir = indexer.reindex();
+            log.info("To complete indexing import the created index files via IndexerMBean#importIndex operation with " +
+                    "[{}] as input", getPath(destDir));
         }
     }
 
