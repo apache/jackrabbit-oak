@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-@Version("4.6.0")
+@Version("4.7.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.api.jmx;
 
