@@ -82,17 +82,17 @@ public class LuceneIndexImporterTest {
         dumper.dump();
 
         LuceneIndexImporter importer = new LuceneIndexImporter();
-        NodeBuilder newBuilder = baseIndexState.builder();
+        NodeBuilder newIdxBuilder = indexState.builder().getChildNode("oak:index").getChildNode("fooIndex");
 
         //Add a file to builder to check if existing hidden nodes are removed or not
-        Directory dir3 = new OakDirectory(newBuilder, dirName, defn, false);
+        Directory dir3 = new OakDirectory(newIdxBuilder, dirName, defn, false);
         createFile(dir3, "foo2.txt", "Test content");
         dir3.close();
 
-        importer.importIndex(rootState, newBuilder, dumper.getIndexDir());
+        importer.importIndex(rootState, newIdxBuilder, dumper.getIndexDir());
 
         NodeState exportedIndexState = indexState.getChildNode("oak:index").getChildNode("fooIndex");
-        NodeState importedIndexState = newBuilder.getNodeState();
+        NodeState importedIndexState = newIdxBuilder.getNodeState();
 
         assertDirectoryEquals(defn, exportedIndexState, importedIndexState, dirName);
 

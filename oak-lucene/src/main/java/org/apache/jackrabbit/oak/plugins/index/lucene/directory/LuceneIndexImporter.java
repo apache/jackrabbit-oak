@@ -54,7 +54,7 @@ public class LuceneIndexImporter implements IndexImporterProvider {
         //TODO The indexFormatVersion would be considered latest. Need to be revisited
         //if off line indexing uses older Lucene
 
-        definitionBuilder.getChildNode(IndexDefinition.STATUS_NODE);
+        definitionBuilder.getChildNode(IndexDefinition.STATUS_NODE).remove();
 
         ReindexOperations reindexOps = new ReindexOperations(root, definitionBuilder, localIndex.getJcrPath());
         IndexDefinition definition = reindexOps.apply(true);
