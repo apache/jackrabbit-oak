@@ -75,7 +75,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -172,7 +171,6 @@ public class NodeTypeRegistryTest {
 
     }
 
-    @Ignore("OAK-6440")
     @Test
     public void registerNodeType() throws Exception {
         registerNodeType(root, "oak6440-1.cnd");
