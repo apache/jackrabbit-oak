@@ -148,6 +148,9 @@ public class IndexImporter {
 
             NodeState after = nodeStore.retrieve(checkpoint);
             checkNotNull(after, "No state found for checkpoint [%s] for lane [%s]",checkpoint, laneName);
+            log.info("Proceeding to update imported indexes {} to checkpoint [{}] for lane [{}]",
+                    indexInfos, checkpoint, laneName);
+
             NodeState before = indexedState;
 
             NodeBuilder builder = nodeStore.getRoot().builder();
@@ -171,6 +174,8 @@ public class IndexImporter {
 
             mergeWithConcurrentCheck(nodeStore, builder);
             success = true;
+            log.info("Imported index is updated to repository state at checkpoint [{}] for " +
+                    "indexing lane [{}]", checkpoint, laneName);
         } finally {
             try {
                 resumeCurrentIndexing(lockToken);
