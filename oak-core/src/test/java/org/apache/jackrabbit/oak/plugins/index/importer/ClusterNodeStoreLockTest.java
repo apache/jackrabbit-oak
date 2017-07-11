@@ -68,6 +68,7 @@ public class ClusterNodeStoreLockTest {
 
         lock.unlock(token);
         assertFalse(getAsync().hasProperty(AsyncIndexUpdate.leasify(name)));
+        assertFalse(lock.isLocked(name));
     }
 
     private NodeState getAsync() {
