@@ -85,12 +85,16 @@ public class AsyncLaneSwitcher {
         PropertyState previousAsync = idxBuilder.getProperty(ASYNC_PREVIOUS);
         checkState(previousAsync != null, "No previous async state property found for index [%s]", indexPath);
 
-        if (!previousAsync.isArray() && ASYNC_PREVIOUS_NONE.equals(previousAsync.getValue(Type.STRING))) {
+        if (isNone(previousAsync)) {
             idxBuilder.removeProperty(IndexConstants.ASYNC_PROPERTY_NAME);
         } else {
             idxBuilder.setProperty(clone(IndexConstants.ASYNC_PROPERTY_NAME, previousAsync));
         }
         idxBuilder.removeProperty(ASYNC_PREVIOUS);
+    }
+
+    public static boolean isNone(PropertyState previousAsync) {
+        return !previousAsync.isArray() && ASYNC_PREVIOUS_NONE.equals(previousAsync.getValue(Type.STRING));
     }
 
     private static PropertyState clone(String newName, PropertyState currentAsyncState) {
