@@ -43,6 +43,7 @@
 
   <!-- For index tooling -->
   <logger name="org.apache.jackrabbit.oak.index" level="INFO"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.index.importer" level="INFO"/>
   <logger name="org.apache.jackrabbit.oak.plugins.index.IndexUpdate" level="INFO"/>
   <logger name="org.apache.jackrabbit.oak.plugins.index.progress" level="INFO"/>
 

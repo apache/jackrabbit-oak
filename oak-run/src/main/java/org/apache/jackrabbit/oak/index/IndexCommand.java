@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import joptsimple.OptionParser;
@@ -158,6 +159,7 @@ public class IndexCommand implements Command {
     }
 
     private void performReindexInReadWriteMode(IndexOptions indexOpts) throws Exception {
+        Stopwatch w = Stopwatch.createStarted();
         //TODO To support restart we need to store this checkpoint somewhere
         String checkpoint = connectInReadWriteModeAndCreateCheckPoint(indexOpts);
         log.info("Created checkpoint [{}] for indexing", checkpoint);
@@ -165,10 +167,12 @@ public class IndexCommand implements Command {
         log.info("Proceeding to reindex with read only access to NodeStore");
         File indexDir = performReindexInReadOnlyMode(indexOpts, checkpoint);
 
+        Stopwatch importWatch = Stopwatch.createStarted();
         log.info("Proceeding to import index data from [{}] by connecting to NodeStore in read-write mode", getPath(indexDir));
         connectInReadWriteModeAndImportIndex(indexOpts, indexDir);
+        log.info("Indexes imported successfully in {}", importWatch);
 
-        log.info("Indexes imported successfully");
+        log.info("Indexing completed successfully in {}", w);
     }
 
     private File performReindexInReadOnlyMode(IndexOptions indexOpts, String checkpoint) throws Exception {
