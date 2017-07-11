@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
@@ -211,18 +212,16 @@ public class LuceneIndexProviderServiceTest {
         assertNull(editorProvider.getExtractedTextCache().getExtractedTextProvider());
         assertFalse(editorProvider.getExtractedTextCache().isAlwaysUsePreExtractedCache());
 
-        context.registerService(PreExtractedTextProvider.class, mock(PreExtractedTextProvider.class));
-        reactivate();
+        //Mock OSGi does not support components
+        //context.registerService(PreExtractedTextProvider.class, new DummyProvider());
+        service.bindExtractedTextProvider(mock(PreExtractedTextProvider.class));
 
-        editorProvider =
-                (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
         assertNotNull(editorProvider.getExtractedTextCache().getExtractedTextProvider());
     }
 
     @Test
     public void preExtractedProviderBindBeforeActivate() throws Exception{
-        context.registerService(PreExtractedTextProvider.class, mock(PreExtractedTextProvider.class));
-        MockOsgi.injectServices(service, context.bundleContext());
+        service.bindExtractedTextProvider(mock(PreExtractedTextProvider.class));
         MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
         LuceneIndexEditorProvider editorProvider =
                 (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
