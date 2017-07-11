@@ -139,37 +139,49 @@ public class IndexImporter {
 
     private void bringAsyncIndexUpToDate(String laneName, List<IndexInfo> indexInfos) throws CommitFailedException {
         LockToken lockToken = interruptCurrentIndexing(laneName);
+        boolean success = false;
+        try {
+            String checkpoint = getAsync().getString(laneName);
+            checkNotNull(checkpoint, "No current checkpoint found for lane [%s]", laneName);
 
-        String checkpoint = getAsync().getString(laneName);
-        checkNotNull(checkpoint, "No current checkpoint found for lane [%s]", laneName);
+            //TODO Support case where checkpoint got lost or complete reindexing is done
 
-        //TODO Support case where checkpoint got lost or complete reindexing is done
+            NodeState after = nodeStore.retrieve(checkpoint);
+            checkNotNull(after, "No state found for checkpoint [%s] for lane [%s]",checkpoint, laneName);
+            NodeState before = indexedState;
 
-        NodeState after = nodeStore.retrieve(checkpoint);
-        checkNotNull(after, "No state found for checkpoint [%s] for lane [%s]",checkpoint, laneName);
-        NodeState before = indexedState;
+            NodeBuilder builder = nodeStore.getRoot().builder();
 
-        NodeBuilder builder = nodeStore.getRoot().builder();
+            IndexUpdate indexUpdate = new IndexUpdate(
+                    indexEditorProvider,
+                    AsyncLaneSwitcher.getTempLaneName(laneName),
+                    nodeStore.getRoot(),
+                    builder,
+                    IndexUpdateCallback.NOOP
+            );
 
-        IndexUpdate indexUpdate = new IndexUpdate(
-                indexEditorProvider,
-                AsyncLaneSwitcher.getTempLaneName(laneName),
-                nodeStore.getRoot(),
-                builder,
-                IndexUpdateCallback.NOOP
-        );
+            CommitFailedException exception =
+                    EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
 
-        CommitFailedException exception =
-                EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
+            if (exception != null) {
+                throw exception;
+            }
 
-        if (exception != null) {
-            throw exception;
+            revertLaneChange(builder, indexInfos);
+
+            mergeWithConcurrentCheck(nodeStore, builder);
+            success = true;
+        } finally {
+            try {
+                resumeCurrentIndexing(lockToken);
+            } catch (CommitFailedException | RuntimeException e) {
+                log.warn("Error occurred while releasing indexer lock", e);
+                if (success) {
+                    throw e;
+                }
+            }
         }
 
-        revertLaneChange(builder, indexInfos);
-
-        mergeWithConcurrentCheck(nodeStore, builder);
-        resumeCurrentIndexing(lockToken);
         log.info("Import done for indexes {}", indexInfos);
     }
 
