@@ -69,6 +69,7 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
 
         //TODO Attempt few times if merge failure due to current running indexer cycle
         async.setProperty(leaseName, leaseEndTime);
+        async.setProperty(lockName(asyncIndexerLane), true);
         NodeStoreUtils.mergeWithConcurrentCheck(nodeStore, builder);
 
         log.info("Acquired the lock for async indexer lane [{}]", asyncIndexerLane);
@@ -83,14 +84,19 @@ public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken
         NodeBuilder builder = nodeStore.getRoot().builder();
         NodeBuilder async = builder.child(":async");
         async.removeProperty(leaseName);
+        async.removeProperty(lockName(token.laneName));
         NodeStoreUtils.mergeWithConcurrentCheck(nodeStore, builder);
         log.info("Remove the lock for async indexer lane [{}]", token.laneName);
     }
 
     public boolean isLocked(String asyncIndexerLane) {
         NodeState async = nodeStore.getRoot().getChildNode(":async");
-        String leaseName = AsyncIndexUpdate.leasify(asyncIndexerLane);
+        String leaseName = lockName(asyncIndexerLane);
         return async.hasProperty(leaseName);
+    }
+
+    private static String lockName(String asyncIndexerLane) {
+        return asyncIndexerLane + "-lock";
     }
 }
 
