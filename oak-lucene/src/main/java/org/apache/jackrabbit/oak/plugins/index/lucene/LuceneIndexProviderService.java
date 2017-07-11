@@ -109,10 +109,9 @@ public class LuceneIndexProviderService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Reference(
-            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.STATIC,
-            policyOption = ReferencePolicyOption.GREEDY
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policyOption = ReferencePolicyOption.GREEDY,
+            policy = ReferencePolicy.DYNAMIC
     )
     private QueryIndex.NodeAggregator nodeAggregator;
 
@@ -272,9 +271,8 @@ public class LuceneIndexProviderService {
     @Reference
     private StatisticsProvider statisticsProvider;
 
-    @Reference(
+    @Reference(policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.STATIC,
             policyOption = ReferencePolicyOption.GREEDY
     )
     private volatile PreExtractedTextProvider extractedTextProvider;
@@ -342,10 +340,10 @@ public class LuceneIndexProviderService {
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config);
         IndexTracker tracker = createTracker(bundleContext, config);
-        initializeIndexProvider(tracker);
-
+        indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
         initializeActiveBlobCollector(whiteboard, config);
         initializeLogging(config);
+        initialize();
 
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, null));
         registerObserver(bundleContext, config);
@@ -433,12 +431,16 @@ public class LuceneIndexProviderService {
         return extractedTextCache;
     }
 
-    private void initializeIndexProvider(IndexTracker tracker) {
-        indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
+    private void initialize(){
+        if(indexProvider == null){
+            return;
+        }
+
         if(nodeAggregator != null){
             log.debug("Using NodeAggregator {}", nodeAggregator.getClass());
-            indexProvider.setAggregator(nodeAggregator);
         }
+
+        indexProvider.setAggregator(nodeAggregator);
     }
 
     private void initializeLogging(Map<String, ?> config) {
@@ -659,8 +661,10 @@ public class LuceneIndexProviderService {
                         "always" : "only during reindexing phase";
                 log.info("Registering PreExtractedTextProvider {} with extracted text cache. " +
                         "It would be used {}",  provider, usage);
-                extractedTextCache.setExtractedTextProvider(provider);
+            } else {
+                log.info("Unregistering PreExtractedTextProvider with extracted text cache");
             }
+            extractedTextCache.setExtractedTextProvider(provider);
         }
     }
 
@@ -739,5 +743,25 @@ public class LuceneIndexProviderService {
         }
 
         return timestamp;
+    }
+
+    protected void bindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
+        this.nodeAggregator = aggregator;
+        initialize();
+    }
+
+    protected void unbindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
+        this.nodeAggregator = null;
+        initialize();
+    }
+
+    protected void bindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
+        this.extractedTextProvider = preExtractedTextProvider;
+        registerExtractedTextProvider(preExtractedTextProvider);
+    }
+
+    protected void unbindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
+        this.extractedTextProvider = null;
+        registerExtractedTextProvider(null);
     }
 }
