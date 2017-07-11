@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.jackrabbit.JcrConstants;
+
 /**
  * A <code>NodeTypeDefDiff</code> represents the result of the comparison of
  * two node type definitions.
@@ -226,9 +228,22 @@ public class NodeTypeDefDiff {
      * @return <code>true</code> if supertypes diff
      */
     public int supertypesDiff() {
-        Set<String> set1 = new HashSet<String>(Arrays.asList(oldDef.getDeclaredSupertypeNames()));
-        Set<String> set2 = new HashSet<String>(Arrays.asList(newDef.getDeclaredSupertypeNames()));
+        Set<String> set1 = getDeclaredSuperTypeNames(oldDef);
+        Set<String> set2 = getDeclaredSuperTypeNames(newDef);
         return !set1.equals(set2) ? MAJOR : NONE;
+    }
+
+    /**
+     * Returns the set of declared supertype names without 'nt:base', which is
+     * irrelevant for a diff of supertypes.
+     *
+     * @param def a NodeTypeDefinition.
+     * @return the set of declared supertype names.
+     */
+    private Set<String> getDeclaredSuperTypeNames(NodeTypeDefinition def) {
+        Set<String> names = new HashSet<String>(Arrays.asList(def.getDeclaredSupertypeNames()));
+        names.remove(JcrConstants.NT_BASE);
+        return names;
     }
 
     /**
