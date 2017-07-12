@@ -331,6 +331,7 @@ structure
       - notNullCheckEnabled (boolean) = false
       - nullCheckEnabled (boolean) = false
       - excludeFromAggregation (boolean) = false
+      - weight (long) = -1
 
 Following are the details about the above mentioned config options which can be
 defined at the property definition level
@@ -430,6 +431,20 @@ nullCheckEnabled
 excludeFromAggregation
 : Since 1.0.27, 1.2.11
 : if set to true the property would be excluded from aggregation [OAK-3981][OAK-3981]
+
+<a name="weight"></a>
+weight
+: Since 1.6.3
+: At times, we have property definitions which are added to support for dense results right out of 
+  the index (e.g. `contains(*, 'foo') AND [bar]='baz'`). In such cases, the added property definition "might" 
+  not be the best one to answer queries which only have the property restriction (eg only `[bar]='baz'`). This 
+  can happen when that index specifies some exclude paths and hence does not index all `bar` properties.
+  
+  For such cases set `weight` to `0` for such properties. In such a case IndexPlanner would not use those property
+  definitions to determine if that index can answer the query but it would still use them if some other index entry
+  causes that index to be selected for evaluating such a query.
+  
+  Refer [OAK-5899][OAK-5899] for more details
 
 <a name="property-names"></a>**Property Names**
 
@@ -1772,6 +1787,7 @@ such fields
 [OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [OAK-4400]: https://issues.apache.org/jira/browse/OAK-4400
+[OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
