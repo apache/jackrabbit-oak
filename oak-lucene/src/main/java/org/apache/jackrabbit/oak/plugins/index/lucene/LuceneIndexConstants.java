@@ -148,6 +148,8 @@ public interface LuceneIndexConstants {
 
     String PROP_SCORER_PROVIDER = "scorerProviderName";
 
+    String PROP_WEIGHT = "weight";
+
     /**
      * Integer property indicating that LuceneIndex should be
      * used in compat mode to specific version
