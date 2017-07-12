@@ -97,7 +97,7 @@ public class CompositeNodeStoreService {
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) {
         this.context = context;
-        ignoreReadOnlyWritePaths = PropertiesUtil.toStringArray(config.get(PROP_IGNORE_READ_ONLY_WRITES));
+        ignoreReadOnlyWritePaths = PropertiesUtil.toStringArray(config.get(PROP_IGNORE_READ_ONLY_WRITES), new String[0]);
         partialReadOnly = PropertiesUtil.toBoolean(config.get(PROP_PARTIAL_READ_ONLY), true);
         registerCompositeNodeStore();
     }
