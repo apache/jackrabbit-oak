@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.2
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.3
 
 Introduction
 ------------
@@ -7,104 +7,42 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.2 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.3 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.2
+Changes in Oak 1.6.3
 ---------------------
-
-Technical task
-
-    [OAK-5627] - RDBDocumentStore: improve long query logging
-    [OAK-5652] - RDB*Store: update Oracle JDBC driver reference to
-    12.1.0.2.0
-    [OAK-5667] - RDBDocumentStore: remove support for DBs without
-    support for CASE statements in SELECT
-    [OAK-5852] - RDB*Store: update Tomcat JDBC pool dependency to
-    7.0.75
-    [OAK-5981] - SegmentTar version check with disabled mmaping
-    [OAK-5982] - SegmentMk version check with disabled mmaping
-    [OAK-6134] - RDB*Store: update PostgreSQL JDBC
-    [OAK-6143] - RDB*store fixtures: shorten table name prefixes for
-    Oracle
-    [OAK-6226] - RDBDocumentStoreDB: missing @Override statements
-    [OAK-6244] - RDB*Store: update postgresql JDBC driver reference to
-    42.1.1
-    [OAK-6247] - RDB*Store: update Tomcat JDBC pool dependency to
-    7.0.78
 
 Bug
 
-    [OAK-4390] - DocumentStoreStatsIT.update fails when RDB's append
-    mode is disabled
-    [OAK-5573] -
-    org.apache.jackrabbit.oak.segment.standby.StandbyTestIT.testSyncLoop
-    [OAK-5603] - Test failure: oak.upgrade.cli.blob.CopyBinariesTest
-    [OAK-5705] - Negative cost calculation for native Solr query
-    [OAK-5736] - Test failure:
-    org.apache.jackrabbit.oak.run.osgi.SegmentNodeStoreConfigTest.testDeadlock
-    [OAK-5876] - SplitDocumentCleanup should implement Closeable
-    [OAK-5878] - SplitDocumentCleanup iterates twice over
-    splitDocGarbage
-    [OAK-5920] - Checkpoint migration will fail if the
-    MissingBlobStore is used
-    [OAK-5930] - incorrect test assumption in CacheConsistencyTestBase
-    wrt batching
-    [OAK-5934] - AbstractSharedCachingDataStore initializes a loader
-    which closes input stream retrieved prematurely
-    [OAK-5943] - oak-examples/standalone using Spring fwk version
-    referencing vulnerable version of commons-collections
-    [OAK-5993] - Utils.isIdFromLongPath() may throw
-    StringIndexOutOfBoundsException
-    [OAK-6086] - Incorrect usage of RDBDocumentStore.unwrap()
-    [OAK-6116] - SQL generated from xpath with 3 or more ORed paths
-    along with order by clause throws parseException
-    [OAK-6149] - AtomicCounter fails with LuceneIndexEditorProvider
-    [OAK-6208] - oak-run compact should have an option to
-    disable/enable memory mapping
-    [OAK-6229] - NPE when running datastorecheck command with S3
-    [OAK-6230] - Minor cleanup for S3 tests
-    [OAK-6233] - Typed properties not handled properly in the
-    initialization of DataStore in oak-run
-    [OAK-6266] - SolrQueryIndexProviderService should always have
-    NodeAggregator
-    [OAK-6267] - Version restore fails if restore would not change
-    bundling root but changes bundled nodes
-    [OAK-6283] - FileCache should ignore when file evicted with
-    replacement
-    [OAK-6317] - LMSEstimator update amount depending on cost amount
-
-Epic
-
-    [OAK-4933] - Create a data store implementation that integrates
-    with Microsoft Azure Blob Storage
+    [OAK-5908] - BlobIdTracker should not resurrect deleted blob ids
+    in a clustered/shared setup after GC
+    [OAK-5949] - XPath: string literals parsed as identifiers
+    [OAK-6374] - S3Backend masks actual thrown error when problem in
+    filtering properties
+    [OAK-6391] - With FastQuerySize, getSize() returns -1 if there are
+    exactly 21 rows
+    [OAK-6410] - NPE when removing inexistent property from checked in
+    node
+    [OAK-6413] - FileCache getIfPresent doesn't update cache hit/miss
+    counters
 
 Improvement
 
-    [OAK-5886] - Confusing log message from lease update
-    [OAK-5921] - Make import org.apache.log4j optional
-    [OAK-5935] - AbstractSharedCachingDataStore#getRecordIfStored
-    should use the underlying cache.get
-    [OAK-5961] - Handle scenario where jansi library cannot be loaded
-    [OAK-6223] - Expose socket keep-alive option
-    [OAK-6242] - Add 'container' as an acceptable property name for s3
-    bucket
+    [OAK-5899] - PropertyDefinitions should allow for some
+    tweakability to declare usefulness
+    [OAK-6351] - Invalidate cache entries when getChildNodes() is
+    aborted
+    [OAK-6388] - Enable Azure shared access signature for blob store
+    connector
 
-New Feature
+Test
 
-    [OAK-5741] - DocumentStore UpdateOp: support removal of properties
-
-Task
-
-    [OAK-5641] - Update AWS sdk dependency to latest version in
-    oak-blob-cloud
-    [OAK-5945] - update h2db dependency
-    [OAK-6159] - BlobReferenceIterator: improve test coverage for RDB
-    [OAK-6251] - Update Oak 1.6 to Jackrabbit 2.14.1
+    [OAK-6427] - Duplicate class: MongoDocumentStoreHelper
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
