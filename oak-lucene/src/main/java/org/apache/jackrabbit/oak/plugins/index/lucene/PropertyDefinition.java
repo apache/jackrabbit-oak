@@ -38,6 +38,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_IS_REGEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 
 class PropertyDefinition {
@@ -93,6 +94,8 @@ class PropertyDefinition {
 
     final boolean excludeFromAggregate;
 
+    final int weight;
+
     /**
      * Property name excluding the relativePath. For regular expression based definition
      * its set to null
@@ -115,6 +118,7 @@ class PropertyDefinition {
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
+        this.weight = getOptionalValue(defn, PROP_WEIGHT, -1);
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);

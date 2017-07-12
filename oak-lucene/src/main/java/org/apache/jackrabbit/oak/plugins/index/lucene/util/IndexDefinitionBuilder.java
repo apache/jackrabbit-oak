@@ -339,6 +339,11 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule weight(int weight){
+            propTree.setProperty(LuceneIndexConstants.PROP_WEIGHT, weight);
+            return this;
+        }
+
         public IndexRule enclosingRule(){
             return indexRule;
         }
