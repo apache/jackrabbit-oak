@@ -178,7 +178,12 @@ class IndexPlanner {
                     if (pr.isNullRestriction() && !pd.nullCheckEnabled){
                         continue;
                     }
-                    indexedProps.add(name);
+
+                    //A property definition with weight == 0 is only meant to be used
+                    //with some other definitions
+                    if (pd.weight != 0) {
+                        indexedProps.add(name);
+                    }
                     result.propDefns.put(name, pd);
                 }
             }
@@ -202,7 +207,10 @@ class IndexPlanner {
             //TODO Need a way to have better cost estimate to indicate that
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
             //For now we reduce cost per entry
-            int costPerEntryFactor = indexedProps.size();
+
+            //Use propDefns instead of indexedProps as it determines true count of property restrictions
+            //which are evaluated by this index
+            int costPerEntryFactor = result.propDefns.size();
             costPerEntryFactor += sortOrder.size();
 
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
@@ -628,6 +636,10 @@ class IndexPlanner {
 
         public PropertyDefinition getPropDefn(PropertyRestriction pr){
             return propDefns.get(pr.propertyName);
+        }
+
+        public boolean hasProperty(String propName){
+            return propDefns.containsKey(propName);
         }
 
         public PropertyDefinition getOrderedProperty(int index){
