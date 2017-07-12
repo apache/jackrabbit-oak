@@ -62,12 +62,12 @@ import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.NOOP_LOCK;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class IndexImporterTest {
 
@@ -186,6 +186,7 @@ public class IndexImporterTest {
             @Override
             public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
                 assertEquals("fooIndex", indexDir.getName());
+                assertEquals(2, defn.getProperty(REINDEX_COUNT).getValue(Type.LONG).longValue());
                 defn.getChildNode(IndexConstants.INDEX_CONTENT_NODE_NAME).remove();
 
                 NodeState cpState = store.retrieve(checkpoint);
