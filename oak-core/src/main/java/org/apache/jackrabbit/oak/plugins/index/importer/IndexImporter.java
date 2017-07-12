@@ -29,6 +29,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -46,6 +47,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.mergeWithConcurrentCheck;
 
 public class IndexImporter {
@@ -121,8 +123,8 @@ public class IndexImporter {
         for (IndexInfo indexInfo : asyncLaneToIndexMapping.values()) {
             log.info("Importing index data for {}", indexInfo.indexPath);
             NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexInfo.indexPath);
-            //TODO Drop existing hidden folders
-            //Increment reindex count
+            //TODO Drop existing hidden folders. Be careful to not touch read only mount paths
+            incrementReIndexCount(idxBuilder);
             getImporter(indexInfo.type).importIndex(root, idxBuilder, indexInfo.indexDir);
         }
         mergeWithConcurrentCheck(nodeStore, builder);
@@ -252,6 +254,14 @@ public class IndexImporter {
     private void releaseCheckpoint() {
         nodeStore.release(indexerInfo.checkpoint);
         log.info("Released the referred checkpoint [{}]", indexerInfo.checkpoint);
+    }
+
+    private void incrementReIndexCount(NodeBuilder definition) {
+        long count = 0;
+        if(definition.hasProperty(REINDEX_COUNT)){
+            count = definition.getProperty(REINDEX_COUNT).getValue(Type.LONG);
+        }
+        definition.setProperty(REINDEX_COUNT, count + 1);
     }
 
     private NodeState getAsync() {
