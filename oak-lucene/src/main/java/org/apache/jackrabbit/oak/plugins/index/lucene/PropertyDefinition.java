@@ -32,12 +32,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.ImmutableList.copyOf;
+import static com.google.common.collect.ImmutableSet.copyOf;
 import static com.google.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getNextSlash;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_IS_REGEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 
 class PropertyDefinition {
@@ -93,6 +96,8 @@ class PropertyDefinition {
 
     final boolean excludeFromAggregate;
 
+    final int weight;
+
     /**
      * Property name excluding the relativePath. For regular expression based definition
      * its set to null
@@ -115,6 +120,7 @@ class PropertyDefinition {
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
+        this.weight = getOptionalValue(defn, PROP_WEIGHT, -1);
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);
@@ -216,7 +222,7 @@ class PropertyDefinition {
     }
 
     static boolean isRelativeProperty(String propertyName){
-        return !isAbsolute(propertyName) && PathUtils.getNextSlash(propertyName, 0) > 0;
+        return !isAbsolute(propertyName) && getNextSlash(propertyName, 0) > 0;
     }
 
     //~---------------------------------------------< internal >
@@ -250,7 +256,7 @@ class PropertyDefinition {
     }
 
     private static String[] computeAncestors(String parentPath) {
-        return toArray(copyOf(elements(PathUtils.getParentPath(parentPath))), String.class);
+        return toArray(copyOf(elements(getParentPath(parentPath))), String.class);
     }
 
 
