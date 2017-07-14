@@ -34,6 +34,8 @@ public class SegmentNodeStoreBuilder {
 
     private boolean isCreated;
 
+    private boolean dispatchChanges = true;
+
     private CompactionStrategy compactionStrategy = NO_COMPACTION;
 
     private volatile SegmentNodeStore segmentNodeStore;
@@ -97,6 +99,11 @@ public class SegmentNodeStoreBuilder {
         return this;
     }
 
+    public SegmentNodeStoreBuilder withDispatchChanges(boolean dispatchChanges) {
+        this.dispatchChanges = dispatchChanges;
+        return this;
+    }
+
     public CompactionStrategy getCompactionStrategy() {
         checkState(isCreated);
         return compactionStrategy;
@@ -106,7 +113,7 @@ public class SegmentNodeStoreBuilder {
     public SegmentNodeStore create() {
         checkState(!isCreated);
         isCreated = true;
-        segmentNodeStore = new SegmentNodeStore(store, true);
+        segmentNodeStore = new SegmentNodeStore(store, true, dispatchChanges);
         return segmentNodeStore;
     }
 

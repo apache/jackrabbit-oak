@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -123,13 +124,21 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     SegmentNodeStore(SegmentStore store, boolean internal) {
+        this(store, internal, true);
+    }
+
+    SegmentNodeStore(SegmentStore store, boolean internal, boolean dispatchChanges) {
         if (commitFairLock) {
             log.info("initializing SegmentNodeStore with the commitFairLock option enabled.");
         }
         this.commitSemaphore = new Semaphore(1, commitFairLock);
         this.store = store;
         this.head = new AtomicReference<SegmentNodeState>(store.getHead());
-        this.changeDispatcher = new ChangeDispatcher(getRoot());
+        if (dispatchChanges) {
+            this.changeDispatcher = new ChangeDispatcher(getRoot());
+        } else {
+            this.changeDispatcher = null;
+        }
     }
 
     public SegmentNodeStore() throws IOException {
@@ -189,12 +198,24 @@ public class SegmentNodeStore implements NodeStore, Observable {
         SegmentNodeState state = store.getHead();
         if (!state.getRecordId().equals(head.get().getRecordId())) {
             head.set(state);
-            changeDispatcher.contentChanged(state.getChildNode(ROOT), null);
+            contentChanged(state.getChildNode(ROOT), null);
         }
     }
 
+    private static final Closeable NOOP = new Closeable() {
+
+        @Override
+        public void close() throws IOException {
+            // Do nothing.
+        }
+
+    };
+
     @Override
     public Closeable addObserver(Observer observer) {
+        if (changeDispatcher == null) {
+            return NOOP;
+        }
         return changeDispatcher.addObserver(observer);
     }
 
@@ -479,7 +500,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             refreshHead();
             if (store.setHead(before, after)) {
                 head.set(after);
-                changeDispatcher.contentChanged(after.getChildNode(ROOT), info);
+                contentChanged(after.getChildNode(ROOT), info);
                 refreshHead();
                 return true;
             } else {
@@ -595,4 +616,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
     void setCheckpointsLockWaitTime(int checkpointsLockWaitTime) {
         this.checkpointsLockWaitTime = checkpointsLockWaitTime;
     }
+
+    void contentChanged(NodeState root, CommitInfo info) {
+        if (changeDispatcher != null) {
+            changeDispatcher.contentChanged(root, info);
+        }
+    }
+
 }

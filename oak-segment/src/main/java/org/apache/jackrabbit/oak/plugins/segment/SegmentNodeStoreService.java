@@ -342,18 +342,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     private synchronized void registerNodeStore() throws IOException {
-        if (registerSegmentStore()) {
-            if (toBoolean(property(STANDBY), false)) {
-                return;
-            }
-
-            if (registerSegmentNodeStore()) {
-                Dictionary<String, Object> props = new Hashtable<String, Object>();
-                props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-                props.put("oak.nodestore.description", new String[]{"nodeStoreType=segment"});
-                storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
-            }
+        if (!registerSegmentStore()) {
+            return;
         }
+        if (toBoolean(property(STANDBY), false)) {
+            return;
+        }
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+        props.put("oak.nodestore.description", new String[] {"nodeStoreType=segment"});
+        storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
     }
 
     private boolean registerSegmentStore() throws IOException {
@@ -478,60 +476,16 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 scheduleWithFixedDelay(whiteboard, fsgcm, 1)
         );
 
-        // Register a factory service to expose the FileStore
-
-        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, null);
-
-        return true;
-    }
-
-    private CompactionStrategy newCompactionStrategy() {
-        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
-        boolean cloneBinaries = toBoolean(property(COMPACTION_CLONE_BINARIES), CLONE_BINARIES_DEFAULT);
-        long cleanupTs = toLong(property(COMPACTION_CLEANUP_TIMESTAMP), TIMESTAMP_DEFAULT);
-        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
-        boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
-        final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), COMPACTION_LOCK_WAIT_TIME_DEFAULT);
-        boolean persistCompactionMap = toBoolean(property(PERSIST_COMPACTION_MAP), PERSIST_COMPACTION_MAP_DEFAULT);
-
-        CleanupType cleanupType = getCleanUpType();
-        byte memoryThreshold = getMemoryThreshold();
-        byte gainThreshold = getGainThreshold();
-
-        // This is indeed a dirty hack, but it's needed to break a circular
-        // dependency between different components. The FileStore needs the
-        // CompactionStrategy, the CompactionStrategy needs the
-        // SegmentNodeStore, and the SegmentNodeStore needs the FileStore.
-
-        CompactionStrategy compactionStrategy = new CompactionStrategy(pauseCompaction, cloneBinaries, cleanupType, cleanupTs, memoryThreshold) {
-
-            @Override
-            public boolean compacted(Callable<Boolean> setHead) throws Exception {
-                // Need to guard against concurrent commits to avoid
-                // mixed segments. See OAK-2192.
-                return segmentNodeStore.locked(setHead, lockWaitTime, SECONDS);
-            }
-
-        };
-
-        compactionStrategy.setRetryCount(retryCount);
-        compactionStrategy.setForceAfterFail(forceAfterFail);
-        compactionStrategy.setPersistCompactionMap(persistCompactionMap);
-        compactionStrategy.setGainThreshold(gainThreshold);
-
-        return compactionStrategy;
-    }
-
-    private boolean registerSegmentNodeStore() throws IOException {
         Dictionary<?, ?> properties = context.getProperties();
         name = String.valueOf(properties.get(NAME));
 
         final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
-        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-
         SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore.newSegmentNodeStore(store);
         nodeStoreBuilder.withCompactionStrategy(compactionStrategy);
+        if (toBoolean(property(STANDBY), false)) {
+            nodeStoreBuilder.withDispatchChanges(false);
+        }
         segmentNodeStore = nodeStoreBuilder.create();
 
         observerTracker = new ObserverTracker(segmentNodeStore);
@@ -579,7 +533,49 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
 
         log.info("SegmentNodeStore initialized");
+
+        // Register a factory service to expose the FileStore
+
+        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, null);
+
         return true;
+    }
+
+    private CompactionStrategy newCompactionStrategy() {
+        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION), PAUSE_DEFAULT);
+        boolean cloneBinaries = toBoolean(property(COMPACTION_CLONE_BINARIES), CLONE_BINARIES_DEFAULT);
+        long cleanupTs = toLong(property(COMPACTION_CLEANUP_TIMESTAMP), TIMESTAMP_DEFAULT);
+        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT), RETRY_COUNT_DEFAULT);
+        boolean forceAfterFail = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL), FORCE_AFTER_FAIL_DEFAULT);
+        final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME), COMPACTION_LOCK_WAIT_TIME_DEFAULT);
+        boolean persistCompactionMap = toBoolean(property(PERSIST_COMPACTION_MAP), PERSIST_COMPACTION_MAP_DEFAULT);
+
+        CleanupType cleanupType = getCleanUpType();
+        byte memoryThreshold = getMemoryThreshold();
+        byte gainThreshold = getGainThreshold();
+
+        // This is indeed a dirty hack, but it's needed to break a circular
+        // dependency between different components. The FileStore needs the
+        // CompactionStrategy, the CompactionStrategy needs the
+        // SegmentNodeStore, and the SegmentNodeStore needs the FileStore.
+
+        CompactionStrategy compactionStrategy = new CompactionStrategy(pauseCompaction, cloneBinaries, cleanupType, cleanupTs, memoryThreshold) {
+
+            @Override
+            public boolean compacted(Callable<Boolean> setHead) throws Exception {
+                // Need to guard against concurrent commits to avoid
+                // mixed segments. See OAK-2192.
+                return segmentNodeStore.locked(setHead, lockWaitTime, SECONDS);
+            }
+
+        };
+
+        compactionStrategy.setRetryCount(retryCount);
+        compactionStrategy.setForceAfterFail(forceAfterFail);
+        compactionStrategy.setPersistCompactionMap(persistCompactionMap);
+        compactionStrategy.setGainThreshold(gainThreshold);
+
+        return compactionStrategy;
     }
 
     private void unregisterNodeStore() {
