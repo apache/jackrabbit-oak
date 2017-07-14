@@ -154,7 +154,7 @@ public class ConsolidatedDataStoreStatsTest extends AbstractDataStoreCacheTest {
 
     private String getIdForInputStream(final InputStream in)
         throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
         OutputStream output = new DigestOutputStream(new NullOutputStream(), digest);
         try {
             IOUtils.copyLarge(in, output);
