@@ -1120,52 +1120,7 @@ From the Luke UI shown you can access various details.
 
 ### <a name="text-extraction"></a>Pre-Extracting Text from Binaries
 
-`@since Oak 1.0.18, 1.2.3`
-
-Lucene indexing is performed in a single threaded mode. Extracting text from 
-binaries is an expensive operation and slows down the indexing rate considerably.
-For incremental indexing this mostly works fine but if performing a reindex
-or creating the index for the first time after migration then it increases the 
-indexing time considerably. 
-
-To speed up the Lucene indexing for such cases i.e. reindexing, we can decouple 
-the text extraction from actual indexing. 
-
-1. Extract and store the extracted text from binaries via [oak-run tool][oak-run-tika]
-2. Configure a `PreExtractedTextProvider` which can lookup extracted text and 
-   thus avoid text extraction at time of actual indexing
-   
-Below are details around steps required for making using of this feature
-
-1. Generate the csv file containing binary file details
-
-        java -cp tika-app-1.8.jar:oak-run.jar \
-        org.apache.jackrabbit.oak.run.Main tika \  
-        --fds-path /path/to/datastore \
-        --nodestore /path/to/segmentstore --data-file dump.csv generate
-
-2. Extract the text 
-
-        java -cp tika-app-1.8.jar:oak-run.jar \
-        org.apache.jackrabbit.oak.run.Main tika \
-        --data-file binary-stats.csv \
-        --store-path ./store 
-        --fds-path /path/to/datastore  extract
-
-3.  Configure the `PreExtractedTextProvider` - Once the extraction is performed 
-    configure a `PreExtractedTextProvider` within the application such that Lucene 
-    indexer can make use of that to lookup extracted text. 
-
-    For this look for OSGi config for `Apache Jackrabbit Oak DataStore PreExtractedTextProvider`
-        
-    ![OSGi Configuration](pre-extracted-text-osgi.png)   
-   
-Once `PreExtractedTextProvider` is configured then upon reindexing Lucene
-indexer would make use of it to check if text needs to be extracted or not. Check
-`TextExtractionStatsMBean` for various statistics around text extraction and also
-to validate if `PreExtractedTextProvider` is being used.
-
-For more details on this feature refer to [OAK-2892][OAK-2892]
+Refer to [pre-extraction via oak-run](pre-extract-text.html).
 
 ### <a name="advanced-search-features"></a>Advanced search features
 

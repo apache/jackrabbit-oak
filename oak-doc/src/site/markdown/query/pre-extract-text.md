@@ -39,7 +39,7 @@ binary properties.
 
 Download following jars
 
-* oak-run 1.7.2 
+* oak-run 1.7.4 
 
 Refer to [oak-run setup](../features/oak-run-nodestore-connection-options.md) for details about connecting to different 
 types of NodeStore. Example below assume a setup consisting of SegmentNodeStore and FileDataStore. Depending on setup
@@ -85,7 +85,7 @@ By default it scans whole repository. If you need to restrict it to look up unde
 
 Once the csv file is generated we need to perform the text extraction. To do that we would need to download the 
 [tika-app](https://tika.apache.org/download.html) jar from Tika downloads. You should be able to use 1.15 version
-with Oak 1.7.2 jar.
+with Oak 1.7.4 jar.
 
 To perform the text extraction use the `--extract` action
 
