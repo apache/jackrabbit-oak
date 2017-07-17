@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
@@ -124,8 +125,8 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         writeMetaInfo();
         File destDir = copyIndexFilesToOutput();
 
-        log.info("Indexing completed for indexes {} in {} and index files are copied to {}",
-                indexHelper.getIndexPaths(), w, IndexCommand.getPath(destDir));
+        log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
+                indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
         return destDir;
     }
 
