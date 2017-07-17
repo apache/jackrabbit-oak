@@ -174,9 +174,9 @@ public class IndexCommand implements Command {
         Stopwatch importWatch = Stopwatch.createStarted();
         log.info("Proceeding to import index data from [{}] by connecting to NodeStore in read-write mode", getPath(indexDir));
         connectInReadWriteModeAndImportIndex(indexOpts, indexDir);
-        log.info("Indexes imported successfully in {}", importWatch);
+        log.info("Indexes imported successfully in {} ({} ms)", importWatch, importWatch.elapsed(TimeUnit.MILLISECONDS));
 
-        log.info("Indexing completed successfully in {}", w);
+        log.info("Indexing completed and imported successfully in {} ({} ms)", w, w.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private File performReindexInReadOnlyMode(IndexOptions indexOpts, String checkpoint) throws Exception {
