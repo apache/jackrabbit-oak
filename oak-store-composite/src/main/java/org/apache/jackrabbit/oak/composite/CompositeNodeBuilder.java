@@ -83,12 +83,12 @@ class CompositeNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public NodeState getNodeState() {
+    public CompositeNodeState getNodeState() {
         return new CompositeNodeState(path, new IdentityHashMap<>(buildersToNodeStates(nodeBuilders)), ctx);
     }
 
     @Override
-    public NodeState getBaseState() {
+    public CompositeNodeState getBaseState() {
         return new CompositeNodeState(path, buildersToBaseStates(nodeBuilders), ctx);
     }
 

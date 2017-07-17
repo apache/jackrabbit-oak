@@ -172,4 +172,14 @@ class CompositionContext {
             }
         };
     }
+
+    CompositeNodeState createRootNodeState(Map<MountedNodeStore, NodeState> rootStates) {
+        for (NodeState s : rootStates.values()) {
+            if (s instanceof CompositeNodeState) {
+                throw new IllegalArgumentException("Nesting composite node states is not supported");
+            }
+        }
+        return new CompositeNodeState("/", rootStates, this);
+    }
+
 }
