@@ -14,7 +14,27 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-# Oak Run Indexing
+# <a name="oak-run-indexing"></a> Oak Run Indexing
+
+* [Oak Run Indexing](#oak-run-indexing)
+    * [Common Options](#common-options)
+    * [Generate Index Info](#index-info)
+    * [Dump Index Definitions](#dump-index-defn)
+    * [Dump Index Data](#async-index-data)
+    * [Index Consistency Check](#check-index)
+    * [Reindex](#reindex)
+        * [A - out-of-band indexing](#out-of-band-indexing)
+            * [Step 1 - Text PreExtraction](#out-of-band-pre-extraction)
+            * [Step 2 - Create Checkpoint](#out-of-band-create-checkpoint)
+            * [Step 3 - Perform Reindex](#out-of-band-perform-reindex)
+            * [Step 4 - Import the index](#out-of-band-import-reindex)
+                * [4.1 - Via oak-run](#import-index-oak-run)
+                * [4.2 - Via IndexerMBean](#import-index-mbean)
+                * [4.3 - Via script](#import-index-script)
+        * [B - Online indexing](#online-indexing)
+            * [Step 1 - Text PreExtraction](#online-indexing-pre-extract)
+            * [Step 2 - Perform reindexing](#online-indexing-perform-reindex)
+        * [Tika Setup](#tika-setup)
 
 `@since Oak 1.7.0`
 
@@ -31,7 +51,7 @@ By default the tool would generate output file in directory `indexing-result` wh
  
 Unless specified all operations connect to the repository in read only mode
 
-## Common Options
+## <a name="common-options"></a> Common Options
 
 All the commands support following common options
 
@@ -40,7 +60,7 @@ All the commands support following common options
    
 Also refer to help output via `-h` command for some other options
 
-## Generate Index Info
+## <a name="index-info"></a> Generate Index Info
 
     java -jar oak-run*.jar index --fds-path=/path/to/datastore  /path/to/segmentstore/ --index-info 
 
@@ -49,7 +69,7 @@ report is stored by default in `<output dir>/index-info.txt`
 
 Supported for all index types
 
-## Dump Index Definitions
+## <a name="dump-index-defn"></a> Dump Index Definitions
 
     java -jar oak-run*.jar index --fds-path=/path/to/datastore  /path/to/segmentstore/ --index-definitions
      
@@ -58,7 +78,7 @@ file contains index definitions keyed against the index paths
 
 Supported for all index types
 
-## Dump Index Data
+## <a name="async-index-data"></a> Dump Index Data
 
     java -jar oak-run*.jar index --fds-path=/path/to/datastore  /path/to/segmentstore/ --index-dump
      
@@ -67,7 +87,7 @@ each index. Each folder would have a property file `index-details.txt` which con
 
 Supported for only Lucene indexes.
 
-## Index Consistency Check
+## <a name="check-index"></a> Index Consistency Check
 
     java -jar oak-run*.jar index --fds-path=/path/to/datastore  /path/to/segmentstore/ --index-consistency-check
     
@@ -82,7 +102,7 @@ It would generate a report in `<output dir>/index-consistency-check-report.txt`
 
 Supported for only Lucene indexes.
 
-## Reindex
+## <a name="reindex"></a> Reindex
 
 The reindex operation supports 2 modes of index
 
@@ -94,7 +114,7 @@ Supported for only Lucene indexes.
 If the indexes being reindex have fulltext indexing enabled then refer to [Tika Setup](#tika-setup) for steps
 on how to adapt the command to include Tika support for text extraction
 
-### A - out-of-band indexing
+### <a name="out-of-band-indexing"></a> A - out-of-band indexing
 
 Out of band indexing has following phases
 
@@ -104,17 +124,17 @@ Out of band indexing has following phases
 4. Complete the increment indexing from checkpoint state to current head
 
 
-#### Step 1 - Text PreExtraction
+#### <a name="out-of-band-pre-extraction"></a> Step 1 - Text PreExtraction
 
 If the index being reindexed involves fulltext index and the repository has binary content then its recommended
 that first  [text pre-extraction](pre-extract-text.html) is performed. This ensures that costly operation around text
 extraction is done prior to actual indexing so that actual indexing does not do text extraction in critical path
 
-#### Step 2 - Create Checkpoint
+#### <a name="out-of-band-create-checkpoint"></a>Step 2 - Create Checkpoint
 
 Go to `CheckpointMBean` and create a checkpoint with lifetime of 1 month. <<TBD>>
 
-#### Step 3 - Perform Reindex
+#### <a name="out-of-band-perform-reindex"></a> Step 3 - Perform Reindex
 
 In this step we perform the actual indexing via oak-run where it connects to repository in read only mode. 
     
@@ -127,12 +147,12 @@ Here following options can be used
 * `--checkpoint` - The checkpoint up to which the index is updated, when indexing in read only mode. For
   testing purpose, it can be set to 'head' to indicate that the head state should be used.
   
-#### Step 4 - Import the index
+#### <a name="out-of-band-import-reindex"></a>Step 4 - Import the index
 
 As a last step we need to import the index back in the repository. This can be done in one of the 
 following ways
 
-##### 4.1 - Via oak-run
+##### <a name="import-index-oak-run"></a>4.1 - Via oak-run
 
 In this mode we import the index using oak-run
 
@@ -144,28 +164,28 @@ command for the directory path.
 This mode should only be used when repository is from Oak version 1.7+ as oak-run connects to the repository in 
 read-write mode.
 
-##### 4.2 - Via IndexerMBean
+##### <a name="import-index-mbean"></a>4.2 - Via IndexerMBean
 
 In this mode we import the index using JMX. Looks for `IndexerMBean` and then import the index directory using the 
 `importIndex` operation
 
-##### 4.3 - Via script
+##### <a name="import-index-script"></a>4.3 - Via script
 
 TODO - Provide a way to import the data on older setup using some script
 
 
-### B - Online indexing
+### <a name="online-indexing"></a>B - Online indexing
 
 Online indexing automates some of the manual steps which are required for out-of-band indexing. 
 
 This mode should only be used when repository is from Oak version 1.7+ as oak-run connects to the repository in 
 read-write mode.
      
-#### Step 1 - Text PreExtraction
+#### <a name="online-indexing-pre-extract"></a>Step 1 - Text PreExtraction
 
 This is same as in out-of-band indexing
 
-#### Step 2 - Perform reindexing
+#### <a name="online-indexing-perform-reindex"></a>Step 2 - Perform reindexing
 
 In this step we configure oak-run to connect to repository in read-write mode and let it perform all other steps i.e
 checkpoint creation, indexing and import
