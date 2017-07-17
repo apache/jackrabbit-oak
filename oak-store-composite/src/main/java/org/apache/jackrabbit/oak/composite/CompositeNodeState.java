@@ -75,6 +75,10 @@ class CompositeNodeState extends AbstractNodeState {
         this.owningStore = ctx.getOwningStore(path);
     }
 
+    Map<MountedNodeStore, NodeState> getNodeStates() {
+        return nodeStates;
+    }
+
     @Override
     public boolean exists() {
         return getWrappedNodeState().exists();
@@ -198,7 +202,7 @@ class CompositeNodeState extends AbstractNodeState {
 
     // write operations
     @Override
-    public NodeBuilder builder() {
+    public CompositeNodeBuilder builder() {
         Map<MountedNodeStore, NodeBuilder> nodeBuilders = transformValues(nodeStates, new Function<NodeState, NodeBuilder>() {
             @Override
             public NodeBuilder apply(NodeState input) {
