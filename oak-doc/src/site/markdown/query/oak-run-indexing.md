@@ -24,7 +24,7 @@ With Oak 1.7 we have added some tooling as part of oak-run `index` command. Belo
 operations supported by this command.
 
 The `index` command supports connecting to different NodeStores via various options which are documented 
-[here](../features/oak-run-nodestore-connection-options.md). Example below assume a setup consisting of 
+[here](../features/oak-run-nodestore-connection-options.html). Example below assume a setup consisting of 
 SegmentNodeStore and FileDataStore. Depending on setup use the appropriate connection options.
 
 By default the tool would generate output file in directory `indexing-result` which is referred to as output directory.
@@ -86,24 +86,28 @@ Supported for only Lucene indexes.
 
 The reindex operation supports 2 modes of index
 
-* Online Indexing - Here oak-run would connect to repository in `--read-write` mode
 * Out-of-band indexing - Here oak-run would connect to repository in read only mode. It would require certain manual steps
+* Online Indexing - Here oak-run would connect to repository in `--read-write` mode
 
 Supported for only Lucene indexes.
 
-### out-of-band indexing
+If the indexes being reindex have fulltext indexing enabled then refer to [Tika Setup](#tika-setup) for steps
+on how to adapt the command to include Tika support for text extraction
+
+### A - out-of-band indexing
 
 Out of band indexing has following phases
 
 1. Get checkpoint issued 
 2. Perform indexing with read only connection to NodeStore upto checkpoint state
-3. Import the generated indexes and complete the increment indexing from checkpoint state to current head
+3. Import the generated indexes 
+4. Complete the increment indexing from checkpoint state to current head
 
 
 #### Step 1 - Text PreExtraction
 
 If the index being reindexed involves fulltext index and the repository has binary content then its recommended
-that first  [text pre-extraction](pre-extract-text.md) is performed. This ensures that costly operation around text
+that first  [text pre-extraction](pre-extract-text.html) is performed. This ensures that costly operation around text
 extraction is done prior to actual indexing so that actual indexing does not do text extraction in critical path
 
 #### Step 2 - Create Checkpoint
@@ -122,10 +126,66 @@ Here following options can be used
 * `--index-paths` - This command requires an explicit set of index paths which need to be indexed
 * `--checkpoint` - The checkpoint up to which the index is updated, when indexing in read only mode. For
   testing purpose, it can be set to 'head' to indicate that the head state should be used.
+  
+#### Step 4 - Import the index
+
+As a last step we need to import the index back in the repository. This can be done in one of the 
+following ways
+
+##### 4.1 - Via oak-run
+
+In this mode we import the index using oak-run
+
+    java -jar oak-run*.jar index --index-import --read-write --index-import-dir=<index dir> /path/to/segmentstore
+    
+Here "index dir" is the directory which contains the index files created in step #3. Check the logs from previous
+command for the directory path.
+
+This mode should only be used when repository is from Oak version 1.7+ as oak-run connects to the repository in 
+read-write mode.
+
+##### 4.2 - Via IndexerMBean
+
+In this mode we import the index using JMX. Looks for `IndexerMBean` and then import the index directory using the 
+`importIndex` operation
+
+##### 4.3 - Via script
+
+TODO - Provide a way to import the data on older setup using some script
 
 
+### B - Online indexing
 
+Online indexing automates some of the manual steps which are required for out-of-band indexing. 
 
+This mode should only be used when repository is from Oak version 1.7+ as oak-run connects to the repository in 
+read-write mode.
      
-     
-     
+#### Step 1 - Text PreExtraction
+
+This is same as in out-of-band indexing
+
+#### Step 2 - Perform reindexing
+
+In this step we configure oak-run to connect to repository in read-write mode and let it perform all other steps i.e
+checkpoint creation, indexing and import
+
+    java -jar oak-run*.jar index --reindex --index-paths=/oak:index/lucene --read-write /path/to/segmentstore
+    
+
+### <a name="tika-setup"></a> Tika Setup
+
+If the indexes being reindex have fulltext indexing enabled then you need to include Tika library in classpath.
+This is required even if pre extraction is used so as to ensure that any new binary added after pre-extraction
+is done can be indexed.
+
+First download the [tika-app](https://tika.apache.org/download.html) jar from Tika downloads. You should be able 
+to use 1.15 version with Oak 1.7.4 jar.
+
+Then modify the index command like below. The rest of arguments remain same as documented before.
+
+    java -cp oak-run.jar:tika-app-1.15.jar org.apache.jackrabbit.oak.run.Main index
+    
+
+
+
