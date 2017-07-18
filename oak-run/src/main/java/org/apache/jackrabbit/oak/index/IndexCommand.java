@@ -74,6 +74,7 @@ public class IndexCommand implements Command {
         //Clean up before setting up NodeStore as the temp
         //directory might be used by NodeStore for cache stuff like persistentCache
         setupDirectories(indexOpts);
+        setupLogging(indexOpts);
 
         if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
             performReindexInReadWriteMode(indexOpts);
@@ -263,9 +264,12 @@ public class IndexCommand implements Command {
         //TODO Do not clean if restarting
         String[] dirListing = workDir.list();
         if (dirListing != null && dirListing.length != 0) {
-            log.info("Cleaning existing work directory {}", workDir.getAbsolutePath());
             FileUtils.cleanDirectory(workDir);
         }
+    }
+
+    private static void setupLogging(IndexOptions indexOpts) throws IOException {
+        new LoggingInitializer(indexOpts.getWorkDir()).init();
     }
 
     private static String now() {
