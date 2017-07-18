@@ -29,6 +29,8 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -40,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
+import org.apache.jackrabbit.oak.plugins.document.RandomStream;
 import org.apache.jackrabbit.oak.plugins.document.TestNodeObserver;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -181,6 +184,32 @@ public class DocumentBundlingTest {
         int bundledMem = bundledFile.getMemory();
 
         assertEquals(1386, bundledMem);
+        assertThat(bundledMem, is(greaterThan(nonBundledMem)));
+    }
+
+    @Ignore("OAK-6462")
+    @Test
+    public void memoryWithBinary() throws Exception {
+        Blob blob = store.createBlob(new RandomStream(1024, 17));
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder bundledFileNode = newNode("nt:file");
+        bundledFileNode.child("jcr:content").setProperty("jcr:data", blob);
+        builder.child("test").setChildNode("book.jpg", bundledFileNode.getNodeState());
+
+        //Create a non bundled NodeState structure nt:File vs nt:file
+        NodeBuilder nonBundledFileNode = newNode("nt:File");
+        nonBundledFileNode.child("jcr:content").setProperty("jcr:data", blob);
+        builder.child("test").setChildNode("book2.jpg", nonBundledFileNode.getNodeState());
+        merge(builder);
+
+        NodeState root = store.getRoot();
+        DocumentNodeState bundledFile = asDocumentState(getNode(root, "/test/book.jpg"));
+        DocumentNodeState nonBundledFile = asDocumentState(getNode(root, "/test/book2.jpg"));
+        DocumentNodeState nonBundledContent = asDocumentState(getNode(root, "/test/book2.jpg/jcr:content"));
+
+        int nonBundledMem = nonBundledFile.getMemory() + nonBundledContent.getMemory();
+        int bundledMem = bundledFile.getMemory();
+
         assertThat(bundledMem, is(greaterThan(nonBundledMem)));
     }
 
