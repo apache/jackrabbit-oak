@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_MEMORY_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
@@ -337,6 +338,11 @@ public class DocumentNodeStoreService {
     )
     public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
 
+    @Property (boolValue = false,
+            label = "Continuous Version GC Mode",
+            description = "Run Version GC continuously as a background task.")
+    public static final String PROP_VER_GC_CONTINUOUS = "versionGCContinuous";
+
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
 
     /**
@@ -617,6 +623,7 @@ public class DocumentNodeStoreService {
         registerJMXBeans(nodeStore, mkBuilder);
         registerLastRevRecoveryJob(nodeStore);
         registerJournalGC(nodeStore);
+        registerVersionGCJob(nodeStore);
 
         if (!isNodeStoreProvider()) {
             observerTracker = new ObserverTracker(nodeStore);
@@ -901,16 +908,7 @@ public class DocumentNodeStoreService {
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        Runnable startGC = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    store.getVersionGarbageCollector().gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
-                } catch (IOException e) {
-                    log.warn("Error occurred while executing the Version Garbage Collector", e);
-                }
-            }
-        };
+        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, log);
         Runnable cancelGC = new Runnable() {
             @Override
             public void run() {
@@ -978,6 +976,15 @@ public class DocumentNodeStoreService {
                 true/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
+    private void registerVersionGCJob(final DocumentNodeStore nodeStore) {
+        if (toBoolean(context.getProperties().get(PROP_VER_GC_CONTINUOUS), false)) {
+            final long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
+            addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
+                    new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs, log),
+                    MODIFIED_IN_SECS_RESOLUTION, true, true));
+        }
+    }
+
     private String prop(String propName) {
         return prop(propName, PREFIX + propName);
     }
@@ -1040,5 +1047,30 @@ public class DocumentNodeStoreService {
                 t.stop();
             }
         };
+    }
+
+    static final class RevisionGCJob implements Runnable {
+
+        private final DocumentNodeStore nodeStore;
+        private final long versionGcMaxAgeInSecs;
+        private final Logger log;
+
+        RevisionGCJob(DocumentNodeStore ns,
+                      long versionGcMaxAgeInSecs,
+                      Logger log) {
+            this.nodeStore = ns;
+            this.versionGcMaxAgeInSecs = versionGcMaxAgeInSecs;
+            this.log = log;
+        }
+
+        @Override
+        public void run() {
+            VersionGarbageCollector gc = nodeStore.getVersionGarbageCollector();
+            try {
+                gc.gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
+            } catch (IOException e) {
+                log.warn("Error occurred while executing the Version Garbage Collector", e);
+            }
+        }
     }
 }
