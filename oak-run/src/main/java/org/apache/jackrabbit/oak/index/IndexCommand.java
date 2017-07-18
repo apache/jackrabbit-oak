@@ -249,7 +249,12 @@ public class IndexCommand implements Command {
 
     private static void setupDirectories(IndexOptions indexOpts) throws IOException {
         if (indexOpts.getOutDir().exists()) {
-            FileUtils.cleanDirectory(indexOpts.getOutDir());
+            if (indexOpts.isImportIndex() &&
+                    FileUtils.directoryContains(indexOpts.getOutDir(), indexOpts.getIndexImportDir())) {
+                //Do not clean directory in this case
+            } else {
+                FileUtils.cleanDirectory(indexOpts.getOutDir());
+            }
         }
         cleanWorkDir(indexOpts.getWorkDir());
     }
