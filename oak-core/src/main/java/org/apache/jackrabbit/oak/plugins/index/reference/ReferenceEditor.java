@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
+import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -37,6 +38,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -309,12 +311,12 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         for (IndexStoreStrategy store : refStores) {
             Set<String> empty = of();
             for (String p : rm) {
-                NodeBuilder index = definition.child(store.getIndexNodeName());
+                Supplier<NodeBuilder> index = memoize(() -> definition.child(store.getIndexNodeName()));
                 store.update(index, p, name, definition, of(key), empty);
             }
             for (String p : add) {
                 // TODO do we still need to encode the values?
-                NodeBuilder index = definition.child(store.getIndexNodeName());
+                Supplier<NodeBuilder> index = memoize(() -> definition.child(store.getIndexNodeName()));
                 store.update(index, p, name, definition, empty, of(key));
             }
         }

@@ -796,7 +796,6 @@ public class CompositeNodeStoreTest {
         assertEquals("global", rootBuilder.getChildNode("new").getString("store"));
     }
 
-    @Ignore("OAK-6463")
     @Test
     public void propertyIndex() throws Exception{
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
