@@ -25,6 +25,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
@@ -59,15 +60,15 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
 
     @Override
     public void update(
-            NodeBuilder index, String path,
+            Supplier<NodeBuilder> index, String path,
             @Nullable final String indexName,
             @Nullable final NodeBuilder indexMeta,
             Set<String> beforeKeys, Set<String> afterKeys) {
         for (String key : beforeKeys) {
-            remove(index, key, path);
+            remove(index.get(), key, path);
         }
         for (String key : afterKeys) {
-            insert(index, key, path);
+            insert(index.get(), key, path);
         }
     }
 
@@ -161,8 +162,8 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public boolean exists(NodeBuilder index, String key) {
-        return index.hasChildNode(key);
+    public boolean exists(Supplier<NodeBuilder> index, String key) {
+        return index.get().hasChildNode(key);
     }
 
     @Override

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import java.util.Set;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -50,8 +51,8 @@ public class FilteringIndexStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public void update(NodeBuilder index, String path, String indexName,
-            NodeBuilder indexMeta, Set<String> beforeKeys, Set<String> afterKeys)
+    public void update(Supplier<NodeBuilder> index, String path, String indexName,
+                       NodeBuilder indexMeta, Set<String> beforeKeys, Set<String> afterKeys)
             throws CommitFailedException {
         if (filter.apply(path)) {
             if (readOnly) {
@@ -66,7 +67,7 @@ public class FilteringIndexStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public boolean exists(NodeBuilder index, String key) {
+    public boolean exists(Supplier<NodeBuilder> index, String key) {
         return strategy.exists(index, key);
     }
 

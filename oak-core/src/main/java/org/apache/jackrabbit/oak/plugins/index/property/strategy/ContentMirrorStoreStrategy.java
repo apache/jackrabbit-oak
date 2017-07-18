@@ -28,6 +28,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -92,15 +93,15 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
     @Override
     public void update(
-            NodeBuilder index, String path,
+            Supplier<NodeBuilder> index, String path,
             @Nullable final String indexName,
             @Nullable final NodeBuilder indexMeta,
             Set<String> beforeKeys, Set<String> afterKeys) {
         for (String key : beforeKeys) {
-            remove(index, key, path);
+            remove(index.get(), key, path);
         }
         for (String key : afterKeys) {
-            insert(index, key, path);
+            insert(index.get(), key, path);
         }
     }
 
@@ -592,7 +593,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public boolean exists(NodeBuilder index, String key) {
+    public boolean exists(Supplier<NodeBuilder> index, String key) {
         // This is currently not implemented, because there is no test case for it,
         // and because there is currently no need for this method with this class.
         // We would need to traverse the tree and search for an entry "match".

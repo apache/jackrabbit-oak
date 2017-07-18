@@ -962,7 +962,6 @@ public class PropertyIndexTest {
 
     }
 
-    @Ignore("OAK-6463")
     @Test
     public void mountWithCommitInWritableMount() throws Exception{
         NodeState root = INITIAL_CONTENT;

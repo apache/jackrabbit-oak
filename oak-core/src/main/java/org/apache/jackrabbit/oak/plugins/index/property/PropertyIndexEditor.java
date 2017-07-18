@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -35,6 +36,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -288,8 +290,7 @@ class PropertyIndexEditor implements IndexEditor {
                 String properties = definition.getString(PROPERTY_NAMES);
                 boolean uniqueIndex = keysToCheckForUniqueness != null;
                 for (IndexStoreStrategy strategy : getStrategies(uniqueIndex)) {
-                    NodeBuilder index = definition.child(strategy
-                            .getIndexNodeName());
+                    Supplier<NodeBuilder> index = memoize(() -> definition.child(strategy.getIndexNodeName()));
                     if (uniqueIndex) {
                         keysToCheckForUniqueness.addAll(getExistingKeys(
                                 afterKeys, index, strategy));
@@ -334,7 +335,7 @@ class PropertyIndexEditor implements IndexEditor {
      * @param s the index store strategy
      * @return the set of keys that already exist in this unique index
      */
-    private Set<String> getExistingKeys(Set<String> keys, NodeBuilder index, IndexStoreStrategy s) {
+    private Set<String> getExistingKeys(Set<String> keys, Supplier<NodeBuilder> index, IndexStoreStrategy s) {
         Set<String> existing = null;
         for (String key : keys) {
             if (s.exists(index, key)) {
