@@ -41,7 +41,7 @@ Download following jars
 
 * oak-run 1.7.4 
 
-Refer to [oak-run setup](../features/oak-run-nodestore-connection-options.md) for details about connecting to different 
+Refer to [oak-run setup](../features/oak-run-nodestore-connection-options.html) for details about connecting to different 
 types of NodeStore. Example below assume a setup consisting of SegmentNodeStore and FileDataStore. Depending on setup
 use the appropriate connection options.
 
@@ -138,7 +138,7 @@ to validate if `PreExtractedTextProvider` is being used.
 ### Oak Run Indexing
 
 Configure the directory storing pre extracted text via `--pre-extracted-text-dir` option in `index` command.
-See [oak run indexing](oak-run-indexing.md)
+See [oak run indexing](oak-run-indexing.html)
 
 
 [oak-run-1.7.1]: https://repo1.maven.org/maven2/org/apache/jackrabbit/oak-run/1.7.1/oak-run-1.7.1.jar
