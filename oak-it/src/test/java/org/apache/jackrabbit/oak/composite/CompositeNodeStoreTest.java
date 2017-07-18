@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.composite;
 import static com.google.common.base.Predicates.compose;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -47,6 +49,7 @@ import javax.sql.DataSource;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
@@ -58,6 +61,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.CountingDiff;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -67,6 +72,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -76,6 +82,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -94,6 +101,7 @@ public class CompositeNodeStoreTest {
     private NodeStore mountedStore;
     private NodeStore deepMountedStore;
     private NodeStore readOnlyStore;
+    private MountInfoProvider mip;
 
     @Parameters(name="Root: {0}, Mounts: {1}")
     public static Collection<Object[]> data() {
@@ -112,7 +120,7 @@ public class CompositeNodeStoreTest {
 
     @Before
     public void initStore() throws Exception {
-        MountInfoProvider mip = Mounts.newBuilder()
+        mip = Mounts.newBuilder()
                 .mount("temp", "/tmp")
                 .mount("deep", "/libs/mount")
                 .mount("empty", "/nowhere")
@@ -786,6 +794,26 @@ public class CompositeNodeStoreTest {
         List<String> childNames = newArrayList(filter(rootBuilder.getChildNodeNames(), Predicates.equalTo("new")));
         assertEquals(1, childNames.size());
         assertEquals("global", rootBuilder.getChildNode("new").getString("store"));
+    }
+
+    @Ignore("OAK-6463")
+    @Test
+    public void propertyIndex() throws Exception{
+        NodeBuilder globalBuilder = globalStore.getRoot().builder();
+        createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
+
+        globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("content").setProperty("foo", "bar");
+        store.merge(builder, hook, CommitInfo.EMPTY);
+
+        builder = store.getRoot().builder();
+        builder.child("content").removeProperty("foo");
+        store.merge(builder, hook, CommitInfo.EMPTY);
     }
 
     private static enum NodeStoreKind {
