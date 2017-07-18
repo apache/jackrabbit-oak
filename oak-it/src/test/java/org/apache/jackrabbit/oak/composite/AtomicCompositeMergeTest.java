@@ -84,7 +84,6 @@ public class AtomicCompositeMergeTest {
     }
 
     @Test
-    @Ignore
     public void testLocalMerges() throws InterruptedException, IOException, ParseException, CommitFailedException {
         Oak oak = getOak(getCompositeNodeStore(new MemoryNodeStore()));
         testAtomicMerges(clusterId -> oak);
