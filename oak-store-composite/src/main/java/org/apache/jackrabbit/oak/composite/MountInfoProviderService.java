@@ -64,6 +64,7 @@ public class MountInfoProviderService {
     private static final String[] PROP_PATHS_SUPPORTING_FRAGMENTS_DEFAULT = new String[] {"/"};
 
     @Property(label = "Paths supporting fragments",
+            unbounded = PropertyUnbounded.ARRAY,
             description = "oak:mount-* under this paths will be included to mounts",
             value = {"/"}
     )
