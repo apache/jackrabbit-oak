@@ -674,6 +674,9 @@ public class VersionGarbageCollector {
         }
 
         void updateResurrectedDocuments(VersionGCStats stats) throws IOException {
+            if (resurrectedIds.isEmpty()) {
+                return;
+            }
             int updateCount = resetDeletedOnce(resurrectedIds);
             resurrectedIds.clear();
             stats.updateResurrectedGCCount += updateCount;

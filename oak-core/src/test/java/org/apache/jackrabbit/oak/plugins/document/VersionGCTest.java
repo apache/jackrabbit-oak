@@ -221,10 +221,9 @@ public class VersionGCTest {
 
         gc.gc(1, TimeUnit.HOURS);
 
-        assertEquals(3, infoMessages.size());
+        assertEquals(2, infoMessages.size());
         assertTrue(infoMessages.get(0).startsWith("Looking at revisions"));
-        assertTrue(infoMessages.get(1).startsWith("Proceeding to reset"));
-        assertTrue(infoMessages.get(2).startsWith("Revision garbage collection finished"));
+        assertTrue(infoMessages.get(1).startsWith("Revision garbage collection finished"));
     }
 
     private Future<VersionGCStats> gc() {
