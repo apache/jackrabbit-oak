@@ -156,7 +156,9 @@ following ways
 
 In this mode we import the index using oak-run
 
-    java -jar oak-run*.jar index --index-import --read-write --index-import-dir=<index dir> /path/to/segmentstore
+    java -jar oak-run*.jar index --index-import --read-write \
+        --index-import-dir=<index dir>  \
+        --fds-path=/path/to/datastore /path/to/segmentstore
     
 Here "index dir" is the directory which contains the index files created in step #3. Check the logs from previous
 command for the directory path.
@@ -190,7 +192,7 @@ This is same as in out-of-band indexing
 In this step we configure oak-run to connect to repository in read-write mode and let it perform all other steps i.e
 checkpoint creation, indexing and import
 
-    java -jar oak-run*.jar index --reindex --index-paths=/oak:index/lucene --read-write /path/to/segmentstore
+    java -jar oak-run*.jar index --reindex --index-paths=/oak:index/lucene --read-write --fds-path=/path/to/datastore /path/to/segmentstore
     
 
 ### <a name="tika-setup"></a> Tika Setup
