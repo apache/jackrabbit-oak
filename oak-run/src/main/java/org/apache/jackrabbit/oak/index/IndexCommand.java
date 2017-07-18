@@ -76,15 +76,28 @@ public class IndexCommand implements Command {
         setupDirectories(indexOpts);
         setupLogging(indexOpts);
 
-        if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
-            performReindexInReadWriteMode(indexOpts);
-        } else {
-            try (Closer closer = Closer.create()) {
-                NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-                closer.register(fixture);
-                execute(fixture, indexOpts, closer);
-                tellReportPaths();
+        boolean success = false;
+        try {
+            if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
+                performReindexInReadWriteMode(indexOpts);
+            } else {
+                try (Closer closer = Closer.create()) {
+                    NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
+                    closer.register(fixture);
+                    execute(fixture, indexOpts, closer);
+                    tellReportPaths();
+                }
             }
+            success = true;
+        } catch (Throwable e) {
+            log.error("Error occurred while performing index tasks", e);
+            e.printStackTrace(System.err);
+        } finally {
+            shutdownLogging();
+        }
+
+        if (!success) {
+            System.exit(1);
         }
     }
 
@@ -270,6 +283,10 @@ public class IndexCommand implements Command {
 
     private static void setupLogging(IndexOptions indexOpts) throws IOException {
         new LoggingInitializer(indexOpts.getWorkDir()).init();
+    }
+
+    private void shutdownLogging() {
+        LoggingInitializer.shutdownLogging();
     }
 
     private static String now() {

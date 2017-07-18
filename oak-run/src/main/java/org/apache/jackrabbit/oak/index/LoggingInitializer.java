@@ -64,6 +64,11 @@ public class LoggingInitializer {
         log.info("Logs would be written to {}", new File(workDir, "indexing.log"));
     }
 
+    public static void shutdownLogging(){
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        context.stop();
+    }
+
     private void configureLogback(File config) {
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
 
