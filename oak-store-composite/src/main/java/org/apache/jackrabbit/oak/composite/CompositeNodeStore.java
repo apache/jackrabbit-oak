@@ -136,35 +136,40 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
         assertNoChangesOnReadOnlyMounts(nodeBuilder);
 
-        // merge the global builder and apply the commit hooks within
-        Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        MountedNodeStore globalStore = ctx.getGlobalStore();
-        CommitHookEnhancer hookEnhancer = new CommitHookEnhancer(commitHook, ctx, nodeBuilder.getBuilders());
-        NodeState globalResult = globalStore.getNodeStore().merge(nodeBuilder.getBuilders().get(globalStore), hookEnhancer, info);
-        resultStates.put(globalStore, globalResult);
-        CompositeNodeBuilder updatedBuilder = hookEnhancer.getUpdatedBuilder().orElse(nodeBuilder);
+        mergeLock.lock();
+        try {
+            // merge the global builder and apply the commit hooks within
+            Map<MountedNodeStore, NodeState> resultStates = newHashMap();
+            MountedNodeStore globalStore = ctx.getGlobalStore();
+            CommitHookEnhancer hookEnhancer = new CommitHookEnhancer(commitHook, ctx, nodeBuilder.getBuilders());
+            NodeState globalResult = globalStore.getNodeStore().merge(nodeBuilder.getBuilders().get(globalStore), hookEnhancer, info);
+            resultStates.put(globalStore, globalResult);
+            CompositeNodeBuilder updatedBuilder = hookEnhancer.getUpdatedBuilder().orElse(nodeBuilder);
 
-        // merge the partial builders
-        for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
-            NodeBuilder partialBuilder = updatedBuilder.getBuilders().get(mns);
+            // merge the partial builders
+            for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
+                NodeBuilder partialBuilder = updatedBuilder.getBuilders().get(mns);
 
-            if (mns.getMount().isReadOnly()) {
-                if (!partialBuilder.getNodeState().equals(partialBuilder.getBaseState())) {
-                    throw new CommitFailedException("CompositeStore", 31, "Unable to perform changes on read-only mount " + mns.getMount().getName());
+                if (mns.getMount().isReadOnly()) {
+                    if (!partialBuilder.getNodeState().equals(partialBuilder.getBaseState())) {
+                        throw new CommitFailedException("CompositeStore", 31, "Unable to perform changes on read-only mount " + mns.getMount().getName());
+                    }
+                    resultStates.put(mns, partialBuilder.getBaseState());
+                    continue;
                 }
-                resultStates.put(mns, partialBuilder.getBaseState());
-                continue;
+
+                NodeState partialState = mns.getNodeStore().merge(partialBuilder, EmptyHook.INSTANCE, info);
+                resultStates.put(mns, partialState);
             }
 
-            NodeState partialState = mns.getNodeStore().merge(partialBuilder, EmptyHook.INSTANCE, info);
-            resultStates.put(mns, partialState);
+            CompositeNodeState newRoot = ctx.createRootNodeState(resultStates);
+            for (Observer observer : observers) {
+                observer.contentChanged(newRoot, info);
+            }
+            return newRoot;
+        } finally {
+            mergeLock.unlock();
         }
-
-        CompositeNodeState newRoot = ctx.createRootNodeState(resultStates);
-        for (Observer observer : observers) {
-            observer.contentChanged(newRoot, info);
-        }
-        return newRoot;
    }
 
     private void assertNoChangesOnReadOnlyMounts(CompositeNodeBuilder nodeBuilder) throws CommitFailedException {
