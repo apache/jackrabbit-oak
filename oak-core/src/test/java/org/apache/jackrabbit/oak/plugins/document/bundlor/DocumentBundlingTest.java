@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -187,7 +186,6 @@ public class DocumentBundlingTest {
         assertThat(bundledMem, is(greaterThan(nonBundledMem)));
     }
 
-    @Ignore("OAK-6462")
     @Test
     public void memoryWithBinary() throws Exception {
         Blob blob = store.createBlob(new RandomStream(1024, 17));
