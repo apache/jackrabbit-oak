@@ -40,10 +40,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
@@ -58,7 +61,11 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -66,6 +73,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -954,6 +962,41 @@ public class PropertyIndexTest {
 
     }
 
+    @Ignore("OAK-6463")
+    @Test
+    public void mountWithCommitInWritableMount() throws Exception{
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        index.setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("content").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        MountInfoProvider mip = Mounts.newBuilder()
+                .readOnlyMount("foo",  "/readOnly")
+                .build();
+
+        CompositeHook hook = new CompositeHook(
+                new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
+                new EditorHook(new ValidatorProvider(){
+                    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+                        return new PrivateStoreValidator("/", mip);
+                    }
+                })
+        );
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        Mount defMount = mip.getDefaultMount();
+        assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/content", "abc")).exists());
+    }
+
     @Test(expected = CommitFailedException.class)
     public void mountAndUniqueIndexes() throws Exception {
         NodeState root = INITIAL_CONTENT;
@@ -1057,6 +1100,42 @@ public class PropertyIndexTest {
             } else {
                 return FilterReply.DENY;
             }
+        }
+    }
+
+    private class PrivateStoreValidator extends DefaultValidator {
+        private final String path;
+        private final MountInfoProvider mountInfoProvider;
+
+        public PrivateStoreValidator(String path, MountInfoProvider mountInfoProvider) {
+            this.path = path;
+            this.mountInfoProvider = mountInfoProvider;
+        }
+
+        public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
+            return checkPrivateStoreCommit(getCommitPath(name));
+        }
+
+        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+            return checkPrivateStoreCommit(getCommitPath(name));
+        }
+
+        public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+            return checkPrivateStoreCommit(getCommitPath(name));
+        }
+
+        private Validator checkPrivateStoreCommit(String commitPath) throws CommitFailedException {
+            Mount mountInfo = mountInfoProvider.getMountByPath(commitPath);
+            if (mountInfo.isReadOnly()) {
+                    throw new CommitFailedException(CommitFailedException.UNSUPPORTED, 0,
+                            "Unsupported commit to a read-only store "+ commitPath);
+            }
+
+            return new PrivateStoreValidator(commitPath, mountInfoProvider);
+        }
+
+        private String getCommitPath(String changeNodeName) {
+            return PathUtils.concat(path, changeNodeName);
         }
     }
 }
