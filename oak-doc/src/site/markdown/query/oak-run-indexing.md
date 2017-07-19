@@ -132,20 +132,26 @@ extraction is done prior to actual indexing so that actual indexing does not do 
 
 #### <a name="out-of-band-create-checkpoint"></a>Step 2 - Create Checkpoint
 
-Go to `CheckpointMBean` and create a checkpoint with lifetime of 1 month. <<TBD>>
+Go to `CheckpointMBean` and create a checkpoint with a long enough lifetime like 10 days. For this invoke
+ `CheckpointMBean#createCheckpoint` with 864000000 as argument for lifetime
 
 #### <a name="out-of-band-perform-reindex"></a> Step 3 - Perform Reindex
 
 In this step we perform the actual indexing via oak-run where it connects to repository in read only mode. 
     
-     java -jar oak-run*.jar index --fds-path=/path/to/datastore  /path/to/segmentstore/ --reindex --index-paths=/oak:index/indexName
+     java -jar oak-run*.jar index --reindex \
+     --index-paths=/oak:index/indexName \
+     --checkpoint=0fd2a388-de87-47d3-8f30-e86b1cf0a081 \	
+     --fds-path=/path/to/datastore  /path/to/segmentstore/ 
      
 Here following options can be used
 
-* `--pre-extracted-text-dir` - Directory path containing pre extracted text generated via step #1
-* `--index-paths` - This command requires an explicit set of index paths which need to be indexed
+* `--pre-extracted-text-dir` - Directory path containing pre extracted text generated via step #1 (optional)
+* `--index-paths` - This command requires an explicit set of index paths which need to be indexed (required)
 * `--checkpoint` - The checkpoint up to which the index is updated, when indexing in read only mode. For
-  testing purpose, it can be set to 'head' to indicate that the head state should be used.
+  testing purpose, it can be set to 'head' to indicate that the head state should be used. (required)
+  
+If the index does not support fulltext indexing then you can omit providing BlobStore details
   
 #### <a name="out-of-band-import-reindex"></a>Step 4 - Import the index
 
