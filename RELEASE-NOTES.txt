@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.7.3
+Release Notes -- Apache Jackrabbit Oak -- Version 1.7.4
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.7.3 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.7.4 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.6.x
 release.
@@ -15,104 +15,84 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.7.3
+Changes in Oak 1.7.4
 ---------------------
-
-Sub-task
-
-    [OAK-3262] - oak-jcr: update test exclusions once JCR-3901 is
-    resolved
 
 Technical task
 
-    [OAK-3777] - Multiplexing support in default PermissionStore
-    implementation
+    [OAK-6117] - Enable lucene indexing via oak-run
+    [OAK-6271] - Support for importing index files
+    [OAK-6414] - Use Tika config to determine non indexed mimeTypes
+    [OAK-6415] - Use dynamic service loader by default
 
 Bug
 
-    [OAK-3374] - Concurrent Updates of Group's Membership Results in
-    Conflict
-    [OAK-6252] - re-introduce ServerCommand
-    [OAK-6317] - LMSEstimator update amount depending on cost amount
-    [OAK-6360] - Failed to retrieve previously indexed checkpoint in
-    composite node store
-    [OAK-6368] - Builder options not picked up after MongoDB is set
-    [OAK-6375] - RevisionGCMbeans are not filtered correctly in the
-    RepositoryManagement
-    [OAK-6377] - Text extraction with oak-run and tika requires fake
-    string in the command to work
-    [OAK-6378] - Move the SegmentWriter API to its own interface
-    [OAK-6379] - NPE in MergingNodeStateDiff on
-    DELETE_DELETED_PROPERTY
-    [OAK-6383] - Changes visible before merge
-    [OAK-6384] - Dependency missing in oak-run
-    [OAK-6386] - GarbageCollector#compact() throws NPE
-    [OAK-6391] - With FastQuerySize, getSize() returns -1 if there are
-    exactly 21 rows
-    [OAK-6392] - Partial lastRev update with branches disabled
-    [OAK-6393] - Remove
-    NodeRecordTest#unreferencedNodeRecordShouldBeRoot
-    [OAK-6404] - Move TAR handling logic in its own package
-    [OAK-6410] - NPE when removing inexistent property from checked in
-    node
-    [OAK-6411] - Build failure due to unresolved oak-lucene bundle
+    [OAK-5740] - deliver overflow change even without new commit
+    [OAK-6061] - Test failure: StandbyTestIT.testSyncLoop
+    [OAK-6376] - Race condition in the CompositeNodeStore#merge
+    [OAK-6413] - FileCache getIfPresent doesn't update cache hit/miss
+    counters
+    [OAK-6420] - Incorrect revisions sweep stats
+    [OAK-6423] - MongoDocumentStore re-creates old index on
+    _deletedOnce
+    [OAK-6424] - LuceneSupportTest::fullTextSearch is still flaky
+    [OAK-6438] - LuceneSupportTest.fullTextSearch failing
+    [OAK-6440] - Incorrect node type diff
+    [OAK-6443] - NodeStoreFixtureProvider not closing
+    DocumentNodeStore
+    [OAK-6447] - CompositeNodeStore initialisation fails if
+    ignoreReadOnlyWrites config property is not set
+    [OAK-6451] - MultiplexingPermissionProvider is ignored by the
+    CompositeAuthorizationConfiguration
+    [OAK-6455] - Don't call observer concurrently from the
+    CompositeNodeStore
+    [OAK-6462] - Incorrect memory calculation for bundled node states
+    [OAK-6463] - Property index update fails in composite NodeStore
+    setup
 
 Improvement
 
-    [OAK-5309] - Supporting roles in RepositoryManager execution of
-    maintenance tasks
-    [OAK-5790] - Chronologically rebase checkpoints on top of each
-    other during compaction
-    [OAK-6021] - Remove segment graph functionality from oak-run
-    [OAK-6147] - Review SessionOperation usage in security code
-    [OAK-6180] - Tune cursor batch/limit size
-    [OAK-6313] - Support properties filtering in the Whiteboard track
-    method
-    [OAK-6320] - Allow to disable the read-only mode in composite node
-    store
-    [OAK-6325] - Turn CacheWeightsTest into a command-line utility
-    [OAK-6336] - Use the oak-blob-cloud for s3 support in oak-upgrade
-    [OAK-6339] - MapRecord#getKeys should should initialize child
-    iterables lazily
-    [OAK-6340] - Don't restart the composite node store on every node
-    store bind/unbind
-    [OAK-6355] - Usage of NodeAggregator creates cyclic dependency
-    between oak.spi.query and oak.plugins.index.*
-    [OAK-6356] - Allow CompositePermissionProvider to OR entries
-    [OAK-6369] - Reduce cache segments for revisions sweep
-    [OAK-6388] - Enable Azure shared access signature for blob store
-    connector
-    [OAK-6394] - Reduce impact of default multiplexing setup on the
-    ReferenceIndex
-    [OAK-6395] - Refactor monitoring of deduplication caches
-    [OAK-6396] - Reduce usages of DefaultSegmentWriter in favour of
-    SegmentWriter
-    [OAK-6406] - Cleanup constants in Segment class
+    [OAK-3987] - Indexer dry run mode
+    [OAK-4732] - (Slightly) prioritise reads over writes
+    [OAK-5048] - Upgrade to Tika 1.15 version
+    [OAK-5899] - PropertyDefinitions should allow for some
+    tweakability to declare usefulness
+    [OAK-6333] - IndexPlanner should use actual entryCount instead of
+    limiting it to 1000
+    [OAK-6341] - oak-run redirects reindexing info to STDERR
+    [OAK-6350] - Improve log reporting if multiple indexes compete for
+    same query
+    [OAK-6425] - Make the CompositeNodeStore thread-safe
+    [OAK-6428] - Add flag for controlling percentile of commit time
+    used in scheduler
+    [OAK-6430] - Remove Apache Commons Math3 dependency from Segment
+    Tar
+    [OAK-6432] - Make dynamic reference greedy and static to simplify
+    LuceneIndexProviderService
+    [OAK-6436] - Log message on checkpoint MBean invocation
+    [OAK-6437] - NodeStateCopyUtils should not copy hidden props and
+    node in JCR mode
+    [OAK-6459] - VisibleValidator duplicated in chain for each
+    hierarchy level
+    [OAK-6464] - Public constructor for RandomStream
+    [OAK-6466] - Suppress NOP info message from revision GC
 
 New Feature
 
-    [OAK-4122] - Replace the commit semaphore in the segment node
-    store with a scheduler
-    [OAK-6220] - Copy on write node store implementation
-    [OAK-6382] - Adjust AccessControlList implementations to reflect
-    JCR-4144
+    [OAK-6081] - Indexing tooling via oak-run
+    [OAK-6246] - Support for out of band indexing with read only
+    access to NodeStore
+    [OAK-6276] - expose way to detect "eventual consistency delay"
 
 Task
 
-    [OAK-5352] - Enable RevisionGC task for non primary
-    SegmentNodeStore
-    [OAK-6051] - Clarify migration tests failures when switching
-    Commit#hasChanges implementations
-    [OAK-6065] - Rework CheckpointTest and MergeTest after introducing
-    the scheduler
-    [OAK-6074] - Simplify merge logic in LockBasedScheduler
-    [OAK-6137] - Remove call to getHeadNodeState in LockBasedScheduler
-    constructor
-    [OAK-6138] - Remove addObserver method from Scheduler API
-    [OAK-6315] - Create CheckpointMBean implementation for the
-    composite node store
-    [OAK-6380] - Revert bnd dependency overwrite for bundle plugin
-    [OAK-6389] - Update Oak trunk to Jackrabbit 2.15.4
+    [OAK-6337] - Decide major version bump of o.a.j.o.api.jmx
+    [OAK-6417] - Change log level for tests in oak-remote to INFO
+    [OAK-6439] - Add dependency to lucene-suggest in oak-pojosr
+
+Test
+
+    [OAK-6427] - Duplicate class: MongoDocumentStoreHelper
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
