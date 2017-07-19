@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.util.ISO8601;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,11 +122,10 @@ public class IndexCommand implements Command {
         dumpIndexDefinitions(indexOpts, indexHelper);
         performConsistencyCheck(indexOpts, indexHelper);
         dumpIndexContents(indexOpts, indexHelper);
-        reindexIndex(indexOpts, indexHelper);
-        importIndex(indexOpts, indexHelper);
+        reindexOperation(indexOpts, indexHelper);
+        importIndexOperation(indexOpts, indexHelper);
     }
 
-    @NotNull
     private IndexHelper createIndexHelper(NodeStoreFixture fixture,
                                           IndexOptions indexOpts, Closer closer) throws IOException {
         IndexHelper indexHelper = new IndexHelper(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(),
@@ -147,29 +145,41 @@ public class IndexCommand implements Command {
         }
     }
 
-    private void reindexIndex(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
+    private void reindexOperation(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
         if (!indexOpts.isReindex()){
             return;
         }
 
         String checkpoint = indexOpts.getCheckpoint();
-        reindex(indexHelper, checkpoint);
+        File destDir = reindex(indexHelper, checkpoint);
+        log.info("To complete indexing import the created index files via IndexerMBean#importIndex operation with " +
+                "[{}] as input", getPath(destDir));
     }
 
-    private void reindex(IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
-        checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
-        try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, checkpoint)) {
-            File destDir = indexer.reindex();
-            log.info("To complete indexing import the created index files via IndexerMBean#importIndex operation with " +
-                    "[{}] as input", getPath(destDir));
-        }
-    }
-
-    private void importIndex(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
+    private void importIndexOperation(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException, CommitFailedException {
         if (indexOpts.isImportIndex()) {
             File importDir = indexOpts.getIndexImportDir();
             importIndex(indexHelper, importDir);
         }
+    }
+
+    private File reindex(IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
+        checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
+
+        Stopwatch w = Stopwatch.createStarted();
+        IndexerSupport indexerSupport = new IndexerSupport(indexHelper, checkpoint);
+        log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint,
+                indexerSupport.getCheckpointInfo());
+
+        try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, indexerSupport)) {
+            indexer.reindex();
+        }
+
+        indexerSupport.writeMetaInfo(checkpoint);
+        File destDir = indexerSupport.copyIndexFilesToOutput();
+        log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
+                indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
+        return destDir;
     }
 
     private void importIndex(IndexHelper indexHelper, File importDir) throws IOException, CommitFailedException {
