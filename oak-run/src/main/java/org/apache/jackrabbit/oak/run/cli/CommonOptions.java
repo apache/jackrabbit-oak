@@ -70,7 +70,11 @@ public class CommonOptions implements OptionsBean {
     }
 
     public boolean isSegment(){
-        return !isMongo() && !isRDB();
+        return !isDocument();
+    }
+
+    public boolean isDocument(){
+        return isMongo() || isRDB();
     }
 
     public boolean isMetricsEnabled() {

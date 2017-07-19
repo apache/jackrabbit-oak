@@ -36,7 +36,9 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.MongoClientURI;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -50,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 public class NodeStoreFixtureProvider {
@@ -71,7 +74,7 @@ public class NodeStoreFixtureProvider {
         }
 
         StatisticsProvider statisticsProvider = createStatsProvider(options, wb, closer);
-        wb.register(StatisticsProvider.class, statisticsProvider, Collections.emptyMap());
+        wb.register(StatisticsProvider.class, statisticsProvider, emptyMap());
 
         NodeStore store;
         if (commonOpts.isMongo() || commonOpts.isRDB()) {
@@ -122,6 +125,7 @@ public class NodeStoreFixtureProvider {
             );
         }
 
+        DocumentNodeStore dns;
         if (commonOpts.isMongo()) {
             MongoClientURI uri = new MongoClientURI(commonOpts.getStoreArg());
             if (uri.getDatabase() == null) {
@@ -130,18 +134,23 @@ public class NodeStoreFixtureProvider {
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
-            wb.register(MongoConnection.class, mongo, Collections.emptyMap());
+            wb.register(MongoConnection.class, mongo, emptyMap());
             closer.register(mongo::close);
             builder.setMongoDB(mongo.getDB());
+            dns = builder.getNodeStore();
+            wb.register(MongoDocumentStore.class, (MongoDocumentStore) builder.getDocumentStore(), emptyMap());
         } else if (commonOpts.isRDB()) {
             RDBStoreOptions rdbOpts = options.getOptionBean(RDBStoreOptions.class);
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(commonOpts.getStoreArg(),
                     rdbOpts.getUser(), rdbOpts.getPassword());
-            wb.register(DataSource.class, ds, Collections.emptyMap());
+            wb.register(DataSource.class, ds, emptyMap());
             builder.setRDBConnection(ds);
+            dns = builder.getNodeStore();
+            wb.register(RDBDocumentStore.class, (RDBDocumentStore) builder.getDocumentStore(), emptyMap());
+        } else {
+            throw new IllegalStateException("Unknown DocumentStore");
         }
 
-        DocumentNodeStore dns = builder.getNodeStore();
         closer.register(() -> dns.dispose());
 
         return dns;
@@ -182,7 +191,7 @@ public class NodeStoreFixtureProvider {
             MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
             closer.register(statsProvider);
             closer.register(() -> reportMetrics(statsProvider));
-            wb.register(MetricRegistry.class, statsProvider.getRegistry(), Collections.emptyMap());
+            wb.register(MetricRegistry.class, statsProvider.getRegistry(), emptyMap());
             return statsProvider;
         }
         return StatisticsProvider.NOOP;
