@@ -338,7 +338,7 @@ public class BackgroundObserverTest {
 
         // this one will be queued as #2
         NodeState thirdIncluded = generator.next();
-        expected.add(new Pair(secondIncluded, thirdIncluded));
+//        expected.add(new Pair(secondIncluded, thirdIncluded));
         fo.contentChanged(thirdIncluded, CommitInfo.EMPTY);
 
         // this one will cause the queue to 'overflow' (full==true)
@@ -358,6 +358,10 @@ public class BackgroundObserverTest {
         next = generator.next();
         // excluded==false BUT queue full, hence not adding to expected
         fo.contentChanged(next, CommitInfo.EMPTY);
+
+        // with OAK-5740 the overflow entry now looks as follows:
+        expected.add(new Pair(secondIncluded, next));
+
         // let recorder continue
         recorder.unpause();
 
@@ -376,10 +380,10 @@ public class BackgroundObserverTest {
         // only happens with non-filtered items, so adding yet another one now
         filter.excludeNext(false);
         NodeState last = generator.next();
-        // while above the "seventhAfterQueueFull" DOES get filtered, the next contentChange
-        // triggers the release of the 'queue full overflow element' (with commitInfo==null)
-        // and that we must add as expected()
-        expected.add(new Pair(thirdIncluded, seventhAfterQueueFull)); // commitInfo == null
+        // the 'seventhAfterQueueFull' DOES get filtered - and as per behavior
+        // pre-OAK-5740 it used to get flushed with the next contentChanged,
+        // however, with OAK-5740 this is no longer the case as we now
+        // use the last queue entry as the overflow entry
         expected.add(new Pair(seventhAfterQueueFull, last));
         fo.contentChanged(last, CommitInfo.EMPTY);
         
