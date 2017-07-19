@@ -246,10 +246,11 @@ public class PrefilteringBackgroundObserverTest {
                 new TestPattern(INCLUDED, 5, false, 0, 0, 0, 6),
                 // here: 1 init and 5 changes are in the queue, the queue fits 7, so queue is almost full
                 new TestPattern(EXCLUDED, 500, false, 0, 0, 6, 6),
-                // still 6 in the queue, of 7
+                // still 6 in the queue, of 7 
+                // due to OAK-5740 the last entry is now an include
                 new TestPattern(INCLUDED, 5, false, 0, 0, 6, 7),
-                // now we added 2 (one NOOP and one of those 5), so the queue got full (==7)
-                new TestPattern(EXCLUDED, 0 /* only flush*/, true, 5, 0, 7, 0)
+                // so with OAK-5740 we now will get 6 includes, not 5
+                new TestPattern(EXCLUDED, 0 /* only flush*/, true, 6, 0, 7, 0)
                 );
     }
     
