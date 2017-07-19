@@ -22,19 +22,10 @@ package org.apache.jackrabbit.oak.index;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Stopwatch;
 import com.google.common.io.Closer;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.CorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -43,14 +34,12 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
-import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCounterMBeanEstimator;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
@@ -65,7 +54,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 
 public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTraversalCallback {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -73,15 +61,6 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
      * Index lane name which is used for indexing
      */
     private static final String REINDEX_LANE = "offline-reindex-async";
-    /**
-     * Property name where previous value of 'async' is stored
-     */
-    private static final String ASYNC_PREVIOUS = "async-previous";
-    /**
-     * Value stored in previous async property if the index is not async
-     * i.e. when a sync index is reindexed in out of band mode
-     */
-    private static final String ASYNC_PREVIOUS_NONE = "none";
     /**
      * Directory name in output directory under which indexes are
      * stored
@@ -96,46 +75,30 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
     private final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
-    private final String checkpoint;
-    private Map<String, String> checkpointInfo = Collections.emptyMap();
     private NodeStore copyOnWriteStore;
-    private File localIndexDir;
+    private IndexerSupport indexerSupport;
 
     //TODO Support for providing custom index definition i.e. where definition is not
     //present in target repository
 
-    public OutOfBandIndexer(IndexHelper indexHelper, String checkpoint) {
+    public OutOfBandIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport) {
         this.indexHelper = checkNotNull(indexHelper);
-        this.checkpoint = checkNotNull(checkpoint);
+        this.indexerSupport = checkNotNull(indexerSupport);
     }
 
-    public File reindex() throws CommitFailedException, IOException {
-        Stopwatch w = Stopwatch.createStarted();
-
-        NodeState checkpointedState = retrieveNodeStateForCheckpoint();
+    public void reindex() throws CommitFailedException, IOException {
+        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
 
         copyOnWriteStore = new MemoryNodeStore(checkpointedState);
         NodeState baseState = copyOnWriteStore.getRoot();
         //TODO Check for indexPaths being empty
 
-        log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint, checkpointInfo);
-
         switchIndexLanesAndReindexFlag();
         preformIndexUpdate(baseState);
-        writeMetaInfo();
-        File destDir = copyIndexFilesToOutput();
-
-        log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
-                indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
-        return destDir;
     }
 
     private File getLocalIndexDir() throws IOException {
-        if (localIndexDir == null) {
-            localIndexDir = new File(indexHelper.getWorkDir(), LOCAL_INDEX_ROOT_DIR);
-            FileUtils.forceMkdir(localIndexDir);
-        }
-        return localIndexDir;
+        return indexerSupport.getLocalIndexDir();
     }
 
     @Override
@@ -212,29 +175,6 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
-    }
-
-    private NodeState retrieveNodeStateForCheckpoint() {
-        NodeState checkpointedState;
-        if (HEAD_AS_CHECKPOINT.equals(checkpoint)) {
-            checkpointedState = indexHelper.getNodeStore().getRoot();
-            log.warn("Using head state for indexing. Such an index cannot be imported back");
-        } else {
-            checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
-            checkNotNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [%s]", checkpoint);
-            checkpointInfo = indexHelper.getNodeStore().checkpointInfo(checkpoint);
-        }
-        return checkpointedState;
-    }
-
-    private void writeMetaInfo() throws IOException {
-        new IndexerInfo(getLocalIndexDir(), checkpoint).save();
-    }
-
-    private File copyIndexFilesToOutput() throws IOException {
-        File destDir = new File(indexHelper.getOutputDir(), getLocalIndexDir().getName());
-        FileUtils.moveDirectoryToDirectory(getLocalIndexDir(), indexHelper.getOutputDir(), true);
-        return destDir;
     }
 
     private void configureEstimators(IndexUpdate indexUpdate) {

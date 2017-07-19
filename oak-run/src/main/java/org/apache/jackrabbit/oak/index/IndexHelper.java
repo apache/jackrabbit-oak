@@ -167,6 +167,11 @@ public class IndexHelper implements Closeable{
         getExtractedTextCache().setExtractedTextProvider(new DataStoreTextWriter(dir, true));
     }
 
+    @CheckForNull
+    public <T> T getService(@Nonnull Class<T> type) {
+        return WhiteboardUtils.getService(whiteboard, type);
+    }
+
     @Override
     public void close() throws IOException {
         closer.close();
