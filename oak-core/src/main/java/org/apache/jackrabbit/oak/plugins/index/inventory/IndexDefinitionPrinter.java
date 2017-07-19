@@ -29,7 +29,8 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.json.BlobSerializer;
+import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -62,15 +63,20 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
     public void print(PrintWriter printWriter, Format format, boolean isZip) {
         if (format == Format.JSON) {
             NodeState root = nodeStore.getRoot();
-            JsopWriter json = new JsopBuilder();
+            JsopBuilder json = new JsopBuilder();
             json.object();
             for (String indexPath : indexPathService.getIndexPaths()) {
                 json.key(indexPath);
                 NodeState idxState = NodeStateUtils.getNode(root, indexPath);
-                NodeStateJsonUtils.copyAsJson(json, idxState, false);
+                createSerializer(json).serialize(idxState);
             }
             json.endObject();
             printWriter.print(JsopBuilder.prettyPrint(json.toString()));
         }
+    }
+
+    private JsonSerializer createSerializer(JsopBuilder json) {
+        String excludeHiddenFilter = "{\"properties\":[\"*\", \"-:*\"],\"nodes\":[\"*\", \"-:*\"]}";
+        return new JsonSerializer(json, excludeHiddenFilter, new BlobSerializer());
     }
 }
