@@ -81,6 +81,11 @@ public class JsonSerializer {
                 DEFAULT_FILTER, blobs);
     }
 
+    public JsonSerializer(JsopBuilder json, String filter, BlobSerializer blobs) {
+        this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
+                new JsonFilter(filter), blobs);
+    }
+
     protected JsonSerializer getChildSerializer() {
         return new JsonSerializer(
                 json, depth - 1, 0, maxChildNodes, filter, blobs);
