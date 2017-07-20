@@ -925,6 +925,11 @@ public class DocumentNodeStoreService {
         addRegistration(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
 
+        addRegistration(registerMBean(whiteboard, RevisionGCStatsMBean.class,
+                store.getVersionGarbageCollector().getRevisionGCStats(),
+                RevisionGCStatsMBean.TYPE,
+                "Document node store revision garbage collection statistics"));
+
         BlobStoreStats blobStoreStats = mkBuilder.getBlobStoreStats();
         if (!customBlobStore && blobStoreStats != null) {
             addRegistration(registerMBean(whiteboard,
