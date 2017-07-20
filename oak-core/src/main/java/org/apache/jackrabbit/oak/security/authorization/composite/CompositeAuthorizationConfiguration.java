@@ -174,13 +174,10 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 1: return configurations.get(0).getPermissionProvider(root, workspaceName, principals);
             default:
                 List<AggregatedPermissionProvider> aggrPermissionProviders = new ArrayList<>(configurations.size());
-                CompositePermissionProvider composite = null;
                 for (AuthorizationConfiguration conf : configurations) {
                     PermissionProvider pProvider = conf.getPermissionProvider(root, workspaceName, principals);
                     if (pProvider instanceof AggregatedPermissionProvider) {
                         aggrPermissionProviders.add((AggregatedPermissionProvider) pProvider);
-                    } else if (pProvider instanceof CompositePermissionProvider) {
-                        composite = (CompositePermissionProvider) pProvider;
                     } else {
                         log.debug("Ignoring permission provider of '{}': Not an AggregatedPermissionProvider", conf.getClass().getName());
                     }
@@ -188,11 +185,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                 PermissionProvider pp;
                 switch (aggrPermissionProviders.size()) {
                     case 0 :
-                        if (composite != null) {
-                            pp = composite;
-                        } else {
-                            pp = EmptyPermissionProvider.getInstance();
-                        }
+                        pp = EmptyPermissionProvider.getInstance();
                         break;
                     case 1 :
                         pp = aggrPermissionProviders.get(0);
