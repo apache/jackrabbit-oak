@@ -102,11 +102,6 @@ public class JsonSerializer {
             }
         }
 
-        if (filter.includeProperty(":childNodeCount")) {
-            json.key(":childNodeCount");
-            json.value(node.getChildNodeCount(Integer.MAX_VALUE));
-        }
-
         int index = 0;
         int count = 0;
         for (ChildNodeEntry child : node.getChildNodeEntries()) {
