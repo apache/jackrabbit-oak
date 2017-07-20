@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.OR;
 
+import java.util.function.Supplier;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -85,15 +87,16 @@ final class CompositeTreePermission implements TreePermission {
     }
 
     static TreePermission create(@Nonnull final ImmutableTree tree, @Nonnull CompositeTreePermission parentPermission) {
-        return create(new LazyTree() {
-            @Override
-            ImmutableTree get() {
-                return tree;
-            }
-        }, tree.getName(), tree.getNodeState(), parentPermission);
+        return create(() -> tree, tree.getName(), tree.getNodeState(), parentPermission, null);
     }
 
-    private static TreePermission create(@Nonnull LazyTree lazyTree, @Nonnull String childName, @Nonnull NodeState childState, @Nonnull CompositeTreePermission parentPermission) {
+    static TreePermission create(@Nonnull final ImmutableTree tree, @Nonnull CompositeTreePermission parentPermission,
+            @Nullable TreeType treeType) {
+        return create(() -> tree, tree.getName(), tree.getNodeState(), parentPermission, treeType);
+    }
+
+    private static TreePermission create(@Nonnull Supplier<ImmutableTree> lazyTree, @Nonnull String childName, @Nonnull NodeState childState, @Nonnull CompositeTreePermission parentPermission,
+            @Nullable TreeType treeType) {
         switch (parentPermission.childSize) {
             case 0: return TreePermission.EMPTY;
             case 1:
@@ -107,7 +110,12 @@ final class CompositeTreePermission implements TreePermission {
                 return (parent == null) ? TreePermission.EMPTY : parent.getChildPermission(childName, childState);
             default:
                 ImmutableTree tree = lazyTree.get();
-                TreeType type = getType(tree, parentPermission);
+                TreeType type;
+                if (treeType != null) {
+                    type = treeType;
+                } else {
+                    type = getType(tree, parentPermission);
+                }
 
                 AggregatedPermissionProvider[] pvds = new AggregatedPermissionProvider[parentPermission.childSize];
                 TreePermission[] tps = new TreePermission[parentPermission.childSize];
@@ -134,12 +142,7 @@ final class CompositeTreePermission implements TreePermission {
     @Nonnull
     @Override
     public TreePermission getChildPermission(@Nonnull final String childName, @Nonnull final NodeState childState) {
-        return create(new LazyTree() {
-            @Override
-            ImmutableTree get() {
-                return new ImmutableTree(tree, childName, childState);
-            }
-        }, childName, childState, this);
+        return create(() -> new ImmutableTree(tree, childName, childState), childName, childState, this, null);
     }
 
     @Override
@@ -253,9 +256,5 @@ final class CompositeTreePermission implements TreePermission {
 
     private static TreeType getType(@Nonnull Tree tree, @Nonnull CompositeTreePermission parent) {
         return parent.typeProvider.getType(tree, parent.type);
-    }
-
-    private abstract static class LazyTree {
-        abstract ImmutableTree get();
     }
 }

@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.security.authorization.composite.Composi
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
@@ -49,7 +51,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
  * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider}
  * interface.
  */
-class CompositePermissionProvider implements PermissionProvider {
+class CompositePermissionProvider implements AggregatedPermissionProvider {
 
     private final Root root;
     private final AggregatedPermissionProvider[] pps;
@@ -206,37 +208,7 @@ class CompositePermissionProvider implements PermissionProvider {
         boolean isAcContent = ctx.definesLocation(location);
 
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
-
-        PropertyState property = location.getProperty();
-        Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
-
-        if (tree != null) {
-            return isGranted(tree, property, permissions);
-        } else {
-            boolean isGranted = false;
-            long coveredPermissions = Permissions.NO_PERMISSION;
-
-            for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
-                long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(location, permissions);
-                if (doEvaluate(supportedPermissions)) {
-                    if (compositionType == AND) {
-                        isGranted = aggregatedPermissionProvider.isGranted(location, supportedPermissions);
-                        if (!isGranted) {
-                            return false;
-                        }
-                        coveredPermissions |= supportedPermissions;
-                    } else {
-                        for (long p : Permissions.aggregates(permissions)) {
-                            if (aggregatedPermissionProvider.isGranted(location, p)) {
-                                coveredPermissions |= p;
-                                isGranted = true;
-                            }
-                        }
-                    }
-                }
-            }
-            return isGranted && coveredPermissions == permissions;
-        }
+        return isGranted(location, permissions);
     }
 
     //------------------------------------------------------------< private >---
@@ -291,6 +263,94 @@ class CompositePermissionProvider implements PermissionProvider {
                 }
             }
             return isGranted && coveredPermissions == repositoryPermissions;
+        }
+    }
+
+    //---------------------------------------< AggregatedPermissionProvider >---
+
+    @Nonnull
+    @Override
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+        PrivilegeBits result = PrivilegeBits.getInstance();
+        for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
+            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(tree, privilegeBits);
+            result.add(supported);
+        }
+        return result;
+    }
+
+    @Override
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+        return supportedPermissions((aggregatedPermissionProvider) -> aggregatedPermissionProvider
+                .supportedPermissions(tree, property, permissions));
+    }
+
+    @Override
+    public long supportedPermissions(TreeLocation location, long permissions) {
+        return supportedPermissions((aggregatedPermissionProvider) -> aggregatedPermissionProvider
+                .supportedPermissions(location, permissions));
+    }
+
+    @Override
+    public long supportedPermissions(TreePermission treePermission, PropertyState property, long permissions) {
+        return supportedPermissions((aggregatedPermissionProvider) -> aggregatedPermissionProvider
+                .supportedPermissions(treePermission, property, permissions));
+    }
+
+    private long supportedPermissions(Function<AggregatedPermissionProvider, Long> supported) {
+        long coveredPermissions = Permissions.NO_PERMISSION;
+        for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
+            long supportedPermissions = supported.apply(aggregatedPermissionProvider);
+            coveredPermissions |= supportedPermissions;
+        }
+        return coveredPermissions;
+    }
+
+    @Override
+    public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+        PropertyState property = location.getProperty();
+        Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
+
+        if (tree != null) {
+            return isGranted(tree, property, permissions);
+        } else {
+            boolean isGranted = false;
+            long coveredPermissions = Permissions.NO_PERMISSION;
+
+            for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
+                long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(location, permissions);
+                if (doEvaluate(supportedPermissions)) {
+                    if (compositionType == AND) {
+                        isGranted = aggregatedPermissionProvider.isGranted(location, supportedPermissions);
+                        if (!isGranted) {
+                            return false;
+                        }
+                        coveredPermissions |= supportedPermissions;
+                    } else {
+                        for (long p : Permissions.aggregates(permissions)) {
+                            if (aggregatedPermissionProvider.isGranted(location, p)) {
+                                coveredPermissions |= p;
+                                isGranted = true;
+                            }
+                        }
+                    }
+                }
+            }
+            return isGranted && coveredPermissions == permissions;
+        }
+    }
+
+    @Nonnull
+    @Override
+    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type,
+            @Nonnull TreePermission parentPermission) {
+        ImmutableTree immutableTree = (ImmutableTree) PermissionUtil.getImmutableTree(tree, immutableRoot);
+        if (tree.isRoot()) {
+            return CompositeTreePermission.create(immutableTree, typeProvider, pps, compositionType);
+        } else if (parentPermission instanceof CompositeTreePermission) {
+            return CompositeTreePermission.create(immutableTree, ((CompositeTreePermission) parentPermission), type);
+        } else {
+            return parentPermission.getChildPermission(immutableTree.getName(), immutableTree.getNodeState());
         }
     }
 }
