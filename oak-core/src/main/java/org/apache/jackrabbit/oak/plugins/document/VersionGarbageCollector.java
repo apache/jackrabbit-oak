@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,6 +110,7 @@ public class VersionGarbageCollector {
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
+    private RevisionGCStats gcStats = new RevisionGCStats(StatisticsProvider.NOOP);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport) {
@@ -116,6 +118,15 @@ public class VersionGarbageCollector {
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
         this.options = new VersionGCOptions();
+    }
+
+    void setStatisticsProvider(StatisticsProvider provider) {
+        this.gcStats = new RevisionGCStats(provider);
+    }
+
+    @Nonnull
+    RevisionGCStats getRevisionGCStats() {
+        return gcStats;
     }
 
     public VersionGCStats gc(long maxRevisionAge, TimeUnit unit) throws IOException {
@@ -145,6 +156,7 @@ public class VersionGarbageCollector {
                     averageDurationMs = ((averageDurationMs * (overall.iterationCount - 1))
                             + stats.active.elapsed(TimeUnit.MILLISECONDS)) / overall.iterationCount;
                 }
+                gcStats.finished(overall);
                 return overall;
             } finally {
                 overall.active.stop();
@@ -482,7 +494,11 @@ public class VersionGarbageCollector {
                                            RevisionVector sweepRevisions,
                                            Recommendations rec) {
             if (phases.start(GCPhase.SPLITS_CLEANUP)) {
+                int splitDocGCCount = phases.stats.splitDocGCCount;
+                int intermediateSplitDocGCCount = phases.stats.intermediateSplitDocGCCount;
                 versionStore.deleteSplitDocuments(GC_TYPES, sweepRevisions, rec.scope.toMs, phases.stats);
+                gcStats.splitDocumentsDeleted(phases.stats.splitDocGCCount - splitDocGCCount);
+                gcStats.intermediateSplitDocumentsDeleted(phases.stats.intermediateSplitDocGCCount - intermediateSplitDocGCCount);
                 phases.stop(GCPhase.SPLITS_CLEANUP);
             }
         }
@@ -615,6 +631,7 @@ public class VersionGarbageCollector {
          */
         boolean possiblyDeleted(NodeDocument doc)
                 throws IOException {
+            gcStats.documentRead();
             // construct an id that also contains
             // the _modified time of the document
             String id = doc.getId() + "/" + doc.getModified();
@@ -652,7 +669,7 @@ public class VersionGarbageCollector {
         void removeDocuments(VersionGCStats stats) throws IOException {
             removeLeafDocuments(stats);
             stats.deletedDocGCCount += removeDeletedDocuments(
-                    getDocIdsToDelete(), getDocIdsToDeleteSize(), "(other)");
+                    getDocIdsToDelete(), getDocIdsToDeleteSize(), false, "(other)");
             // FIXME: this is incorrect because that method also removes intermediate docs
             stats.splitDocGCCount += removeDeletedPreviousDocuments();
         }
@@ -667,7 +684,7 @@ public class VersionGarbageCollector {
 
         void removeLeafDocuments(VersionGCStats stats) throws IOException {
             int removeCount = removeDeletedDocuments(
-                    getLeafDocIdsToDelete(), getLeafDocIdsToDeleteSize(), "(leaf)");
+                    getLeafDocIdsToDelete(), getLeafDocIdsToDeleteSize(), true, "(leaf)");
             leafDocIdsToDelete.clear();
             stats.deletedLeafDocGCCount += removeCount;
             stats.deletedDocGCCount += removeCount;
@@ -798,7 +815,11 @@ public class VersionGarbageCollector {
 
         private int removeDeletedDocuments(Iterator<String> docIdsToDelete,
                                            long numDocuments,
+                                           boolean leaves,
                                            String label) throws IOException {
+            if (numDocuments == 0) {
+                return 0;
+            }
             monitor.info("Proceeding to delete [{}] documents [{}]", numDocuments, label);
 
             Iterator<List<String>> idListItr = partition(docIdsToDelete, DELETE_BATCH_SIZE);
@@ -842,6 +863,11 @@ public class VersionGarbageCollector {
 
                     deletedCount += nRemoved;
                     log.debug("Deleted [{}] documents so far", deletedCount);
+                    if (leaves) {
+                        gcStats.leafDocumentsDeleted(deletedCount);
+                    } else {
+                        gcStats.documentsDeleted(deletedCount);
+                    }
 
                     if (deletedCount + recreatedCount - lastLoggedCount >= PROGRESS_BATCH_SIZE) {
                         lastLoggedCount = deletedCount + recreatedCount;
@@ -872,6 +898,7 @@ public class VersionGarbageCollector {
                             NodeDocument r = ds.findAndUpdate(Collection.NODES, up);
                             if (r != null) {
                                 updateCount += 1;
+                                gcStats.deletedOnceFlagReset();
                             }
                         } catch (IllegalArgumentException ex) {
                             monitor.warn("Invalid _modified suffix for {}", s);
@@ -888,7 +915,11 @@ public class VersionGarbageCollector {
         }
 
         private int removeDeletedPreviousDocuments() throws IOException {
-            monitor.info("Proceeding to delete [{}] previous documents", getNumPreviousDocuments());
+            long num = getNumPreviousDocuments();
+            if (num == 0) {
+                return 0;
+            }
+            monitor.info("Proceeding to delete [{}] previous documents", num);
 
             int deletedCount = 0;
             int lastLoggedCount = 0;
@@ -907,6 +938,7 @@ public class VersionGarbageCollector {
                 ds.remove(NODES, deletionBatch);
 
                 log.debug("Deleted [{}] previous documents so far", deletedCount);
+                gcStats.splitDocumentsDeleted(deletedCount);
 
                 if (deletedCount - lastLoggedCount >= PROGRESS_BATCH_SIZE) {
                     lastLoggedCount = deletedCount;
