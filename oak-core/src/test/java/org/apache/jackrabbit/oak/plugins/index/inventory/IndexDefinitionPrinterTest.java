@@ -49,6 +49,7 @@ public class IndexDefinitionPrinterTest {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a").setProperty("foo", "bar");
         builder.child("a").setProperty(":foo", "bar");
+        builder.child("a").setProperty(":childOrder", "bar");
         builder.child("b").child("c").setProperty("foo", "bar");
         builder.child("b").child("c").setProperty(":foo", "bar");
         builder.child("b").child(":d").setProperty("foo", "bar");
@@ -70,7 +71,7 @@ public class IndexDefinitionPrinterTest {
         assertNull(o.get(":d"));
 
         JSONObject a = (JSONObject) o.get("/a");
-        assertNull(a.get(":foo"));
         assertNotNull(a.get("foo"));
+        assertNotNull(a.get(":childOrder"));
     }
 }
