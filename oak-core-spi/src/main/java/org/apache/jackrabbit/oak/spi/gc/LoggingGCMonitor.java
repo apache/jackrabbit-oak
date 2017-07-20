@@ -17,9 +17,8 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.compaction;
+package org.apache.jackrabbit.oak.spi.gc;
 
-import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.slf4j.Logger;
 
 /**
