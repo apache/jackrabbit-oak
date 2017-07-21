@@ -316,12 +316,7 @@ public class Statement {
             if (measure) {
                 buff.append("measure ");
             }
-            try {
-                buff.append(s1).append(" union ").append(s2);
-            } catch (OutOfMemoryError | StackOverflowError e) {
-System.out.println("OOME");                
-                throw e;
-            }
+            buff.append(s1).append(" union ").append(s2);
             // order by ...
             if (orderList != null && !orderList.isEmpty()) {
                 buff.append(" order by ");
