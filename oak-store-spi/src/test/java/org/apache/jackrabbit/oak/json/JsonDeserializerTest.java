@@ -19,11 +19,14 @@
 
 package org.apache.jackrabbit.oak.json;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Random;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -32,9 +35,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class JsonDeserializerTest {
     private Base64BlobSerializer blobHandler = new Base64BlobSerializer();
@@ -82,13 +87,59 @@ public class JsonDeserializerTest {
     }
 
     @Test
-    public void singleProperty() throws Exception{
+    public void primaryType() throws Exception{
+        String json = "{\"jcr:primaryType\":\"oak:Unstructured\"}";
+        NodeState nodeState2 = deserialize(json);
+        assertEquals(Type.NAME, nodeState2.getProperty(JcrConstants.JCR_PRIMARYTYPE).getType());
+    }
+
+    @Test
+    public void stringPropertyWithNamespace() throws Exception{
+        String json = "{\"name\":\"jcr:content/metadata\"}";
+        NodeState nodeState = deserialize(json);
+        PropertyState name = nodeState.getProperty("name");
+        assertEquals("jcr:content/metadata", name.getValue(Type.STRING));
+        assertEquals(Type.STRING, name.getType());
+    }
+
+    @Test
+    public void stringArrayPropertyWithNamespace() throws Exception{
+        String json = "{\"name\": [\"jcr:content/metadata\"] }";
+        NodeState nodeState = deserialize(json);
+        PropertyState name = nodeState.getProperty("name");
+        assertEquals("jcr:content/metadata", name.getValue(Type.STRING, 0));
+        assertEquals(Type.STRINGS, name.getType());
+    }
+
+    @Test
+    public void mixins() throws Exception{
+        String json = "{\"jcr:mixinTypes\": [\"oak:Unstructured\", \"mixin:title\"]}";
+        NodeState nodeState = deserialize(json);
+        assertEquals(Type.NAMES, nodeState.getProperty(JcrConstants.JCR_MIXINTYPES).getType());
+        assertEquals(asList("oak:Unstructured", "mixin:title"),
+                nodeState.getProperty(JcrConstants.JCR_MIXINTYPES).getValue(Type.NAMES));
+
+    }
+
+    @Test
+    public void childOrder() throws Exception{
+        String json = "{\"jcr:primaryType\":\"nam:nt:unstructured\",\"a\":{},\"c\":{},\"b\":{}}";
+        NodeState nodeState = deserialize(json);
+
+        PropertyState childOrder = nodeState.getProperty(":childOrder");
+        assertNotNull(childOrder);
+
+        assertEquals(asList("a", "c", "b"), childOrder.getValue(Type.NAMES));
+    }
+
+    @Test
+    public void otherArrayTypes() throws Exception{
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.child("a").setProperty("foo3", 1.1);
-        //builder.child("a").setProperty("foo3", Lists.newArrayList(true, false), Type.BOOLEANS);
+        builder.setProperty("foo1", asList("/content", "/libs"), Type.PATHS);
+        builder.setProperty("foo2", asList(1.2, 1.4), Type.DOUBLES);
+        builder.setProperty("foo3", asList(new BigDecimal("3.14159"), new BigDecimal("42.737")), Type.DECIMALS);
 
         assertDeserialization(builder);
-
     }
 
     private Blob createBlob(int length) {
