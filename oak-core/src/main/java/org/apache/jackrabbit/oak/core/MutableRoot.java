@@ -272,6 +272,8 @@ class MutableRoot implements Root {
         hooks.add(hook);
 
         List<CommitHook> postValidationHooks = new ArrayList<CommitHook>();
+        List<ValidatorProvider> validators = new ArrayList<>();
+
         for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
             for (CommitHook ch : sc.getCommitHooks(workspaceName)) {
                 if (ch instanceof PostValidationHook) {
@@ -281,10 +283,11 @@ class MutableRoot implements Root {
                 }
             }
 
-            List<? extends ValidatorProvider> validators = sc.getValidators(workspaceName, subject.getPrincipals(), moveTracker);
-            if (!validators.isEmpty()) {
-                hooks.add(new EditorHook(CompositeEditorProvider.compose(validators)));
-            }
+            validators.addAll(sc.getValidators(workspaceName, subject.getPrincipals(), moveTracker));
+        }
+
+        if (!validators.isEmpty()) {
+            hooks.add(new EditorHook(CompositeEditorProvider.compose(validators)));
         }
         hooks.addAll(postValidationHooks);
 
