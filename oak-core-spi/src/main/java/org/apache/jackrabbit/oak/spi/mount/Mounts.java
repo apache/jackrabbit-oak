@@ -157,25 +157,6 @@ public final class Mounts {
     }
 
     /**
-     * Returns the default {@link Mount}
-     * 
-     * @return the default mount 
-     */
-    public static Mount defaultMount() {
-        return DEFAULT_MOUNT;
-    }
-
-    /**
-     * Creates a new default (root) mount with the specified non-default mounts
-     * 
-     * @param mounts the mounts to configure
-     * @return the created mount
-     */
-    public static Mount defaultMount(Collection<Mount> mounts) {
-        return new DefaultMount(mounts);
-    }
-
-    /**
      * Creates a new Builder instance for configuring more complex mount setups
      * 
      * @return a new builder instance
