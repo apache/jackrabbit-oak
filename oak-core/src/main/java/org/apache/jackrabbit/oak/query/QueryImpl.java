@@ -138,6 +138,10 @@ public class QueryImpl implements Query {
      */
     public static final String REP_SUGGEST = "rep:suggest()";
 
+    public static final UnsupportedOperationException TOO_MANY_UNION = 
+            new UnsupportedOperationException("Too many union queries");
+    public final static int MAX_UNION = Integer.getInteger("oak.sql2MaxUnion", 1000);
+
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
 
     private static final Ordering<QueryIndex> MINIMAL_COST_ORDERING = new Ordering<QueryIndex>() {
@@ -1200,7 +1204,13 @@ public class QueryImpl implements Query {
         Query result = this;
         
         if (constraint != null) {
-            Set<ConstraintImpl> unionList = constraint.convertToUnion();
+            Set<ConstraintImpl> unionList;
+            try {
+                unionList = constraint.convertToUnion();
+            } catch (UnsupportedOperationException e) {
+                // too many union
+                return this;
+            }
             if (unionList.size() > 1) {
                 // there are some cases where multiple ORs simplify into a single one. If we get a
                 // union list of just one we don't really have to UNION anything.
