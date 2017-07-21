@@ -72,9 +72,9 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
             permissionStore.child(workspaceName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         }
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            String ws =  MultiplexingPermissionProvider.getWorkspaceName(m, workspaceName);
-            if (!permissionStore.hasChildNode(ws)) {
-                permissionStore.child(ws).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+            String permissionRootName =  MultiplexingPermissionProvider.getPermissionRootName(m, workspaceName);
+            if (!permissionStore.hasChildNode(permissionRootName)) {
+                permissionStore.child(permissionRootName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
             }
         }
     }

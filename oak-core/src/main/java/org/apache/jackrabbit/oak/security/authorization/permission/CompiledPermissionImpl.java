@@ -84,7 +84,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     private PrivilegeBitsProvider bitsProvider;
 
     private CompiledPermissionImpl(@Nonnull Set<Principal> principals,
-                                   @Nonnull Root root, @Nonnull String workspaceName,
+                                   @Nonnull Root root,
+                                   @Nonnull String workspaceName,
+                                   @Nonnull String permissionRootName,
                                    @Nonnull RestrictionProvider restrictionProvider,
                                    @Nonnull ConfigurationParameters options,
                                    @Nonnull Context ctx) {
@@ -97,7 +99,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         readPolicy = (readPaths.isEmpty()) ? EmptyReadPolicy.INSTANCE : new DefaultReadPolicy(readPaths);
 
         // setup
-        store = new PermissionStoreImpl(root, workspaceName, restrictionProvider);
+        store = new PermissionStoreImpl(root, permissionRootName, restrictionProvider);
         Set<String> userNames = new HashSet<String>(principals.size());
         Set<String> groupNames = new HashSet<String>(principals.size());
         for (Principal principal : principals) {
@@ -115,16 +117,18 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         typeProvider = new TreeTypeProvider(ctx);
     }
 
-    static CompiledPermissions create(@Nonnull Root root, @Nonnull String workspaceName,
+    static CompiledPermissions create(@Nonnull Root root,
+                                      @Nonnull String workspaceName,
+                                      @Nonnull String permissionRootName,
                                       @Nonnull Set<Principal> principals,
                                       @Nonnull RestrictionProvider restrictionProvider,
                                       @Nonnull ConfigurationParameters options,
                                       @Nonnull Context ctx) {
-        Tree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
+        Tree permissionsTree = PermissionUtil.getPermissionsRoot(root, permissionRootName);
         if (!permissionsTree.exists() || principals.isEmpty()) {
             return NoPermissions.getInstance();
         } else {
-            return new CompiledPermissionImpl(principals, root, workspaceName, restrictionProvider, options, ctx);
+            return new CompiledPermissionImpl(principals, root, workspaceName, permissionRootName, restrictionProvider, options, ctx);
         }
     }
 

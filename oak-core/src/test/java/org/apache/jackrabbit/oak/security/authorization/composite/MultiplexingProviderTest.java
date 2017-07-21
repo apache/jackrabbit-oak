@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -91,7 +92,7 @@ public class MultiplexingProviderTest extends AbstractSecurityTest
         String wsName = adminSession.getWorkspaceName();
         assertTrue(permStore.hasChild(wsName));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            assertTrue(permStore.hasChild(MultiplexingPermissionProvider.getWorkspaceName(m, wsName)));
+            assertTrue(permStore.hasChild(MultiplexingPermissionProvider.getPermissionRootName(m, wsName)));
         }
 
         Tree rootNode = root.getTree("/");
@@ -107,7 +108,7 @@ public class MultiplexingProviderTest extends AbstractSecurityTest
         // no entries in the default store
         assertFalse(permStore.getChild(wsName).hasChild(p.getName()));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            Tree mps = permStore.getChild(MultiplexingPermissionProvider.getWorkspaceName(m, wsName));
+            Tree mps = permStore.getChild(MultiplexingPermissionProvider.getPermissionRootName(m, wsName));
             assertTrue(mps.hasChild(p.getName()));
         }
 
@@ -120,6 +121,12 @@ public class MultiplexingProviderTest extends AbstractSecurityTest
         } finally {
             testSession.close();
         }
+    }
+
+    @Test
+    public void testPermissionProviderName() {
+        assertEquals("oak.default", MultiplexingPermissionProvider.getPermissionRootName(mountInfoProvider.getDefaultMount(), "oak.default"));
+        assertEquals("oak:mount-testMount-oak.default", MultiplexingPermissionProvider.getPermissionRootName(mountInfoProvider.getMountByName("testMount"), "oak.default"));
     }
 
     private void setPrivileges(Principal principal, String path, boolean allow, String... privileges) throws Exception {

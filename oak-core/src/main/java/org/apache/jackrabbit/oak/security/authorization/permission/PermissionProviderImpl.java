@@ -48,6 +48,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private final String workspaceName;
 
+    private final String permissionRootName;
+
     private final Set<Principal> principals;
 
     private final RestrictionProvider restrictionProvider;
@@ -60,13 +62,16 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private Root immutableRoot;
 
-    public PermissionProviderImpl(@Nonnull Root root, @Nonnull String workspaceName,
+    public PermissionProviderImpl(@Nonnull Root root,
+                                  @Nonnull String workspaceName,
+                                  @Nonnull String permissionRootName,
                                   @Nonnull Set<Principal> principals,
                                   @Nonnull RestrictionProvider restrictionProvider,
                                   @Nonnull ConfigurationParameters options,
                                   @Nonnull Context ctx) {
         this.root = root;
         this.workspaceName = workspaceName;
+        this.permissionRootName = permissionRootName;
         this.principals = principals;
         this.restrictionProvider = restrictionProvider;
         this.options = options;
@@ -159,7 +164,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             if (PermissionUtil.isAdminOrSystem(principals, options)) {
                 cp = AllPermissions.getInstance();
             } else {
-                cp = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, restrictionProvider, options, ctx);
+                cp = CompiledPermissionImpl.create(immutableRoot, workspaceName, permissionRootName, principals, restrictionProvider, options, ctx);
             }
             compiledPermissions = cp;
         }

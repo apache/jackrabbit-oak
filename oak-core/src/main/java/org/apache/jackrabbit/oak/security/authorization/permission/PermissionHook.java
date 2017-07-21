@@ -69,7 +69,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private final String workspaceName;
     private final MountInfoProvider mountInfoProvider;
 
-    private NodeBuilder permissionRoot;
+    private NodeBuilder permissionStore;
     private PrivilegeBitsProvider bitsProvider;
 
     private TypePredicate isACL;
@@ -93,7 +93,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             throws CommitFailedException {
         NodeBuilder rootAfter = after.builder();
 
-        permissionRoot = getPermissionRoot(rootAfter);
+        permissionStore = getPermissionStore(rootAfter);
         bitsProvider = new PrivilegeBitsProvider(RootFactory.createReadOnlyRoot(after));
 
         isACL = new TypePredicate(after, NT_REP_ACL);
@@ -126,7 +126,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     }
 
     @Nonnull
-    private static NodeBuilder getPermissionRoot(NodeBuilder rootBuilder) {
+    private static NodeBuilder getPermissionStore(NodeBuilder rootBuilder) {
         // permission root has been created during workspace initialization
         return rootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE);
     }
@@ -134,11 +134,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     @Nonnull
     private NodeBuilder getPermissionRoot(String path) {
         Mount m = mountInfoProvider.getMountByPath(path);
-        String ws = workspaceName;
-        if (!m.isDefault()) {
-            ws = MultiplexingPermissionProvider.getWorkspaceName(m, ws);
-        }
-        return permissionRoot.getChildNode(ws);
+        return permissionStore.getChildNode(MultiplexingPermissionProvider.getPermissionRootName(m, workspaceName));
     }
 
     private final class Diff extends DefaultNodeStateDiff {
