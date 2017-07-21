@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -30,8 +32,13 @@ public class MultiplexingPermissionProvider extends CompositePermissionProvider 
         super(root, pps, acContext, CompositionType.OR);
     }
 
-    public static String getWorkspaceName(Mount m, String workspace) {
-        return m.getPathFragmentName() + "-" + workspace;
+    @Nonnull
+    public static String getPermissionRootName(@Nonnull Mount mount, @Nonnull String workspace) {
+        if (mount.isDefault()) {
+            return workspace;
+        } else {
+            return mount.getPathFragmentName() + "-" + workspace;
+        }
     }
 
 }

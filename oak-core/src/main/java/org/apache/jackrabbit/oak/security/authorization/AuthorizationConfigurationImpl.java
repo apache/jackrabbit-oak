@@ -199,16 +199,17 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
             List<AggregatedPermissionProvider> agg = new ArrayList<>();
-            agg.add(new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(),
+            agg.add(new PermissionProviderImpl(root, workspaceName, workspaceName, principals, getRestrictionProvider(),
                     getParameters(), ctx));
             for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-                String ws = MultiplexingPermissionProvider.getWorkspaceName(m, workspaceName);
-                agg.add(new PermissionProviderImpl(root, ws, principals, getRestrictionProvider(), getParameters(),
+                String permissionRootName = MultiplexingPermissionProvider.getPermissionRootName(m, workspaceName);
+                agg.add(new PermissionProviderImpl(root, workspaceName, permissionRootName, principals, getRestrictionProvider(), getParameters(),
                         ctx));
             }
             return new MultiplexingPermissionProvider(root, agg, ctx);
+        } else {
+            return new PermissionProviderImpl(root, workspaceName, workspaceName, principals, getRestrictionProvider(), getParameters(),
+                    ctx);
         }
-        return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(), getParameters(),
-                ctx);
     }
 }
