@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
@@ -90,7 +91,10 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
+import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
+import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
@@ -133,6 +137,7 @@ public class DocumentNodeStoreService {
     private static final boolean DEFAULT_SO_KEEP_ALIVE = false;
     private static final String DEFAULT_PERSISTENT_CACHE = "cache,binary=0";
     private static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
+    private static final boolean DEFAULT_CONTINUOUS_RGC = false;
     private static final String PREFIX = "oak.documentstore.";
     private static final String DESCRIPTION = "oak.nodestore.description";
 
@@ -338,7 +343,7 @@ public class DocumentNodeStoreService {
     )
     public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
 
-    @Property (boolValue = false,
+    @Property (boolValue = DEFAULT_CONTINUOUS_RGC,
             label = "Continuous Version GC Mode",
             description = "Run Version GC continuously as a background task.")
     public static final String PROP_VER_GC_CONTINUOUS = "versionGCContinuous";
@@ -581,7 +586,16 @@ public class DocumentNodeStoreService {
         final GCMonitorTracker gcMonitor = new GCMonitorTracker();
         gcMonitor.start(whiteboard);
         closer.register(asCloseable(gcMonitor));
-        mkBuilder.setGCMonitor(gcMonitor);
+        Logger vgcLogger = LoggerFactory.getLogger(VersionGarbageCollector.class);
+        GCMonitor loggingGCMonitor;
+        if (isContinuousRevisionGC()) {
+            // log less chatty with continuous RevisionGC
+            loggingGCMonitor = new QuietGCMonitor(vgcLogger);
+        } else {
+            loggingGCMonitor = new LoggingGCMonitor(vgcLogger);
+        }
+        mkBuilder.setGCMonitor(new DelegatingGCMonitor(
+                newArrayList(gcMonitor, loggingGCMonitor)));
 
         nodeStore = mkBuilder.getNodeStore();
 
@@ -678,6 +692,10 @@ public class DocumentNodeStoreService {
 
     private boolean isNodeStoreProvider() {
         return prop(PROP_ROLE) != null;
+    }
+
+    private boolean isContinuousRevisionGC() {
+        return toBoolean(prop(PROP_VER_GC_CONTINUOUS), DEFAULT_CONTINUOUS_RGC);
     }
 
     private void registerNodeStoreProvider(final NodeStore ns) {
@@ -982,7 +1000,7 @@ public class DocumentNodeStoreService {
     }
 
     private void registerVersionGCJob(final DocumentNodeStore nodeStore) {
-        if (toBoolean(context.getProperties().get(PROP_VER_GC_CONTINUOUS), false)) {
+        if (isContinuousRevisionGC()) {
             final long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
             addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
                     new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs, log),

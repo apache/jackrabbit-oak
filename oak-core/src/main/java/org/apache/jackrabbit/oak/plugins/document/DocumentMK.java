@@ -96,6 +96,7 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
@@ -601,7 +602,8 @@ public class DocumentMK {
                 new JournalPropertyHandlerFactory();
         private int updateLimit = UPDATE_LIMIT;
         private int commitValueCacheSize = 10000;
-        private GCMonitor gcMonitor = GCMonitor.EMPTY;
+        private GCMonitor gcMonitor = new LoggingGCMonitor(
+                LoggerFactory.getLogger(VersionGarbageCollector.class));
 
         public Builder() {
         }

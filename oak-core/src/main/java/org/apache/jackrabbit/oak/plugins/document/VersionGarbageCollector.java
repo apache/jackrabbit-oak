@@ -142,7 +142,7 @@ public class VersionGarbageCollector {
             try {
                 long averageDurationMs = 0;
                 while (maxRunTime.contains(nodeStore.getClock().getTime() + averageDurationMs)) {
-                    log.info("start {}. run (avg duration {} sec)",
+                    gcMonitor.info("Start {}. run (avg duration {} sec)",
                             overall.iterationCount + 1, averageDurationMs / 1000.0);
                     VersionGCStats stats = job.run();
 
@@ -162,7 +162,7 @@ public class VersionGarbageCollector {
                 overall.active.stop();
                 collector.set(null);
                 if (overall.iterationCount > 1) {
-                    log.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
+                    gcMonitor.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
                             overall.iterationCount, overall);
                 }
             }
@@ -271,7 +271,7 @@ public class VersionGarbageCollector {
             String timings;
             String fmt = "timeToCollectDeletedDocs=%s, timeToCheckDeletedDocs=%s, timeToSortDocIds=%s, timeTakenToUpdateResurrectedDocs=%s, timeTakenToDeleteDeletedDocs=%s, timeTakenToCollectAndDeleteSplitDocs=%s";
 
-            // aggregrated timings?
+            // aggregated timings?
             if (iterationCount > 0) {
                 timings = String.format(fmt, df.format(collectDeletedDocsElapsed, MICROSECONDS),
                         df.format(checkDeletedDocsElapsed, MICROSECONDS), df.format(sortDocIdsElapsed, MICROSECONDS),
@@ -435,7 +435,7 @@ public class VersionGarbageCollector {
               GCMonitor gcMonitor) {
             this.maxRevisionAgeMillis = maxRevisionAgeMillis;
             this.options = options;
-            VersionGCMonitor vgcm = new VersionGCMonitor();
+            GCMessageTracker vgcm = new GCMessageTracker();
             this.status = vgcm;
             this.monitor = new DelegatingGCMonitor(Lists.newArrayList(vgcm, gcMonitor));
             this.monitor.updateStatus(STATUS_INITIALIZING);
@@ -1117,7 +1117,7 @@ public class VersionGarbageCollector {
             if (stats.limitExceeded) {
                 // if the limit was exceeded, slash the recommended interval in half.
                 long nextDuration = Math.max(precisionMs, scope.getDurationMs() / 2);
-                log.info("Limit {} documents exceeded, reducing next collection interval to {} seconds",
+                gcMonitor.info("Limit {} documents exceeded, reducing next collection interval to {} seconds",
                         this.maxCollect, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
                 setLongSetting(SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
                 stats.needRepeat = true;
@@ -1163,11 +1163,10 @@ public class VersionGarbageCollector {
     }
 
     /**
-     * VersionGCMonitor is a partial implementation of GCMonitor because some
-     * methods are specific to segment-tar. We use it primarily to keep track
-     * of the last message issued by the GC job.
+     * GCMessageTracker is a partial implementation of GCMonitor. We use it to
+     * keep track of the last message issued by the GC job.
      */
-    private static class VersionGCMonitor
+    private static class GCMessageTracker
             extends GCMonitor.Empty
             implements Supplier<String> {
 
@@ -1175,19 +1174,16 @@ public class VersionGarbageCollector {
 
         @Override
         public void info(String message, Object... arguments) {
-            log.info(message, arguments);
             lastMessage = arrayFormat(message, arguments).getMessage();
         }
 
         @Override
         public void warn(String message, Object... arguments) {
-            log.warn(message, arguments);
             lastMessage = arrayFormat(message, arguments).getMessage();
         }
 
         @Override
         public void error(String message, Exception e) {
-            log.error(message, e);
             lastMessage = message + " (" + e.getMessage() + ")";
         }
 
