@@ -174,10 +174,26 @@ class CompositionContext {
     }
 
     CompositeNodeState createRootNodeState(Map<MountedNodeStore, NodeState> rootStates) {
-        for (NodeState s : rootStates.values()) {
-            if (s instanceof CompositeNodeState) {
+        for (Map.Entry<MountedNodeStore, NodeState> e : rootStates.entrySet()) {
+            MountedNodeStore mns = e.getKey();
+            NodeState nodeState = e.getValue();
+            if (nodeState instanceof CompositeNodeState) {
                 throw new IllegalArgumentException("Nesting composite node states is not supported");
             }
+            if (nodeState == null) {
+                throw new NullPointerException("Passed null as a nodestate for " + mns.getMount().getName());
+            }
+        }
+        for (MountedNodeStore mns : nonDefaultStores) {
+            if (!rootStates.containsKey(mns)) {
+                throw new IllegalArgumentException("Can't find node state for " + mns.getMount().getName());
+            }
+        }
+        if (!rootStates.containsKey(globalStore)) {
+            throw new IllegalArgumentException("Can't find node state for the global store");
+        }
+        if (rootStates.size() != nonDefaultStores.size() + 1) {
+            throw new IllegalArgumentException("Too many root states passed: " + rootStates.size());
         }
         return new CompositeNodeState("/", rootStates, this);
     }
