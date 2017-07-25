@@ -72,6 +72,8 @@ public class IndexDefinitionPrinterTest {
 
         JSONObject a = (JSONObject) o.get("/a");
         assertNotNull(a.get("foo"));
-        assertNotNull(a.get(":childOrder"));
+        //Hidden props other than :childOrder should be present
+        assertNotNull(a.get(":foo"));
+        assertNull(a.get(":childOrder"));
     }
 }
