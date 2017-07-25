@@ -234,6 +234,26 @@ public class IndexUpdateTest {
     }
 
     @Test
+    public void testReindexAuto_ImportCase() throws Exception{
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+        idx.child(":index");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+                "rootIndex");
+
+        assertEquals(0, ns.getLong("reindexCount"));
+        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertFalse(ps.getValue(Type.BOOLEAN));
+    }
+
+    @Test
     public void testReindexHidden() throws Exception {
         NodeState before = EmptyNodeState.EMPTY_NODE;
         NodeBuilder builder = before.builder();

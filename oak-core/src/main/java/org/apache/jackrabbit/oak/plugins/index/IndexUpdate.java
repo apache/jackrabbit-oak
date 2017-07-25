@@ -219,13 +219,25 @@ public class IndexUpdate implements Editor, PathSource {
             return !rootState.ignoreReindexFlags;
         }
         // reindex in the case this is a new node, even though the reindex flag
-        // might be set to 'false' (possible via content import)
-        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
+        // might be set to 'false' (possible via content import).
+        // However if its already indexed i.e. has some hidden nodes (containing hidden data)
+        // then no need to reindex
+        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)
+                && !hasAnyHiddenNodes(definition);
         if (result) {
             log.info("Found a new index node [{}]. Reindexing is requested",
                     name);
         }
         return result;
+    }
+
+    private static boolean hasAnyHiddenNodes(NodeBuilder builder){
+        for (String name : builder.getChildNodeNames()) {
+            if (NodeStateUtils.isHidden(name)){
+                return true;
+            }
+        }
+        return false;
     }
 
     private void collectIndexEditors(NodeBuilder definitions,
