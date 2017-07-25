@@ -3375,6 +3375,44 @@ public class DocumentNodeStoreTest {
         after.compareAgainstBaseState(before, new DefaultNodeStateDiff());
     }
 
+    @Ignore("OAK-5602")
+    @Test
+    public void failLongRunningTx() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setUpdateLimit(100)
+                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        NodeBuilder test = builder.child("test");
+        String testId = Utils.getIdFromPath("/test");
+        for (int i = 0; ; i++) {
+            NodeBuilder child = test.child("child-" + i);
+            for (int j = 0; j < 10; j++) {
+                child.setProperty("p-" + j, "value");
+            }
+            if (docStore.find(NODES, testId) != null) {
+                // branch was created
+                break;
+            }
+        }
+        // simulate a long running commit taking 4 hours
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(4));
+
+        // long running tx must fail when it takes more than
+        // half the journal max age
+        try {
+            merge(ns, builder);
+            fail("CommitFailedException expected");
+        } catch (CommitFailedException e) {
+            assertEquals(200, e.getCode());
+        }
+    }
+
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;
