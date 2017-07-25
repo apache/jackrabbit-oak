@@ -39,4 +39,17 @@ class MountedNodeStore {
     public NodeStore getNodeStore() {
         return nodeStore;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder result = new StringBuilder(super.toString());
+        result.append('[');
+        if (mount.isDefault()) {
+            result.append("default");
+        } else {
+            result.append(mount.getName());
+        }
+        result.append(']');
+        return result.toString();
+    }
 }
