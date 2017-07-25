@@ -25,10 +25,13 @@ import java.io.File;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.junit.Rule;
 import org.junit.Test;
@@ -107,6 +110,19 @@ public class DataStoreTextWriterTest {
         w.markEmpty("a");
         assertTrue(w.isProcessed("a"));
 
+    }
+    
+    @Test
+    public void inMemoryRecord() throws Exception{
+        File fdsDir = temporaryFolder.newFolder();
+        FileDataStore fds = DataStoreUtils.createFDS(fdsDir, 10000);
+        DataStoreBlobStore dbs = new DataStoreBlobStore(fds);
+        ByteArrayInputStream is = new ByteArrayInputStream("".getBytes());
+        String blobId = dbs.writeBlob(is);
+
+        File writerDir = temporaryFolder.newFolder();
+        PreExtractedTextProvider textProvider = new DataStoreTextWriter(writerDir, true);
+        assertNull(textProvider.getText("/content", new BlobStoreBlob(dbs, blobId)));
     }
 
     private static class IdBlob extends ArrayBasedBlob {
