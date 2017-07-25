@@ -65,6 +65,7 @@ public class JournalGCTest {
         Clock c = new Clock.Virtual();
         c.waitUntil(System.currentTimeMillis());
         DocumentNodeStore ns = builderProvider.newBuilder()
+                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
                 .clock(c).setAsyncDelay(0).getNodeStore();
 
         // perform some change
@@ -85,7 +86,7 @@ public class JournalGCTest {
         c.waitUntil(c.getTime() + TimeUnit.HOURS.toMillis(2));
 
         // instruct journal collector to remove entries older than one hour
-        ns.getJournalGarbageCollector().gc(1, TimeUnit.HOURS);
+        ns.getJournalGarbageCollector().gc();
 
         // must not remove existing entry, because checkpoint is still valid
         entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
@@ -93,7 +94,7 @@ public class JournalGCTest {
 
         ns.release(cp);
 
-        ns.getJournalGarbageCollector().gc(1, TimeUnit.HOURS);
+        ns.getJournalGarbageCollector().gc();
         // now journal GC can remove the entry
         entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
         assertNull(entry);
@@ -104,6 +105,7 @@ public class JournalGCTest {
         Clock c = new Clock.Virtual();
         c.waitUntil(System.currentTimeMillis());
         DocumentNodeStore ns = builderProvider.newBuilder()
+                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
                 .clock(c).setAsyncDelay(0).getNodeStore();
 
         JournalGarbageCollector jgc = ns.getJournalGarbageCollector();
@@ -114,7 +116,7 @@ public class JournalGCTest {
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ns.runBackgroundOperations();
 
-        assertEquals(0, jgc.gc(1, TimeUnit.HOURS));
+        assertEquals(0, jgc.gc());
 
         // current time, but without the increment done by getTime()
         long now = c.getTime() - 1;
@@ -126,7 +128,7 @@ public class JournalGCTest {
         c.waitUntil(c.getTime() + TimeUnit.HOURS.toMillis(1));
 
         // must collect the journal entry created by the background update
-        assertEquals(1, jgc.gc(1, TimeUnit.HOURS));
+        assertEquals(1, jgc.gc());
 
         // current time, but without the increment done by getTime()
         now = c.getTime() - 1;
@@ -230,7 +232,7 @@ public class JournalGCTest {
                 shouldWait.set(false);
                 
                 // instruct journal GC to remove entries older than one hour - readingNs hasn't seen it
-                writingNs.getJournalGarbageCollector().gc(1, TimeUnit.SECONDS);
+                new JournalGarbageCollector(writingNs, TimeUnit.SECONDS.toMillis(1)).gc();
 
                 // entry should be removed
                 JournalEntry entry = writingNs.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));

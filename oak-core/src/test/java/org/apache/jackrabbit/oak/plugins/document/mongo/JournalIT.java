@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import com.mongodb.DB;
 
@@ -194,10 +193,10 @@ public class JournalIT extends AbstractJournalTest {
         DocumentNodeStore ns1 = mk1.getNodeStore();
         // make sure we're visible and marked as active
         renewClusterIdLease(ns1);
-        JournalGarbageCollector gc = new JournalGarbageCollector(ns1);
+        JournalGarbageCollector gc = new JournalGarbageCollector(ns1, 0);
         clock.getTimeIncreasing();
         clock.getTimeIncreasing();
-        gc.gc(0, TimeUnit.MILLISECONDS); // cleanup everything that might still be there
+        gc.gc(); // cleanup everything that might still be there
 
         // create entries as parametrized:
         for(int i=offset; i<size+offset; i++) {
@@ -207,7 +206,7 @@ public class JournalIT extends AbstractJournalTest {
             ns1.runBackgroundOperations();
         }
         Thread.sleep(100); // sleep 100millis
-        assertEquals(size, gc.gc(0, TimeUnit.MILLISECONDS)); // should now be able to clean up everything
+        assertEquals(size, gc.gc()); // should now be able to clean up everything
     }
 
     protected DocumentMK createMK(int clusterId, int asyncDelay) {

@@ -263,7 +263,7 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_JOURNAL_GC_INTERVAL_MILLIS = "journalGCInterval";
     
-    private static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 6*60*60*1000; // default is 6hours
+    static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 6*60*60*1000; // default is 6hours
     @Property(longValue = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS,
             label = "Maximum Age of Journal Entries (millis)",
             description = "Long value indicating max age (in milliseconds) that "
@@ -480,6 +480,7 @@ public class DocumentNodeStoreService {
         boolean bundlingDisabled = toBoolean(prop(PROP_BUNDLING_DISABLED), DEFAULT_BUNDLING_DISABLED);
         boolean prefetchExternalChanges = toBoolean(prop(PROP_PREFETCH_EXTERNAL_CHANGES), false);
         int updateLimit = toInteger(prop(PROP_UPDATE_LIMIT), DocumentMK.UPDATE_LIMIT);
+        long journalGCMaxAge = toLong(context.getProperties().get(PROP_JOURNAL_GC_MAX_AGE_MILLIS), DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS);
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
                 setStatisticsProvider(statisticsProvider).
@@ -516,7 +517,8 @@ public class DocumentNodeStoreService {
                     }
                 }).
                 setPrefetchExternalChanges(prefetchExternalChanges).
-                setUpdateLimit(updateLimit);
+                setUpdateLimit(updateLimit).
+                setJournalGCMaxAge(journalGCMaxAge);
 
         if (!Strings.isNullOrEmpty(persistentCache)) {
             mkBuilder.setPersistentCache(persistentCache);
@@ -983,14 +985,11 @@ public class DocumentNodeStoreService {
     private void registerJournalGC(final DocumentNodeStore nodeStore) {
         long journalGCInterval = toLong(context.getProperties().get(PROP_JOURNAL_GC_INTERVAL_MILLIS),
                 DEFAULT_JOURNAL_GC_INTERVAL_MILLIS);
-        final long journalGCMaxAge = toLong(context.getProperties().get(PROP_JOURNAL_GC_MAX_AGE_MILLIS),
-                DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS);
 
         Runnable journalGCJob = new Runnable() {
-
             @Override
             public void run() {
-                nodeStore.getJournalGarbageCollector().gc(journalGCMaxAge, TimeUnit.MILLISECONDS);
+                nodeStore.getJournalGarbageCollector().gc();
             }
 
         };

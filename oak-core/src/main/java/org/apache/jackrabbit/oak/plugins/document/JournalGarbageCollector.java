@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 
 /**
@@ -55,37 +56,38 @@ public class JournalGarbageCollector {
 
     private final DocumentNodeStore ns;
 
+    private final long maxRevisionAgeMillis;
+
     private volatile long lastTailTimestampRefresh = Long.MIN_VALUE;
 
     private Revision tailRevision;
 
-    public JournalGarbageCollector(DocumentNodeStore nodeStore) {
+    public JournalGarbageCollector(DocumentNodeStore nodeStore,
+                                   long maxRevisionAgeMillis) {
         this.ns = nodeStore;
+        this.maxRevisionAgeMillis = maxRevisionAgeMillis;
         this.tailRevision = new Revision(0, 0, ns.getClusterId());
     }
 
     /**
-     * Deletes entries in the journal that are older than the given
-     * maxRevisionAge.
+     * Deletes entries in the journal that are older than
+     * {@link #getMaxRevisionAgeMillis()}.
      *
-     * @param maxRevisionAge entries older than this age will be removed
-     * @param unit           the {@linkplain TimeUnit} for maxRevisionAge
      * @return the number of entries that have been removed
      */
-    public int gc(long maxRevisionAge, TimeUnit unit) {
+    public int gc() {
         DocumentStore ds = ns.getDocumentStore();
         Revision keep = ns.getCheckpoints().getOldestRevisionToKeep();
-        long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         long now = ns.getClock().getTime();
-        long gcOlderThan = now - maxRevisionAgeInMillis;
+        long gcOlderThan = now - maxRevisionAgeMillis;
         if (keep != null && keep.getTimestamp() < gcOlderThan) {
             gcOlderThan = keep.getTimestamp();
             log.debug("gc: Checkpoint {} is older than maxRevisionAge: {} min",
-                    keep, unit.toMinutes(maxRevisionAge));
+                    keep, MILLISECONDS.toMinutes(maxRevisionAgeMillis));
         }
         if (log.isDebugEnabled()) {
             log.debug("gc: Journal garbage collection starts with maxAge: {} min.",
-                    TimeUnit.MILLISECONDS.toMinutes(maxRevisionAgeInMillis));
+                    MILLISECONDS.toMinutes(maxRevisionAgeMillis));
         }
         Stopwatch sw = Stopwatch.createStarted();
 
@@ -99,7 +101,7 @@ public class JournalGarbageCollector {
 
         if (numDeleted > 0) {
             log.info("gc: Journal garbage collection took {}, deleted {} entries that were older than {} min.",
-                    sw, numDeleted, TimeUnit.MILLISECONDS.toMinutes(now - gcOlderThan));
+                    sw, numDeleted, MILLISECONDS.toMinutes(now - gcOlderThan));
         }
         return numDeleted;
     }
@@ -113,6 +115,10 @@ public class JournalGarbageCollector {
     public Revision getTailRevision() {
         refreshTailRevisionIfNecessary();
         return tailRevision;
+    }
+
+    long getMaxRevisionAgeMillis() {
+        return maxRevisionAgeMillis;
     }
 
     private void refreshTailRevisionIfNecessary() {

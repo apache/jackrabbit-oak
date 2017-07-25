@@ -270,7 +270,7 @@ public class JournalDiffLoaderTest {
         ns1.runBackgroundOperations();
 
         // collect journal entry created for /foo/nX
-        ns1.getJournalGarbageCollector().gc(5, TimeUnit.MINUTES);
+        new JournalGarbageCollector(ns1, TimeUnit.MINUTES.toMillis(5)).gc();
 
         // the next modification updates the root revision
         // for clusterId 1 past the removed journal entry
