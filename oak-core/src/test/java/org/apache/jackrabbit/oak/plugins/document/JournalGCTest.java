@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -116,7 +115,6 @@ public class JournalGCTest {
     }
 
     // OAK-5602
-    @Ignore("OAK-5602")
     @Test
     public void gcWithCheckpoint2() throws Exception {
         Clock c = new Clock.Virtual();

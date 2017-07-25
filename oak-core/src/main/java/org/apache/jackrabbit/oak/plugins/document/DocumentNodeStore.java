@@ -24,7 +24,9 @@ import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
@@ -1694,6 +1696,10 @@ public final class DocumentNodeStore
             UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
             NodeDocument.setModified(op, commit.getRevision());
             if (b != null) {
+                // check the branch age and fail the commit
+                // if the first branch commit is too old
+                checkBranchAge(b);
+
                 commit.addBranchCommits(b);
                 Iterator<Revision> mergeCommits = commit.getMergeRevisions().iterator();
                 for (Revision rev : b.getCommits()) {
@@ -2718,11 +2724,14 @@ public final class DocumentNodeStore
         long minTimestamp = Utils.getMinTimestampForDiff(
                 from.getRootRevision(), to.getRootRevision(),
                 getMinExternalRevisions());
+        long minJournalTimestamp = newRevision().getTimestamp() -
+                journalGarbageCollector.getMaxRevisionAgeMillis() / 2;
 
         // use journal if possible
         Revision tailRev = journalGarbageCollector.getTailRevision();
         if (!disableJournalDiff
-                && tailRev.getTimestamp() < minTimestamp) {
+                && tailRev.getTimestamp() < minTimestamp
+                && minJournalTimestamp < minTimestamp) {
             diffAlgo = "diffJournalChildren";
             fromRev = from.getRootRevision();
             toRev = to.getRootRevision();
@@ -2910,6 +2919,22 @@ public final class DocumentNodeStore
 
     private static long now(){
         return System.currentTimeMillis();
+    }
+
+    private void checkBranchAge(Branch b) throws CommitFailedException {
+        // check if initial branch commit is too old to merge
+        long journalMaxAge = journalGarbageCollector.getMaxRevisionAgeMillis();
+        long branchMaxAge = journalMaxAge / 2;
+        long created = b.getCommits().first().getTimestamp();
+        long branchAge = newRevision().getTimestamp() - created;
+        if (branchAge > branchMaxAge) {
+            String msg = "Long running commit detected. Branch was created " +
+                    Utils.timestampToString(created) + ". Consider breaking " +
+                    "the commit down into smaller pieces or increasing the " +
+                    "'journalGCMaxAge' currently set to " + journalMaxAge +
+                    " ms (" + MILLISECONDS.toMinutes(journalMaxAge) + " min).";
+            throw new CommitFailedException(OAK, 200, msg);
+        }
     }
 
     /**
