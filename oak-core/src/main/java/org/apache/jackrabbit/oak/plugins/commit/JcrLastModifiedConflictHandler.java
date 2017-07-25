@@ -20,86 +20,70 @@
 package org.apache.jackrabbit.oak.plugins.commit;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
+import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 
 import java.util.Calendar;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public class JcrLastModifiedConflictHandler implements PartialConflictHandler {
+/**
+ * Conflict Handler that merges concurrent updates to
+ * {@code org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED} by picking the
+ * older of the 2 conflicting dates and
+ * {@code org.apache.jackrabbit.JcrConstants.JCR_CREATED} by picking the newer
+ * of the 2 conflicting dates.
+ */
+public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandler {
 
+    public JcrLastModifiedConflictHandler() {
+        super(Resolution.IGNORED);
+    }
+
+    @Nonnull
     @Override
-    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours,
-            PropertyState theirs) {
-        if (isLastModified(ours)) {
+    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+        if (isModifiedOrCreated(ours.getName())) {
             merge(parent, ours, theirs);
             return Resolution.MERGED;
         }
-        return null;
+        return Resolution.IGNORED;
     }
 
+    @Nonnull
     @Override
-    public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours) {
-        return null;
-    }
-
-    @Override
-    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours,
-            PropertyState theirs) {
-        if (isLastModified(ours)) {
+    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
+            PropertyState base) {
+        if (isModifiedOrCreated(ours.getName())) {
             merge(parent, ours, theirs);
             return Resolution.MERGED;
         }
-        return null;
+        return Resolution.IGNORED;
     }
 
-    private static void merge(NodeBuilder parent, PropertyState ours,
-            PropertyState theirs) {
+    private static void merge(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
         Calendar o = parse(ours.getValue(Type.DATE));
         Calendar t = parse(theirs.getValue(Type.DATE));
-        // pick & set newer one
-        if (o.before(t)) {
-            parent.setProperty(JCR_LASTMODIFIED, t);
+        if (JCR_CREATED.equals(ours.getName())) {
+            parent.setProperty(ours.getName(), pick(o, t, true));
         } else {
-            parent.setProperty(JCR_LASTMODIFIED, o);
+            parent.setProperty(ours.getName(), pick(o, t, false));
         }
     }
 
-    private static boolean isLastModified(PropertyState p) {
-        return JCR_LASTMODIFIED.equals(p.getName());
+    private static Calendar pick(Calendar a, Calendar b, boolean jcrCreated) {
+        if (a.before(b)) {
+            return jcrCreated ? a : b;
+        } else {
+            return jcrCreated ? b : a;
+        }
     }
 
-    @Override
-    public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours) {
-        return null;
-    }
-
-    @Override
-    public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs) {
-        return null;
-    }
-
-    @Override
-    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
-        return null;
-    }
-
-    @Override
-    public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours) {
-        return null;
-    }
-
-    @Override
-    public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs) {
-        return null;
-    }
-
-    @Override
-    public Resolution deleteDeletedNode(NodeBuilder parent, String name) {
-        return null;
+    private static boolean isModifiedOrCreated(String name) {
+        return JCR_LASTMODIFIED.equals(name) || JCR_CREATED.equals(name);
     }
 }
