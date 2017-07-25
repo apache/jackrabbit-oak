@@ -3319,6 +3319,61 @@ public class DocumentNodeStoreTest {
         asyncResult.get(6000, TimeUnit.MILLISECONDS);
     }
 
+    // OAK-5602
+    @Ignore("OAK-5602")
+    @Test
+    public void longRunningTx() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setUpdateLimit(100)
+                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
+                .setBundlingDisabled(true)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("test");
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        NodeBuilder test = builder.child("test");
+        String firstChildId = Utils.getIdFromPath("/test/child-0");
+        for (int i = 0; ; i++) {
+            NodeBuilder child = test.child("child-" + i);
+            for (int j = 0; j < 10; j++) {
+                child.setProperty("p-" + j, "value");
+            }
+            if (docStore.find(NODES, firstChildId) != null) {
+                // branch was created
+                break;
+            }
+        }
+        // simulate a long running commit taking 2 hours
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(2));
+
+        // some other commit that moves the head revision forward
+        NodeBuilder builder2 = ns.getRoot().builder();
+        builder2.child("foo");
+        merge(ns, builder2);
+
+        NodeState before = ns.getRoot().getChildNode("test");
+
+        // merge the long running tx
+        merge(ns, builder);
+
+        // five hours later the branch commit can be collected by the journal GC
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(5));
+        // journal gc cleans up entries older than 6 hours
+        ns.getJournalGarbageCollector().gc();
+
+        // now the node state diff mechanism must not use the journal
+        // because the required journal entry with the branch commit
+        // is incomplete. the journal entry for the merge commit is still
+        // present, but the referenced branch commit has been GCed.
+        NodeState after = ns.getRoot().getChildNode("test");
+        after.compareAgainstBaseState(before, new DefaultNodeStateDiff());
+    }
 
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
