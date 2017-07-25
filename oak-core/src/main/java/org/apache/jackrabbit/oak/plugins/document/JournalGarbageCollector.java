@@ -77,11 +77,17 @@ public class JournalGarbageCollector {
      */
     public int gc() {
         DocumentStore ds = ns.getDocumentStore();
-        Revision keep = ns.getCheckpoints().getOldestRevisionToKeep();
+        Revision checkpointRev = ns.getCheckpoints().getOldestRevisionToKeep();
+        Long keep = null;
+        if (checkpointRev != null) {
+            // keep more entries than just up to the checkpoint to account
+            // for branch commits that may be referenced by merge commits
+            keep = checkpointRev.getTimestamp() - maxRevisionAgeMillis / 2;
+        }
         long now = ns.getClock().getTime();
         long gcOlderThan = now - maxRevisionAgeMillis;
-        if (keep != null && keep.getTimestamp() < gcOlderThan) {
-            gcOlderThan = keep.getTimestamp();
+        if (keep != null && keep < gcOlderThan) {
+            gcOlderThan = keep;
             log.debug("gc: Checkpoint {} is older than maxRevisionAge: {} min",
                     keep, MILLISECONDS.toMinutes(maxRevisionAgeMillis));
         }

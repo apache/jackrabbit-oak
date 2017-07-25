@@ -3320,7 +3320,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-5602
-    @Ignore("OAK-5602")
     @Test
     public void longRunningTx() throws Exception {
         Clock clock = new Clock.Virtual();
@@ -3375,7 +3374,6 @@ public class DocumentNodeStoreTest {
         after.compareAgainstBaseState(before, new DefaultNodeStateDiff());
     }
 
-    @Ignore("OAK-5602")
     @Test
     public void failLongRunningTx() throws Exception {
         Clock clock = new Clock.Virtual();
