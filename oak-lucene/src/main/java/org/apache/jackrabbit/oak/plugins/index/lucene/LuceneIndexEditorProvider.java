@@ -68,6 +68,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
+    private boolean nrtIndexingEnabled;
 
     /**
      * Number of indexed Lucene document that can be held in memory
@@ -134,7 +135,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             LuceneIndexWriterFactory writerFactory = indexWriterFactory;
             IndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
-            if (!indexingContext.isAsync() && IndexDefinition.supportsSyncOrNRTIndexing(definition)) {
+            if (nrtIndexingEnabled() && !indexingContext.isAsync() && IndexDefinition.supportsSyncOrNRTIndexing(definition)) {
 
                 //Would not participate in reindexing. Only interested in
                 //incremental indexing
@@ -221,10 +222,15 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     public void setIndexingQueue(IndexingQueue indexingQueue) {
         this.indexingQueue = indexingQueue;
+        this.nrtIndexingEnabled = indexingQueue != null;
     }
 
     GarbageCollectableBlobStore getBlobStore() {
         return blobStore;
+    }
+
+    private boolean nrtIndexingEnabled() {
+        return nrtIndexingEnabled;
     }
 
     private static CommitContext getCommitContext(IndexingContext indexingContext) {

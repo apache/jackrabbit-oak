@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import javax.jcr.Node
@@ -37,7 +36,6 @@ import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSI
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
 
-@Ignore("OAK-6493")
 class HybridIndexDisabledTest extends AbstractRepositoryFactoryTest {
     Session session
 
