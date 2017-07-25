@@ -324,7 +324,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
             LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo());
             return null;
         }
-        return new CompositeNodeState("/", nodeStates, ctx);
+        return ctx.createRootNodeState(nodeStates);
     }
 
     @Override

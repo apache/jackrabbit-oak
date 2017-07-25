@@ -84,7 +84,7 @@ class CompositeNodeBuilder implements NodeBuilder {
 
     @Override
     public CompositeNodeState getNodeState() {
-        return new CompositeNodeState(path, new IdentityHashMap<>(buildersToNodeStates(nodeBuilders)), ctx);
+        return new CompositeNodeState(path, buildersToNodeStates(nodeBuilders), ctx);
     }
 
     @Override
@@ -93,7 +93,7 @@ class CompositeNodeBuilder implements NodeBuilder {
     }
 
     private static Map<MountedNodeStore, NodeState> buildersToNodeStates(Map<MountedNodeStore, NodeBuilder> builders) {
-        return transformValues(builders, new Function<NodeBuilder, NodeState>() {
+        return new IdentityHashMap<>(transformValues(builders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(NodeBuilder input) {
                 if (input.exists()) {
@@ -102,7 +102,7 @@ class CompositeNodeBuilder implements NodeBuilder {
                     return MISSING_NODE;
                 }
             }
-        });
+        }));
     }
 
     private static Map<MountedNodeStore, NodeState> buildersToBaseStates(Map<MountedNodeStore, NodeBuilder> builders) {
