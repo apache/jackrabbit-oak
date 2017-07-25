@@ -305,12 +305,12 @@ PATH
 
 URI
 : Prefix the value with `uri:`
-: _"serverURI": "uri:http://foo"_  
+: _"serverURI": "uri:http\://foo.example.com"_  
 
 BINARY
 : By default the binary values are encoded as Base64 string if the binary is less than 1 MB size. The encoded value is 
   prefixed with `:blobId:`
-: _"jcr:data": ":blobId:axygz="_  
+: _"jcr:data": ":blobId:axygz"_  
 
 
 ### <a name="tika-setup"></a> Tika Setup
