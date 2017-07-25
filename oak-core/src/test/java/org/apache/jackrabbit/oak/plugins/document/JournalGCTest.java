@@ -21,19 +21,28 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.Iterables;
+
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -46,9 +55,15 @@ public class JournalGCTest {
     private static final Logger LOG = LoggerFactory.getLogger(JournalGCTest.class);
 
     private final ThreadLocal<Boolean> shouldWait = new ThreadLocal<Boolean>();
-    
+
+    @AfterClass
+    public static void resetClock() {
+        Revision.resetClockToDefault();
+    }
+
     @Before
     public void setup() {
+        Revision.resetClockToDefault();
         shouldWait.remove();
     }
     
@@ -98,6 +113,57 @@ public class JournalGCTest {
         // now journal GC can remove the entry
         entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
         assertNull(entry);
+    }
+
+    // OAK-5602
+    @Ignore("OAK-5602")
+    @Test
+    public void gcWithCheckpoint2() throws Exception {
+        Clock c = new Clock.Virtual();
+        c.waitUntil(System.currentTimeMillis());
+        Revision.setClock(c);
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setUpdateLimit(100)
+                .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
+                .clock(c).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        NodeBuilder test = builder.child("test");
+        String testId = Utils.getIdFromPath("/test");
+        for (int i = 0; ; i++) {
+            NodeBuilder child = test.child("child-" + i);
+            for (int j = 0; j < 10; j++) {
+                child.setProperty("p-" + j, "value");
+            }
+            if (docStore.find(NODES, testId) != null) {
+                // branch was created
+                break;
+            }
+        }
+        // simulate a long running commit taking 20 minutes
+        c.waitUntil(c.getTime() + TimeUnit.MINUTES.toMillis(20));
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+
+        Revision head = ns.getHeadRevision().getRevision(ns.getClusterId());
+        assertNotNull(head);
+        ns.checkpoint(TimeUnit.DAYS.toMillis(1));
+
+        JournalEntry entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
+        assertNotNull(entry);
+
+        // wait two hours
+        c.waitUntil(c.getTime() + TimeUnit.HOURS.toMillis(2));
+
+        // instruct journal collector to remove entries older than one hour
+        ns.getJournalGarbageCollector().gc();
+
+        // must not remove existing entry, because checkpoint is still valid
+        entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
+        assertNotNull(entry);
+        // referenced branch commits must also be available
+        assertThat(Iterables.size(entry.getBranchCommits()), greaterThan(0));
     }
 
     @Test
