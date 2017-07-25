@@ -569,7 +569,8 @@ public final class DocumentNodeStore
                 this, builder.createVersionGCSupport());
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
-        this.journalGarbageCollector = new JournalGarbageCollector(this);
+        this.journalGarbageCollector = new JournalGarbageCollector(
+                this, builder.getJournalGCMaxAge());
         this.referencedBlobs =
                 builder.createReferencedBlobs(this);
         this.lastRevSeeker = builder.createMissingLastRevSeeker();
