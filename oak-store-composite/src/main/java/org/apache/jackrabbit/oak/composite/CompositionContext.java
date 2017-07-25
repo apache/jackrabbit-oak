@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.composite;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -32,6 +34,7 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.google.common.collect.ImmutableMap.copyOf;
 import static com.google.common.collect.Iterables.concat;
@@ -51,16 +54,25 @@ class CompositionContext {
 
     private final Map<Mount, MountedNodeStore> nodeStoresByMount;
 
+    private final Set<MountedNodeStore> allStores;
+
     CompositionContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
         this.nonDefaultStores = nonDefaultStores;
-        this.nodeStoresByMount = copyOf(uniqueIndex(getAllMountedNodeStores(), new Function<MountedNodeStore, Mount>() {
+
+        ImmutableSet.Builder<MountedNodeStore> b = ImmutableSet.builder();
+        b.add(this.globalStore);
+        b.addAll(this.nonDefaultStores);
+        allStores = b.build();
+
+        this.nodeStoresByMount = copyOf(uniqueIndex(allStores, new Function<MountedNodeStore, Mount>() {
             @Override
             public Mount apply(MountedNodeStore input) {
                 return input.getMount();
             }
         }));
+
     }
 
     MountedNodeStore getGlobalStore() {
@@ -152,8 +164,8 @@ class CompositionContext {
         }).isPresent();
     }
 
-    Iterable<MountedNodeStore> getAllMountedNodeStores() {
-        return concat(singleton(globalStore), nonDefaultStores);
+    Set<MountedNodeStore> getAllMountedNodeStores() {
+        return allStores;
     }
 
     Blob createBlob(InputStream inputStream) throws IOException {

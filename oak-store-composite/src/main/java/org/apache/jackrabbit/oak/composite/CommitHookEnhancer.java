@@ -62,7 +62,7 @@ class CommitHookEnhancer implements CommitHook {
 
         NodeState result = hook.processCommit(compositeBefore, compositeAfter, info);
         updatedBuilder = Optional.of(toComposite(result, compositeBefore));
-        return updatedBuilder.get().getNodeState().getNodeStates().get(ctx.getGlobalStore());
+        return updatedBuilder.get().getNodeState().getNodeState(ctx.getGlobalStore());
     }
 
     Optional<CompositeNodeBuilder> getUpdatedBuilder() {
