@@ -41,6 +41,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class IndexCommand implements Command {
@@ -56,6 +57,7 @@ public class IndexCommand implements Command {
     private File definitions;
     private File consistencyCheckReport;
     private Options opts;
+    private IndexOptions indexOpts;
 
     @Override
     public void execute(String... args) throws Exception {
@@ -68,7 +70,7 @@ public class IndexCommand implements Command {
         opts.registerOptionsFactory(IndexOptions.FACTORY);
         opts.parseAndConfigure(parser, args);
 
-        IndexOptions indexOpts = opts.getOptionBean(IndexOptions.class);
+        indexOpts = opts.getOptionBean(IndexOptions.class);
 
         //Clean up before setting up NodeStore as the temp
         //directory might be used by NodeStore for cache stuff like persistentCache
@@ -167,7 +169,7 @@ public class IndexCommand implements Command {
         checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
         Stopwatch w = Stopwatch.createStarted();
-        IndexerSupport indexerSupport = new IndexerSupport(indexHelper, checkpoint);
+        IndexerSupport indexerSupport = createIndexerSupport(indexHelper, checkpoint);
         log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint,
                 indexerSupport.getCheckpointInfo());
 
@@ -269,6 +271,17 @@ public class IndexCommand implements Command {
             dumper.dump();
             info = dumper.getOutFile();
         }
+    }
+
+    private IndexerSupport createIndexerSupport(IndexHelper indexHelper, String checkpoint) {
+        IndexerSupport indexerSupport = new IndexerSupport(indexHelper, checkpoint);
+
+        File definitions = indexOpts.getIndexDefinitionsFile();
+        if (definitions != null) {
+            checkArgument(definitions.exists(), "Index definitions file [%s] not found", getPath(definitions));
+            indexerSupport.setIndexDefinitions(definitions);
+        }
+        return indexerSupport;
     }
 
     private static void setupDirectories(IndexOptions indexOpts) throws IOException {

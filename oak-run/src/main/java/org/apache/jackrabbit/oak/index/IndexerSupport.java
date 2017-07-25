@@ -25,8 +25,14 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.felix.inventory.Format;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
+import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +53,7 @@ public class IndexerSupport {
     private Map<String, String> checkpointInfo = Collections.emptyMap();
     private final IndexHelper indexHelper;
     private File localIndexDir;
+    private File indexDefinitions;
     private String checkpoint;
 
     public IndexerSupport(IndexHelper indexHelper, String checkpoint) {
@@ -85,7 +92,25 @@ public class IndexerSupport {
         return checkpointedState;
     }
 
+    public void updateIndexDefinitions(NodeState root, NodeBuilder builder) throws IOException, CommitFailedException {
+        if (indexDefinitions != null) {
+            new IndexDefinitionUpdater(indexDefinitions).apply(root, builder);
+        }
+    }
+
+    public void dumpIndexDefinitions(NodeStore nodeStore) throws IOException, CommitFailedException {
+        IndexDefinitionPrinter printer = new IndexDefinitionPrinter(nodeStore, indexHelper.getIndexPathService());
+        printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
+        PrinterDumper dumper = new PrinterDumper(getLocalIndexDir(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON,
+                false, Format.JSON, printer);
+        dumper.dump();
+    }
+
     public Map<String, String> getCheckpointInfo() {
         return checkpointInfo;
+    }
+
+    public void setIndexDefinitions(File indexDefinitions) {
+        this.indexDefinitions = indexDefinitions;
     }
 }

@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.mergeWithConcurrentCheck;
 
 public class IndexImporter {
@@ -62,7 +62,7 @@ public class IndexImporter {
     private final Map<String, IndexImporterProvider> importers = new HashMap<>();
     private final IndexerInfo indexerInfo;
     private final Map<String, File> indexes;
-    private final ListMultimap<String, IndexInfo> asyncLaneToIndexMapping;
+    private ListMultimap<String, IndexInfo> asyncLaneToIndexMapping;
     private final NodeState indexedState;
     private final IndexEditorProvider indexEditorProvider;
     private final AsyncIndexerLock indexerLock;
@@ -77,7 +77,6 @@ public class IndexImporter {
         indexerInfo = IndexerInfo.fromDirectory(indexDir);
         this.indexerLock = indexerLock;
         indexes = indexerInfo.getIndexes();
-        asyncLaneToIndexMapping = mapIndexesToLanes(indexes);
         indexedState = checkNotNull(nodeStore.retrieve(indexerInfo.checkpoint), "Cannot retrieve " +
                 "checkpointed state [%s]", indexerInfo.checkpoint);
     }
@@ -108,8 +107,15 @@ public class IndexImporter {
         importers.put(importerProvider.getType(), importerProvider);
     }
 
-    void switchLanes() throws CommitFailedException {
-        NodeBuilder builder = nodeStore.getRoot().builder();
+    void switchLanes() throws CommitFailedException, IOException {
+        NodeState root = nodeStore.getRoot();
+        NodeBuilder builder = root.builder();
+
+        //Import the updated index definitions from json
+        new IndexDefinitionUpdater(new File(indexDir, IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON)).apply(root, builder);
+
+        asyncLaneToIndexMapping = mapIndexesToLanes(indexes, builder);
+
         for (IndexInfo indexInfo : asyncLaneToIndexMapping.values()){
             NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexInfo.indexPath);
             AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
@@ -212,19 +218,19 @@ public class IndexImporter {
         return checkNotNull(provider, "No IndexImporterProvider found for type [%s]", type);
     }
 
-    private ListMultimap<String, IndexInfo> mapIndexesToLanes(Map<String, File> indexes) {
-        NodeState rootState = nodeStore.getRoot();
+    private ListMultimap<String, IndexInfo> mapIndexesToLanes(Map<String, File> indexes, NodeBuilder rootBuilder) {
         ListMultimap<String, IndexInfo> map = ArrayListMultimap.create();
         for (Map.Entry<String, File> e : indexes.entrySet()) {
             String indexPath = e.getKey();
 
-            NodeState indexState = NodeStateUtils.getNode(rootState, indexPath);
-            checkArgument(indexState.exists(), "No index node found at path [%s]", indexPath);
+            NodeBuilder indexBuilder = childBuilder(rootBuilder, indexPath);
 
-            String type = indexState.getString(IndexConstants.TYPE_PROPERTY_NAME);
+            checkArgument(indexBuilder.exists(), "No index node found at path [%s]", indexPath);
+
+            String type = indexBuilder.getString(IndexConstants.TYPE_PROPERTY_NAME);
             checkNotNull(type, "No 'type' property found for index at path [%s]", indexPath);
 
-            String asyncName = getAsyncLaneName(indexPath, indexState);
+            String asyncName = getAsyncLaneName(indexPath, indexBuilder.getNodeState());
             if (asyncName == null) {
                 asyncName = ASYNC_LANE_SYNC;
             }
