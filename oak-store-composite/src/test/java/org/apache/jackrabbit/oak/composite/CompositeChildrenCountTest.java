@@ -169,7 +169,7 @@ public class CompositeChildrenCountTest {
         }
 
         public CompositeNodeState getNodeState() {
-            return new CompositeNodeState("/", rootStates, ctx);
+            return ctx.createRootNodeState(rootStates);
         }
 
         public CompositeNodeStoreBuilder clear() {
