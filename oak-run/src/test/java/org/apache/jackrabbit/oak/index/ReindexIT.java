@@ -33,6 +33,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 
 import com.google.common.collect.Iterators;
+import com.google.common.io.Files;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -46,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -103,6 +105,9 @@ public class ReindexIT extends AbstractIndexCommandTest {
         createTestData(true);
         fixture.getAsyncIndexUpdate("async").run();
 
+        //Update index to bar property also but do not index yet
+        indexBarPropertyAlso(fixture);
+
         int fooCount = getFooCount(fixture, "foo");
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
 
@@ -132,7 +137,6 @@ public class ReindexIT extends AbstractIndexCommandTest {
         RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
         addTestContent(fixture2, "/testNode/b", "foo", 100);
         addTestContent(fixture2, "/testNode/c", "bar", 100);
-        indexBarPropertyAlso(fixture2);
         fixture2.getAsyncIndexUpdate("async").run();
 
         String explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
@@ -226,6 +230,66 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         int barCount = getFooCount(fixture2, "bar");
         assertEquals(100, barCount);
+    }
+
+    @Test
+    public void newIndexDefinition() throws Exception{
+        createTestData(true);
+        addTestContent(fixture, "/testNode/c", "bar", 100);
+        fixture.getAsyncIndexUpdate("async").run();
+
+        String explain = getQueryPlan(fixture, "select * from [nt:base] where [bar] is not null");
+        assertThat(explain, containsString("traverse"));
+
+        fixture.close();
+
+        IndexCommand command = new IndexCommand();
+
+        String json = "{\n" +
+                "  \"/oak:index/barIndex\": {\n" +
+                "    \"compatVersion\": 2,\n" +
+                "    \"type\": \"lucene\",\n" +
+                "    \"async\": \"async\",\n" +
+                "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\",\n" +
+                "    \"indexRules\": {\n" +
+                "      \"jcr:primaryType\": \"nt:unstructured\",\n" +
+                "      \"nt:base\": {\n" +
+                "        \"jcr:primaryType\": \"nt:unstructured\",\n" +
+                "        \"properties\": {\n" +
+                "          \"jcr:primaryType\": \"nt:unstructured\",\n" +
+                "          \"bar\": {\n" +
+                "            \"name\": \"bar\",\n" +
+                "            \"propertyIndex\": true,\n" +
+                "            \"jcr:primaryType\": \"nt:unstructured\"\n" +
+                "          }\n" +
+                "        }\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+
+        File jsonFile = temporaryFolder.newFile();
+        Files.write(json, jsonFile, UTF_8);
+
+        File outDir = temporaryFolder.newFolder();
+        File storeDir = fixture.getDir();
+        String[] args = {
+                "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
+                "--index-out-dir="  + outDir.getAbsolutePath(),
+                "--index-paths=/oak:index/barIndex",
+                "--index-definitions-file=" + jsonFile.getAbsolutePath(),
+                "--reindex",
+                "--read-write",
+                "--", // -- indicates that options have ended and rest needs to be treated as non option
+                storeDir.getAbsolutePath()
+        };
+
+        command.execute(args);
+
+        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+
+        explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
+        assertThat(explain, containsString("/oak:index/barIndex"));
     }
 
     private void indexBarPropertyAlso(RepositoryFixture fixture2) throws IOException, RepositoryException {

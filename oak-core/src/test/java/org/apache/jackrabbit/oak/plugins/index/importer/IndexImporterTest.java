@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Properties;
 import java.util.Set;
 
@@ -28,6 +30,8 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.io.Files;
+import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -35,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -57,6 +62,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -155,6 +161,40 @@ public class IndexImporterTest {
         importer.importIndexData();
 
         assertTrue(store.getRoot().getChildNode("idx-a").getBoolean("imported"));
+    }
+
+    @Test
+    public void importData_UpdatedIndexDefinition() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("idx-a").setProperty("type", "property");
+        builder.child("idx-a").setProperty("foo", "bar");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        createIndexDirs("/idx-a");
+
+        //We remove foo property here
+        builder = store.getRoot().builder();
+        builder.child("idx-a").removeProperty("foo");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+
+        IndexImporterProvider provider = new IndexImporterProvider() {
+            @Override
+            public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+                //Foo property should be set by virtue of import from json
+                assertEquals("bar", defn.getString("foo"));
+            }
+
+            @Override
+            public String getType() {
+                return "property";
+            }
+        };
+        importer.addImporterProvider(provider);
+        importer.switchLanes();
+        importer.importIndexData();
     }
 
     @Test
@@ -328,7 +368,7 @@ public class IndexImporterTest {
                 : PropertyValues.newString(value)));
     }
 
-    private String createIndexDirs(String... indexPaths) throws IOException {
+    private String createIndexDirs(String... indexPaths) throws IOException, CommitFailedException {
         String checkpoint = store.checkpoint(1000000);
         IndexerInfo info = new IndexerInfo(temporaryFolder.getRoot(), checkpoint);
         info.save();
@@ -342,7 +382,17 @@ public class IndexImporterTest {
             indexDir.mkdir();
             PropUtils.writeTo(p, indexMeta, "index info");
         }
-
+        dumpIndexDefinitions(indexPaths);
         return checkpoint;
+    }
+
+    private void dumpIndexDefinitions(String... indexPaths) throws IOException, CommitFailedException {
+        IndexDefinitionPrinter printer = new IndexDefinitionPrinter(store, () -> asList(indexPaths));
+        printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
+        File file = new File(temporaryFolder.getRoot(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON);
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        printer.print(pw, Format.JSON, false);
+        Files.write(sw.toString(), file, UTF_8);
     }
 }
