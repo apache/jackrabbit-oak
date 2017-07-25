@@ -106,12 +106,12 @@ class CompositeNodeBuilder implements NodeBuilder {
     }
 
     private static Map<MountedNodeStore, NodeState> buildersToBaseStates(Map<MountedNodeStore, NodeBuilder> builders) {
-        return transformValues(builders, new Function<NodeBuilder, NodeState>() {
+        return new IdentityHashMap<>(transformValues(builders, new Function<NodeBuilder, NodeState>() {
             @Override
             public NodeState apply(NodeBuilder input) {
                 return input.getBaseState();
             }
-        });
+        }));
     }
 
     // node or property-related methods ; directly delegate to wrapped builder
