@@ -182,4 +182,10 @@ class CopyOnReadIdentityMap<K, V> implements Map<K, V> {
             cachedValues = new IdentityHashMap<>(map.size());
         }
     }
+
+    @Override
+    public String toString() {
+        readAll();
+        return cachedValues.toString();
+    }
 }
