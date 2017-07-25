@@ -50,6 +50,7 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
 
     @Reference
     private NodeStore nodeStore;
+    private String filter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";;
 
     public IndexDefinitionPrinter() {
     }
@@ -75,8 +76,11 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
         }
     }
 
+    public void setFilter(String filter) {
+        this.filter = filter;
+    }
+
     private JsonSerializer createSerializer(JsopBuilder json) {
-        String excludeHiddenFilter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";
-        return new JsonSerializer(json, excludeHiddenFilter, new BlobSerializer());
+        return new JsonSerializer(json, filter, new BlobSerializer());
     }
 }
