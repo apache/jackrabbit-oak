@@ -109,7 +109,7 @@ public class LuceneIndexEditorProviderTest {
                 null,
                 null,
                 Mounts.defaultMountInfoProvider());
-
+        editorProvider.setIndexingQueue(mock(DocumentQueue.class));
         IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), true, false);
         NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
         Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
