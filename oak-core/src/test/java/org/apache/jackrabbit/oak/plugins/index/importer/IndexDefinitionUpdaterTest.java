@@ -95,17 +95,35 @@ public class IndexDefinitionUpdaterTest {
         map.put("a", ImmutableMap.of("a2", "b2"));
         String json = JSONObject.toJSONString(map);
         applyJson(json);
+    }
 
+    @Test
+    public void applyToIndexPath() throws Exception{
+        String json = "{\"/oak:index/barIndex\": {\n" +
+                "    \"compatVersion\": 2,\n" +
+                "    \"type\": \"lucene\",\n" +
+                "    \"barIndexProp\": \"barbar\",\n" +
+                "    \"async\": \"async\",\n" +
+                "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" +
+                "  }}";
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("oak:index");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexDefinitionUpdater updater = new IndexDefinitionUpdater(json);
+        builder = store.getRoot().builder();
+        NodeBuilder idxBuilder = updater.apply(builder, "/oak:index/barIndex");
+
+        //Check builder returned is of /oak:index/barIndex
+        assertTrue(idxBuilder.hasProperty("barIndexProp"));
     }
 
     private void applyJson(String json) throws IOException, CommitFailedException {
-        NodeBuilder builder;File file = folder.newFile();
-        Files.write(json, file, UTF_8);
+        IndexDefinitionUpdater update = new IndexDefinitionUpdater(json);
 
-        IndexDefinitionUpdater update = new IndexDefinitionUpdater(file);
-
-        builder = store.getRoot().builder();
-        update.apply(store.getRoot(), builder);
+        NodeBuilder builder = store.getRoot().builder();
+        update.apply(builder);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 

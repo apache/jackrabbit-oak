@@ -166,7 +166,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
     private void switchIndexLanesAndReindexFlag() throws CommitFailedException, IOException {
         NodeState root = copyOnWriteStore.getRoot();
         NodeBuilder builder = root.builder();
-        indexerSupport.updateIndexDefinitions(root, builder);
+        indexerSupport.updateIndexDefinitions(builder);
 
         for (String indexPath : indexHelper.getIndexPaths()) {
             //TODO Do it only for lucene indexes for now

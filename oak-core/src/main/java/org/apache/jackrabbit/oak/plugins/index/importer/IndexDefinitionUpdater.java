@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.importer;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
@@ -51,52 +52,61 @@ public class IndexDefinitionUpdater {
      */
     public static final String INDEX_DEFINITIONS_JSON = "index-definitions.json";
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final File file;
+    private final Map<String, NodeState> indexNodeStates;
 
-    public IndexDefinitionUpdater(File file) {
+    public IndexDefinitionUpdater(File file) throws IOException {
         checkArgument(file.exists() && file.canRead(), "File [%s] cannot be read", file);
-        this.file = file;
+        this.indexNodeStates = getIndexDefnStates(FileUtils.readFileToString(file, Charsets.UTF_8));
     }
 
-    public void apply(NodeState root, NodeBuilder builder) throws IOException, CommitFailedException {
-        for (Map.Entry<String, NodeState> cne : getIndexDefnStates().entrySet()) {
+    public IndexDefinitionUpdater(String json) throws IOException {
+        this.indexNodeStates = getIndexDefnStates(json);
+    }
+
+    public void apply(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
+        for (Map.Entry<String, NodeState> cne : indexNodeStates.entrySet()) {
             String indexPath = cne.getKey();
-
-            if (!indexPath.startsWith("/")) {
-                String msg = String.format("Invalid format of index definitions. The key name [%s] should " +
-                        "be index path ", indexPath);
-                throw new IllegalArgumentException(msg);
-            }
-
-            String indexNodeName = PathUtils.getName(indexPath);
-
-            NodeState newDefinition = cne.getValue();
-            String parentPath = PathUtils.getParentPath(indexPath);
-            NodeState parent = NodeStateUtils.getNode(root, parentPath);
-
-            checkState(parent.exists(), "Parent node at path [%s] not found while " +
-                    "adding new index definition for [%s]. Intermediate paths node must exist for new index " +
-                    "nodes to be created", parentPath,indexPath);
-
-            NodeState existing = parent.getChildNode(indexNodeName);
-
-
-            if (!existing.exists()) {
-                log.info("Adding new index definition at path [{}]", indexPath);
-            } else {
-                log.info("Updating index definition at path [{}]. Changes are ", indexPath);
-                String diff = JsopDiff.diffToJsop(cloneVisibleState(existing), cloneVisibleState(newDefinition));
-                log.info(diff);
-            }
-
-
-            NodeBuilder indexBuilder = childBuilder(builder, parentPath);
-            indexBuilder.setChildNode(indexNodeName, newDefinition);
+            apply(rootBuilder, indexPath);
         }
     }
 
-    private Map<String, NodeState> getIndexDefnStates() throws IOException {
-        String json = FileUtils.readFileToString(file, Charsets.UTF_8);
+    public NodeBuilder apply(NodeBuilder rootBuilder, String indexPath) {
+        String indexNodeName = PathUtils.getName(indexPath);
+
+        NodeState newDefinition = indexNodeStates.get(indexPath);
+        String parentPath = PathUtils.getParentPath(indexPath);
+        NodeState parent = NodeStateUtils.getNode(rootBuilder.getBaseState(), parentPath);
+
+        checkState(parent.exists(), "Parent node at path [%s] not found while " +
+                "adding new index definition for [%s]. Intermediate paths node must exist for new index " +
+                "nodes to be created", parentPath,indexPath);
+
+        NodeState indexDefinitionNode = parent.getChildNode(indexNodeName);
+
+        if (indexDefinitionNode.exists()) {
+            log.info("Updating index definition at path [{}]. Changes are ", indexPath);
+            String diff = JsopDiff.diffToJsop(cloneVisibleState(indexDefinitionNode), cloneVisibleState(newDefinition));
+            log.info(diff);
+        } else {
+            log.info("Adding new index definition at path [{}]", indexPath);
+        }
+
+
+        NodeBuilder indexBuilderParent = childBuilder(rootBuilder, parentPath);
+        //TODO Need to update parent :childNode list if parent has orderable children
+        indexBuilderParent.setChildNode(indexNodeName, newDefinition);
+        return indexBuilderParent.getChildNode(indexNodeName);
+    }
+
+    public Set<String> getIndexPaths(){
+        return indexNodeStates.keySet();
+    }
+
+    public NodeState getIndexState(String indexPath){
+        return indexNodeStates.getOrDefault(indexPath, EMPTY_NODE);
+    }
+
+    private static Map<String, NodeState> getIndexDefnStates(String json) throws IOException {
         Base64BlobSerializer blobHandler = new Base64BlobSerializer();
         Map<String, NodeState> indexDefns = Maps.newHashMap();
         JsopReader reader = new JsopTokenizer(json);
@@ -104,6 +114,13 @@ public class IndexDefinitionUpdater {
         if (!reader.matches('}')) {
             do {
                 String indexPath = reader.readString();
+
+                if (!indexPath.startsWith("/")) {
+                    String msg = String.format("Invalid format of index definitions. The key name [%s] should " +
+                            "be index path ", indexPath);
+                    throw new IllegalArgumentException(msg);
+                }
+
                 reader.read(':');
                 if (reader.matches('{')) {
                     JsonDeserializer deserializer = new JsonDeserializer(blobHandler);
