@@ -34,6 +34,8 @@
         * [B - Online indexing](#online-indexing)
             * [Step 1 - Text PreExtraction](#online-indexing-pre-extract)
             * [Step 2 - Perform reindexing](#online-indexing-perform-reindex)
+        * [Updating or Adding New Index Definitions](#index-definition-updates)
+        * [JSON File Format](#json-file-format)
         * [Tika Setup](#tika-setup)
 
 `@since Oak 1.7.0`
@@ -150,6 +152,7 @@ Here following options can be used
 * `--index-paths` - This command requires an explicit set of index paths which need to be indexed (required)
 * `--checkpoint` - The checkpoint up to which the index is updated, when indexing in read only mode. For
   testing purpose, it can be set to 'head' to indicate that the head state should be used. (required)
+* `-index-definitions-file` - json file file path which contains updated index definitions
   
 If the index does not support fulltext indexing then you can omit providing BlobStore details
   
@@ -199,7 +202,116 @@ In this step we configure oak-run to connect to repository in read-write mode an
 checkpoint creation, indexing and import
 
     java -jar oak-run*.jar index --reindex --index-paths=/oak:index/lucene --read-write --fds-path=/path/to/datastore /path/to/segmentstore
+
+### <a name="index-definition-updates"></a> Updating or Adding New Index Definitions
+
+`@since Oak 1.7.5`
+
+Index tooling support updating and adding new index definitions to existing setups. This can be done by passing 
+in path of a json file which contains index definitions
+
+    java -jar oak-run*.jar index index --reindex --index-paths=/oak:index/newAssetIndex \
+    --index-definitions-file=index-definitions.json \
+    --fds-path=/path/to/datastore /path/to/segmentstore  
+   
+Where index-definitions.json has following structure
+
+    {
+      "/oak:index/newAssetIndex": {
+        "evaluatePathRestrictions": true,
+        "compatVersion": 2,
+        "type": "lucene",
+        "async": "async",
+        "jcr:primaryType": "oak:QueryIndexDefinition",
+        "indexRules": {
+          "jcr:primaryType": "nt:unstructured",
+          "dam:Asset": {
+            "jcr:primaryType": "nt:unstructured",
+            "properties": {
+              "jcr:primaryType": "nt:unstructured",
+              "valid": {
+                "name": "valid",
+                "propertyIndex": true,
+                "jcr:primaryType": "nt:unstructured",
+                "notNullCheckEnabled": true
+              },
+              "mimetype": {
+                "name": "mimetype",
+                "analyzed": true,
+                "jcr:primaryType": "nt:unstructured"
+              }
+            }
+          }
+        }
+      }
+    }
     
+Some points to note about this json file
+* Each key of top level object refers to the index path
+* The value of each such key refers to complete index definition 
+* If the index path is not present in existing repository then it would result in a new index being created
+* In case of new index it must be ensured that parent path structure must already exist in repository. 
+  So if a new index is being created at `/content/en/oak:index/contentIndex` then path upto  `/content/en/oak:index`
+  should already exist in repository
+
+You can also use the json file generated from [Oakutils](http://oakutils.appspot.com/generate/index). It needs to be 
+modified to confirm to above structure i.e. enclose the whole definition under the intended index path key.
+
+In general the index definitions does not need any special encoding of values as Index definitions in Oak use
+only String, Long and Double types mostly. However if the index refers to binary config like Tika config then
+the binary data would need to encoded. Refer to next section for more details.
+    
+This option is supported in both online and out-of-band indexing.
+
+For more details refer to [OAK-6471][OAK-6471]
+    
+### <a name="json-file-format"></a> JSON File Format
+
+Some of the standard types used in Oak are not supported directly by JSON like names, blobs etc. Those would need to be 
+encoded in a specific format.
+
+Below are the encoding rules
+
+LONG
+: No encoding required
+: _"compatVersion": 2_
+
+BOOLEAN
+: No encoding required
+: _"propertyIndex": true,_
+
+DOUBLE
+: No encoding required
+: _"weight": 1.5_ 
+
+STRING
+: Prefix the value with `str:`
+: Generally the value need not be encoded. Encoding is only required if the string starts with 3 letters and then colon
+: _"pathPropertyName": "str:jcr:path"_  
+
+DATE
+: Prefix the value with `dat:`. The value is ISO8601 formatted date string
+: _"created": "dat:2017-07-20T13:23:21.196+05:30"_  
+
+NAME
+: Prefix the value with `nam:`.
+: For `jcr:primaryType` and `jcr:mixins` no encoding is required. Any property with these names would be converted to
+  NAME type
+: _"nodetype": "nam:nt:base"_ 
+
+PATH
+: Prefix the value with `pat:`
+: _"imagePath": "pat:/content/assets/book.jpg"_  
+
+URI
+: Prefix the value with `uri:`
+: _"serverURI": "uri:http://foo"_  
+
+BINARY
+: By default the binary values are encoded as Base64 string if the binary is less than 1 MB size. The encoded value is 
+  prefixed with `:blobId:`
+: _"jcr:data": ":blobId:axygz="_  
+
 
 ### <a name="tika-setup"></a> Tika Setup
 
@@ -215,5 +327,4 @@ Then modify the index command like below. The rest of arguments remain same as d
     java -cp oak-run.jar:tika-app-1.15.jar org.apache.jackrabbit.oak.run.Main index
     
 
-
-
+[OAK-6471]: https://issues.apache.org/jira/browse/OAK-6471
