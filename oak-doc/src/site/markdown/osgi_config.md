@@ -288,7 +288,7 @@ versionGCContinuous
 : Since 1.7.4
 
 journalGCMaxAge
-: Default 21600000 (6 hrs)
+: Default 86400000 (24 hrs, was 6 hrs until 1.7.4)
 : Journal entries older than `journalGCMaxAge` can be removed by the journal
   garbage collector. The maximum age is specified in milliseconds.
 : Since 1.0.19, 1.2.3, 1.4
