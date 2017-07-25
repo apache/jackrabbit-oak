@@ -263,7 +263,7 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_JOURNAL_GC_INTERVAL_MILLIS = "journalGCInterval";
     
-    static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 6*60*60*1000; // default is 6hours
+    static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
     @Property(longValue = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS,
             label = "Maximum Age of Journal Entries (millis)",
             description = "Long value indicating max age (in milliseconds) that "
