@@ -92,9 +92,9 @@ public class IndexerSupport {
         return checkpointedState;
     }
 
-    public void updateIndexDefinitions(NodeState root, NodeBuilder builder) throws IOException, CommitFailedException {
+    public void updateIndexDefinitions(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
         if (indexDefinitions != null) {
-            new IndexDefinitionUpdater(indexDefinitions).apply(root, builder);
+            new IndexDefinitionUpdater(indexDefinitions).apply(rootBuilder);
         }
     }
 
