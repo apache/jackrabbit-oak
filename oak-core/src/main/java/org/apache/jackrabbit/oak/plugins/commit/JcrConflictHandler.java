@@ -35,7 +35,7 @@ public final class JcrConflictHandler {
      */
     public static CompositeConflictHandler createJcrConflictHandler() {
         return new CompositeConflictHandler(ImmutableList.of(
-                ConflictHandlers.wrap(new JcrLastModifiedConflictHandler()),
+                new JcrLastModifiedConflictHandler(),
                 ConflictHandlers.wrap(new ChildOrderConflictHandler()),
                 new AnnotatingConflictHandler()));
     }
