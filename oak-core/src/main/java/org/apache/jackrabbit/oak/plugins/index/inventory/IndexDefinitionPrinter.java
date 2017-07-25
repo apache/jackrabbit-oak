@@ -76,7 +76,7 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
     }
 
     private JsonSerializer createSerializer(JsopBuilder json) {
-        String excludeHiddenFilter = "{\"nodes\":[\"*\", \"-:*\"]}";
+        String excludeHiddenFilter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";
         return new JsonSerializer(json, excludeHiddenFilter, new BlobSerializer());
     }
 }
