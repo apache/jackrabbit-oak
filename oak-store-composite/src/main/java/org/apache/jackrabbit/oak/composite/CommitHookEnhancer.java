@@ -50,19 +50,24 @@ class CommitHookEnhancer implements CommitHook {
     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
         Map<MountedNodeStore, NodeState> beforeStates = newHashMap();
         Map<MountedNodeStore, NodeState> afterStates = newHashMap();
-        for (Map.Entry<MountedNodeStore, NodeBuilder> e : builders.entrySet()) {
-            afterStates.put(e.getKey(), e.getKey().getNodeStore().rebase(e.getValue()));
-            beforeStates.put(e.getKey(), e.getValue().getBaseState());
+        for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
+            afterStates.put(mns, mns.getNodeStore().rebase(builders.get(mns)));
+            beforeStates.put(mns, builders.get(mns).getBaseState());
         }
-        beforeStates.put(ctx.getGlobalStore(), before);
         afterStates.put(ctx.getGlobalStore(), after);
+        beforeStates.put(ctx.getGlobalStore(), before);
 
         CompositeNodeState compositeBefore = ctx.createRootNodeState(beforeStates);
         CompositeNodeState compositeAfter = ctx.createRootNodeState(afterStates);
 
         NodeState result = hook.processCommit(compositeBefore, compositeAfter, info);
         updatedBuilder = Optional.of(toComposite(result, compositeBefore));
-        return updatedBuilder.get().getNodeState().getNodeState(ctx.getGlobalStore());
+
+        if (result instanceof CompositeNodeState) {
+            return ((CompositeNodeState) result).getNodeState(ctx.getGlobalStore());
+        } else {
+            throw new IllegalStateException("The commit hook result should be a composite node state");
+        }
     }
 
     Optional<CompositeNodeBuilder> getUpdatedBuilder() {

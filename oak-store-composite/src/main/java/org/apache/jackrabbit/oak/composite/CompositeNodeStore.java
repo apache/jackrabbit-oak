@@ -144,22 +144,25 @@ public class CompositeNodeStore implements NodeStore, Observable {
             CommitHookEnhancer hookEnhancer = new CommitHookEnhancer(commitHook, ctx, nodeBuilder.getBuilders());
             NodeState globalResult = globalStore.getNodeStore().merge(nodeBuilder.getBuilders().get(globalStore), hookEnhancer, info);
             resultStates.put(globalStore, globalResult);
-            CompositeNodeBuilder updatedBuilder = hookEnhancer.getUpdatedBuilder().orElse(nodeBuilder);
+
+            if (!hookEnhancer.getUpdatedBuilder().isPresent()) {
+                // it means that the commit hook wasn't invoked, because there were
+                // no changes on the global store. we should invoke it anyway.
+                hookEnhancer.processCommit(globalResult, globalResult, info);
+            }
+            CompositeNodeBuilder updatedBuilder = hookEnhancer.getUpdatedBuilder().get();
 
             // merge the partial builders
             for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
                 NodeBuilder partialBuilder = updatedBuilder.getBuilders().get(mns);
 
                 if (mns.getMount().isReadOnly()) {
-                    if (!partialBuilder.getNodeState().equals(partialBuilder.getBaseState())) {
-                        throw new CommitFailedException("CompositeStore", 31, "Unable to perform changes on read-only mount " + mns.getMount().getName());
-                    }
-                    resultStates.put(mns, partialBuilder.getBaseState());
-                    continue;
+                    assertNoChange(mns, partialBuilder);
+                    resultStates.put(mns, mns.getNodeStore().getRoot());
+                } else {
+                    NodeState partialState = mns.getNodeStore().merge(partialBuilder, EmptyHook.INSTANCE, info);
+                    resultStates.put(mns, partialState);
                 }
-
-                NodeState partialState = mns.getNodeStore().merge(partialBuilder, EmptyHook.INSTANCE, info);
-                resultStates.put(mns, partialState);
             }
 
             CompositeNodeState newRoot = ctx.createRootNodeState(resultStates);
@@ -178,18 +181,22 @@ public class CompositeNodeStore implements NodeStore, Observable {
                 continue;
             }
             NodeBuilder partialBuilder = nodeBuilder.getBuilders().get(mountedNodeStore);
-            NodeState baseState = partialBuilder.getBaseState();
-            NodeState nodeState = partialBuilder.getNodeState();
-            if (!nodeState.equals(baseState)) {
-                Set<String> changedPaths = getModifiedPaths(baseState, nodeState);
-                Set<String> ignoredChangedPaths = getIgnoredPaths(changedPaths);
-                if (!ignoredChangedPaths.isEmpty()) {
-                    LOG.debug("Can't merge following read-only paths (they are configured to be ignored): {}.", ignoredChangedPaths);
-                }
-                Set<String> failingChangedPaths = difference(changedPaths, ignoredChangedPaths);
-                if (!failingChangedPaths.isEmpty()) {
-                    throw new CommitFailedException("CompositeStore", 31, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount().getName() + ". Failing paths: " + failingChangedPaths.toString());
-                }
+            assertNoChange(mountedNodeStore, partialBuilder);
+        }
+    }
+
+    private void assertNoChange(MountedNodeStore mountedNodeStore, NodeBuilder partialBuilder) throws CommitFailedException {
+        NodeState baseState = partialBuilder.getBaseState();
+        NodeState nodeState = partialBuilder.getNodeState();
+        if (!nodeState.equals(baseState)) {
+            Set<String> changedPaths = getModifiedPaths(baseState, nodeState);
+            Set<String> ignoredChangedPaths = getIgnoredPaths(changedPaths);
+            if (!ignoredChangedPaths.isEmpty()) {
+                LOG.debug("Can't merge following read-only paths (they are configured to be ignored): {}.", ignoredChangedPaths);
+            }
+            Set<String> failingChangedPaths = difference(changedPaths, ignoredChangedPaths);
+            if (!failingChangedPaths.isEmpty()) {
+                throw new CommitFailedException("CompositeStore", 31, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount().getName() + ". Failing paths: " + failingChangedPaths.toString());
             }
         }
     }

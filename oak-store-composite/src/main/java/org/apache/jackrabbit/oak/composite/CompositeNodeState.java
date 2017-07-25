@@ -19,9 +19,6 @@
 package org.apache.jackrabbit.oak.composite;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -33,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +40,6 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.asMap;
 import static com.google.common.collect.Maps.transformValues;
-import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.composite.CompositeNodeBuilder.simpleConcat;
@@ -92,9 +87,8 @@ class CompositeNodeState extends AbstractNodeState {
         }
 
         // this shouldn't happen, so we need to log some more debug info
-        String mountName = mns.getMount().isDefault() ? "[default]" : mns.getMount().getName();
-        LOG.warn("Can't find node state for path {} and mount {}. The node state map: {}", path, mountName, nodeStates);
-        throw new IllegalStateException("Can't find the node state for mount " + mountName);
+        LOG.warn("Can't find node state for path {} and mount {}. The node state map: {}", path, mns, nodeStates);
+        throw new IllegalStateException("Can't find the node state for mount " + mns);
     }
 
     @Override
