@@ -26,6 +26,7 @@ import java.io.IOException;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.CorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -53,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.asList;
 
 public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTraversalCallback {
@@ -168,7 +170,9 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
         for (String indexPath : indexHelper.getIndexPaths()) {
             //TODO Do it only for lucene indexes for now
-            NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexPath);
+            NodeBuilder idxBuilder = childBuilder(builder, indexPath, false);
+            checkState(idxBuilder.exists(), "No index definition found at path [%s]", indexPath);
+
             idxBuilder.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
             AsyncLaneSwitcher.switchLane(idxBuilder, REINDEX_LANE);
         }
@@ -182,7 +186,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         NodeBuilder builder = root.builder();
 
         for (String indexPath : indexHelper.getIndexPaths()) {
-            NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexPath);
+            NodeBuilder idxBuilder = childBuilder(builder, indexPath, false);
             AsyncLaneSwitcher.revertSwitch(idxBuilder, indexPath);
         }
 
@@ -199,5 +203,12 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
         NodeCounterMBeanEstimator estimator = new NodeCounterMBeanEstimator(indexHelper.getNodeStore());
         indexUpdate.setNodeCountEstimator(estimator);
+    }
+
+    private static NodeBuilder childBuilder(NodeBuilder nb, String path, boolean createNew) {
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            nb = createNew ? nb.child(name) : nb.getChildNode(name);
+        }
+        return nb;
     }
 }
