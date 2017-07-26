@@ -28,12 +28,14 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
 import org.apache.jackrabbit.oak.json.JsopDiff;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -92,8 +94,13 @@ public class IndexDefinitionUpdater {
         }
 
 
+
         NodeBuilder indexBuilderParent = childBuilder(rootBuilder, parentPath);
-        //TODO Need to update parent :childNode list if parent has orderable children
+
+        //Use Tree api to ensure that :childOrder property is properly updated
+        Tree t = TreeFactory.createTree(indexBuilderParent);
+        t.addChild(indexNodeName);
+
         indexBuilderParent.setChildNode(indexNodeName, newDefinition);
         return indexBuilderParent.getChildNode(indexNodeName);
     }
