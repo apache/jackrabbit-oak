@@ -440,7 +440,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                     // shallow memory:
                     // - 8 bytes per reference in values list
                     // - 48 bytes per string
-                    // double useage per property because of parsed PropertyState
+                    // double usage per property because of parsed PropertyState
                     size += (56 + propState.size(i) * 2) * 2;
                 }
             } else {
@@ -448,7 +448,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                 // referencing the binary in the blob store
                 // double the size because the parsed PropertyState
                 // will have a similarly sized blobId as well
-                size += (long)estimateMemoryUsage(getPropertyAsString(entry.getKey())) * 2;
+                size += (long)estimateMemoryUsage(asString(entry.getValue())) * 2;
             }
         }
         if (size > Integer.MAX_VALUE) {
