@@ -19,13 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
-import java.util.Collections;
 
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ResetCommitAttributeHook;
+import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -40,10 +47,22 @@ final class NodeStoreUtils {
 
     static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder) throws CommitFailedException {
         CompositeHook hooks = new CompositeHook(
+                ResetCommitAttributeHook.INSTANCE,
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
         );
-        nodeStore.merge(builder, hooks, CommitInfo.EMPTY);
+        nodeStore.merge(builder, hooks, createCommitInfo());
+    }
+
+    static void mergeWithConcurrentCheck(NodeStore nodeStore, NodeBuilder builder,
+                                         IndexEditorProvider indexEditorProvider) throws CommitFailedException {
+        CompositeHook hooks = new CompositeHook(
+                ResetCommitAttributeHook.INSTANCE,
+                new EditorHook(new IndexUpdateProvider(indexEditorProvider)),
+                new ConflictHook(new AnnotatingConflictHandler()),
+                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+        );
+        nodeStore.merge(builder, hooks, createCommitInfo());
     }
 
     static NodeBuilder childBuilder(NodeBuilder nb, String path) {
@@ -51,5 +70,10 @@ final class NodeStoreUtils {
             nb = nb.child(name);
         }
         return nb;
+    }
+
+    private static CommitInfo createCommitInfo() {
+        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 }
