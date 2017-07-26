@@ -18,18 +18,21 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -2921,6 +2924,59 @@ public class DocumentNodeStoreTest {
         }
         assertEquals(1L, names.size());
         assertTrue(names.contains("a"));
+    }
+
+    // OAK-6495
+    @Test
+    public void diffWithBrokenJournal() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(docStore)
+                .setBundlingDisabled(true)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("test");
+        merge(ns, builder);
+
+        NodeState before = ns.getRoot().getChildNode("test");
+
+        builder = ns.getRoot().builder();
+        NodeBuilder test = builder.child("test");
+        String firstChildId = Utils.getIdFromPath("/test/child-0");
+        for (int i = 0; ; i++) {
+            NodeBuilder child = test.child("child-" + i);
+            for (int j = 0; j < 10; j++) {
+                child.setProperty("p-" + j, "value");
+            }
+            if (docStore.find(NODES, firstChildId) != null) {
+                // branch was created
+                break;
+            }
+        }
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+
+        Revision head = ns.getHeadRevision().getRevision(ns.getClusterId());
+        assertNotNull(head);
+
+        JournalEntry entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
+        assertNotNull(entry);
+
+        // must reference at least one branch commit
+        assertThat(Iterables.size(entry.getBranchCommits()), greaterThan(0));
+        // now remove them
+        for (JournalEntry bc : entry.getBranchCommits()) {
+            docStore.remove(JOURNAL, bc.getId());
+        }
+
+        // compare must still succeed even when branch commits
+        // are missing in the journal
+        NodeState after = ns.getRoot().getChildNode("test");
+        after.compareAgainstBaseState(before, new DefaultNodeStateDiff());
     }
 
     private static class TestException extends RuntimeException {
