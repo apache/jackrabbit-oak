@@ -16,43 +16,47 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
-import com.google.common.collect.Maps;
+import com.google.common.collect.FluentIterable;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.composite.util.Memoizer;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Maps.transformValues;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.composite.CompositeNodeState.STOP_COUNTING_CHILDREN;
+import static org.apache.jackrabbit.oak.composite.CompositeNodeState.accumulateChildSizes;
+import static org.apache.jackrabbit.oak.composite.CompositeNodeState.wrapWithNullCheck;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 class CompositeNodeBuilder implements NodeBuilder {
 
+    private static final Logger LOG = LoggerFactory.getLogger(CompositeNodeBuilder.class);
+
     private final String path;
 
     private final CompositionContext ctx;
 
-    private Map<MountedNodeStore, NodeBuilder> nodeBuilders;
+    private Function<MountedNodeStore, NodeBuilder> nodeBuilders;
 
     private final MountedNodeStore owningStore;
 
@@ -60,15 +64,14 @@ class CompositeNodeBuilder implements NodeBuilder {
 
     private final CompositeNodeBuilder rootBuilder;
 
-    CompositeNodeBuilder(String path, Map<MountedNodeStore, NodeBuilder> nodeBuilders, CompositionContext ctx) {
+    CompositeNodeBuilder(String path, Function<MountedNodeStore, NodeBuilder> nodeBuilders, CompositionContext ctx) {
         this(path, nodeBuilders, ctx, null);
     }
 
-    private CompositeNodeBuilder(String path, Map<MountedNodeStore, NodeBuilder> nodeBuilders, CompositionContext ctx, CompositeNodeBuilder parent) {
-        checkArgument(nodeBuilders.size() == ctx.getStoresCount(), "Got %s builders but the context manages %s stores", nodeBuilders.size(), ctx.getStoresCount());
+    private CompositeNodeBuilder(String path, Function<MountedNodeStore, NodeBuilder> nodeBuilders, CompositionContext ctx, CompositeNodeBuilder parent) {
         this.path = path;
         this.ctx = ctx;
-        this.nodeBuilders = new CopyOnReadIdentityMap<>(nodeBuilders);
+        this.nodeBuilders = wrapWithNullCheck(Memoizer.memoize(nodeBuilders), LOG, path);
         this.owningStore = ctx.getOwningStore(path);
         this.parent = parent;
         if (parent == null) {
@@ -78,40 +81,24 @@ class CompositeNodeBuilder implements NodeBuilder {
         }
     }
 
-    Map<MountedNodeStore, NodeBuilder> getBuilders() {
-        return nodeBuilders;
+    NodeBuilder getNodeBuilder(MountedNodeStore mns) {
+        return nodeBuilders.apply(mns);
     }
 
     @Override
     public CompositeNodeState getNodeState() {
-        return new CompositeNodeState(path, buildersToNodeStates(nodeBuilders), ctx);
+        Map<MountedNodeStore, NodeState> states = ctx.getAllMountedNodeStores().stream().collect(Collectors.toMap(Function.identity(),
+                nodeBuilders
+                        .andThen(n -> n.exists() ? n.getNodeState() : MISSING_NODE)));
+        return new CompositeNodeState(path, states, ctx);
     }
 
     @Override
     public CompositeNodeState getBaseState() {
-        return new CompositeNodeState(path, buildersToBaseStates(nodeBuilders), ctx);
-    }
-
-    private static Map<MountedNodeStore, NodeState> buildersToNodeStates(Map<MountedNodeStore, NodeBuilder> builders) {
-        return new IdentityHashMap<>(transformValues(builders, new Function<NodeBuilder, NodeState>() {
-            @Override
-            public NodeState apply(NodeBuilder input) {
-                if (input.exists()) {
-                    return input.getNodeState();
-                } else {
-                    return MISSING_NODE;
-                }
-            }
-        }));
-    }
-
-    private static Map<MountedNodeStore, NodeState> buildersToBaseStates(Map<MountedNodeStore, NodeBuilder> builders) {
-        return new IdentityHashMap<>(transformValues(builders, new Function<NodeBuilder, NodeState>() {
-            @Override
-            public NodeState apply(NodeBuilder input) {
-                return input.getBaseState();
-            }
-        }));
+        Map<MountedNodeStore, NodeState> states = ctx.getAllMountedNodeStores().stream().collect(Collectors.toMap(Function.identity(),
+                nodeBuilders
+                        .andThen(NodeBuilder::getBaseState)));
+        return new CompositeNodeState(path, states, ctx);
     }
 
     // node or property-related methods ; directly delegate to wrapped builder
@@ -219,35 +206,31 @@ class CompositeNodeBuilder implements NodeBuilder {
             return getWrappedNodeBuilder().getChildNodeCount(max);
         } else {
             // Count the children in each contributing store.
-            return CompositeNodeState.accumulateChildSizes(concat(transform(contributingStores, new Function<MountedNodeStore, Iterable<String>>() {
-                @Override
-                public Iterable<String> apply(MountedNodeStore input) {
-                    NodeBuilder contributing = nodeBuilders.get(input);
-                    if (contributing.getChildNodeCount(max) == MAX_VALUE) {
-                        return singleton(CompositeNodeState.STOP_COUNTING_CHILDREN);
-                    } else {
-                        return filter(contributing.getChildNodeNames(), ctx.belongsToStore(input, path));
-                    }
-                }
-            })), max);
+            return accumulateChildSizes(FluentIterable.from(contributingStores)
+                    .transformAndConcat(mns -> {
+                        NodeBuilder node = nodeBuilders.apply(mns);
+                        if (node.getChildNodeCount(max) == MAX_VALUE) {
+                            return singleton(STOP_COUNTING_CHILDREN);
+                        } else {
+                            return FluentIterable.from(node.getChildNodeNames()).filter(e -> belongsToStore(mns, e));
+                        }
+                    }), max);
         }
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return concat(transform(ctx.getContributingStoresForBuilders(path, nodeBuilders), new Function<MountedNodeStore, Iterable<String>>() {
-            @Override
-            public Iterable<String> apply(final MountedNodeStore mountedNodeStore) {
-                return filter(nodeBuilders.get(mountedNodeStore).getChildNodeNames(), ctx.belongsToStore(mountedNodeStore, path));
-            }
-        }));
+        return FluentIterable.from(ctx.getContributingStoresForBuilders(path, nodeBuilders))
+                .transformAndConcat(mns -> FluentIterable
+                        .from(nodeBuilders.apply(mns).getChildNodeNames())
+                        .filter(e -> belongsToStore(mns, e)));
     }
 
     @Override
     public boolean hasChildNode(String name) {
         String childPath = simpleConcat(path, name);
         MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
-        return nodeBuilders.get(mountedStore).hasChildNode(name);
+        return nodeBuilders.apply(mountedStore).hasChildNode(name);
     }
 
     @Override
@@ -260,29 +243,24 @@ class CompositeNodeBuilder implements NodeBuilder {
     }
 
     private void createAncestors(MountedNodeStore mountedNodeStore) {
-        NodeBuilder builder = rootBuilder.nodeBuilders.get(mountedNodeStore);
+        NodeBuilder builder = rootBuilder.nodeBuilders.apply(mountedNodeStore);
         for (String element : PathUtils.elements(path)) {
             builder = builder.child(element);
         }
-        if (nodeBuilders instanceof CopyOnReadIdentityMap) {
-            nodeBuilders = new IdentityHashMap<>(nodeBuilders);
-        }
-        nodeBuilders.put(mountedNodeStore, builder);
+
+        // the nodeBuilders function should be updated, to return the new node builder
+        Map<MountedNodeStore, NodeBuilder> map = newHashMap(ctx.getAllMountedNodeStores().stream().collect(Collectors.toMap(Function.identity(), nodeBuilders)));
+        map.put(mountedNodeStore, builder);
+        nodeBuilders = wrapWithNullCheck(m -> map.get(m), LOG, path);
     }
 
     @Override
     public NodeBuilder getChildNode(final String name) {
         String childPath = simpleConcat(path, name);
         if (!ctx.shouldBeComposite(childPath)) {
-            return nodeBuilders.get(ctx.getOwningStore(childPath)).getChildNode(name);
+            return nodeBuilders.apply(ctx.getOwningStore(childPath)).getChildNode(name);
         }
-        Map<MountedNodeStore, NodeBuilder> newNodeBuilders = transformValues(nodeBuilders, new Function<NodeBuilder, NodeBuilder>() {
-            @Override
-            public NodeBuilder apply(NodeBuilder input) {
-                return input.getChildNode(name);
-            }
-        });
-        return new CompositeNodeBuilder(childPath, newNodeBuilders, ctx, this);
+        return new CompositeNodeBuilder(childPath, nodeBuilders.andThen(b -> b.getChildNode(name)), ctx, this);
     }
 
     @Override
@@ -295,25 +273,15 @@ class CompositeNodeBuilder implements NodeBuilder {
         checkState(exists(), "This builder does not exist: " + PathUtils.getName(path));
         String childPath = simpleConcat(path, name);
         final MountedNodeStore childStore = ctx.getOwningStore(childPath);
-        if (childStore != owningStore && !nodeBuilders.get(childStore).exists()) {
+        if (childStore != owningStore && !nodeBuilders.apply(childStore).exists()) {
             createAncestors(childStore);
         }
-        final NodeBuilder childBuilder = nodeBuilders.get(childStore).setChildNode(name, nodeState);
+        final NodeBuilder childBuilder = nodeBuilders.apply(childStore).setChildNode(name, nodeState);
         if (!ctx.shouldBeComposite(childPath)) {
             return childBuilder;
         }
 
-        Map<MountedNodeStore, NodeBuilder> newNodeBuilders = Maps.transformEntries(nodeBuilders, new Maps.EntryTransformer<MountedNodeStore, NodeBuilder, NodeBuilder>() {
-            @Override
-            public NodeBuilder transformEntry(MountedNodeStore key, NodeBuilder value) {
-                if (key == childStore) {
-                    return childBuilder;
-                } else {
-                    return value.getChildNode(name);
-                }
-            }
-        });
-        return new CompositeNodeBuilder(childPath, newNodeBuilders, ctx, this);
+        return new CompositeNodeBuilder(childPath, m -> m == childStore ? childBuilder : nodeBuilders.apply(m).getChildNode(name), ctx, this);
     }
 
     @Override
@@ -346,7 +314,7 @@ class CompositeNodeBuilder implements NodeBuilder {
     }
 
     private NodeBuilder getWrappedNodeBuilder() {
-        return nodeBuilders.get(owningStore);
+        return nodeBuilders.apply (owningStore);
     }
 
     private void annotateSourcePath() {
@@ -401,6 +369,10 @@ class CompositeNodeBuilder implements NodeBuilder {
 
     String getPath() {
         return path;
+    }
+
+    private boolean belongsToStore(MountedNodeStore mns, String childName) {
+        return ctx.belongsToStore(mns, path, childName);
     }
 
     /**

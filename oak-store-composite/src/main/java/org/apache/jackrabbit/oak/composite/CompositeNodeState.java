@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.composite.util.Memoizer;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
@@ -32,18 +32,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.compose;
-import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Maps.asMap;
-import static com.google.common.collect.Maps.transformValues;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.composite.CompositeNodeBuilder.simpleConcat;
-import static org.apache.jackrabbit.oak.spi.state.ChildNodeEntry.GET_NAME;
 
 class CompositeNodeState extends AbstractNodeState {
 
@@ -70,25 +64,36 @@ class CompositeNodeState extends AbstractNodeState {
 
     private final MountedNodeStore owningStore;
 
-    private final Map<MountedNodeStore, NodeState> nodeStates;
+    private final Function<MountedNodeStore, NodeState> nodeStates;
 
     CompositeNodeState(String path, Map<MountedNodeStore, NodeState> nodeStates, CompositionContext ctx) {
-        checkArgument(nodeStates.size() == ctx.getStoresCount(), "Got %s node states but the context manages %s stores", nodeStates.size(), ctx.getStoresCount());
         this.path = path;
         this.ctx = ctx;
-        this.nodeStates = new CopyOnReadIdentityMap<>(nodeStates);
+        this.nodeStates = wrapWithNullCheck(mns -> nodeStates.get(mns), LOG, path);
         this.owningStore = ctx.getOwningStore(path);
     }
 
-    NodeState getNodeState(MountedNodeStore mns) {
-        NodeState nodeState = nodeStates.get(mns);
-        if (nodeState != null) {
-            return nodeState;
-        }
+    CompositeNodeState(String path, Function<MountedNodeStore, NodeState> nodeStates, CompositionContext ctx) {
+        this.path = path;
+        this.ctx = ctx;
+        this.nodeStates = wrapWithNullCheck(Memoizer.memoize(nodeStates), LOG, path);
+        this.owningStore = ctx.getOwningStore(path);
+    }
 
-        // this shouldn't happen, so we need to log some more debug info
-        LOG.warn("Can't find node state for path {} and mount {}. The node state map: {}", path, mns, nodeStates);
-        throw new IllegalStateException("Can't find the node state for mount " + mns);
+    static <N> Function<MountedNodeStore, N> wrapWithNullCheck(Function<MountedNodeStore, N> f, Logger log, String path) {
+        return mns -> {
+            N nodeState = f.apply(mns);
+            if (nodeState == null) {
+                // this shouldn't happen, so we need to log some more debug info
+                log.warn("Can't find node state for path {} and mount {}.", path, mns);
+                throw new IllegalStateException("Can't find the node state for mount " + mns);
+            }
+            return nodeState;
+        };
+    }
+
+    NodeState getNodeState(MountedNodeStore mns) {
+        return nodeStates.apply(mns);
     }
 
     @Override
@@ -122,44 +127,37 @@ class CompositeNodeState extends AbstractNodeState {
     public boolean hasChildNode(String name) {
         String childPath = simpleConcat(path, name);
         MountedNodeStore mountedStore = ctx.getOwningStore(childPath);
-        return getNodeState(mountedStore).hasChildNode(name);
+        return nodeStates.apply(mountedStore).hasChildNode(name);
     }
 
     @Override
     public NodeState getChildNode(final String name) {
         String childPath = simpleConcat(path, name);
         if (!ctx.shouldBeComposite(childPath)) {
-            return getNodeState(ctx.getOwningStore(childPath)).getChildNode(name);
+            return nodeStates.apply(ctx.getOwningStore(childPath)).getChildNode(name);
         }
-        Map<MountedNodeStore, NodeState> newNodeStates = transformValues(safeGetMap(), new Function<NodeState, NodeState>() {
-            @Override
-            public NodeState apply(NodeState input) {
-                return input.getChildNode(name);
-            }
-        });
+        Function<MountedNodeStore, NodeState> newNodeStates = nodeStates.andThen(n -> n.getChildNode(name));
         return new CompositeNodeState(childPath, newNodeStates, ctx);
     }
 
     @Override
     public long getChildNodeCount(final long max) {
-        List<MountedNodeStore> contributingStores = ctx.getContributingStoresForNodes(path, safeGetMap());
+        List<MountedNodeStore> contributingStores = ctx.getContributingStoresForNodes(path, nodeStates);
         if (contributingStores.isEmpty()) {
             return 0; // this shouldn't happen
         } else if (contributingStores.size() == 1) {
             return getWrappedNodeState().getChildNodeCount(max);
         } else {
             // Count the children in each contributing store.
-            return accumulateChildSizes(concat(transform(contributingStores, new Function<MountedNodeStore, Iterable<String>>() {
-                @Override
-                public Iterable<String> apply(MountedNodeStore mns) {
-                    NodeState contributing = getNodeState(mns);
-                    if (contributing.getChildNodeCount(max) == MAX_VALUE) {
-                        return singleton(STOP_COUNTING_CHILDREN);
-                    } else {
-                        return filter(contributing.getChildNodeNames(), ctx.belongsToStore(mns, path));
-                    }
-                }
-            })), max);
+            return accumulateChildSizes(FluentIterable.from(contributingStores)
+                    .transformAndConcat(mns -> {
+                        NodeState node = nodeStates.apply(mns);
+                        if (node.getChildNodeCount(max) == MAX_VALUE) {
+                            return singleton(STOP_COUNTING_CHILDREN);
+                        } else {
+                            return FluentIterable.from(node.getChildNodeNames()).filter(e -> belongsToStore(mns, e));
+                        }
+                    }), max);
         }
     }
 
@@ -176,19 +174,11 @@ class CompositeNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        Iterable<? extends ChildNodeEntry> nativeChildren = concat(transform(ctx.getContributingStoresForNodes(path, safeGetMap()), new Function<MountedNodeStore, Iterable<? extends ChildNodeEntry>>() {
-            @Override
-            public Iterable<? extends ChildNodeEntry> apply(final MountedNodeStore mountedNodeStore) {
-                return filter(getNodeState(mountedNodeStore).getChildNodeEntries(), compose(ctx.belongsToStore(mountedNodeStore, path), GET_NAME));
-            }
-        }));
-        return transform(nativeChildren, new Function<ChildNodeEntry, ChildNodeEntry>() {
-            @Override
-            public ChildNodeEntry apply(ChildNodeEntry input) {
-                NodeState wrapped = getChildNode(input.getName());
-                return new MemoryChildNodeEntry(input.getName(), wrapped);
-            }
-        });
+        return FluentIterable.from(ctx.getContributingStoresForNodes(path, nodeStates))
+                .transformAndConcat(mns -> FluentIterable
+                        .from(nodeStates.apply(mns).getChildNodeNames())
+                        .filter(n -> belongsToStore(mns, n)))
+                .transform(n -> new MemoryChildNodeEntry(n, getChildNode(n)));
     }
 
     @Override
@@ -197,13 +187,13 @@ class CompositeNodeState extends AbstractNodeState {
             CompositeNodeState multiBase = (CompositeNodeState) base;
             NodeStateDiff wrappingDiff = new WrappingDiff(diff, multiBase);
             boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), new ChildrenDiffFilter(wrappingDiff, owningStore, true));
-            for (MountedNodeStore mns : ctx.getContributingStoresForNodes(path, safeGetMap())) {
+            for (MountedNodeStore mns : ctx.getContributingStoresForNodes(path, nodeStates)) {
                 if (owningStore == mns) {
                     continue;
                 }
                 NodeStateDiff childrenDiffFilter = new ChildrenDiffFilter(wrappingDiff, mns, false);
-                NodeState contributing = getNodeState(mns);
-                NodeState contributingBase = multiBase.getNodeState(mns);
+                NodeState contributing = nodeStates.apply(mns);
+                NodeState contributingBase = multiBase.nodeStates.apply(mns);
                 full = full && contributing.compareAgainstBaseState(contributingBase, childrenDiffFilter);
             }
             return full;
@@ -215,21 +205,15 @@ class CompositeNodeState extends AbstractNodeState {
     // write operations
     @Override
     public CompositeNodeBuilder builder() {
-        Map<MountedNodeStore, NodeBuilder> nodeBuilders = transformValues(safeGetMap(), new Function<NodeState, NodeBuilder>() {
-            @Override
-            public NodeBuilder apply(NodeState input) {
-                return input.builder();
-            }
-        });
-        return new CompositeNodeBuilder(path, nodeBuilders, ctx);
+        return new CompositeNodeBuilder(path, nodeStates.andThen(NodeState::builder), ctx);
     }
 
     private NodeState getWrappedNodeState() {
-        return getNodeState(owningStore);
+        return nodeStates.apply(owningStore);
     }
 
-    private Map<MountedNodeStore, NodeState> safeGetMap() {
-        return asMap(ctx.getAllMountedNodeStores(), this::getNodeState);
+    private boolean belongsToStore(MountedNodeStore mns, String childName) {
+        return ctx.belongsToStore(mns, path, childName);
     }
 
     private class ChildrenDiffFilter implements NodeStateDiff {
@@ -354,5 +338,4 @@ class CompositeNodeState extends AbstractNodeState {
             return CompositeNodeState.this.getChildNode(name);
         }
     }
-
 }
