@@ -53,7 +53,7 @@
  *
  *  <p>The current implementation naively queries all stores whenever the child node list is prepared.
  *  This is obviously correct but may be slow.
- *  {@link org.apache.jackrabbit.oak.composite.CompositionContext#getContributingStores(java.lang.String, com.google.common.base.Function)}
+ *  {@link org.apache.jackrabbit.oak.composite.CompositionContext#getContributingStores(java.lang.String, java.util.function.Function)}
  */
 @Version("0.2.0")
 package org.apache.jackrabbit.oak.composite;
