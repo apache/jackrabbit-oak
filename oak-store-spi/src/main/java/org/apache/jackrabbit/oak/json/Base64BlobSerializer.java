@@ -33,10 +33,11 @@ import org.apache.jackrabbit.util.Base64;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class Base64BlobSerializer extends BlobSerializer implements BlobDeserializer {
+    private static final int DEFAULT_LIMIT = Integer.getInteger("oak.serializer.maxBlobSize", (int)FileUtils.ONE_MB);
     private final int maxSize;
 
     public Base64BlobSerializer() {
-        this((int)FileUtils.ONE_MB);
+        this(DEFAULT_LIMIT);
     }
 
     public Base64BlobSerializer(int maxSize) {

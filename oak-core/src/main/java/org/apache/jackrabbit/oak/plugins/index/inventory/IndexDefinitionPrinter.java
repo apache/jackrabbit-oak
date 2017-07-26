@@ -29,6 +29,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
@@ -81,6 +82,6 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
     }
 
     private JsonSerializer createSerializer(JsopBuilder json) {
-        return new JsonSerializer(json, filter, new BlobSerializer());
+        return new JsonSerializer(json, filter, new Base64BlobSerializer());
     }
 }
