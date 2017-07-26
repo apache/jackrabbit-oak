@@ -27,7 +27,7 @@ public class RandomStream extends InputStream {
     private long pos, size;
     private Random random;
 
-    RandomStream(long size, int seed) {
+    public RandomStream(long size, int seed) {
         this.size = size;
         this.random = new Random(seed);
     }
