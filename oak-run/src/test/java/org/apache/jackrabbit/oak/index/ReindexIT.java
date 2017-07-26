@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -33,10 +34,13 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
+import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.importer.ClusterNodeStoreLock;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
@@ -50,6 +54,7 @@ import org.junit.Test;
 import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -290,6 +295,12 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString("/oak:index/barIndex"));
+
+        IndexPathService idxPathService = new IndexPathServiceImpl(fixture2.getNodeStore());
+        List<String> indexPaths = Lists.newArrayList(idxPathService.getIndexPaths());
+
+        assertThat(indexPaths, hasItem("/oak:index/nodetype"));
+        assertThat(indexPaths, hasItem("/oak:index/barIndex"));
     }
 
     private void indexBarPropertyAlso(RepositoryFixture fixture2) throws IOException, RepositoryException {

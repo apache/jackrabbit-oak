@@ -142,7 +142,7 @@ public class IndexImporter {
             incrementReIndexCount(idxBuilder);
             getImporter(indexInfo.type).importIndex(root, idxBuilder, indexInfo.indexDir);
         }
-        mergeWithConcurrentCheck(nodeStore, rootBuilder);
+        mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider);
     }
 
     private void bringIndexUpToDate() throws CommitFailedException {
