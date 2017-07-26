@@ -20,7 +20,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import javax.annotation.Nonnull;
@@ -33,15 +32,15 @@ class CommitHookEnhancer implements CommitHook {
 
     private final CompositionContext ctx;
 
-    private final Map<MountedNodeStore, NodeBuilder> builders;
+    private final CompositeNodeBuilder builder;
 
     private final CommitHook hook;
 
     private Optional<CompositeNodeBuilder> updatedBuilder = Optional.empty();
 
-    CommitHookEnhancer(CommitHook hook, CompositionContext ctx, Map<MountedNodeStore, NodeBuilder> builders) {
+    CommitHookEnhancer(CommitHook hook, CompositionContext ctx, CompositeNodeBuilder builder) {
         this.ctx = ctx;
-        this.builders = builders;
+        this.builder = builder;
         this.hook = hook;
     }
 
@@ -51,8 +50,8 @@ class CommitHookEnhancer implements CommitHook {
         Map<MountedNodeStore, NodeState> beforeStates = newHashMap();
         Map<MountedNodeStore, NodeState> afterStates = newHashMap();
         for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
-            afterStates.put(mns, mns.getNodeStore().rebase(builders.get(mns)));
-            beforeStates.put(mns, builders.get(mns).getBaseState());
+            afterStates.put(mns, mns.getNodeStore().rebase(builder.getNodeBuilder(mns)));
+            beforeStates.put(mns, builder.getNodeBuilder(mns).getBaseState());
         }
         afterStates.put(ctx.getGlobalStore(), after);
         beforeStates.put(ctx.getGlobalStore(), before);

@@ -16,11 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -35,13 +31,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-import static com.google.common.collect.ImmutableMap.copyOf;
-import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Iterables.tryFind;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.uniqueIndex;
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 
 class CompositionContext {
@@ -66,12 +60,7 @@ class CompositionContext {
         b.addAll(this.nonDefaultStores);
         allStores = b.build();
 
-        this.nodeStoresByMount = copyOf(uniqueIndex(allStores, new Function<MountedNodeStore, Mount>() {
-            @Override
-            public Mount apply(MountedNodeStore input) {
-                return input.getMount();
-            }
-        }));
+        this.nodeStoresByMount = allStores.stream().collect(Collectors.toMap(MountedNodeStore::getMount, Function.identity()));
 
     }
 
@@ -92,31 +81,18 @@ class CompositionContext {
         }
     }
 
-    List<MountedNodeStore> getContributingStoresForNodes(String path, final Map<MountedNodeStore, NodeState> nodeStates) {
-        return getContributingStores(path, new Function<MountedNodeStore, Iterable<String>>() {
-            @Override
-            public Iterable<String> apply(MountedNodeStore input) {
-                return nodeStates.get(input).getChildNodeNames();
-            }
-        });
+    List<MountedNodeStore> getContributingStoresForNodes(String path, final Function<MountedNodeStore, NodeState> nodeStates) {
+        return getContributingStores(path, mns -> nodeStates.apply(mns).getChildNodeNames());
     }
 
-    List<MountedNodeStore> getContributingStoresForBuilders(String path, final Map<MountedNodeStore, NodeBuilder> nodeBuilders) {
-        return getContributingStores(path, new Function<MountedNodeStore, Iterable<String>>() {
-            @Override
-            public Iterable<String> apply(MountedNodeStore input) {
-                return nodeBuilders.get(input).getChildNodeNames();
-            }
-        });
+    List<MountedNodeStore> getContributingStoresForBuilders(String path, final Function<MountedNodeStore, NodeBuilder> nodeBuilders) {
+        return getContributingStores(path, mns -> nodeBuilders.apply(mns).getChildNodeNames());
     }
 
     boolean shouldBeComposite(final String path) {
-        if (Iterables.tryFind(nonDefaultStores, new Predicate<MountedNodeStore>() {
-            @Override
-            public boolean apply(MountedNodeStore input) {
-                return input.getMount().isSupportFragment(path);
-            }
-        }).isPresent()) {
+        if (nonDefaultStores.stream()
+                .map(MountedNodeStore::getMount)
+                .anyMatch(m -> m.isSupportFragment(path))) {
             return true;
         }
         return !mip.getMountsPlacedUnder(path).isEmpty();
@@ -156,12 +132,9 @@ class CompositionContext {
         if (!mount.isSupportFragment(parentPath)) {
             return false;
         }
-        return tryFind(childrenProvider.apply(mns), new Predicate<String>() {
-            @Override
-            public boolean apply(String input) {
-                return input.contains(mount.getPathFragmentName());
-            }
-        }).isPresent();
+
+        return StreamSupport.stream(childrenProvider.apply(mns).spliterator(), false)
+                .anyMatch(i -> i.contains(mount.getPathFragmentName()));
     }
 
     Set<MountedNodeStore> getAllMountedNodeStores() {
@@ -172,17 +145,8 @@ class CompositionContext {
         return globalStore.getNodeStore().createBlob(inputStream);
     }
 
-    int getStoresCount() {
-        return nonDefaultStores.size() + 1;
-    }
-
-    Predicate<String> belongsToStore(final MountedNodeStore mountedNodeStore, final String parentPath) {
-        return new Predicate<String>() {
-            @Override
-            public boolean apply(String childName) {
-                return getOwningStore(PathUtils.concat(parentPath, childName)) == mountedNodeStore;
-            }
-        };
+    boolean belongsToStore(final MountedNodeStore mountedNodeStore, final String parentPath, final String childName) {
+        return getOwningStore(PathUtils.concat(parentPath, childName)) == mountedNodeStore;
     }
 
     CompositeNodeState createRootNodeState(Map<MountedNodeStore, NodeState> rootStates) {
