@@ -3414,7 +3414,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-6495
-    @Ignore("OAK-6495")
     @Test
     public void diffWithBrokenJournal() throws Exception {
         Clock clock = new Clock.Virtual();

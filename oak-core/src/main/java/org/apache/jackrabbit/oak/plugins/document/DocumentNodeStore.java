@@ -2717,10 +2717,10 @@ public final class DocumentNodeStore
         final long start = debug ? now() : 0;
         long getChildrenDoneIn = start;
 
-        String diff;
-        String diffAlgo;
-        RevisionVector fromRev = from.getLastRevision();
-        RevisionVector toRev = to.getLastRevision();
+        String diff = null;
+        String diffAlgo = null;
+        RevisionVector fromRev = null;
+        RevisionVector toRev = null;
         long minTimestamp = Utils.getMinTimestampForDiff(
                 from.getRootRevision(), to.getRootRevision(),
                 getMinExternalRevisions());
@@ -2732,11 +2732,22 @@ public final class DocumentNodeStore
         if (!disableJournalDiff
                 && tailRev.getTimestamp() < minTimestamp
                 && minJournalTimestamp < minTimestamp) {
-            diffAlgo = "diffJournalChildren";
-            fromRev = from.getRootRevision();
-            toRev = to.getRootRevision();
-            diff = new JournalDiffLoader(from, to, this).call();
-        } else {
+            try {
+                diff = new JournalDiffLoader(from, to, this).call();
+                diffAlgo = "diffJournalChildren";
+                fromRev = from.getRootRevision();
+                toRev = to.getRootRevision();
+            } catch (RuntimeException e) {
+                LOG.warn("diffJournalChildren failed with " +
+                        e.getClass().getSimpleName() +
+                        ", falling back to classic diff", e);
+            }
+        }
+        if (diff == null) {
+            // fall back to classic diff
+            fromRev = from.getLastRevision();
+            toRev = to.getLastRevision();
+
             JsopWriter w = new JsopStream();
             boolean continueDiff = bundledDocDiffer.diff(from, to, w);
 
