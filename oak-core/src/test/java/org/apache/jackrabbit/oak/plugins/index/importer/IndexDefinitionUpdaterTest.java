@@ -24,14 +24,19 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Files;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -44,7 +49,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.base.Charsets.*;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.*;
@@ -117,6 +121,34 @@ public class IndexDefinitionUpdaterTest {
 
         //Check builder returned is of /oak:index/barIndex
         assertTrue(idxBuilder.hasProperty("barIndexProp"));
+    }
+
+    @Test
+    public void newIndexAndOrderableChildren() throws Exception{
+        String json = "{\"/oak:index/barIndex\": {\n" +
+                "    \"compatVersion\": 2,\n" +
+                "    \"type\": \"lucene\",\n" +
+                "    \"barIndexProp\": \"barbar\",\n" +
+                "    \"async\": \"async\",\n" +
+                "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" +
+                "  }}";
+
+        NodeBuilder builder = store.getRoot().builder();
+        Tree root = TreeFactory.createTree(builder);
+        Tree oakIndex = root.addChild("oak:index");
+        oakIndex.setOrderableChildren(true);
+        Tree fooIndex = oakIndex.addChild("fooIndex");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexDefinitionUpdater updater = new IndexDefinitionUpdater(json);
+        builder = store.getRoot().builder();
+        NodeBuilder idxBuilder = updater.apply(builder, "/oak:index/barIndex");
+
+        PropertyState childOrder = builder.getChildNode("oak:index").getProperty(":childOrder");
+        List<String> names = ImmutableList.copyOf(childOrder.getValue(Type.NAMES));
+
+        assertEquals(asList("fooIndex", "barIndex"), names);
+
     }
 
     private void applyJson(String json) throws IOException, CommitFailedException {
