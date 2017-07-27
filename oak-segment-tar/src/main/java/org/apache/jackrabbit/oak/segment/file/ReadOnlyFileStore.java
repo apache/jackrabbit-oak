@@ -63,9 +63,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     ReadOnlyFileStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
-        if (notEmptyDirectory(directory)) {
-            checkManifest(openManifest());
-        }
+        newManifestChecker(directory).checkManifest();
 
         tarFiles = TarFiles.builder()
                 .withDirectory(directory)

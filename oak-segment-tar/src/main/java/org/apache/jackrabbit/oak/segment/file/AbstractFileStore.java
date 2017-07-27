@@ -24,6 +24,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -70,12 +71,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     private static final String MANIFEST_FILE_NAME = "manifest";
 
     /**
-     * This value can be used as an invalid store version, since the store
-     * version is defined to be strictly greater than zero.
-     */
-    private static final int INVALID_STORE_VERSION = 0;
-
-    /**
      * The minimum supported store version. It is possible for an implementation
      * to support in a transparent and backwards-compatible way older versions
      * of a repository. In this case, the minimum supported store version
@@ -83,7 +78,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      * implementation. The minimum store version has to be greater than zero and
      * less than or equal to the maximum store version.
      */
-    static final int MIN_STORE_VERSION = 1;
+    private static final int MIN_STORE_VERSION = 1;
 
     /**
      * The maximum supported store version. It is possible for an implementation
@@ -93,9 +88,18 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      * implementation. The maximum supported store version has to be greater
      * than zero and greater than or equal to the minimum store version.
      */
-    static final int MAX_STORE_VERSION = 2;
+    private static final int MAX_STORE_VERSION = 2;
 
-    protected static boolean notEmptyDirectory(File path) {
+    static ManifestChecker newManifestChecker(File directory) {
+        return ManifestChecker.newManifestChecker(
+                new File(directory, MANIFEST_FILE_NAME),
+                notEmptyDirectory(directory),
+                MIN_STORE_VERSION,
+                MAX_STORE_VERSION
+        );
+    }
+
+    private static boolean notEmptyDirectory(File path) {
         Collection<File> entries = FileUtils.listFiles(path, new String[] {"tar"}, false);
         checkArgument(entries != null, "{} is not a directory, or an I/O error occurred", path);
         return entries.size() > 0;
@@ -147,46 +151,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             return (SegmentNotFoundException) e.getCause();
         }
         return new SegmentNotFoundException(id, e);
-    }
-
-    File getManifestFile() {
-        return new File(directory, MANIFEST_FILE_NAME);
-    }
-
-     Manifest openManifest() throws IOException {
-        File file = getManifestFile();
-
-        if (file.exists()) {
-            return Manifest.load(file);
-        }
-
-        return null;
-    }
-
-     static Manifest checkManifest(Manifest manifest) throws InvalidFileStoreVersionException {
-        if (manifest == null) {
-            throw new InvalidFileStoreVersionException("Using oak-segment-tar, but oak-segment should be used");
-        }
-
-        int storeVersion = manifest.getStoreVersion(INVALID_STORE_VERSION);
-
-        // A store version less than or equal to the highest invalid value means
-        // that something or someone is messing up with the manifest. This error
-        // is not recoverable and is thus represented as an ISE.
-
-        if (storeVersion <= INVALID_STORE_VERSION) {
-            throw new IllegalStateException("Invalid store version");
-        }
-
-         if (storeVersion < MIN_STORE_VERSION) {
-            throw new InvalidFileStoreVersionException("Using a too recent version of oak-segment-tar");
-         }
-
-         if (storeVersion > MAX_STORE_VERSION) {
-            throw new InvalidFileStoreVersionException("Using a too old version of oak-segment tar");
-        }
-
-        return manifest;
     }
 
     @Nonnull
