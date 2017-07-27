@@ -1222,7 +1222,7 @@ public class FileStore extends AbstractFileStore {
                 @Override
                 public boolean apply(GCGeneration generation) {
                     return reference.compareFull(generation) >= retainedGenerations
-                            || reference.compareTail(generation) >= retainedGenerations;
+                            || (reference.compareTail(generation) >= retainedGenerations && !generation.isTail());
                 }
                 @Override
                 public String toString() {
