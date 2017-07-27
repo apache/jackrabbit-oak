@@ -86,10 +86,10 @@ class TarWriter implements Closeable {
     private final FileStoreMonitor monitor;
 
     /**
-     * File handle. Initialized lazily in
-     * {@link #writeEntry(long, long, byte[], int, int, int)} to avoid creating
-     * an extra empty file when just reading from the repository.
-     * Should only be accessed from synchronized code.
+     * File handle. Initialized lazily in {@link #writeEntry(UUID, byte[],
+     * byte[], int, int, GCGeneration)} to avoid creating an extra empty file
+     * when just reading from the repository. Should only be accessed from
+     * synchronized code.
      */
     private RandomAccessFile access = null;
 
@@ -125,7 +125,8 @@ class TarWriter implements Closeable {
     private final IOMonitor ioMonitor;
 
     /**
-     * Used for maintenance operations (GC or recovery) via the TarReader and tests
+     * Used for maintenance operations (GC or recovery) via the TarReader and
+     * tests
      */
     TarWriter(File file, IOMonitor ioMonitor) {
         this.file = file;
@@ -172,9 +173,7 @@ class TarWriter implements Closeable {
         }
     }
 
-    long writeEntry(
-            long msb, long lsb, byte[] data, int offset, int size, int generation)
-            throws IOException {
+    long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
         checkNotNull(data);
         checkPositionIndexes(offset, offset + size, data.length);
 
@@ -188,7 +187,7 @@ class TarWriter implements Closeable {
         return writeEntry(uuid, header, data, offset, size, generation);
     }
 
-    private synchronized long writeEntry(UUID uuid, byte[] header, byte[] data, int offset, int size, int generation) throws IOException {
+    private synchronized long writeEntry(UUID uuid, byte[] header, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
         checkState(!closed);
 
         if (access == null) {
@@ -224,33 +223,16 @@ class TarWriter implements Closeable {
         return currentLength;
     }
 
-    void addBinaryReference(int generation, UUID segmentId, String reference) {
-        Map<UUID, Set<String>> segmentToReferences = binaryReferences.get(generation);
-
-        if (segmentToReferences == null) {
-            segmentToReferences = newHashMap();
-            binaryReferences.put(generation, segmentToReferences);
-        }
-
-        Set<String> references = segmentToReferences.get(segmentId);
-
-        if (references == null) {
-            references = newHashSet();
-            segmentToReferences.put(segmentId, references);
-        }
-
-        references.add(reference);
+    void addBinaryReference(GCGeneration generation, UUID segmentId, String reference) {
+        // TODO frm Include both full and tail generation. See OAK-6468.
+        binaryReferences
+                .computeIfAbsent(generation.getFull(), k -> newHashMap())
+                .computeIfAbsent(segmentId, k -> newHashSet())
+                .add(reference);
     }
 
     void addGraphEdge(UUID from, UUID to) {
-        Set<UUID> adj = graph.get(from);
-
-        if (adj == null) {
-            adj = newHashSet();
-            graph.put(from, adj);
-        }
-
-        adj.add(to);
+        graph.computeIfAbsent(from, k -> newHashSet()).add(to);
     }
 
     /**
@@ -517,7 +499,8 @@ class TarWriter implements Closeable {
             buffer.putLong(entry.lsb());
             buffer.putInt(entry.offset());
             buffer.putInt(entry.size());
-            buffer.putInt(entry.generation());
+            // TODO frm Include both the full and tail generation. See OAK-6456.
+            buffer.putInt(entry.generation().getFull());
         }
 
         CRC32 checksum = new CRC32();

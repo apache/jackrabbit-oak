@@ -67,9 +67,9 @@ class TarEntry {
 
     private final int size;
 
-    private final int generation;
+    private final GCGeneration generation;
 
-    TarEntry(long msb, long lsb, int offset, int size, int generation) {
+    TarEntry(long msb, long lsb, int offset, int size, GCGeneration generation) {
         this.msb = msb;
         this.lsb = lsb;
         this.offset = offset;
@@ -93,7 +93,7 @@ class TarEntry {
         return size;
     }
 
-    int generation() {
+    GCGeneration generation() {
         return generation;
     }
 

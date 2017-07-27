@@ -26,6 +26,7 @@ import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.DSYNC;
 import static java.nio.file.StandardOpenOption.WRITE;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -38,8 +39,8 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,7 +180,7 @@ public class GCJournal {
                 root = RecordId.NULL.toString10();
             }
             // FIXME OAK-3349 set tail part once we have that information in the gc.log file
-            return new GCJournalEntry(repoSize, reclaimedSize, ts, new GCGeneration(gcGen, 0, false), nodes, root);
+            return new GCJournalEntry(repoSize, reclaimedSize, ts, newGCGeneration(gcGen, 0, false), nodes, root);
         }
 
         @CheckForNull

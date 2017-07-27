@@ -20,8 +20,6 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 import java.util.Collection;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.segment.GCGeneration;
-
 /**
  * Initial data and logic needed for the cleanup of unused TAR entries.
  */

@@ -35,7 +35,7 @@ import javax.management.StandardMBean;
 import com.google.common.base.Supplier;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
-import org.apache.jackrabbit.oak.segment.GCGeneration;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ClientStandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;

@@ -41,6 +41,10 @@ import org.junit.rules.TemporaryFolder;
 
 public class TarFileTest {
 
+    private static GCGeneration generation(int full) {
+        return GCGeneration.newGCGeneration(full, 0, false);
+    }
+
     private File file;
 
     @Rule
@@ -59,7 +63,7 @@ public class TarFileTest {
         byte[] data = "Hello, World!".getBytes(UTF_8);
 
         try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
-            writer.writeEntry(msb, lsb, data, 0, data.length, 0);
+            writer.writeEntry(msb, lsb, data, 0, data.length, generation(0));
             assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
         }
 
@@ -73,19 +77,19 @@ public class TarFileTest {
     @Test
     public void testWriteAndReadBinaryReferences() throws Exception {
         try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
-            writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, 0);
+            writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, generation(0));
 
-            writer.addBinaryReference(1, new UUID(1, 0), "r0");
-            writer.addBinaryReference(1, new UUID(1, 1), "r1");
-            writer.addBinaryReference(1, new UUID(1, 2), "r2");
-            writer.addBinaryReference(1, new UUID(1, 3), "r3");
+            writer.addBinaryReference(generation(1), new UUID(1, 0), "r0");
+            writer.addBinaryReference(generation(1), new UUID(1, 1), "r1");
+            writer.addBinaryReference(generation(1), new UUID(1, 2), "r2");
+            writer.addBinaryReference(generation(1), new UUID(1, 3), "r3");
 
-            writer.addBinaryReference(2, new UUID(2, 0), "r4");
-            writer.addBinaryReference(2, new UUID(2, 1), "r5");
-            writer.addBinaryReference(2, new UUID(2, 2), "r6");
+            writer.addBinaryReference(generation(2), new UUID(2, 0), "r4");
+            writer.addBinaryReference(generation(2), new UUID(2, 1), "r5");
+            writer.addBinaryReference(generation(2), new UUID(2, 2), "r6");
 
-            writer.addBinaryReference(3, new UUID(3, 0), "r7");
-            writer.addBinaryReference(3, new UUID(3, 1), "r8");
+            writer.addBinaryReference(generation(3), new UUID(3, 0), "r7");
+            writer.addBinaryReference(generation(3), new UUID(3, 1), "r8");
         }
 
         Map<UUID, Set<String>> one = newHashMap();
@@ -120,22 +124,22 @@ public class TarFileTest {
     @Test
     public void binaryReferencesIndexShouldBeTrimmedDownOnSweep() throws Exception {
         try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
-            writer.writeEntry(1, 1, new byte[] {1}, 0, 1, 1);
-            writer.writeEntry(1, 2, new byte[] {1}, 0, 1, 1);
-            writer.writeEntry(2, 1, new byte[] {1}, 0, 1, 2);
-            writer.writeEntry(2, 2, new byte[] {1}, 0, 1, 2);
+            writer.writeEntry(1, 1, new byte[] {1}, 0, 1, generation(1));
+            writer.writeEntry(1, 2, new byte[] {1}, 0, 1, generation(1));
+            writer.writeEntry(2, 1, new byte[] {1}, 0, 1, generation(2));
+            writer.writeEntry(2, 2, new byte[] {1}, 0, 1, generation(2));
 
-            writer.addBinaryReference(1, new UUID(1, 1), "a");
-            writer.addBinaryReference(1, new UUID(1, 2), "b");
+            writer.addBinaryReference(generation(1), new UUID(1, 1), "a");
+            writer.addBinaryReference(generation(1), new UUID(1, 2), "b");
 
-            writer.addBinaryReference(2, new UUID(2, 1), "c");
-            writer.addBinaryReference(2, new UUID(2, 2), "d");
+            writer.addBinaryReference(generation(2), new UUID(2, 1), "c");
+            writer.addBinaryReference(generation(2), new UUID(2, 2), "d");
         }
 
         Set<UUID> sweep = newSet(new UUID(1, 1), new UUID(2, 2));
 
         try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
-            try (TarReader swept = reader.sweep(sweep, new HashSet<UUID>())) {
+            try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
                 assertNotNull(swept);
 
                 Map<UUID, Set<String>> one = newHashMap();
@@ -156,12 +160,12 @@ public class TarFileTest {
     @Test
     public void graphShouldBeTrimmedDownOnSweep() throws Exception {
         try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
-            writer.writeEntry(1, 1, new byte[] {1}, 0, 1, 1);
-            writer.writeEntry(1, 2, new byte[] {1}, 0, 1, 1);
-            writer.writeEntry(1, 3, new byte[] {1}, 0, 1, 1);
-            writer.writeEntry(2, 1, new byte[] {1}, 0, 1, 2);
-            writer.writeEntry(2, 2, new byte[] {1}, 0, 1, 2);
-            writer.writeEntry(2, 3, new byte[] {1}, 0, 1, 2);
+            writer.writeEntry(1, 1, new byte[] {1}, 0, 1, generation(1));
+            writer.writeEntry(1, 2, new byte[] {1}, 0, 1, generation(1));
+            writer.writeEntry(1, 3, new byte[] {1}, 0, 1, generation(1));
+            writer.writeEntry(2, 1, new byte[] {1}, 0, 1, generation(2));
+            writer.writeEntry(2, 2, new byte[] {1}, 0, 1, generation(2));
+            writer.writeEntry(2, 3, new byte[] {1}, 0, 1, generation(2));
 
             writer.addGraphEdge(new UUID(1, 1), new UUID(1, 2));
             writer.addGraphEdge(new UUID(1, 2), new UUID(1, 3));

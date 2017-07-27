@@ -29,6 +29,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BINARY_REFERENCES_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
@@ -61,7 +62,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -207,7 +207,7 @@ class TarReader implements Closeable {
                     recovery.recoverEntry(entry.getKey(), entry.getValue(), new EntryRecovery() {
 
                         @Override
-                        public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, int generation) throws IOException {
+                        public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
                             writer.writeEntry(msb, lsb, data, offset, size, generation);
                         }
 
@@ -217,7 +217,7 @@ class TarReader implements Closeable {
                         }
 
                         @Override
-                        public void recoverBinaryReference(int generation, UUID segmentId, String reference) {
+                        public void recoverBinaryReference(GCGeneration generation, UUID segmentId, String reference) {
                             writer.addBinaryReference(generation, segmentId, reference);
                         }
 
@@ -642,7 +642,8 @@ class TarReader implements Closeable {
                     index.getLong(position + 8),
                     index.getInt(position + 16),
                     index.getInt(position + 20),
-                    index.getInt(position + 24));
+                    // TODO frm This should read both a full and a tail generation. See OAK-6456.
+                    newGCGeneration(index.getInt(position + 24), 0, false));
             position += TarEntry.SIZE;
         }
         Arrays.sort(entries, TarEntry.OFFSET_ORDER);
@@ -693,7 +694,7 @@ class TarReader implements Closeable {
 
         for (Entry<Integer, Map<UUID, Set<String>>> entry : generations.entrySet()) {
             // FIXME OAK-3349 cannot properly clean up under tail compaction here since we don't have access to the tail part of the generation (i.e. it is not in the tar index).
-            if (skipGeneration.apply(new GCGeneration(entry.getKey(), 0, false))) {
+            if (skipGeneration.apply(newGCGeneration(entry.getKey(), 0, false))) {
                 continue;
             }
 
@@ -750,7 +751,7 @@ class TarReader implements Closeable {
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
             // FIXME OAK-3349 cannot properly clean up under tail compaction here since we don't have access to the tail part of the generation (i.e. it is not in the tar index). As a workaround for now the implementation of shouldReclaim() could directly read the tail generation from the segment (i.e. SegmentIdProvider.newSegmentId(id.getMostSignificantBits(), id.getLeastSignificantBits()).getGcGeneration().getTail())
-            if (context.shouldReclaim(id, new GCGeneration(entry.generation(), 0, false), references.remove(id))) {
+            if (context.shouldReclaim(id, entry.generation(), references.remove(id))) {
                 reclaimable.add(id);
             } else {
                 for (UUID refId : getReferences(id, graph)) {
@@ -856,7 +857,7 @@ class TarReader implements Closeable {
                 long lsb = entry.lsb();
                 int offset = entry.offset();
                 int size = entry.size();
-                int gen = entry.generation();
+                GCGeneration gen = entry.generation();
                 byte[] data = new byte[size];
                 readSegment(msb, lsb, offset, size).get(data);
                 writer.writeEntry(msb, lsb, data, 0, size, gen);
@@ -897,7 +898,8 @@ class TarReader implements Closeable {
                     continue;
                 }
                 for (String reference : se.getValue()) {
-                    writer.addBinaryReference(ge.getKey(), se.getKey(), reference);
+                    // TODO frm Properly handle full and tail generations. See OAK-6468.
+                    writer.addBinaryReference(newGCGeneration(ge.getKey(), 0, false), se.getKey(), reference);
                 }
             }
 

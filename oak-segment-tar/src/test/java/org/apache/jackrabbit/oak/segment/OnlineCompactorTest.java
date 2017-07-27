@@ -22,6 +22,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState.binaryPropertyFromBlob;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -120,7 +121,7 @@ public class OnlineCompactorTest {
     @Nonnull
     private static OnlineCompactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
-                .withGeneration(new GCGeneration(1, 0, false))
+                .withGeneration(newGCGeneration(1, 0, false))
                 .build(fileStore);
         return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, () -> {});
     }

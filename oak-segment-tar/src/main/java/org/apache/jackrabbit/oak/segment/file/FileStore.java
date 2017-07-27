@@ -74,7 +74,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.apache.jackrabbit.oak.segment.OnlineCompactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -88,6 +87,7 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -474,7 +474,7 @@ public class FileStore extends AbstractFileStore {
         // access some internal information stored in the segment and to store
         // in an in-memory cache for later use.
 
-        int generation = 0;
+        GCGeneration generation = GCGeneration.NULL;
         Set<UUID> references = null;
         Set<String> binaryReferences = null;
 
@@ -491,7 +491,7 @@ public class FileStore extends AbstractFileStore {
 
             segment = new Segment(tracker, segmentReader, id, data);
             // FIXME OAK-3349 also handle the tail part of the gc generation and flag when writing segments
-            generation = segment.getGcGeneration().getFull();
+            generation = segment.getGcGeneration();
             references = readReferences(segment);
             binaryReferences = readBinaryReferences(segment);
         }
