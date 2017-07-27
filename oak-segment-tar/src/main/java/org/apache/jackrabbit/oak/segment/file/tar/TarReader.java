@@ -61,6 +61,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -683,7 +684,7 @@ class TarReader implements Closeable {
      * @param collector      An instance of {@link Consumer}.
      * @param skipGeneration An instance of {@link Predicate}.
      */
-    void collectBlobReferences(@Nonnull Consumer<String> collector, Predicate<Integer> skipGeneration) {
+    void collectBlobReferences(@Nonnull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
         Map<Integer, Map<UUID, Set<String>>> generations = getBinaryReferences();
 
         if (generations == null) {
@@ -691,7 +692,7 @@ class TarReader implements Closeable {
         }
 
         for (Entry<Integer, Map<UUID, Set<String>>> entry : generations.entrySet()) {
-            if (skipGeneration.apply(entry.getKey())) {
+            if (skipGeneration.apply(new GCGeneration(entry.getKey()))) {
                 continue;
             }
 
@@ -747,7 +748,7 @@ class TarReader implements Closeable {
             // CPU on subsequent look-ups.
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
-            if (context.shouldReclaim(id, entry.generation(), references.remove(id))) {
+            if (context.shouldReclaim(id, new GCGeneration(entry.generation()), references.remove(id))) {
                 reclaimable.add(id);
             } else {
                 for (UUID refId : getReferences(id, graph)) {

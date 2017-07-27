@@ -233,7 +233,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        int generation = Segment.getGcGeneration(buffer, id);
+        int generation = Segment.getGcGeneration(buffer, id).getGeneration();
         w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
             Segment segment = new Segment(tracker, segmentReader, tracker.newSegmentId(msb, lsb), buffer);
@@ -250,7 +250,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     private static void populateTarBinaryReferences(final Segment segment, final EntryRecovery w) {
-        final int generation = segment.getGcGeneration();
+        final int generation = segment.getGcGeneration().getGeneration();
         final UUID id = segment.getSegmentId().asUUID();
         segment.forEachRecord(new RecordConsumer() {
 

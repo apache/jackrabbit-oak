@@ -38,6 +38,7 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,9 +76,9 @@ public class GCJournal {
      * @param root  record id of the compacted root node
      */
     public synchronized void persist(long reclaimedSize, long repoSize,
-            int gcGeneration, long nodes, @Nonnull String root) {
+                                     @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root) {
         GCJournalEntry current = read();
-        if (current.getGcGeneration() == gcGeneration) {
+        if (current.getGcGeneration().equals(gcGeneration)) {
             // failed compaction, only update the journal if the generation
             // increases
             return;
@@ -138,19 +139,21 @@ public class GCJournal {
     public static class GCJournalEntry {
 
         static final GCJournalEntry EMPTY = new GCJournalEntry(
-                -1, -1, -1, -1, -1, RecordId.NULL.toString10());
+                -1, -1, -1, GCGeneration.NULL, -1, RecordId.NULL.toString10());
 
         private final long repoSize;
         private final long reclaimedSize;
         private final long ts;
-        private final int gcGeneration;
+
+        @Nonnull
+        private final GCGeneration gcGeneration;
         private final long nodes;
 
         @Nonnull
         private final String root;
 
         public GCJournalEntry(long repoSize, long reclaimedSize, long ts,
-                int gcGeneration, long nodes, @Nonnull String root) {
+                @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root) {
             this.repoSize = repoSize;
             this.reclaimedSize = reclaimedSize;
             this.ts = ts;
@@ -175,7 +178,7 @@ public class GCJournal {
             if (root == null) {
                 root = RecordId.NULL.toString10();
             }
-            return new GCJournalEntry(repoSize, reclaimedSize, ts, gcGen, nodes, root);
+            return new GCJournalEntry(repoSize, reclaimedSize, ts, new GCGeneration(gcGen), nodes, root);
         }
 
         @CheckForNull
@@ -222,7 +225,8 @@ public class GCJournal {
         /**
          * Returns the gc generation
          */
-        public int getGcGeneration() {
+        @Nonnull
+        public GCGeneration getGcGeneration() {
             return gcGeneration;
         }
 
@@ -245,7 +249,7 @@ public class GCJournal {
         public int hashCode() {
             final int prime = 31;
             int result = 1;
-            result = prime * result + gcGeneration;
+            result = prime * result + gcGeneration.hashCode();
             result = prime * result + root.hashCode();
             result = prime * result + (int) (nodes ^ (nodes >>> 32));
             result = prime * result + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
@@ -266,7 +270,7 @@ public class GCJournal {
                 return false;
             }
             GCJournalEntry other = (GCJournalEntry) obj;
-            if (gcGeneration != other.gcGeneration) {
+            if (!gcGeneration.equals(other.gcGeneration)) {
                 return false;
             }
             if (nodes != other.nodes) {

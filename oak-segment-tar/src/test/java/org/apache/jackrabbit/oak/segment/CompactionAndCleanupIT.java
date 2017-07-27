@@ -1145,7 +1145,7 @@ public class CompactionAndCleanupIT {
             builder = nodeStore.getRoot().builder();
             builder.setChildNode("x").setChildNode("xx");
 
-            NodeState uncompacted = nodeStore.getRoot();
+            SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
             fileStore.compact();
             NodeState compacted = nodeStore.getRoot();
 
@@ -1155,7 +1155,9 @@ public class CompactionAndCleanupIT {
             builder.setChildNode("y").setChildNode("yy");
             builder.getChildNode("a").remove();
             NodeState deferCompacted = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            assertEquals(1, ((SegmentNodeState)deferCompacted).getSegment().getGcGeneration());
+            assertEquals(
+                    uncompacted.getSegment().getGcGeneration().next(),
+                    ((SegmentNodeState)deferCompacted).getSegment().getGcGeneration());
         }
     }
 
@@ -1166,7 +1168,7 @@ public class CompactionAndCleanupIT {
         SegmentNodeState sns1 = (SegmentNodeState) node1;
         SegmentNodeState sns2 = (SegmentNodeState) node2;
         assertEquals("GC generation should be bumped by one " + path,
-                sns1.getSegment().getGcGeneration() + 1, sns2.getSegment().getGcGeneration());
+                sns1.getSegment().getGcGeneration().next(), sns2.getSegment().getGcGeneration());
         assertEquals("Nodes should have same stable id: " + path,
                 sns1.getStableId(), sns2.getStableId());
 

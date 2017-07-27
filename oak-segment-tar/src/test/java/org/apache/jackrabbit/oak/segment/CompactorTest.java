@@ -52,7 +52,9 @@ public class CompactorTest {
         NodeStore store = SegmentNodeStoreBuilders.builder(memoryStore).build();
         init(store);
 
-        SegmentWriter writer = defaultSegmentWriterBuilder("c").withGeneration(1).build(memoryStore);
+        SegmentWriter writer = defaultSegmentWriterBuilder("c")
+                .withGeneration(new GCGeneration(1))
+                .build(memoryStore);
         Compactor compactor = new Compactor(memoryStore.getReader(), writer,
                 memoryStore.getBlobStore(), Suppliers.ofInstance(false), defaultGCOptions());
         addTestContent(store, 0);
@@ -75,7 +77,9 @@ public class CompactorTest {
         // doesn't have the child named "b".
 
         NodeStore store = SegmentNodeStoreBuilders.builder(memoryStore).build();
-        SegmentWriter writer = defaultSegmentWriterBuilder("c").withGeneration(1).build(memoryStore);
+        SegmentWriter writer = defaultSegmentWriterBuilder("c")
+                .withGeneration(new GCGeneration(1))
+                .build(memoryStore);
         Compactor compactor = new Compactor(memoryStore.getReader(), writer,
                 memoryStore.getBlobStore(), Suppliers.ofInstance(true), defaultGCOptions());
         SegmentNodeState sns = compactor.compact(store.getRoot(),

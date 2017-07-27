@@ -54,7 +54,7 @@ public final class DefaultSegmentWriterBuilder {
     private final String name;
 
     @Nonnull
-    private Supplier<Integer> generation = Suppliers.ofInstance(0);
+    private Supplier<GCGeneration> generation = Suppliers.ofInstance(GCGeneration.NULL);
 
     private boolean pooled = false;
 
@@ -86,7 +86,7 @@ public final class DefaultSegmentWriterBuilder {
      * is created by the returned writer.
      */
     @Nonnull
-    public DefaultSegmentWriterBuilder withGeneration(@Nonnull Supplier<Integer> generation) {
+    public DefaultSegmentWriterBuilder withGeneration(@Nonnull Supplier<GCGeneration> generation) {
         this.generation = checkNotNull(generation);
         return this;
     }
@@ -96,8 +96,8 @@ public final class DefaultSegmentWriterBuilder {
      * segment writer.
      */
     @Nonnull
-    public DefaultSegmentWriterBuilder withGeneration(int generation) {
-        this.generation = Suppliers.ofInstance(generation);
+    public DefaultSegmentWriterBuilder withGeneration(@Nonnull GCGeneration generation) {
+        this.generation = Suppliers.ofInstance(checkNotNull(generation));
         return this;
     }
 

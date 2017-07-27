@@ -40,6 +40,7 @@ import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
+import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
@@ -98,17 +99,17 @@ public class FileStoreBuilder {
     @Nonnull
     private final GCListener gcListener = new GCListener(){
         @Override
-        public void compactionSucceeded(int newGeneration) {
+        public void compactionSucceeded(@Nonnull GCGeneration newGeneration) {
             compacted();
             if (cacheManager != null) {
-                cacheManager.evictOldGeneration(newGeneration);
+                cacheManager.evictOldGeneration(newGeneration.getGeneration());
             }
         }
 
         @Override
-        public void compactionFailed(int failedGeneration) {
+        public void compactionFailed(@Nonnull GCGeneration failedGeneration) {
             if (cacheManager != null) {
-                cacheManager.evictGeneration(failedGeneration);
+                cacheManager.evictGeneration(failedGeneration.getGeneration());
             }
         }
     };

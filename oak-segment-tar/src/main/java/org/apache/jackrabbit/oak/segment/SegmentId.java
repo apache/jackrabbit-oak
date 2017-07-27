@@ -69,7 +69,8 @@ public class SegmentId implements Comparable<SegmentId> {
     /**
      * The gc generation of this segment or -1 if unknown.
      */
-    private int gcGeneration = -1;
+    @CheckForNull
+    private GCGeneration gcGeneration;
 
     /**
      * The gc info of this segment if it has been reclaimed or {@code null} otherwise.
@@ -168,7 +169,7 @@ public class SegmentId implements Comparable<SegmentId> {
         if (gcInfo != null) {
             sb.append(",").append(gcInfo);
         }
-        if (gcGeneration >= 0) {
+        if (gcGeneration != null) {
             sb.append(",").append("segment-generation=").append(gcGeneration);
         }
         return sb.toString();
@@ -238,8 +239,9 @@ public class SegmentId implements Comparable<SegmentId> {
      * get loaded if the generation info is missing
      * @return the segment's gc generation
      */
-    public int getGcGeneration() {
-        if (gcGeneration < 0) {
+    @Nonnull
+    public GCGeneration getGcGeneration() {
+        if (gcGeneration == null) {
             getSegment();
         }
         return gcGeneration;

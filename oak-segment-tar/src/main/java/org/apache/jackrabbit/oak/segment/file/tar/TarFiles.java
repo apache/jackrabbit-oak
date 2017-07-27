@@ -50,6 +50,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -652,7 +653,7 @@ public class TarFiles implements Closeable {
         return result;
     }
 
-    public void collectBlobReferences(Consumer<String> collector, Predicate<Integer> reclaim) throws IOException {
+    public void collectBlobReferences(Consumer<String> collector, Predicate<GCGeneration> reclaim) throws IOException {
         Node head;
         lock.writeLock().lock();
         try {

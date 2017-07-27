@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 
 /**
@@ -31,12 +34,12 @@ abstract class GCListener extends DelegatingGCMonitor {
      * a new generation of segments
      * @param newGeneration  the new generation number
      */
-    public abstract void compactionSucceeded(int newGeneration);
+    public abstract void compactionSucceeded(@Nonnull GCGeneration newGeneration);
 
     /**
      * Notification of a failed compaction. A new generation of
      * segments could not be created.
      * @param failedGeneration  the generation number that could not be created
      */
-    public abstract void compactionFailed(int failedGeneration);
+    public abstract void compactionFailed(@Nonnull GCGeneration failedGeneration);
 }
