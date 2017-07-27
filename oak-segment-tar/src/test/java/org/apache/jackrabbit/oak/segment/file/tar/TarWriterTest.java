@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
@@ -52,7 +53,7 @@ public class TarWriterTest {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
         byte[] data = "Hello, World!".getBytes(UTF_8);
-        t1.writeEntry(msb, lsb, data, 0, data.length, 0);
+        t1.writeEntry(msb, lsb, data, 0, data.length, newGCGeneration(0, 0, false));
 
         TarWriter t2 = t1.createNextGeneration();
         assertNotEquals(t1, t2);
@@ -77,7 +78,7 @@ public class TarWriterTest {
         try (TarWriter writer = new TarWriter(folder.getRoot(), monitor, 0, new IOMonitorAdapter())) {
             long sizeBefore = writer.fileLength();
             long writtenBefore = monitor.written;
-            writer.writeEntry(0, 0, new byte[42], 0, 42, 0);
+            writer.writeEntry(0, 0, new byte[42], 0, 42, newGCGeneration(0, 0, false));
             long sizeAfter = writer.fileLength();
             long writtenAfter = monitor.written;
             assertEquals(sizeAfter - sizeBefore, writtenAfter - writtenBefore);

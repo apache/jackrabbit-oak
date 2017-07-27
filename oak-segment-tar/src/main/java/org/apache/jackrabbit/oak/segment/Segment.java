@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.isValid;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -54,6 +55,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 
 /**
  * A list of records.
@@ -378,7 +380,7 @@ public class Segment {
         if (isDataSegmentId(segmentId.getLeastSignificantBits())) {
             int full = data.getInt(GC_FULL_GENERATION_OFFSET);
             int tail = data.getInt(GC_TAIL_GENERATION_OFFSET);
-            return new GCGeneration(full, tail & 0x7fffffff, tail < 0);
+            return newGCGeneration(full, tail & 0x7fffffff, tail < 0);
         } else {
             return GCGeneration.NULL;
         }

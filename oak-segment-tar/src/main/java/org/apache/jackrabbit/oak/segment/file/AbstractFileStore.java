@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.EntryRecovery;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
@@ -233,8 +234,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        // FIXME OAK-3349 also handle the tail part of the gc generation and flag during recovery
-        int generation = Segment.getGcGeneration(buffer, id).getFull();
+        GCGeneration generation = Segment.getGcGeneration(buffer, id);
         w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
             Segment segment = new Segment(tracker, segmentReader, tracker.newSegmentId(msb, lsb), buffer);
@@ -250,19 +250,13 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         }
     }
 
-    // FIXME OAK-3349 also handle the tail part of the gc generation and flag during recovery
     private static void populateTarBinaryReferences(final Segment segment, final EntryRecovery w) {
-        final int generation = segment.getGcGeneration().getFull();
+        final GCGeneration generation = segment.getGcGeneration();
         final UUID id = segment.getSegmentId().asUUID();
-        segment.forEachRecord(new RecordConsumer() {
-
-            @Override
-            public void consume(int number, RecordType type, int offset) {
-                if (type == RecordType.BLOB_ID) {
-                    w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
-                }
+        segment.forEachRecord((number, type, offset) -> {
+            if (type == RecordType.BLOB_ID) {
+                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
             }
-
         });
     }
 

@@ -50,7 +50,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -465,7 +464,7 @@ public class TarFiles implements Closeable {
         return null;
     }
 
-    public void writeSegment(UUID id, byte[] buffer, int offset, int length, int generation, Set<UUID> references, Set<String> binaryReferences) throws IOException {
+    public void writeSegment(UUID id, byte[] buffer, int offset, int length, GCGeneration generation, Set<UUID> references, Set<String> binaryReferences) throws IOException {
         lock.writeLock().lock();
         try {
             long size = writer.writeEntry(

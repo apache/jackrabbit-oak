@@ -22,10 +22,10 @@ import java.util.UUID;
 
 public interface EntryRecovery {
 
-    void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, int generation) throws IOException;
+    void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException;
 
     void recoverGraphEdge(UUID from, UUID to);
 
-    void recoverBinaryReference(int generation, UUID segmentId, String reference);
+    void recoverBinaryReference(GCGeneration generation, UUID segmentId, String reference);
 
 }
