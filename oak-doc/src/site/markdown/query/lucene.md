@@ -42,6 +42,7 @@
 * [CopyOnRead](#copy-on-read)
 * [CopyOnWrite](#copy-on-write)
 * [Lucene Index MBeans](#mbeans)
+* [Active Index Files Collection](#active-blob-collection)
 * [Analyzing created Lucene Index](#luke)
 * [Pre-Extracting Text from Binaries](#text-extraction)
 * [Advanced search features](#advanced-search-features)
@@ -1074,6 +1075,24 @@ index content e.g. size of index, number of documents present in index etc
 
 ![Lucene Index MBean](lucene-index-mbean.png)
 
+### <a name=active-blob-collection></a>Active Index Files Collection
+
+`@since Oak 1.7.1`
+
+Lucene indexing for moderately active repository creates a lot of deleted files.
+This creates excessive load for usual mark-sweep garbage collection. Since, blobs
+related to indexed data are explicitly made unique, it's safe to delete them as
+soon as index node referring that blob is deleted.
+
+Such active deletion of index blobs was implemented in [OAK-2808][OAK-2808]. The
+feature periodically deletes blobs which are deleted from the index. This 'period'
+can be controlled by `deletedBlobsCollectionInterval` property in
+[Lucene Index provider service configuration](#osgi-config).
+
+The feature would only delete blobs which have been deleted before a certain time.
+This is 24 hours by default and can be controlled by defining `oak.active.deletion.minAge`
+as number of hours to not purge a blob after it's deleted from the repository.
+
 ### <a name="luke"></a>Analyzing created Lucene Index
 
 [Luke]  is a handy development and diagnostic tool, which accesses already 
@@ -1743,6 +1762,7 @@ such fields
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [OAK-4400]: https://issues.apache.org/jira/browse/OAK-4400
 [OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
+[OAK-2808]: https://issues.apache.org/jira/browse/OAK-2808
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
