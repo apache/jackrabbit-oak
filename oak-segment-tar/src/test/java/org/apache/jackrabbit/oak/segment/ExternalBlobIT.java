@@ -288,7 +288,7 @@ public class ExternalBlobIT {
                 .withGCOptions(gcOptions).build();
         assertTrue(store.getStats().getApproximateSize() < 10 * 1024);
 
-        store.compact();
+        store.compactFull();
         store.cleanup();
 
     }

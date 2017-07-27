@@ -71,7 +71,7 @@ public class HeavyWriteIT {
             public void run() {
                 for (int k = 1; run.get(); k++) {
                     try {
-                        store.gc();
+                        store.fullGC();
                         Thread.sleep(5000);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();

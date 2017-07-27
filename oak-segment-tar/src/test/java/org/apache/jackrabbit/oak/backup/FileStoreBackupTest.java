@@ -80,7 +80,7 @@ public class FileStoreBackupTest {
             fsb.backup(source.getReader(), source.getRevisions(), destination);
             compare(source, destination);
 
-            source.compact();
+            source.compactFull();
             fsb.cleanup(source);
             fsb.backup(source.getReader(), source.getRevisions(), destination);
             compare(source, destination);
