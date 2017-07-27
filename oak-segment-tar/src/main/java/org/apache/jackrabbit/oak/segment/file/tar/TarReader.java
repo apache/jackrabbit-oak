@@ -690,15 +690,14 @@ class TarReader implements Closeable {
      * @param skipGeneration An instance of {@link Predicate}.
      */
     void collectBlobReferences(@Nonnull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
-        Map<Integer, Map<UUID, Set<String>>> generations = getBinaryReferences();
+        Map<GCGeneration, Map<UUID, Set<String>>> generations = getBinaryReferences();
 
         if (generations == null) {
             return;
         }
 
-        for (Entry<Integer, Map<UUID, Set<String>>> entry : generations.entrySet()) {
-            // FIXME OAK-3349 cannot properly clean up under tail compaction here since we don't have access to the tail part of the generation (i.e. it is not in the tar index).
-            if (skipGeneration.apply(newGCGeneration(entry.getKey(), 0, false))) {
+        for (Entry<GCGeneration, Map<UUID, Set<String>>> entry : generations.entrySet()) {
+            if (skipGeneration.apply(entry.getKey())) {
                 continue;
             }
 
@@ -893,16 +892,15 @@ class TarReader implements Closeable {
 
         // Reconstruct the binary reference index for non-cleaned segments.
 
-        Map<Integer, Map<UUID, Set<String>>> references = getBinaryReferences();
+        Map<GCGeneration, Map<UUID, Set<String>>> references = getBinaryReferences();
 
-        for (Entry<Integer, Map<UUID, Set<String>>> ge : references.entrySet()) {
+        for (Entry<GCGeneration, Map<UUID, Set<String>>> ge : references.entrySet()) {
             for (Entry<UUID, Set<String>> se : ge.getValue().entrySet()) {
                 if (cleaned.contains(se.getKey())) {
                     continue;
                 }
                 for (String reference : se.getValue()) {
-                    // TODO frm Properly handle full and tail generations. See OAK-6468.
-                    writer.addBinaryReference(newGCGeneration(ge.getKey(), 0, false), se.getKey(), reference);
+                    writer.addBinaryReference(ge.getKey(), se.getKey(), reference);
                 }
             }
 
@@ -981,7 +979,7 @@ class TarReader implements Closeable {
      *
      * @return An instance of {@link Map}.
      */
-    Map<Integer, Map<UUID, Set<String>>> getBinaryReferences() {
+    Map<GCGeneration, Map<UUID, Set<String>>> getBinaryReferences() {
         ByteBuffer buffer;
 
         try {
@@ -1036,13 +1034,15 @@ class TarReader implements Closeable {
         return buffer;
     }
 
-    private static Map<Integer, Map<UUID, Set<String>>> parseBinaryReferences(ByteBuffer buffer) {
+    private static Map<GCGeneration, Map<UUID, Set<String>>> parseBinaryReferences(ByteBuffer buffer) {
         int nGenerations = buffer.getInt(buffer.limit() - 12);
 
-        Map<Integer, Map<UUID, Set<String>>> binaryReferences = newHashMapWithExpectedSize(nGenerations);
+        Map<GCGeneration, Map<UUID, Set<String>>> binaryReferences = newHashMapWithExpectedSize(nGenerations);
 
         for (int i = 0; i < nGenerations; i++) {
-            int generation = buffer.getInt();
+            int fullGeneration = buffer.getInt();
+            int tailGeneration = buffer.getInt();
+            boolean isTail = buffer.get() != 0;
             int segmentCount = buffer.getInt();
 
             Map<UUID, Set<String>> segments = newHashMapWithExpectedSize(segmentCount);
@@ -1066,7 +1066,7 @@ class TarReader implements Closeable {
                 segments.put(new UUID(msb, lsb), references);
             }
 
-            binaryReferences.put(generation, segments);
+            binaryReferences.put(newGCGeneration(fullGeneration, tailGeneration, isTail), segments);
         }
 
         return binaryReferences;

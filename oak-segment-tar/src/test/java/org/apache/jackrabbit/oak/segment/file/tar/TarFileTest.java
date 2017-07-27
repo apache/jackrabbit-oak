@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
@@ -146,11 +147,11 @@ public class TarFileTest {
         three.put(new UUID(3, 0), newSet("r7"));
         three.put(new UUID(3, 1), newSet("r8"));
 
-        Map<Integer, Map<UUID, Set<String>>> expected = newHashMap();
+        Map<GCGeneration, Map<UUID, Set<String>>> expected = newHashMap();
 
-        expected.put(1, one);
-        expected.put(2, two);
-        expected.put(3, three);
+        expected.put(generation(1), one);
+        expected.put(generation(2), two);
+        expected.put(generation(3), three);
 
         try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
             assertEquals(expected, reader.getBinaryReferences());
@@ -184,12 +185,27 @@ public class TarFileTest {
                 Map<UUID, Set<String>> two = newHashMap();
                 two.put(new UUID(2, 1), newSet("c"));
 
-                Map<Integer, Map<UUID, Set<String>>> references = newHashMap();
-                references.put(1, one);
-                references.put(2, two);
+                Map<GCGeneration, Map<UUID, Set<String>>> references = newHashMap();
+                references.put(generation(1), one);
+                references.put(generation(2), two);
 
                 assertEquals(references, swept.getBinaryReferences());
             }
+        }
+    }
+
+    @Test
+    public void binaryReferencesIndexShouldContainCompleteGCGeneration() throws Exception {
+        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+            writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, generation(0));
+            writer.addBinaryReference(GCGeneration.newGCGeneration(1, 2, false), new UUID(1, 2), "r1");
+            writer.addBinaryReference(GCGeneration.newGCGeneration(3, 4, true), new UUID(3, 4), "r2");
+        }
+        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+            Set<GCGeneration> expected = new HashSet<>();
+            expected.add(GCGeneration.newGCGeneration(1, 2, false));
+            expected.add(GCGeneration.newGCGeneration(3, 4, true));
+            assertEquals(expected, reader.getBinaryReferences().keySet());
         }
     }
 

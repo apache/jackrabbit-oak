@@ -115,7 +115,7 @@ class TarWriter implements Closeable {
     /**
      * List of binary references contained in this TAR file.
      */
-    private final Map<Integer, Map<UUID, Set<String>>> binaryReferences = newHashMap();
+    private final Map<GCGeneration, Map<UUID, Set<String>>> binaryReferences = newHashMap();
 
     /**
      * Graph of references between segments.
@@ -224,9 +224,8 @@ class TarWriter implements Closeable {
     }
 
     void addBinaryReference(GCGeneration generation, UUID segmentId, String reference) {
-        // TODO frm Include both full and tail generation. See OAK-6468.
         binaryReferences
-                .computeIfAbsent(generation.getFull(), k -> newHashMap())
+                .computeIfAbsent(generation, k -> newHashMap())
                 .computeIfAbsent(segmentId, k -> newHashSet())
                 .add(reference);
     }
@@ -344,8 +343,14 @@ class TarWriter implements Closeable {
         // this entry, after the optional padding.
 
         for (Map<UUID, Set<String>> segmentToReferences : binaryReferences.values()) {
-            // 4 bytes per generation to store the generation number itself.
+            // 4 bytes per generation to store the full generation number.
             binaryReferenceSize += 4;
+
+            // 4 bytes per generation to store the tail generation number.
+            binaryReferenceSize += 4;
+
+            // 1 byte per generation to store the "tail" flag.
+            binaryReferenceSize += 1;
 
             // 4 bytes per generation to store the number of segments.
             binaryReferenceSize += 4;
@@ -369,11 +374,13 @@ class TarWriter implements Closeable {
 
         ByteBuffer buffer = ByteBuffer.allocate(binaryReferenceSize);
 
-        for (Entry<Integer, Map<UUID, Set<String>>> be : binaryReferences.entrySet()) {
-            int generation = be.getKey();
+        for (Entry<GCGeneration, Map<UUID, Set<String>>> be : binaryReferences.entrySet()) {
+            GCGeneration generation = be.getKey();
             Map<UUID, Set<String>> segmentToReferences = be.getValue();
 
-            buffer.putInt(generation);
+            buffer.putInt(generation.getFull());
+            buffer.putInt(generation.getTail());
+            buffer.put((byte) (generation.isTail() ? 1 : 0));
             buffer.putInt(segmentToReferences.size());
 
             for (Entry<UUID, Set<String>> se : segmentToReferences.entrySet()) {
