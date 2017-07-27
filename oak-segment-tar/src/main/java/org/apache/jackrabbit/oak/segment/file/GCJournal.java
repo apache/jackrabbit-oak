@@ -43,13 +43,13 @@ import org.apache.jackrabbit.oak.segment.RecordId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// FIXME OAK-3349 incorporate tail compaction information into the gc.log file and reflect through this class.
 /**
  * Persists the repository size and the reclaimed size following a cleanup
  * operation in the {@link #GC_JOURNAL gc journal} file with the format:
  * 'repoSize, reclaimedSize, timestamp, gcGen, nodes compacted'.
  */
 public class GCJournal {
-
     private static final Logger LOG = LoggerFactory.getLogger(GCJournal.class);
 
     public static final String GC_JOURNAL = "gc.log";
@@ -178,7 +178,8 @@ public class GCJournal {
             if (root == null) {
                 root = RecordId.NULL.toString10();
             }
-            return new GCJournalEntry(repoSize, reclaimedSize, ts, new GCGeneration(gcGen), nodes, root);
+            // FIXME OAK-3349 set tail part once we have that information in the gc.log file
+            return new GCJournalEntry(repoSize, reclaimedSize, ts, new GCGeneration(gcGen, 0, false), nodes, root);
         }
 
         @CheckForNull

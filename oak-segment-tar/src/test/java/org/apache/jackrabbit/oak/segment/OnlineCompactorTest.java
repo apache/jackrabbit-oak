@@ -52,6 +52,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+// FIXME OAK-3349 implement tail compaction tests
 public class OnlineCompactorTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -81,7 +82,7 @@ public class OnlineCompactorTest {
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
-        assertEquals(uncompacted.getSegment().getGcGeneration().next(), compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
 
         modifyTestContent(nodeStore);
         NodeState modified = nodeStore.getRoot();
@@ -89,7 +90,7 @@ public class OnlineCompactorTest {
         assertNotNull(compacted);
         assertFalse(modified == compacted);
         assertEquals(modified, compacted);
-        assertEquals(uncompacted.getSegment().getGcGeneration().next(), compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
     }
 
     @Test
@@ -102,7 +103,7 @@ public class OnlineCompactorTest {
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
-        assertEquals(uncompacted.getSegment().getGcGeneration().next(), compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
     }
 
     @Test
@@ -119,7 +120,7 @@ public class OnlineCompactorTest {
     @Nonnull
     private static OnlineCompactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
-                .withGeneration(new GCGeneration(1))
+                .withGeneration(new GCGeneration(1, 0, false))
                 .build(fileStore);
         return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, () -> {});
     }

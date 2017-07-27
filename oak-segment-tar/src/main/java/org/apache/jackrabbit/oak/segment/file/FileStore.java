@@ -180,7 +180,7 @@ public class FileStore extends AbstractFileStore {
         }
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
-                .withGeneration(this::getGcGeneration)
+                .withGeneration(() -> getGcGeneration().nonTail())
                 .withWriterPool()
                 .with(builder.getCacheManager()
                         .withAccessTracking("WRITE", builder.getStatsProvider()))
@@ -490,7 +490,8 @@ public class FileStore extends AbstractFileStore {
             }
 
             segment = new Segment(tracker, segmentReader, id, data);
-            generation = segment.getGcGeneration().getGeneration();
+            // FIXME OAK-3349 also handle the tail part of the gc generation and flag when writing segments
+            generation = segment.getGcGeneration().getFull();
             references = readReferences(segment);
             binaryReferences = readBinaryReferences(segment);
         }
@@ -659,9 +660,18 @@ public class FileStore extends AbstractFileStore {
             return CompactionResult.succeeded(generation, gcOptions, compactedRootId);
         }
 
-        @Nonnull
+        @CheckForNull
+        private SegmentNodeState getBase() {
+            String root = gcJournal.read().getRoot();
+            RecordId rootId = RecordId.fromString(tracker, root);
+            return RecordId.NULL.equals(rootId)
+                ? null  // FIXME OAK-3349 if no previous compacted base is found we fall back to full compaction by returning null. Add an respective log statement
+                : segmentReader.readNode(rootId);  // FIXME OAK-3349 guard against SNFE and against rebasing onto a non compactor written state in case someone tampered with the journal.log. Add logging.
+        }
+
         synchronized CompactionResult compact() {
-            final GCGeneration newGeneration = getGcGeneration().next();
+            // FIXME OAK-3349 the generation needs to reflect the type of compaction: tail or full. Additionally we need to handler the graceful degradation case should #getBase() return null where we would fall back from a tail compaction to a full compaction.
+            final GCGeneration newGeneration = getGcGeneration().nextFull();
             try {
                 Stopwatch watch = Stopwatch.createStarted();
                 gcListener.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
@@ -682,7 +692,7 @@ public class FileStore extends AbstractFileStore {
                 OnlineCompactor compactor = new OnlineCompactor(
                         segmentReader, writer, getBlobStore(), cancel, compactionMonitor::onNode);
 
-                SegmentNodeState after = compact(null, before, compactor, writer);
+                SegmentNodeState after = compact(getBase(), before, compactor, writer);
                 if (after == null) {
                     gcListener.warn("TarMK GC #{}: compaction cancelled: {}.", GC_COUNT, cancel);
                     return compactionAborted(newGeneration);
@@ -1211,10 +1221,12 @@ public class FileStore extends AbstractFileStore {
             return new Predicate<GCGeneration>() {
                 @Override
                 public boolean apply(GCGeneration generation) {
-                    return reference.compareWith(generation) >= retainedGenerations;
+                    return reference.compareFull(generation) >= retainedGenerations
+                            || reference.compareTail(generation) >= retainedGenerations;
                 }
                 @Override
                 public String toString() {
+                    // FIXME OAK-3349 align string representation with above predicate
                     return "(" + reference + " - generation >= " + retainedGenerations + ")";
                 }
             };
