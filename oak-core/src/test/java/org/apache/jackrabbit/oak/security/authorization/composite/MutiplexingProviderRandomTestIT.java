@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.junit.Assert;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -58,9 +59,12 @@ public class MutiplexingProviderRandomTestIT extends AbstractPermissionRandomTes
             @Nonnull Set<Principal> principals) {
         ConfigurationParameters authConfig = ConfigurationParameters.of(Collections.singletonMap(
                 AccessControlConstants.PARAM_MOUNT_PROVIDER, Preconditions.checkNotNull(mountInfoProvider)));
-        SecurityProviderImpl sp = new SecurityProviderImpl(authConfig);
+        ConfigurationParameters config = ConfigurationParameters.of(Collections.singletonMap(
+                AuthorizationConfiguration.NAME, authConfig));
+        SecurityProviderImpl sp = new SecurityProviderImpl(config);
         AuthorizationConfiguration acConfig = sp.getConfiguration(AuthorizationConfiguration.class);
-        return acConfig.getPermissionProvider(root, workspaceName, principals);
+        PermissionProvider composite = acConfig.getPermissionProvider(root, workspaceName, principals);
+        Assert.assertTrue(composite instanceof MultiplexingPermissionProvider);
+        return composite;
     }
-
 }
