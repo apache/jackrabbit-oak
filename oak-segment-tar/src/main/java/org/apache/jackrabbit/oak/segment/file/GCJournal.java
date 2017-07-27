@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -39,18 +40,19 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// FIXME OAK-3349 incorporate tail compaction information into the gc.log file and reflect through this class.
 /**
  * Persists the repository size and the reclaimed size following a cleanup
  * operation in the {@link #GC_JOURNAL gc journal} file with the format:
  * 'repoSize, reclaimedSize, timestamp, gcGen, nodes compacted'.
  */
 public class GCJournal {
+
     private static final Logger LOG = LoggerFactory.getLogger(GCJournal.class);
 
     public static final String GC_JOURNAL = "gc.log";
@@ -71,13 +73,14 @@ public class GCJournal {
      * persisted previously.
      *
      * @param reclaimedSize size reclaimed by cleanup
-     * @param repoSize current repo size
-     * @param gcGeneration gc generation
-     * @param nodes number of compacted nodes
-     * @param root  record id of the compacted root node
+     * @param repoSize      current repo size
+     * @param gcGeneration  gc generation
+     * @param nodes         number of compacted nodes
+     * @param root          record id of the compacted root node
      */
     public synchronized void persist(long reclaimedSize, long repoSize,
-                                     @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root) {
+            @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root
+    ) {
         GCJournalEntry current = read();
         if (current.getGcGeneration().equals(gcGeneration)) {
             // failed compaction, only update the journal if the generation
@@ -143,18 +146,22 @@ public class GCJournal {
                 -1, -1, -1, GCGeneration.NULL, -1, RecordId.NULL.toString10());
 
         private final long repoSize;
+
         private final long reclaimedSize;
+
         private final long ts;
 
         @Nonnull
         private final GCGeneration gcGeneration;
+
         private final long nodes;
 
         @Nonnull
         private final String root;
 
         public GCJournalEntry(long repoSize, long reclaimedSize, long ts,
-                @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root) {
+                @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root
+        ) {
             this.repoSize = repoSize;
             this.reclaimedSize = reclaimedSize;
             this.ts = ts;
@@ -165,7 +172,15 @@ public class GCJournal {
 
         @Override
         public String toString() {
-            return repoSize + "," + reclaimedSize + "," + ts + "," + gcGeneration + "," + nodes + "," + root;
+            return Joiner.on(",").join(
+                    repoSize,
+                    reclaimedSize,
+                    ts,
+                    gcGeneration.getFull(),
+                    gcGeneration.getTail(),
+                    nodes,
+                    root
+            );
         }
 
         static GCJournalEntry fromString(String in) {
@@ -173,14 +188,14 @@ public class GCJournal {
             long repoSize = parseLong(items, 0);
             long reclaimedSize = parseLong(items, 1);
             long ts = parseLong(items, 2);
-            int gcGen = (int) parseLong(items, 3);
-            long nodes = parseLong(items, 4);
-            String root = parseString(items, 5);
+            int fullGeneration = parseInt(items, 3);
+            int tailGeneration = parseInt(items, 4);
+            long nodes = parseLong(items, 5);
+            String root = parseString(items, 6);
             if (root == null) {
                 root = RecordId.NULL.toString10();
             }
-            // FIXME OAK-3349 set tail part once we have that information in the gc.log file
-            return new GCJournalEntry(repoSize, reclaimedSize, ts, newGCGeneration(gcGen, 0, false), nodes, root);
+            return new GCJournalEntry(repoSize, reclaimedSize, ts, newGCGeneration(fullGeneration, tailGeneration, false), nodes, root);
         }
 
         @CheckForNull
@@ -198,6 +213,18 @@ public class GCJournal {
                     return Long.parseLong(in);
                 } catch (NumberFormatException ex) {
                     LOG.warn("Unable to parse {} as long value.", in, ex);
+                }
+            }
+            return -1;
+        }
+
+        private static int parseInt(String[] items, int index) {
+            String in = parseString(items, index);
+            if (in != null) {
+                try {
+                    return Integer.parseInt(in);
+                } catch (NumberFormatException e) {
+                    LOG.warn("Unable to parse {} as an integer value.", in, e);
                 }
             }
             return -1;
@@ -292,5 +319,7 @@ public class GCJournal {
             }
             return true;
         }
+
     }
+
 }

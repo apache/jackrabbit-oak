@@ -83,4 +83,20 @@ public class GcJournalTest {
         assertEquals(allLines.size(), 3);
     }
 
+    @Test
+    public void testGCGeneration() throws Exception {
+        GCJournal out = new GCJournal(segmentFolder.getRoot());
+        out.persist(1, 100, newGCGeneration(1, 2, false), 50, RecordId.NULL.toString());
+        GCJournal in = new GCJournal(segmentFolder.getRoot());
+        assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
+    }
+
+    @Test
+    public void testGCGenerationTailFlagCleared() throws Exception {
+        GCJournal out = new GCJournal(segmentFolder.getRoot());
+        out.persist(1, 100, newGCGeneration(1, 2, true), 50, RecordId.NULL.toString());
+        GCJournal in = new GCJournal(segmentFolder.getRoot());
+        assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
+    }
+
 }
