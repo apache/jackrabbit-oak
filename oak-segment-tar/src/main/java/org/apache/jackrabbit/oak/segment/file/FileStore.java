@@ -258,7 +258,12 @@ public class FileStore extends AbstractFileStore {
     }
 
     private void saveManifest(Manifest manifest) throws IOException {
-        manifest.setStoreVersion(CURRENT_STORE_VERSION);
+        // Always update the store version to the maximum supported store
+        // version. In doing so, we prevent older implementations from tampering
+        // with the store's data, which from this moment on could be written in
+        // a format that an older implementation might not be able to
+        // understand.
+        manifest.setStoreVersion(MAX_STORE_VERSION);
         manifest.save(getManifestFile());
     }
 
