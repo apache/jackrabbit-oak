@@ -121,7 +121,9 @@ public class Segment {
      */
     static final int BLOB_ID_SMALL_LIMIT = 1 << 12;
 
-    static final int GC_GENERATION_OFFSET = 10;
+    static final int GC_TAIL_GENERATION_OFFSET = 4;
+
+    static final int GC_FULL_GENERATION_OFFSET = 10;
 
     static final int REFERENCED_SEGMENT_ID_COUNT_OFFSET = 14;
 
@@ -373,9 +375,13 @@ public class Segment {
      */
     @Nonnull
     public static GCGeneration getGcGeneration(ByteBuffer data, UUID segmentId) {
-        return isDataSegmentId(segmentId.getLeastSignificantBits())
-            ? new GCGeneration(data.getInt(GC_GENERATION_OFFSET))
-            : GCGeneration.NULL;
+        if (isDataSegmentId(segmentId.getLeastSignificantBits())) {
+            int full = data.getInt(GC_FULL_GENERATION_OFFSET);
+            int tail = data.getInt(GC_TAIL_GENERATION_OFFSET);
+            return new GCGeneration(full, tail & 0x7fffffff, tail < 0);
+        } else {
+            return GCGeneration.NULL;
+        }
     }
 
     /**

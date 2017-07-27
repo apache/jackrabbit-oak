@@ -65,19 +65,19 @@ public class NodeRecordTest {
             SegmentWriter writer;
 
             writer = defaultSegmentWriterBuilder("1")
-                    .withGeneration(new GCGeneration(1))
+                    .withGeneration(new GCGeneration(1, 0, false))
                     .build(store);
             SegmentNodeState one = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
             writer.flush();
 
             writer = defaultSegmentWriterBuilder("2")
-                    .withGeneration(new GCGeneration(2))
+                    .withGeneration(new GCGeneration(2, 0, false))
                     .build(store);
             SegmentNodeState two = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(one));
             writer.flush();
 
             writer = defaultSegmentWriterBuilder("3")
-                    .withGeneration(new GCGeneration(3))
+                    .withGeneration(new GCGeneration(3, 0, false))
                     .build(store);
             SegmentNodeState three = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(two));
             writer.flush();
@@ -108,7 +108,7 @@ public class NodeRecordTest {
                     .with(nodesOnlyCache())
                     .build(store);
 
-            generation.set(new GCGeneration(1));
+            generation.set(new GCGeneration(1, 0, false));
 
             // Write a new node with a non trivial template. This record will
             // belong to generation 1.
@@ -121,7 +121,7 @@ public class NodeRecordTest {
             SegmentNodeState base = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), baseId);
             writer.flush();
 
-            generation.set(new GCGeneration(2));
+            generation.set(new GCGeneration(2, 0, false));
 
             // Compact that same record to generation 2.
 

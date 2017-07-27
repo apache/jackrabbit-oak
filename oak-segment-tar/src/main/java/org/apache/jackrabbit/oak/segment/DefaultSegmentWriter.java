@@ -271,7 +271,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
         SegmentWriteOperation with(@Nonnull SegmentBufferWriter writer) {
             checkState(this.writer == null);
             this.writer = writer;
-            int generation = writer.getGeneration().getGeneration();
+            // FIXME OAK-3349 Also take the tail part of the gc generation into account for allocating cache generations. Cache generations need to be a monotonically increasing, ordered sequence consisting of the full and tail part of the gc generation. See also org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.EvictingWriteCacheManager.evictOldGeneration
+            int generation = writer.getGeneration().getFull();
             this.stringCache = cacheManager.getStringCache(generation);
             this.templateCache = cacheManager.getTemplateCache(generation);
             this.nodeCache = cacheManager.getNodeCache(generation);
@@ -989,7 +990,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             try {
                 GCGeneration thatGen = id.getSegmentId().getGcGeneration();
                 GCGeneration thisGen = writer.getGeneration();
-                return thatGen.compareWith(thisGen) < 0;
+                return thatGen.compareFull(thisGen) < 0 || thatGen.compareTail(thisGen) < 0;
             } catch (SegmentNotFoundException snfe) {
                 // This SNFE means a defer compacted node state is too far
                 // in the past. It has been gc'ed already and cannot be

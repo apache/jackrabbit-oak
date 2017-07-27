@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
+import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.nio.ByteBuffer;
@@ -313,10 +313,10 @@ public class CacheWeightEstimator {
         buffer[5] = 0; // refcount
 
         int generation = 0;
-        buffer[GC_GENERATION_OFFSET] = (byte) (generation >> 24);
-        buffer[GC_GENERATION_OFFSET + 1] = (byte) (generation >> 16);
-        buffer[GC_GENERATION_OFFSET + 2] = (byte) (generation >> 8);
-        buffer[GC_GENERATION_OFFSET + 3] = (byte) generation;
+        buffer[GC_FULL_GENERATION_OFFSET] = (byte) (generation >> 24);
+        buffer[GC_FULL_GENERATION_OFFSET + 1] = (byte) (generation >> 16);
+        buffer[GC_FULL_GENERATION_OFFSET + 2] = (byte) (generation >> 8);
+        buffer[GC_FULL_GENERATION_OFFSET + 3] = (byte) generation;
 
         ByteBuffer data = ByteBuffer.wrap(buffer);
         SegmentId id = randomSegmentId(false);

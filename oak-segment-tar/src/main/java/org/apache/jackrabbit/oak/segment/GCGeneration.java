@@ -22,25 +22,84 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 
+/**
+ * Instances of this class represent the garbage collection generation related information
+ * of a segment. Each generation consists of a full and a tail part and a tail flag.
+ * The full and tail part are each increased by the respective garbage collection process.
+ * In the tail compaction case the segments written by the compactor will also have their
+ * tail flag set so cleanup can recognise them as not reclaimable (unless the full part is
+ * older then the number of retained generations). Segments written by normal repository
+ * writes will inherit the full and tail generations parts of the segments written by the
+ * previous compaction process. However the tail flag is never set for such segments ensuring
+ * cleanup after subsequent tail compactions can reclaim them once old enough (e.g. the tail
+ * part of the generation is older then the number of retained generations).
+ */
 public final class GCGeneration {
-    public static final GCGeneration NULL = new GCGeneration(0);
+    public static final GCGeneration NULL = new GCGeneration(0, 0, false);
 
-    private final int generation;
+    private final int full;
+    private final int tail;
+    private final boolean isTail;
 
-    public GCGeneration(int generation) {
-        this.generation = generation;
+    public GCGeneration(int full, int tail, boolean isTail) {
+        this.full = full;
+        this.tail = tail;
+        this.isTail = isTail;
     }
 
-    public int getGeneration() {
-        return generation;
+    public int getFull() {
+        return full;
     }
 
-    public GCGeneration next() {
-        return new GCGeneration(generation + 1);
+    public int getTail() {
+        return tail;
     }
 
-    public int compareWith(@Nonnull GCGeneration that) {
-        return generation - that.generation;
+    public boolean isTail() {
+        return isTail;
+    }
+
+    /**
+     * Create a new instance with the full part incremented by one and
+     * the tail part and the tail flag left unchanged.
+     */
+    @Nonnull
+    public GCGeneration nextFull() {
+        return new GCGeneration(full + 1, tail, false);
+    }
+
+    /**
+     * Create a new instance with the tail part incremented by one and
+     * the full part and the tail flag left unchanged.
+     * @return
+     */
+    @Nonnull
+    public GCGeneration nextTail() {
+        return new GCGeneration(full, tail + 1, true);
+    }
+
+    /**
+     * Create a new instance with the tail flag unset and the full
+     * part and tail part left unchanged.
+     * @return
+     */
+    @Nonnull
+    public GCGeneration nonTail() {
+        return new GCGeneration(full, tail, false);
+    }
+
+    /**
+     * The the difference of the full part between {@code this} and {@code that}.
+     */
+    public int compareFull(@Nonnull GCGeneration that) {
+        return full - that.full;
+    }
+
+    /**
+     * The the difference of the tail part between {@code this} and {@code that}.
+     */
+    public int compareTail(@Nonnull GCGeneration that) {
+        return tail - that.tail;
     }
 
     @Override
@@ -52,17 +111,20 @@ public final class GCGeneration {
             return false;
         }
         GCGeneration that = (GCGeneration) other;
-        return generation == that.generation;
+        return full == that.full && tail == that.tail && isTail == that.isTail;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(generation);
+        return Objects.hashCode(full, tail, isTail);
     }
 
     @Override
     public String toString() {
         return "GCGeneration{" +
-                "generation=" + generation + '}';
+                "full=" + full + ',' +
+                "tail=" + tail +  ',' +
+                "isTail=" + isTail + '}';
     }
+
 }
