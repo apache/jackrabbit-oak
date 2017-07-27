@@ -192,13 +192,7 @@ public class FileStore extends AbstractFileStore {
                 builder.getCacheManager(),
                 builder.getStatsProvider());
 
-        Manifest manifest = Manifest.empty();
-
-        if (notEmptyDirectory(directory)) {
-            manifest = checkManifest(openManifest());
-        }
-
-        saveManifest(manifest);
+        newManifestChecker(directory).checkAndUpdateManifest();
 
         this.stats = new FileStoreStats(builder.getStatsProvider(), this, 0);
         this.tarFiles = TarFiles.builder()
@@ -255,16 +249,6 @@ public class FileStore extends AbstractFileStore {
         this.revisions = revisions;
         this.revisions.bind(this, tracker, initialNode());
         return this;
-    }
-
-    private void saveManifest(Manifest manifest) throws IOException {
-        // Always update the store version to the maximum supported store
-        // version. In doing so, we prevent older implementations from tampering
-        // with the store's data, which from this moment on could be written in
-        // a format that an older implementation might not be able to
-        // understand.
-        manifest.setStoreVersion(MAX_STORE_VERSION);
-        manifest.save(getManifestFile());
     }
 
     @Nonnull
