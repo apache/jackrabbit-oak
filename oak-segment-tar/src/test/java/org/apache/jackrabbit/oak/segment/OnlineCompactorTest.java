@@ -76,12 +76,12 @@ public class OnlineCompactorTest {
         OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false));
         addTestContent(nodeStore);
 
-        NodeState uncompacted = nodeStore.getRoot();
+        SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
         SegmentNodeState compacted = compactor.compact(uncompacted);
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
-        assertEquals(1, compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().next(), compacted.getSegment().getGcGeneration());
 
         modifyTestContent(nodeStore);
         NodeState modified = nodeStore.getRoot();
@@ -89,7 +89,7 @@ public class OnlineCompactorTest {
         assertNotNull(compacted);
         assertFalse(modified == compacted);
         assertEquals(modified, compacted);
-        assertEquals(1, compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().next(), compacted.getSegment().getGcGeneration());
     }
 
     @Test
@@ -97,12 +97,12 @@ public class OnlineCompactorTest {
         OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false));
         addNodes(nodeStore, OnlineCompactor.UPDATE_LIMIT * 2 + 1);
 
-        NodeState uncompacted = nodeStore.getRoot();
+        SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
         SegmentNodeState compacted = compactor.compact(uncompacted);
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
-        assertEquals(1, compacted.getSegment().getGcGeneration());
+        assertEquals(uncompacted.getSegment().getGcGeneration().next(), compacted.getSegment().getGcGeneration());
     }
 
     @Test
@@ -118,7 +118,9 @@ public class OnlineCompactorTest {
 
     @Nonnull
     private static OnlineCompactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel) {
-        SegmentWriter writer = defaultSegmentWriterBuilder("c").withGeneration(1).build(fileStore);
+        SegmentWriter writer = defaultSegmentWriterBuilder("c")
+                .withGeneration(new GCGeneration(1))
+                .build(fileStore);
         return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, () -> {});
     }
 

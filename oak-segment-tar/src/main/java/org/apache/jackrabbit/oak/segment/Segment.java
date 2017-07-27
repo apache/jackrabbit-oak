@@ -25,9 +25,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.fill;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
-import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.RecordNumbers.EMPTY_RECORD_NUMBERS;
 import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
+import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.isValid;
 
@@ -371,10 +371,11 @@ public class Segment {
      * @param segmentId    the id of the segment
      * @return  the gc generation of this segment or 0 if this is bulk segment.
      */
-    public static int getGcGeneration(ByteBuffer data, UUID segmentId) {
+    @Nonnull
+    public static GCGeneration getGcGeneration(ByteBuffer data, UUID segmentId) {
         return isDataSegmentId(segmentId.getLeastSignificantBits())
-            ? data.getInt(GC_GENERATION_OFFSET)
-            : 0;
+            ? new GCGeneration(data.getInt(GC_GENERATION_OFFSET))
+            : GCGeneration.NULL;
     }
 
     /**
@@ -382,7 +383,8 @@ public class Segment {
      * generations (i.e. stay at 0).
      * @return  the gc generation of this segment or 0 if this is bulk segment.
      */
-    public int getGcGeneration() {
+    @Nonnull
+    public GCGeneration getGcGeneration() {
         return getGcGeneration(data, id.asUUID());
     }
 
@@ -617,7 +619,7 @@ public class Segment {
             writer.format("Segment %s (%d bytes)%n", id, length);
             String segmentInfo = getSegmentInfo();
             if (segmentInfo != null) {
-                writer.format("Info: %s, Generation: %d%n", segmentInfo, getGcGeneration());
+                writer.format("Info: %s, Generation: %s%n", segmentInfo, getGcGeneration());
             }
             if (id.isDataSegmentId()) {
                 writer.println("--------------------------------------------------------------------------");

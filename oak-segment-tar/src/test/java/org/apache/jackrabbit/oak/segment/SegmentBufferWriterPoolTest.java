@@ -54,7 +54,7 @@ public class SegmentBufferWriterPoolTest {
             store.getSegmentIdProvider(),
             store.getReader(),
             "",
-            Suppliers.ofInstance(0)
+            Suppliers.ofInstance(GCGeneration.NULL)
     );
 
     private final ExecutorService[] executors = new ExecutorService[] {

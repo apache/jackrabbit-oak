@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 import java.util.Collection;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.segment.GCGeneration;
+
 /**
  * Initial data and logic needed for the cleanup of unused TAR entries.
  */
@@ -44,7 +46,7 @@ public interface CleanupContext {
      * @return {@code true} if the entry should be reclaimed, {@code false}
      * otherwise.
      */
-    boolean shouldReclaim(UUID id, int generation, boolean referenced);
+    boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced);
 
     /**
      * Determine if a reference between two entries should be followed, and if

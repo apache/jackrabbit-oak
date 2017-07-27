@@ -106,7 +106,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     @Nonnull
     private final String wid;
 
-    private final int generation;
+    @Nonnull
+    private final GCGeneration generation;
 
     /**
      * The segment write buffer, filled from the end to the beginning
@@ -139,14 +140,14 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     public SegmentBufferWriter(@Nonnull SegmentIdProvider idProvider,
                                @Nonnull SegmentReader reader,
                                @CheckForNull String wid,
-                               int generation) {
+                               @Nonnull GCGeneration generation) {
         this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = (wid == null
                 ? "w-" + identityHashCode(this)
                 : wid);
 
-        this.generation = generation;
+        this.generation = checkNotNull(generation);
     }
 
     @Nonnull
@@ -155,7 +156,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         return writeOperation.execute(this);
     }
 
-    int getGeneration() {
+    @Nonnull
+    GCGeneration getGeneration() {
         return generation;
     }
 
@@ -180,10 +182,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[4] = 0; // reserved
         buffer[5] = 0; // reserved
 
-        buffer[GC_GENERATION_OFFSET] = (byte) (generation >> 24);
-        buffer[GC_GENERATION_OFFSET + 1] = (byte) (generation >> 16);
-        buffer[GC_GENERATION_OFFSET + 2] = (byte) (generation >> 8);
-        buffer[GC_GENERATION_OFFSET + 3] = (byte) generation;
+        buffer[GC_GENERATION_OFFSET] = (byte) (generation.getGeneration() >> 24);
+        buffer[GC_GENERATION_OFFSET + 1] = (byte) (generation.getGeneration() >> 16);
+        buffer[GC_GENERATION_OFFSET + 2] = (byte) (generation.getGeneration() >> 8);
+        buffer[GC_GENERATION_OFFSET + 3] = (byte) generation.getGeneration();
         length = 0;
         position = buffer.length;
         recordNumbers = new MutableRecordNumbers();

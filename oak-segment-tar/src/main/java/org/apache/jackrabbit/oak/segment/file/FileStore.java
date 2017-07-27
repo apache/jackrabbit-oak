@@ -74,6 +74,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.segment.GCGeneration;
 import org.apache.jackrabbit.oak.segment.OnlineCompactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -179,12 +180,7 @@ public class FileStore extends AbstractFileStore {
         }
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
-                .withGeneration(new Supplier<Integer>() {
-                    @Override
-                    public Integer get() {
-                        return getGcGeneration();
-                    }
-                })
+                .withGeneration(this::getGcGeneration)
                 .withWriterPool()
                 .with(builder.getCacheManager()
                         .withAccessTracking("WRITE", builder.getStatsProvider()))
@@ -287,7 +283,8 @@ public class FileStore extends AbstractFileStore {
         };
     }
 
-    private int getGcGeneration() {
+    @Nonnull
+    private GCGeneration getGcGeneration() {
         return revisions.getHead().getSegmentId().getGcGeneration();
     }
 
@@ -493,7 +490,7 @@ public class FileStore extends AbstractFileStore {
             }
 
             segment = new Segment(tracker, segmentReader, id, data);
-            generation = segment.getGcGeneration();
+            generation = segment.getGcGeneration().getGeneration();
             references = readReferences(segment);
             binaryReferences = readBinaryReferences(segment);
         }
@@ -651,20 +648,20 @@ public class FileStore extends AbstractFileStore {
         }
 
         @Nonnull
-        private CompactionResult compactionAborted(int generation) {
+        private CompactionResult compactionAborted(@Nonnull GCGeneration generation) {
             gcListener.compactionFailed(generation);
             return CompactionResult.aborted(getGcGeneration(), generation);
         }
 
         @Nonnull
-        private CompactionResult compactionSucceeded(int generation, @Nonnull RecordId compactedRootId) {
+        private CompactionResult compactionSucceeded(@Nonnull GCGeneration generation, @Nonnull RecordId compactedRootId) {
             gcListener.compactionSucceeded(generation);
             return CompactionResult.succeeded(generation, gcOptions, compactedRootId);
         }
 
         @Nonnull
         synchronized CompactionResult compact() {
-            final int newGeneration = getGcGeneration() + 1;
+            final GCGeneration newGeneration = getGcGeneration().next();
             try {
                 Stopwatch watch = Stopwatch.createStarted();
                 gcListener.info("TarMK GC #{}: compaction started, gc options={}", GC_COUNT, gcOptions);
@@ -916,14 +913,14 @@ public class FileStore extends AbstractFileStore {
                 : null;
         }
 
-        private CleanupContext newCleanupContext(Predicate<Integer> old) {
+        private CleanupContext newCleanupContext(Predicate<GCGeneration> old) {
             return new CleanupContext() {
 
                 private boolean isUnreferencedBulkSegment(UUID id, boolean referenced) {
                     return !isDataSegmentId(id.getLeastSignificantBits()) && !referenced;
                 }
 
-                private boolean isOldDataSegment(UUID id, int generation) {
+                private boolean isOldDataSegment(UUID id, GCGeneration generation) {
                     return isDataSegmentId(id.getLeastSignificantBits()) && old.apply(generation);
                 }
 
@@ -939,7 +936,7 @@ public class FileStore extends AbstractFileStore {
                 }
 
                 @Override
-                public boolean shouldReclaim(UUID id, int generation, boolean referenced) {
+                public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
                     return isUnreferencedBulkSegment(id, referenced) || isOldDataSegment(id, generation);
                 }
 
@@ -1013,8 +1010,8 @@ public class FileStore extends AbstractFileStore {
          */
         synchronized void collectBlobReferences(Consumer<String> collector) throws IOException {
             segmentWriter.flush();
-            int oldGeneration = getGcGeneration() - gcOptions.getRetainedGenerations();
-            tarFiles.collectBlobReferences(collector, CompactionResult.newOldReclaimer(oldGeneration));
+            tarFiles.collectBlobReferences(collector,
+                    CompactionResult.newOldReclaimer(getGcGeneration(), gcOptions.getRetainedGenerations()));
         }
 
         void cancel() {
@@ -1085,13 +1082,14 @@ public class FileStore extends AbstractFileStore {
 
     /**
      * Instances of this class represent the result from a compaction.
-     * Either {@link #succeeded(int, SegmentGCOptions, RecordId) succeeded},
-     * {@link #aborted(int, int) aborted} or {@link #skipped(int, SegmentGCOptions) skipped}.
+     * Either {@link #succeeded(GCGeneration, SegmentGCOptions, RecordId) succeeded},
+     * {@link #aborted(GCGeneration, GCGeneration) aborted} or {@link #skipped(GCGeneration, SegmentGCOptions) skipped}.
      */
     private abstract static class CompactionResult {
-        private final int currentGeneration;
+        @Nonnull
+        private final GCGeneration currentGeneration;
 
-        protected CompactionResult(int currentGeneration) {
+        protected CompactionResult(@Nonnull GCGeneration currentGeneration) {
             this.currentGeneration = currentGeneration;
         }
 
@@ -1102,15 +1100,13 @@ public class FileStore extends AbstractFileStore {
          * @param compactedRootId   the record id of the root created by compaction
          */
         static CompactionResult succeeded(
-                final int newGeneration,
+                @Nonnull GCGeneration newGeneration,
                 @Nonnull final SegmentGCOptions gcOptions,
                 @Nonnull final RecordId compactedRootId) {
             return new CompactionResult(newGeneration) {
-                final int oldGeneration = newGeneration - gcOptions.getRetainedGenerations();
-
                 @Override
-                Predicate<Integer> reclaimer() {
-                    return CompactionResult.newOldReclaimer(oldGeneration);
+                Predicate<GCGeneration> reclaimer() {
+                    return CompactionResult.newOldReclaimer(newGeneration, gcOptions.getRetainedGenerations());
                 }
 
                 @Override
@@ -1131,11 +1127,11 @@ public class FileStore extends AbstractFileStore {
          * @param failedGeneration   the generation that compaction attempted to create
          */
         static CompactionResult aborted(
-                int currentGeneration,
-                final int failedGeneration) {
+                @Nonnull GCGeneration currentGeneration,
+                @Nonnull final GCGeneration failedGeneration) {
             return new CompactionResult(currentGeneration) {
                 @Override
-                Predicate<Integer> reclaimer() {
+                Predicate<GCGeneration> reclaimer() {
                     return CompactionResult.newFailedReclaimer(failedGeneration);
                 }
 
@@ -1152,13 +1148,12 @@ public class FileStore extends AbstractFileStore {
          * @param gcOptions         the current GC options used by compaction
          */
         static CompactionResult skipped(
-                final int currentGeneration,
+                @Nonnull GCGeneration currentGeneration,
                 @Nonnull final SegmentGCOptions gcOptions) {
             return new CompactionResult(currentGeneration) {
-                final int oldGeneration = currentGeneration - gcOptions.getRetainedGenerations();
                 @Override
-                Predicate<Integer> reclaimer() {
-                    return CompactionResult.newOldReclaimer(oldGeneration);
+                Predicate<GCGeneration> reclaimer() {
+                    return CompactionResult.newOldReclaimer(currentGeneration, gcOptions.getRetainedGenerations());
                 }
 
                 @Override
@@ -1173,11 +1168,11 @@ public class FileStore extends AbstractFileStore {
          *          {@link GarbageCollector#cleanup(CompactionResult) clean up} for
          *          the given compaction result.
          */
-        abstract Predicate<Integer> reclaimer();
+        abstract Predicate<GCGeneration> reclaimer();
 
         /**
-         * @return  {@code true} for {@link #succeeded(int, SegmentGCOptions, RecordId) succeeded}
-         *          and {@link #skipped(int, SegmentGCOptions) skipped}, {@code false} otherwise.
+         * @return  {@code true} for {@link #succeeded(GCGeneration, SegmentGCOptions, RecordId) succeeded}
+         *          and {@link #skipped(GCGeneration, SegmentGCOptions) skipped}, {@code false} otherwise.
          */
         abstract boolean isSuccess();
 
@@ -1199,11 +1194,11 @@ public class FileStore extends AbstractFileStore {
                     ",reclaim-predicate=" + reclaimer();
         }
 
-        private static Predicate<Integer> newFailedReclaimer(final int failedGeneration) {
-            return new Predicate<Integer>() {
+        private static Predicate<GCGeneration> newFailedReclaimer(@Nonnull final GCGeneration failedGeneration) {
+            return new Predicate<GCGeneration>() {
                 @Override
-                public boolean apply(Integer generation) {
-                    return generation == failedGeneration;
+                public boolean apply(GCGeneration generation) {
+                    return generation.equals(failedGeneration);
                 }
                 @Override
                 public String toString() {
@@ -1212,15 +1207,15 @@ public class FileStore extends AbstractFileStore {
             };
         }
 
-        private static Predicate<Integer> newOldReclaimer(final int oldGeneration) {
-            return new Predicate<Integer>() {
+        private static Predicate<GCGeneration> newOldReclaimer(@Nonnull final GCGeneration reference, int retainedGenerations) {
+            return new Predicate<GCGeneration>() {
                 @Override
-                public boolean apply(Integer generation) {
-                    return generation <= oldGeneration;
+                public boolean apply(GCGeneration generation) {
+                    return reference.compareWith(generation) >= retainedGenerations;
                 }
                 @Override
                 public String toString() {
-                    return "(generation<=" + oldGeneration + ")";
+                    return "(" + reference + " - generation >= " + retainedGenerations + ")";
                 }
             };
         }
