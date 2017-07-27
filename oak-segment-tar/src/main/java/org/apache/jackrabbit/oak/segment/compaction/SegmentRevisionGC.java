@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment.compaction;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.segment.file.GCType;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 
 /**
@@ -102,6 +103,10 @@ public interface SegmentRevisionGC {
      * @param disabled
      */
     void setEstimationDisabled(boolean disabled);
+
+    String getGCType();
+
+    void setGCType(String gcType);
 
     /**
      * Initiate a revision garbage collection operation

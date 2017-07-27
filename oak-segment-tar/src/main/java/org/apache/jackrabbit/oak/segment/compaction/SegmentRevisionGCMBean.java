@@ -27,8 +27,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
+import org.apache.jackrabbit.oak.segment.file.GCType;
 
-// FIXME OAK-3349 add means to trigger full / tail compaction
 public class SegmentRevisionGCMBean
         extends AnnotatedStandardMBean
         implements SegmentRevisionGC {
@@ -112,6 +112,16 @@ public class SegmentRevisionGCMBean
     @Override
     public void setEstimationDisabled(boolean disabled)  {
         gcOptions.setEstimationDisabled(disabled);
+    }
+
+    @Override
+    public String getGCType() {
+        return fileStore.getGcType().toString();
+    }
+
+    @Override
+    public void setGCType(String gcType) {
+        fileStore.setGcType(GCType.valueOf(gcType));
     }
 
     @Override

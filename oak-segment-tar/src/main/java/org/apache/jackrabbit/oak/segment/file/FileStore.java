@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -168,6 +169,8 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final SegmentNotFoundExceptionListener snfeListener;
 
+    private volatile GCType gcType = GCType.FULL;
+
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
@@ -277,6 +280,14 @@ public class FileStore extends AbstractFileStore {
         return revisions.getHead().getSegmentId().getGcGeneration();
     }
 
+    public void setGcType(GCType gcType) {
+        this.gcType = checkNotNull(gcType);
+    }
+
+    public GCType getGcType() {
+        return gcType;
+    }
+
     /**
      * @return  a runnable for running garbage collection
      */
@@ -285,7 +296,16 @@ public class FileStore extends AbstractFileStore {
             @Override
             public void run() {
                 try {
-                    fullGC();
+                    switch (gcType) {
+                        case FULL:
+                            fullGC();
+                            break;
+                        case TAIL:
+                            tailGC();
+                            break;
+                        default:
+                            throw new IllegalStateException("Invalid GC type");
+                    }
                 } catch (IOException e) {
                     log.error("Error running revision garbage collection", e);
                 }
@@ -683,16 +703,18 @@ public class FileStore extends AbstractFileStore {
         }
 
         synchronized CompactionResult compactFull() {
+            gcListener.info("TarMK GC #{}: running full compaction", GC_COUNT);
             return compact(null, getGcGeneration().nextFull());
         }
 
         synchronized CompactionResult compactTail() {
+            gcListener.info("TarMK GC #{}: running tail compaction", GC_COUNT);
             SegmentNodeState base = getBase();
             if (base != null) {
                 return compact(base, getGcGeneration().nextTail());
             }
-            log.warn("Tail compaction requested but no base state available, falling back to full compaction");
-            return compactFull();
+            gcListener.info("TarMK GC #{}: no base state available, running full compaction instead", GC_COUNT);
+            return compact(null, getGcGeneration().nextFull());
         }
 
         private CompactionResult compact(SegmentNodeState base, GCGeneration newGeneration) {
