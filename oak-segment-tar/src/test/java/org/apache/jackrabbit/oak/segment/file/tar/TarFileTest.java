@@ -75,6 +75,42 @@ public class TarFileTest {
     }
 
     @Test
+    public void testGCGeneration() throws Exception {
+        UUID id = UUID.randomUUID();
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
+        String data = "test";
+        byte[] buffer = data.getBytes(UTF_8);
+
+        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+            writer.writeEntry(msb, lsb, buffer, 0, buffer.length, GCGeneration.newGCGeneration(1, 2, false));
+        }
+
+        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+            TarEntry[] entries = reader.getEntries();
+            assertEquals(GCGeneration.newGCGeneration(1, 2, false), entries[0].generation());
+        }
+    }
+
+    @Test
+    public void testGCGenerationIsTailFlagNotErased() throws Exception {
+        UUID id = UUID.randomUUID();
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
+        String data = "test";
+        byte[] buffer = data.getBytes(UTF_8);
+
+        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+            writer.writeEntry(msb, lsb, buffer, 0, buffer.length, GCGeneration.newGCGeneration(1, 2, true));
+        }
+
+        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+            TarEntry[] entries = reader.getEntries();
+            assertEquals(GCGeneration.newGCGeneration(1, 2, true), entries[0].generation());
+        }
+    }
+
+    @Test
     public void testWriteAndReadBinaryReferences() throws Exception {
         try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
             writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, generation(0));

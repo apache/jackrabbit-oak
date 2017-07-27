@@ -633,7 +633,7 @@ class TarReader implements Closeable {
      * @return An array of {@link TarEntry}.
      */
     @Nonnull
-    private TarEntry[] getEntries() {
+    TarEntry[] getEntries() {
         TarEntry[] entries = new TarEntry[index.remaining() / TarEntry.SIZE];
         int position = index.position();
         for (int i = 0; position < index.limit(); i++) {
@@ -642,8 +642,12 @@ class TarReader implements Closeable {
                     index.getLong(position + 8),
                     index.getInt(position + 16),
                     index.getInt(position + 20),
-                    // TODO frm This should read both a full and a tail generation. See OAK-6456.
-                    newGCGeneration(index.getInt(position + 24), 0, false));
+                    newGCGeneration(
+                            index.getInt(position + 24),
+                            index.getInt(position + 28),
+                            index.get(position + 32) != 0
+                    )
+            );
             position += TarEntry.SIZE;
         }
         Arrays.sort(entries, TarEntry.OFFSET_ORDER);
@@ -750,7 +754,6 @@ class TarReader implements Closeable {
             // CPU on subsequent look-ups.
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
-            // FIXME OAK-3349 cannot properly clean up under tail compaction here since we don't have access to the tail part of the generation (i.e. it is not in the tar index). As a workaround for now the implementation of shouldReclaim() could directly read the tail generation from the segment (i.e. SegmentIdProvider.newSegmentId(id.getMostSignificantBits(), id.getLeastSignificantBits()).getGcGeneration().getTail())
             if (context.shouldReclaim(id, entry.generation(), references.remove(id))) {
                 reclaimable.add(id);
             } else {

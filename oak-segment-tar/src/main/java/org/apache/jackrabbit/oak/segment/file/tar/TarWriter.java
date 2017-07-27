@@ -499,8 +499,9 @@ class TarWriter implements Closeable {
             buffer.putLong(entry.lsb());
             buffer.putInt(entry.offset());
             buffer.putInt(entry.size());
-            // TODO frm Include both the full and tail generation. See OAK-6456.
             buffer.putInt(entry.generation().getFull());
+            buffer.putInt(entry.generation().getTail());
+            buffer.put((byte) (entry.generation().isTail() ? 1 : 0));
         }
 
         CRC32 checksum = new CRC32();
