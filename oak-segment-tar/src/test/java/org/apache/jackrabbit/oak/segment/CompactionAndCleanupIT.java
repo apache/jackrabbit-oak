@@ -159,7 +159,7 @@ public class CompactionAndCleanupIT {
             assertTrue("the store should grow", size3 > size2);
 
             // 1st gc cycle -> no reclaimable garbage...
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
 
             long size4 = fileStore.getStats().getApproximateSize();
@@ -175,7 +175,7 @@ public class CompactionAndCleanupIT {
             assertTrue("the store should grow of at least the size of the blob", size5 - size4 >= blobSize);
 
             // 2st gc cycle -> 1st blob should get collected
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
 
             long size6 = fileStore.getStats().getApproximateSize();
@@ -183,7 +183,7 @@ public class CompactionAndCleanupIT {
             assertTrue("the store should shrink of at least the size of the blob", size5 - size6 >= blobSize);
 
             // 3rtd gc cycle -> no  significant change
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
 
             long size7 = fileStore.getStats().getApproximateSize();
@@ -247,7 +247,7 @@ public class CompactionAndCleanupIT {
             assertTrue("the size should grow", size3 > size2);
 
             // 1st gc cycle -> 1st blob should get collected
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
 
             long size4 = fileStore.getStats().getApproximateSize();
@@ -265,14 +265,14 @@ public class CompactionAndCleanupIT {
             assertTrue("the store should grow of at least the size of the blob", size5 - size4 > blobSize);
 
             // 2st gc cycle -> 2nd blob should *not* be collected
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
 
             long size6 = fileStore.getStats().getApproximateSize();
             assertTrue("the blob should not be collected", Math.abs(size5 - size6) < blobSize);
 
             // 3rd gc cycle -> no significant change
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
 
             long size7 = fileStore.getStats().getApproximateSize();
@@ -313,7 +313,7 @@ public class CompactionAndCleanupIT {
             }
             nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             fileStore.flush();
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
             // Compacts to 548Kb
             long size0 = fileStore.getStats().getApproximateSize();
@@ -362,7 +362,7 @@ public class CompactionAndCleanupIT {
             nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             NodeState initialRoot = nodeStore.getRoot();
-            assertTrue(fileStore.compact());
+            assertTrue(fileStore.compactFull());
             NodeState compactedRoot = nodeStore.getRoot();
 
             assertTrue(initialRoot != compactedRoot);
@@ -412,7 +412,7 @@ public class CompactionAndCleanupIT {
             }
 
             long size1 = fileStore.getStats().getApproximateSize();
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
             long size2 = fileStore.getStats().getApproximateSize();
             assertSize("with compacted binaries", size2, 0, size1 - blobSize);
@@ -469,7 +469,7 @@ public class CompactionAndCleanupIT {
             }
 
             long size1 = fileStore.getStats().getApproximateSize();
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
             long size2 = fileStore.getStats().getApproximateSize();
 
@@ -526,7 +526,7 @@ public class CompactionAndCleanupIT {
 
             // 5Mb, de-duplication by the SegmentWriter
             long size1 = fileStore.getStats().getApproximateSize();
-            fileStore.compact();
+            fileStore.compactFull();
             fileStore.cleanup();
             long size2 = fileStore.getStats().getApproximateSize();
             assertSize("with compacted binaries", size2, 0, size1 * 11 / 10);
@@ -605,7 +605,7 @@ public class CompactionAndCleanupIT {
             public Boolean call() throws IOException {
                 boolean cancelled = false;
                 for (int k = 0; !cancelled && k < 1000; k++) {
-                    cancelled = !fileStore.compact();
+                    cancelled = !fileStore.compactFull();
                 }
                 return cancelled;
             }
@@ -659,7 +659,7 @@ public class CompactionAndCleanupIT {
 
                 // Cancelling gc should not cause a SNFE on subsequent gc runs
                 runAsync(cancel);
-                fileStore.gc();
+                fileStore.fullGC();
             }
         } finally {
             fileStore.close();
@@ -731,7 +731,7 @@ public class CompactionAndCleanupIT {
             });
             threads[k].start();
         }
-        store.compact();
+        store.compactFull();
         run.set(false);
         for (Thread t : threads) {
             t.join();
@@ -859,7 +859,7 @@ public class CompactionAndCleanupIT {
                 // Ensure cleanup is efficient by surpassing the number of
                 // retained generations
                 for (int k = 0; k < defaultGCOptions().getRetainedGenerations(); k++) {
-                    fileStore.compact();
+                    fileStore.compactFull();
                 }
 
                 // case 2: merge above changes after compact
@@ -1015,7 +1015,7 @@ public class CompactionAndCleanupIT {
             // Ensure cleanup is efficient by surpassing the number of
             // retained generations
             for (int k = 0; k < gcOptions.getRetainedGenerations(); k++) {
-                fileStore.compact();
+                fileStore.compactFull();
             }
             fileStore.cleanup();
 
@@ -1077,7 +1077,7 @@ public class CompactionAndCleanupIT {
                 cp.uncompacted = nodeStore.retrieve(cp.id);
             }
 
-            fileStore.compact();
+            fileStore.compactFull();
 
             NodeState compactedSuperRoot = fileStore.getHead();
             NodeState compactedRoot = nodeStore.getRoot();
@@ -1118,7 +1118,7 @@ public class CompactionAndCleanupIT {
             NodeState uncompactedSuperRoot = fileStore.getHead();
             NodeState uncompactedRoot = nodeStore.getRoot();
 
-            fileStore.compact();
+            fileStore.compactFull();
 
             NodeState compactedSuperRoot = fileStore.getHead();
             NodeState compactedRoot = nodeStore.getRoot();
@@ -1146,7 +1146,7 @@ public class CompactionAndCleanupIT {
             builder.setChildNode("x").setChildNode("xx");
 
             SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
-            fileStore.compact();
+            fileStore.compactFull();
             NodeState compacted = nodeStore.getRoot();
 
             assertEquals(uncompacted, compacted);
@@ -1448,7 +1448,7 @@ public class CompactionAndCleanupIT {
             fileStore.collectBlobReferences(expectedReferences::add);
 
             for(int k = 1; k <= 3; k++) {
-                fileStore.gc();
+                fileStore.fullGC();
                 Set<String> actualReferences = newHashSet();
                 fileStore.collectBlobReferences(actualReferences::add);
                 assertEquals("Binary should be retained after " + k + "-th gc cycle",

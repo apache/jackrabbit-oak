@@ -117,7 +117,7 @@ public class Compact implements Runnable {
 
     private void compact() throws IOException, InvalidFileStoreVersionException {
         try (FileStore store = newFileStore()) {
-            store.compact();
+            store.compactFull();
         }
 
         System.out.println("    -> cleaning up");

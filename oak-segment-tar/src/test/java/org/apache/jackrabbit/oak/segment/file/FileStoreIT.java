@@ -76,7 +76,7 @@ public class FileStoreIT {
         store.close();
 
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
-        store.gc();
+        store.fullGC();
         store.flush();
         store.close();
 

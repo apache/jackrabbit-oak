@@ -111,7 +111,7 @@ public class ManyChildNodesIT {
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             NodeState uncompactedRoot = nodeStore.getRoot();
-            assertTrue(fileStore.compact());
+            assertTrue(fileStore.compactFull());
             NodeState compactedRoot = nodeStore.getRoot();
             assertTrue(uncompactedRoot != compactedRoot);
             assertEquals(uncompactedRoot, compactedRoot);
