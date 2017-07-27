@@ -109,19 +109,34 @@ class PropertyIndex implements QueryIndex {
     PropertyIndex(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
     }
-
+    
     static Set<String> encode(PropertyValue value, ValuePattern pattern) {
+        return encode(read(value, pattern));
+    }
+    
+    static Set<String> read(PropertyValue value, ValuePattern pattern) {
         if (value == null) {
             return null;
         }
         Set<String> values = new HashSet<String>();
         for (String v : value.getValue(Type.STRINGS)) {
-            try {
+            if (!pattern.matches(v)) {
+                continue;
+            }
+            values.add(v);
+        }
+        return values;
+    }
+
+    static Set<String> encode(Set<String> set) {
+        if (set == null || set.isEmpty()) {
+            return set;
+        }
+        try {
+            Set<String> values = new HashSet<String>();
+            for(String v : set) {
                 if (v.length() > MAX_STRING_LENGTH) {
                     v = v.substring(0, MAX_STRING_LENGTH);
-                }
-                if (!pattern.matches(v)) {
-                    continue;
                 }
                 if (v.isEmpty()) {
                     v = EMPTY_TOKEN;
@@ -129,11 +144,11 @@ class PropertyIndex implements QueryIndex {
                     v = URLEncoder.encode(v, Charsets.UTF_8.name());
                 }
                 values.add(v);
-            } catch (UnsupportedEncodingException e) {
-                throw new IllegalStateException("UTF-8 is unsupported", e);
             }
+            return values;
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("UTF-8 is unsupported", e);
         }
-        return values;
     }
 
     private PropertyIndexPlan getPlan(NodeState root, Filter filter) {

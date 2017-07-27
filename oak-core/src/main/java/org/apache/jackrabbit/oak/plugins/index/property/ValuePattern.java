@@ -60,7 +60,7 @@ public class ValuePattern {
     }
     
     public boolean matches(String v) {
-        if (v == null) {
+        if (matchesAll() || v == null) {
             return true;
         }
         if (includePrefixes != null) {

@@ -24,7 +24,6 @@ import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,13 +32,13 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
@@ -164,6 +163,7 @@ public class PropertyIndexPlan {
                             continue;
                         }
                     }
+                    values = PropertyIndex.encode(values);
                     double cost = strategies.isEmpty() ? MAX_COST : 0;
                     for (IndexStoreStrategy strategy : strategies) {
                         cost += strategy.count(filter, root, definition,
@@ -243,12 +243,12 @@ public class PropertyIndexPlan {
                 && restriction.first != null
                 && restriction.first.equals(restriction.last)) {
             // "[property] = $value"
-            return encode(restriction.first, pattern);
+            return PropertyIndex.read(restriction.first, pattern);
         } else if (restriction.list != null) {
             // "[property] IN (...)
             Set<String> values = newLinkedHashSet(); // keep order for testing
             for (PropertyValue value : restriction.list) {
-                values.addAll(encode(value, pattern));
+                values.addAll(PropertyIndex.read(value, pattern));
             }
             return values;
         } else {
