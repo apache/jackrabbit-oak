@@ -231,7 +231,7 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
             Set<String> expected = defPrivileges.get(p);
             Tree tree = root.getTree(p);
             assertEquals(p, expected, cpp.getPrivileges(tree));
-            assertEquals(p, expected, cppO.getPrivileges(tree));
+            assertEquals(p, ImmutableSet.of(JCR_ALL), cppO.getPrivileges(tree));
         }
     }
 
@@ -240,7 +240,7 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
         Set<String> privilegeNames = cpp.getPrivileges(null);
         assertEquals(ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT), privilegeNames);
         Set<String> privilegeNamesO = cppO.getPrivileges(null);
-        assertEquals(ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT), privilegeNamesO);
+        assertEquals(ImmutableSet.of(JCR_ALL), privilegeNamesO);
     }
 
 

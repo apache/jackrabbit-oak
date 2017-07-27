@@ -104,9 +104,11 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
                 if (!granted.isEmpty()) {
                     result.add(granted);
                 }
-                // update the set of denied privs by comparing the granted privs
-                // with the complete set of supported privileges
-                denied.add(supported.diff(granted));
+                if (compositionType == AND) {
+                    // update the set of denied privs by comparing the granted privs
+                    // with the complete set of supported privileges
+                    denied.add(supported.diff(granted));
+                }
             }
         }
         // subtract all denied privileges from the result
