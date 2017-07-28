@@ -75,6 +75,7 @@ public class NRTIndex implements Closeable {
     private final TimerStats refreshTimer;
     private final HistogramStats sizeHisto;
     private final TimerStats.Context openTime;
+    private final NRTDirectoryFactory directoryFactory;
 
     private NRTIndex previous;
 
@@ -88,12 +89,13 @@ public class NRTIndex implements Closeable {
 
     public NRTIndex(IndexDefinition definition, IndexCopier indexCopier,
                     IndexUpdateListener refreshPolicy, @Nullable NRTIndex previous,
-                    StatisticsProvider statisticsProvider) {
+                    StatisticsProvider statisticsProvider, NRTDirectoryFactory directoryFactory) {
         this.definition = definition;
         this.indexCopier = indexCopier;
         this.refreshPolicy = refreshPolicy;
         this.previous = previous;
         this.statisticsProvider = statisticsProvider;
+        this.directoryFactory = directoryFactory;
 
         this.refreshTimer = statisticsProvider.getTimer(metricName("REFRESH_TIME"), StatsOptions.METRICS_ONLY);
         this.sizeHisto = statisticsProvider.getHistogram(metricName("SIZE"), StatsOptions.METRICS_ONLY);
@@ -222,9 +224,7 @@ public class NRTIndex implements Closeable {
     private synchronized NRTIndexWriter createWriter() throws IOException {
         String dirName = generateDirName();
         indexDir = indexCopier.getIndexDir(definition, definition.getIndexPath(), dirName);
-        Directory fsdir = FSDirectory.open(indexDir);
-        //TODO make these configurable
-        directory = new NRTCachingDirectory(fsdir, 1, 1);
+        directory = directoryFactory.createNRTDir(definition, indexDir);
         IndexWriterConfig config = IndexWriterUtils.getIndexWriterConfig(definition, false);
 
         //TODO Explore following for optimizing indexing speed
