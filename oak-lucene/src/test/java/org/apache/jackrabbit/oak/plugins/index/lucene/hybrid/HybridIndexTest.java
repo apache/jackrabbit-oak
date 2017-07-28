@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.management.ManagementFactory;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -30,6 +31,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.management.AttributeNotFoundException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -37,6 +41,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -46,6 +51,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
@@ -74,7 +80,12 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.NRTCachingDirectory;
+import org.apache.lucene.store.NoLockFactory;
+import org.apache.lucene.store.SimpleFSDirectory;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -83,9 +94,11 @@ import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeNoException;
 
 public class HybridIndexTest extends AbstractQueryTest {
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -93,6 +106,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
     private OptionalEditorProvider optionalEditorProvider = new OptionalEditorProvider();
+    private NRTIndexFactory nrtIndexFactory;
     private NodeStore nodeStore;
     private DocumentQueue queue;
     private Clock clock = new Clock.Virtual();
@@ -115,7 +129,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         }
         MountInfoProvider mip = defaultMountInfoProvider();
 
-        NRTIndexFactory nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
+        nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
@@ -325,6 +339,70 @@ public class HybridIndexTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [oak:TestNode] ";
         assertThat(explain(query), containsString("/oak:index/hybridtest"));
         assertQuery(query, of("/b", "/c"));
+    }
+
+    @Ignore("OAK-6500")
+    @Test
+    public void noFileLeaks() throws Exception{
+        nrtIndexFactory.setDirectoryFactory(new NRTDirectoryFactory() {
+            @Override
+            public Directory createNRTDir(IndexDefinition definition, File indexDir) throws IOException {
+                Directory fsdir = new SimpleFSDirectory(indexDir, NoLockFactory.getNoLockFactory());
+                //TODO make these configurable
+                return new NRTCachingDirectory(fsdir, 0.001, 0.001);
+            }
+        });
+        String idxName = "hybridtest";
+        Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
+        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        root.commit();
+        runAsyncIndex();
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+        runAsyncIndex();
+
+        long fileCount1 = createTestDataAndRunAsync("/content/a", 100);
+        long fileCount2 = createTestDataAndRunAsync("/content/b", 100);
+        long fileCount3 = createTestDataAndRunAsync("/content/c", 100);
+        long fileCount4 = createTestDataAndRunAsync("/content/d", 100);
+        long fileCount5 = createTestDataAndRunAsync("/content/e", 100);
+
+        assertThat(fileCount4, lessThan(fileCount3));
+    }
+
+    private long createTestDataAndRunAsync(String parentPath, int count) throws Exception {
+        createTestData(parentPath, count);
+        System.out.println("Open file count - Post creation at " + parentPath + " is " + getOpenFileCount());
+        runAsyncIndex();
+        System.out.println("Open file count - Post async run at " + parentPath + " is " + getOpenFileCount());
+        return getOpenFileCount();
+    }
+
+    private void createTestData(String parentPath, int count) throws CommitFailedException {
+        createPath(parentPath);
+        root.commit();
+
+        for (int i = 0; i < count; i++) {
+            Tree parent = root.getTree(parentPath);
+            Tree t = parent.addChild("testNode"+i);
+            t.setProperty("foo", "bar");
+            root.commit();
+        }
+    }
+
+    private long getOpenFileCount() throws Exception {
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        ObjectName name = new ObjectName("java.lang:type=OperatingSystem");
+        Long val = null;
+        try {
+            val = (Long) server.getAttribute(name, "OpenFileDescriptorCount");
+        } catch (AttributeNotFoundException e) {
+            //This attribute is only present if the os is unix i.e. when UnixOperatingSystemMXBean
+            //is the mbean in use. If running on windows the test would be assumed to be true
+            assumeNoException(e);
+        }
+        return val;
     }
 
     private String explain(String query){
