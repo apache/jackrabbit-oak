@@ -103,4 +103,10 @@ public interface IndexConstants {
      * The time is in string for as per Type.DATE
      */
     String CHECKPOINT_CREATION_TIME = "indexingCheckpointTime";
+    
+    /**
+     * The index name hint (when using "option(index abc)", this is "abc")
+     */
+    String INDEX_NAME_OPTION = ":indexName";
+    
 }

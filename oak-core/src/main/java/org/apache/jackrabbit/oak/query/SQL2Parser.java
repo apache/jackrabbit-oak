@@ -168,9 +168,17 @@ public class SQL2Parser {
         QueryOptions options = new QueryOptions();
         if (readIf("OPTION")) {
             read("(");
-            if (readIf("TRAVERSAL")) {
-                String n = readName().toUpperCase(Locale.ENGLISH);
-                options.traversal = Traversal.valueOf(n);
+            while (true) {
+                if (readIf("TRAVERSAL")) {
+                    String n = readName().toUpperCase(Locale.ENGLISH);
+                    options.traversal = Traversal.valueOf(n);
+                } else if (readIf("INDEX")) {
+                    String n = readName();
+                    options.indexName = n;
+                } else {
+                    break;
+                }
+                readIf(",");
             }
             read(")");
         }

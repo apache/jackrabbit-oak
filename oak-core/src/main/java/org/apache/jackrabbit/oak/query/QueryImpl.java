@@ -1360,4 +1360,8 @@ public class QueryImpl implements Query {
         return constraint.containsUnfilteredFullTextCondition();
     }
 
+    public QueryOptions getQueryOptions() {
+        return queryOptions;
+    }
+
 }

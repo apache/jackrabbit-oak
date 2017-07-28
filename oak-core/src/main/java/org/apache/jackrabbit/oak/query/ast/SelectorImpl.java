@@ -40,12 +40,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.plugins.index.Cursors;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -412,7 +414,11 @@ public class SelectorImpl extends SourceImpl {
         for (ConstraintImpl constraint : selectorConstraints) {
             constraint.restrict(f);
         }
-
+        QueryOptions options = query.getQueryOptions();
+        if (options != null && options.indexName != null) {
+            f.restrictProperty(IndexConstants.INDEX_NAME_OPTION, 
+                    Operator.EQUAL, PropertyValues.newString(options.indexName));
+        }
         return f;
     }
 

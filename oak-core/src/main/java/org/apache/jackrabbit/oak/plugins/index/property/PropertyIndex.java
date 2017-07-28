@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_NAME_OPTION;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 import java.io.UnsupportedEncodingException;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -173,7 +175,11 @@ class PropertyIndex implements QueryIndex {
         // TODO support indexes on a path
         // currently, only indexes on the root node are supported
         NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
+        PropertyRestriction indexName = filter.getPropertyRestriction(INDEX_NAME_OPTION);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            if (wrongIndexName(entry, indexName)) {
+                continue;
+            }
             NodeState definition = entry.getNodeState();
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
                     && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
@@ -194,6 +200,13 @@ class PropertyIndex implements QueryIndex {
         }
 
         return bestPlan;
+    }
+    
+    private static boolean wrongIndexName(ChildNodeEntry entry, PropertyRestriction indexName) {
+        if (indexName == null || indexName.first == null) {
+            return false;
+        }
+        return !entry.getName().equals(indexName.first.getValue(Type.STRING));
     }
 
     //--------------------------------------------------------< QueryIndex >--

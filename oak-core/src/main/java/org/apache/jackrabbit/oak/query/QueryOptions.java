@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.query;
 public class QueryOptions {
     
     public Traversal traversal = Traversal.DEFAULT;
+    public String indexName;
     
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning
