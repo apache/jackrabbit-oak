@@ -33,6 +33,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
@@ -123,6 +124,20 @@ class IndexPlanner {
 
     private IndexPlan.Builder getPlanBuilder() {
         log.trace("Evaluating plan with index definition {}", definition);
+
+        // skip index if "option(index <name>)" doesn't match
+        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        if (indexName != null && indexName.first != null) {
+            String name = indexName.first.getValue(Type.STRING);
+            String thisName = definition.getIndexName();
+            if (thisName != null) {
+                thisName = PathUtils.getName(thisName);
+                if (!thisName.equals(name)) {
+                    return null;
+                }
+            }
+        }
+
         FullTextExpression ft = filter.getFullTextConstraint();
 
         if (!definition.getVersion().isAtLeast(IndexFormatVersion.V2)){
@@ -358,7 +373,7 @@ class IndexPlanner {
                 visitTerm(term.getPropertyName());
                 return true;
             }
-                
+
             private void visitTerm(String propertyName) {
                 String p = propertyName;
                 String propertyPath = null;
@@ -603,7 +618,7 @@ class IndexPlanner {
     private boolean notSupportedFeature() {
         if(filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
                 && filter.matchesAllTypes()
-                && filter.getPropertyRestrictions().isEmpty()) { 
+                && filter.getPropertyRestrictions().isEmpty()) {
             //This mode includes name(), localname() queries
             //OrImpl [a/name] = 'Hello' or [b/name] = 'World'
             //Relative parent properties where [../foo1] is not null
@@ -612,7 +627,7 @@ class IndexPlanner {
         boolean failTestOnMissingFunctionIndex = true;
         if (failTestOnMissingFunctionIndex) {
             // this means even just function restrictions fail the test
-            // (for example "where upper(name) = 'X'", 
+            // (for example "where upper(name) = 'X'",
             // if a matching function-based index is missing
             return false;
         }

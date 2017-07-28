@@ -56,7 +56,7 @@ public class Statement {
     
     String xpathQuery;
     
-    QueryOptions queryOptions = new QueryOptions();
+    QueryOptions queryOptions;
     
     public Statement optimize() {
         ignoreOrderByScoreDesc();
@@ -226,9 +226,7 @@ public class Statement {
                 buff.append(orderList.get(i));
             }
         }
-        if (queryOptions.traversal != Traversal.DEFAULT) {
-            buff.append(" option(traversal " + queryOptions.traversal +")");
-        }
+        appendQueryOptions(buff, queryOptions);
         // leave original xpath string as a comment
         appendXPathAsComment(buff, xpathQuery);
         return buff.toString();        
@@ -327,14 +325,33 @@ public class Statement {
                     buff.append(orderList.get(i));
                 }
             }
-            if (queryOptions.traversal != Traversal.DEFAULT) {
-                buff.append(" option(traversal " + queryOptions.traversal +")");
-            }
+            appendQueryOptions(buff, queryOptions);
             // leave original xpath string as a comment
             appendXPathAsComment(buff, xpathQuery);
             return buff.toString();
         }
         
+    }
+    
+    private static void appendQueryOptions(StringBuilder buff, QueryOptions queryOptions) {
+        if (queryOptions == null) {
+            return;
+        }
+        buff.append(" option(");
+        int optionCount = 0;
+        if (queryOptions.traversal != Traversal.DEFAULT) {
+            buff.append("traversal " + queryOptions.traversal);
+            optionCount++;
+        }
+        if (queryOptions.indexName != null) {
+            if (optionCount > 0) {
+                buff.append(", ");
+            }
+            buff.append("index [");
+            buff.append(queryOptions.indexName);
+            buff.append("]");
+        }
+        buff.append(")");
     }
     
     private static void appendXPathAsComment(StringBuilder buff, String xpath) {

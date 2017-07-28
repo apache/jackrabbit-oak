@@ -329,12 +329,21 @@ public class XPathToSQL2Converter {
                 statement.addOrderBy(order);
             } while (readIf(","));
         }
-        QueryOptions options = new QueryOptions();
+        QueryOptions options = null;
         if (readIf("option")) {
             read("(");
-            if (readIf("traversal")) {
-                String type = readIdentifier().toUpperCase(Locale.ENGLISH);
-                options.traversal = Traversal.valueOf(type);
+            options = new QueryOptions();
+            while (true) {
+                if (readIf("traversal")) {
+                    String type = readIdentifier().toUpperCase(Locale.ENGLISH);
+                    options.traversal = Traversal.valueOf(type);
+                } else if (readIf("index")) {
+                    String n = readIdentifier();
+                    options.indexName = n;
+                } else {
+                    break;
+                }
+                readIf(",");
             }
             read(")");
         }
@@ -1126,7 +1135,7 @@ public class XPathToSQL2Converter {
             // but no longer in the individual statements
             // (can not use clear, because it is shared)
             stat.orderList = new ArrayList<Order>();
-            stat.queryOptions = new QueryOptions();
+            stat.queryOptions = null;
             if (result == null) {
                 result = stat;
             } else {
