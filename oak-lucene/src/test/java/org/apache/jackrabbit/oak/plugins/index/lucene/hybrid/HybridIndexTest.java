@@ -362,20 +362,22 @@ public class HybridIndexTest extends AbstractQueryTest {
         root.commit();
         runAsyncIndex();
 
+        System.out.printf("Open file count - At start %d%n", getOpenFileCount());
         long fileCount1 = createTestDataAndRunAsync("/content/a", 100);
         long fileCount2 = createTestDataAndRunAsync("/content/b", 100);
         long fileCount3 = createTestDataAndRunAsync("/content/c", 100);
-        long fileCount4 = createTestDataAndRunAsync("/content/d", 100);
-        long fileCount5 = createTestDataAndRunAsync("/content/e", 100);
+        long fileCount4 = createTestDataAndRunAsync("/content/d", 1);
+        long fileCount5 = createTestDataAndRunAsync("/content/e", 1);
+        System.out.printf("Open file count - At end %d", getOpenFileCount());
 
         assertThat(fileCount4, lessThan(fileCount3));
     }
 
     private long createTestDataAndRunAsync(String parentPath, int count) throws Exception {
         createTestData(parentPath, count);
-        System.out.println("Open file count - Post creation at " + parentPath + " is " + getOpenFileCount());
+        System.out.printf("Open file count - Post creation of %d nodes at %s is %d%n",count, parentPath, getOpenFileCount());
         runAsyncIndex();
-        System.out.println("Open file count - Post async run at " + parentPath + " is " + getOpenFileCount());
+        System.out.printf("Open file count - Post async run at %s is %d%n",parentPath, getOpenFileCount());
         return getOpenFileCount();
     }
 
