@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.7.4
+Release Notes -- Apache Jackrabbit Oak -- Version 1.7.5
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.7.4 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.7.5 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.6.x
 release.
@@ -15,84 +15,75 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.7.4
+Changes in Oak 1.7.5
 ---------------------
 
 Technical task
 
-    [OAK-6117] - Enable lucene indexing via oak-run
-    [OAK-6271] - Support for importing index files
-    [OAK-6414] - Use Tika config to determine non indexed mimeTypes
-    [OAK-6415] - Use dynamic service loader by default
+    [OAK-6487] - IndexUpdate should not reindex newly imported index
+    definitions
 
 Bug
 
-    [OAK-5740] - deliver overflow change even without new commit
-    [OAK-6061] - Test failure: StandbyTestIT.testSyncLoop
-    [OAK-6376] - Race condition in the CompositeNodeStore#merge
-    [OAK-6413] - FileCache getIfPresent doesn't update cache hit/miss
-    counters
-    [OAK-6420] - Incorrect revisions sweep stats
-    [OAK-6423] - MongoDocumentStore re-creates old index on
-    _deletedOnce
-    [OAK-6424] - LuceneSupportTest::fullTextSearch is still flaky
-    [OAK-6438] - LuceneSupportTest.fullTextSearch failing
-    [OAK-6440] - Incorrect node type diff
-    [OAK-6443] - NodeStoreFixtureProvider not closing
-    DocumentNodeStore
-    [OAK-6447] - CompositeNodeStore initialisation fails if
-    ignoreReadOnlyWrites config property is not set
-    [OAK-6451] - MultiplexingPermissionProvider is ignored by the
-    CompositeAuthorizationConfiguration
-    [OAK-6455] - Don't call observer concurrently from the
-    CompositeNodeStore
-    [OAK-6462] - Incorrect memory calculation for bundled node states
-    [OAK-6463] - Property index update fails in composite NodeStore
-    setup
+    [OAK-6481] - Missing versionable path property for
+    oak:mount-libs-crx.default
+    [OAK-6486] - NPE in CompositeNodeStore
+    [OAK-6490] - Pre-Extraction support fails for empty binaries
+    [OAK-6493] - LuceneIndexProviderService.enableHybridIndexing=false
+    results in NullPointerException
+    [OAK-6499] - MultiplexingPermissionProvider wrong privileges
+    composition
+    [OAK-6502] - Property index: include/exclude key pattern list
+    (escaping)
+
+Documentation
+
+    [OAK-6370] - Improve documentation for text pre-extraction
 
 Improvement
 
-    [OAK-3987] - Indexer dry run mode
-    [OAK-4732] - (Slightly) prioritise reads over writes
-    [OAK-5048] - Upgrade to Tika 1.15 version
-    [OAK-5899] - PropertyDefinitions should allow for some
-    tweakability to declare usefulness
-    [OAK-6333] - IndexPlanner should use actual entryCount instead of
-    limiting it to 1000
-    [OAK-6341] - oak-run redirects reindexing info to STDERR
-    [OAK-6350] - Improve log reporting if multiple indexes compete for
-    same query
-    [OAK-6425] - Make the CompositeNodeStore thread-safe
-    [OAK-6428] - Add flag for controlling percentile of commit time
-    used in scheduler
-    [OAK-6430] - Remove Apache Commons Math3 dependency from Segment
-    Tar
-    [OAK-6432] - Make dynamic reference greedy and static to simplify
-    LuceneIndexProviderService
-    [OAK-6436] - Log message on checkpoint MBean invocation
-    [OAK-6437] - NodeStateCopyUtils should not copy hidden props and
-    node in JCR mode
-    [OAK-6459] - VisibleValidator duplicated in chain for each
-    hierarchy level
-    [OAK-6464] - Public constructor for RandomStream
-    [OAK-6466] - Suppress NOP info message from revision GC
+    [OAK-5602] - Avoid missing journal entries
+    [OAK-6359] - Change behavior for very complex queries
+    [OAK-6409] - Oak-run indexing: improved (user friendly) output
+    [OAK-6461] - Merge all security related validators into a single
+    hook
+    [OAK-6469] - CompositePermissionProvider should implement
+    AggregatedPermissionProvider
+    [OAK-6470] - Remove extra call to createGroupPrincipal in
+    UserPrincipalProvider
+    [OAK-6472] - Expose constructor in JsonSerializer which takes
+    filer and JsopBuilder
+    [OAK-6475] - JsonSerializer should not emit :childNodeCount
+    property
+    [OAK-6482] - Remove org.apache.sling.testing.osgi-mock dependency
+    from oak-run
+    [OAK-6488] - Move journal maxRevisionAge to DocumentNodeStore
+    [OAK-6491] - Add JCR_CREATED support to
+    JcrLastModifiedConflictHandler
+    [OAK-6492] - Allow DummyDataStore to read files written by it
+    [OAK-6494] - Change journalGCMaxAge default
+    [OAK-6495] - Fallback to classic diff when journal is broken
 
 New Feature
 
-    [OAK-6081] - Indexing tooling via oak-run
-    [OAK-6246] - Support for out of band indexing with read only
-    access to NodeStore
-    [OAK-6276] - expose way to detect "eventual consistency delay"
+    [OAK-3349] - Partial compaction
+    [OAK-6456] - Include the tail generation in the TAR index
+    [OAK-6458] - Increment the manifest version number
+    [OAK-6468] - Include the tail generation in the binary references
+    index
+    [OAK-6471] - Support adding or updating index definitions via
+    oak-run
+    [OAK-6476] - Support deserializing json as NodeState
+    [OAK-6477] - RevisionGC metrics for DocumentNodeStore
+    [OAK-6484] - Include tail generation in the GC journal
+    [OAK-6485] - Expose tail and full compaction via different methods
 
 Task
 
-    [OAK-6337] - Decide major version bump of o.a.j.o.api.jmx
-    [OAK-6417] - Change log level for tests in oak-remote to INFO
-    [OAK-6439] - Add dependency to lucene-suggest in oak-pojosr
-
-Test
-
-    [OAK-6427] - Duplicate class: MongoDocumentStoreHelper
+    [OAK-6265] - Remove Mounts.defaultMount methods
+    [OAK-6473] - Use JsonSerializer instead of custom json logic in
+    IndexDefinitionPrinter
+    [OAK-6478] - Move LoggingGCMonitor from segment-tar to core-spi
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
