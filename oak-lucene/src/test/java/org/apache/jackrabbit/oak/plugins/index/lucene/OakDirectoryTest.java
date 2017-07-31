@@ -47,12 +47,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -458,6 +460,59 @@ public class OakDirectoryTest {
         assertFalse(dir.isDirty());
         dir.deleteFile("a");
         assertTrue(dir.isDirty());
+        dir.close();
+    }
+
+    // OAK-6503
+    @Test
+    public void dontMarkNonBlobStoreBlobsAsDeleted() throws Exception{
+        final String deletedBlobId = "blobIdentifier";
+        final String blobIdToString = "NeverEver-Ever-Ever-ShouldThisBeMarkedAsDeleted";
+        final int fileSize = 1;
+
+        final AtomicBoolean identifiableBlob = new AtomicBoolean(false);
+
+        IndexDefinition def = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        OakDirectory.BlobFactory factory = new OakDirectory.BlobFactory() {
+            @Override
+            public Blob createBlob(InputStream in) throws IOException {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                IOUtils.copy(in, out);
+                byte[] data = out.toByteArray();
+                return new ArrayBasedBlob(data) {
+                    @Override
+                    public String getContentIdentity() {
+                        return identifiableBlob.get()?deletedBlobId:null;
+                    }
+
+                    @Override
+                    public String toString() {
+                        return blobIdToString;
+                    }
+                };
+            }
+        };
+
+        OakDirectory dir = new OakDirectory(builder, INDEX_DATA_CHILD_NAME, def, false, factory,
+                new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                    @Override
+                    public void deleted(String blobId, Iterable<String> ids) {
+                        assertEquals("Only blobs with content identity must be reported as deleted", deletedBlobId, blobId);
+                    }
+
+                    @Override
+                    public void commitProgress(IndexProgress indexProgress) {
+                    }
+                });
+
+        writeFile(dir, "file1", fileSize);
+        writeFile(dir, "file2", fileSize);
+
+        dir.deleteFile("file1");
+
+        identifiableBlob.set(true);
+        dir.deleteFile("file2");
+
         dir.close();
     }
 
