@@ -18,9 +18,21 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import java.util.Collections;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecksService;
+import org.apache.jackrabbit.oak.composite.checks.VersionableNodesMountedNodeStoreChecker;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
 public class CompositeNodeStoreBuilderTest {
@@ -81,5 +93,30 @@ public class CompositeNodeStoreBuilderTest {
         new CompositeNodeStore.Builder(mip, new MemoryNodeStore())
             .addMount("not-temp", new MemoryNodeStore())
             .build();
+    }
+    
+    @Test(expected = IllegalRepositoryStateException.class)
+    public void versionableNode() throws CommitFailedException {
+
+        MemoryNodeStore root = new MemoryNodeStore();
+        MemoryNodeStore mount = new MemoryNodeStore();
+        
+        // create a child node that is versionable
+        // note that we won't cover all checks here, we are only interested in seeing that at least one check is triggered
+        NodeBuilder rootBuilder = mount.getRoot().builder();
+        NodeBuilder childNode = rootBuilder.setChildNode("readOnly").setChildNode("second").setChildNode("third");
+        childNode.setProperty(JcrConstants.JCR_ISCHECKEDOUT, false);
+        childNode.setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES , Collections.singletonList(JcrConstants.MIX_VERSIONABLE), Type.NAMES));
+        mount.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        MountInfoProvider mip = Mounts.newBuilder()
+                .readOnlyMount("readOnly", "/readOnly")
+                .build();
+
+        new CompositeNodeStore.Builder(mip, root)
+            .addMount("readOnly", mount)
+            .with(new NodeStoreChecksService(Collections.singletonList(new VersionableNodesMountedNodeStoreChecker())))
+            .build();        
+        
     }
 }

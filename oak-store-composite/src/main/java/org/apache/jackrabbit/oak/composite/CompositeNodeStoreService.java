@@ -27,6 +27,7 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -67,6 +68,9 @@ public class CompositeNodeStoreService {
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class, target="(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))")
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
+    
+    @Reference
+    private NodeStoreChecks checks;
 
     @Property(label = "Ignore read only writes",
             unbounded = PropertyUnbounded.ARRAY,
@@ -126,7 +130,7 @@ public class CompositeNodeStoreService {
             LOG.info("Composite node store registration is deferred until there's a global node store registered in OSGi");
             return;
         } else {
-            LOG.info("Found global node store: {}", getDescription(globalNs));
+            LOG.info("Found global node store: {}", globalNs.getDescription());
         }
 
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
@@ -140,6 +144,7 @@ public class CompositeNodeStoreService {
         CompositeNodeStore.Builder builder = new CompositeNodeStore.Builder(mountInfoProvider, globalNs.getNodeStoreProvider().getNodeStore());
         nodeStoresInUse.add(globalNs.getNodeStoreProvider());
 
+        builder.with(checks);
         builder.setPartialReadOnly(partialReadOnly);
         for (String p : ignoreReadOnlyWritePaths) {
             builder.addIgnoredReadOnlyWritePath(p);
@@ -152,7 +157,7 @@ public class CompositeNodeStoreService {
             String mountName = getMountName(ns);
             if (mountName != null) {
                 builder.addMount(mountName, ns.getNodeStoreProvider().getNodeStore());
-                LOG.info("Mounting {} as {}", getDescription(ns), mountName);
+                LOG.info("Mounting {} as {}", ns.getDescription(), mountName);
                 nodeStoresInUse.add(ns.getNodeStoreProvider());
             }
         }
@@ -195,10 +200,6 @@ public class CompositeNodeStoreService {
             return null;
         }
         return role.substring(MOUNT_ROLE_PREFIX.length());
-    }
-
-    private String getDescription(NodeStoreWithProps ns) {
-        return PropertiesUtil.toString(ns.getProps().get("oak.nodestore.description"), ns.getNodeStoreProvider().getClass().toString());
     }
 
     private void unregisterCompositeNodeStore() {
@@ -271,6 +272,11 @@ public class CompositeNodeStoreService {
 
         public String getRole() {
             return PropertiesUtil.toString(props.get(NodeStoreProvider.ROLE), null);
+        }
+
+        public String getDescription() {
+            return PropertiesUtil.toString(getProps().get("oak.nodestore.description"),
+                    getNodeStoreProvider().getClass().toString());
         }
     }
 }
