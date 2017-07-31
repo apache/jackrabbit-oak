@@ -166,11 +166,10 @@ public class OakDirectory extends Directory {
                     //Mark the blob as deleted. Also, post index path, type of directory
                     //(:suggest, :data, etc) and filename being deleted
                     String blobId = b.getContentIdentity();
-                    if (blobId == null) {
-                        blobId = b.toString();
+                    if (blobId != null) {
+                        blobDeletionCallback.deleted(blobId,
+                                Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
                     }
-                    blobDeletionCallback.deleted(blobId,
-                            Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
                 }
             }
         }
