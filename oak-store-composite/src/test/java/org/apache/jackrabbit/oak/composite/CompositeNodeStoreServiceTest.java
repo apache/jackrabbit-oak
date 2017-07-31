@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecksService;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -50,9 +51,11 @@ public class CompositeNodeStoreServiceTest {
 		ctx.registerService(MountInfoProvider.class, mip);
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite:global", "registerDescriptors", Boolean.TRUE));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite:mount:libs"));
+		ctx.registerInjectActivateService(new NodeStoreChecksService());
 		
 		ctx.registerInjectActivateService(new CompositeNodeStoreService());
-		
+
+
 		assertThat("No NodeStore registered", ctx.getService(NodeStore.class), notNullValue());
 	}
 	
@@ -70,6 +73,7 @@ public class CompositeNodeStoreServiceTest {
 		ctx.registerService(MountInfoProvider.class, mip);
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite:global", "registerDescriptors", Boolean.TRUE));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite:mount:libs"));
+		ctx.registerInjectActivateService(new NodeStoreChecksService());
 		
 		ctx.registerInjectActivateService(new CompositeNodeStoreService());
 		
@@ -88,6 +92,7 @@ public class CompositeNodeStoreServiceTest {
 		
 		ctx.registerService(MountInfoProvider.class, mip);
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite:mount:libs"));
+		ctx.registerInjectActivateService(new NodeStoreChecksService());
 		
 		ctx.registerInjectActivateService(new CompositeNodeStoreService());
 		

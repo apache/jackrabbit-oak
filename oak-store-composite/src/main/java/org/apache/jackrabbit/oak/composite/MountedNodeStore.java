@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.composite;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-class MountedNodeStore {
+public class MountedNodeStore {
 
     private final Mount mount;
 

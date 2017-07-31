@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -461,9 +462,16 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
         private boolean partialReadOnly = true;
 
+        private NodeStoreChecks checks;
+
         public Builder(MountInfoProvider mip, NodeStore globalStore) {
             this.mip = checkNotNull(mip, "mountInfoProvider");
             this.globalStore = checkNotNull(globalStore, "globalStore");
+        }
+        
+        public Builder with(NodeStoreChecks checks) {
+            this.checks = checks;
+            return this;
         }
 
         public Builder addMount(String mountName, NodeStore store) {
@@ -489,6 +497,9 @@ public class CompositeNodeStore implements NodeStore, Observable {
             checkMountsAreConsistentWithMounts();
             if (partialReadOnly) {
                 assertPartialMountsAreReadOnly();
+            }
+            if ( checks != null ) {
+                nonDefaultStores.forEach( s -> checks.check(globalStore, s));
             }
             return new CompositeNodeStore(mip, globalStore, nonDefaultStores, ignoreReadOnlyWritePaths);
         }
