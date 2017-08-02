@@ -55,7 +55,8 @@ and base implementations:
     - [ConfigurationBase]: Abstract base implementation of the `SecurityConfiguration` interface. 
     - [CompositeConfiguration]: Abstract base implementation for all composite configurations that allow for aggregation of multiple modules.
 - [ConfigurationParameters]: Utility used to pass around parameters and options.
-- [Context]: Context information that allows to identify items defined and maintained by a give security module implementation. 
+- [Context]: Context information that allows to identify items defined and maintained by a give security module implementation.
+- [RegistrationConstants]: Utility used to define well-known registration properties
     
 #### SecurityProvider
 
@@ -190,7 +191,12 @@ the corresponding sections. The following paragraphs describe the configuration 
 
 | Parameter                | Type     | Default   | Description            |
 |--------------------------|----------|-----------|------------------------|
-| `Required Service PIDs`  | String[] | see below | Service references mandatory for the SecurityProvider registration. |
+| `Required Services`    | String[] | see below | Service references mandatory for the SecurityProvider registration. |
+
+The value of the individual configuration entries can be one of:
+
+- the value of the `service.pid` registration property
+- the value of the `oak.security.name` registration property
 
 By default the `SecurityProviderRegistration` defines the following mandatory services. 
 As long as these required references are not resolved the `SecurityProviderRegistration` 
@@ -315,6 +321,7 @@ the `SecurityProvider` in order to avoid inconsistencies.
 [ConfigurationBase]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/ConfigurationBase.html
 [ConfigurationParameters]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/ConfigurationParameters.html
 [Context]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/Context.html
+[RegistrationConstants]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/RegistrationConstants.html
 [AuthenticationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthenticationConfiguration.html
 [TokenConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenConfiguration.html
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html

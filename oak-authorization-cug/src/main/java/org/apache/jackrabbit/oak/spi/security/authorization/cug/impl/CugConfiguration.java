@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
@@ -89,7 +91,10 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = CompositeConfiguration.PARAM_RANKING,
                 label = "Ranking",
                 description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 200)
+                intValue = 200),
+        @Property(name = OAK_SECURITY_NAME,
+                propertyPrivate = true,
+                value = "org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration")        
 })
 public class CugConfiguration extends ConfigurationBase implements AuthorizationConfiguration, CugConstants {
 

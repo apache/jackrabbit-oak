@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.RegistrationConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
@@ -92,11 +93,11 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         assertEquals(isDefined, context.definesLocation(TreeLocation.create(tree)));
     }
 
-    private static <T> T mockConfiguration(Class<? extends SecurityConfiguration> cl) {
-        SecurityConfiguration sc = Mockito.mock(cl);
+    private static <T extends SecurityConfiguration> T mockConfiguration(Class<T> cl) {
+        T sc = Mockito.mock(cl);
         when(sc.getContext()).thenReturn(new ContextImpl());
         when(sc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
-        return (T) sc;
+        return sc;
     }
 
     private static Map<String, Object> requiredServiceIdMap(@Nonnull String... ids) {
@@ -561,6 +562,32 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         RestrictionProvider mockRp = Mockito.mock(RestrictionProvider.class);
         registration.bindRestrictionProvider(mockRp, ImmutableMap.of(Constants.SERVICE_PID, "rpId"));
         registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(Constants.SERVICE_PID, "authorizationId"));
+
+        SecurityProvider service = context.getService(SecurityProvider.class);
+        RestrictionProvider rp = service.getConfiguration(AuthorizationConfiguration.class).getRestrictionProvider();
+        assertTrue(rp instanceof WhiteboardRestrictionProvider);
+    }
+    
+    @Test
+    public void testActivateWithRequiredOakSecurityName() {
+        registration.activate(context.bundleContext(), requiredServiceIdMap("serviceId"));
+
+        SecurityProvider service = context.getService(SecurityProvider.class);
+        assertNull(service);
+
+        registration.bindAuthorizableNodeName(Mockito.mock(AuthorizableNodeName.class), ImmutableMap.of(RegistrationConstants.OAK_SECURITY_NAME, "serviceId"));
+
+        service = context.getService(SecurityProvider.class);
+        assertNotNull(service);
+    }
+    
+    @Test
+    public void testActivateWithMixedServicePiAnddOakServiceName() {
+        registration.activate(context.bundleContext(), requiredServiceIdMap("rpId", "authorizationId"));
+        
+        RestrictionProvider mockRp = Mockito.mock(RestrictionProvider.class);
+        registration.bindRestrictionProvider(mockRp, ImmutableMap.of(Constants.SERVICE_PID, "rpId"));
+        registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(RegistrationConstants.OAK_SECURITY_NAME, "authorizationId"));
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         RestrictionProvider rp = service.getConfiguration(AuthorizationConfiguration.class).getRestrictionProvider();

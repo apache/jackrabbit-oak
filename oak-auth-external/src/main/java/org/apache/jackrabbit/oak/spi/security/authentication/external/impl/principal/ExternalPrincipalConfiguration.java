@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Arrays;
@@ -85,7 +87,10 @@ import org.slf4j.LoggerFactory;
         @Property(name = ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS,
                 label = "External Identity Protection",
                 description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!",
-                boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS)
+                boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS),
+        @Property(name = OAK_SECURITY_NAME,
+                propertyPrivate= true, 
+                value = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration")
 })
 public class ExternalPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
 
