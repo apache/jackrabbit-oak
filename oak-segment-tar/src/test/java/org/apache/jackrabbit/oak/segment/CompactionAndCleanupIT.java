@@ -1456,4 +1456,38 @@ public class CompactionAndCleanupIT {
             }
         }
     }
+
+    @Test
+    @Ignore("OAK-6507")
+    public void latestFullCompactedStateShouldNotBeDeleted() throws Exception {
+        try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(defaultGCOptions().setEstimationDisabled(true))
+                .build()) {
+
+            // Create a full, self consistent head state. This state will be the
+            // base for the following tail compactions. This increments the
+            // full generation.
+
+            fileStore.fullGC();
+            traverse(fileStore.getHead());
+
+            // Create a tail head state on top of the previous full state. This
+            // increments the tail generation, but leaves the full generation
+            // untouched.
+
+            fileStore.tailGC();
+            traverse(fileStore.getHead());
+
+            // Create a tail state on top of the previous tail state. This
+            // increments the tail generation, but leaves the full generation
+            // untouched. The increment in tail generation will make the cleanup
+            // algorithm delete the segments from the full head state. This
+            // results in an inconsistent repository and
+            // SegmentNotFoundException.
+
+            fileStore.tailGC();
+            traverse(fileStore.getHead());
+        }
+    }
+
 }
