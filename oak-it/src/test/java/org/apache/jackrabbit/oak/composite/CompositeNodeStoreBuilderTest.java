@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecksService;
-import org.apache.jackrabbit.oak.composite.checks.VersionableNodesMountedNodeStoreChecker;
+import org.apache.jackrabbit.oak.composite.checks.NodeTypeMountedNodeStoreChecker;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -115,7 +115,7 @@ public class CompositeNodeStoreBuilderTest {
 
         new CompositeNodeStore.Builder(mip, root)
             .addMount("readOnly", mount)
-            .with(new NodeStoreChecksService(Collections.singletonList(new VersionableNodesMountedNodeStoreChecker())))
+            .with(new NodeStoreChecksService(Collections.singletonList(new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_VERSIONABLE, "test error"))))
             .build();        
         
     }
