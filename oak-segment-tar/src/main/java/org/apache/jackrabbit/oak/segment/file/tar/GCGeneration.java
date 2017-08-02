@@ -74,7 +74,7 @@ public final class GCGeneration {
      */
     @Nonnull
     public GCGeneration nextFull() {
-        return new GCGeneration(full + 1, tail, false);
+        return new GCGeneration(full + 1, 0, false);
     }
 
     /**

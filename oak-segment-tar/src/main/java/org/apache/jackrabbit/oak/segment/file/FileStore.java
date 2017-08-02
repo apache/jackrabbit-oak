@@ -1067,7 +1067,7 @@ public class FileStore extends AbstractFileStore {
         synchronized void collectBlobReferences(Consumer<String> collector) throws IOException {
             segmentWriter.flush();
             tarFiles.collectBlobReferences(collector,
-                    CompactionResult.newOldReclaimer(getGcGeneration(), gcOptions.getRetainedGenerations()));
+                    Reclaimers.newOldReclaimer(getGcGeneration(), gcOptions.getRetainedGenerations()));
         }
 
         void cancel() {
@@ -1162,7 +1162,7 @@ public class FileStore extends AbstractFileStore {
             return new CompactionResult(newGeneration) {
                 @Override
                 Predicate<GCGeneration> reclaimer() {
-                    return CompactionResult.newOldReclaimer(newGeneration, gcOptions.getRetainedGenerations());
+                    return Reclaimers.newOldReclaimer(newGeneration, gcOptions.getRetainedGenerations());
                 }
 
                 @Override
@@ -1188,7 +1188,7 @@ public class FileStore extends AbstractFileStore {
             return new CompactionResult(currentGeneration) {
                 @Override
                 Predicate<GCGeneration> reclaimer() {
-                    return CompactionResult.newFailedReclaimer(failedGeneration);
+                    return Reclaimers.newExactReclaimer(failedGeneration);
                 }
 
                 @Override
@@ -1209,7 +1209,7 @@ public class FileStore extends AbstractFileStore {
             return new CompactionResult(currentGeneration) {
                 @Override
                 Predicate<GCGeneration> reclaimer() {
-                    return CompactionResult.newOldReclaimer(currentGeneration, gcOptions.getRetainedGenerations());
+                    return Reclaimers.newOldReclaimer(currentGeneration, gcOptions.getRetainedGenerations());
                 }
 
                 @Override
@@ -1250,33 +1250,6 @@ public class FileStore extends AbstractFileStore {
                     ",reclaim-predicate=" + reclaimer();
         }
 
-        private static Predicate<GCGeneration> newFailedReclaimer(@Nonnull final GCGeneration failedGeneration) {
-            return new Predicate<GCGeneration>() {
-                @Override
-                public boolean apply(GCGeneration generation) {
-                    return generation.equals(failedGeneration);
-                }
-                @Override
-                public String toString() {
-                    return "(generation==" + failedGeneration + ")";
-                }
-            };
-        }
-
-        private static Predicate<GCGeneration> newOldReclaimer(@Nonnull final GCGeneration reference, int retainedGenerations) {
-            return new Predicate<GCGeneration>() {
-                @Override
-                public boolean apply(GCGeneration generation) {
-                    return reference.compareFull(generation) >= retainedGenerations
-                            || (reference.compareTail(generation) >= retainedGenerations && !generation.isTail());
-                }
-                @Override
-                public String toString() {
-                    // FIXME OAK-3349 align string representation with above predicate
-                    return "(" + reference + " - generation >= " + retainedGenerations + ")";
-                }
-            };
-        }
     }
 
 }
