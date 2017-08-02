@@ -62,8 +62,12 @@ class Reclaimers {
 
             @Override
             public String toString() {
-                // FIXME OAK-3349 align string representation with above predicate
-                return "(" + reference + " - generation >= " + retainedGenerations + ")";
+                return String.format(
+                        "(generation older than %d.%d, with %d retained generations)",
+                        reference.getFull(),
+                        reference.getTail(),
+                        retainedGenerations
+                );
             }
 
         };
