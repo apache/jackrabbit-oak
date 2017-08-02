@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,7 +110,10 @@ import com.google.common.collect.ImmutableList;
         @Property(name = CompositeConfiguration.PARAM_RANKING,
                 label = "Ranking",
                 description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 100)
+                intValue = 100),
+        @Property(name = OAK_SECURITY_NAME,
+                propertyPrivate = true,
+                value = "org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl")
 })
 public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
 

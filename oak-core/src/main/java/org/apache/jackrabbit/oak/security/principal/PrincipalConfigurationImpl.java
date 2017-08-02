@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -40,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
  */
 @Component()
 @Service({PrincipalConfiguration.class, SecurityConfiguration.class})
+@Property(name = OAK_SECURITY_NAME,
+        value = "org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl" )
 public class PrincipalConfigurationImpl extends ConfigurationBase implements PrincipalConfiguration {
 
     @SuppressWarnings("UnusedDeclaration")

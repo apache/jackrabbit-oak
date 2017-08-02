@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +75,10 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
         @Property(name = UserConstants.PARAM_PASSWORD_SALT_SIZE,
                 label = "Hash Salt Size",
                 description = "Size of the salt used to generate the hash.",
-                intValue = PasswordUtil.DEFAULT_SALT_SIZE)
+                intValue = PasswordUtil.DEFAULT_SALT_SIZE),
+        @Property(name = OAK_SECURITY_NAME,
+                propertyPrivate = true,
+                value = "org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl")
 })
 public class TokenConfigurationImpl extends ConfigurationBase implements TokenConfiguration {
 

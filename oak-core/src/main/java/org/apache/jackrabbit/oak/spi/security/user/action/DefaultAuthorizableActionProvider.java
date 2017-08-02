@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
@@ -60,7 +62,10 @@ import org.slf4j.LoggerFactory;
                 cardinality = Integer.MAX_VALUE),
         @Property(name = PasswordValidationAction.CONSTRAINT,
                 label = "Configure PasswordValidationAction: Password Constraint",
-                description = "A regular expression specifying the pattern that must be matched by a user's password.")
+                description = "A regular expression specifying the pattern that must be matched by a user's password."),
+        @Property(name = OAK_SECURITY_NAME,
+                 propertyPrivate = true,
+                 value = "org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider")
 })
 public class DefaultAuthorizableActionProvider implements AuthorizableActionProvider {
 

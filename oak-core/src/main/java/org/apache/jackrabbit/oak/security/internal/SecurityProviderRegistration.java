@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAutho
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.RegistrationConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
@@ -68,6 +69,8 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+import static org.osgi.framework.Constants.OBJECTCLASS;
 
 @Component(
         immediate = true,
@@ -78,11 +81,13 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 @Properties({
         @Property(
                 name = "requiredServicePids",
-                label = "Required Service PIDs",
+                label = "Required Services",
                 description = "The SecurityProvider will not register itself " +
-                        "unless the services identified by these PIDs are " +
-                        "registered first. Only the PIDs of implementations of " +
-                        "the following interfaces are checked: " +
+                        "unless the services identified by the following service pids " +
+                        "or the oak.security.name properties are registered first. The class name is " +
+                        "identified by checking the service.pid property. If that property " +
+                        "does not exist, the oak.security.name property is used as a fallback." +
+                        "Only implementations of the following interfaces are checked :" +
                         "AuthorizationConfiguration, PrincipalConfiguration, " +
                         "TokenConfiguration, AuthorizableActionProvider, " +
                         "RestrictionProvider and UserAuthenticationFactory.",
@@ -567,27 +572,31 @@ public class SecurityProviderRegistration {
     }
 
     private void addCandidate(Map<String, Object> properties) {
-        String pid = getServicePid(properties);
+        String pidOrName = getServicePidOrComponentName(properties);
 
-        if (pid == null) {
+        if (pidOrName == null) {
             return;
         }
 
-        preconditions.addCandidate(pid);
+        preconditions.addCandidate(pidOrName);
     }
 
     private void removeCandidate(Map<String, Object> properties) {
-        String pid = getServicePid(properties);
+        String pidOrName = getServicePidOrComponentName(properties);
 
-        if (pid == null) {
+        if (pidOrName == null) {
             return;
         }
 
-        preconditions.removeCandidate(pid);
+        preconditions.removeCandidate(pidOrName);
     }
 
-    private static String getServicePid(Map<String, Object> properties) {
-        return PropertiesUtil.toString(properties.get(Constants.SERVICE_PID), null);
+    private static String getServicePidOrComponentName(Map<String, Object> properties) {
+        String servicePid = PropertiesUtil.toString(properties.get(Constants.SERVICE_PID), null);
+        if ( servicePid != null ) {
+            return servicePid;
+        }
+        return PropertiesUtil.toString(properties.get(OAK_SECURITY_NAME), null);
     }
 
     private static String[] getRequiredServicePids(Map<String, Object> configuration) {

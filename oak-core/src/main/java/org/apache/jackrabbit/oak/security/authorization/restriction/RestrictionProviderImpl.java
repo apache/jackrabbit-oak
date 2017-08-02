@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -58,6 +61,8 @@ import org.slf4j.LoggerFactory;
  */
 @Component
 @Service(RestrictionProvider.class)
+@Property(name = OAK_SECURITY_NAME,
+        value = "org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl")
 public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(RestrictionProviderImpl.class);

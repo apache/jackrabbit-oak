@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.security.SecureRandom;
 import java.util.Map;
 import java.util.Random;
@@ -35,6 +37,9 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
  */
 @Component(metatype = true, label = "Apache Jackrabbit Oak Random Authorizable Node Name", description = "Generates a random name for the authorizable node.", policy = ConfigurationPolicy.REQUIRE)
 @Service(AuthorizableNodeName.class)
+@Property(name = OAK_SECURITY_NAME,
+        propertyPrivate = true,
+        value = "org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName")
 public class RandomAuthorizableNodeName implements AuthorizableNodeName {
 
     /**
