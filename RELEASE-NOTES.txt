@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.26
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.27
 
 Introduction
 ------------
@@ -7,49 +7,28 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.26 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.27 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.26
+Changes in Oak 1.2.27
 ---------------------
-
-Technical task
-
-    [OAK-5652] - RDB*Store: update Oracle JDBC driver reference to 12.1.0.2.0
-    [OAK-5667] - RDBDocumentStore: remove support for DBs without support for CASE statements in SELECT
-    [OAK-6134] - RDB*Store: update PostgreSQL JDBC
-    [OAK-6143] - RDB*store fixtures: shorten table name prefixes for Oracle
-    [OAK-6226] - RDBDocumentStoreDB: missing @Override statements
-    [OAK-6244] - RDB*Store: update postgresql JDBC driver reference to 42.1.1
-    [OAK-6247] - RDB*Store: update Tomcat JDBC pool dependency to 7.0.78
 
 
 Bug
 
-    [OAK-4148] - RAT plugin complains about derby files
-    [OAK-5993] - Utils.isIdFromLongPath() may throw StringIndexOutOfBoundsException
-    [OAK-6086] - Incorrect usage of RDBDocumentStore.unwrap()
-    [OAK-6266] - SolrQueryIndexProviderService should always have NodeAggregator
-
-
-Improvement
-
-    [OAK-4136] - release profile in maven
-    [OAK-4859] - Warn if lease update is invoked with large delay
-
-
-Task
-
-    [OAK-6132] - Backport oak-upgrade to 1.0 and 1.2
-    [OAK-6159] - BlobReferenceIterator: improve test coverage for RDB
+    [OAK-3930] - Sysview import of single valued mv property creates sv property
+    [OAK-4067] - AssertionError thrown for Lucene index with empty suggest disctionary
+    [OAK-5949] - XPath: string liter    als parsed as identifiers
+    [OAK-6317] - LMSEstimator update amount depending on cost amount
+    [OAK-6391] - With FastQuerySize, getSize() returns -1 if there are exactly 21 rows
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.25 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.26 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
