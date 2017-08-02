@@ -74,10 +74,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-scr-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
@@ -193,7 +189,7 @@
         </dependency>
         <dependency>
             <groupId>biz.aQute.bnd</groupId>
-            <artifactId>bndlib</artifactId>
+            <artifactId>biz.aQute.bndlib</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
