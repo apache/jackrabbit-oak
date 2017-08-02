@@ -84,6 +84,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
+import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -92,6 +93,11 @@ public class IndexPlannerTest {
     private NodeState root = INITIAL_CONTENT;
 
     private NodeBuilder builder = root.builder();
+
+    @After
+    public void cleanup(){
+        IndexPlanner.setUseActualEntryCount(false);
+    }
 
     @Test
     public void planForSortField() throws Exception{
@@ -344,6 +350,39 @@ public class IndexPlannerTest {
         assertEquals(3.0, plan.getCostPerExecution(), 0);
         assertEquals(2.0, plan.getCostPerEntry(), 0);
         assertNotNull(plan);
+    }
+
+    @Test
+    public void propertyIndexCostActualOverriddenByEntryCount() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        long entryCount = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+        defn.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, entryCount);
+
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertEquals(entryCount, plan.getEstimatedEntryCount());
+    }
+
+    @Test
+    public void propertyIndexCostActualByDefault() throws Exception{
+        IndexPlanner.setUseActualEntryCount(true);
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertEquals(numofDocs, plan.getEstimatedEntryCount());
     }
 
     @Test
