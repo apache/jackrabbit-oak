@@ -150,10 +150,6 @@
     <plugins>
       <plugin>
         <groupId>org.apache.felix</groupId>
-        <artifactId>maven-scr-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
@@ -163,6 +159,15 @@
             </Export-Package>
           </instructions>
         </configuration>
+      </plugin>
+      <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+            <configuration>
+                <excludes>
+                    <exclude>derby.log</exclude>
+                </excludes>
+            </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -191,7 +196,7 @@
     </dependency>
       <dependency>
           <groupId>biz.aQute.bnd</groupId>
-          <artifactId>bndlib</artifactId>
+          <artifactId>biz.aQute.bndlib</artifactId>
           <scope>provided</scope>
       </dependency>
       <dependency>
