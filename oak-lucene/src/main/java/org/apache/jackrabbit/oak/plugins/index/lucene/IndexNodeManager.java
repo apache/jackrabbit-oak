@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -86,7 +87,7 @@ public class IndexNodeManager {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private volatile IndexSearcher indexSearcher;
+    private volatile SearcherHolder searcherHolder;
 
     private final NRTIndex nrtIndex;
 
@@ -101,8 +102,6 @@ public class IndexNodeManager {
 
     private boolean closed = false;
 
-    private List<LuceneIndexReader> nrtReaders;
-
     private final int indexNodeId = INDEX_NODE_COUNTER.incrementAndGet();
 
     IndexNodeManager(String name, IndexDefinition definition, List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
@@ -112,8 +111,7 @@ public class IndexNodeManager {
         this.definition = definition;
         this.readers = readers;
         this.nrtIndex = nrtIndex;
-        this.nrtReaders = getNRTReaders();
-        this.indexSearcher = new IndexSearcher(createReader(nrtReaders));
+        this.searcherHolder = createHolder(getNRTReaders());
         this.refreshPolicy = nrtIndex != null ? nrtIndex.getRefreshPolicy() : ReaderRefreshPolicy.NEVER;
     }
 
@@ -135,6 +133,7 @@ public class IndexNodeManager {
         return readers.isEmpty() ? null : getDefaultReader().getLookup();
     }
 
+    @CheckForNull
     IndexNode acquire() {
         lock.readLock().lock();
         if (closed) {
@@ -145,7 +144,7 @@ public class IndexNodeManager {
             try {
                 refreshPolicy.refreshOnReadIfRequired(refreshCallback);
                 success = true;
-                return new IndexNodeImpl(indexSearcher);
+                return new IndexNodeImpl(searcherHolder);
             } finally {
                 if (!success) {
                     lock.readLock().unlock();
@@ -171,12 +170,8 @@ public class IndexNodeManager {
             lock.writeLock().unlock();
         }
 
-        //Do not close the NRTIndex here as it might be in use
-        //by newer IndexNode. Just close the readers obtained from
-        //them
-        for (LuceneIndexReader reader : Iterables.concat(readers, nrtReaders)){
-           reader.close();
-        }
+        releaseHolder(searcherHolder);
+        closeReaders(readers);
     }
 
     private List<LuceneIndexReader> getPrimaryReaders() {
@@ -197,9 +192,10 @@ public class IndexNodeManager {
         List<LuceneIndexReader> newNRTReaders = getNRTReaders();
         //The list reference would differ if index got updated
         //so if they are same no need to reinitialize the searcher
-        if (newNRTReaders != nrtReaders) {
-            nrtReaders = newNRTReaders;
-            indexSearcher = new IndexSearcher(createReader(nrtReaders));
+        if (newNRTReaders != searcherHolder.nrtReaders) {
+            SearcherHolder old = searcherHolder;
+            searcherHolder = createHolder(newNRTReaders);
+            releaseHolder(old);
             PERF_LOGGER.end(start, 0, "Refreshed reader for index [{}]", definition);
         }
     }
@@ -210,39 +206,96 @@ public class IndexNodeManager {
     }
 
     private IndexReader createReader(List<LuceneIndexReader> nrtReaders) {
+        //Increment count by 1. MultiReader does it for all readers
+        //So no need for an explicit increment for MultiReader
+
         if (readers.size() == 1 && nrtReaders.isEmpty()){
-            return readers.get(0).getReader();
+            IndexReader reader = readers.get(0).getReader();
+            reader.incRef();
+            return reader;
         }
         if (nrtReaders.size() == 1 && readers.isEmpty()){
-            return nrtReaders.get(0).getReader();
+            IndexReader reader = nrtReaders.get(0).getReader();
+            reader.incRef();
+            return reader;
         }
+
         IndexReader[] readerArr = new IndexReader[readers.size() + nrtReaders.size()];
         int i = 0;
         for (LuceneIndexReader r : Iterables.concat(readers, nrtReaders)){
             readerArr[i++] = r.getReader();
         }
-        return new MultiReader(readerArr, true);
+        return new MultiReader(readerArr, false);
     }
 
     private List<LuceneIndexReader> getNRTReaders() {
         return nrtIndex != null ? nrtIndex.getReaders() : Collections.<LuceneIndexReader>emptyList();
     }
 
-    private class IndexNodeImpl implements IndexNode {
-        private final IndexSearcher searcher;
+    private SearcherHolder createHolder(List<LuceneIndexReader> newNRTReaders) {
+        return new SearcherHolder(new IndexSearcher(createReader(newNRTReaders)), newNRTReaders);
+    }
 
-        private IndexNodeImpl(IndexSearcher searcher) {
+    private void closeReaders(Iterable<LuceneIndexReader> readers) {
+        for (LuceneIndexReader r : readers){
+            try {
+                r.close();
+            } catch (IOException e) {
+                log.warn("Error occurred while releasing reader for index [{}]", definition.getIndexPath(), e);
+            }
+        }
+    }
+
+    private void releaseHolder(SearcherHolder holder) {
+        decrementSearcherUsageCount(holder.searcher);
+    }
+
+    private static void incrementSearcherUsageCount(IndexSearcher searcher) {
+        searcher.getIndexReader().incRef();
+    }
+
+    private void decrementSearcherUsageCount(IndexSearcher searcher) {
+        try {
+            //Decrement the count by 1 as we increased it while creating the searcher
+            //in createReader
+            searcher.getIndexReader().decRef();
+        } catch (IOException e) {
+            log.warn("Error occurred while releasing reader for index [{}]", definition.getIndexPath(), e);
+        }
+    }
+
+    private static class SearcherHolder {
+        final IndexSearcher searcher;
+        final List<LuceneIndexReader> nrtReaders;
+
+        public SearcherHolder(IndexSearcher searcher, List<LuceneIndexReader> nrtReaders) {
             this.searcher = searcher;
+            this.nrtReaders = nrtReaders;
+        }
+    }
+
+    private class IndexNodeImpl implements IndexNode {
+        private final SearcherHolder holder;
+        private final AtomicBoolean released = new AtomicBoolean();
+
+        private IndexNodeImpl(SearcherHolder searcherHolder) {
+            this.holder = searcherHolder;
+            //Increment on each acquire
+            incrementSearcherUsageCount(holder.searcher);
         }
 
         @Override
         public void release() {
-            IndexNodeManager.this.release();
+            if (released.compareAndSet(false, true)) {
+                //Decrement on each release
+                decrementSearcherUsageCount(holder.searcher);
+                IndexNodeManager.this.release();
+            }
         }
 
         @Override
         public IndexSearcher getSearcher() {
-            return searcher;
+            return holder.searcher;
         }
 
         @Override
@@ -262,7 +315,7 @@ public class IndexNodeManager {
 
         @Override
         public List<LuceneIndexReader> getNRTReaders() {
-            return IndexNodeManager.this.nrtReaders;
+            return holder.nrtReaders;
         }
 
         @Override
