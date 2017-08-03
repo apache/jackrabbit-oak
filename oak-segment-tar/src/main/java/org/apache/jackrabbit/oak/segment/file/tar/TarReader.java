@@ -26,7 +26,6 @@ import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
@@ -62,6 +61,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
+import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.index.InvalidIndexException;
 import org.slf4j.Logger;
@@ -276,7 +277,7 @@ class TarReader implements Closeable {
             try {
                 RandomAccessFile access = new RandomAccessFile(file, "r");
                 try {
-                    ByteBuffer index = loadAndValidateIndex(access, name);
+                    Index index = loadAndValidateIndex(access, name);
                     if (index == null) {
                         log.info("No index found in tar file {}, skipping...", name);
                     } else {
@@ -291,11 +292,6 @@ class TarReader implements Closeable {
                         if (memoryMapping) {
                             try {
                                 FileAccess mapped = new FileAccess.Mapped(access);
-                                // re-read the index, now with memory mapping
-                                int indexSize = index.remaining();
-                                index = mapped.read(
-                                        mapped.length() - indexSize - 16 - 1024,
-                                        indexSize);
                                 return new TarReader(file, mapped, index, ioMonitor);
                             } catch (IOException e) {
                                 log.warn("Failed to mmap tar file {}. Falling back to normal file " +
@@ -338,7 +334,7 @@ class TarReader implements Closeable {
      * the index. If the TAR doesn't contain any index, {@code null} is returned
      * instead.
      */
-    private static ByteBuffer loadAndValidateIndex(RandomAccessFile file, String name) throws IOException {
+    private static Index loadAndValidateIndex(RandomAccessFile file, String name) throws IOException {
         try {
             return indexLoader.loadIndex(file);
         } catch (InvalidIndexException e) {
@@ -443,13 +439,13 @@ class TarReader implements Closeable {
 
     private final FileAccess access;
 
-    private final ByteBuffer index;
+    private final Index index;
 
     private volatile boolean hasGraph;
 
     private final IOMonitor ioMonitor;
 
-    private TarReader(File file, FileAccess access, ByteBuffer index, IOMonitor ioMonitor) {
+    private TarReader(File file, FileAccess access, Index index, IOMonitor ioMonitor) {
         this.file = file;
         this.access = access;
         this.index = index;
@@ -467,15 +463,7 @@ class TarReader implements Closeable {
      * @return An instance of {@link Set}.
      */
     Set<UUID> getUUIDs() {
-        Set<UUID> uuids = newHashSetWithExpectedSize(index.remaining() / TarEntry.SIZE);
-        int position = index.position();
-        while (position < index.limit()) {
-            uuids.add(new UUID(
-                    index.getLong(position),
-                    index.getLong(position + 8)));
-            position += TarEntry.SIZE;
-        }
-        return uuids;
+        return index.getUUIDs();
     }
 
     /**
@@ -487,7 +475,7 @@ class TarReader implements Closeable {
      * otherwise.
      */
     boolean containsEntry(long msb, long lsb) {
-        return findEntry(msb, lsb) != -1;
+        return findEntry(msb, lsb) != null;
     }
 
     /**
@@ -502,14 +490,11 @@ class TarReader implements Closeable {
      * @return the byte buffer, or null if not in this file.
      */
     ByteBuffer readEntry(long msb, long lsb) throws IOException {
-        int position = findEntry(msb, lsb);
-        if (position != -1) {
-            int pos = index.getInt(position + 16);
-            int len = index.getInt(position + 20);
-            return readSegment(msb, lsb, pos, len);
-        } else {
+        IndexEntry entry = findEntry(msb, lsb);
+        if (entry == null) {
             return null;
         }
+        return readSegment(msb, lsb, entry.getPosition(), entry.getLength());
     }
 
     /**
@@ -520,48 +505,8 @@ class TarReader implements Closeable {
      * @return The position of the entry in the TAR file, or {@code -1} if the
      * entry is not found.
      */
-    private int findEntry(long msb, long lsb) {
-        // The segment identifiers are randomly generated with uniform
-        // distribution, so we can use interpolation search to find the
-        // matching entry in the index. The average runtime is O(log log n).
-
-        int lowIndex = 0;
-        int highIndex = index.remaining() / TarEntry.SIZE - 1;
-        float lowValue = Long.MIN_VALUE;
-        float highValue = Long.MAX_VALUE;
-        float targetValue = msb;
-
-        while (lowIndex <= highIndex) {
-            int guessIndex = lowIndex + Math.round(
-                    (highIndex - lowIndex)
-                    * (targetValue - lowValue)
-                    / (highValue - lowValue));
-            int position = index.position() + guessIndex * TarEntry.SIZE;
-            long m = index.getLong(position);
-            if (msb < m) {
-                highIndex = guessIndex - 1;
-                highValue = m;
-            } else if (msb > m) {
-                lowIndex = guessIndex + 1;
-                lowValue = m;
-            } else {
-                // getting close...
-                long l = index.getLong(position + 8);
-                if (lsb < l) {
-                    highIndex = guessIndex - 1;
-                    highValue = m;
-                } else if (lsb > l) {
-                    lowIndex = guessIndex + 1;
-                    lowValue = m;
-                } else {
-                    // found it!
-                    return position;
-                }
-            }
-        }
-
-        // not found
-        return -1;
+    private IndexEntry findEntry(long msb, long lsb) {
+        return index.findEntry(msb, lsb);
     }
 
     /**
@@ -571,21 +516,20 @@ class TarReader implements Closeable {
      */
     @Nonnull
     TarEntry[] getEntries() {
-        TarEntry[] entries = new TarEntry[index.remaining() / TarEntry.SIZE];
-        int position = index.position();
-        for (int i = 0; position < index.limit(); i++) {
+        TarEntry[] entries = new TarEntry[index.entryCount()];
+        for (int i = 0; i < entries.length; i++) {
+            IndexEntry e = index.entry(i);
             entries[i]  = new TarEntry(
-                    index.getLong(position),
-                    index.getLong(position + 8),
-                    index.getInt(position + 16),
-                    index.getInt(position + 20),
+                    e.getMsb(),
+                    e.getLsb(),
+                    e.getPosition(),
+                    e.getLength(),
                     newGCGeneration(
-                            index.getInt(position + 24),
-                            index.getInt(position + 28),
-                            index.get(position + 32) != 0
+                            e.getFullGeneration(),
+                            e.getTailGeneration(),
+                            e.isTail()
                     )
             );
-            position += TarEntry.SIZE;
         }
         Arrays.sort(entries, TarEntry.OFFSET_ORDER);
         return entries;
@@ -885,7 +829,7 @@ class TarReader implements Closeable {
     }
 
     private int getIndexEntrySize() {
-        return getEntrySize(index.remaining() + 16);
+        return getEntrySize(index.size());
     }
 
     private int getGraphEntrySize() {
