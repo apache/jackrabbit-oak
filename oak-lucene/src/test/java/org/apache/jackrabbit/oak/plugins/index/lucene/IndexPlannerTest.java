@@ -847,11 +847,11 @@ public class IndexPlannerTest {
     //------ END - Suggestion/spellcheck plan tests
 
     private IndexNode createIndexNode(IndexDefinition defn, long numOfDocs) throws IOException {
-        return new IndexNode("foo", defn, new TestReaderFactory(createSampleDirectory(numOfDocs)).createReaders(defn, EMPTY_NODE, "foo"), null);
+        return new IndexNodeManager("foo", defn, new TestReaderFactory(createSampleDirectory(numOfDocs)).createReaders(defn, EMPTY_NODE, "foo"), null).acquire();
     }
 
     private IndexNode createIndexNode(IndexDefinition defn) throws IOException {
-        return new IndexNode("foo", defn, new TestReaderFactory(createSampleDirectory()).createReaders(defn, EMPTY_NODE, "foo"), null);
+        return new IndexNodeManager("foo", defn, new TestReaderFactory(createSampleDirectory()).createReaders(defn, EMPTY_NODE, "foo"), null).acquire();
     }
 
     private FilterImpl createFilter(String nodeTypeName) {

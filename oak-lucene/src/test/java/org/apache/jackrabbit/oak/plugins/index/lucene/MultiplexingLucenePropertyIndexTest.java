@@ -140,12 +140,12 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
         List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
 
-        IndexNode node = new IndexNode("foo", defn, readers, null);
+        IndexNodeManager node = new IndexNodeManager("foo", defn, readers, null);
 
         //3 Obtain the plan
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<QueryIndex.OrderEntry>emptyList());
+        IndexPlanner planner = new IndexPlanner(node.acquire(), "/foo", filter, Collections.<QueryIndex.OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //Count should be sum of both readers

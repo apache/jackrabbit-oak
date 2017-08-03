@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.notNull;
@@ -69,7 +69,7 @@ public class IndexTracker {
 
     private NodeState root = EMPTY_NODE;
 
-    private volatile Map<String, IndexNode> indices = emptyMap();
+    private volatile Map<String, IndexNodeManager> indices = emptyMap();
 
     private volatile boolean refresh;
 
@@ -91,10 +91,10 @@ public class IndexTracker {
     }
 
     synchronized void close() {
-        Map<String, IndexNode> indices = this.indices;
+        Map<String, IndexNodeManager> indices = this.indices;
         this.indices = emptyMap();
 
-        for (Map.Entry<String, IndexNode> entry : indices.entrySet()) {
+        for (Map.Entry<String, IndexNodeManager> entry : indices.entrySet()) {
             try {
                 entry.getValue().close();
             } catch (IOException e) {
@@ -115,8 +115,8 @@ public class IndexTracker {
     }
 
     private synchronized void diffAndUpdate(final NodeState root) {
-        Map<String, IndexNode> original = indices;
-        final Map<String, IndexNode> updates = newHashMap();
+        Map<String, IndexNodeManager> original = indices;
+        final Map<String, IndexNodeManager> updates = newHashMap();
 
         Set<String> indexPaths = Sets.newHashSet();
         indexPaths.addAll(original.keySet());
@@ -129,7 +129,7 @@ public class IndexTracker {
                 public void leave(NodeState before, NodeState after) {
                     try {
                         long start = PERF_LOGGER.start();
-                        IndexNode index = IndexNode.open(path, root, after, readerFactory, nrtFactory);
+                        IndexNodeManager index = IndexNodeManager.open(path, root, after, readerFactory, nrtFactory);
                         PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
@@ -143,7 +143,7 @@ public class IndexTracker {
         this.root = root;
 
         if (!updates.isEmpty()) {
-            indices = ImmutableMap.<String, IndexNode>builder()
+            indices = ImmutableMap.<String, IndexNodeManager>builder()
                     .putAll(filterKeys(original, not(in(updates.keySet()))))
                     .putAll(filterValues(updates, notNull()))
                     .build();
@@ -155,7 +155,7 @@ public class IndexTracker {
             //Given that Tracker is now invoked from a BackgroundObserver
             //not a high concern
             for (String path : updates.keySet()) {
-                IndexNode index = original.get(path);
+                IndexNodeManager index = original.get(path);
                 try {
                     if (index != null) {
                         index.close();
@@ -172,9 +172,10 @@ public class IndexTracker {
     }
 
     public IndexNode acquireIndexNode(String path) {
-        IndexNode index = indices.get(path);
-        if (index != null && index.acquire()) {
-            return index;
+        IndexNodeManager index = indices.get(path);
+        IndexNode indexNode = index != null ? index.acquire() : null;
+        if (indexNode != null) {
+            return indexNode;
         } else {
             return findIndexNode(path);
         }
@@ -182,7 +183,7 @@ public class IndexTracker {
 
     @CheckForNull
     public IndexDefinition getIndexDefinition(String indexPath){
-        IndexNode node = indices.get(indexPath);
+        IndexNodeManager node = indices.get(indexPath);
         if (node != null){
             //Accessing the definition should not require
             //locking as its immutable state
@@ -207,10 +208,10 @@ public class IndexTracker {
         // Retry the lookup from acquireIndexNode now that we're
         // synchronized. The acquire() call is guaranteed to succeed
         // since the close() method is also synchronized.
-        IndexNode index = indices.get(path);
+        IndexNodeManager index = indices.get(path);
         if (index != null) {
-            checkState(index.acquire());
-            return index;
+            IndexNode indexNode = index.acquire();
+            return checkNotNull(indexNode);
         }
 
         if (badIndexTracker.isIgnoredBadIndex(path)){
@@ -224,15 +225,16 @@ public class IndexTracker {
 
         try {
             if (isLuceneIndexNode(node)) {
-                index = IndexNode.open(path, root, node, readerFactory, nrtFactory);
+                index = IndexNodeManager.open(path, root, node, readerFactory, nrtFactory);
                 if (index != null) {
-                    checkState(index.acquire());
-                    indices = ImmutableMap.<String, IndexNode>builder()
+                    IndexNode indexNode = index.acquire();
+                    checkNotNull(indexNode);
+                    indices = ImmutableMap.<String, IndexNodeManager>builder()
                             .putAll(indices)
                             .put(path, index)
                             .build();
                     badIndexTracker.markGoodIndex(path);
-                    return index;
+                    return indexNode;
                 }
             } else if (node.exists()) {
                 log.warn("Cannot open Lucene Index at path {} as the index is not of type {}", path, TYPE_LUCENE);
