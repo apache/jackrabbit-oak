@@ -79,6 +79,8 @@ public class NodeStoreFixtureProvider {
         NodeStore store;
         if (commonOpts.isMongo() || commonOpts.isRDB()) {
             store = configureDocumentMk(options, blobStore, statisticsProvider, closer, wb, readOnly);
+        } else if (commonOpts.isOldSegment()) {
+            store = SegmentFixtureProvider.create(options, blobStore, statisticsProvider, closer, readOnly);
         } else {
             store = configureSegment(options, blobStore, statisticsProvider, closer, readOnly);
         }
