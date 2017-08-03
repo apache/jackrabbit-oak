@@ -35,12 +35,14 @@ public class CommonOptions implements OptionsBean {
     private final OptionSpec<Void> readWriteOption;
     private final OptionSpec<String> nonOption;
     private final OptionSpec<Void> metrics;
+    private final OptionSpec<Void> segment;
     private OptionSet options;
 
     public CommonOptions(OptionParser parser){
         help = parser.acceptsAll(asList("h", "?", "help"), "Show help").forHelp();
         readWriteOption = parser.accepts("read-write", "Connect to repository in read-write mode");
         metrics = parser.accepts("metrics", "Enables metrics based statistics collection");
+        segment = parser.accepts("segment", "Use older oak-segment support");
         nonOption = parser.nonOptions(DEFAULT_CONNECTION_STRING);
     }
 
@@ -69,8 +71,8 @@ public class CommonOptions implements OptionsBean {
         return getStoreArg().startsWith("jdbc");
     }
 
-    public boolean isSegment(){
-        return !isDocument();
+    public boolean isOldSegment(){
+        return options.has(segment);
     }
 
     public boolean isDocument(){
