@@ -110,8 +110,12 @@ public class NRTIndex implements Closeable {
 
     @CheckForNull
     LuceneIndexReader getPrimaryReader() {
-        DirectoryReader reader = createReader();
-        return reader != null ? new NRTReader(reader, directory) : null;
+        DirectoryReader latestReader = createReader();
+        if (latestReader != dirReader) {
+            decrementReaderUseCount(dirReader);
+            dirReader = latestReader;
+        }
+        return latestReader != null ? new NRTReader(latestReader, directory) : null;
     }
 
     public LuceneIndexWriter getWriter() throws IOException {
@@ -145,6 +149,9 @@ public class NRTIndex implements Closeable {
         if (previousReader != null) {
             newReaders.add(previousReader);
         }
+
+        decrementReaderUseCount(dirReader);
+
         dirReader = latestReader;
         readers = ImmutableList.copyOf(newReaders);
         return readers;
@@ -160,6 +167,10 @@ public class NRTIndex implements Closeable {
         }
 
         log.debug("[{}] Closing NRTIndex [{}]", definition.getIndexPath(), getName());
+
+        if (dirReader != null){
+            dirReader.close();
+        }
 
         assertAllReadersAreClosed();
 
@@ -209,6 +220,17 @@ public class NRTIndex implements Closeable {
                 String msg = String.format("Unclosed reader found with refCount %d for index %s", r.getRefCount(), toString());
                 throw new IllegalStateException(msg);
             }
+        }
+    }
+
+    private void decrementReaderUseCount(IndexReader reader) {
+        try {
+            if (reader != null) {
+                reader.decRef();
+            }
+        } catch (IOException e) {
+            log.warn("[{}] Error occurred while releasing reader instance {}",
+                    definition.getIndexPath(), toString(), e);
         }
     }
 

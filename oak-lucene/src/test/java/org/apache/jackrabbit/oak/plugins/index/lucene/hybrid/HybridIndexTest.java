@@ -138,8 +138,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         MountInfoProvider mip = defaultMountInfoProvider();
 
         nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
-        //TODO OAK-6500
-        //nrtIndexFactory.setAssertAllResourcesClosed(true);
+        nrtIndexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
         luceneIndexProvider = new LuceneIndexProvider(tracker);
@@ -351,7 +350,6 @@ public class HybridIndexTest extends AbstractQueryTest {
         assertQuery(query, of("/b", "/c"));
     }
 
-    @Ignore("OAK-6500")
     @Test
     public void noFileLeaks() throws Exception{
         nrtIndexFactory.setDirectoryFactory(new NRTDirectoryFactory() {
