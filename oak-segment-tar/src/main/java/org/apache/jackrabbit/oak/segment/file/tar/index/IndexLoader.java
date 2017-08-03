@@ -29,7 +29,7 @@ public class IndexLoader {
 
     private static final int MAGIC = ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
 
-    private static final int ENTRY_SIZE = 33;
+    static final int ENTRY_SIZE = 33;
 
     public static IndexLoader newIndexLoader(int blockSize) {
         checkArgument(blockSize > 0, "Invalid block size");
@@ -42,7 +42,7 @@ public class IndexLoader {
         this.blockSize = blockSize;
     }
 
-    public ByteBuffer loadIndex(RandomAccessFile file) throws IOException, InvalidIndexException {
+    public Index loadIndex(RandomAccessFile file) throws IOException, InvalidIndexException {
         long length = file.length();
 
         if (length % blockSize != 0 || length < 6 * blockSize || length > Integer.MAX_VALUE) {
@@ -110,7 +110,8 @@ public class IndexLoader {
         }
 
         index.reset();
-        return index;
+
+        return new Index(index);
     }
 
 }
