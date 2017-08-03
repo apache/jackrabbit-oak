@@ -33,7 +33,7 @@ import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGener
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BINARY_REFERENCES_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.INDEX_MAGIC;
+import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIndexLoader;
 
 import java.io.Closeable;
 import java.io.File;
@@ -62,12 +62,16 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader;
+import org.apache.jackrabbit.oak.segment.file.tar.index.InvalidIndexException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class TarReader implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
+
+    private static final IndexLoader indexLoader = newIndexLoader(BLOCK_SIZE);
 
     /**
      * Pattern of the segment entry names. Note the trailing (\\..*)? group
@@ -335,79 +339,12 @@ class TarReader implements Closeable {
      * instead.
      */
     private static ByteBuffer loadAndValidateIndex(RandomAccessFile file, String name) throws IOException {
-        long length = file.length();
-        if (length % BLOCK_SIZE != 0
-                || length < 6 * BLOCK_SIZE
-                || length > Integer.MAX_VALUE) {
-            log.warn("Unexpected size {} of tar file {}", length, name);
-            return null; // unexpected file size
+        try {
+            return indexLoader.loadIndex(file);
+        } catch (InvalidIndexException e) {
+            log.warn("Unable to load index of file {}: {}", name, e.getMessage());
         }
-
-        // read the index metadata just before the two final zero blocks
-        ByteBuffer meta = ByteBuffer.allocate(16);
-        file.seek(length - 2 * BLOCK_SIZE - 16);
-        file.readFully(meta.array());
-        int crc32 = meta.getInt();
-        int count = meta.getInt();
-        int bytes = meta.getInt();
-        int magic = meta.getInt();
-
-        if (magic != INDEX_MAGIC) {
-            return null; // magic byte mismatch
-        }
-
-        if (count < 1 || bytes < count * TarEntry.SIZE + 16 || bytes % BLOCK_SIZE != 0) {
-            log.warn("Invalid index metadata in tar file {}", name);
-            return null; // impossible entry and/or byte counts
-        }
-
-        // this involves seeking backwards in the file, which might not
-        // perform well, but that's OK since we only do this once per file
-        ByteBuffer index = ByteBuffer.allocate(count * TarEntry.SIZE);
-        file.seek(length - 2 * BLOCK_SIZE - 16 - count * TarEntry.SIZE);
-        file.readFully(index.array());
-        index.mark();
-
-        CRC32 checksum = new CRC32();
-        long limit = length - 2 * BLOCK_SIZE - bytes - BLOCK_SIZE;
-        long lastmsb = Long.MIN_VALUE;
-        long lastlsb = Long.MIN_VALUE;
-        byte[] entry = new byte[TarEntry.SIZE];
-        for (int i = 0; i < count; i++) {
-            index.get(entry);
-            checksum.update(entry);
-
-            ByteBuffer buffer = wrap(entry);
-            long msb   = buffer.getLong();
-            long lsb   = buffer.getLong();
-            int offset = buffer.getInt();
-            int size   = buffer.getInt();
-
-            if (lastmsb > msb || (lastmsb == msb && lastlsb > lsb)) {
-                log.warn("Incorrect index ordering in tar file {}", name);
-                return null;
-            } else if (lastmsb == msb && lastlsb == lsb && i > 0) {
-                log.warn("Duplicate index entry in tar file {}", name);
-                return null;
-            } else if (offset < 0 || offset % BLOCK_SIZE != 0) {
-                log.warn("Invalid index entry offset in tar file {}", name);
-                return null;
-            } else if (size < 1 || offset + size > limit) {
-                log.warn("Invalid index entry size in tar file {}", name);
-                return null;
-            }
-
-            lastmsb = msb;
-            lastlsb = lsb;
-        }
-
-        if (crc32 != (int) checksum.getValue()) {
-            log.warn("Invalid index checksum in tar file {}", name);
-            return null; // checksum mismatch
-        }
-
-        index.reset();
-        return index;
+        return null;
     }
 
     /**
