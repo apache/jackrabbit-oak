@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,6 +39,9 @@ import javax.management.ObjectName;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
@@ -94,10 +98,11 @@ import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNoException;
 
 public class HybridIndexTest extends AbstractQueryTest {
@@ -107,6 +112,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
     private OptionalEditorProvider optionalEditorProvider = new OptionalEditorProvider();
     private NRTIndexFactory nrtIndexFactory;
+    private LuceneIndexProvider luceneIndexProvider;
     private NodeStore nodeStore;
     private DocumentQueue queue;
     private Clock clock = new Clock.Virtual();
@@ -115,8 +121,10 @@ public class HybridIndexTest extends AbstractQueryTest {
     private long refreshDelta = TimeUnit.SECONDS.toMillis(1);
 
     @After
-    public void tearDown(){
+    public void tearDown() throws IOException {
+        luceneIndexProvider.close();
         new ExecutorCloser(executorService).close();
+        nrtIndexFactory.close();
     }
 
     @Override
@@ -130,9 +138,11 @@ public class HybridIndexTest extends AbstractQueryTest {
         MountInfoProvider mip = defaultMountInfoProvider();
 
         nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
+        //TODO OAK-6500
+        //nrtIndexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
-        LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
+        luceneIndexProvider = new LuceneIndexProvider(tracker);
         queue = new DocumentQueue(100, tracker, sameThreadExecutor());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
                 tracker,
@@ -147,8 +157,8 @@ public class HybridIndexTest extends AbstractQueryTest {
         Oak oak = new Oak(nodeStore)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
+                .with((QueryIndexProvider) luceneIndexProvider)
+                .with((Observer) luceneIndexProvider)
                 .with(localIndexObserver)
                 .with(editorProvider)
                 .with(new PropertyIndexEditorProvider())
@@ -370,15 +380,16 @@ public class HybridIndexTest extends AbstractQueryTest {
         long fileCount5 = createTestDataAndRunAsync("/content/e", 1);
         System.out.printf("Open file count - At end %d", getOpenFileCount());
 
-        assertThat(fileCount4, lessThan(fileCount3));
+        assertThat(fileCount4, lessThanOrEqualTo(fileCount3));
     }
 
     private long createTestDataAndRunAsync(String parentPath, int count) throws Exception {
         createTestData(parentPath, count);
         System.out.printf("Open file count - Post creation of %d nodes at %s is %d%n",count, parentPath, getOpenFileCount());
         runAsyncIndex();
-        System.out.printf("Open file count - Post async run at %s is %d%n",parentPath, getOpenFileCount());
-        return getOpenFileCount();
+        long openCount = getOpenFileCount();
+        System.out.printf("Open file count - Post async run at %s is %d%n",parentPath, openCount);
+        return openCount;
     }
 
     private void createTestData(String parentPath, int count) throws CommitFailedException {
@@ -393,7 +404,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         }
     }
 
-    private long getOpenFileCount() throws Exception {
+    private static long getOpenFileCount() throws Exception {
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         ObjectName name = new ObjectName("java.lang:type=OperatingSystem");
         Long val = null;
@@ -404,7 +415,21 @@ public class HybridIndexTest extends AbstractQueryTest {
             //is the mbean in use. If running on windows the test would be assumed to be true
             assumeNoException(e);
         }
+        //dumpOpenFilePaths();
         return val;
+    }
+
+    private static void dumpOpenFilePaths() throws IOException {
+        String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+        String pid = jvmName.split("@")[0];
+
+        CommandLine cl = new CommandLine("/bin/sh");
+        cl.addArguments(new String[]{"-c", "lsof -p "+pid+" | grep '/nrt'"}, false);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DefaultExecutor executor = new DefaultExecutor();
+        executor.setStreamHandler(new PumpStreamHandler(baos));
+        executor.execute(cl);
+        System.out.println(new String(baos.toByteArray()));
     }
 
     private String explain(String query){
@@ -413,7 +438,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     private void runAsyncIndex() {
-        Runnable async = WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
+        AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
             @Override
             public boolean apply(@Nullable Runnable input) {
                 return input instanceof AsyncIndexUpdate;
@@ -421,6 +446,9 @@ public class HybridIndexTest extends AbstractQueryTest {
         });
         assertNotNull(async);
         async.run();
+        if (async.isFailing()) {
+            fail("AsyncIndexUpdate failed");
+        }
         root.refresh();
     }
 
