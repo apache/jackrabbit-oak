@@ -56,6 +56,7 @@ public class NRTIndexFactoryTest {
     public void setUp() throws IOException {
         indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
         indexFactory = new NRTIndexFactory(indexCopier, StatisticsProvider.NOOP);
+        indexFactory.setAssertAllResourcesClosed(true);
     }
 
     @Test

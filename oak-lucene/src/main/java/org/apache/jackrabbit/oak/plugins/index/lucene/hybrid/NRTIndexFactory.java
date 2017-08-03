@@ -57,6 +57,7 @@ public class NRTIndexFactory implements Closeable{
     private final long refreshDeltaInSecs;
     private final StatisticsProvider statisticsProvider;
     private NRTDirectoryFactory directoryFactory = DefaultNRTDirFactory.INSTANCE;
+    private boolean assertAllResourcesClosed = Boolean.getBoolean("oak.lucene.assertAllResourcesClosed");
 
     public NRTIndexFactory(IndexCopier indexCopier, StatisticsProvider statisticsProvider) {
         this(indexCopier, Clock.SIMPLE, REFRESH_DELTA_IN_SECS, statisticsProvider);
@@ -80,7 +81,7 @@ public class NRTIndexFactory implements Closeable{
         }
         String indexPath = definition.getIndexPath();
         NRTIndex current = new NRTIndex(definition, indexCopier, getRefreshPolicy(definition),
-                getPrevious(indexPath), statisticsProvider, directoryFactory);
+                getPrevious(indexPath), statisticsProvider, directoryFactory, assertAllResourcesClosed);
         indexes.put(indexPath, current);
         closeLast(indexPath);
         return current;
@@ -100,6 +101,14 @@ public class NRTIndexFactory implements Closeable{
 
     public void setDirectoryFactory(NRTDirectoryFactory directoryFactory) {
         this.directoryFactory = directoryFactory;
+    }
+
+    /**
+     * Test mode upon which enables assertions to confirm that all readers are closed
+     * by the time NRTIndex is closed
+     */
+    public void setAssertAllResourcesClosed(boolean assertAllResourcesClosed) {
+        this.assertAllResourcesClosed = assertAllResourcesClosed;
     }
 
     private void closeLast(String indexPath) {
