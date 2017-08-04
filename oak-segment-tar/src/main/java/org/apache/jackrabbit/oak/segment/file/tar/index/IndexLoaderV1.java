@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
+import org.apache.commons.io.HexDump;
+
 class IndexLoaderV1 {
 
     static final int MAGIC = ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
@@ -33,8 +35,9 @@ class IndexLoaderV1 {
         this.blockSize = blockSize;
     }
 
-    Index loadIndex(ReaderAtEnd reader) throws InvalidIndexException, IOException {
+    IndexV1 loadIndex(ReaderAtEnd reader) throws InvalidIndexException, IOException {
         ByteBuffer meta = reader.readAtEnd(IndexV1.FOOTER_SIZE, IndexV1.FOOTER_SIZE);
+
         int crc32 = meta.getInt();
         int count = meta.getInt();
         int bytes = meta.getInt();
@@ -43,16 +46,21 @@ class IndexLoaderV1 {
         if (magic != MAGIC) {
             throw new InvalidIndexException("Magic number mismatch");
         }
-
-        if (count < 1 || bytes < count * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE || bytes % blockSize != 0) {
-            throw new InvalidIndexException("Invalid metadata");
+        if (count < 1) {
+            throw new InvalidIndexException("Invalid entry count");
+        }
+        if (bytes < count * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE) {
+            throw new InvalidIndexException("Invalid size");
+        }
+        if (bytes % blockSize != 0) {
+            throw new InvalidIndexException("Invalid size alignment");
         }
 
-        ByteBuffer index = reader.readAtEnd(IndexV1.FOOTER_SIZE + count * IndexEntryV1.SIZE, count * IndexEntryV1.SIZE);
-        index.mark();
+        ByteBuffer entries = reader.readAtEnd(IndexV1.FOOTER_SIZE + count * IndexEntryV1.SIZE, count * IndexEntryV1.SIZE);
+        entries.mark();
 
         CRC32 checksum = new CRC32();
-        checksum.update(index.array());
+        checksum.update(entries.array(), entries.position(), entries.remaining());
         if (crc32 != (int) checksum.getValue()) {
             throw new InvalidIndexException("Invalid checksum");
         }
@@ -61,7 +69,7 @@ class IndexLoaderV1 {
         long lastLsb = Long.MIN_VALUE;
         byte[] entry = new byte[IndexEntryV1.SIZE];
         for (int i = 0; i < count; i++) {
-            index.get(entry);
+            entries.get(entry);
 
             ByteBuffer buffer = wrap(entry);
             long msb = buffer.getLong();
@@ -75,8 +83,11 @@ class IndexLoaderV1 {
             if (lastMsb == msb && lastLsb == lsb && i > 0) {
                 throw new InvalidIndexException("Duplicate entry");
             }
-            if (offset < 0 || offset % blockSize != 0) {
+            if (offset < 0) {
                 throw new InvalidIndexException("Invalid entry offset");
+            }
+            if (offset % blockSize != 0) {
+                throw new InvalidIndexException("Invalid entry offset alignment");
             }
             if (size < 1) {
                 throw new InvalidIndexException("Invalid entry size");
@@ -86,9 +97,9 @@ class IndexLoaderV1 {
             lastLsb = lsb;
         }
 
-        index.reset();
+        entries.reset();
 
-        return new IndexV1(index);
+        return new IndexV1(entries);
     }
 
 }

@@ -475,7 +475,7 @@ class TarReader implements Closeable {
      * otherwise.
      */
     boolean containsEntry(long msb, long lsb) {
-        return findEntry(msb, lsb) != null;
+        return findEntry(msb, lsb) != -1;
     }
 
     /**
@@ -490,10 +490,14 @@ class TarReader implements Closeable {
      * @return the byte buffer, or null if not in this file.
      */
     ByteBuffer readEntry(long msb, long lsb) throws IOException {
-        IndexEntry entry = findEntry(msb, lsb);
-        if (entry == null) {
+        int idx = findEntry(msb, lsb);
+        if (idx == -1) {
             return null;
         }
+        return readEntry(msb, lsb, index.entry(idx));
+    }
+
+    private ByteBuffer readEntry(long msb, long lsb, IndexEntry entry) throws IOException {
         return readSegment(msb, lsb, entry.getPosition(), entry.getLength());
     }
 
@@ -505,7 +509,7 @@ class TarReader implements Closeable {
      * @return The position of the entry in the TAR file, or {@code -1} if the
      * entry is not found.
      */
-    private IndexEntry findEntry(long msb, long lsb) {
+    private int findEntry(long msb, long lsb) {
         return index.findEntry(msb, lsb);
     }
 
@@ -516,7 +520,7 @@ class TarReader implements Closeable {
      */
     @Nonnull
     TarEntry[] getEntries() {
-        TarEntry[] entries = new TarEntry[index.entryCount()];
+        TarEntry[] entries = new TarEntry[index.count()];
         for (int i = 0; i < entries.length; i++) {
             IndexEntry e = index.entry(i);
             entries[i]  = new TarEntry(

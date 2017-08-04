@@ -17,29 +17,32 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
+import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.base.Preconditions;
+
 class IndexV2 implements Index {
 
     static final int FOOTER_SIZE = 16;
 
-    private final ByteBuffer index;
+    private final ByteBuffer entries;
 
-    IndexV2(ByteBuffer index) {
-        this.index = index;
+    IndexV2(ByteBuffer entries) {
+        this.entries = entries;
     }
 
     @Override
     public Set<UUID> getUUIDs() {
-        Set<UUID> uuids = newHashSetWithExpectedSize(index.remaining() / IndexEntryV2.SIZE);
-        int position = index.position();
-        while (position < index.limit()) {
-            long msb = index.getLong(position);
-            long lsb = index.getLong(position + 8);
+        Set<UUID> uuids = newHashSetWithExpectedSize(entries.remaining() / IndexEntryV2.SIZE);
+        int position = entries.position();
+        while (position < entries.limit()) {
+            long msb = entries.getLong(position);
+            long lsb = entries.getLong(position + 8);
             uuids.add(new UUID(msb, lsb));
             position += IndexEntryV2.SIZE;
         }
@@ -47,13 +50,13 @@ class IndexV2 implements Index {
     }
 
     @Override
-    public IndexEntryV2 findEntry(long msb, long lsb) {
+    public int findEntry(long msb, long lsb) {
         // The segment identifiers are randomly generated with uniform
         // distribution, so we can use interpolation search to find the
         // matching entry in the index. The average runtime is O(log log n).
 
         int lowIndex = 0;
-        int highIndex = index.remaining() / IndexEntryV2.SIZE - 1;
+        int highIndex = entries.remaining() / IndexEntryV2.SIZE - 1;
         float lowValue = Long.MIN_VALUE;
         float highValue = Long.MAX_VALUE;
         float targetValue = msb;
@@ -63,8 +66,8 @@ class IndexV2 implements Index {
                     (highIndex - lowIndex)
                             * (targetValue - lowValue)
                             / (highValue - lowValue));
-            int position = index.position() + guessIndex * IndexEntryV2.SIZE;
-            long m = index.getLong(position);
+            int position = entries.position() + guessIndex * IndexEntryV2.SIZE;
+            long m = entries.getLong(position);
             if (msb < m) {
                 highIndex = guessIndex - 1;
                 highValue = m;
@@ -73,7 +76,7 @@ class IndexV2 implements Index {
                 lowValue = m;
             } else {
                 // getting close...
-                long l = index.getLong(position + 8);
+                long l = entries.getLong(position + 8);
                 if (lsb < l) {
                     highIndex = guessIndex - 1;
                     highValue = m;
@@ -81,27 +84,27 @@ class IndexV2 implements Index {
                     lowIndex = guessIndex + 1;
                     lowValue = m;
                 } else {
-                    return new IndexEntryV2(index, position);
+                    return position / IndexEntryV2.SIZE;
                 }
             }
         }
 
-        return null;
+        return -1;
     }
 
     @Override
     public int size() {
-        return index.remaining() + FOOTER_SIZE;
+        return entries.remaining() + FOOTER_SIZE;
     }
 
     @Override
-    public int entryCount() {
-        return index.remaining() / IndexEntryV2.SIZE;
+    public int count() {
+        return entries.remaining() / IndexEntryV2.SIZE;
     }
 
     @Override
     public IndexEntryV2 entry(int i) {
-        return new IndexEntryV2(index, index.position() + i * IndexEntryV2.SIZE);
+        return new IndexEntryV2(entries, checkElementIndex(i, count()) * IndexEntryV2.SIZE);
     }
 
 }

@@ -24,11 +24,11 @@ public interface Index {
 
     Set<UUID> getUUIDs();
 
-    IndexEntry findEntry(long msb, long lsb);
+    int findEntry(long msb, long lsb);
 
     int size();
 
-    int entryCount();
+    int count();
 
     IndexEntry entry(int i);
 
