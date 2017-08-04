@@ -509,7 +509,6 @@ public class FileStore extends AbstractFileStore {
             }
 
             segment = new Segment(tracker, segmentReader, id, data);
-            // FIXME OAK-3349 also handle the tail part of the gc generation and flag when writing segments
             generation = segment.getGcGeneration();
             references = readReferences(segment);
             binaryReferences = readBinaryReferences(segment);
