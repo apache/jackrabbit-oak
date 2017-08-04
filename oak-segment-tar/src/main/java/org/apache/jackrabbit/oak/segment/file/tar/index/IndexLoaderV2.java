@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.file.tar.index;
 import static java.nio.ByteBuffer.wrap;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
@@ -34,12 +33,8 @@ class IndexLoaderV2 {
         this.blockSize = blockSize;
     }
 
-    Index loadIndex(RandomAccessFile file) throws InvalidIndexException, IOException {
-        long length = file.length();
-        // read the index metadata just before the two final zero blocks
-        ByteBuffer meta = ByteBuffer.allocate(IndexV2.FOOTER_SIZE);
-        file.seek(length - 2 * blockSize - IndexV2.FOOTER_SIZE);
-        file.readFully(meta.array());
+    Index loadIndex(ReaderAtEnd reader) throws InvalidIndexException, IOException {
+        ByteBuffer meta = reader.readAtEnd(IndexV2.FOOTER_SIZE, IndexV2.FOOTER_SIZE);
         int crc32 = meta.getInt();
         int count = meta.getInt();
         int bytes = meta.getInt();
@@ -53,11 +48,7 @@ class IndexLoaderV2 {
             throw new InvalidIndexException("Invalid metadata");
         }
 
-        // this involves seeking backwards in the file, which might not
-        // perform well, but that's OK since we only do this once per file
-        ByteBuffer index = ByteBuffer.allocate(count * IndexEntryV2.SIZE);
-        file.seek(length - 2 * blockSize - IndexV2.FOOTER_SIZE - count * IndexEntryV2.SIZE);
-        file.readFully(index.array());
+        ByteBuffer index = reader.readAtEnd(IndexV2.FOOTER_SIZE + count * IndexEntryV2.SIZE, count * IndexEntryV2.SIZE);
         index.mark();
 
         CRC32 checksum = new CRC32();
@@ -66,7 +57,6 @@ class IndexLoaderV2 {
             throw new InvalidIndexException("Invalid checksum");
         }
 
-        long limit = length - 2 * blockSize - bytes - blockSize;
         long lastMsb = Long.MIN_VALUE;
         long lastLsb = Long.MIN_VALUE;
         byte[] entry = new byte[IndexEntryV2.SIZE];
@@ -88,7 +78,7 @@ class IndexLoaderV2 {
             if (offset < 0 || offset % blockSize != 0) {
                 throw new InvalidIndexException("Invalid entry offset");
             }
-            if (size < 1 || offset + size > limit) {
+            if (size < 1) {
                 throw new InvalidIndexException("Invalid entry size");
             }
 
