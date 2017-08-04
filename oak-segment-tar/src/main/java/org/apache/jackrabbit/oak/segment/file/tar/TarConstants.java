@@ -37,7 +37,7 @@ class TarConstants {
      * checksum).</li>
      * </ul>
      */
-    static final int INDEX_MAGIC = ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
+    static final int INDEX_MAGIC = ('\n' << 24) + ('1' << 16) + ('K' << 8) + '\n';
 
     /**
      * Magic byte sequence at the end of the graph block.
