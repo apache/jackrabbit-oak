@@ -27,12 +27,6 @@ import java.util.zip.CRC32;
 
 public class IndexLoader {
 
-    private static final int MAGIC = ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
-
-    private static final int FOOTER_SIZE = 16;
-
-    static final int ENTRY_SIZE = 33;
-
     public static IndexLoader newIndexLoader(int blockSize) {
         checkArgument(blockSize > 0, "Invalid block size");
         return new IndexLoader(blockSize);
@@ -40,8 +34,11 @@ public class IndexLoader {
 
     private final int blockSize;
 
+    private final IndexLoaderV2 v2;
+
     private IndexLoader(int blockSize) {
         this.blockSize = blockSize;
+        this.v2 = new IndexLoaderV2(blockSize);
     }
 
     public Index loadIndex(RandomAccessFile file) throws IOException, InvalidIndexException {
@@ -51,69 +48,16 @@ public class IndexLoader {
             throw new InvalidIndexException(String.format("Unexpected size %d", length));
         }
 
-        // read the index metadata just before the two final zero blocks
-        ByteBuffer meta = ByteBuffer.allocate(FOOTER_SIZE);
-        file.seek(length - 2 * blockSize - FOOTER_SIZE);
-        file.readFully(meta.array());
-        int crc32 = meta.getInt();
-        int count = meta.getInt();
-        int bytes = meta.getInt();
-        int magic = meta.getInt();
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        file.seek(length - 2 * blockSize - Integer.BYTES);
+        file.readFully(buffer.array());
+        int magic = buffer.getInt();
 
-        if (magic != MAGIC) {
-            throw new InvalidIndexException("Magic number mismatch");
+        if (magic == IndexLoaderV2.MAGIC) {
+            return v2.loadIndex(file);
         }
 
-        if (count < 1 || bytes < count * ENTRY_SIZE + FOOTER_SIZE || bytes % blockSize != 0) {
-            throw new InvalidIndexException("Invalid metadata");
-        }
-
-        // this involves seeking backwards in the file, which might not
-        // perform well, but that's OK since we only do this once per file
-        ByteBuffer index = ByteBuffer.allocate(count * ENTRY_SIZE);
-        file.seek(length - 2 * blockSize - FOOTER_SIZE - count * ENTRY_SIZE);
-        file.readFully(index.array());
-        index.mark();
-
-        CRC32 checksum = new CRC32();
-        checksum.update(index.array());
-        if (crc32 != (int) checksum.getValue()) {
-            throw new InvalidIndexException("Invalid checksum");
-        }
-
-        long limit = length - 2 * blockSize - bytes - blockSize;
-        long lastMsb = Long.MIN_VALUE;
-        long lastLsb = Long.MIN_VALUE;
-        byte[] entry = new byte[ENTRY_SIZE];
-        for (int i = 0; i < count; i++) {
-            index.get(entry);
-
-            ByteBuffer buffer = wrap(entry);
-            long msb = buffer.getLong();
-            long lsb = buffer.getLong();
-            int offset = buffer.getInt();
-            int size = buffer.getInt();
-
-            if (lastMsb > msb || (lastMsb == msb && lastLsb > lsb)) {
-                throw new InvalidIndexException("Incorrect entry ordering");
-            }
-            if (lastMsb == msb && lastLsb == lsb && i > 0) {
-                throw new InvalidIndexException("Duplicate entry");
-            }
-            if (offset < 0 || offset % blockSize != 0) {
-                throw new InvalidIndexException("Invalid entry offset");
-            }
-            if (size < 1 || offset + size > limit) {
-                throw new InvalidIndexException("Invalid entry size");
-            }
-
-            lastMsb = msb;
-            lastLsb = lsb;
-        }
-
-        index.reset();
-
-        return new Index(index);
+        throw new InvalidIndexException("Unrecognized magic number");
     }
 
 }
