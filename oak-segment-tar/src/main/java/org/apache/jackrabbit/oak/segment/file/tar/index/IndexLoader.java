@@ -76,13 +76,17 @@ public class IndexLoader {
         index.mark();
 
         CRC32 checksum = new CRC32();
+        checksum.update(index.array());
+        if (crc32 != (int) checksum.getValue()) {
+            throw new InvalidIndexException("Invalid checksum");
+        }
+
         long limit = length - 2 * blockSize - bytes - blockSize;
         long lastMsb = Long.MIN_VALUE;
         long lastLsb = Long.MIN_VALUE;
         byte[] entry = new byte[ENTRY_SIZE];
         for (int i = 0; i < count; i++) {
             index.get(entry);
-            checksum.update(entry);
 
             ByteBuffer buffer = wrap(entry);
             long msb = buffer.getLong();
@@ -105,10 +109,6 @@ public class IndexLoader {
 
             lastMsb = msb;
             lastLsb = lsb;
-        }
-
-        if (crc32 != (int) checksum.getValue()) {
-            throw new InvalidIndexException("Invalid checksum");
         }
 
         index.reset();
