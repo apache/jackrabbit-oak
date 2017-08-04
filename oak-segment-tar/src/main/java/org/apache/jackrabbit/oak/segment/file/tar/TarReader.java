@@ -470,7 +470,7 @@ class TarReader implements Closeable {
      * Check if the requested entry exists in this TAR file.
      *
      * @param msb The most significant bits of the entry identifier.
-     * @param lsb The least significat bits of the entry identifier.
+     * @param lsb The least significant bits of the entry identifier.
      * @return {@code true} if the entry exists in this TAR file, {@code false}
      * otherwise.
      */
