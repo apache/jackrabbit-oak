@@ -29,6 +29,8 @@ public class IndexLoader {
 
     private static final int MAGIC = ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
 
+    private static final int FOOTER_SIZE = 16;
+
     static final int ENTRY_SIZE = 33;
 
     public static IndexLoader newIndexLoader(int blockSize) {
@@ -50,8 +52,8 @@ public class IndexLoader {
         }
 
         // read the index metadata just before the two final zero blocks
-        ByteBuffer meta = ByteBuffer.allocate(16);
-        file.seek(length - 2 * blockSize - 16);
+        ByteBuffer meta = ByteBuffer.allocate(FOOTER_SIZE);
+        file.seek(length - 2 * blockSize - FOOTER_SIZE);
         file.readFully(meta.array());
         int crc32 = meta.getInt();
         int count = meta.getInt();
@@ -62,14 +64,14 @@ public class IndexLoader {
             return null; // magic byte mismatch
         }
 
-        if (count < 1 || bytes < count * ENTRY_SIZE + 16 || bytes % blockSize != 0) {
+        if (count < 1 || bytes < count * ENTRY_SIZE + FOOTER_SIZE || bytes % blockSize != 0) {
             throw new InvalidIndexException("Invalid metadata");
         }
 
         // this involves seeking backwards in the file, which might not
         // perform well, but that's OK since we only do this once per file
         ByteBuffer index = ByteBuffer.allocate(count * ENTRY_SIZE);
-        file.seek(length - 2 * blockSize - 16 - count * ENTRY_SIZE);
+        file.seek(length - 2 * blockSize - FOOTER_SIZE - count * ENTRY_SIZE);
         file.readFully(index.array());
         index.mark();
 
