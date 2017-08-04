@@ -61,7 +61,7 @@ public class IndexLoader {
         int magic = meta.getInt();
 
         if (magic != MAGIC) {
-            return null; // magic byte mismatch
+            throw new InvalidIndexException("Magic number mismatch");
         }
 
         if (count < 1 || bytes < count * ENTRY_SIZE + FOOTER_SIZE || bytes % blockSize != 0) {
