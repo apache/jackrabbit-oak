@@ -53,7 +53,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-// FIXME OAK-3349 implement tail compaction tests
+// FIXME OAK-6522: Implement unit tests for OnlineCompactor
 public class OnlineCompactorTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
