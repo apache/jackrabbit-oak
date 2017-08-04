@@ -23,27 +23,28 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
-@SuppressWarnings("deprecation")
-class SegmentFixtureProvider {
+class SegmentTarFixtureProvider {
 
-    static NodeStore create(Options options, BlobStore blobStore, Whiteboard wb, Closer closer, boolean readOnly)
+    static NodeStore configureSegment(Options options, BlobStore blobStore, Whiteboard wb, Closer closer, boolean readOnly)
             throws IOException, InvalidFileStoreVersionException {
         StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
 
         String path = options.getOptionBean(CommonOptions.class).getStoreArg();
-        FileStore.Builder builder = FileStore.builder(new File(path))
-                .withMaxFileSize(256).withDefaultMemoryMapping();
+        FileStoreBuilder builder = fileStoreBuilder(new File(path)).withMaxFileSize(256);
 
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
@@ -51,17 +52,17 @@ class SegmentFixtureProvider {
 
         NodeStore nodeStore;
         if (readOnly) {
-            FileStore.ReadOnlyStore fileStore = builder
+            ReadOnlyFileStore fileStore = builder
                     .withStatisticsProvider(statisticsProvider)
                     .buildReadOnly();
             closer.register(fileStore);
-            nodeStore = SegmentNodeStore.builder(fileStore).build();
+            nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         } else {
             FileStore fileStore = builder
                     .withStatisticsProvider(statisticsProvider)
                     .build();
             closer.register(fileStore);
-            nodeStore = SegmentNodeStore.builder(fileStore).build();
+            nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         }
 
         return nodeStore;
