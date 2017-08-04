@@ -42,23 +42,6 @@ class TarEntry {
         }
     };
 
-    static final Comparator<TarEntry> IDENTIFIER_ORDER = new Comparator<TarEntry>() {
-        @Override
-        public int compare(TarEntry a, TarEntry b) {
-            if (a.msb > b.msb) {
-                return 1;
-            } else if (a.msb < b.msb) {
-                return -1;
-            } else if (a.lsb > b.lsb) {
-                return 1;
-            } else if (a.lsb < b.lsb) {
-                return -1;
-            } else {
-                return 0;
-            }
-        }
-    };
-
     private final long msb;
 
     private final long lsb;

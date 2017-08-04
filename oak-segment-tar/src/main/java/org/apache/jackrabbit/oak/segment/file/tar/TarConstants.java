@@ -26,20 +26,6 @@ class TarConstants {
     static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
     /**
-     * Magic byte sequence at the end of the index block.
-     * <p>
-     * <ul>
-     * <li>For each segment in that file, an index entry that contains the UUID,
-     * the offset within the file and the size of the segment. Sorted by UUID,
-     * to allow using interpolation search.</li>
-     * <li>
-     * The index footer, which contains metadata of the index (the size,
-     * checksum).</li>
-     * </ul>
-     */
-    static final int INDEX_MAGIC = ('\n' << 24) + ('1' << 16) + ('K' << 8) + '\n';
-
-    /**
      * Magic byte sequence at the end of the graph block.
      * <p>
      * The file is read from the end (the tar file is read from the end: the
