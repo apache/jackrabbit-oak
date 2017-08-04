@@ -272,7 +272,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         SegmentWriteOperation with(@Nonnull SegmentBufferWriter writer) {
             checkState(this.writer == null);
             this.writer = writer;
-            // FIXME OAK-3349 Also take the tail part of the gc generation into account for allocating cache generations. Cache generations need to be a monotonically increasing, ordered sequence consisting of the full and tail part of the gc generation. See also org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.EvictingWriteCacheManager.evictOldGeneration
+            // FIXME OAK-6519: Properly handle tail compactions in deduplication caches
             int generation = writer.getGeneration().getFull();
             this.stringCache = cacheManager.getStringCache(generation);
             this.templateCache = cacheManager.getTemplateCache(generation);
