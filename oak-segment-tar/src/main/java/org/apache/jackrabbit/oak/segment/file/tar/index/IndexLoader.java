@@ -34,10 +34,13 @@ public class IndexLoader {
 
     private final int blockSize;
 
+    private final IndexLoaderV1 v1;
+
     private final IndexLoaderV2 v2;
 
     private IndexLoader(int blockSize) {
         this.blockSize = blockSize;
+        this.v1 = new IndexLoaderV1(blockSize);
         this.v2 = new IndexLoaderV2(blockSize);
     }
 
@@ -53,6 +56,9 @@ public class IndexLoader {
         file.readFully(buffer.array());
         int magic = buffer.getInt();
 
+        if (magic == IndexLoaderV1.MAGIC) {
+            return v1.loadIndex(file);
+        }
         if (magic == IndexLoaderV2.MAGIC) {
             return v2.loadIndex(file);
         }

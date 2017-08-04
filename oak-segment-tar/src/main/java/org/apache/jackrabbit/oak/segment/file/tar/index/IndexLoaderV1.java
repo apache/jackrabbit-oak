@@ -24,21 +24,21 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
-class IndexLoaderV2 {
+class IndexLoaderV1 {
 
-    static final int MAGIC = ('\n' << 24) + ('1' << 16) + ('K' << 8) + '\n';
+    static final int MAGIC = ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
 
     private final int blockSize;
 
-    IndexLoaderV2(int blockSize) {
+    IndexLoaderV1(int blockSize) {
         this.blockSize = blockSize;
     }
 
     Index loadIndex(RandomAccessFile file) throws InvalidIndexException, IOException {
         long length = file.length();
         // read the index metadata just before the two final zero blocks
-        ByteBuffer meta = ByteBuffer.allocate(IndexV2.FOOTER_SIZE);
-        file.seek(length - 2 * blockSize - IndexV2.FOOTER_SIZE);
+        ByteBuffer meta = ByteBuffer.allocate(IndexV1.FOOTER_SIZE);
+        file.seek(length - 2 * blockSize - IndexV1.FOOTER_SIZE);
         file.readFully(meta.array());
         int crc32 = meta.getInt();
         int count = meta.getInt();
@@ -49,14 +49,14 @@ class IndexLoaderV2 {
             throw new InvalidIndexException("Magic number mismatch");
         }
 
-        if (count < 1 || bytes < count * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE || bytes % blockSize != 0) {
+        if (count < 1 || bytes < count * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE || bytes % blockSize != 0) {
             throw new InvalidIndexException("Invalid metadata");
         }
 
         // this involves seeking backwards in the file, which might not
         // perform well, but that's OK since we only do this once per file
-        ByteBuffer index = ByteBuffer.allocate(count * IndexEntryV2.SIZE);
-        file.seek(length - 2 * blockSize - IndexV2.FOOTER_SIZE - count * IndexEntryV2.SIZE);
+        ByteBuffer index = ByteBuffer.allocate(count * IndexEntryV1.SIZE);
+        file.seek(length - 2 * blockSize - IndexV1.FOOTER_SIZE - count * IndexEntryV1.SIZE);
         file.readFully(index.array());
         index.mark();
 
@@ -69,7 +69,7 @@ class IndexLoaderV2 {
         long limit = length - 2 * blockSize - bytes - blockSize;
         long lastMsb = Long.MIN_VALUE;
         long lastLsb = Long.MIN_VALUE;
-        byte[] entry = new byte[IndexEntryV2.SIZE];
+        byte[] entry = new byte[IndexEntryV1.SIZE];
         for (int i = 0; i < count; i++) {
             index.get(entry);
 
@@ -98,7 +98,7 @@ class IndexLoaderV2 {
 
         index.reset();
 
-        return new IndexV2(index);
+        return new IndexV1(index);
     }
 
 }
