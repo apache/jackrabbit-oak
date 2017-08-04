@@ -31,7 +31,6 @@ import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BINARY_REF
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.INDEX_MAGIC;
 
 import java.io.Closeable;
 import java.io.File;
@@ -40,7 +39,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -50,6 +48,7 @@ import java.util.zip.CRC32;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.segment.file.tar.index.IndexWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -492,38 +491,23 @@ class TarWriter implements Closeable {
     }
 
     private void writeIndex() throws IOException {
-        int indexSize = index.size() * TarEntry.SIZE + 16;
-        int padding = getPaddingSize(indexSize);
+        IndexWriter writer = IndexWriter.newIndexWriter(BLOCK_SIZE);
 
-        String indexName = file.getName() + ".idx";
-        byte[] header = newEntryHeader(indexName, indexSize + padding);
-
-        ByteBuffer buffer = ByteBuffer.allocate(indexSize);
-        TarEntry[] sorted = index.values().toArray(new TarEntry[index.size()]);
-        Arrays.sort(sorted, TarEntry.IDENTIFIER_ORDER);
-        for (TarEntry entry : sorted) {
-            buffer.putLong(entry.msb());
-            buffer.putLong(entry.lsb());
-            buffer.putInt(entry.offset());
-            buffer.putInt(entry.size());
-            buffer.putInt(entry.generation().getFull());
-            buffer.putInt(entry.generation().getTail());
-            buffer.put((byte) (entry.generation().isTail() ? 1 : 0));
+        for (TarEntry entry : index.values()) {
+            writer.addEntry(
+                    entry.msb(),
+                    entry.lsb(),
+                    entry.offset(),
+                    entry.size(),
+                    entry.generation().getFull(),
+                    entry.generation().getTail(),
+                    entry.generation().isTail()
+            );
         }
 
-        CRC32 checksum = new CRC32();
-        checksum.update(buffer.array(), 0, buffer.position());
-        buffer.putInt((int) checksum.getValue());
-        buffer.putInt(index.size());
-        buffer.putInt(padding + indexSize);
-        buffer.putInt(INDEX_MAGIC);
-
-        access.write(header);
-        if (padding > 0) {
-            // padding comes *before* the index!
-            access.write(ZERO_BYTES, 0, padding);
-        }
-        access.write(buffer.array());
+        byte[] index = writer.write();
+        access.write(newEntryHeader(file.getName() + ".idx", index.length));
+        access.write(index);
     }
 
     private static byte[] newEntryHeader(String name, int size) {
