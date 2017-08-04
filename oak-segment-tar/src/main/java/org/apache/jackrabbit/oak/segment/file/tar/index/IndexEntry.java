@@ -17,45 +17,20 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
-import java.nio.ByteBuffer;
+public interface IndexEntry {
 
-public class IndexEntry {
+    long getMsb();
 
-    private final ByteBuffer index;
+    long getLsb();
 
-    private final int position;
+    int getPosition();
 
-    IndexEntry(ByteBuffer index, int position) {
-        this.index = index;
-        this.position = position;
-    }
+    int getLength();
 
-    public long getMsb() {
-        return index.getLong(position);
-    }
+    int getFullGeneration();
 
-    public long getLsb() {
-        return index.getLong(position + 8);
-    }
+    int getTailGeneration();
 
-    public int getPosition() {
-        return index.getInt(position + 16);
-    }
-
-    public int getLength() {
-        return index.getInt(position + 20);
-    }
-
-    public int getFullGeneration() {
-        return index.getInt(position + 24);
-    }
-
-    public int getTailGeneration() {
-        return index.getInt(position + 28);
-    }
-
-    public boolean isTail() {
-        return index.get(position + 32) != 0;
-    }
+    boolean isTail();
 
 }
