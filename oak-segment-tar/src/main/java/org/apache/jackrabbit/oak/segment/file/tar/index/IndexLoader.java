@@ -18,12 +18,10 @@
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.nio.ByteBuffer.wrap;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.util.zip.CRC32;
 
 public class IndexLoader {
 
@@ -44,6 +42,21 @@ public class IndexLoader {
         this.v2 = new IndexLoaderV2(blockSize);
     }
 
+    private int readMagic(ReaderAtEnd reader) throws IOException {
+        return reader.readAtEnd(Integer.BYTES, Integer.BYTES).getInt();
+    }
+
+    private Index loadIndex(ReaderAtEnd reader) throws IOException, InvalidIndexException {
+        switch (readMagic(reader)) {
+            case IndexLoaderV1.MAGIC:
+                return v1.loadIndex(reader);
+            case IndexLoaderV2.MAGIC:
+                return v2.loadIndex(reader);
+            default:
+                throw new InvalidIndexException("Unrecognized magic number");
+        }
+    }
+
     public Index loadIndex(RandomAccessFile file) throws IOException, InvalidIndexException {
         long length = file.length();
 
@@ -51,19 +64,12 @@ public class IndexLoader {
             throw new InvalidIndexException(String.format("Unexpected size %d", length));
         }
 
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
-        file.seek(length - 2 * blockSize - Integer.BYTES);
-        file.readFully(buffer.array());
-        int magic = buffer.getInt();
-
-        if (magic == IndexLoaderV1.MAGIC) {
-            return v1.loadIndex(file);
-        }
-        if (magic == IndexLoaderV2.MAGIC) {
-            return v2.loadIndex(file);
-        }
-
-        throw new InvalidIndexException("Unrecognized magic number");
+        return loadIndex((whence, size) -> {
+            ByteBuffer buffer = ByteBuffer.allocate(size);
+            file.seek(length - 2 * blockSize - whence);
+            file.readFully(buffer.array());
+            return buffer;
+        });
     }
 
 }
