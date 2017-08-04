@@ -102,7 +102,7 @@ public class FileStoreBuilder {
         public void compactionSucceeded(@Nonnull GCGeneration newGeneration) {
             compacted();
             if (cacheManager != null) {
-                // FIXME OAK-3349 also handle the tail part of the gc generation and flag. See also the respective todo at org.apache.jackrabbit.oak.segment.DefaultSegmentWriter.SegmentWriteOperation.with()
+                // FIXME OAK-6519: Properly handle tail compactions in deduplication caches
                 cacheManager.evictOldGeneration(newGeneration.getFull());
             }
         }
@@ -110,7 +110,7 @@ public class FileStoreBuilder {
         @Override
         public void compactionFailed(@Nonnull GCGeneration failedGeneration) {
             if (cacheManager != null) {
-                // FIXME OAK-3349 also handle the tail part of the gc generation and flag. See also the respective todo at org.apache.jackrabbit.oak.segment.DefaultSegmentWriter.SegmentWriteOperation.with()
+                // FIXME OAK-6519: Properly handle tail compactions in deduplication caches
                 cacheManager.evictGeneration(failedGeneration.getFull());
             }
         }
