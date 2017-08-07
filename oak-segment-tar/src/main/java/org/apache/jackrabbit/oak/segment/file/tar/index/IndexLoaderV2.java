@@ -60,7 +60,6 @@ class IndexLoaderV2 {
         CRC32 checksum = new CRC32();
         checksum.update(entries.array(), entries.position(), entries.remaining());
         if (crc32 != (int) checksum.getValue()) {
-            System.out.printf("0x%X\n", (int) checksum.getValue());
             throw new InvalidIndexException("Invalid checksum");
         }
 
