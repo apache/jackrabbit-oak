@@ -176,8 +176,8 @@ public class GCJournal {
                     repoSize,
                     reclaimedSize,
                     ts,
-                    gcGeneration.getFull(),
-                    gcGeneration.getTail(),
+                    gcGeneration.getGeneration(),
+                    gcGeneration.getFullGeneration(),
                     nodes,
                     root
             );
@@ -188,14 +188,15 @@ public class GCJournal {
             long repoSize = parseLong(items, 0);
             long reclaimedSize = parseLong(items, 1);
             long ts = parseLong(items, 2);
-            int fullGeneration = parseInt(items, 3);
-            int tailGeneration = parseInt(items, 4);
+            int generation = parseInt(items, 3);
+            int fullGeneration = parseInt(items, 4);
             long nodes = parseLong(items, 5);
             String root = parseString(items, 6);
             if (root == null) {
                 root = RecordId.NULL.toString10();
             }
-            return new GCJournalEntry(repoSize, reclaimedSize, ts, newGCGeneration(fullGeneration, tailGeneration, false), nodes, root);
+            return new GCJournalEntry(repoSize, reclaimedSize, ts,
+                    newGCGeneration(generation, fullGeneration, false), nodes, root);
         }
 
         @CheckForNull

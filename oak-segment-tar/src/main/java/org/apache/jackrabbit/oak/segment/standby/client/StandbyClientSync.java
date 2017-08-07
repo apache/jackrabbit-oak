@@ -157,7 +157,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                     new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
                     GCGeneration genAfter = headGeneration(fileStore);
 
-                    if (autoClean && (genAfter.compareFull(genBefore)) > 0 || genAfter.compareTail(genBefore) > 0) {
+                    if (autoClean && (genAfter.compareWith(genBefore)) > 0) {
                         log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
                         cleanupAndRemove();
                     }

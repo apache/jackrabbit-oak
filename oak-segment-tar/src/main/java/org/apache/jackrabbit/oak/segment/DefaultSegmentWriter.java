@@ -273,7 +273,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             checkState(this.writer == null);
             this.writer = writer;
             // FIXME OAK-6519: Properly handle tail compactions in deduplication caches
-            int generation = writer.getGeneration().getFull();
+            int generation = writer.getGCGeneration().getGeneration();
             this.stringCache = cacheManager.getStringCache(generation);
             this.templateCache = cacheManager.getTemplateCache(generation);
             this.nodeCache = cacheManager.getNodeCache(generation);
@@ -990,8 +990,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private boolean isOldGeneration(RecordId id) {
             try {
                 GCGeneration thatGen = id.getSegmentId().getGcGeneration();
-                GCGeneration thisGen = writer.getGeneration();
-                return thatGen.compareFull(thisGen) < 0 || thatGen.compareTail(thisGen) < 0;
+                GCGeneration thisGen = writer.getGCGeneration();
+                return thatGen.compareWith(thisGen) < 0;
             } catch (SegmentNotFoundException snfe) {
                 // This SNFE means a defer compacted node state is too far
                 // in the past. It has been gc'ed already and cannot be

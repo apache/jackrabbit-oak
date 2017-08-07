@@ -41,9 +41,9 @@ public class IndexLoaderTest {
         assertEquals(lsb, entry.getLsb());
         assertEquals(position, entry.getPosition());
         assertEquals(length, entry.getLength());
-        assertEquals(full, entry.getFullGeneration());
-        assertEquals(tail, entry.getTailGeneration());
-        assertEquals(isTail, entry.isTail());
+        assertEquals(full, entry.getGeneration());
+        assertEquals(tail, entry.getFullGeneration());
+        assertEquals(isTail, entry.isCompacted());
     }
 
     @Test(expected = InvalidIndexException.class)

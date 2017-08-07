@@ -183,7 +183,7 @@ public class FileStore extends AbstractFileStore {
         }
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
-                .withGeneration(() -> getGcGeneration().nonTail())
+                .withGeneration(() -> getGcGeneration().nonGC())
                 .withWriterPool()
                 .with(builder.getCacheManager()
                         .withAccessTracking("WRITE", builder.getStatsProvider()))

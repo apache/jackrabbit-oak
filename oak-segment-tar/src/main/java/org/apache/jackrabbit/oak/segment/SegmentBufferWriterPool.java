@@ -191,7 +191,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
                         getWriterId(wid),
                         gcGeneration.get()
                 );
-            } else if (!writer.getGeneration().equals(gcGeneration.get())) {
+            } else if (!writer.getGCGeneration().equals(gcGeneration.get())) {
                 disposed.add(writer);
                 writer = new SegmentBufferWriter(
                         idProvider,

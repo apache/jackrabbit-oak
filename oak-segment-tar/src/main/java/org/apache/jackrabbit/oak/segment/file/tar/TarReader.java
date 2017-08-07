@@ -553,9 +553,9 @@ class TarReader implements Closeable {
                     e.getPosition(),
                     e.getLength(),
                     newGCGeneration(
+                            e.getGeneration(),
                             e.getFullGeneration(),
-                            e.getTailGeneration(),
-                            e.isTail()
+                            e.isCompacted()
                     )
             );
         }
@@ -949,9 +949,9 @@ class TarReader implements Closeable {
         Map<GCGeneration, Map<UUID, Set<String>>> binaryReferences = newHashMapWithExpectedSize(nGenerations);
 
         for (int i = 0; i < nGenerations; i++) {
+            int generation = buffer.getInt();
             int fullGeneration = buffer.getInt();
-            int tailGeneration = buffer.getInt();
-            boolean isTail = buffer.get() != 0;
+            boolean isCompacted = buffer.get() != 0;
             int segmentCount = buffer.getInt();
 
             Map<UUID, Set<String>> segments = newHashMapWithExpectedSize(segmentCount);
@@ -975,7 +975,7 @@ class TarReader implements Closeable {
                 segments.put(new UUID(msb, lsb), references);
             }
 
-            binaryReferences.put(newGCGeneration(fullGeneration, tailGeneration, isTail), segments);
+            binaryReferences.put(newGCGeneration(generation, fullGeneration, isCompacted), segments);
         }
 
         return binaryReferences;

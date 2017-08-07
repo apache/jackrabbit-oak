@@ -121,7 +121,7 @@ public class OnlineCompactorTest {
     @Nonnull
     private static OnlineCompactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
-                .withGeneration(newGCGeneration(1, 0, false))
+                .withGeneration(newGCGeneration(1, 1, true))
                 .build(fileStore);
         return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, () -> {});
     }

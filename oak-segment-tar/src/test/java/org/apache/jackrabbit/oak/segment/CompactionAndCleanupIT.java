@@ -1156,7 +1156,7 @@ public class CompactionAndCleanupIT {
             builder.getChildNode("a").remove();
             NodeState deferCompacted = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             assertEquals(
-                    uncompacted.getSegment().getGcGeneration().nextFull(),
+                    uncompacted.getSegment().getGcGeneration().nextFull().nonGC(),
                     ((SegmentNodeState)deferCompacted).getSegment().getGcGeneration());
         }
     }

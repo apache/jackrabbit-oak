@@ -53,17 +53,17 @@ class IndexEntryV1 implements IndexEntry {
     }
 
     @Override
-    public int getFullGeneration() {
+    public int getGeneration() {
         return index.getInt(position + 24);
     }
 
     @Override
-    public int getTailGeneration() {
+    public int getFullGeneration() {
         return 0;
     }
 
     @Override
-    public boolean isTail() {
+    public boolean isCompacted() {
         return false;
     }
 

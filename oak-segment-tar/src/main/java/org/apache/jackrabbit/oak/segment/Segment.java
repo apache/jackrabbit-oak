@@ -123,9 +123,9 @@ public class Segment {
      */
     static final int BLOB_ID_SMALL_LIMIT = 1 << 12;
 
-    static final int GC_TAIL_GENERATION_OFFSET = 4;
+    static final int GC_FULL_GENERATION_OFFSET = 4;
 
-    static final int GC_FULL_GENERATION_OFFSET = 10;
+    static final int GC_GENERATION_OFFSET = 10;
 
     static final int REFERENCED_SEGMENT_ID_COUNT_OFFSET = 14;
 
@@ -373,14 +373,14 @@ public class Segment {
      *
      * @param data         the date of the segment
      * @param segmentId    the id of the segment
-     * @return  the gc generation of this segment or 0 if this is bulk segment.
+     * @return  the gc generation of this segment or {@link GCGeneration#NULL} if this is bulk segment.
      */
     @Nonnull
     public static GCGeneration getGcGeneration(ByteBuffer data, UUID segmentId) {
         if (isDataSegmentId(segmentId.getLeastSignificantBits())) {
-            int full = data.getInt(GC_FULL_GENERATION_OFFSET);
-            int tail = data.getInt(GC_TAIL_GENERATION_OFFSET);
-            return newGCGeneration(full, tail & 0x7fffffff, tail < 0);
+            int generation = data.getInt(GC_GENERATION_OFFSET);
+            int fullGeneration = data.getInt(GC_FULL_GENERATION_OFFSET);
+            return newGCGeneration(generation, fullGeneration & 0x7fffffff, fullGeneration < 0);
         } else {
             return GCGeneration.NULL;
         }

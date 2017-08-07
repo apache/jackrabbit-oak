@@ -377,9 +377,9 @@ class TarWriter implements Closeable {
             GCGeneration generation = be.getKey();
             Map<UUID, Set<String>> segmentToReferences = be.getValue();
 
-            buffer.putInt(generation.getFull());
-            buffer.putInt(generation.getTail());
-            buffer.put((byte) (generation.isTail() ? 1 : 0));
+            buffer.putInt(generation.getGeneration());
+            buffer.putInt(generation.getFullGeneration());
+            buffer.put((byte) (generation.isCompacted() ? 1 : 0));
             buffer.putInt(segmentToReferences.size());
 
             for (Entry<UUID, Set<String>> se : segmentToReferences.entrySet()) {
@@ -499,9 +499,9 @@ class TarWriter implements Closeable {
                     entry.lsb(),
                     entry.offset(),
                     entry.size(),
-                    entry.generation().getFull(),
-                    entry.generation().getTail(),
-                    entry.generation().isTail()
+                    entry.generation().getGeneration(),
+                    entry.generation().getFullGeneration(),
+                    entry.generation().isCompacted()
             );
         }
 
