@@ -20,16 +20,48 @@ package org.apache.jackrabbit.oak.segment.file.tar.index;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * An index for the entries in a TAR file.
+ */
 public interface Index {
 
+    /**
+     * Returns the identifiers of every entry in this index.
+     *
+     * @return A set of {@link UUID}.
+     */
     Set<UUID> getUUIDs();
 
+    /**
+     * Find an entry by its identifier.
+     *
+     * @param msb The most significant bits of the identifier.
+     * @param lsb The least significant bits of the identifier.
+     * @return The index of the entry in this index, or {@code -1} if the entry
+     * was not found.
+     */
     int findEntry(long msb, long lsb);
 
+    /**
+     * Return the size of this index in bytes.
+     *
+     * @return The size of this index in bytes.
+     */
     int size();
 
+    /**
+     * Return the number of entries in this index.
+     *
+     * @return The number of entries in this index.
+     */
     int count();
 
+    /**
+     * Return the entry at a specified index.
+     *
+     * @param i The index of the entry.
+     * @return An instance of {@link IndexEntry}.
+     */
     IndexEntry entry(int i);
 
 }

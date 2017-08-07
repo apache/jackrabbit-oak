@@ -24,6 +24,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.CRC32;
 
+/**
+ * Builds an index incrementally in memory, and serializes its contents into a
+ * sequence of bytes.
+ */
 public class IndexWriter {
 
     private static class Entry {
@@ -44,6 +48,15 @@ public class IndexWriter {
 
     }
 
+    /**
+     * Create a new {@link IndexWriter} for the specified block size. The block
+     * size is needed to ensure that the data produced by the returned {@link
+     * IndexWriter} is aligned to a specified boundary, i.e. is a multiple of
+     * the block size.
+     *
+     * @param blockSize The block size. It must be strictly positive.
+     * @return An index of {@link IndexWriter}.
+     */
     public static IndexWriter newIndexWriter(int blockSize) {
         checkArgument(blockSize > 0, "Invalid block size");
         return new IndexWriter(blockSize);
@@ -57,6 +70,19 @@ public class IndexWriter {
         this.blockSize = blockSize;
     }
 
+    /**
+     * Add an entry to this index.
+     *
+     * @param msb            The most significant bits of the entry identifier.
+     * @param lsb            The least significant bits of the entry
+     *                       identifier.
+     * @param offset         The position of the entry in the file.
+     * @param size           The size of the entry.
+     * @param fullGeneration The full generation of the entry.
+     * @param tailGeneration The tail generation of the entry.
+     * @param isTail         Whether the entry is generated as part of a tail
+     *                       commit.
+     */
     public void addEntry(long msb, long lsb, int offset, int size, int fullGeneration, int tailGeneration, boolean isTail) {
         Entry entry = new Entry();
         entry.msb = msb;
@@ -69,6 +95,13 @@ public class IndexWriter {
         entries.add(entry);
     }
 
+    /**
+     * Serializes the content of the index. The returned array of bytes is
+     * always a multiple of the block size specified when this {@link
+     * IndexWriter} was created.
+     *
+     * @return the serialized content of the index.
+     */
     public byte[] write() {
         int dataSize = entries.size() * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE;
         int totalSize = ((dataSize + blockSize - 1) / blockSize) * blockSize;

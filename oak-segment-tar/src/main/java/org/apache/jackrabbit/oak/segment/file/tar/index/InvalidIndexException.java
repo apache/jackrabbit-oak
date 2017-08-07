@@ -17,6 +17,10 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
+/**
+ * Thrown to indicate that invalid or malformed data is encountered while
+ * validating an index.
+ */
 public class InvalidIndexException extends Exception {
 
     InvalidIndexException(String message) {
