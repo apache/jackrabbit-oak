@@ -30,14 +30,11 @@ public class IndexLoader {
         return new IndexLoader(blockSize);
     }
 
-    private final int blockSize;
-
     private final IndexLoaderV1 v1;
 
     private final IndexLoaderV2 v2;
 
     private IndexLoader(int blockSize) {
-        this.blockSize = blockSize;
         this.v1 = new IndexLoaderV1(blockSize);
         this.v2 = new IndexLoaderV2(blockSize);
     }
