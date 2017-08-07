@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment.file.tar.index;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-interface ReaderAtEnd {
+public interface ReaderAtEnd {
 
     ByteBuffer readAtEnd(int whence, int amount) throws IOException;
 
