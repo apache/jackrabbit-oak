@@ -78,10 +78,10 @@ public class IndexWriter {
      *                       identifier.
      * @param offset         The position of the entry in the file.
      * @param size           The size of the entry.
+     * @param generation     The generation of the entry.
      * @param fullGeneration The full generation of the entry.
-     * @param tailGeneration The tail generation of the entry.
-     * @param isTail         Whether the entry is generated as part of a tail
-     *                       commit.
+     * @param isCompacted    Whether the entry is generated as part of a
+     *                       compaction operation.
      */
     public void addEntry(long msb, long lsb, int offset, int size, int generation, int fullGeneration, boolean isCompacted) {
         Entry entry = new Entry();
