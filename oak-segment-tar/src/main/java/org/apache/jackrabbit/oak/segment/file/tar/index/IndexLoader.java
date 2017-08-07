@@ -46,7 +46,7 @@ public class IndexLoader {
         return reader.readAtEnd(Integer.BYTES, Integer.BYTES).getInt();
     }
 
-    private Index loadIndex(ReaderAtEnd reader) throws IOException, InvalidIndexException {
+    public Index loadIndex(ReaderAtEnd reader) throws IOException, InvalidIndexException {
         switch (readMagic(reader)) {
             case IndexLoaderV1.MAGIC:
                 return v1.loadIndex(reader);
@@ -55,21 +55,6 @@ public class IndexLoader {
             default:
                 throw new InvalidIndexException("Unrecognized magic number");
         }
-    }
-
-    public Index loadIndex(RandomAccessFile file) throws IOException, InvalidIndexException {
-        long length = file.length();
-
-        if (length % blockSize != 0 || length < 6 * blockSize || length > Integer.MAX_VALUE) {
-            throw new InvalidIndexException(String.format("Unexpected size %d", length));
-        }
-
-        return loadIndex((whence, size) -> {
-            ByteBuffer buffer = ByteBuffer.allocate(size);
-            file.seek(length - 2 * blockSize - whence);
-            file.readFully(buffer.array());
-            return buffer;
-        });
     }
 
 }

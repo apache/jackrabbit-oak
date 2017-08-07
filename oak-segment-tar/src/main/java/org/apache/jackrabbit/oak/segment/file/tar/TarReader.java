@@ -65,6 +65,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.index.InvalidIndexException;
+import org.apache.jackrabbit.oak.segment.file.tar.index.ReaderAtEnd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -335,11 +336,34 @@ class TarReader implements Closeable {
      * instead.
      */
     private static Index loadAndValidateIndex(RandomAccessFile file, String name) throws IOException {
+        long length = file.length();
+
+        if (length % BLOCK_SIZE != 0) {
+            log.warn("Unable to load index of file {}: Invalid alignment", name);
+            return null;
+        }
+        if (length < 6 * BLOCK_SIZE) {
+            log.warn("Unable to load index of file {}: File too short", name);
+            return null;
+        }
+        if (length > Integer.MAX_VALUE) {
+            log.warn("Unable to load index of file {}: File too long", name);
+            return null;
+        }
+
+        ReaderAtEnd r = (whence, size) -> {
+            ByteBuffer buffer = ByteBuffer.allocate(size);
+            file.seek(length - 2 * BLOCK_SIZE - whence);
+            file.readFully(buffer.array());
+            return buffer;
+        };
+
         try {
-            return indexLoader.loadIndex(file);
+            return indexLoader.loadIndex(r);
         } catch (InvalidIndexException e) {
             log.warn("Unable to load index of file {}: {}", name, e.getMessage());
         }
+
         return null;
     }
 
