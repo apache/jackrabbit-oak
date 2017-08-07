@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newExactReclaimer;
 import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertFalse;
@@ -29,51 +30,81 @@ import org.junit.Test;
 public class ReclaimersTest {
 
     @Test
-    public void testOldReclaimer() throws Exception {
-        Predicate<GCGeneration> p = newOldReclaimer(newGCGeneration(3, 3, false), 2);
+    public void testOldReclaimerCompactedHead() {
+        Predicate<GCGeneration> reclaimer = newOldReclaimer(
+                newGCGeneration(3, 3, true), 2);
 
-        // Segments from the same full and tail generation should not be
-        // removed.
+        // Don't reclaim young segments
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, true)));
 
-        assertFalse(p.apply(newGCGeneration(3, 3, false)));
-        assertFalse(p.apply(newGCGeneration(3, 3, true)));
+        // Reclaim old and uncompacted segments
+        assertTrue(reclaimer.apply(newGCGeneration(1, 3, false)));
+        assertTrue(reclaimer.apply(newGCGeneration(1, 3, false)));
+        assertTrue(reclaimer.apply(newGCGeneration(0, 3, false)));
+        assertTrue(reclaimer.apply(newGCGeneration(0, 3, false)));
 
-        // Recent segments, tail or not-tail ones, can't be removed.
+        // Don't reclaim old compacted segments from the same full generation
+        assertFalse(reclaimer.apply(newGCGeneration(1, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(1, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(0, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(0, 3, true)));
 
-        assertFalse(p.apply(newGCGeneration(3, 2, false)));
-        assertFalse(p.apply(newGCGeneration(3, 2, true)));
-
-        // Old segments from the same full generation can be removed as long
-        // as they are not tail segments.
-
-        assertTrue(p.apply(newGCGeneration(3, 1, false)));
-        assertFalse(p.apply(newGCGeneration(3, 1, true)));
-
-        // A full head state from the same full generation can't be removed.
-
-        assertFalse(p.apply(newGCGeneration(3, 0, false)));
-
-        // Some of these generations can be reclaimed, some may not. Since there
-        // is a new full head state with full generation 3, every tail and
-        // non-tail segment with a tail generation greater than zero can be
-        // removed. The full head state with full generation 2 can't be removed,
-        // otherwise the condition about the number of retained generations
-        // would be violated.
-
-        assertTrue(p.apply(newGCGeneration(2, 2, false)));
-        assertTrue(p.apply(newGCGeneration(2, 2, true)));
-        assertTrue(p.apply(newGCGeneration(2, 1, false)));
-        assertTrue(p.apply(newGCGeneration(2, 1, true)));
-        assertFalse(p.apply(newGCGeneration(2, 0, false)));
-
-        // These generations can be reclaimed because their full generation is
-        // too old when compared to the number of retained generations.
-
-        assertTrue(p.apply(newGCGeneration(1, 2, false)));
-        assertTrue(p.apply(newGCGeneration(1, 2, true)));
-        assertTrue(p.apply(newGCGeneration(1, 1, false)));
-        assertTrue(p.apply(newGCGeneration(1, 1, true)));
-        assertTrue(p.apply(newGCGeneration(1, 0, false)));
+        // Reclaim old compacted segments from prior full generations
+        assertTrue(reclaimer.apply(newGCGeneration(1, 2, true)));
+        assertTrue(reclaimer.apply(newGCGeneration(1, 2, true)));
+        assertTrue(reclaimer.apply(newGCGeneration(0, 2, true)));
+        assertTrue(reclaimer.apply(newGCGeneration(0, 2, true)));
     }
 
+    @Test
+    public void testOldReclaimerUncompactedHead() {
+        Predicate<GCGeneration> reclaimer = newOldReclaimer(
+                newGCGeneration(3, 3, true), 2);
+
+        // Don't reclaim young segments
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, true)));
+
+        // Reclaim old and uncompacted segments
+        assertTrue(reclaimer.apply(newGCGeneration(1, 3, false)));
+        assertTrue(reclaimer.apply(newGCGeneration(1, 3, false)));
+        assertTrue(reclaimer.apply(newGCGeneration(0, 3, false)));
+        assertTrue(reclaimer.apply(newGCGeneration(0, 3, false)));
+
+        // Don't reclaim old compacted segments from the same full generation
+        assertFalse(reclaimer.apply(newGCGeneration(1, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(1, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(0, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(0, 3, true)));
+
+        // Reclaim old compacted segments from prior full generations
+        assertTrue(reclaimer.apply(newGCGeneration(1, 2, true)));
+        assertTrue(reclaimer.apply(newGCGeneration(1, 2, true)));
+        assertTrue(reclaimer.apply(newGCGeneration(0, 2, true)));
+        assertTrue(reclaimer.apply(newGCGeneration(0, 2, true)));
+    }
+
+    @Test
+    public void testExactReclaimer() {
+        Predicate<GCGeneration> reclaimer = newExactReclaimer(
+                newGCGeneration(3, 3, false));
+
+        assertTrue(reclaimer.apply(newGCGeneration(3, 3, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(3, 3, true)));
+        assertFalse(reclaimer.apply(newGCGeneration(3, 2, false)));
+        assertFalse(reclaimer.apply(newGCGeneration(2, 3, false)));
+    }
 }

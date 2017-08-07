@@ -28,44 +28,31 @@ class Reclaimers {
         // Prevent instantiation.
     }
 
-    static Predicate<GCGeneration> newOldReclaimer(@Nonnull final GCGeneration reference, int retainedGenerations) {
+    static Predicate<GCGeneration> newOldReclaimer(
+            @Nonnull final GCGeneration referenceGeneration,
+            int retainedGenerations) {
         return new Predicate<GCGeneration>() {
 
             @Override
             public boolean apply(GCGeneration generation) {
-                int deltaFull = reference.compareFull(generation);
+                return isOld(generation) && !sameCompactedTail(generation);
+            }
 
-                if (deltaFull == 0) {
-                    if (generation.getTail() == 0) {
-                        return false;
-                    }
+            private boolean isOld(GCGeneration generation) {
+                return referenceGeneration.compareWith(generation) >= retainedGenerations;
+            }
 
-                    int deltaTail = reference.compareTail(generation);
-
-                    if (deltaTail == 0) {
-                        return false;
-                    }
-
-                    if (deltaTail >= retainedGenerations) {
-                        return !generation.isTail();
-                    }
-
-                    return false;
-                }
-
-                if (deltaFull >= retainedGenerations) {
-                    return true;
-                }
-
-                return generation.getTail() != 0;
+            private boolean sameCompactedTail(GCGeneration generation) {
+                return generation.isCompacted()
+                        && generation.getFullGeneration() == referenceGeneration.getFullGeneration();
             }
 
             @Override
             public String toString() {
                 return String.format(
                         "(generation older than %d.%d, with %d retained generations)",
-                        reference.getFull(),
-                        reference.getTail(),
+                        referenceGeneration.getGeneration(),
+                        referenceGeneration.getFullGeneration(),
                         retainedGenerations
                 );
             }
@@ -73,15 +60,15 @@ class Reclaimers {
         };
     }
 
-    static Predicate<GCGeneration> newExactReclaimer(@Nonnull final GCGeneration failedGeneration) {
+    static Predicate<GCGeneration> newExactReclaimer(@Nonnull final GCGeneration referenceGeneration) {
         return new Predicate<GCGeneration>() {
             @Override
             public boolean apply(GCGeneration generation) {
-                return generation.equals(failedGeneration);
+                return generation.equals(referenceGeneration);
             }
             @Override
             public String toString() {
-                return "(generation==" + failedGeneration + ")";
+                return "(generation==" + referenceGeneration + ")";
             }
         };
     }
