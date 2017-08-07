@@ -102,7 +102,6 @@ public class FileStoreBuilder {
         public void compactionSucceeded(@Nonnull GCGeneration newGeneration) {
             compacted();
             if (cacheManager != null) {
-                // FIXME OAK-6519: Properly handle tail compactions in deduplication caches
                 cacheManager.evictOldGeneration(newGeneration.getGeneration());
             }
         }
@@ -110,7 +109,6 @@ public class FileStoreBuilder {
         @Override
         public void compactionFailed(@Nonnull GCGeneration failedGeneration) {
             if (cacheManager != null) {
-                // FIXME OAK-6519: Properly handle tail compactions in deduplication caches
                 cacheManager.evictGeneration(failedGeneration.getGeneration());
             }
         }

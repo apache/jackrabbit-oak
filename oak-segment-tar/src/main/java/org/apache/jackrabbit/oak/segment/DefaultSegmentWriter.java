@@ -272,7 +272,6 @@ public class DefaultSegmentWriter implements SegmentWriter {
         SegmentWriteOperation with(@Nonnull SegmentBufferWriter writer) {
             checkState(this.writer == null);
             this.writer = writer;
-            // FIXME OAK-6519: Properly handle tail compactions in deduplication caches
             int generation = writer.getGCGeneration().getGeneration();
             this.stringCache = cacheManager.getStringCache(generation);
             this.templateCache = cacheManager.getTemplateCache(generation);
