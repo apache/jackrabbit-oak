@@ -16,7 +16,7 @@
   -->
 # Oak Run NodeStore Connection
 
-`@since Oak 1.7.1`
+`@since Oak 1.7.6`
 
 This page provide details around various options supported by some of the oak-run commands to connect
 to NodeStore repository. By default most of these commands (unless documented) would connect in read only
@@ -40,6 +40,9 @@ To connect to SegmentNodeStore just specify the path to folder used by SegmentNo
 repository content
 
     java -jar oak-run <command> /path/to/segmentstore
+    
+For setups prior to Oak 1.6 (which used older segment support) you would need to pass `--segment` option
+otherwise connection would fail
     
 ### DocumentNodeStore - Mongo
 
