@@ -53,6 +53,7 @@ import javax.sql.DataSource;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
 
 import org.apache.commons.io.FilenameUtils;
@@ -1071,11 +1072,12 @@ public class DocumentNodeStoreService {
         };
     }
 
-    static final class RevisionGCJob implements Runnable {
+    static final class RevisionGCJob implements Runnable, Supplier<String> {
 
         private final DocumentNodeStore nodeStore;
         private final long versionGcMaxAgeInSecs;
         private final Logger log;
+        private volatile Object lastResult = "";
 
         RevisionGCJob(DocumentNodeStore ns,
                       long versionGcMaxAgeInSecs,
@@ -1089,10 +1091,26 @@ public class DocumentNodeStoreService {
         public void run() {
             VersionGarbageCollector gc = nodeStore.getVersionGarbageCollector();
             try {
-                gc.gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
-            } catch (IOException e) {
+                lastResult = gc.gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS).toString();
+            } catch (Exception e) {
+                lastResult = e;
                 log.warn("Error occurred while executing the Version Garbage Collector", e);
             }
+        }
+
+        /**
+         * Returns the result of the last revision GC run. This method throws
+         * an {@link UncheckedExecutionException} if the last run failed with an
+         * exception.
+         *
+         * @return result of the last revision GC run.
+         */
+        @Override
+        public String get() throws UncheckedExecutionException {
+            if (lastResult instanceof Exception) {
+                throw new UncheckedExecutionException((Exception) lastResult);
+            }
+            return String.valueOf(lastResult);
         }
     }
 }

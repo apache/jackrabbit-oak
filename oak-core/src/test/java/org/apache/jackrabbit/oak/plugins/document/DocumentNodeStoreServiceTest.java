@@ -20,6 +20,7 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.mongodb.DB;
 
@@ -170,6 +171,22 @@ public class DocumentNodeStoreServiceTest {
             jobScheduled |= r.getClass().equals(DocumentNodeStoreService.RevisionGCJob.class);
         }
         assertTrue(jobScheduled);
+    }
+
+    @Test
+    public void continuousRGCJobAsSupplier() throws Exception {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put(DocumentNodeStoreService.PROP_VER_GC_CONTINUOUS, true);
+        MockOsgi.activate(service, context.bundleContext(), config);
+        Runnable rgcJob = null;
+        for (Runnable r : context.getServices(Runnable.class, null)) {
+            if (r.getClass().equals(DocumentNodeStoreService.RevisionGCJob.class)) {
+                rgcJob = r;
+            }
+        }
+        assertNotNull(rgcJob);
+        assertTrue(rgcJob instanceof Supplier);
+        assertNotNull(((Supplier) rgcJob).get());
     }
 
     private static MongoDocumentStore getMongoDocumentStore(DocumentNodeStore s) {
