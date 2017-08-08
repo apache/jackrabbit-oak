@@ -696,8 +696,14 @@ public class FileStore extends AbstractFileStore {
             if (RecordId.NULL.equals(rootId)) {
                 return null;
             }
-            // FIXME OAK-6520: Improve tail compactions resilience when base state cannot be determined
-            return segmentReader.readNode(rootId);
+            try {
+                SegmentNodeState node = segmentReader.readNode(rootId);
+                node.getPropertyCount();  // Resilience: fail early with a SNFE if the segment is not there
+                return node;
+            } catch (SegmentNotFoundException snfe) {
+                gcListener.error("TarMK GC #" + GC_COUNT + ": Base state " + rootId + " is not accessible", snfe);
+                return null;
+            }
         }
 
         synchronized CompactionResult compactFull() {
