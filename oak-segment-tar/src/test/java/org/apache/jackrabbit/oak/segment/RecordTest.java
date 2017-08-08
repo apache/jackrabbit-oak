@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
+import static org.apache.jackrabbit.oak.segment.ListRecord.MAX_ELEMENTS;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -60,7 +61,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -145,12 +145,18 @@ public class RecordTest {
     }
 
     @Test
-    @Ignore("OAK-6372")  // FIXME OAK-6372: ListRecord cannot handle more than 16581375 entries
     public void testLargeListRecord() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        ListRecord one = writeList(LEVEL_SIZE * LEVEL_SIZE * LEVEL_SIZE + 1, blockId);
+        ListRecord one = writeList(MAX_ELEMENTS, blockId);
         one.getEntry(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testTooLargeListRecord() throws IOException {
+        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
+
+        ListRecord one = writeList(MAX_ELEMENTS + 1, blockId);
     }
 
     private ListRecord writeList(int size, RecordId id) throws IOException {
