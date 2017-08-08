@@ -210,7 +210,7 @@ checkpoint creation, indexing and import
 Index tooling support updating and adding new index definitions to existing setups. This can be done by passing 
 in path of a json file which contains index definitions
 
-    java -jar oak-run*.jar index index --reindex --index-paths=/oak:index/newAssetIndex \
+    java -jar oak-run*.jar index --reindex --index-paths=/oak:index/newAssetIndex \
     --index-definitions-file=index-definitions.json \
     --fds-path=/path/to/datastore /path/to/segmentstore  
    
@@ -253,6 +253,8 @@ Some points to note about this json file
 * In case of new index it must be ensured that parent path structure must already exist in repository. 
   So if a new index is being created at `/content/en/oak:index/contentIndex` then path upto  `/content/en/oak:index`
   should already exist in repository
+* If this option is used with online indexing then do ensure that oak-run version matches with the Oak version 
+  used by target repository
 
 You can also use the json file generated from [Oakutils](http://oakutils.appspot.com/generate/index). It needs to be 
 modified to confirm to above structure i.e. enclose the whole definition under the intended index path key.
@@ -261,7 +263,7 @@ In general the index definitions does not need any special encoding of values as
 only String, Long and Double types mostly. However if the index refers to binary config like Tika config then
 the binary data would need to encoded. Refer to next section for more details.
     
-This option is supported in both online and out-of-band indexing.
+This option is supported in both online and out-of-band indexing. 
 
 For more details refer to [OAK-6471][OAK-6471]
     
