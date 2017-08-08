@@ -1075,7 +1075,7 @@ index content e.g. size of index, number of documents present in index etc
 
 ![Lucene Index MBean](lucene-index-mbean.png)
 
-### <a name=active-blob-collection></a>Active Index Files Collection
+### <a name="active-blob-collection"></a>Active Index Files Collection
 
 `@since Oak 1.7.1`
 
