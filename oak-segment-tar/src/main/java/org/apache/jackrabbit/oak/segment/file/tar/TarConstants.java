@@ -45,11 +45,6 @@ class TarConstants {
     static final int GRAPH_MAGIC = ('\n' << 24) + ('0' << 16) + ('G' << 8) + '\n';
 
     /**
-     * Magic sequence at the end of the binary references block.
-     */
-    static final int BINARY_REFERENCES_MAGIC = ('\n' << 24) + ('0' << 16) + ('B' << 8) + '\n';
-
-    /**
      * The tar file block size.
      */
     static final int BLOCK_SIZE = 512;

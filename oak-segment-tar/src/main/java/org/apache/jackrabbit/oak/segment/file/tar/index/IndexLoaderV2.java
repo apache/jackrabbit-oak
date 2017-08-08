@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
+import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
+
 class IndexLoaderV2 {
 
     static final int MAGIC = ('\n' << 24) + ('1' << 16) + ('K' << 8) + '\n';

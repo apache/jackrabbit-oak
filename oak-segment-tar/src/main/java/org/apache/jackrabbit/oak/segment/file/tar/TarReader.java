@@ -29,7 +29,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BINARY_REFERENCES_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIndexLoader;
@@ -56,16 +55,17 @@ import java.util.zip.CRC32;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
 import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.index.InvalidIndexException;
-import org.apache.jackrabbit.oak.segment.file.tar.index.ReaderAtEnd;
+import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -599,23 +599,18 @@ class TarReader implements Closeable {
      * @param skipGeneration An instance of {@link Predicate}.
      */
     void collectBlobReferences(@Nonnull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
-        Map<GCGeneration, Map<UUID, Set<String>>> generations = getBinaryReferences();
+        BinaryReferencesIndex references = getBinaryReferences();
 
-        if (generations == null) {
+        if (references == null) {
             return;
         }
 
-        for (Entry<GCGeneration, Map<UUID, Set<String>>> entry : generations.entrySet()) {
-            if (skipGeneration.apply(entry.getKey())) {
-                continue;
+        references.forEach((generation, full, compacted, segment, reference) -> {
+            if (skipGeneration.apply(newGCGeneration(generation, full, compacted))) {
+                return;
             }
-
-            for (Set<String> references : entry.getValue().values()) {
-                for (String reference : references) {
-                    collector.accept(reference);
-                }
-            }
-        }
+            collector.accept(reference);
+        });
     }
 
     /**
@@ -801,18 +796,15 @@ class TarReader implements Closeable {
 
         // Reconstruct the binary reference index for non-cleaned segments.
 
-        Map<GCGeneration, Map<UUID, Set<String>>> references = getBinaryReferences();
+        BinaryReferencesIndex references = getBinaryReferences();
 
-        for (Entry<GCGeneration, Map<UUID, Set<String>>> ge : references.entrySet()) {
-            for (Entry<UUID, Set<String>> se : ge.getValue().entrySet()) {
-                if (cleaned.contains(se.getKey())) {
-                    continue;
+        if (references != null) {
+            references.forEach((gen, full, compacted, id, reference) -> {
+                if (cleaned.contains(id)) {
+                    return;
                 }
-                for (String reference : se.getValue()) {
-                    writer.addBinaryReference(ge.getKey(), se.getKey(), reference);
-                }
-            }
-
+                writer.addBinaryReference(newGCGeneration(gen, full, compacted), id, reference);
+            });
         }
 
         writer.close();
@@ -888,97 +880,19 @@ class TarReader implements Closeable {
      *
      * @return An instance of {@link Map}.
      */
-    Map<GCGeneration, Map<UUID, Set<String>>> getBinaryReferences() {
-        ByteBuffer buffer;
-
+    BinaryReferencesIndex getBinaryReferences() {
+        BinaryReferencesIndex index = null;
         try {
-            buffer = loadBinaryReferences();
-        } catch (IOException e) {
+            index = loadBinaryReferences();
+        } catch (InvalidBinaryReferencesIndexException | IOException e) {
             log.warn("Exception while loading binary reference", e);
-            return null;
         }
-
-        if (buffer == null) {
-            return null;
-        }
-
-        return parseBinaryReferences(buffer);
+        return index;
     }
 
-    private ByteBuffer loadBinaryReferences() throws IOException {
+    private BinaryReferencesIndex loadBinaryReferences() throws IOException, InvalidBinaryReferencesIndexException {
         int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
-
-        ByteBuffer meta = access.read(end - 16, 16);
-
-        int crc32 = meta.getInt();
-        int count = meta.getInt();
-        int size = meta.getInt();
-        int magic = meta.getInt();
-
-        if (magic != BINARY_REFERENCES_MAGIC) {
-            log.warn("Invalid binary references magic number");
-            return null;
-        }
-
-        if (count < 0 || size < count * 22 + 16) {
-            log.warn("Invalid binary references size or count");
-            return null;
-        }
-
-        ByteBuffer buffer = access.read(end - size, size);
-
-        byte[] data = new byte[size - 16];
-        buffer.mark();
-        buffer.get(data);
-        buffer.reset();
-
-        CRC32 checksum = new CRC32();
-        checksum.update(data);
-
-        if ((int) (checksum.getValue()) != crc32) {
-            log.warn("Invalid binary references checksum");
-            return null;
-        }
-
-        return buffer;
-    }
-
-    private static Map<GCGeneration, Map<UUID, Set<String>>> parseBinaryReferences(ByteBuffer buffer) {
-        int nGenerations = buffer.getInt(buffer.limit() - 12);
-
-        Map<GCGeneration, Map<UUID, Set<String>>> binaryReferences = newHashMapWithExpectedSize(nGenerations);
-
-        for (int i = 0; i < nGenerations; i++) {
-            int generation = buffer.getInt();
-            int fullGeneration = buffer.getInt();
-            boolean isCompacted = buffer.get() != 0;
-            int segmentCount = buffer.getInt();
-
-            Map<UUID, Set<String>> segments = newHashMapWithExpectedSize(segmentCount);
-
-            for (int j = 0; j < segmentCount; j++) {
-                long msb = buffer.getLong();
-                long lsb = buffer.getLong();
-                int referenceCount = buffer.getInt();
-
-                Set<String> references = Sets.newHashSetWithExpectedSize(referenceCount);
-
-                for (int k = 0; k < referenceCount; k++) {
-                    int length = buffer.getInt();
-
-                    byte[] data = new byte[length];
-                    buffer.get(data);
-
-                    references.add(new String(data, Charsets.UTF_8));
-                }
-
-                segments.put(new UUID(msb, lsb), references);
-            }
-
-            binaryReferences.put(newGCGeneration(generation, fullGeneration, isCompacted), segments);
-        }
-
-        return binaryReferences;
+        return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, size) -> access.read(end - whence, size));
     }
 
     /**

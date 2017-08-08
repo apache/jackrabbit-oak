@@ -21,6 +21,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
+
 /**
  * Load and validate the index of a TAR file.
  */
