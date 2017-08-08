@@ -24,8 +24,6 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.base.Preconditions;
-
 class IndexV2 implements Index {
 
     static final int FOOTER_SIZE = 16;

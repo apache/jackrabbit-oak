@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment.compaction;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.segment.file.GCType;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 
 /**

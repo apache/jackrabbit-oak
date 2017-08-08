@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
-import org.apache.commons.io.HexDump;
-
 class IndexLoaderV1 {
 
     static final int MAGIC = ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';

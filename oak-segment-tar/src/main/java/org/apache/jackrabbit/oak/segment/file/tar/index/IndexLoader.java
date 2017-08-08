@@ -30,7 +30,7 @@ public class IndexLoader {
      * Create a new {@link IndexLoader} for the specified block size. The block
      * size is used to validate different data items in the index.
      *
-     * @param blockSize The block size. It msut be strictly positive.
+     * @param blockSize The block size. It must be strictly positive.
      * @return An instance of {@link IndexLoader}.
      */
     public static IndexLoader newIndexLoader(int blockSize) {
