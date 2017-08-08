@@ -31,15 +31,20 @@ import static org.junit.Assert.assertNull;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -75,7 +80,7 @@ public class OnlineCompactorTest {
 
     @Test
     public void testCompact() throws Exception {
-        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false));
+        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), null);
         addTestContent(nodeStore);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
@@ -96,7 +101,7 @@ public class OnlineCompactorTest {
 
     @Test
     public void testExceedUpdateLimit() throws Exception {
-        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false));
+        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), null);
         addNodes(nodeStore, OnlineCompactor.UPDATE_LIMIT * 2 + 1);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
@@ -109,7 +114,7 @@ public class OnlineCompactorTest {
 
     @Test
     public void testCancel() throws IOException, CommitFailedException {
-        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(true));
+        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(true), null);
         addTestContent(nodeStore);
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setChildNode("cancel").setProperty("cancel", "cancel");
@@ -118,13 +123,22 @@ public class OnlineCompactorTest {
         assertNull(compactor.compact(nodeStore.getRoot()));
     }
 
+    @Test(expected = IOException.class)
+    public void testIOException() throws IOException, CommitFailedException {
+        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), "IOException");
+        addTestContent(nodeStore);
+        compactor.compact(nodeStore.getRoot());
+    }
+
     @Nonnull
-    private static OnlineCompactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel) {
+    private static OnlineCompactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel, String failOnName) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(newGCGeneration(1, 1, true))
                 .build(fileStore);
-        return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, () -> {});
-    }
+        if (failOnName != null) {
+            writer = new FailingSegmentWriter(writer, failOnName);
+        }
+        return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, () -> {}); }
 
     private static void addNodes(SegmentNodeStore nodeStore, int count)
     throws CommitFailedException {
@@ -138,6 +152,7 @@ public class OnlineCompactorTest {
     private static void addTestContent(NodeStore nodeStore) throws CommitFailedException, IOException {
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setChildNode("a").setChildNode("aa").setProperty("p", 42);
+        builder.getChildNode("a").setChildNode("error").setChildNode("IOException");
         builder.setChildNode("b").setProperty("bin", createBlob(nodeStore, 42));
         builder.setChildNode("c").setProperty(binaryPropertyFromBlob("bins", createBlobs(nodeStore, 42, 43, 44)));
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -165,4 +180,77 @@ public class OnlineCompactorTest {
         return blobs;
     }
 
+    private static class FailingSegmentWriter implements SegmentWriter {
+        @Nonnull
+        private final SegmentWriter delegate;
+
+        @Nonnull
+        private final String failOnName;
+
+        public FailingSegmentWriter(@Nonnull SegmentWriter delegate, @Nonnull String failOnName) {
+            this.delegate = delegate;
+            this.failOnName = failOnName;
+        }
+
+        @Override
+        public void flush() throws IOException {
+            delegate.flush();
+        }
+
+        @Nonnull
+        @Override
+        public RecordId writeMap(
+                @Nullable MapRecord base, @Nonnull Map<String, RecordId> changes)
+        throws IOException {
+            return delegate.writeMap(base, changes);
+        }
+
+        @Nonnull
+        @Override
+        public RecordId writeList(@Nonnull List<RecordId> list) throws IOException {
+            return delegate.writeList(list);
+        }
+
+        @Nonnull
+        @Override
+        public RecordId writeString(@Nonnull String string) throws IOException {
+            return delegate.writeString(string);
+        }
+
+        @Nonnull
+        @Override
+        public RecordId writeBlob(@Nonnull Blob blob) throws IOException {
+            return delegate.writeBlob(blob);
+        }
+
+        @Nonnull
+        @Override
+        public RecordId writeBlock(@Nonnull byte[] bytes, int offset, int length)
+        throws IOException {
+            return delegate.writeBlock(bytes, offset, length);
+        }
+
+        @Nonnull
+        @Override
+        public RecordId writeStream(@Nonnull InputStream stream) throws IOException {
+            return delegate.writeStream(stream);
+        }
+
+        @Nonnull
+        @Override
+        public RecordId writeProperty(@Nonnull PropertyState state) throws IOException {
+            return delegate.writeProperty(state);
+        }
+
+        @Nonnull
+        @Override
+        public RecordId writeNode(@Nonnull NodeState state, @Nullable ByteBuffer stableIdBytes)
+        throws IOException {
+            if (state.hasChildNode(failOnName)) {
+                throw new IOException("Encountered node with name " + failOnName);
+            }
+
+            return delegate.writeNode(state, stableIdBytes);
+        }
+    }
 }
