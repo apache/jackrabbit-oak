@@ -25,7 +25,7 @@ import java.util.Map;
 
 import javax.annotation.CheckForNull;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;

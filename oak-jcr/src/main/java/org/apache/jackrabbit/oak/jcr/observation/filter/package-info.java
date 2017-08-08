@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-@Version("1.0.0")
+@Version("1.0.1")
 package org.apache.jackrabbit.oak.jcr.observation.filter;
 
-import aQute.bnd.annotation.Version;
+import org.osgi.annotation.versioning.Version;

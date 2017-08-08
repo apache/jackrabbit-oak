@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 @Version("1.3.1")
-@Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.plugins.index.lucene.score;
 
-import aQute.bnd.annotation.Export;
-import aQute.bnd.annotation.Version;
+import org.osgi.annotation.versioning.Version;

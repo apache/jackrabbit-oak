@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.api.jmx;
 
 import java.io.IOException;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 @ProviderType

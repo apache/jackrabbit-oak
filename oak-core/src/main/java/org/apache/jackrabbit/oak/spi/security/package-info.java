@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 @Version("2.2.0")
-@Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.spi.security;
 
-import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
+import org.osgi.annotation.versioning.Version;

@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * The {@code Authentication} interface defines methods to validate

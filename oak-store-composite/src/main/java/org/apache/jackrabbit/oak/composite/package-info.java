@@ -58,4 +58,4 @@
 @Version("0.2.0")
 package org.apache.jackrabbit.oak.composite;
 
-import aQute.bnd.annotation.Version;
+import org.osgi.annotation.versioning.Version;

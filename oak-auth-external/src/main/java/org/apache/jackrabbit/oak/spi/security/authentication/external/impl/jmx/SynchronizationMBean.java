@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
 import javax.annotation.Nonnull;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Provides utilities to manage synchronized external identities.

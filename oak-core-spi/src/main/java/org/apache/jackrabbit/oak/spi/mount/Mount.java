@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.mount;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Refers to a set of paths from a <tt>ContentRepository</tt> that are possibly 

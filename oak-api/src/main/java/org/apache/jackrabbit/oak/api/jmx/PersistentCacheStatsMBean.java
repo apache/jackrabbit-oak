@@ -16,7 +16,7 @@ package org.apache.jackrabbit.oak.api.jmx;
  * limitations under the License.
  */
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 import javax.management.openmbean.CompositeData;
 

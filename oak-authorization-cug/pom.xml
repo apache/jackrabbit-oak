@@ -114,8 +114,8 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>biz.aQute.bnd</groupId>
-      <artifactId>biz.aQute.bndlib</artifactId>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.annotation</artifactId>
       <scope>provided</scope>
     </dependency>
 
