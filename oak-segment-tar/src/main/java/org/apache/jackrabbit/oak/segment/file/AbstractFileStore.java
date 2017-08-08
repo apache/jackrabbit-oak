@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -100,8 +98,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     private static boolean notEmptyDirectory(File path) {
         Collection<File> entries = FileUtils.listFiles(path, new String[] {"tar"}, false);
-        checkArgument(entries != null, "{} is not a directory, or an I/O error occurred", path);
-        return entries.size() > 0;
+        return !entries.isEmpty();
     }
 
     @Nonnull
