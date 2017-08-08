@@ -47,7 +47,7 @@ public class IndexLoader {
         this.v2 = new IndexLoaderV2(blockSize);
     }
 
-    private int readMagic(ReaderAtEnd reader) throws IOException {
+    private static int readMagic(ReaderAtEnd reader) throws IOException {
         return reader.readAtEnd(Integer.BYTES, Integer.BYTES).getInt();
     }
 

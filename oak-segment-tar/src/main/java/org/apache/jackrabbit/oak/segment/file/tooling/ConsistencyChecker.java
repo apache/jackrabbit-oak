@@ -356,8 +356,8 @@ public class ConsistencyChecker implements Closeable {
     }
     
     static class NodeWrapper {
-        NodeState node;
-        String path;
+        final NodeState node;
+        final String path;
         
         NodeWrapper(NodeState node, String path) {
             this.node = node;

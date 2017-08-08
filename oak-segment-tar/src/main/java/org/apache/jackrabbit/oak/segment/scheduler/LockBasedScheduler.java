@@ -147,7 +147,7 @@ public class LockBasedScheduler implements Scheduler {
 
     private final SegmentNodeStoreStats stats;
     
-    private Histogram commitTimeHistogram = new Histogram(new SlidingWindowReservoir(1000));
+    private final Histogram commitTimeHistogram = new Histogram(new SlidingWindowReservoir(1000));
     
 
     public LockBasedScheduler(LockBasedSchedulerBuilder builder) {
