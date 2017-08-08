@@ -21,14 +21,15 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,7 @@ import org.junit.rules.TemporaryFolder;
 public class TarFileTest {
 
     private static GCGeneration generation(int full) {
-        return GCGeneration.newGCGeneration(full, 0, false);
+        return newGCGeneration(full, 0, false);
     }
 
     private File file;
@@ -84,12 +85,12 @@ public class TarFileTest {
         byte[] buffer = data.getBytes(UTF_8);
 
         try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
-            writer.writeEntry(msb, lsb, buffer, 0, buffer.length, GCGeneration.newGCGeneration(1, 2, false));
+            writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, false));
         }
 
         try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
             TarEntry[] entries = reader.getEntries();
-            assertEquals(GCGeneration.newGCGeneration(1, 2, false), entries[0].generation());
+            assertEquals(newGCGeneration(1, 2, false), entries[0].generation());
         }
     }
 
@@ -102,12 +103,12 @@ public class TarFileTest {
         byte[] buffer = data.getBytes(UTF_8);
 
         try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
-            writer.writeEntry(msb, lsb, buffer, 0, buffer.length, GCGeneration.newGCGeneration(1, 2, true));
+            writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, true));
         }
 
         try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
             TarEntry[] entries = reader.getEntries();
-            assertEquals(GCGeneration.newGCGeneration(1, 2, true), entries[0].generation());
+            assertEquals(newGCGeneration(1, 2, true), entries[0].generation());
         }
     }
 
@@ -154,7 +155,16 @@ public class TarFileTest {
         expected.put(generation(3), three);
 
         try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
-            assertEquals(expected, reader.getBinaryReferences());
+            Map<GCGeneration, Map<UUID, Set<String>>> actual = new HashMap<>();
+
+            reader.getBinaryReferences().forEach((generation, full, compacted, id, reference) -> {
+                actual
+                    .computeIfAbsent(newGCGeneration(generation, full, compacted), x -> new HashMap<>())
+                    .computeIfAbsent(id, x -> new HashSet<>())
+                    .add(reference);
+            });
+
+            assertEquals(expected, actual);
         }
     }
 
@@ -189,7 +199,15 @@ public class TarFileTest {
                 references.put(generation(1), one);
                 references.put(generation(2), two);
 
-                assertEquals(references, swept.getBinaryReferences());
+                Map<GCGeneration, Map<UUID, Set<String>>> actual = new HashMap<>();
+                swept.getBinaryReferences().forEach((generation, full, compacted, uuid, reference) -> {
+                    actual
+                        .computeIfAbsent(newGCGeneration(generation, full, compacted), x -> new HashMap<>())
+                        .computeIfAbsent(uuid, x -> new HashSet<>())
+                        .add(reference);
+                });
+
+                assertEquals(references, actual);
             }
         }
     }
@@ -198,14 +216,18 @@ public class TarFileTest {
     public void binaryReferencesIndexShouldContainCompleteGCGeneration() throws Exception {
         try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
             writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, generation(0));
-            writer.addBinaryReference(GCGeneration.newGCGeneration(1, 2, false), new UUID(1, 2), "r1");
-            writer.addBinaryReference(GCGeneration.newGCGeneration(3, 4, true), new UUID(3, 4), "r2");
+            writer.addBinaryReference(newGCGeneration(1, 2, false), new UUID(1, 2), "r1");
+            writer.addBinaryReference(newGCGeneration(3, 4, true), new UUID(3, 4), "r2");
         }
         try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
             Set<GCGeneration> expected = new HashSet<>();
-            expected.add(GCGeneration.newGCGeneration(1, 2, false));
-            expected.add(GCGeneration.newGCGeneration(3, 4, true));
-            assertEquals(expected, reader.getBinaryReferences().keySet());
+            expected.add(newGCGeneration(1, 2, false));
+            expected.add(newGCGeneration(3, 4, true));
+            Set<GCGeneration> actual = new HashSet<>();
+            reader.getBinaryReferences().forEach((generation, full, compacted, segment, reference) -> {
+                actual.add(newGCGeneration(generation, full, compacted));
+            });
+            assertEquals(expected, actual);
         }
     }
 

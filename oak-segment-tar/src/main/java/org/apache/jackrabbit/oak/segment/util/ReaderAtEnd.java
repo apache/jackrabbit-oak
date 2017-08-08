@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file.tar.index;
+package org.apache.jackrabbit.oak.segment.util;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
