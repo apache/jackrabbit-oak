@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.api.jmx;
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * MBean for backing up and restoring a {@code NodeStore}.

@@ -514,14 +514,14 @@
         <version>4.2.0</version>
       </dependency>
       <dependency>
-        <groupId>biz.aQute.bnd</groupId>
-        <artifactId>biz.aQute.bndlib</artifactId>
-        <version>3.3.0</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr.annotations</artifactId>
         <version>1.9.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.annotation</artifactId>
+        <version>6.0.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.findbugs</groupId>

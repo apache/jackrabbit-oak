@@ -17,4 +17,4 @@
 @Version("2.0.0")
 package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
-import aQute.bnd.annotation.Version;
+import org.osgi.annotation.versioning.Version;

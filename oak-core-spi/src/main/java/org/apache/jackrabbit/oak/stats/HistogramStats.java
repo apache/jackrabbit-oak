@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.stats;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * /**

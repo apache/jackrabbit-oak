@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.management.openmbean.TabularData;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 @SuppressWarnings("UnusedDeclaration")
 @ProviderType

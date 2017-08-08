@@ -16,9 +16,7 @@
  */
 
 @Version("4.7.0")
-@Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.api.jmx;
 
-import aQute.bnd.annotation.Export;
-import aQute.bnd.annotation.Version;
+import org.osgi.annotation.versioning.Version;
 

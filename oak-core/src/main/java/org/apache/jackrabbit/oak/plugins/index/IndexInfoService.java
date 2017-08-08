@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import javax.annotation.CheckForNull;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface IndexInfoService {

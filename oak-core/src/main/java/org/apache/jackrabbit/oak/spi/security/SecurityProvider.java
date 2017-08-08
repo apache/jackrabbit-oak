@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.security;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Main entry point for security related plugins to an Oak repository. The
  * interface allow to access the available {@code SecurityConfiguration}s
@@ -26,6 +28,7 @@ import javax.annotation.Nullable;
  * to the configuration parameters that apply to the configurations with the
  * specified {@link SecurityConfiguration#getName() name}.
  */
+@ProviderType
 public interface SecurityProvider {
 
     /**

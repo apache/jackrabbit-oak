@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 @Version("2.3.0")
-@Export
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
+import org.osgi.annotation.versioning.Version;

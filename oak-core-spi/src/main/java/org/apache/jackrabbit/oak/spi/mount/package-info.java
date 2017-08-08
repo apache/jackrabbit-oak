@@ -19,4 +19,4 @@
 @Version("3.0.0")
 package org.apache.jackrabbit.oak.spi.mount;
 
-import aQute.bnd.annotation.Version;
+import org.osgi.annotation.versioning.Version;
