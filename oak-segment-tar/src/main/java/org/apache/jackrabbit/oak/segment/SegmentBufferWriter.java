@@ -303,7 +303,9 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * SEGMENT_REFERENCE_SIZE + recordNumberCount * RECORD_SIZE + length, 16);
 
             if (totalLength > buffer.length) {
-                throw new IllegalStateException("too much data for a segment");
+                throw new IllegalStateException(String.format(
+                        "Too much data for a segment %s (referencedSegmentIdCount=%d, recordNumberCount=%d, length=%d, totalLength=%d)",
+                        segment.getSegmentId(), referencedSegmentIdCount, recordNumberCount, length, totalLength));
             }
 
             statistics.size = length = totalLength;
@@ -404,6 +406,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         }
 
         if (segmentSize > buffer.length) {
+            LOG.debug("Flushing full segment {} (headerSize={}, recordSize={}, length={}, segmentSize={})",
+                    segment.getSegmentId(), headerSize, recordSize, length, segmentSize);
             flush(store);
         }
 
