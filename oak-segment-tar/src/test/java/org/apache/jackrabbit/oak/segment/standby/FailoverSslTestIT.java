@@ -58,7 +58,7 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, true);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, 1 * MB, true);
                 StandbyClientSync clientSync = newStandbyClientSync(storeC, serverPort.getPort(), true);
         ) {
             assertTrue(synchronizeAndCompareHead(serverSync, clientSync));
@@ -70,7 +70,7 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, true);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, 1 * MB, true);
                 StandbyClientSync clientSync = newStandbyClientSync(storeC, serverPort.getPort());
         ) {
             assertFalse(synchronizeAndCompareHead(serverSync, clientSync));
@@ -82,7 +82,7 @@ public class FailoverSslTestIT extends TestBase {
         FileStore storeS = serverFileStore.fileStore();
         FileStore storeC = clientFileStore.fileStore();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, 1 * MB);
                 StandbyClientSync clientSync = newStandbyClientSync(storeC, serverPort.getPort(), true);
         ) {
             assertFalse(synchronizeAndCompareHead(serverSync, clientSync));

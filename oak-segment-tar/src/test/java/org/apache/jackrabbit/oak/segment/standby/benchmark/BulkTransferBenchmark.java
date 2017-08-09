@@ -91,7 +91,7 @@ public class BulkTransferBenchmark extends BenchmarkBase {
         store.merge(rootbuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         storeS.flush();
 
-        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, useSSL);
+        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, 1 * MB, useSSL);
         serverSync.start();
 
         System.setProperty(StandbyClientSync.CLIENT_ID_PROPERTY_NAME, "Bar");

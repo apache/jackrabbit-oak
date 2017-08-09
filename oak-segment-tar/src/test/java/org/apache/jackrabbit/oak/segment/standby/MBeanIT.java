@@ -61,7 +61,7 @@ public class MBeanIT extends TestBase {
     public void testServerEmptyConfig() throws Exception {
         MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
-        try (StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), serverFileStore.fileStore())) {
+        try (StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), serverFileStore.fileStore(), 1 * MB)) {
             serverSync.start();
 
             Set<ObjectName> instances = jmxServer.queryNames(status, null);
@@ -153,7 +153,7 @@ public class MBeanIT extends TestBase {
         MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName clientStatus, serverStatus;
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), serverFileStore.fileStore());
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), serverFileStore.fileStore(), 1 * MB);
                 StandbyClientSync clientSync = newStandbyClientSync(clientFileStore.fileStore(), serverPort.getPort())
         ) {
             serverSync.start();

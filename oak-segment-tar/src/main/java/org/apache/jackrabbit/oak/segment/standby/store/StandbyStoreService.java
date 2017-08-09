@@ -86,6 +86,11 @@ public class StandbyStoreService {
 
     @Property(boolValue = SECURE_DEFAULT)
     public static final String SECURE = "secure";
+    
+    public static final int BLOB_CHUNK_SIZE_DEFAULT = 1024 * 1024;
+
+    @Property(intValue = BLOB_CHUNK_SIZE_DEFAULT)
+    public static final String BLOB_CHUNK_SIZE = "blob.chunkSize";
 
     public static final int READ_TIMEOUT_DEFAULT = 60000;
 
@@ -137,8 +142,9 @@ public class StandbyStoreService {
         int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
         String[] ranges = PropertiesUtil.toStringArray(props.get(ALLOWED_CLIENT_IP_RANGES), ALLOWED_CLIENT_IP_RANGES_DEFAULT);
         boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
+        int blobChunkSize = PropertiesUtil.toInteger(props.get(BLOB_CHUNK_SIZE), BLOB_CHUNK_SIZE_DEFAULT);
 
-        StandbyServerSync standbyServerSync = new StandbyServerSync(port, fileStore, ranges, secure);
+        StandbyServerSync standbyServerSync = new StandbyServerSync(port, fileStore, blobChunkSize, ranges, secure);
         closer.register(standbyServerSync);
         standbyServerSync.start();
 

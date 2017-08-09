@@ -63,7 +63,7 @@ public class FailoverMultipleClientsTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, 1 * MB);
                 StandbyClientSync cl1 = newStandbyClientSync(storeC, serverPort.getPort());
                 StandbyClientSync cl2 = newStandbyClientSync(storeC2, serverPort.getPort())
         ) {

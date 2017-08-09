@@ -51,8 +51,6 @@ import org.junit.Test;
 
 public abstract class DataStoreTestBase extends TestBase {
 
-    private static final int MB = 1024 * 1024;
-
     private NetworkErrorProxy proxy;
 
     @Rule
@@ -101,7 +99,7 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
                 StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort())
         ) {
             serverSync.start();
@@ -136,7 +134,7 @@ public abstract class DataStoreTestBase extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
                 StandbyClientSync clientSync = newStandbyClientSync(secondary, serverPort.getPort())
         ) {
             serverSync.start();
@@ -196,7 +194,7 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
                 StandbyClientSync clientSync = newStandbyClientSync(secondary, proxyPort.getPort())
         ) {
             proxy.skipBytes(skipPosition, skipBytes);

@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 public class BenchmarkBase {
     static final int port = Integer.getInteger("standby.server.port", 52800);
     static final String LOCALHOST = "127.0.0.1";
-
+    static final int MB = 1024 * 1024;
     static final int timeout = Integer.getInteger("standby.test.timeout", 500);
 
     File directoryS;
