@@ -21,19 +21,21 @@ import static com.google.common.collect.Iterables.elementsEqual;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createBlobChunkBuffer;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createMask;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.hash;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
 import java.util.UUID;
 
 import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 public class ResponseDecoderTest {
@@ -50,25 +52,45 @@ public class ResponseDecoderTest {
     }
 
     @Test
-    public void shouldDecodeValidGetBlobResponses() throws Exception {
+    public void shouldDecodeValidOneChunkGetBlobResponses() throws Exception {
         byte[] blobData = new byte[] {1, 2, 3};
 
         String blobId = "blobId";
-        byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
-
-        ByteBuf buf = Unpooled.buffer();
-        buf.writeInt(1 + 4 + blobIdBytes.length + 8 + blobData.length);
-        buf.writeByte(Messages.HEADER_BLOB);
-        buf.writeInt(blobIdBytes.length);
-        buf.writeBytes(blobIdBytes);
-        buf.writeLong(hash(blobData));
-        buf.writeBytes(blobData);
+        byte mask = createMask(1, 1);
+        ByteBuf buf = createBlobChunkBuffer(Messages.HEADER_BLOB, blobId, blobData, mask);
 
         EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
         channel.writeInbound(buf);
         GetBlobResponse response = (GetBlobResponse) channel.readInbound();
         assertEquals("blobId", response.getBlobId());
-        assertArrayEquals(blobData, response.getBlobData());
+        assertEquals(blobData.length, response.getLength());
+        byte[] receivedData = IOUtils.toByteArray(response.getInputStream());
+        assertArrayEquals(blobData, receivedData);
+    }
+    
+    @Test
+    public void shouldDecodeValidTwoChunksGetBlobResponses() throws Exception {
+        byte[] blobData = new byte[] {1, 2, 3, 4};
+        byte[] firstChunkData = new byte[] {1, 2};
+        byte[] secondChunkbData = new byte[] {3, 4};
+
+        String blobId = "blobId";
+        
+        byte firstMask = createMask(1, 2);
+        ByteBuf firstBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, blobId, firstChunkData, firstMask);
+        
+        byte secondMask = createMask(2, 2);
+        ByteBuf secondBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, blobId, secondChunkbData, secondMask);
+
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        channel.writeInbound(firstBuf);
+        channel.writeInbound(secondBuf);
+        
+        GetBlobResponse response = (GetBlobResponse) channel.readInbound();
+        assertEquals("blobId", response.getBlobId());
+        assertEquals(blobData.length, response.getLength());
+        byte[] receivedData = IOUtils.toByteArray(response.getInputStream());
+        assertArrayEquals(blobData, receivedData);
     }
 
     @Test
@@ -77,13 +99,15 @@ public class ResponseDecoderTest {
 
         String blobId = "blobId";
         byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
+        byte mask = createMask(1, 1);
 
         ByteBuf buf = Unpooled.buffer();
-        buf.writeInt(1 + 4 + blobIdBytes.length + 8 + blobData.length);
+        buf.writeInt(1 + 1 + 4 + blobIdBytes.length + 8 + blobData.length);
         buf.writeByte(Messages.HEADER_BLOB);
+        buf.writeByte(mask);
         buf.writeInt(blobIdBytes.length);
         buf.writeBytes(blobIdBytes);
-        buf.writeLong(hash(blobData) + 1);
+        buf.writeLong(hash(mask, blobData) + 1);
         buf.writeBytes(blobData);
 
         EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());

@@ -22,7 +22,10 @@ import static org.mockito.Mockito.mock;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -53,6 +56,38 @@ public class StandbyTestUtils {
 
     public static long hash(byte[] data) {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
+    }
+    
+    public static long hash(byte mask, byte[] data) {
+        return Hashing.murmur3_32().newHasher().putByte(mask).putBytes(data).hash().padToLong();
+    }
+    
+    public static byte createMask(int currentChunk, int totalChunks) {
+        byte mask = 0;
+        if (currentChunk == 1) {
+            mask = (byte) (mask | (1 << 0));
+        }
+
+        if (currentChunk == totalChunks) {
+            mask = (byte) (mask | (1 << 1));
+        }
+
+        return mask;
+    }
+    
+    public static ByteBuf createBlobChunkBuffer(byte header,String blobId, byte[] data, byte mask) {
+        byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
+        
+        ByteBuf buf = Unpooled.buffer();
+        buf.writeInt(1 + 1 + 4 + blobIdBytes.length + 8 + data.length);
+        buf.writeByte(header);
+        buf.writeByte(mask);
+        buf.writeInt(blobIdBytes.length);
+        buf.writeBytes(blobIdBytes);
+        buf.writeLong(hash(mask, data));
+        buf.writeBytes(data);
+        
+        return buf;
     }
 
 }
