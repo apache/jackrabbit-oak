@@ -32,6 +32,20 @@ Depending on your setup you would need to configure the NodeStore and BlobStore 
 Some commands may not require the BlobStore details. Check the specific oak-run command help to see if
 access to BlobStore is required or not. 
 
+## Read Write Mode
+
+By default most commands would connect to NodeStore in read only mode. This ensure that oak-run commands 
+can be safely used with productions setup and does not cause any side effect.
+
+For some operations read-write access would be required. This can be done by passing `--read-write` option.
+In read-write mode it should be ensured that Oak version from oak-run is matching with Oak version used by
+application to create the repository. 
+
+A newer version of oak-run can read repository created by older version of Oak (as Oak is backward compatible)
+However if writes are done by newer version of oak-run (which is more recent than Oak version used by repository application)
+then it may cause issues due to change in storage format.
+
+
 ## NodeStore
 
 ### SegmentNodeStore
@@ -43,6 +57,9 @@ repository content
     
 For setups prior to Oak 1.6 (which used older segment support) you would need to pass `--segment` option
 otherwise connection would fail
+
+If `--read-write` option is enabled then it must be ensured that target repository is not in use. Otherwise
+oak-run would not be able access the NodeStore.
     
 ### DocumentNodeStore - Mongo
 
