@@ -152,7 +152,7 @@ Here following options can be used
 * `--index-paths` - This command requires an explicit set of index paths which need to be indexed (required)
 * `--checkpoint` - The checkpoint up to which the index is updated, when indexing in read only mode. For
   testing purpose, it can be set to 'head' to indicate that the head state should be used. (required)
-* `-index-definitions-file` - json file file path which contains updated index definitions
+* `--index-definitions-file` - json file file path which contains updated index definitions
   
 If the index does not support fulltext indexing then you can omit providing BlobStore details
   
