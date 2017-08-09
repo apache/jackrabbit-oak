@@ -23,7 +23,10 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
+
 import io.netty.channel.embedded.EmbeddedChannel;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetBlobResponse;
 import org.junit.Test;
@@ -35,14 +38,17 @@ public class GetBlobRequestHandlerTest {
         byte[] blobData = new byte[] {99, 114, 97, 112};
 
         StandbyBlobReader reader = mock(StandbyBlobReader.class);
-        when(reader.readBlob("blobId")).thenReturn(blobData);
+        when(reader.readBlob("blobId")).thenReturn(new ByteArrayInputStream(blobData));
+        when(reader.getBlobLength("blobId")).thenReturn(4L);
 
         EmbeddedChannel channel = new EmbeddedChannel(new GetBlobRequestHandler(reader));
         channel.writeInbound(new GetBlobRequest("clientId", "blobId"));
         GetBlobResponse response = (GetBlobResponse) channel.readOutbound();
         assertEquals("clientId", response.getClientId());
         assertEquals("blobId", response.getBlobId());
-        assertArrayEquals(blobData, response.getBlobData());
+        assertEquals(blobData.length, response.getLength());
+        byte[] receivedData = IOUtils.toByteArray(response.getInputStream());
+        assertArrayEquals(blobData, receivedData);
     }
 
     @Test

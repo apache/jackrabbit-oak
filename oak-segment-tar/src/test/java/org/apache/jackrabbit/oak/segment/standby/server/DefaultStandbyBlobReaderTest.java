@@ -18,29 +18,19 @@
 package org.apache.jackrabbit.oak.segment.standby.server;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.Test;
 
 public class DefaultStandbyBlobReaderTest {
-
-    private static InputStream newFailingInputStream() {
-        return new InputStream() {
-
-            @Override
-            public int read() throws IOException {
-                throw new IOException("generic error");
-            }
-
-        };
-    }
 
     @Test
     public void shouldAlwaysReturnNullWithoutBlobStore() throws Exception {
@@ -57,19 +47,21 @@ public class DefaultStandbyBlobReaderTest {
     }
 
     @Test
-    public void shouldReturnNullIfBlobIsUnreadable() throws Exception {
+    public void shouldReturnNegativeLengthIfBlobIsUnreadable() throws Exception {
         BlobStore s = mock(BlobStore.class);
-        when(s.getInputStream("id")).thenReturn(newFailingInputStream());
+        when(s.getBlobLength("id")).thenReturn(-1L);
         DefaultStandbyBlobReader r = new DefaultStandbyBlobReader(s);
-        assertNull(r.readBlob("id"));
+        assertEquals(-1L, r.getBlobLength("id"));
     }
 
     @Test
     public void shouldReturnBlobContent() throws Exception {
         BlobStore s = mock(BlobStore.class);
         when(s.getInputStream("id")).thenReturn(new ByteArrayInputStream(new byte[]{1, 2, 3}));
+        when(s.getBlobLength("id")).thenReturn(3L);
         DefaultStandbyBlobReader r = new DefaultStandbyBlobReader(s);
-        assertArrayEquals(new byte[]{1, 2, 3}, r.readBlob("id"));
+        assertEquals(3, r.getBlobLength("id"));
+        assertArrayEquals(new byte[]{1, 2, 3}, IOUtils.toByteArray(r.readBlob("id")));
     }
 
 }
