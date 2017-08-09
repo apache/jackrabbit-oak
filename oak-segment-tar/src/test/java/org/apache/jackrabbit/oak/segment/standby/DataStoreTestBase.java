@@ -26,9 +26,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.util.Random;
 
+import org.apache.commons.io.IOUtils;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -46,10 +48,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 public abstract class DataStoreTestBase extends TestBase {
+    static final long GB = 1024 * 1024 * 1024;
 
     private NetworkErrorProxy proxy;
 
@@ -65,6 +69,25 @@ public abstract class DataStoreTestBase extends TestBase {
 
     abstract boolean storesShouldBeEqual();
 
+    private InputStream newRandomInputStream(final long size, final int seed) {
+        return new InputStream() {
+
+            private final Random random = new Random(seed);
+
+            private long count = 0;
+
+            @Override
+            public int read() throws IOException {
+                if (count >= size) {
+                    return -1;
+                }
+                count++;
+                return Math.abs(random.nextInt());
+            }
+
+        };
+    }
+    
     protected byte[] addTestContent(NodeStore store, String child, int size)
             throws CommitFailedException, IOException {
         NodeBuilder builder = store.getRoot().builder();
@@ -78,6 +101,18 @@ public abstract class DataStoreTestBase extends TestBase {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return data;
+    }
+    
+    protected void addTestContentOnTheFly(NodeStore store, String child, long size, int seed) throws CommitFailedException, IOException {
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(child).setProperty("ts", System.currentTimeMillis());
+
+        InputStream randomInputStream = newRandomInputStream(size, seed);
+        Blob blob = store.createBlob(randomInputStream);
+
+        builder.child(child).setProperty("testBlob", blob);
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     @Before
@@ -122,6 +157,44 @@ public abstract class DataStoreTestBase extends TestBase {
         assertArrayEquals(data, testData);
     }
 
+    /*
+     * See OAK-5902.
+     */
+    @Test
+    @Ignore("OAK-6538")
+    public void testSyncBigBlob() throws Exception {
+        final long blobSize = (long) (2.5 * GB);
+        final int seed = 13;
+        
+        FileStore primary = getPrimary();
+        FileStore secondary = getSecondary();
+
+        NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
+        addTestContentOnTheFly(store, "server", blobSize, seed);
+        
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 256 * MB);
+                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 50_000)
+        ) {
+            serverSync.start();
+            primary.flush();
+            cl.run();
+            assertEquals(primary.getHead(), secondary.getHead());
+        }
+
+        assertTrue(primary.getStats().getApproximateSize() < MB);
+        assertTrue(secondary.getStats().getApproximateSize() < MB);
+
+        PropertyState ps = secondary.getHead().getChildNode("root")
+                .getChildNode("server").getProperty("testBlob");
+        assertNotNull(ps);
+        assertEquals(Type.BINARY.tag(), ps.getType().tag());
+        Blob b = ps.getValue(Type.BINARY);
+        assertEquals(blobSize, b.length());
+        
+        assertTrue(IOUtils.contentEquals(newRandomInputStream(blobSize, seed), b.getNewStream()));
+    }
+    
     /*
      * See OAK-4969.
      */
