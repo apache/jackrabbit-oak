@@ -73,6 +73,8 @@ import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
@@ -929,7 +931,7 @@ public class DocumentNodeStoreService {
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, log);
+        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs);
         Runnable cancelGC = new Runnable() {
             @Override
             public void run() {
@@ -1003,7 +1005,7 @@ public class DocumentNodeStoreService {
         if (isContinuousRevisionGC()) {
             final long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
             addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
-                    new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs, log),
+                    new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs),
                     MODIFIED_IN_SECS_RESOLUTION, true, true));
         }
     }
@@ -1074,27 +1076,37 @@ public class DocumentNodeStoreService {
 
     static final class RevisionGCJob implements Runnable, Supplier<String> {
 
+        // log as VersionGarbageCollector
+        private static final Logger LOGGER = LoggerFactory.getLogger(VersionGarbageCollector.class);
+
+        // log every hour
+        private static final long LOG_INTERVAL = TimeUnit.HOURS.toMillis(1);
+
         private final DocumentNodeStore nodeStore;
         private final long versionGcMaxAgeInSecs;
-        private final Logger log;
         private volatile Object lastResult = "";
+        private long lastLogTime;
+        private VersionGCStats stats;
 
         RevisionGCJob(DocumentNodeStore ns,
-                      long versionGcMaxAgeInSecs,
-                      Logger log) {
+                      long versionGcMaxAgeInSecs) {
             this.nodeStore = ns;
             this.versionGcMaxAgeInSecs = versionGcMaxAgeInSecs;
-            this.log = log;
+            resetStats();
         }
 
         @Override
         public void run() {
             VersionGarbageCollector gc = nodeStore.getVersionGarbageCollector();
             try {
-                lastResult = gc.gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS).toString();
+                VersionGCStats s = gc.gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
+                stats.addRun(s);
+                lastResult = s.toString();
             } catch (Exception e) {
                 lastResult = e;
-                log.warn("Error occurred while executing the Version Garbage Collector", e);
+                LOGGER.warn("Error occurred while executing the Version Garbage Collector", e);
+            } finally {
+                maybeLogStats();
             }
         }
 
@@ -1111,6 +1123,19 @@ public class DocumentNodeStoreService {
                 throw new UncheckedExecutionException((Exception) lastResult);
             }
             return String.valueOf(lastResult);
+        }
+
+        private void resetStats() {
+            lastLogTime = nodeStore.getClock().getTime();
+            stats = new VersionGCStats();
+        }
+
+        private void maybeLogStats() {
+            if (nodeStore.getClock().getTime() > lastLogTime + LOG_INTERVAL) {
+                LOGGER.info("Garbage collector stats since {}: {}",
+                        Utils.timestampToString(lastLogTime), stats);
+                resetStats();
+            }
         }
     }
 }
