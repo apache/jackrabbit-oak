@@ -55,8 +55,13 @@ public class IndexDumper {
                 continue;
             }
             LuceneIndexDumper dumper = new LuceneIndexDumper(root, indexPath, indexDumpDir);
-            dumper.dump();
-            System.out.printf("    - %s (%s)%n", indexPath, IOUtils.humanReadableByteCount(dumper.getSize()));
+            try {
+                dumper.dump();
+                System.out.printf("    - %s (%s)%n", indexPath, IOUtils.humanReadableByteCount(dumper.getSize()));
+            } catch (Exception e){
+                System.out.printf("Error occurred while performing consistency check for index [%s]%n", indexPath);
+                e.printStackTrace(System.out);
+            }
 
             indexCount++;
             totalSize += dumper.getSize();
