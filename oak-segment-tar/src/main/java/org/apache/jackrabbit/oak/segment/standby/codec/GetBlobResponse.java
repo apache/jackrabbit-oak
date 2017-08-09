@@ -17,18 +17,23 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
+import java.io.InputStream;
+
 public class GetBlobResponse {
 
     private final String clientId;
 
     private final String blobId;
 
-    private final byte[] blobData;
+    private final InputStream in;
+    
+    private final long length;
 
-    public GetBlobResponse(String clientId, String blobId, byte[] blobData) {
+    public GetBlobResponse(String clientId, String blobId, InputStream in, long length) {
         this.clientId = clientId;
         this.blobId = blobId;
-        this.blobData = blobData;
+        this.in = in;
+        this.length = length;
     }
 
     public String getClientId() {
@@ -39,8 +44,11 @@ public class GetBlobResponse {
         return blobId;
     }
 
-    public byte[] getBlobData() {
-        return blobData;
+    public InputStream getInputStream() {
+        return in;
     }
 
+    public long getLength() {
+        return length;
+    }
 }

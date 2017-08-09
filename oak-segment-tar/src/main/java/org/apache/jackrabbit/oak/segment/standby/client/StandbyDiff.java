@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.segment.standby.client;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 
-import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 
 import com.google.common.base.Supplier;
@@ -164,16 +164,17 @@ class StandbyDiff implements NodeStateDiff {
     }
 
     private void readBlob(String blobId, String pName) throws InterruptedException {
-        byte[] data = client.getBlob(blobId);
+        InputStream in = client.getBlob(blobId);
 
-        if (data == null) {
+        if (in == null) {
             throw new IllegalStateException("Unable to load remote blob " + blobId + " at " + path + "#" + pName);
         }
 
         try {
             BlobStore blobStore = store.getBlobStore();
             assert blobStore != null : "Blob store must not be null";
-            blobStore.writeBlob(new ByteArrayInputStream(data));
+            blobStore.writeBlob(in);
+            in.close();
         } catch (IOException f) {
             throw new IllegalStateException("Unable to persist blob " + blobId + " at " + path + "#" + pName, f);
         }
