@@ -62,7 +62,7 @@ public class RecoverTestIT extends TestBase {
         addTestContent(store, "client");
 
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, 1 * MB);
                 StandbyClientSync cl = newStandbyClientSync(storeC, serverPort.getPort())
         ) {
             serverSync.start();

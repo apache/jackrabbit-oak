@@ -54,10 +54,9 @@ import org.slf4j.LoggerFactory;
 class StandbyServer implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(StandbyServer.class);
-    private static final int BLOB_CHUNK_SIZE = 1024 * 1024;
 
-    static Builder builder(int port, StoreProvider provider) {
-        return new Builder(port, provider);
+    static Builder builder(int port, StoreProvider provider, int blobChunkSize) {
+        return new Builder(port, provider, blobChunkSize);
     }
 
     private final int port;
@@ -77,6 +76,8 @@ class StandbyServer implements AutoCloseable {
         private final int port;
 
         private final StoreProvider storeProvider;
+        
+        private final int blobChunkSize;
 
         private boolean secure;
 
@@ -86,9 +87,10 @@ class StandbyServer implements AutoCloseable {
 
         private CommunicationObserver observer;
 
-        private Builder(final int port, final StoreProvider storeProvider) {
+        private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
             this.port = port;
             this.storeProvider = storeProvider;
+            this.blobChunkSize = blobChunkSize;
         }
 
         Builder secure(boolean secure) {
@@ -165,7 +167,7 @@ class StandbyServer implements AutoCloseable {
                 p.addLast(new SnappyFramedEncoder());
                 p.addLast(new GetHeadResponseEncoder());
                 p.addLast(new GetSegmentResponseEncoder());
-                p.addLast(new GetBlobResponseEncoder(BLOB_CHUNK_SIZE));
+                p.addLast(new GetBlobResponseEncoder(builder.blobChunkSize));
                 p.addLast(new GetReferencesResponseEncoder());
                 p.addLast(new ResponseObserverHandler(builder.observer));
 

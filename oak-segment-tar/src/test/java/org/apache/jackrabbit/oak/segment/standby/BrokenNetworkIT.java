@@ -154,7 +154,7 @@ public class BrokenNetworkIT extends TestBase {
         storeS.flush();  // this speeds up the test a little bit...
 
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, ssl);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, 1 * MB, ssl);
                 StandbyClientSync clientSync = newStandbyClientSync(storeC, proxyPort.getPort(), ssl);
         ) {
             proxy.skipBytes(skipPosition, skipBytes);
