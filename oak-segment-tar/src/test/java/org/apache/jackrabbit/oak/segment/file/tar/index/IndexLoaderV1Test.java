@@ -193,7 +193,7 @@ public class IndexLoaderV1Test {
         duplicate.position(duplicate.limit() - IndexEntryV1.SIZE - IndexV1.FOOTER_SIZE);
         duplicate
                 .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0)
-                .putInt(0x807077E9)
+            .putInt(0xAA6B4A1A)
                 .putInt(1)
                 .putInt(2 * (IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE))
                 .putInt(IndexLoaderV1.MAGIC);

@@ -57,10 +57,11 @@ class IndexLoaderV2 {
         }
 
         ByteBuffer entries = reader.readAtEnd(IndexV2.FOOTER_SIZE + count * IndexEntryV2.SIZE, count * IndexEntryV2.SIZE);
-        entries.mark();
 
         CRC32 checksum = new CRC32();
-        checksum.update(entries.array(), entries.position(), entries.remaining());
+        entries.mark();
+        checksum.update(entries);
+        entries.reset();
         if (crc32 != (int) checksum.getValue()) {
             throw new InvalidIndexException("Invalid checksum");
         }
@@ -68,6 +69,7 @@ class IndexLoaderV2 {
         long lastMsb = Long.MIN_VALUE;
         long lastLsb = Long.MIN_VALUE;
         byte[] entry = new byte[IndexEntryV2.SIZE];
+        entries.mark();
         for (int i = 0; i < count; i++) {
             entries.get(entry);
 
@@ -96,7 +98,6 @@ class IndexLoaderV2 {
             lastMsb = msb;
             lastLsb = lsb;
         }
-
         entries.reset();
 
         return new IndexV2(entries);
