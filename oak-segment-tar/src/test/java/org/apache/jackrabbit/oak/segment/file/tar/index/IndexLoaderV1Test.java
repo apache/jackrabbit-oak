@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.nio.ByteBuffer;
+import java.util.zip.CRC32;
 
 import org.junit.Test;
 
@@ -39,6 +40,32 @@ public class IndexLoaderV1Test {
         });
     }
 
+    private static void assertInvalidIndexException(ByteBuffer buffer, String message) throws Exception {
+        try {
+            loadIndex(buffer);
+        } catch (InvalidIndexException e) {
+            assertEquals(message, e.getMessage());
+            throw e;
+        }
+    }
+
+    private static void assertInvalidIndexException(int blockSize, ByteBuffer buffer, String message) throws Exception {
+        try {
+            loadIndex(blockSize, buffer);
+        } catch (InvalidIndexException e) {
+            assertEquals(message, e.getMessage());
+            throw e;
+        }
+    }
+
+    private static int checksum(ByteBuffer buffer) {
+        CRC32 checksum = new CRC32();
+        int position = buffer.position();
+        checksum.update(buffer);
+        buffer.position(position);
+        return (int) checksum.getValue();
+    }
+
     @Test(expected = InvalidIndexException.class)
     public void testInvalidMagic() throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(IndexV1.FOOTER_SIZE);
@@ -54,184 +81,173 @@ public class IndexLoaderV1Test {
     public void testInvalidCount() throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putInt(0)
-                .putInt(0)
-                .putInt(0)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Invalid entry count", e.getMessage());
-            throw e;
-        }
+            .putInt(0)
+            .putInt(0)
+            .putInt(0)
+            .putInt(IndexLoaderV1.MAGIC);
+        assertInvalidIndexException(buffer, "Invalid entry count");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testInvalidSize() throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putInt(0)
-                .putInt(1)
-                .putInt(0)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Invalid size", e.getMessage());
-            throw e;
-        }
+            .putInt(0)
+            .putInt(1)
+            .putInt(0)
+            .putInt(IndexLoaderV1.MAGIC);
+        assertInvalidIndexException(buffer, "Invalid size");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testInvalidSizeAlignment() throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putInt(0)
-                .putInt(1)
-                .putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE + 1, buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Invalid size alignment", e.getMessage());
-            throw e;
-        }
+            .putInt(0)
+            .putInt(1)
+            .putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+            .putInt(IndexLoaderV1.MAGIC);
+        assertInvalidIndexException(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE + 1, buffer, "Invalid size alignment");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testInvalidChecksum() throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
-                .putInt(0)
-                .putInt(1)
-                .putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Invalid checksum", e.getMessage());
-            throw e;
-        }
+            .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5)
+            .putInt(0)
+            .putInt(1)
+            .putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+            .putInt(IndexLoaderV1.MAGIC);
+        assertInvalidIndexException(buffer, "Invalid checksum");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testIncorrectEntryOrderingByMsb() throws Exception {
+        ByteBuffer entries = ByteBuffer.allocate(2 * IndexEntryV1.SIZE);
+        entries.duplicate()
+            .putLong(1).putLong(0).putInt(0).putInt(1).putInt(0)
+            .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0);
+
         ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(1).putLong(0).putInt(0).putInt(1).putInt(0)
-                .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0)
-                .putInt(0x4079275A)
-                .putInt(2)
-                .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Incorrect entry ordering", e.getMessage());
-            throw e;
-        }
+            .put(entries.duplicate())
+            .putInt(checksum(entries))
+            .putInt(2)
+            .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+            .putInt(IndexLoaderV1.MAGIC);
+
+        assertInvalidIndexException(buffer, "Incorrect entry ordering");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testIncorrectEntryOrderingByLsb() throws Exception {
+        ByteBuffer entries = ByteBuffer.allocate(2 * IndexEntryV1.SIZE);
+        entries.duplicate()
+            .putLong(0).putLong(1).putInt(0).putInt(1).putInt(0)
+            .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0);
+
         ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(0).putLong(1).putInt(0).putInt(1).putInt(0)
-                .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0)
-                .putInt(0x273698E8)
-                .putInt(2)
-                .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Incorrect entry ordering", e.getMessage());
-            throw e;
-        }
+            .put(entries.duplicate())
+            .putInt(checksum(entries))
+            .putInt(2)
+            .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+            .putInt(IndexLoaderV1.MAGIC);
+
+        assertInvalidIndexException(buffer, "Incorrect entry ordering");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testDuplicateEntry() throws Exception {
+        ByteBuffer entries = ByteBuffer.allocate(2 * IndexEntryV1.SIZE);
+        entries.duplicate()
+            .putLong(0).putLong(0).putInt(0).putInt(1).putInt(0)
+            .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0);
+
         ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(0).putLong(0).putInt(0).putInt(1).putInt(0)
-                .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0)
-                .putInt(0xCF210849)
-                .putInt(2)
-                .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Duplicate entry", e.getMessage());
-            throw e;
-        }
+            .put(entries.duplicate())
+            .putInt(checksum(entries))
+            .putInt(2)
+            .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+            .putInt(IndexLoaderV1.MAGIC);
+
+        assertInvalidIndexException(buffer, "Duplicate entry");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testInvalidEntryOffset() throws Exception {
+        ByteBuffer entries = ByteBuffer.allocate(IndexEntryV1.SIZE);
+        entries.duplicate()
+            .putLong(0).putLong(0).putInt(-1).putInt(1).putInt(0);
+
         ByteBuffer buffer = ByteBuffer.allocate(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(0).putLong(0).putInt(-1).putInt(1).putInt(0)
-                .putInt(0x393A67C9)
-                .putInt(1)
-                .putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Invalid entry offset", e.getMessage());
-            throw e;
-        }
+            .put(entries.duplicate())
+            .putInt(checksum(entries))
+            .putInt(1)
+            .putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+            .putInt(IndexLoaderV1.MAGIC);
+
+        assertInvalidIndexException(buffer, "Invalid entry offset");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testInvalidEntryOffsetAlignment() throws Exception {
+        ByteBuffer entries = ByteBuffer.allocate(IndexEntryV1.SIZE);
+        entries.duplicate()
+            .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0);
+
+        ByteBuffer index = ByteBuffer.allocate(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
+        index.duplicate()
+            .put(entries.duplicate())
+            .putInt(checksum(entries))
+            .putInt(1)
+            .putInt(2 * (IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE))
+            .putInt(IndexLoaderV1.MAGIC);
+
         ByteBuffer buffer = ByteBuffer.allocate(2 * (IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE));
-        ByteBuffer duplicate = buffer.duplicate();
-        duplicate.position(duplicate.limit() - IndexEntryV1.SIZE - IndexV1.FOOTER_SIZE);
-        duplicate
-                .putLong(0).putLong(0).putInt(1).putInt(1).putInt(0)
-            .putInt(0xAA6B4A1A)
-                .putInt(1)
-                .putInt(2 * (IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE))
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(2, buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Invalid entry offset alignment", e.getMessage());
-            throw e;
-        }
+        buffer.mark();
+        buffer.position(buffer.limit() - IndexEntryV1.SIZE - IndexV1.FOOTER_SIZE);
+        buffer.put(index);
+        buffer.reset();
+
+        assertInvalidIndexException(2, buffer, "Invalid entry offset alignment");
     }
 
     @Test(expected = InvalidIndexException.class)
     public void testInvalidEntrySize() throws Exception {
+        ByteBuffer entries = ByteBuffer.allocate(IndexEntryV1.SIZE);
+        entries.duplicate()
+            .putLong(0).putLong(0).putInt(0).putInt(0).putInt(0);
+
         ByteBuffer buffer = ByteBuffer.allocate(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(0).putLong(0).putInt(0).putInt(0).putInt(0)
-                .putInt(0x807077E9)
-                .putInt(1)
-                .putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
-        try {
-            loadIndex(buffer);
-        } catch (InvalidIndexException e) {
-            assertEquals("Invalid entry size", e.getMessage());
-            throw e;
-        }
+            .put(entries.duplicate())
+            .putInt(checksum(entries))
+            .putInt(1)
+            .putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+            .putInt(IndexLoaderV1.MAGIC);
+
+        assertInvalidIndexException(buffer, "Invalid entry size");
     }
 
     @Test
     public void testLoadIndex() throws Exception {
+        ByteBuffer entries = ByteBuffer.allocate(2 * IndexEntryV1.SIZE);
+        entries.duplicate()
+            .putLong(0).putLong(0).putInt(0).putInt(1).putInt(0)
+            .putLong(0).putLong(1).putInt(1).putInt(1).putInt(0);
+
         ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
         buffer.duplicate()
-                .putLong(0).putLong(0).putInt(0).putInt(1).putInt(0)
-                .putLong(0).putLong(1).putInt(1).putInt(1).putInt(0)
-                .putInt(0x12B7D1CC)
-                .putInt(2)
-                .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
-                .putInt(IndexLoaderV1.MAGIC);
+            .put(entries.duplicate())
+            .putInt(checksum(entries))
+            .putInt(2)
+            .putInt(2 * IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE)
+            .putInt(IndexLoaderV1.MAGIC);
+
         assertNotNull(loadIndex(buffer));
     }
 
