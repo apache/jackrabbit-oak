@@ -49,11 +49,18 @@ public class TestBase {
     }
 
     public StandbyClientSync newStandbyClientSync(FileStore store, int port) throws Exception {
-        return newStandbyClientSync(store, port, false);
+        return newStandbyClientSync(store, port, false, getClientTimeout());
     }
 
     public StandbyClientSync newStandbyClientSync(FileStore store, int port, boolean secure) throws Exception {
-        return new StandbyClientSync(getServerHost(), port, store, secure, getClientTimeout(), false);
+        return newStandbyClientSync(store, port, secure, getClientTimeout());
     }
 
+    public StandbyClientSync newStandbyClientSync(FileStore store, int port, int timeout) throws Exception {
+        return newStandbyClientSync(store, port, false, timeout);
+    }
+
+    public StandbyClientSync newStandbyClientSync(FileStore store, int port, boolean secure, int timeout) throws Exception {
+        return new StandbyClientSync(getServerHost(), port, store, secure, timeout, false);
+    }
 }
