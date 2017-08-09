@@ -310,12 +310,23 @@ public class VersionGarbageCollector {
             this.splitDocGCCount += run.splitDocGCCount;
             this.intermediateSplitDocGCCount += run.intermediateSplitDocGCCount;
             this.updateResurrectedGCCount += run.updateResurrectedGCCount;
-            this.collectDeletedDocsElapsed += run.collectDeletedDocs.elapsed(MICROSECONDS);
-            this.checkDeletedDocsElapsed += run.checkDeletedDocs.elapsed(MICROSECONDS);
-            this.deleteDeletedDocsElapsed += run.deleteDeletedDocs.elapsed(MICROSECONDS);
-            this.collectAndDeleteSplitDocsElapsed += run.collectAndDeleteSplitDocs.elapsed(MICROSECONDS);
-            this.sortDocIdsElapsed += run.sortDocIds.elapsed(MICROSECONDS);
-            this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(MICROSECONDS);
+            if (run.iterationCount > 0) {
+                // run is cumulative with times in elapsed fields
+                this.collectDeletedDocsElapsed += run.collectDeletedDocsElapsed;
+                this.checkDeletedDocsElapsed += run.checkDeletedDocsElapsed;
+                this.deleteDeletedDocsElapsed += run.deleteDeletedDocsElapsed;
+                this.collectAndDeleteSplitDocsElapsed += run.collectAndDeleteSplitDocsElapsed;
+                this.sortDocIdsElapsed += run.sortDocIdsElapsed;
+                this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocumentsElapsed;
+            } else {
+                // single run -> read from stop watches
+                this.collectDeletedDocsElapsed += run.collectDeletedDocs.elapsed(MICROSECONDS);
+                this.checkDeletedDocsElapsed += run.checkDeletedDocs.elapsed(MICROSECONDS);
+                this.deleteDeletedDocsElapsed += run.deleteDeletedDocs.elapsed(MICROSECONDS);
+                this.collectAndDeleteSplitDocsElapsed += run.collectAndDeleteSplitDocs.elapsed(MICROSECONDS);
+                this.sortDocIdsElapsed += run.sortDocIds.elapsed(MICROSECONDS);
+                this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(MICROSECONDS);
+            }
         }
     }
 
