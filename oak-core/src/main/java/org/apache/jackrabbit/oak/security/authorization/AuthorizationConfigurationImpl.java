@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,7 +41,7 @@ import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
-import org.apache.jackrabbit.oak.security.authorization.composite.MultiplexingPermissionProvider;
+import org.apache.jackrabbit.oak.security.authorization.permission.MountPermissionProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
@@ -52,7 +51,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
-import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
@@ -63,7 +61,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -203,18 +200,11 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
         Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
-            List<AggregatedPermissionProvider> agg = new ArrayList<>();
-            agg.add(new PermissionProviderImpl(root, workspaceName, workspaceName, principals, getRestrictionProvider(),
-                    getParameters(), ctx));
-            for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-                String permissionRootName = MultiplexingPermissionProvider.getPermissionRootName(m, workspaceName);
-                agg.add(new PermissionProviderImpl(root, workspaceName, permissionRootName, principals, getRestrictionProvider(), getParameters(),
-                        ctx));
-            }
-            return new MultiplexingPermissionProvider(root, agg, ctx);
+            return new MountPermissionProvider(root, workspaceName, principals, getRestrictionProvider(),
+                    getParameters(), ctx, mountInfoProvider);
         } else {
-            return new PermissionProviderImpl(root, workspaceName, workspaceName, principals, getRestrictionProvider(), getParameters(),
-                    ctx);
+            return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(),
+                    getParameters(), ctx);
         }
     }
 }

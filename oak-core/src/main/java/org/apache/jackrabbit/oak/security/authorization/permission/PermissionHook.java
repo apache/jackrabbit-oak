@@ -23,7 +23,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.security.authorization.composite.MultiplexingPermissionProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -134,7 +133,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     @Nonnull
     private NodeBuilder getPermissionRoot(String path) {
         Mount m = mountInfoProvider.getMountByPath(path);
-        return permissionStore.getChildNode(MultiplexingPermissionProvider.getPermissionRootName(m, workspaceName));
+        return permissionStore.getChildNode(MountPermissionProvider.getPermissionRootName(m, workspaceName));
     }
 
     private final class Diff extends DefaultNodeStateDiff {

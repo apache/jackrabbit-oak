@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.composite;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -48,7 +48,7 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
-public class MultiplexingProviderTest extends AbstractSecurityTest
+public class MountPermissionProviderTest extends AbstractSecurityTest
         implements AccessControlConstants, PrivilegeConstants, PermissionConstants {
 
     private MountInfoProvider mountInfoProvider;
@@ -92,7 +92,7 @@ public class MultiplexingProviderTest extends AbstractSecurityTest
         String wsName = adminSession.getWorkspaceName();
         assertTrue(permStore.hasChild(wsName));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            assertTrue(permStore.hasChild(MultiplexingPermissionProvider.getPermissionRootName(m, wsName)));
+            assertTrue(permStore.hasChild(MountPermissionProvider.getPermissionRootName(m, wsName)));
         }
 
         Tree rootNode = root.getTree("/");
@@ -108,7 +108,7 @@ public class MultiplexingProviderTest extends AbstractSecurityTest
         // no entries in the default store
         assertFalse(permStore.getChild(wsName).hasChild(p.getName()));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            Tree mps = permStore.getChild(MultiplexingPermissionProvider.getPermissionRootName(m, wsName));
+            Tree mps = permStore.getChild(MountPermissionProvider.getPermissionRootName(m, wsName));
             assertTrue(mps.hasChild(p.getName()));
         }
 
@@ -124,9 +124,35 @@ public class MultiplexingProviderTest extends AbstractSecurityTest
     }
 
     @Test
+    public void multiplexingProviderOpen() throws Exception {
+
+        Tree rootNode = root.getTree("/");
+        Tree test = TreeUtil.addChild(rootNode, testNode, JcrConstants.NT_UNSTRUCTURED);
+        Tree content = TreeUtil.addChild(test, "content", JcrConstants.NT_UNSTRUCTURED);
+        root.commit();
+
+        Principal p = getTestUser().getPrincipal();
+        setPrivileges(p, "/", true, JCR_READ);
+        setPrivileges(p, test.getPath(), false, JCR_READ);
+        setPrivileges(p, content.getPath(), true, JCR_READ);
+
+        ContentSession testSession = createTestSession();
+        try {
+            Root r = testSession.getLatestRoot();
+            assertTrue(r.getTree("/").exists());
+            assertFalse(test.getPath(), r.getTree(test.getPath()).exists());
+            assertTrue(r.getTree(content.getPath()).exists());
+        } finally {
+            testSession.close();
+        }
+    }
+
+    @Test
     public void testPermissionProviderName() {
-        assertEquals("oak.default", MultiplexingPermissionProvider.getPermissionRootName(mountInfoProvider.getDefaultMount(), "oak.default"));
-        assertEquals("oak:mount-testMount-oak.default", MultiplexingPermissionProvider.getPermissionRootName(mountInfoProvider.getMountByName("testMount"), "oak.default"));
+        assertEquals("oak.default",
+                MountPermissionProvider.getPermissionRootName(mountInfoProvider.getDefaultMount(), "oak.default"));
+        assertEquals("oak:mount-testMount-oak.default", MountPermissionProvider
+                .getPermissionRootName(mountInfoProvider.getMountByName("testMount"), "oak.default"));
     }
 
     private void setPrivileges(Principal principal, String path, boolean allow, String... privileges) throws Exception {

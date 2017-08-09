@@ -63,7 +63,8 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
         reset(root);
     }
 
-    void flush(@Nonnull Root root) {
+    @Override
+    public void flush(@Nonnull Root root) {
         principalTreeMap.clear();
         reset(root);
     }
