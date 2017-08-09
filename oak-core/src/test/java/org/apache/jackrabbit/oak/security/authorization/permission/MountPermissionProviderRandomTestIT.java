@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.composite;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -24,7 +24,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.security.authorization.permission.AbstractPermissionRandomTestIT;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -36,7 +35,7 @@ import org.junit.Assert;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 
-public class MutiplexingProviderRandomTestIT extends AbstractPermissionRandomTestIT {
+public class MountPermissionProviderRandomTestIT extends AbstractPermissionRandomTestIT {
 
     private MountInfoProvider mountInfoProvider;
 
@@ -64,7 +63,7 @@ public class MutiplexingProviderRandomTestIT extends AbstractPermissionRandomTes
         SecurityProviderImpl sp = new SecurityProviderImpl(config);
         AuthorizationConfiguration acConfig = sp.getConfiguration(AuthorizationConfiguration.class);
         PermissionProvider composite = acConfig.getPermissionProvider(root, workspaceName, principals);
-        Assert.assertTrue(composite instanceof MultiplexingPermissionProvider);
+        Assert.assertTrue(composite instanceof MountPermissionProvider);
         return composite;
     }
 }

@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.security.authorization.composite.MultiplexingPermissionProvider;
+import org.apache.jackrabbit.oak.security.authorization.permission.MountPermissionProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -72,7 +72,7 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
             permissionStore.child(workspaceName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         }
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
-            String permissionRootName =  MultiplexingPermissionProvider.getPermissionRootName(m, workspaceName);
+            String permissionRootName =  MountPermissionProvider.getPermissionRootName(m, workspaceName);
             if (!permissionStore.hasChildNode(permissionRootName)) {
                 permissionStore.child(permissionRootName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
             }
