@@ -22,6 +22,7 @@ import static java.util.Collections.emptyList;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -41,6 +42,33 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
     private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
 
+    static class DeleteOnCloseFileInputStream extends FileInputStream {
+        private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
+        
+        private File file;
+
+        public DeleteOnCloseFileInputStream(String fileName) throws FileNotFoundException {
+            this(new File(fileName));
+        }
+
+        public DeleteOnCloseFileInputStream(File file) throws FileNotFoundException {
+            super(file);
+            this.file = file;
+        }
+
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                if (file != null) {
+                    log.debug("Processing input stream finished! Deleting file {}", file.getAbsolutePath());
+                    file.delete();
+                    file = null;
+                }
+            }
+        }
+    }
+    
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         int length = in.readInt();
@@ -130,7 +158,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         if ((mask & (1 << 1)) != 0) {
             log.debug("Received entire blob {}", blobId);
 
-            FileInputStream fis = new FileInputStream(tempFile);
+            FileInputStream fis = new DeleteOnCloseFileInputStream(tempFile);
             out.add(new GetBlobResponse(null, blobId, fis, fis.getChannel().size()));
         }
     }
