@@ -91,7 +91,14 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     @Override
     public boolean isValid(String indexPath) throws IOException {
         IndexConsistencyChecker checker = new IndexConsistencyChecker(nodeStore.getRoot(), indexPath, workDir);
-        return checker.check(IndexConsistencyChecker.Level.BLOBS_ONLY).clean;
+
+        boolean result = false;
+        try{
+            result = checker.check(IndexConsistencyChecker.Level.BLOBS_ONLY).clean;
+        } catch (Exception e) {
+            log.warn("Error occurred while performing consistency check for {}", indexPath, e);
+        }
+        return result;
     }
 
     private void computeAsyncIndexInfo(NodeState idxState, String indexPath, LuceneIndexInfo info) {

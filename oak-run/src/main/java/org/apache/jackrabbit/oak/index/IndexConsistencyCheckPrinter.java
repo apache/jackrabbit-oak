@@ -75,6 +75,7 @@ class IndexConsistencyCheckPrinter implements InventoryPrinter {
                 }
                 System.out.printf("%s => %s%n", indexPath, result.clean ? "valid" : "invalid <==");
             } catch (Exception e) {
+                invalidIndexes.add(indexPath);
                 pw.printf("Error occurred while performing consistency check for index [%s]%n", indexPath);
                 e.printStackTrace(pw);
             }
