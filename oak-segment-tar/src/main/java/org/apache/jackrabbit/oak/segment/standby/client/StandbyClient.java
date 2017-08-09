@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
+import java.io.InputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -117,10 +118,7 @@ class StandbyClient implements AutoCloseable {
 
                         p.addLast(new SnappyFramedDecoder(true));
 
-                        // Such a big max frame length is needed because blob
-                        // values are sent in one big message. In future
-                        // versions of the protocol, sending binaries in chunks
-                        // should be considered instead.
+                        // The frame length limits the chunk size to max. 2.2GB
 
                         p.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4));
                         p.addLast(new ResponseDecoder());
@@ -189,7 +187,7 @@ class StandbyClient implements AutoCloseable {
     }
 
     @Nullable
-    byte[] getBlob(String blobId) throws InterruptedException {
+    InputStream getBlob(String blobId) throws InterruptedException {
         channel.writeAndFlush(new GetBlobRequest(clientId, blobId));
 
         GetBlobResponse response = blobQueue.poll(readTimeoutMs, TimeUnit.MILLISECONDS);
@@ -198,7 +196,7 @@ class StandbyClient implements AutoCloseable {
             return null;
         }
 
-        return response.getBlobData();
+        return response.getInputStream();
     }
 
     @Nullable

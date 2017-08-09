@@ -101,7 +101,7 @@ public class CommunicationObserver {
         partnerDetails.put(client, m);
     }
 
-    public void didSendBinariesBytes(String client, int size) {
+    public void didSendBinariesBytes(String client, long size) {
         log.debug("Binary with size {} sent to client {}", size, client);
         CommunicationPartnerMBean m = partnerDetails.get(client);
         m.onBinarySent(size);

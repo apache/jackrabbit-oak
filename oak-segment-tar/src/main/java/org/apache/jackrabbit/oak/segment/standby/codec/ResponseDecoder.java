@@ -20,6 +20,11 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public class ResponseDecoder extends ByteToMessageDecoder {
 
+    private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
     private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
 
     @Override
@@ -87,25 +93,46 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         out.add(new GetSegmentResponse(null, segmentId, data));
     }
 
-    private static void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) {
-        int blobIdLength = in.readInt();
+    private static void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) throws IOException {
+        byte mask = in.readByte();
 
+        int blobIdLength = in.readInt();
         byte[] blobIdBytes = new byte[blobIdLength];
         in.readBytes(blobIdBytes);
-
         String blobId = new String(blobIdBytes, Charsets.UTF_8);
+        File tempFile = new File(TMP_DIR, blobId + ".tmp");
+        
+        // START_CHUNK flag enabled
+        if ((mask & (1 << 0)) != 0) {
+            if (tempFile.exists()) {
+                log.debug("Detected previous incomplete transfer for {}. Cleaning up...", blobId);
+                tempFile.delete();
+            }
+        }
 
         long hash = in.readLong();
 
-        byte[] blobData = new byte[length - 1 - 4 - blobIdBytes.length - 8];
-        in.readBytes(blobData);
+        log.debug("Received chunk of size {} from blob {} ", in.readableBytes(), blobId);
+        byte[] chunkData = new byte[in.readableBytes()];
+        in.readBytes(chunkData);
 
-        if (hash(blobData) != hash) {
-            log.debug("Invalid checksum, discarding blob {}", blobId);
+        if (hash(mask, chunkData) != hash) {
+            log.debug("Invalid checksum, discarding current chunk from {}", blobId);
             return;
+        } else {
+            log.debug("All checks OK. Appending chunk to disk to {} ", tempFile.getAbsolutePath());
+            OutputStream outStream = new FileOutputStream(tempFile, true);
+            outStream.write(chunkData);
+            outStream.close();
         }
 
-        out.add(new GetBlobResponse(null, blobId, blobData));
+        // END_CHUNK flag enabled
+        if ((mask & (1 << 1)) != 0) {
+            log.debug("Received entire blob {}", blobId);
+
+            FileInputStream fis = new FileInputStream(tempFile);
+            out.add(new GetBlobResponse(null, blobId, fis, fis.getChannel().size()));
+        }
     }
 
     private static void decodeGetReferencesResponse(int length, ByteBuf in, List<Object> out) {
@@ -139,4 +166,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
     }
 
+    private static long hash(byte mask, byte[] data) {
+        return Hashing.murmur3_32().newHasher().putByte(mask).putBytes(data).hash().padToLong();
+    }
+    
 }

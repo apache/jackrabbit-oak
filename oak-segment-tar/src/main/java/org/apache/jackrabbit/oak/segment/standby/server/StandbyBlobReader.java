@@ -17,8 +17,11 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
+import java.io.InputStream;
+
 interface StandbyBlobReader {
 
-    byte[] readBlob(String blobId);
-
+    InputStream readBlob(String blobId);
+    
+    long getBlobLength(String blobId);
 }
