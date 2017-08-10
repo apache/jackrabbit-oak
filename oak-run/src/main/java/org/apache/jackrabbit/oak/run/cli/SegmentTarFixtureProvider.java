@@ -46,6 +46,11 @@ class SegmentTarFixtureProvider {
         String path = options.getOptionBean(CommonOptions.class).getStoreArg();
         FileStoreBuilder builder = fileStoreBuilder(new File(path)).withMaxFileSize(256);
 
+        FileStoreBuilderCustomizer customizer = getService(wb, FileStoreBuilderCustomizer.class);
+        if (customizer != null) {
+            customizer.customize(builder);
+        }
+
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
