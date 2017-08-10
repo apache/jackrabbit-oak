@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -128,8 +129,6 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
         assertEquals("Hack purge must not purge any blob (second commit)",
             secondCommitNumChunks, hackPurgeNumChunks);
 
-        List<String> beforeDeletionIds = newArrayList(blobStore.getAllChunkIds(-1));
-
         adbc.purgeBlobsDeleted(time, blobStore);
         adbc.getBlobDeletionCallback();
         long firstGCNumChunks = blobStore.numChunks;
@@ -138,24 +137,18 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
         assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
         assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
 
-        List<String> afterDeletionIds = newArrayList(blobStore.getAllChunkIds(-1));
-
-        assertTrackedDeleted(beforeDeletionIds, afterDeletionIds, blobStore);
+        assertTrackedDeleted(blobStore.getAllChunkIds(-1), blobStore);
     }
 
-    private static void assertTrackedDeleted(List<String> beforeDeletionIds,
-        List<String> afterDeletionIds,
+    private static void assertTrackedDeleted(Iterator<String> afterDeletions,
         GarbageCollectableBlobStore blobStore) throws IOException {
 
+        List<String> afterDeletionIds = newArrayList(afterDeletions);
         // get the currently tracked ones
         ArrayList<String> trackedIds = newArrayList(((BlobTrackingStore) blobStore).getTracker().get());
+        assertEquals("Tracked ids length different from current blob list",
+            trackedIds.size(), afterDeletionIds.size());
         assertTrue("Tracked ids different from current blob list",
             newHashSet(trackedIds).equals(newHashSet(afterDeletionIds)));
-
-        // get the deleted ones
-        beforeDeletionIds.removeAll(afterDeletionIds);
-        // tracked should not contain the deleted
-        assertTrue("Blob tracker not synced",
-            intersection(newHashSet(beforeDeletionIds), newHashSet(trackedIds)).isEmpty());
     }
 }
