@@ -66,6 +66,7 @@ public class NRTIndexTest {
     public void setUp() throws IOException {
         indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
         indexFactory = new NRTIndexFactory(indexCopier, StatisticsProvider.NOOP);
+        indexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexEditorContext.configureUniqueId(builder);
     }
 

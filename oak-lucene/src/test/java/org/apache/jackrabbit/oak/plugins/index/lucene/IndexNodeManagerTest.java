@@ -54,7 +54,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
-public class IndexNodeTest {
+public class IndexNodeManagerTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -81,20 +81,23 @@ public class IndexNodeTest {
 
     @Test
     public void nullIndexNode() throws Exception{
-        assertNull(IndexNode.open("/foo", root, builder.getNodeState(), readerFactory, null));
-        assertNull(IndexNode.open("/foo", root, builder.getNodeState(), readerFactory, nrtFactory));
+        assertNull(IndexNodeManager.open("/foo", root, builder.getNodeState(), readerFactory, null));
+        assertNull(IndexNodeManager.open("/foo", root, builder.getNodeState(), readerFactory, nrtFactory));
     }
 
     @Test
     public void nonNullIndex_OnlyNRT() throws Exception{
-        IndexNode node = IndexNode.open("/foo", root, createNRTIndex(), readerFactory, nrtFactory);
+        IndexNodeManager nodeManager = IndexNodeManager.open("/foo", root, createNRTIndex(), readerFactory, nrtFactory);
+        IndexNode node = nodeManager.acquire();
         assertNotNull(node.getSearcher());
         TopDocs docs = node.getSearcher().search(new TermQuery(new Term(PATH, "/content/en")), 100);
         assertEquals(0, docs.totalHits);
+        node.release();
 
         node.getLocalWriter().updateDocument("/content/en", newDoc("/content/en"));
         node.refreshReadersOnWriteIfRequired();
 
+        node = nodeManager.acquire();
         docs = node.getSearcher().search(new TermQuery(new Term(PATH, "/content/en")), 100);
         assertEquals(1, docs.totalHits);
     }
@@ -103,8 +106,8 @@ public class IndexNodeTest {
     public void nullIndex_NonFreshIndex() throws Exception{
         NodeBuilder builder = createNRTIndex().builder();
         NodeBuilder rootBuilder = root.builder();
-        rootBuilder.child(IndexNode.ASYNC);
-        assertNull(IndexNode.open("/foo", rootBuilder.getNodeState(), builder.getNodeState(), readerFactory, nrtFactory));
+        rootBuilder.child(IndexNodeManager.ASYNC);
+        assertNull(IndexNodeManager.open("/foo", rootBuilder.getNodeState(), builder.getNodeState(), readerFactory, nrtFactory));
     }
 
     @Test
@@ -114,7 +117,7 @@ public class IndexNodeTest {
         NRTIndex nrtIndex = nrtFactory.createIndex(definition);
         NRTIndex mock = spy(nrtIndex);
         doReturn(new FailingPolicy()).when(mock).getRefreshPolicy();
-        IndexNode node = new IndexNode("/foo", definition, Collections.<LuceneIndexReader>emptyList(), mock);
+        IndexNodeManager node = new IndexNodeManager("/foo", definition, Collections.<LuceneIndexReader>emptyList(), mock);
 
         try {
             node.acquire();
