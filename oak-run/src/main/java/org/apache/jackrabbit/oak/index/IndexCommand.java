@@ -22,16 +22,22 @@ package org.apache.jackrabbit.oak.index;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
@@ -139,12 +145,28 @@ public class IndexCommand implements Command {
     private IndexHelper createIndexHelper(NodeStoreFixture fixture,
                                           IndexOptions indexOpts, Closer closer) throws IOException {
         IndexHelper indexHelper = new IndexHelper(fixture.getStore(), fixture.getBlobStore(), fixture.getWhiteboard(),
-                indexOpts.getOutDir(),  indexOpts.getWorkDir(), indexOpts.getIndexPaths());
+                indexOpts.getOutDir(),  indexOpts.getWorkDir(), computeIndexPaths(indexOpts));
 
         configurePreExtractionSupport(indexOpts, indexHelper);
 
         closer.register(indexHelper);
         return indexHelper;
+    }
+
+    private List<String> computeIndexPaths(IndexOptions indexOpts) throws IOException {
+        //Combine the indexPaths from json and cli args
+        Set<String> indexPaths = new LinkedHashSet<>(indexOpts.getIndexPaths());
+        File definitions = indexOpts.getIndexDefinitionsFile();
+        if (definitions != null) {
+            IndexDefinitionUpdater updater = new IndexDefinitionUpdater(definitions);
+            Set<String> indexPathsFromJson = updater.getIndexPaths();
+            Set<String> diff = Sets.difference(indexPathsFromJson, indexPaths);
+            if (!diff.isEmpty()){
+                log.info("Augmenting the indexPaths with {} which are present in {}", diff, definitions);
+            }
+            indexPaths.addAll(indexPathsFromJson);
+        }
+        return new ArrayList<>(indexPaths);
     }
 
     private void configurePreExtractionSupport(IndexOptions indexOpts, IndexHelper indexHelper) throws IOException {
