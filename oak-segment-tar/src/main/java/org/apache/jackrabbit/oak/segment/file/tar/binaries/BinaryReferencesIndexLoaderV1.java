@@ -33,7 +33,7 @@ class BinaryReferencesIndexLoaderV1 {
 
     static final int MAGIC = ('\n' << 24) + ('0' << 16) + ('B' << 8) + '\n';
 
-    private static final int FOOTER_SIZE = 16;
+    static final int FOOTER_SIZE = 16;
 
     static BinaryReferencesIndex loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
         ByteBuffer meta = reader.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
@@ -56,11 +56,9 @@ class BinaryReferencesIndexLoaderV1 {
         ByteBuffer buffer = reader.readAtEnd(size, size - FOOTER_SIZE);
 
         CRC32 checksum = new CRC32();
-        byte[] data = new byte[size - FOOTER_SIZE];
         buffer.mark();
-        buffer.get(data);
+        checksum.update(buffer);
         buffer.reset();
-        checksum.update(data);
 
         if ((int) (checksum.getValue()) != crc32) {
             throw new InvalidBinaryReferencesIndexException("Invalid checksum");
