@@ -33,7 +33,7 @@ class BinaryReferencesIndexLoaderV2 {
 
     static final int MAGIC = ('\n' << 24) + ('1' << 16) + ('B' << 8) + '\n';
 
-    private static final int FOOTER_SIZE = 16;
+    static final int FOOTER_SIZE = 16;
 
     static BinaryReferencesIndex loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
         ByteBuffer meta = reader.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);

@@ -56,4 +56,14 @@ class Generation {
         return Objects.hash(generation, full, compacted);
     }
 
+    @Override
+    public String toString() {
+        return String.format(
+            "Generation{generation=%d, full=%d, compacted=%s}",
+            generation,
+            full,
+            compacted
+        );
+    }
+
 }
