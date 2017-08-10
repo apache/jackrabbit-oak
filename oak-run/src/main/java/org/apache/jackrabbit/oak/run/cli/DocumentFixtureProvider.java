@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import java.net.UnknownHostException;
+import java.io.IOException;
 
 import javax.sql.DataSource;
 
@@ -46,9 +46,14 @@ class DocumentFixtureProvider {
                                          BlobStore blobStore,
                                          Whiteboard wb,
                                          Closer closer,
-                                         boolean readOnly) throws UnknownHostException {
+                                         boolean readOnly) throws IOException {
         DocumentMK.Builder builder = new DocumentMK.Builder();
         StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
+
+        DocumentBuilderCustomizer customizer = getService(wb, DocumentBuilderCustomizer.class);
+        if (customizer != null) {
+            customizer.customize(builder);
+        }
 
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
