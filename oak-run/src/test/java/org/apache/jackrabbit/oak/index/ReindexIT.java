@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -64,6 +65,11 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class ReindexIT extends AbstractIndexCommandTest {
+
+    @Before
+    public void setUp() {
+        IndexCommand.setDisableExitOnError(true);
+    }
 
     @Test
     public void reindexOutOfBand() throws Exception{

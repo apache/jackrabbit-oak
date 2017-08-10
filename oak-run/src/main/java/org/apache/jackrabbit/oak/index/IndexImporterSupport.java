@@ -29,10 +29,12 @@ import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock;
 import org.apache.jackrabbit.oak.plugins.index.importer.ClusterNodeStoreLock;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexImporter;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import static java.util.Collections.singletonList;
 
 class IndexImporterSupport {
     private final IndexHelper indexHelper;
@@ -63,9 +65,13 @@ class IndexImporterSupport {
     }
 
     private IndexEditorProvider createIndexEditorProvider() throws IOException {
-        IndexEditorProvider lucene = createLuceneEditorProvider();
+        MountInfoProvider mip = indexHelper.getMountInfoProvider();
         //Later we can add support for property index and other indexes here
-        return CompositeIndexEditorProvider.compose(singletonList(lucene));
+        return new CompositeIndexEditorProvider(
+                createLuceneEditorProvider(),
+                new PropertyIndexEditorProvider().with(mip),
+                new ReferenceEditorProvider().with(mip)
+        );
     }
 
     private IndexEditorProvider createLuceneEditorProvider() throws IOException {

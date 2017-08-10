@@ -58,7 +58,7 @@ final class NodeStoreUtils {
                                          IndexEditorProvider indexEditorProvider) throws CommitFailedException {
         CompositeHook hooks = new CompositeHook(
                 ResetCommitAttributeHook.INSTANCE,
-                new EditorHook(new IndexUpdateProvider(indexEditorProvider)),
+                new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
         );

@@ -58,6 +58,7 @@ public class IndexCommand implements Command {
     private File consistencyCheckReport;
     private Options opts;
     private IndexOptions indexOpts;
+    private static boolean disableExitOnError;
 
     @Override
     public void execute(String... args) throws Exception {
@@ -93,6 +94,9 @@ public class IndexCommand implements Command {
         } catch (Throwable e) {
             log.error("Error occurred while performing index tasks", e);
             e.printStackTrace(System.err);
+            if (disableExitOnError) {
+                throw e;
+            }
         } finally {
             shutdownLogging();
         }
@@ -100,6 +104,10 @@ public class IndexCommand implements Command {
         if (!success) {
             System.exit(1);
         }
+    }
+
+    public static void setDisableExitOnError(boolean disableExitOnError) {
+        IndexCommand.disableExitOnError = disableExitOnError;
     }
 
     private void tellReportPaths() {
