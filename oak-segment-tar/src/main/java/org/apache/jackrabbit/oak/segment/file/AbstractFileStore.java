@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -207,7 +209,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        GCGeneration generation = Segment.getGcGeneration(buffer, id);
+        GCGeneration generation = Segment.getGcGeneration(newSegmentData(buffer), id);
         w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
             Segment segment = new Segment(tracker, segmentReader, tracker.newSegmentId(msb, lsb), buffer);
