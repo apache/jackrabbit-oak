@@ -55,9 +55,6 @@ repository content
 
     java -jar oak-run <command> /path/to/segmentstore
     
-For setups prior to Oak 1.6 (which used older segment support) you would need to pass `--segment` option
-otherwise connection would fail
-
 If `--read-write` option is enabled then it must be ensured that target repository is not in use. Otherwise
 oak-run would not be able access the NodeStore.
     
