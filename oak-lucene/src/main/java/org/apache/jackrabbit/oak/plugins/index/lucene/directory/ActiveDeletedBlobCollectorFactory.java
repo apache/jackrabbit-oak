@@ -16,12 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -31,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -161,6 +168,21 @@ public class ActiveDeletedBlobCollectorFactory {
             long numBlobsDeleted = 0;
             long numChunksDeleted = 0;
 
+            File idTempDeleteFile = null;
+            BufferedWriter idTempDeleteWriter = null;
+            // If blob store support blob tracking
+            boolean blobIdsTracked = blobStore instanceof BlobTrackingStore;
+
+            if (blobIdsTracked) {
+                try {
+                    idTempDeleteFile = File.createTempFile("idTempDelete", null, rootDirectory);
+                    idTempDeleteWriter = Files.newWriter(idTempDeleteFile, Charsets.UTF_8);
+                } catch (Exception e) {
+                    LOG.warn("Unable to open a writer to a temp file, will ignore tracker sync");
+                    blobIdsTracked = false;
+                }
+            }
+
             long lastCheckedBlobTimestamp = readLastCheckedBlobTimestamp();
             String currInUseFileName = deletedBlobsFileWriter.inUseFileName;
             deletedBlobsFileWriter.releaseInUseFile();
@@ -204,6 +226,13 @@ public class ActiveDeletedBlobCollectorFactory {
                                         } else {
                                             numBlobsDeleted++;
                                             numChunksDeleted += deleted;
+
+                                            if (blobIdsTracked) {
+                                                // Save deleted chunkIds to a temporary file
+                                                for (String id : chunkIds) {
+                                                    FileIOUtils.writeAsLine(idTempDeleteWriter, id, true);
+                                                }
+                                            }
                                         }
                                     }
                                 } catch (NumberFormatException nfe) {
@@ -230,6 +259,21 @@ public class ActiveDeletedBlobCollectorFactory {
                     LOG.debug("Skipping {} as its timestamp is newer than {}", deletedBlobListFile.getName(), before);
                 }
             }
+
+            // Synchronize deleted blob ids with the blob id tracker
+            try {
+                Closeables.close(idTempDeleteWriter, true);
+
+                if (blobIdsTracked && numBlobsDeleted > 0) {
+                    BlobTracker tracker = ((BlobTrackingStore) blobStore).getTracker();
+                    if (tracker != null) {
+                        tracker.remove(idTempDeleteFile);
+                    }
+                }
+            } catch(Exception e) {
+                LOG.warn("Error refreshing tracked blob ids", e);
+            }
+
             LOG.info("Deleted {} blobs contained in {} chunks", numBlobsDeleted, numChunksDeleted);
             writeOutLastCheckedBlobTimestamp(before);
         }
