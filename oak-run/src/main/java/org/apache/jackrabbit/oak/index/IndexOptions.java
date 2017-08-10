@@ -87,7 +87,7 @@ public class IndexOptions implements OptionsBean {
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1);
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
-        reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths").availableIf("index-paths");
+        reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
 
         importIndex = parser.accepts("index-import", "Imports index");
 

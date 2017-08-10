@@ -287,7 +287,6 @@ public class ReindexIT extends AbstractIndexCommandTest {
         String[] args = {
                 "--index-temp-dir=" + temporaryFolder.newFolder().getAbsolutePath(),
                 "--index-out-dir="  + outDir.getAbsolutePath(),
-                "--index-paths=/oak:index/barIndex",
                 "--index-definitions-file=" + jsonFile.getAbsolutePath(),
                 "--reindex",
                 "--read-write",
