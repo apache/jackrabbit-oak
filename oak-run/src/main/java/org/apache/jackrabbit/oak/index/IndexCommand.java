@@ -39,16 +39,19 @@ import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
+import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyMap;
 
 public class IndexCommand implements Command {
     private static final Logger log = LoggerFactory.getLogger(IndexCommand.class);
@@ -90,6 +93,7 @@ public class IndexCommand implements Command {
                 performReindexInReadWriteMode(indexOpts);
             } else {
                 try (Closer closer = Closer.create()) {
+                    configureCustomizer(opts, closer, true);
                     NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
                     closer.register(fixture);
                     execute(fixture, indexOpts, closer);
@@ -237,6 +241,7 @@ public class IndexCommand implements Command {
 
     private File performReindexInReadOnlyMode(IndexOptions indexOpts, String checkpoint) throws Exception {
         try (Closer closer = Closer.create()) {
+            configureCustomizer(opts, closer, true);
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts, true);
             closer.register(fixture);
             IndexHelper indexHelper = createIndexHelper(fixture, indexOpts, closer);
@@ -261,6 +266,7 @@ public class IndexCommand implements Command {
 
     private void connectInReadWriteModeAndImportIndex(IndexOptions indexOpts, File indexDir) throws Exception {
         try (Closer closer = Closer.create()) {
+            configureCustomizer(opts, closer, false);
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
             closer.register(fixture);
             IndexHelper indexHelper = createIndexHelper(fixture, indexOpts, closer);
@@ -349,5 +355,16 @@ public class IndexCommand implements Command {
 
     static Path getPath(File file) {
         return file.toPath().normalize().toAbsolutePath();
+    }
+
+    private static void configureCustomizer(Options opts, Closer closer, boolean readOnlyAccess) {
+        if (opts.getCommonOpts().isDocument()){
+            IndexOptions indexOpts = opts.getOptionBean(IndexOptions.class);
+            if (indexOpts.isReindex()) {
+                IndexDocumentBuilderCustomizer customizer = new IndexDocumentBuilderCustomizer(opts, readOnlyAccess);
+                Registration reg = opts.getWhiteboard().register(DocumentBuilderCustomizer.class, customizer, emptyMap());
+                closer.register(reg::unregister);
+            }
+        }
     }
 }
