@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,8 +50,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.NRTCachingDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +75,7 @@ public class NRTIndex implements Closeable {
     private final TimerStats refreshTimer;
     private final HistogramStats sizeHisto;
     private final TimerStats.Context openTime;
+    private final NRTDirectoryFactory directoryFactory;
 
     private NRTIndex previous;
 
@@ -85,15 +86,22 @@ public class NRTIndex implements Closeable {
     private DirectoryReader dirReader;
     private boolean closed;
     private List<LuceneIndexReader> readers;
+    private final List<IndexReader> openedReaders;
+    private final boolean assertAllReadersClosed;
+
 
     public NRTIndex(IndexDefinition definition, IndexCopier indexCopier,
                     IndexUpdateListener refreshPolicy, @Nullable NRTIndex previous,
-                    StatisticsProvider statisticsProvider) {
+                    StatisticsProvider statisticsProvider, NRTDirectoryFactory directoryFactory,
+                    boolean assertAllReadersClosed) {
         this.definition = definition;
         this.indexCopier = indexCopier;
         this.refreshPolicy = refreshPolicy;
         this.previous = previous;
         this.statisticsProvider = statisticsProvider;
+        this.directoryFactory = directoryFactory;
+        this.assertAllReadersClosed = assertAllReadersClosed;
+        this.openedReaders = assertAllReadersClosed ? new LinkedList<IndexReader>() : Collections.<IndexReader>emptyList();
 
         this.refreshTimer = statisticsProvider.getTimer(metricName("REFRESH_TIME"), StatsOptions.METRICS_ONLY);
         this.sizeHisto = statisticsProvider.getHistogram(metricName("SIZE"), StatsOptions.METRICS_ONLY);
@@ -102,8 +110,12 @@ public class NRTIndex implements Closeable {
 
     @CheckForNull
     LuceneIndexReader getPrimaryReader() {
-        DirectoryReader reader = createReader();
-        return reader != null ? new NRTReader(reader, directory) : null;
+        DirectoryReader latestReader = createReader();
+        if (latestReader != dirReader) {
+            decrementReaderUseCount(dirReader);
+            dirReader = latestReader;
+        }
+        return latestReader != null ? new NRTReader(latestReader, directory) : null;
     }
 
     public LuceneIndexWriter getWriter() throws IOException {
@@ -137,6 +149,9 @@ public class NRTIndex implements Closeable {
         if (previousReader != null) {
             newReaders.add(previousReader);
         }
+
+        decrementReaderUseCount(dirReader);
+
         dirReader = latestReader;
         readers = ImmutableList.copyOf(newReaders);
         return readers;
@@ -150,6 +165,15 @@ public class NRTIndex implements Closeable {
         if (closed) {
             return;
         }
+
+        log.debug("[{}] Closing NRTIndex [{}]", definition.getIndexPath(), getName());
+
+        if (dirReader != null){
+            dirReader.close();
+        }
+
+        assertAllReadersAreClosed();
+
         if (indexWriter != null) {
             //TODO Close call can possibly be speeded up by
             //avoiding merge and dropping stuff in memory. To be explored
@@ -178,12 +202,36 @@ public class NRTIndex implements Closeable {
 
     @Override
     public String toString() {
-        return definition.getIndexPath();
+        return String.format("%s (%s)", definition.getIndexPath(), getName());
     }
 
     //For test
     File getIndexDir() {
         return indexDir;
+    }
+
+    private String getName(){
+        return indexDir != null ? indexDir.getName() : "UNKNOWN";
+    }
+
+    private void assertAllReadersAreClosed() {
+        for (IndexReader r : openedReaders){
+            if (r.getRefCount() != 0){
+                String msg = String.format("Unclosed reader found with refCount %d for index %s", r.getRefCount(), toString());
+                throw new IllegalStateException(msg);
+            }
+        }
+    }
+
+    private void decrementReaderUseCount(IndexReader reader) {
+        try {
+            if (reader != null) {
+                reader.decRef();
+            }
+        } catch (IOException e) {
+            log.warn("[{}] Error occurred while releasing reader instance {}",
+                    definition.getIndexPath(), toString(), e);
+        }
     }
 
     /**
@@ -212,6 +260,11 @@ public class NRTIndex implements Closeable {
                 }
             }
             ctx.stop();
+
+            if (assertAllReadersClosed && result != null && result != dirReader) {
+                openedReaders.add(result);
+            }
+
             return result;
         } catch (IOException e) {
             log.warn("Error opening index [{}]", e);
@@ -222,9 +275,7 @@ public class NRTIndex implements Closeable {
     private synchronized NRTIndexWriter createWriter() throws IOException {
         String dirName = generateDirName();
         indexDir = indexCopier.getIndexDir(definition, definition.getIndexPath(), dirName);
-        Directory fsdir = FSDirectory.open(indexDir);
-        //TODO make these configurable
-        directory = new NRTCachingDirectory(fsdir, 1, 1);
+        directory = directoryFactory.createNRTDir(definition, indexDir);
         IndexWriterConfig config = IndexWriterUtils.getIndexWriterConfig(definition, false);
 
         //TODO Explore following for optimizing indexing speed
@@ -232,6 +283,7 @@ public class NRTIndex implements Closeable {
         //config.setRAMBufferSizeMB(1024*1024*25);
 
         indexWriter = new IndexWriter(directory, config);
+        log.debug("[{}] Created NRTIndex [{}]", definition.getIndexPath(), getName());
         return new NRTIndexWriter(indexWriter);
     }
 

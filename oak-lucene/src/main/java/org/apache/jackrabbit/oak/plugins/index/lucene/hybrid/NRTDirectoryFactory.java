@@ -17,41 +17,15 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.lucene;
+package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
-import javax.annotation.CheckForNull;
-
-import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.lucene.store.Directory;
 
-public interface IndexNode {
+interface NRTDirectoryFactory {
 
-    void release();
-
-    IndexSearcher getSearcher();
-
-    IndexDefinition getDefinition();
-
-    List<LuceneIndexReader> getPrimaryReaders();
-
-    @CheckForNull
-    Directory getSuggestDirectory();
-
-    List<LuceneIndexReader> getNRTReaders();
-
-    @CheckForNull
-    AnalyzingInfixSuggester getLookup();
-
-    int getIndexNodeId();
-
-    @CheckForNull
-    LuceneIndexWriter getLocalWriter() throws IOException;
-
-    void refreshReadersOnWriteIfRequired();
+    Directory createNRTDir(IndexDefinition definition, File indexDir) throws IOException;
 }

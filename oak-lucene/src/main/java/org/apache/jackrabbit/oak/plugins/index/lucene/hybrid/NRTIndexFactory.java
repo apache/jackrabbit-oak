@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,9 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.NRTCachingDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +56,8 @@ public class NRTIndexFactory implements Closeable{
     private final Clock clock;
     private final long refreshDeltaInSecs;
     private final StatisticsProvider statisticsProvider;
+    private NRTDirectoryFactory directoryFactory = DefaultNRTDirFactory.INSTANCE;
+    private boolean assertAllResourcesClosed = Boolean.getBoolean("oak.lucene.assertAllResourcesClosed");
 
     public NRTIndexFactory(IndexCopier indexCopier, StatisticsProvider statisticsProvider) {
         this(indexCopier, Clock.SIMPLE, REFRESH_DELTA_IN_SECS, statisticsProvider);
@@ -75,7 +81,7 @@ public class NRTIndexFactory implements Closeable{
         }
         String indexPath = definition.getIndexPath();
         NRTIndex current = new NRTIndex(definition, indexCopier, getRefreshPolicy(definition),
-                getPrevious(indexPath), statisticsProvider);
+                getPrevious(indexPath), statisticsProvider, directoryFactory, assertAllResourcesClosed);
         indexes.put(indexPath, current);
         closeLast(indexPath);
         return current;
@@ -91,6 +97,18 @@ public class NRTIndexFactory implements Closeable{
 
     List<NRTIndex> getIndexes(String path){
         return indexes.get(path);
+    }
+
+    public void setDirectoryFactory(NRTDirectoryFactory directoryFactory) {
+        this.directoryFactory = directoryFactory;
+    }
+
+    /**
+     * Test mode upon which enables assertions to confirm that all readers are closed
+     * by the time NRTIndex is closed
+     */
+    public void setAssertAllResourcesClosed(boolean assertAllResourcesClosed) {
+        this.assertAllResourcesClosed = assertAllResourcesClosed;
     }
 
     private void closeLast(String indexPath) {
@@ -121,5 +139,16 @@ public class NRTIndexFactory implements Closeable{
             //return new RefreshOnReadPolicy(clock, TimeUnit.SECONDS, refreshDeltaInSecs);
         }
         return new TimedRefreshPolicy(clock, TimeUnit.SECONDS, refreshDeltaInSecs);
+    }
+
+    private enum DefaultNRTDirFactory implements NRTDirectoryFactory {
+        INSTANCE;
+
+        @Override
+        public Directory createNRTDir(IndexDefinition definition, File indexDir) throws IOException {
+            Directory fsdir = FSDirectory.open(indexDir);
+            //TODO make these configurable
+            return new NRTCachingDirectory(fsdir, 1, 1);
+        }
     }
 }
