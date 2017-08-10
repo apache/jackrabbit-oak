@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -29,6 +30,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -62,10 +64,26 @@ public class NodeStoreFixtureProvider {
         } else if (commonOpts.isOldSegment()) {
             store = SegmentFixtureProvider.create(options, blobStore, wb, closer, readOnly);
         } else {
-            store = SegmentTarFixtureProvider.configureSegment(options, blobStore, wb, closer, readOnly);
+            try {
+                store = SegmentTarFixtureProvider.configureSegment(options, blobStore, wb, closer, readOnly);
+            } catch (InvalidFileStoreVersionException e) {
+                if (oldSegmentStore(options)) {
+                    store = SegmentFixtureProvider.create(options, blobStore, wb, closer, readOnly);
+                } else {
+                    throw e;
+                }
+            }
         }
 
         return new SimpleNodeStoreFixture(store, blobStore, wb, closer);
+    }
+
+    private static boolean oldSegmentStore(Options options) {
+        String path = options.getOptionBean(CommonOptions.class).getStoreArg();
+        File dir = new File(path);
+        // manifest file was introduced with oak-segment-tar
+        File manifest = new File(dir, "manifest");
+        return !manifest.exists();
     }
 
     private static StatisticsProvider createStatsProvider(Options options, Whiteboard wb, Closer closer) {
