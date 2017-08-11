@@ -22,15 +22,32 @@ package org.apache.jackrabbit.oak.exporter;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Set;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * Writes nodes in CND format
+ *
+ * <pre>
+ *       + projects
+ *          - jcr:primaryType = "sling:OrderedFolder"
+ *          - jcr:mixinTypes = ["rep:AccessControllable"]
+ *          - jcr:createdBy = "admin"
+ *          - jcr:created = "2017-01-26T08:02:08.602+05:30"
+ *          - sling:resourceType = "sling/projects"
+ *          + rep:policy
+ *            - jcr:primaryType = "rep:ACL"
+ * </pre>
+ */
 class CNDStreamWriter implements JsopWriter, Closeable {
+    private static final Set<String> COMMON_TYPE_CODES = ImmutableSet.of("nam:", "dat:");
     private enum State {NONE, STARTED, BEGIN, END}
     private final PrintWriter w;
     private State arrayState = State.NONE;
@@ -99,7 +116,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     @Override
     public JsopWriter value(String value) {
-        return encodedValue(JsopBuilder.encode(value));
+        return encodedValue(JsopBuilder.encode(stripTypeCode(value)));
     }
 
     @Override
@@ -148,10 +165,22 @@ class CNDStreamWriter implements JsopWriter, Closeable {
     }
 
     private void optionalResetArrayState() {
+        //Check that not within array
         checkState(arrayState == State.END || arrayState == State.NONE);
         if (arrayState == State.END) {
             arrayState = State.NONE;
         }
+    }
+
+    private static String stripTypeCode(String value) {
+        if (value != null) {
+            for (String code : COMMON_TYPE_CODES){
+                if (value.startsWith(code)){
+                    return value.substring(code.length());
+                }
+            }
+        }
+        return value;
     }
 
     //Unsupported operation. These are also not used by JsonSerializer
