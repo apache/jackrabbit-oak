@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.exporter;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import com.google.gson.stream.JsonWriter;
@@ -27,7 +28,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 /**
  * A streaming JsopWriter which uses gson JsonWriter
  */
-class JsopStreamWriter implements JsopWriter {
+class JsopStreamWriter implements JsopWriter, Closeable {
     private final JsonWriter w;
 
     public JsopStreamWriter(JsonWriter w) {
@@ -77,14 +78,7 @@ class JsopStreamWriter implements JsopWriter {
     @Override
     public JsopWriter encodedValue(String raw) {
         try {
-            //EncodedValue call is used in JsonSerializer for
-            //double values
-            try {
-                double d = Double.parseDouble(raw);
-                w.value(d);
-            } catch (NumberFormatException e) {
-                w.value(raw);
-            }
+            w.jsonValue(raw);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -156,5 +150,10 @@ class JsopStreamWriter implements JsopWriter {
     @Override
     public void setLineLength(int length) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void close() throws IOException {
+        w.close();
     }
 }
