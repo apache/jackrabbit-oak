@@ -84,7 +84,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -367,118 +366,6 @@ public class CompactionAndCleanupIT {
 
             assertTrue(initialRoot != compactedRoot);
             assertEquals(initialRoot, compactedRoot);
-        }
-    }
-
-    @Test
-    @Ignore("OAK-6399") // FIXME OAK-6399: this test fails because the content based binary deduplication feature is missing in Compactor
-    public void offlineCompactionBinC1() throws Exception {
-        SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
-                .withBinaryDeduplication();
-        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
-        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withGCOptions(gcOptions)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
-        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
-                .builder(fileStore).build();
-
-        try {
-            NodeBuilder extra = nodeStore.getRoot().builder();
-            NodeBuilder content = extra.child("content");
-
-            int blobSize = 5 * 1024 * 1024;
-            byte[] data = new byte[blobSize];
-            new Random().nextBytes(data);
-
-            NodeBuilder c1 = content.child("c1");
-            Blob b1 = nodeStore.createBlob(new ByteArrayInputStream(data));
-            c1.setProperty("blob1", b1);
-            NodeBuilder c2 = content.child("c2");
-            Blob b2 = nodeStore.createBlob(new ByteArrayInputStream(data));
-            c2.setProperty("blob2", b2);
-            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            fileStore.flush();
-
-            int cpNo = 4;
-            Set<String> cps = new HashSet<String>();
-            for (int i = 0; i < cpNo; i++) {
-                cps.add(nodeStore.checkpoint(60000));
-            }
-            assertEquals(cpNo, cps.size());
-            for (String cp : cps) {
-                assertTrue(nodeStore.retrieve(cp) != null);
-            }
-
-            long size1 = fileStore.getStats().getApproximateSize();
-            fileStore.compactFull();
-            fileStore.cleanup();
-            long size2 = fileStore.getStats().getApproximateSize();
-            assertSize("with compacted binaries", size2, 0, size1 - blobSize);
-        } finally {
-            fileStore.close();
-        }
-    }
-
-    /**
-     * Create 2 binary nodes with same content but not same reference. Reduce
-     * the max size if de-duplicated binaries under the binary length. Verify
-     * de-duplication capabilities of compaction.
-     */
-    @Test
-    public void offlineCompactionBinC2() throws Exception {
-        int blobSize = 5 * 1024 * 1024;
-
-        SegmentGCOptions gcOptions = defaultGCOptions().setOffline()
-                .withBinaryDeduplication()
-                .setBinaryDeduplicationMaxSize(blobSize / 2);
-        ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
-        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
-                .withMaxFileSize(1)
-                .withGCOptions(gcOptions)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
-        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders
-                .builder(fileStore).build();
-
-        try {
-            NodeBuilder extra = nodeStore.getRoot().builder();
-            NodeBuilder content = extra.child("content");
-
-            byte[] data = new byte[blobSize];
-            new Random().nextBytes(data);
-
-            NodeBuilder c1 = content.child("c1");
-            Blob b1 = nodeStore.createBlob(new ByteArrayInputStream(data));
-            c1.setProperty("blob1", b1);
-            NodeBuilder c2 = content.child("c2");
-            Blob b2 = nodeStore.createBlob(new ByteArrayInputStream(data));
-            c2.setProperty("blob2", b2);
-            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            fileStore.flush();
-
-            int cpNo = 4;
-            Set<String> cps = new HashSet<String>();
-            for (int i = 0; i < cpNo; i++) {
-                cps.add(nodeStore.checkpoint(60000));
-            }
-            assertEquals(cpNo, cps.size());
-            for (String cp : cps) {
-                assertTrue(nodeStore.retrieve(cp) != null);
-            }
-
-            long size1 = fileStore.getStats().getApproximateSize();
-            fileStore.compactFull();
-            fileStore.cleanup();
-            long size2 = fileStore.getStats().getApproximateSize();
-
-            // not expected to reduce the size too much, as the binaries are
-            // above the threshold
-            assertSize("with compacted binaries", size2, size1 * 9 / 10,
-                    size1 * 11 / 10);
-        } finally {
-            fileStore.close();
         }
     }
 
