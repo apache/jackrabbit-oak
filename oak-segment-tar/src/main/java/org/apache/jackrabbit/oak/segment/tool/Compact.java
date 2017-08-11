@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.segment.file.JournalReader;
  * Perform an offline compaction of an existing segment store.
  */
 public class Compact implements Runnable {
+    private final long logAt = Long.getLong("compaction-progress-log", 150000);
 
     /**
      * Create a builder for the {@link Compact} command.
@@ -140,7 +141,9 @@ public class Compact implements Runnable {
 
     private FileStore newFileStore() throws IOException, InvalidFileStoreVersionException {
         FileStoreBuilder fileStoreBuilder = fileStoreBuilder(path.getAbsoluteFile())
-                .withGCOptions(defaultGCOptions().setOffline());
+                .withGCOptions(defaultGCOptions()
+                    .setOffline()
+                    .setGCLogInterval(logAt));
 
         return mmap == null
             ? fileStoreBuilder.build()
