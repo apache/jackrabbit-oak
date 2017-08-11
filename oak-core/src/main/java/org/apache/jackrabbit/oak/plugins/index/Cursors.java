@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -59,11 +59,11 @@ public class Cursors {
     private Cursors() {
     }
     
-    public static Cursor newIntersectionCursor(Cursor a, Cursor b, QueryEngineSettings settings) {
+    public static Cursor newIntersectionCursor(Cursor a, Cursor b, QueryLimits settings) {
         return new IntersectionCursor(a, b, settings);
     }
 
-    public static Cursor newConcatCursor(List<Cursor> cursors, QueryEngineSettings settings) {
+    public static Cursor newConcatCursor(List<Cursor> cursors, QueryLimits settings) {
         return new ConcatCursor(cursors, settings);
     }
 
@@ -73,7 +73,7 @@ public class Cursors {
      * @param paths the paths to iterate over (must return distinct paths)
      * @return the Cursor.
      */
-    public static Cursor newPathCursor(Iterable<String> paths, QueryEngineSettings settings) {
+    public static Cursor newPathCursor(Iterable<String> paths, QueryLimits settings) {
         return new PathCursor(paths.iterator(), true, settings);
     }
 
@@ -84,7 +84,7 @@ public class Cursors {
      * @param paths the paths to iterate over (might contain duplicate entries)
      * @return the Cursor.
      */
-    public static Cursor newPathCursorDistinct(Iterable<String> paths, QueryEngineSettings settings) {
+    public static Cursor newPathCursorDistinct(Iterable<String> paths, QueryLimits settings) {
         return new PathCursor(paths.iterator(), true, settings);
     }
 
@@ -112,7 +112,7 @@ public class Cursors {
      * @param level the ancestor level. Must be {@code >= 1}.
      * @return cursor over the ancestors of <code>c</code> at <code>level</code>.
      */
-    public static Cursor newAncestorCursor(Cursor c, int level, QueryEngineSettings settings) {
+    public static Cursor newAncestorCursor(Cursor c, int level, QueryLimits settings) {
         checkNotNull(c);
         checkArgument(level >= 1);
         return new AncestorCursor(c, level, settings);
@@ -141,7 +141,7 @@ public class Cursors {
      */
     private static class AncestorCursor extends PathCursor {
 
-        public AncestorCursor(Cursor cursor, int level, QueryEngineSettings settings) {
+        public AncestorCursor(Cursor cursor, int level, QueryLimits settings) {
             super(transform(cursor, level), true, settings);
         }
 
@@ -177,7 +177,7 @@ public class Cursors {
 
         private final Iterator<String> iterator;
 
-        public PathCursor(Iterator<String> paths, boolean distinct, final QueryEngineSettings settings) {
+        public PathCursor(Iterator<String> paths, boolean distinct, final QueryLimits settings) {
             Iterator<String> it = paths;
             if (distinct) {
                 it = Iterators.filter(it, new Predicate<String>() {
@@ -232,11 +232,11 @@ public class Cursors {
         
         private boolean closed;
         
-        private final QueryEngineSettings settings;
+        private final QueryLimits settings;
         
         public TraversingCursor(Filter filter, NodeState rootState) {
             this.filter = filter;
-            this.settings = filter.getQueryEngineSettings();
+            this.settings = filter.getQueryLimits();
 
             String path = filter.getPath();
             parentPath = null;
@@ -362,12 +362,12 @@ public class Cursors {
         private final HashMap<String, IndexRow> secondSet = new HashMap<String, IndexRow>();
         private final HashSet<String> seen = new HashSet<String>();
         private final Cursor first, second;
-        private final QueryEngineSettings settings;
+        private final QueryLimits settings;
         private boolean init;
         private boolean closed;
         private IndexRow current;
         
-        IntersectionCursor(Cursor first, Cursor second, QueryEngineSettings settings) {
+        IntersectionCursor(Cursor first, Cursor second, QueryLimits settings) {
             this.first = first;
             this.second = second;
             this.settings = settings;
@@ -455,7 +455,7 @@ public class Cursors {
 
         private final HashSet<String> seen = new HashSet<String>();
         private final List<Cursor> cursors;
-        private final QueryEngineSettings settings;
+        private final QueryLimits settings;
         private boolean init;
         private boolean closed;
 
@@ -463,7 +463,7 @@ public class Cursors {
         private int cursorListIndex;
         private IndexRow current;
 
-        ConcatCursor(List<Cursor> cursors, QueryEngineSettings settings) {
+        ConcatCursor(List<Cursor> cursors, QueryLimits settings) {
             this.cursors = cursors;
             this.settings = settings;
             nextCursor();

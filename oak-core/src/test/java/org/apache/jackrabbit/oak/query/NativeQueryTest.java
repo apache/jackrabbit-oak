@@ -27,9 +27,6 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.junit.Test;
 
 public class NativeQueryTest {
@@ -37,9 +34,7 @@ public class NativeQueryTest {
     private final ImmutableRoot ROOT = new ImmutableRoot(INITIAL_CONTENT);
     private final QueryEngineImpl QUERY_ENGINE = (QueryEngineImpl)ROOT.getQueryEngine();
 
-    private final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
-
-    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
+    private final SQL2Parser p = SQL2ParserTest.createTestSQL2Parser();
 
     
     @Test

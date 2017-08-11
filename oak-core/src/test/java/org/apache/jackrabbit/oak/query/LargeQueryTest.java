@@ -16,21 +16,18 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.junit.Test;
 
 public class LargeQueryTest {
     
-    private final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
+    private final SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser();
 
     @Test
     public void testSimpleOr() throws ParseException {
@@ -111,8 +108,7 @@ public class LargeQueryTest {
         sql2 = sql2.substring(0, xpathIndex);
         // should use union now
         assertTrue(sql2.indexOf(" or ") < 0);
-        SQL2Parser p = new SQL2Parser(null, nodeTypes, new QueryEngineSettings());
-        p.parse(sql2);
+        parser.parse(sql2);
     }
 
     private String randomCondition(Random r) {

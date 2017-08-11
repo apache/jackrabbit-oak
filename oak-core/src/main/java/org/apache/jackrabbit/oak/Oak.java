@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -693,6 +694,9 @@ public class Oak {
         regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
                 queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings"));
 
+        regs.add(registerMBean(whiteboard, QueryStatsMBean.class,
+                queryEngineSettings.getQueryStats(), QueryStatsMBean.TYPE, "Oak Query Statistics (Extended)"));
+
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
         Iterable<WorkspaceInitializer> workspaceInitializers =
@@ -881,16 +885,8 @@ public class Oak {
             settings.setFastQuerySize(fastQuerySize);
         }
 
-        public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
-            settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
-        }
-
-        public boolean getFullTextComparisonWithoutIndex() {
-            return settings.getFullTextComparisonWithoutIndex();
-        }
-
-        public boolean isSql2Optimisation() {
-            return settings.isSql2Optimisation();
+        public QueryStatsMBean getQueryStats() {
+            return settings.getQueryStats();
         }
 
         public QueryEngineSettings unwrap() {

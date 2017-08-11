@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.slf4j.Logger;
@@ -158,8 +159,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         NodeTypeInfoProvider nodeTypes = context.getNodeTypeInfoProvider();
         QueryEngineSettings settings = context.getSettings();
+        QueryExecutionStats stats = settings.getQueryStatsReporter().getQueryExecution(statement, language);
 
-        SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings);
+        SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings, stats);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);
@@ -191,6 +193,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
             }
         } else {
             throw new ParseException("Unsupported language: " + language, 0);
+        }
+        if (q.isInternal()) {
+            stats.setInternal(true);
+        } else {
+            stats.setThreadName(Thread.currentThread().getName());
         }
         
         queries.add(q);
@@ -267,7 +274,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         boolean mdc = false;
         try {
+            long start = System.nanoTime();
             Query query = prepareAndSelect(queries); 
+            query.getQueryExecutionStats().execute(System.nanoTime() - start);
             mdc = setupMDC(query);
             return query.executeQuery();
         } finally {

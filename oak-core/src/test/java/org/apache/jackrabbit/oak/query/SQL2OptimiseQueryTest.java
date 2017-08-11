@@ -188,7 +188,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
      */
     @Test
     public void optimise() throws ParseException {
-        SQL2Parser parser = new SQL2Parser(getMappings(), getNodeTypes(), qeSettings);
+        SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
+                getMappings(), getNodeTypes(), qeSettings);
         String statement;
         Query original, optimised;
 
@@ -262,7 +263,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
     }
     
     private void optimiseAndOrAnd(String statement, String expected) throws ParseException {
-        SQL2Parser parser = new SQL2Parser(getMappings(), getNodeTypes(), qeSettings);
+        SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
+                getMappings(), getNodeTypes(), qeSettings);
         Query original;
         original = parser.parse(statement, false);
         assertNotNull(original);

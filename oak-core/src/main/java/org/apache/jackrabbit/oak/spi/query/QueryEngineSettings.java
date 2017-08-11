@@ -19,11 +19,14 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBeanImpl;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsReporter;
 
 /**
  * Settings of the query engine.
  */
-public class QueryEngineSettings implements QueryEngineSettingsMBean {
+public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimits {
     
     /**
      * the flag used to turn on/off the optimisations on top of the {@link org.apache.jackrabbit.oak.query.Query} object.
@@ -70,6 +73,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     private static final String OAK_FAST_QUERY_SIZE = "oak.fastQuerySize";
     public static final boolean DEFAULT_FAST_QUERY_SIZE = Boolean.getBoolean(OAK_FAST_QUERY_SIZE);
     private boolean fastQuerySize = DEFAULT_FAST_QUERY_SIZE;
+
+    private QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
 
     public QueryEngineSettings() {
     }
@@ -125,6 +130,14 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     
     public boolean isSql2Optimisation() {
         return sql2Optimisation;
+    }
+
+    public QueryStatsMBean getQueryStats() {
+        return queryStats;
+    }
+    
+    public QueryStatsReporter getQueryStatsReporter() {
+        return queryStats;
     }
 
     @Override

@@ -66,9 +66,9 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.lucene.analysis.Analyzer;
@@ -300,7 +300,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         final Filter filter = plan.getFilter();
         final Sort sort = getSort(plan);
         final PlanResult pr = getPlanResult(plan);
-        QueryEngineSettings settings = filter.getQueryEngineSettings();
+        QueryLimits settings = filter.getQueryLimits();
         Iterator<LuceneResultRow> itr = new AbstractIterator<LuceneResultRow>() {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
             private final Set<String> seenPaths = Sets.newHashSet();
@@ -714,10 +714,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return new Sort(fieldsList.toArray(new SortField[0]));
         }
     }
-    
+
     /**
      * Remove all "jcr:score" entries.
-     * 
+     *
      * @param original the original list (is not modified)
      * @return the list with the entries removed
      */
@@ -1559,7 +1559,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         private long estimatedSize;
         private int numberOfFacets;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryEngineSettings settings, SizeEstimator sizeEstimator) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {

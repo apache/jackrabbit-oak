@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -79,8 +80,8 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -111,6 +112,8 @@ public class QueryImpl implements Query {
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
     
+    private final QueryExecutionStats stats;
+
     private boolean potentiallySlowTraversalQueryLogged;
 
     private static final Ordering<QueryIndex> MINIMAL_COST_ORDERING = new Ordering<QueryIndex>() {
@@ -176,13 +179,15 @@ public class QueryImpl implements Query {
     private boolean potentiallySlowTraversalQuery;
 
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
-        ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings) {
+        ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings,
+        QueryExecutionStats stats) {
         this.statement = statement;
         this.source = source;
         this.constraint = constraint;
         this.columns = columns;
         this.namePathMapper = mapper;
         this.settings = settings;
+        this.stats = stats;
     }
 
     @Override
@@ -801,6 +806,8 @@ public class QueryImpl implements Query {
             if (end) {
                 return;
             }
+            long nanos = System.nanoTime();
+            long oldIndex = rowIndex;
             if (!started) {
                 source.execute(rootState);
                 started = true;
@@ -823,6 +830,8 @@ public class QueryImpl implements Query {
                     break;
                 }
             }
+            nanos = System.nanoTime() - nanos;
+            stats.read(rowIndex - oldIndex, rowIndex, nanos);
         }
 
         @Override
@@ -1338,7 +1347,8 @@ public class QueryImpl implements Query {
             this.constraint,
             cols.toArray(new ColumnImpl[0]),
             this.namePathMapper,
-            this.settings);
+            this.settings,
+            this.stats);
         copy.explain = this.explain;
         copy.distinct = this.distinct;
         
@@ -1364,4 +1374,8 @@ public class QueryImpl implements Query {
         return queryOptions;
     }
 
+    public QueryExecutionStats getQueryExecutionStats() {
+        return stats;
+    }
+    
 }
