@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -138,7 +139,8 @@ public class OnlineCompactorTest {
         if (failOnName != null) {
             writer = new FailingSegmentWriter(writer, failOnName);
         }
-        return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, () -> {}); }
+        return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, GCNodeWriteMonitor.EMPTY);
+    }
 
     private static void addNodes(SegmentNodeStore nodeStore, int count)
     throws CommitFailedException {

@@ -23,8 +23,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
-
 /**
  * This class holds configuration options for segment store revision gc.
  */
@@ -119,10 +117,10 @@ public class SegmentGCOptions {
             SIZE_DELTA_ESTIMATION_DEFAULT);
 
     /**
-     * Responsible for monitoring progress of the online compaction, and
-     * providing progress tracking.
+     * Number of nodes after which an update about the compaction process is logged.
+     * -1 for never.
      */
-    private GCNodeWriteMonitor gcNodeWriteMonitor = GCNodeWriteMonitor.EMPTY;
+    private long gcLogInterval = -1;
 
     public SegmentGCOptions(boolean paused, int retryCount, int forceTimeout) {
         this.paused = paused;
@@ -370,19 +368,22 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Enables the GcWriteMonitor with the given params.
-     * @param gcProgressLog
-     *            Enables compaction progress logging at each set of compacted nodes, disabled if set to
-     *            {@code -1}
+     * Set the number of nodes after which an update about the compaction process is logged.
+     * -1 for never.
+     * @param gcLogInterval  update interval
      * @return this instance
      */
-    public SegmentGCOptions withGCNodeWriteMonitor(long gcProgressLog) {
-        this.gcNodeWriteMonitor = new GCNodeWriteMonitor(gcProgressLog);
+    public SegmentGCOptions setGCLogInterval(long gcLogInterval) {
+        this.gcLogInterval = gcLogInterval;
         return this;
     }
 
-    public GCNodeWriteMonitor getGCNodeWriteMonitor() {
-        return gcNodeWriteMonitor;
+    /**
+     * @return Number of nodes after which an update about the compaction process is logged.
+     * -1 for never.
+     */
+    public long getGcLogInterval() {
+        return gcLogInterval;
     }
 
 }

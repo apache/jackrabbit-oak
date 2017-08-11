@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 
 /**
  * Monitors the compaction cycle and keeps a compacted nodes counter, in order
@@ -27,15 +28,15 @@ import org.slf4j.LoggerFactory;
  * size and node count and current size to deduce current node count.
  */
 public class GCNodeWriteMonitor {
-
-    private static final Logger log = LoggerFactory.getLogger(GCNodeWriteMonitor.class);
-
-    public static final GCNodeWriteMonitor EMPTY = new GCNodeWriteMonitor(-1);
+    public static final GCNodeWriteMonitor EMPTY = new GCNodeWriteMonitor(
+            -1, GCMonitor.EMPTY);
 
     /**
      * Number of nodes the monitor will log a message, -1 to disable
      */
-    private long gcProgressLog;
+    private final long gcProgressLog;
+
+    private final GCMonitor gcMonitor;
 
     /**
      * Start timestamp of compaction (reset at each {@code init()} call).
@@ -48,25 +49,27 @@ public class GCNodeWriteMonitor {
     private long estimated = -1;
 
     /**
-     * Compacted nodes per cycle (reset at each {@code init()} call).
+     * Number of compacted nodes
      */
     private long nodes;
+
+    /**
+     * Number of compacted properties
+     */
+    private long properties;
+
+    /**
+     * Number of compacted binaries
+     */
+    private long binaries;
 
     private boolean running = false;
 
     private long gcCount;
 
-    public GCNodeWriteMonitor(long gcProgressLog) {
+    public GCNodeWriteMonitor(long gcProgressLog, @Nonnull GCMonitor gcMonitor) {
         this.gcProgressLog = gcProgressLog;
-    }
-
-    public synchronized void onNode() {
-        nodes++;
-        if (gcProgressLog > 0 && nodes % gcProgressLog == 0) {
-            long ms = System.currentTimeMillis() - start;
-            log.info("TarMK GC #{}: compacted {} nodes in {} ms.", gcCount, nodes, ms);
-            start = System.currentTimeMillis();
-        }
+        this.gcMonitor = gcMonitor;
     }
 
     /**
@@ -83,16 +86,32 @@ public class GCNodeWriteMonitor {
         this.gcCount = gcCount;
         if (prevCompactedNodes > 0) {
             estimated = (long) (((double) currentSize / prevSize) * prevCompactedNodes);
-            log.info(
+            gcMonitor.info(
                     "TarMK GC #{}: estimated number of nodes to compact is {}, based on {} nodes compacted to {} bytes "
                             + "on disk in previous compaction and current size of {} bytes on disk.",
                     this.gcCount, estimated, prevCompactedNodes, prevSize, currentSize);
         } else {
-            log.info("TarMK GC #{}: unable to estimate number of nodes for compaction, missing gc history.", gcCount);
+            gcMonitor.info("TarMK GC #{}: unable to estimate number of nodes for compaction, missing gc history.", gcCount);
         }
         nodes = 0;
         start = System.currentTimeMillis();
         running = true;
+    }
+
+    public synchronized void onNode() {
+        nodes++;
+        if (gcProgressLog > 0 && nodes % gcProgressLog == 0) {
+            gcMonitor.info("TarMK GC #{}: compacted {} nodes, {} properties, {} binaries in {} ms.",
+                    gcCount, nodes, properties, binaries, System.currentTimeMillis() - start);
+        }
+    }
+
+    public synchronized void onProperty() {
+        properties++;
+    }
+
+    public synchronized void onBinary() {
+        binaries++;
     }
 
     public synchronized void finished() {
@@ -135,9 +154,5 @@ public class GCNodeWriteMonitor {
 
     public long getGcProgressLog() {
         return gcProgressLog;
-    }
-
-    public void setGcProgressLog(long gcProgressLog) {
-        this.gcProgressLog = gcProgressLog;
     }
 }

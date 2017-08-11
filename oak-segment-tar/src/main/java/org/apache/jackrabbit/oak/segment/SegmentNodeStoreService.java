@@ -437,7 +437,7 @@ public class SegmentNodeStoreService {
                 .setGcSizeDeltaEstimation(configuration.getSizeDeltaEstimation())
                 .setMemoryThreshold(configuration.getMemoryThreshold())
                 .setEstimationDisabled(configuration.getDisableEstimation())
-                .withGCNodeWriteMonitor(configuration.getGCProcessLog());
+                .setGCLogInterval(configuration.getGCProcessLog());
 
         // Build the FileStore
         FileStoreBuilder builder = fileStoreBuilder(configuration.getSegmentDirectory())
