@@ -603,7 +603,6 @@ public class FileStore extends AbstractFileStore {
         private void run(Supplier<CompactionResult> compact) throws IOException {
             try {
                 gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
-                compactionMonitor = new GCNodeWriteMonitor(gcOptions.getGcLogInterval(), gcListener);
 
                 long dt = System.currentTimeMillis() - lastSuccessfullGC;
                 if (dt < GC_BACKOFF) {
@@ -721,6 +720,7 @@ public class FileStore extends AbstractFileStore {
 
                 GCJournalEntry gcEntry = gcJournal.read();
                 long initialSize = size();
+                compactionMonitor = new GCNodeWriteMonitor(gcOptions.getGcLogInterval(), gcListener);
                 compactionMonitor.init(GC_COUNT.get(), gcEntry.getRepoSize(), gcEntry.getNodes(), initialSize);
 
                 SegmentNodeState before = getHead();
