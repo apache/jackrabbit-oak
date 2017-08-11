@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -50,7 +51,7 @@ public class JsonSerializer {
 
     private static final JsonFilter DEFAULT_FILTER = new JsonFilter(DEFAULT_FILTER_EXPRESSION);
 
-    private final JsopBuilder json;
+    private final JsopWriter json;
 
     private final int depth;
 
@@ -63,7 +64,7 @@ public class JsonSerializer {
     private final BlobSerializer blobs;
 
     private JsonSerializer(
-            JsopBuilder json, int depth, long offset, int maxChildNodes,
+            JsopWriter json, int depth, long offset, int maxChildNodes,
             JsonFilter filter, BlobSerializer blobs) {
         this.json = checkNotNull(json);
         this.depth = depth;
@@ -80,12 +81,19 @@ public class JsonSerializer {
                 new JsonFilter(filter), blobs);
     }
 
-    public JsonSerializer(JsopBuilder json, BlobSerializer blobs) {
+    public JsonSerializer(JsopWriter json,
+            int depth, long offset, int maxChildNodes,
+            String filter, BlobSerializer blobs) {
+        this(json, depth, offset, maxChildNodes,
+                new JsonFilter(filter), blobs);
+    }
+
+    public JsonSerializer(JsopWriter json, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
                 DEFAULT_FILTER, blobs);
     }
 
-    public JsonSerializer(JsopBuilder json, String filter, BlobSerializer blobs) {
+    public JsonSerializer(JsopWriter json, String filter, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
                 new JsonFilter(filter), blobs);
     }
