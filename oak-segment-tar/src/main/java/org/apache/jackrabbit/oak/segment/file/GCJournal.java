@@ -185,13 +185,22 @@ public class GCJournal {
 
         static GCJournalEntry fromString(String in) {
             String[] items = in.split(",");
-            long repoSize = parseLong(items, 0);
-            long reclaimedSize = parseLong(items, 1);
-            long ts = parseLong(items, 2);
-            int generation = parseInt(items, 3);
-            int fullGeneration = parseInt(items, 4);
-            long nodes = parseLong(items, 5);
-            String root = parseString(items, 6);
+            int index = 0;
+
+            long repoSize = parseLong(items, index++);
+            long reclaimedSize = parseLong(items, index++);
+            long ts = parseLong(items, index++);
+            int generation = parseInt(items, index++);
+            int fullGeneration;
+            if (items.length == 7) {
+                // gc.log from Oak 1.8 onward
+                fullGeneration = parseInt(items, index++);
+            } else {
+                // gc.log from Oak 1.6
+                fullGeneration = generation;
+            }
+            long nodes = parseLong(items, index++);
+            String root = parseString(items, index);
             if (root == null) {
                 root = RecordId.NULL.toString10();
             }
