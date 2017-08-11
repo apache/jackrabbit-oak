@@ -59,8 +59,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-// FIXME OAK-6522: Implement unit tests for Compactor
-public class OnlineCompactorTest {
+public class CompactorTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
