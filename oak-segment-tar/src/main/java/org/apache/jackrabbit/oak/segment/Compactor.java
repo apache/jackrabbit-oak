@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-// FIXME OAK-6399 unify with Compactor (progress tracker? eager-flush, content based binary deduplication, unit tests, etc...)
 /**
  * Instances of this class can be used to compact a node state. I.e. to create a clone
  * of a given node state without value sharing except for binaries. Binaries that are
