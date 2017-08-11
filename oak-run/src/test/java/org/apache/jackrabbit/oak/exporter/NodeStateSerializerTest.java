@@ -20,8 +20,10 @@
 package org.apache.jackrabbit.oak.exporter;
 
 import java.io.File;
+import java.util.Collections;
 
 import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
@@ -32,6 +34,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -66,7 +69,21 @@ public class NodeStateSerializerTest {
         String text = Files.toString(json, UTF_8);
         NodeState nodeState2 = deserialize(text);
         assertTrue(EqualsDiff.equals(builder.getNodeState(), nodeState2));
+    }
 
+    @Test
+    public void text() throws Exception{
+        builder.child("a").setProperty("foo", "bar");
+        builder.child("a").child("d").setProperty("foo", "bar");
+        builder.child("a").child("d").setProperty("foo2", asList("x", "y"), Type.STRINGS);
+        builder.child("a").child("d").setProperty("foo3", Collections.emptyList(), Type.STRINGS);
+        builder.child("b").setProperty("foo", "bar");
+
+        NodeStateSerializer serializer = new NodeStateSerializer(builder.getNodeState());
+        serializer.setFormat(NodeStateSerializer.Format.TXT);
+
+        String txt = serializer.serialize();
+        //System.out.println(txt);
     }
 
     private NodeState deserialize(String json) {

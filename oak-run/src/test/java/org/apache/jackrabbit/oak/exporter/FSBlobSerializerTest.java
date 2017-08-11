@@ -24,7 +24,7 @@ import java.io.InputStream;
 
 import javax.annotation.Nonnull;
 
-import joptsimple.internal.Strings;
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -46,7 +46,7 @@ public class FSBlobSerializerTest {
     public void blobs() throws Exception{
         int maxInlineSize = 100;
         FSBlobSerializer serializer = new FSBlobSerializer(folder.getRoot(), maxInlineSize);
-        String data = Strings.repeat('x', maxInlineSize * 10);
+        String data = Strings.repeat("x", maxInlineSize * 10);
 
         Blob b = new ArrayBasedBlob(data.getBytes(UTF_8));
 
