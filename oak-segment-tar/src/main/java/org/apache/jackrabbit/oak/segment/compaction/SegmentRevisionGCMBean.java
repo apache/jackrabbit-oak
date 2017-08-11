@@ -184,31 +184,31 @@ public class SegmentRevisionGCMBean
 
     @Override
     public boolean isRevisionGCRunning() {
-        return gcOptions.getGCNodeWriteMonitor().isCompactionRunning();
+        return fileStore.getGCNodeWriteMonitor().isCompactionRunning();
     }
 
     @Override
     public long getCompactedNodes() {
-        return gcOptions.getGCNodeWriteMonitor().getCompactedNodes();
+        return fileStore.getGCNodeWriteMonitor().getCompactedNodes();
     }
 
     @Override
     public long getEstimatedCompactableNodes() {
-        return gcOptions.getGCNodeWriteMonitor().getEstimatedTotal();
+        return fileStore.getGCNodeWriteMonitor().getEstimatedTotal();
     }
 
     @Override
     public int getEstimatedRevisionGCCompletion() {
-        return gcOptions.getGCNodeWriteMonitor().getEstimatedPercentage();
+        return fileStore.getGCNodeWriteMonitor().getEstimatedPercentage();
     }
 
     @Override
     public long getRevisionGCProgressLog() {
-        return gcOptions.getGCNodeWriteMonitor().getGcProgressLog();
+        return fileStore.getGCNodeWriteMonitor().getGcProgressLog();
     }
 
     @Override
     public void setRevisionGCProgressLog(long gcProgressLog) {
-        gcOptions.getGCNodeWriteMonitor().setGcProgressLog(gcProgressLog);
+        gcOptions.setGCLogInterval(gcProgressLog);
     }
 }

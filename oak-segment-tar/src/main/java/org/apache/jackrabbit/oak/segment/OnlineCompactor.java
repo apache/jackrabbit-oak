@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -75,7 +76,7 @@ public class OnlineCompactor {
     private final Supplier<Boolean> cancel;
 
     @Nonnull
-    private final Runnable onNode;
+    private final GCNodeWriteMonitor compactionMonitor;
 
     /**
      * Create a new instance based on the passed arguments.
@@ -83,19 +84,20 @@ public class OnlineCompactor {
      * @param writer     segment writer used to serialise to segments
      * @param blobStore  the blob store or {@code null} if none
      * @param cancel     a flag that can be used to cancel the compaction process
-     * @param onNode     notification call back for each compacted node
+     * @param compactionMonitor   notification call back for each compacted nodes,
+     *                            properties, and binaries
      */
     public OnlineCompactor(
             @Nonnull SegmentReader reader,
             @Nonnull SegmentWriter writer,
             @Nullable BlobStore blobStore,
             @Nonnull Supplier<Boolean> cancel,
-            @Nonnull Runnable onNode) {
+            @Nonnull GCNodeWriteMonitor compactionMonitor) {
         this.writer = checkNotNull(writer);
         this.reader = checkNotNull(reader);
         this.blobStore = blobStore;
         this.cancel = checkNotNull(cancel);
-        this.onNode = checkNotNull(onNode);
+        this.compactionMonitor = checkNotNull(compactionMonitor);
     }
 
     /**
@@ -172,7 +174,7 @@ public class OnlineCompactor {
                 NodeState nodeState = builder.getNodeState();
                 checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
                 RecordId nodeId = writer.writeNode(nodeState, getStableIdBytes(after));
-                onNode.run();
+                compactionMonitor.onNode();
                 return new SegmentNodeState(reader, writer, blobStore, nodeId);
             } else {
                 return null;
@@ -245,14 +247,17 @@ public class OnlineCompactor {
     }
 
     @Nonnull
-    private static PropertyState compact(@Nonnull PropertyState property) {
+    private  PropertyState compact(@Nonnull PropertyState property) {
+        compactionMonitor.onProperty();
         String name = property.getName();
         Type<?> type = property.getType();
         if (type == BINARY) {
+            compactionMonitor.onBinary();
             return binaryProperty(name, property.getValue(Type.BINARY));
         } else if (type == BINARIES) {
             List<Blob> blobs = newArrayList();
             for (Blob blob : property.getValue(BINARIES)) {
+                compactionMonitor.onBinary();
                 blobs.add(blob);
             }
             return binaryPropertyFromBlob(name, blobs);

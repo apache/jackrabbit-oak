@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -96,8 +97,7 @@ public class FileStoreBuilder {
     @CheckForNull
     private EvictingWriteCacheManager cacheManager;
 
-    @Nonnull
-    private final GCListener gcListener = new GCListener(){
+    private class FileStoreGCListener extends DelegatingGCMonitor implements GCListener {
         @Override
         public void compactionSucceeded(@Nonnull GCGeneration newGeneration) {
             compacted();
@@ -112,7 +112,10 @@ public class FileStoreBuilder {
                 cacheManager.evictGeneration(failedGeneration.getGeneration());
             }
         }
-    };
+    }
+
+    @Nonnull
+    private final FileStoreGCListener gcListener = new FileStoreGCListener();
 
     @Nonnull
     private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;

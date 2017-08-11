@@ -72,7 +72,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.OnlineCompactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -291,6 +290,13 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
+     * @return the currently active gc write monitor
+     */
+    public GCNodeWriteMonitor getGCNodeWriteMonitor() {
+        return garbageCollector.getGCNodeWriteMonitor();
+    }
+
+    /**
      * @return the size of this store.
      */
     private long size() {
@@ -339,7 +345,7 @@ public class FileStore extends AbstractFileStore {
      * @return
      */
     public GCEstimation estimateCompactionGain() {
-        return garbageCollector.estimateCompactionGain(Suppliers.ofInstance(false));
+        return garbageCollector.estimateCompactionGain();
     }
 
     /**
@@ -543,10 +549,10 @@ public class FileStore extends AbstractFileStore {
         private final WriterCacheManager cacheManager;
 
         @Nonnull
-        private final GCNodeWriteMonitor compactionMonitor;
+        private final StatisticsProvider statisticsProvider;
 
         @Nonnull
-        private final StatisticsProvider statisticsProvider;
+        private GCNodeWriteMonitor compactionMonitor = GCNodeWriteMonitor.EMPTY;
 
         private volatile boolean cancelled;
 
@@ -566,8 +572,11 @@ public class FileStore extends AbstractFileStore {
             this.gcListener = gcListener;
             this.gcJournal = gcJournal;
             this.cacheManager = cacheManager;
-            this.compactionMonitor = gcOptions.getGCNodeWriteMonitor();
             this.statisticsProvider = statisticsProvider;
+        }
+
+        GCNodeWriteMonitor getGCNodeWriteMonitor() {
+            return compactionMonitor;
         }
 
         synchronized void run() throws IOException {
@@ -594,6 +603,7 @@ public class FileStore extends AbstractFileStore {
         private void run(Supplier<CompactionResult> compact) throws IOException {
             try {
                 gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
+                compactionMonitor = new GCNodeWriteMonitor(gcOptions.getGcLogInterval(), gcListener);
 
                 long dt = System.currentTimeMillis() - lastSuccessfullGC;
                 if (dt < GC_BACKOFF) {
@@ -615,14 +625,7 @@ public class FileStore extends AbstractFileStore {
                     gcListener.updateStatus(ESTIMATION.message());
                     
                     Stopwatch watch = Stopwatch.createStarted();
-                    Supplier<Boolean> cancel = new CancelCompactionSupplier(FileStore.this);
-                    GCEstimation estimate = estimateCompactionGain(cancel);
-                    if (cancel.get()) {
-                        gcListener.warn("TarMK GC #{}: estimation interrupted: {}. Skipping garbage collection.", GC_COUNT, cancel);
-                        gcMemoryBarrier.close();
-                        return;
-                    }
-    
+                    GCEstimation estimate = estimateCompactionGain();
                     sufficientEstimatedGain = estimate.gcNeeded();
                     String gcLog = estimate.gcLog();
                     if (sufficientEstimatedGain) {
@@ -659,10 +662,9 @@ public class FileStore extends AbstractFileStore {
         /**
          * Estimated compaction gain. The result will be undefined if stopped through
          * the passed {@code stop} signal.
-         * @param stop  signal for stopping the estimation process.
          * @return compaction gain estimate
          */
-        synchronized GCEstimation estimateCompactionGain(Supplier<Boolean> stop) {
+        synchronized GCEstimation estimateCompactionGain() {
             return new SizeDeltaGcEstimation(gcOptions, gcJournal,
                     stats.getApproximateSize());
         }
@@ -730,7 +732,7 @@ public class FileStore extends AbstractFileStore {
                         .withoutWriterPool()
                         .build(FileStore.this);
                 OnlineCompactor compactor = new OnlineCompactor(
-                        segmentReader, writer, getBlobStore(), cancel, compactionMonitor::onNode);
+                        segmentReader, writer, getBlobStore(), cancel, compactionMonitor);
 
                 SegmentNodeState after = compact(base, before, compactor, writer);
                 if (after == null) {
