@@ -20,15 +20,21 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 import org.junit.Rule;
@@ -97,6 +103,52 @@ public class GcJournalTest {
         out.persist(1, 100, newGCGeneration(1, 2, true), 50, RecordId.NULL.toString());
         GCJournal in = new GCJournal(segmentFolder.getRoot());
         assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
+    }
+
+    @Test
+    public void testReadOak16GCLog() throws IOException {
+        createOak16GCLog();
+        GCJournal gcJournal = new GCJournal(segmentFolder.getRoot());
+        GCJournalEntry entry = gcJournal.read();
+        assertEquals(45919825920L, entry.getRepoSize());
+        assertEquals(41394306048L, entry.getReclaimedSize());
+        assertEquals(1493819563098L, entry.getTs());
+        assertEquals(newGCGeneration(1, 1, false), entry.getGcGeneration());
+        assertEquals(42, entry.getNodes());
+        assertEquals("ddf1d9d3-d391-483d-ac96-5d7b63947d56:2657", entry.getRoot());
+    }
+
+    @Test
+    public void testUpdateOak16GCLog() throws IOException {
+        createOak16GCLog();
+        GCJournal gcJournal = new GCJournal(segmentFolder.getRoot());
+        gcJournal.persist(75, 300, newGCGeneration(3, 0, false), 125, "bar");
+
+        ArrayList<GCJournalEntry> entries = newArrayList(gcJournal.readAll());
+        assertEquals(2, entries.size());
+
+        GCJournalEntry entry = entries.get(0);
+        assertEquals(45919825920L, entry.getRepoSize());
+        assertEquals(41394306048L, entry.getReclaimedSize());
+        assertEquals(1493819563098L, entry.getTs());
+        assertEquals(newGCGeneration(1, 1, false), entry.getGcGeneration());
+        assertEquals(42, entry.getNodes());
+        assertEquals("ddf1d9d3-d391-483d-ac96-5d7b63947d56:2657", entry.getRoot());
+
+        entry = entries.get(1);
+        assertEquals(300, entry.getRepoSize());
+        assertEquals(75, entry.getReclaimedSize());
+        assertEquals(newGCGeneration(3, 0, false), entry.getGcGeneration());
+        assertEquals(125, entry.getNodes());
+        assertEquals("bar", entry.getRoot());
+    }
+
+    private void createOak16GCLog() throws IOException {
+        try (InputStream source = GcJournalTest.class.getResourceAsStream("oak-1.6-gc.log")) {
+            try (FileOutputStream target = new FileOutputStream(segmentFolder.newFile("gc.log"))) {
+                IOUtils.copy(source, target);
+            }
+        }
     }
 
 }
