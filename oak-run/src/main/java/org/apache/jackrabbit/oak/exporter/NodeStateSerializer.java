@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.exporter;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -89,6 +90,10 @@ public class NodeStateSerializer {
         }
 
         serialize(jsopWriter, blobSerializer);
+
+        if (jsopWriter instanceof Closeable) {
+            ((Closeable) jsopWriter).close();
+        }
     }
 
     private void serialize(JsopWriter writer, BlobSerializer blobSerializer) throws IOException {
