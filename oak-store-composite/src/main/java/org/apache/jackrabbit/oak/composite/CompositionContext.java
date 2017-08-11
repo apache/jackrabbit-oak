@@ -81,12 +81,12 @@ class CompositionContext {
         }
     }
 
-    List<MountedNodeStore> getContributingStoresForNodes(String path, final Function<MountedNodeStore, NodeState> nodeStates) {
-        return getContributingStores(path, mns -> nodeStates.apply(mns).getChildNodeNames());
+    List<MountedNodeStore> getContributingStoresForNodes(String path, final NodeMap<NodeState> nodeStates) {
+        return getContributingStores(path, mns -> nodeStates.get(mns).getChildNodeNames());
     }
 
-    List<MountedNodeStore> getContributingStoresForBuilders(String path, final Function<MountedNodeStore, NodeBuilder> nodeBuilders) {
-        return getContributingStores(path, mns -> nodeBuilders.apply(mns).getChildNodeNames());
+    List<MountedNodeStore> getContributingStoresForBuilders(String path, final NodeMap<NodeBuilder> nodeBuilders) {
+        return getContributingStores(path, mns -> nodeBuilders.get(mns).getChildNodeNames());
     }
 
     boolean shouldBeComposite(final String path) {
@@ -171,7 +171,7 @@ class CompositionContext {
         if (rootStates.size() != nonDefaultStores.size() + 1) {
             throw new IllegalArgumentException("Too many root states passed: " + rootStates.size());
         }
-        return new CompositeNodeState("/", rootStates, this);
+        return new CompositeNodeState("/", NodeMap.create(rootStates), this);
     }
 
 }
