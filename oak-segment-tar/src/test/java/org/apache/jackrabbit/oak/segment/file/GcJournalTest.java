@@ -92,7 +92,7 @@ public class GcJournalTest {
     }
 
     @Test
-    public void testGCGenerationTailFlagCleared() throws Exception {
+    public void testGCGenerationCompactedFlagCleared() throws Exception {
         GCJournal out = new GCJournal(segmentFolder.getRoot());
         out.persist(1, 100, newGCGeneration(1, 2, true), 50, RecordId.NULL.toString());
         GCJournal in = new GCJournal(segmentFolder.getRoot());

@@ -95,7 +95,7 @@ public class TarFileTest {
     }
 
     @Test
-    public void testGCGenerationIsTailFlagNotErased() throws Exception {
+    public void testGCGenerationIsCompactedFlagNotErased() throws Exception {
         UUID id = UUID.randomUUID();
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
