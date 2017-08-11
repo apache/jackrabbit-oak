@@ -29,9 +29,8 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
-import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.OnlineCompactor;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -41,7 +40,9 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,16 +84,16 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     new WriterCacheManager.Default(),
                     bufferWriter
             );
-            Compactor compactor = new Compactor(
+            OnlineCompactor compactor = new OnlineCompactor(
                     backup.getReader(),
                     writer,
                     backup.getBlobStore(),
                     Suppliers.ofInstance(false),
-                    gcOptions
+                    GCNodeWriteMonitor.EMPTY
             );
-            compactor.setContentEqualityCheck(true);
             SegmentNodeState head = backup.getHead();
             SegmentNodeState after = compactor.compact(head, current, head);
+            writer.flush();
 
             if (after != null) {
                 backup.getRevisions().setHead(head.getRecordId(), after.getRecordId());
