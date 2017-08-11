@@ -100,13 +100,13 @@ public class BinaryReferencesIndexWriter {
         // this entry, after the optional padding.
 
         for (Map<UUID, Set<String>> segmentToReferences : entries.values()) {
+            // 4 bytes per generation to store the generation number.
+            binaryReferenceSize += 4;
+
             // 4 bytes per generation to store the full generation number.
             binaryReferenceSize += 4;
 
-            // 4 bytes per generation to store the tail generation number.
-            binaryReferenceSize += 4;
-
-            // 1 byte per generation to store the "tail" flag.
+            // 1 byte per generation to store the "compacted" flag.
             binaryReferenceSize += 1;
 
             // 4 bytes per generation to store the number of segments.

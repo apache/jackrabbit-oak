@@ -1360,17 +1360,17 @@ public class CompactionAndCleanupIT {
             traverse(fileStore.getHead());
 
             // Create a tail head state on top of the previous full state. This
-            // increments the tail generation, but leaves the full generation
+            // increments the generation, but leaves the full generation
             // untouched.
 
             fileStore.tailGC();
             traverse(fileStore.getHead());
 
             // Create a tail state on top of the previous tail state. This
-            // increments the tail generation, but leaves the full generation
+            // increments the generation, but leaves the full generation
             // untouched. This brings this generations two generations away from
             // the latest full head state. Still, the full head state will not
-            // be deleted because doing so would geenrated an invalid repository
+            // be deleted because doing so would generate an invalid repository
             // at risk of SegmentNotFoundException.
 
             fileStore.tailGC();
