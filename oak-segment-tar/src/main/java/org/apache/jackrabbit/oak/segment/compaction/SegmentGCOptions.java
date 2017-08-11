@@ -21,12 +21,20 @@ package org.apache.jackrabbit.oak.segment.compaction;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 
 /**
  * This class holds configuration options for segment store revision gc.
  */
 public class SegmentGCOptions {
+
+    // michid doc
+    public enum GCType {
+        FULL,
+        TAIL
+    }
 
     /**
      * Default value for {@link #isPaused()}
@@ -80,6 +88,9 @@ public class SegmentGCOptions {
     private int forceTimeout = FORCE_TIMEOUT_DEFAULT;
 
     private int retainedGenerations = RETAINED_GENERATIONS_DEFAULT;
+
+    @Nonnull
+    private GCType gcType = GCType.FULL;
 
     private boolean offline = false;
 
@@ -206,6 +217,17 @@ public class SegmentGCOptions {
         return this;
     }
 
+    // michid doc
+    @Nonnull
+    public GCType getGCType() {
+        return gcType;
+    }
+
+    // michid doc
+    public void setGCType(@Nonnull GCType gcType) {
+        this.gcType = gcType;
+    }
+
     @Override
     public String toString() {
         if (offline) {
@@ -221,7 +243,8 @@ public class SegmentGCOptions {
                     ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation +
                     ", retryCount=" + retryCount +
                     ", forceTimeout=" + forceTimeout +
-                    ", retainedGenerations=" + retainedGenerations + "}";
+                    ", retainedGenerations=" + retainedGenerations +
+                    ", gcType=" + gcType + "}";
         }
     }
 
@@ -345,4 +368,5 @@ public class SegmentGCOptions {
     public GCNodeWriteMonitor getGCNodeWriteMonitor() {
         return gcNodeWriteMonitor;
     }
+
 }

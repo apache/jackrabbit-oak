@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -169,8 +168,6 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final SegmentNotFoundExceptionListener snfeListener;
 
-    private volatile GCType gcType = GCType.FULL;
-
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
@@ -280,35 +277,15 @@ public class FileStore extends AbstractFileStore {
         return revisions.getHead().getSegmentId().getGcGeneration();
     }
 
-    public void setGcType(GCType gcType) {
-        this.gcType = checkNotNull(gcType);
-    }
-
-    public GCType getGcType() {
-        return gcType;
-    }
-
     /**
      * @return  a runnable for running garbage collection
      */
     public Runnable getGCRunner() {
-        return new SafeRunnable(format("TarMK revision gc [%s]", directory), new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    switch (gcType) {
-                        case FULL:
-                            fullGC();
-                            break;
-                        case TAIL:
-                            tailGC();
-                            break;
-                        default:
-                            throw new IllegalStateException("Invalid GC type");
-                    }
-                } catch (IOException e) {
-                    log.error("Error running revision garbage collection", e);
-                }
+        return new SafeRunnable(format("TarMK revision gc [%s]", directory), () -> {
+            try {
+                garbageCollector.run();
+            } catch (IOException e) {
+                log.error("Error running revision garbage collection", e);
             }
         });
     }
@@ -591,6 +568,19 @@ public class FileStore extends AbstractFileStore {
             this.cacheManager = cacheManager;
             this.compactionMonitor = gcOptions.getGCNodeWriteMonitor();
             this.statisticsProvider = statisticsProvider;
+        }
+
+        synchronized void run() throws IOException {
+            switch (gcOptions.getGCType()) {
+                case FULL:
+                    runFull();
+                    break;
+                case TAIL:
+                    runTail();
+                    break;
+                default:
+                    throw new IllegalStateException("Invalid GC type");
+            }
         }
 
         synchronized void runFull() throws IOException {

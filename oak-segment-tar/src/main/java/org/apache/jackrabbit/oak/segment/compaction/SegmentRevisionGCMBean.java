@@ -27,7 +27,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
-import org.apache.jackrabbit.oak.segment.file.GCType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 
 public class SegmentRevisionGCMBean
         extends AnnotatedStandardMBean
@@ -116,12 +116,12 @@ public class SegmentRevisionGCMBean
 
     @Override
     public String getGCType() {
-        return fileStore.getGcType().toString();
+        return gcOptions.getGCType().toString();
     }
 
     @Override
     public void setGCType(String gcType) {
-        fileStore.setGcType(GCType.valueOf(gcType));
+        gcOptions.setGCType(GCType.valueOf(gcType));
     }
 
     @Override
