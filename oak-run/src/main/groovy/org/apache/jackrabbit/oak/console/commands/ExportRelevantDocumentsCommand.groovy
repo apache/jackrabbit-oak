@@ -38,7 +38,7 @@ class ExportRelevantDocumentsCommand extends CommandSupport {
     private String out = 'all-required-nodes.json'
 
     public ExportRelevantDocumentsCommand(Groovysh shell) {
-        super(shell, COMMAND_NAME, 'export')
+        super(shell, COMMAND_NAME, 'exportd')
     }
 
     @Override
