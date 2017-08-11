@@ -198,7 +198,7 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
                     Cursor newC = flatten(input, plan, filter, state,
                             path + " and(" + index + ")");
                     c = Cursors.newIntersectionCursor(c, newC,
-                            filter.getQueryEngineSettings());
+                            filter.getQueryLimits());
                 }
                 result.set(c);
                 return true;
@@ -216,7 +216,7 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
                             }
                         });
                 result.set(Cursors.newConcatCursor(cursors,
-                        filter.getQueryEngineSettings()));
+                        filter.getQueryLimits()));
                 return true;
             }
         });

@@ -68,7 +68,7 @@ public interface Filter {
      */
     FullTextExpression getFullTextConstraint();
 
-    QueryEngineSettings getQueryEngineSettings();
+    QueryLimits getQueryLimits();
 
     /**
      * check whether a certain (valid) path is accessible (can be read) from the user associated with the query Session
@@ -430,7 +430,7 @@ public interface Filter {
         }
 
         @Override
-        public QueryEngineSettings getQueryEngineSettings() {
+        public QueryEngineSettings getQueryLimits() {
             return EMPTY_SETTINGS;
         }
 

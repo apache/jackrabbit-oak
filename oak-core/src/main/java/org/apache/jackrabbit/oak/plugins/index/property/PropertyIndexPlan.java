@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Iterables;
@@ -266,7 +266,7 @@ public class PropertyIndexPlan {
     }
 
     Cursor execute() {
-        QueryEngineSettings settings = filter.getQueryEngineSettings();
+        QueryLimits settings = filter.getQueryLimits();
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : strategies) {
             iterables.add(s.query(filter, name, definition, values));

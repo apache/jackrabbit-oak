@@ -57,7 +57,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
@@ -223,7 +223,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             AbstractIterator<SolrResultRow> iterator = getIterator(filter, plan, parent, parentDepth, configuration,
                     solrServer, estimator);
 
-            cursor = new SolrRowCursor(iterator, plan, filter.getQueryEngineSettings(), estimator, solrServer, configuration);
+            cursor = new SolrRowCursor(iterator, plan, filter.getQueryLimits(), estimator, solrServer, configuration);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -671,7 +671,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
         SolrResultRow currentRow;
 
-        SolrRowCursor(final Iterator<SolrResultRow> it, IndexPlan plan, QueryEngineSettings settings,
+        SolrRowCursor(final Iterator<SolrResultRow> it, IndexPlan plan, QueryLimits settings,
                       LMSEstimator estimator, SolrServer solrServer, OakSolrConfiguration configuration) {
             this.estimator = estimator;
             this.solrServer = solrServer;

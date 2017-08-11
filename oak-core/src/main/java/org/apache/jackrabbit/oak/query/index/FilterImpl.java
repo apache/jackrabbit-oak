@@ -36,7 +36,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.NativeFunctionImpl;
 import org.apache.jackrabbit.oak.query.ast.Operator;
@@ -57,7 +57,7 @@ public class FilterImpl implements Filter {
     
     private final String queryStatement;
     
-    private final QueryEngineSettings settings;
+    private final QueryLimits settings;
 
     /**
      * Whether the filter is always false.
@@ -125,7 +125,19 @@ public class FilterImpl implements Filter {
     }
     
     private FilterImpl() {
-        this(null, null, new QueryEngineSettings());
+        this(null, null, new QueryLimits() {
+
+            @Override
+            public long getLimitInMemory() {
+                return Long.MAX_VALUE;
+            }
+
+            @Override
+            public long getLimitReads() {
+                return Long.MAX_VALUE;
+            }
+            
+        });
     }
 
     /**
@@ -134,7 +146,7 @@ public class FilterImpl implements Filter {
      * @param selector the selector for the given filter
      * @param queryStatement the query statement
      */
-    public FilterImpl(SelectorImpl selector, String queryStatement, QueryEngineSettings settings) {
+    public FilterImpl(SelectorImpl selector, String queryStatement, QueryLimits settings) {
         this.selector = selector;
         this.queryStatement = queryStatement;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
@@ -155,7 +167,7 @@ public class FilterImpl implements Filter {
         this.selector = impl.selector;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
                 : false;
-        this.settings = filter.getQueryEngineSettings();
+        this.settings = filter.getQueryLimits();
     }
 
     public void setPreparing(boolean preparing) {
@@ -603,7 +615,7 @@ public class FilterImpl implements Filter {
     }
 
     @Override
-    public QueryEngineSettings getQueryEngineSettings() {
+    public QueryLimits getQueryLimits() {
         return settings;
     }
 

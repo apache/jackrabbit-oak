@@ -21,7 +21,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
 
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.junit.Test;
@@ -31,9 +36,21 @@ import org.junit.Test;
  */
 public class SQL2ParserTest {
 
-    private final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
+    private static final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
 
-    private final SQL2Parser p = new SQL2Parser(null, nodeTypes, new QueryEngineSettings());
+    private static final SQL2Parser p = createTestSQL2Parser();
+    
+    public static SQL2Parser createTestSQL2Parser() {
+        return createTestSQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
+    }
+    
+    public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings, NodeTypeInfoProvider nodeTypes2,
+            QueryEngineSettings qeSettings) {
+        QueryStatsData data = new QueryStatsData("", "");
+        return new SQL2Parser(mappings, nodeTypes2, new QueryEngineSettings(), 
+                data.new QueryExecutionStats());
+    }
+
 
     @Test
     public void testIgnoreSqlComment() throws ParseException {
@@ -70,5 +87,5 @@ public class SQL2ParserTest {
         String token = "and b.[type] in('t1', 't2', 't3')";
         assertTrue(q.contains(token));
     }
-    
+
 }

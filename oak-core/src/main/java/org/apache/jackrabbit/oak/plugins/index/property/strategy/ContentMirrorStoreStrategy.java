@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static com.google.common.collect.Queues.newArrayDeque;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
 
 import java.util.Deque;
@@ -28,24 +28,24 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.FilterIterators;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -335,7 +335,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
          * Keep the returned path, to avoid returning duplicate entries.
          */
         private final Set<String> knownPaths = Sets.newHashSet();
-        private final QueryEngineSettings settings;
+        private final QueryLimits settings;
 
         PathIterator(Filter filter, String indexName, String pathPrefix) {
             this.filter = filter;
@@ -352,7 +352,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }            
             parentPath = "";
             currentPath = "/";
-            this.settings = filter.getQueryEngineSettings();
+            this.settings = filter.getQueryLimits();
         }
 
         void enqueue(Iterator<? extends ChildNodeEntry> it) {

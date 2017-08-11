@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -114,6 +115,8 @@ public class SQL2Parser {
     
     private boolean literalUsageLogged;
 
+    private final QueryExecutionStats stats;
+
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      * 
@@ -121,10 +124,12 @@ public class SQL2Parser {
      * @param nodeTypes the nodetypes
      * @param settings the query engine settings
      */
-    public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes, QueryEngineSettings settings) {
+    public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes, QueryEngineSettings settings,
+            QueryExecutionStats stats) {
         this.namePathMapper = namePathMapper;
         this.nodeTypes = checkNotNull(nodeTypes);
         this.settings = checkNotNull(settings);
+        this.stats = checkNotNull(stats);
     }
 
     /**
@@ -231,7 +236,7 @@ public class SQL2Parser {
             constraint = parseConstraint();
         }
         QueryImpl q = new QueryImpl(
-                statement, source, constraint, columnArray, namePathMapper, settings);
+                statement, source, constraint, columnArray, namePathMapper, settings, stats);
         q.setDistinct(distinct);
         return q;
     }

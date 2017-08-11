@@ -17,18 +17,14 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 import java.text.ParseException;
 
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -37,9 +33,7 @@ import org.junit.Test;
  */
 public class FilterTest {
     
-    private final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
-
-    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
+    private final SQL2Parser p = SQL2ParserTest.createTestSQL2Parser();
 
     private Filter createFilter(String xpath) throws ParseException {
         String sql = new XPathToSQL2Converter().convert(xpath);

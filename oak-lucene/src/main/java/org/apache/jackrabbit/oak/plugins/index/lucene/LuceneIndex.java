@@ -51,10 +51,10 @@ import org.apache.jackrabbit.oak.plugins.index.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -281,7 +281,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         // no relative property in the full-text constraint
         final boolean nonFullTextConstraints = parent.isEmpty();
         final int parentDepth = getDepth(parent);
-        QueryEngineSettings settings = filter.getQueryEngineSettings();
+        QueryLimits settings = filter.getQueryLimits();
         Iterator<LuceneResultRow> itr = new AbstractIterator<LuceneResultRow>() {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
             private final Set<String> seenPaths = Sets.newHashSet();
@@ -460,8 +460,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 if (currentVersion != lastSearchIndexerVersion && lastDoc != null){
                     reloadCount++;
                     if (reloadCount > MAX_RELOAD_COUNT) {
-                        LOG.error("More than {} index version changes detected for query {}", 
-                                MAX_RELOAD_COUNT, 
+                        LOG.error("More than {} index version changes detected for query {}",
+                                MAX_RELOAD_COUNT,
                                 plan);
                         throw new IllegalStateException("Too many version changes");
                     }
@@ -476,7 +476,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             @Override
             public long getSize() {
                 IndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
-                checkState(indexNode != null);                
+                checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
                     LuceneRequestFacade luceneRequestFacade = getLuceneRequest(filter, searcher.getIndexReader(),
@@ -646,7 +646,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         if (qs.size() == 0) {
             return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
         }
-        
+
         return LucenePropertyIndex.performAdditionalWraps(qs);
     }
 
@@ -701,7 +701,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
             if (pr.first == null && pr.last == null) {
                 // we only support equality or range queries,
-                // but not "in", "is null", "is not null" 
+                // but not "in", "is null", "is not null"
                 // queries (OAK-1208)
                 continue;
             }
@@ -720,7 +720,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
             if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
                 continue;
-            }              
+            }
 
             if (skipTokenization(name)) {
                 qs.add(new TermQuery(new Term(name, pr.first
@@ -1127,7 +1127,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         private final SizeEstimator sizeEstimator;
         private long estimatedSize;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryEngineSettings settings, SizeEstimator sizeEstimator) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryLimits settings, SizeEstimator sizeEstimator) {
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
 

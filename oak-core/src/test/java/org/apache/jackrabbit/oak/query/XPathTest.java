@@ -16,16 +16,13 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.text.ParseException;
 
-import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.junit.Test;
 
 /**
@@ -33,8 +30,7 @@ import org.junit.Test;
  */
 public class XPathTest {
     
-    private final NodeTypeInfoProvider nodeTypes =
-            new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
+    private final SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser();
     
     @Test
     public void complexQuery() throws ParseException {
@@ -65,8 +61,7 @@ public class XPathTest {
         String xpath = buff.toString();
         String sql2 = new XPathToSQL2Converter().convert(xpath);
         assertTrue("Length: " + sql2.length(), sql2.length() < 200000);
-        SQL2Parser p = new SQL2Parser(null, nodeTypes, new QueryEngineSettings());
-        Query q = p.parse(sql2, false);
+        Query q = parser.parse(sql2, false);
         q.buildAlternativeQuery();
     }
     
@@ -321,8 +316,7 @@ public class XPathTest {
         sql2 = formatSQL(sql2);
         expectedSql2 = formatSQL(expectedSql2);
         assertEquals(expectedSql2, sql2);
-        SQL2Parser p = new SQL2Parser(null, nodeTypes, new QueryEngineSettings());
-        p.parse(sql2);
+        parser.parse(sql2);
     }
     
     static String formatSQL(String sql) {
