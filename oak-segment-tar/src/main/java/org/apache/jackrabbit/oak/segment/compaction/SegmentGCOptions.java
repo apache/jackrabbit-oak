@@ -105,13 +105,6 @@ public class SegmentGCOptions {
 
     private int memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
 
-    private boolean ocBinDeduplication = Boolean
-            .getBoolean("oak.segment.compaction.binaryDeduplication");
-
-    private long ocBinMaxSize = Long.getLong(
-            "oak.segment.compaction.binaryDeduplicationMaxSize",
-            100 * 1024 * 1024);
-
     private long gcSizeDeltaEstimation = Long.getLong(
             "oak.segment.compaction.gcSizeDeltaEstimation",
             SIZE_DELTA_ESTIMATION_DEFAULT);
@@ -247,9 +240,7 @@ public class SegmentGCOptions {
         if (offline) {
             return getClass().getSimpleName() + "{" +
                     "offline=" + offline +
-                    ", retainedGenerations=" + retainedGenerations +
-                    ", ocBinDeduplication=" + ocBinDeduplication +
-                    ", ocBinMaxSize=" + ocBinMaxSize + "}";
+                    ", retainedGenerations=" + retainedGenerations + "}";
         } else {
             return getClass().getSimpleName() + "{" +
                     "paused=" + paused +
@@ -289,37 +280,6 @@ public class SegmentGCOptions {
         this.offline = true;
         this.retainedGenerations = 1;
         return this;
-    }
-
-    /**
-     * Offline compaction only. Enables content based de-duplication of
-     * binaries. Involves a fair amount of I/O when reading/comparing
-     * potentially equal blobs. set via the
-     * 'oak.segment.compaction.binaryDeduplication' system property
-     * @return this instance.
-     */
-    public SegmentGCOptions withBinaryDeduplication() {
-        this.ocBinDeduplication = true;
-        return this;
-    }
-
-    public boolean isBinaryDeduplication() {
-        return this.ocBinDeduplication;
-    }
-
-    /**
-     * Offline compaction only. Set the upper bound for the content based
-     * de-duplication checks.
-     * @param binMaxSize
-     * @return this instance
-     */
-    public SegmentGCOptions setBinaryDeduplicationMaxSize(long binMaxSize) {
-        this.ocBinMaxSize = binMaxSize;
-        return this;
-    }
-
-    public long getBinaryDeduplicationMaxSize() {
-        return this.ocBinMaxSize;
     }
 
     public long getGcSizeDeltaEstimation() {
