@@ -30,9 +30,20 @@ import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
  */
 public class SegmentGCOptions {
 
-    // michid doc
+    /**
+     * The gc type.
+     */
     public enum GCType {
+
+        /**
+         * Full gc: compaction will compact the full head state.
+         */
         FULL,
+
+        /**
+         * Tail gc: compaction will compact the diff between the head state created by
+         * the previous compaction run and the current head state.
+         */
         TAIL
     }
 
@@ -217,13 +228,18 @@ public class SegmentGCOptions {
         return this;
     }
 
-    // michid doc
+    /**
+     * @return the currently set gc type.
+     */
     @Nonnull
     public GCType getGCType() {
         return gcType;
     }
 
-    // michid doc
+    /**
+     * Set the gc type.
+     * @param gcType  the type of gc to run.
+     */
     public void setGCType(@Nonnull GCType gcType) {
         this.gcType = gcType;
     }
