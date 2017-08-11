@@ -20,6 +20,9 @@
 package org.apache.jackrabbit.oak.exporter;
 
 import java.io.File;
+import java.io.InputStream;
+
+import javax.annotation.Nonnull;
 
 import joptsimple.internal.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -30,7 +33,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class FSBlobSerializerTest {
 
@@ -51,4 +56,38 @@ public class FSBlobSerializerTest {
         assertTrue(AbstractBlob.equal(b, b2));
     }
 
+
+    @Test
+    public void errorBlob() throws Exception{
+        FSBlobSerializer serializer = new FSBlobSerializer(folder.getRoot(), 1);
+        String blobValue = serializer.serialize(new BadBlob());
+
+        try{
+            Blob b = serializer.deserialize(blobValue);
+            assertEquals("foo", b.getContentIdentity());
+            b.getNewStream();
+            fail();
+        } catch (RuntimeException ignore){
+
+        }
+    }
+
+    private static class BadBlob extends AbstractBlob {
+
+        @Override
+        public String getContentIdentity() {
+            return "foo";
+        }
+
+        @Nonnull
+        @Override
+        public InputStream getNewStream() {
+           throw new RuntimeException();
+        }
+
+        @Override
+        public long length() {
+            return 0;
+        }
+    }
 }
