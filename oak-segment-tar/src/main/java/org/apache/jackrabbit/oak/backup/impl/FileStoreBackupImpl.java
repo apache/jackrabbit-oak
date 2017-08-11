@@ -29,8 +29,8 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
+import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
-import org.apache.jackrabbit.oak.segment.OnlineCompactor;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -84,7 +84,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     new WriterCacheManager.Default(),
                     bufferWriter
             );
-            OnlineCompactor compactor = new OnlineCompactor(
+            Compactor compactor = new Compactor(
                     backup.getReader(),
                     writer,
                     backup.getBlobStore(),

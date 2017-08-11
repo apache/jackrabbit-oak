@@ -54,7 +54,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  * A node can either be compacted on its own or alternatively the difference between
  * two nodes can be compacted on top of an already compacted node.
  */
-public class OnlineCompactor {
+public class Compactor {
 
     /**
      * Number of content updates that need to happen before the updates
@@ -87,7 +87,7 @@ public class OnlineCompactor {
      * @param compactionMonitor   notification call back for each compacted nodes,
      *                            properties, and binaries
      */
-    public OnlineCompactor(
+    public Compactor(
             @Nonnull SegmentReader reader,
             @Nonnull SegmentWriter writer,
             @Nullable BlobStore blobStore,

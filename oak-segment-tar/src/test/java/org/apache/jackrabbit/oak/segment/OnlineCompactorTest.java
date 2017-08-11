@@ -59,7 +59,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-// FIXME OAK-6522: Implement unit tests for OnlineCompactor
+// FIXME OAK-6522: Implement unit tests for Compactor
 public class OnlineCompactorTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -81,7 +81,7 @@ public class OnlineCompactorTest {
 
     @Test
     public void testCompact() throws Exception {
-        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), null);
+        Compactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), null);
         addTestContent(nodeStore);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
@@ -102,8 +102,8 @@ public class OnlineCompactorTest {
 
     @Test
     public void testExceedUpdateLimit() throws Exception {
-        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), null);
-        addNodes(nodeStore, OnlineCompactor.UPDATE_LIMIT * 2 + 1);
+        Compactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), null);
+        addNodes(nodeStore, Compactor.UPDATE_LIMIT * 2 + 1);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
         SegmentNodeState compacted = compactor.compact(uncompacted);
@@ -115,7 +115,7 @@ public class OnlineCompactorTest {
 
     @Test
     public void testCancel() throws IOException, CommitFailedException {
-        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(true), null);
+        Compactor compactor = createCompactor(fileStore, Suppliers.ofInstance(true), null);
         addTestContent(nodeStore);
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setChildNode("cancel").setProperty("cancel", "cancel");
@@ -126,20 +126,20 @@ public class OnlineCompactorTest {
 
     @Test(expected = IOException.class)
     public void testIOException() throws IOException, CommitFailedException {
-        OnlineCompactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), "IOException");
+        Compactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), "IOException");
         addTestContent(nodeStore);
         compactor.compact(nodeStore.getRoot());
     }
 
     @Nonnull
-    private static OnlineCompactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel, String failOnName) {
+    private static Compactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel, String failOnName) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(newGCGeneration(1, 1, true))
                 .build(fileStore);
         if (failOnName != null) {
             writer = new FailingSegmentWriter(writer, failOnName);
         }
-        return new OnlineCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, GCNodeWriteMonitor.EMPTY);
+        return new Compactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, GCNodeWriteMonitor.EMPTY);
     }
 
     private static void addNodes(SegmentNodeStore nodeStore, int count)
