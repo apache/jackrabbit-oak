@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.exporter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 
@@ -87,6 +88,8 @@ public class NodeStateSerializer {
                 jw.setIndent(" ");
             }
             jsopWriter = new JsopStreamWriter(jw);
+        } else if (format == Format.TXT) {
+            jsopWriter = new CNDStreamWriter(new PrintWriter(writer));
         }
 
         serialize(jsopWriter, blobSerializer);
