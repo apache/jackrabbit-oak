@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Before;
 import org.junit.Test;
 
 import static java.nio.charset.Charset.defaultCharset;
@@ -43,6 +44,10 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class IndexCommandIT extends AbstractIndexCommandTest {
+    @Before
+    public void setUp() {
+        IndexCommand.setDisableExitOnError(true);
+    }
 
     @Test
     public void dumpStatsAndInfo() throws Exception{
