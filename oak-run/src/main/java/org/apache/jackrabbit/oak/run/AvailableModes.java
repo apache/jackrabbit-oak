@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.exporter.NodeStateExportCommand;
 import org.apache.jackrabbit.oak.index.IndexCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
@@ -53,6 +54,7 @@ public final class AvailableModes {
             .put("upgrade", new UpgradeCommand())
             .put("unlockupgrade", new UnlockUpgradeCommand())
             .put(IndexCommand.NAME, new IndexCommand())
+            .put(NodeStateExportCommand.NAME, new NodeStateExportCommand())
             .put("server", new ServerCommand())
             .build());
 }
