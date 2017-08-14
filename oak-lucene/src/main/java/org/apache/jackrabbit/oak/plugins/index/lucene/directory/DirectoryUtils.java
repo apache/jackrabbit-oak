@@ -61,7 +61,7 @@ public class DirectoryUtils {
         return totalFileSize;
     }
 
-    static File createIndexDir(File baseDir, String indexPath) throws IOException {
+    public static File createIndexDir(File baseDir, String indexPath) throws IOException {
         String subDirPath = IndexRootDirectory.getIndexFolderBaseName(indexPath);
         IndexRootDirectory rootDir = new IndexRootDirectory(baseDir, false);
         List<LocalIndexDir> existingDirs = rootDir.getLocalIndexes(indexPath);
