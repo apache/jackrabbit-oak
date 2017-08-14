@@ -24,6 +24,8 @@ import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.exporter.NodeStateSerializer;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexDumper;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -61,6 +63,18 @@ public class IndexDumper {
             } catch (Exception e){
                 System.out.printf("Error occurred while performing consistency check for index [%s]%n", indexPath);
                 e.printStackTrace(System.out);
+                try {
+                    File indexDir = DirectoryUtils.createIndexDir(indexDumpDir, indexPath);
+                    NodeStateSerializer serializer = new NodeStateSerializer(root);
+                    serializer.setPath(indexPath);
+                    serializer.setSerializeBlobContent(true);
+                    serializer.serialize(indexDir);
+                    System.out.printf("    - Dumping raw node content%n", indexPath, FileUtils.sizeOf(indexDir));
+                    System.out.printf("    - %s (%s)%n", indexPath, FileUtils.sizeOf(indexDir));
+                } catch (Exception e2){
+                    System.out.printf("Error occurred while performing consistency check for index [%s]%n", indexPath);
+                    e2.printStackTrace(System.out);
+                }
             }
 
             indexCount++;
