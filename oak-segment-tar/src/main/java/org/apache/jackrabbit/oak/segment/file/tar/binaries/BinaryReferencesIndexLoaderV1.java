@@ -78,7 +78,8 @@ class BinaryReferencesIndexLoaderV1 {
     }
 
     private static Generation parseGeneration(ByteBuffer buffer) {
-        return new Generation(buffer.getInt(), 0, false);
+        int generation = buffer.getInt();
+        return new Generation(generation, generation, true);
     }
 
     private static Map<UUID, Set<String>> parseEntriesBySegment(ByteBuffer buffer) {
