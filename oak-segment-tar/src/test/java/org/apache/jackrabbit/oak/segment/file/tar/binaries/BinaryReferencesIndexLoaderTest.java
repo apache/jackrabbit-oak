@@ -110,8 +110,8 @@ public class BinaryReferencesIndexLoaderTest {
 
         BinaryReferencesIndex index = loadIndex(buffer);
 
-        Generation g1 = new Generation(1, 0, false);
-        Generation g2 = new Generation(2, 0, false);
+        Generation g1 = new Generation(1, 1, true);
+        Generation g2 = new Generation(2, 2, true);
 
         UUID s1 = new UUID(1, 1);
         UUID s2 = new UUID(1, 2);
