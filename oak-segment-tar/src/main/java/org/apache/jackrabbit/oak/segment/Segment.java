@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.isValid;
+import static org.apache.jackrabbit.oak.segment.data.SegmentData.newRawSegmentData;
 import static org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
@@ -169,14 +170,36 @@ public class Segment {
         return (address + boundary - 1) & ~(boundary - 1);
     }
 
+    Segment(
+        @Nonnull SegmentId id,
+        @Nonnull SegmentReader reader,
+        @Nonnull byte[] buffer,
+        @Nonnull RecordNumbers recordNumbers,
+        @Nonnull SegmentReferences segmentReferences,
+        @Nonnull String info
+    ) {
+        this.id = checkNotNull(id);
+        this.reader = checkNotNull(reader);
+        this.info = checkNotNull(info);
+        if (id.isDataSegmentId()) {
+            this.data = newSegmentData(ByteBuffer.wrap(buffer));
+        } else {
+            this.data = newRawSegmentData(ByteBuffer.wrap(buffer));
+        }
+        this.version = SegmentVersion.fromByte(buffer[3]);
+        this.recordNumbers = recordNumbers;
+        this.segmentReferences = segmentReferences;
+        id.loaded(this);
+    }
+
     public Segment(@Nonnull SegmentIdProvider idProvider,
                    @Nonnull SegmentReader reader,
                    @Nonnull final SegmentId id,
                    @Nonnull final ByteBuffer data) {
         this.reader = checkNotNull(reader);
         this.id = checkNotNull(id);
-        this.data = newSegmentData(checkNotNull(data).slice());
         if (id.isDataSegmentId()) {
+            this.data = newSegmentData(checkNotNull(data).slice());
             byte segmentVersion = this.data.getVersion();
             checkState(this.data.getSignature().equals("0aK") && isValid(segmentVersion), new Object() {
 
@@ -190,6 +213,7 @@ public class Segment {
             this.recordNumbers = readRecordNumberOffsets();
             this.segmentReferences = readReferencedSegments(idProvider);
         } else {
+            this.data = newRawSegmentData(checkNotNull(data).slice());
             this.version = LATEST_VERSION;
             this.recordNumbers = new IdentityRecordNumbers();
             this.segmentReferences = new IllegalSegmentReferences();
@@ -291,24 +315,6 @@ public class Segment {
             }
 
         };
-    }
-
-    Segment(
-        @Nonnull SegmentId id,
-        @Nonnull SegmentReader reader,
-        @Nonnull byte[] buffer,
-        @Nonnull RecordNumbers recordNumbers,
-        @Nonnull SegmentReferences segmentReferences,
-        @Nonnull String info
-    ) {
-        this.id = checkNotNull(id);
-        this.reader = checkNotNull(reader);
-        this.info = checkNotNull(info);
-        this.data = newSegmentData(buffer);
-        this.version = SegmentVersion.fromByte(buffer[3]);
-        this.recordNumbers = recordNumbers;
-        this.segmentReferences = segmentReferences;
-        id.loaded(this);
     }
 
     public SegmentVersion getSegmentVersion() {

@@ -20,11 +20,6 @@ package org.apache.jackrabbit.oak.segment.data;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
-
-import com.google.common.base.Charsets;
-import org.apache.commons.io.HexDump;
 
 /**
  * Access the data of a segment.
@@ -65,238 +60,62 @@ import org.apache.commons.io.HexDump;
  * reference entry by a positive amount. This can be useful to access a field of
  * a composite record saved at a specific offset.
  */
-public class SegmentData {
+public interface SegmentData {
 
-    private static final int HEADER_SIZE = 32;
-
-    private static final int SIGNATURE_OFFSET = 0;
-
-    private static final int SIGNATURE_LENGTH = 3;
-
-    private static final int VERSION_OFFSET = 3;
-
-    private static final int FULL_GENERATION_OFFSET = 4;
-
-    private static final int GENERATION_OFFSET = 10;
-
-    private static final int SEGMENT_REFERENCES_COUNT_OFFSET = 14;
-
-    private static final int SEGMENT_REFERENCE_LENGTH = 16;
-
-    private static final int RECORD_REFERENCES_COUNT_OFFSET = 18;
-
-    private static final int RECORD_REFERENCE_LENGTH = 9;
-
-    // Relative to a segment reference - BEGIN
-
-    private static final int SEGMENT_REFERENCE_MSB_OFFSET = 0;
-
-    private static final int SEGMENT_REFERENCE_LSB_OFFSET = 8;
-
-    // Relative to a segment reference - END
-
-    // Relative to a record reference - BEGIN
-
-    private static final int RECORD_REFERENCE_NUMBER_OFFSET = 0;
-
-    private static final int RECORD_REFERENCE_TYPE_OFFSET = 4;
-
-    private static final int RECORD_REFERENCE_OFFSET_OFFSET = 5;
-
-    // Relative to a record reference - END
-
-    private static final int MAX_SMALL_LENGTH_VALUE = 1 << 7;
-
-    private static final int MAX_MEDIUM_LENGTH_VALUE = (1 << 14) + MAX_SMALL_LENGTH_VALUE;
-
-    private static final int MAX_SEGMENT_SIZE = 1 << 18;
-
-    public static SegmentData newSegmentData(byte[] buffer) {
-        return new SegmentData(ByteBuffer.wrap(buffer));
+    static SegmentData newSegmentData(ByteBuffer buffer) {
+        return SegmentDataLoader.newSegmentData(buffer);
     }
 
-    public static SegmentData newSegmentData(ByteBuffer buffer) {
-        return new SegmentData(buffer);
+    static SegmentData newRawSegmentData(ByteBuffer buffer) {
+        return SegmentDataLoader.newRawSegmentData(buffer);
     }
 
-    private SegmentData(ByteBuffer buffer) {
-        this.buffer = buffer;
-    }
+    byte getVersion();
 
-    private final ByteBuffer buffer;
+    String getSignature();
 
-    public byte getVersion() {
-        return buffer.get(VERSION_OFFSET);
-    }
+    int getFullGeneration();
 
-    public String getSignature() {
-        byte[] signature = new byte[SIGNATURE_LENGTH];
+    boolean isCompacted();
 
-        for (int i = 0; i < SIGNATURE_LENGTH; i++) {
-            signature[i] = buffer.get(SIGNATURE_OFFSET + i);
-        }
+    int getGeneration();
 
-        return new String(signature, Charsets.UTF_8);
-    }
+    int getSegmentReferencesCount();
 
-    public int getFullGeneration() {
-        return buffer.getInt(FULL_GENERATION_OFFSET) & 0x7fffffff;
-    }
+    int getRecordReferencesCount();
 
-    public boolean isCompacted() {
-        return buffer.getInt(FULL_GENERATION_OFFSET) < 0;
-    }
+    int getRecordReferenceNumber(int i);
 
-    public int getGeneration() {
-        return buffer.getInt(GENERATION_OFFSET);
-    }
+    byte getRecordReferenceType(int i);
 
-    public int getSegmentReferencesCount() {
-        return buffer.getInt(SEGMENT_REFERENCES_COUNT_OFFSET);
-    }
+    int getRecordReferenceOffset(int i);
 
-    public int getRecordReferencesCount() {
-        return buffer.getInt(RECORD_REFERENCES_COUNT_OFFSET);
-    }
+    long getSegmentReferenceMsb(int i);
 
-    private int getRecordReferenceBase(int i) {
-        return HEADER_SIZE + getSegmentReferencesCount() * SEGMENT_REFERENCE_LENGTH + i * RECORD_REFERENCE_LENGTH;
-    }
+    long getSegmentReferenceLsb(int i);
 
-    public int getRecordReferenceNumber(int i) {
-        return buffer.getInt(getRecordReferenceBase(i) + RECORD_REFERENCE_NUMBER_OFFSET);
-    }
+    long readLength(int recordReferenceOffset);
 
-    public byte getRecordReferenceType(int i) {
-        return buffer.get(getRecordReferenceBase(i) + RECORD_REFERENCE_TYPE_OFFSET);
-    }
+    StringData readString(int recordReferenceOffset);
 
-    public int getRecordReferenceOffset(int i) {
-        return buffer.getInt(getRecordReferenceBase(i) + RECORD_REFERENCE_OFFSET_OFFSET);
-    }
+    RecordIdData readRecordId(int recordReferenceOffset);
 
-    private int getSegmentReferenceBase(int i) {
-        return HEADER_SIZE + i * SEGMENT_REFERENCE_LENGTH;
-    }
+    byte readByte(int recordReferenceOffset);
 
-    public long getSegmentReferenceMsb(int i) {
-        return buffer.getLong(getSegmentReferenceBase(i) + SEGMENT_REFERENCE_MSB_OFFSET);
-    }
+    int readInt(int recordReferenceOffset);
 
-    public long getSegmentReferenceLsb(int i) {
-        return buffer.getLong(getSegmentReferenceBase(i) + SEGMENT_REFERENCE_LSB_OFFSET);
-    }
+    short readShort(int recordReferenceOffset);
 
-    private int index(int recordReferenceOffset) {
-        return buffer.limit() - (MAX_SEGMENT_SIZE - recordReferenceOffset);
-    }
+    long readLong(int recordReferenceOffset);
 
-    public long readLength(int recordReferenceOffset) {
-        return internalReadLength(index(recordReferenceOffset));
-    }
+    ByteBuffer readBytes(int recordReferenceOffset, int size);
 
-    private long internalReadLength(int index) {
-        int head = buffer.get(index) & 0xff;
+    int size();
 
-        if ((head & 0x80) == 0) {
-            return head;
-        }
+    void hexDump(OutputStream stream) throws IOException;
 
-        if ((head & 0x40) == 0) {
-            return MAX_SMALL_LENGTH_VALUE + (buffer.getShort(index) & 0x3fff);
-        }
+    void binDump(OutputStream stream) throws IOException;
 
-        return MAX_MEDIUM_LENGTH_VALUE + (buffer.getLong(index) & 0x3fffffffffffffffL);
-    }
-
-    public StringData readString(int recordReferenceOffset) {
-        return internalReadString(index(recordReferenceOffset));
-    }
-
-    private StringData internalReadString(int index) {
-        long length = internalReadLength(index);
-
-        if (length < MAX_SMALL_LENGTH_VALUE) {
-            return internalReadString(index + Byte.BYTES, (int) length);
-        }
-
-        if (length < MAX_MEDIUM_LENGTH_VALUE) {
-            return internalReadString(index + Short.BYTES, (int) length);
-        }
-
-        if (length < Integer.MAX_VALUE) {
-            return new StringData(internalReadRecordId(index + Long.BYTES), (int) length);
-        }
-
-        throw new IllegalStateException("String is too long: " + length);
-    }
-
-    private StringData internalReadString(int index, int length) {
-        ByteBuffer duplicate = buffer.duplicate();
-        duplicate.position(index);
-        duplicate.limit(index + length);
-        String string = Charsets.UTF_8.decode(duplicate).toString();
-        return new StringData(string, length);
-    }
-
-    public RecordIdData readRecordId(int recordReferenceOffset) {
-        return internalReadRecordId(index(recordReferenceOffset));
-    }
-
-    private RecordIdData internalReadRecordId(int index) {
-        int segmentReference = buffer.getShort(index) & 0xffff;
-        int recordNumber = buffer.getInt(index + Short.BYTES);
-        return new RecordIdData(segmentReference, recordNumber);
-    }
-
-    public byte readByte(int recordReferenceOffset) {
-        return buffer.get(index(recordReferenceOffset));
-    }
-
-    public int readInt(int recordReferenceOffset) {
-        return buffer.getInt(index(recordReferenceOffset));
-    }
-
-    public short readShort(int recordReferenceOffset) {
-        return buffer.getShort(index(recordReferenceOffset));
-    }
-
-    public long readLong(int recordReferenceOffset) {
-        return buffer.getLong(index(recordReferenceOffset));
-    }
-
-    public ByteBuffer readBytes(int recordReferenceOffset, int size) {
-        return internalReadBytes(index(recordReferenceOffset), size);
-    }
-
-    private ByteBuffer internalReadBytes(int index, int size) {
-        ByteBuffer duplicate = buffer.duplicate();
-        duplicate.position(index);
-        duplicate.limit(index + size);
-        return duplicate.slice();
-    }
-
-    public int size() {
-        return buffer.remaining();
-    }
-
-    public void hexDump(OutputStream stream) throws IOException {
-        byte[] data = new byte[buffer.remaining()];
-        buffer.duplicate().get(data);
-        HexDump.dump(data, 0, stream, 0);
-    }
-
-    public void binDump(OutputStream stream) throws IOException {
-        ByteBuffer data = buffer.duplicate();
-        try (WritableByteChannel channel = Channels.newChannel(stream)) {
-            while (data.hasRemaining()) {
-                channel.write(data);
-            }
-        }
-    }
-
-    public int estimateMemoryUsage() {
-        return buffer.isDirect() ? 0 : buffer.remaining();
-    }
+    int estimateMemoryUsage();
 
 }
