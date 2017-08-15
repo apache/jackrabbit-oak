@@ -59,12 +59,12 @@ class IndexEntryV1 implements IndexEntry {
 
     @Override
     public int getFullGeneration() {
-        return 0;
+        return getGeneration();
     }
 
     @Override
     public boolean isCompacted() {
-        return false;
+        return true;
     }
 
 }
