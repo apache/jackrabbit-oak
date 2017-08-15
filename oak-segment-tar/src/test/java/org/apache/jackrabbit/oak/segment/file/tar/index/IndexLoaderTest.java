@@ -71,8 +71,8 @@ public class IndexLoaderTest {
         Index index = loadIndex(buffer);
         assertNotNull(index);
         assertEquals(2, index.count());
-        assertEntry(index.entry(0), 1, 2, 3, 4, 5, 0, false);
-        assertEntry(index.entry(1), 6, 7, 8, 9, 10, 0, false);
+        assertEntry(index.entry(0), 1, 2, 3, 4, 5, 5, true);
+        assertEntry(index.entry(1), 6, 7, 8, 9, 10, 10, true);
     }
 
     @Test

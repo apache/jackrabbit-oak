@@ -87,8 +87,8 @@ public class IndexV1Test {
         assertEquals(3, entry.getPosition());
         assertEquals(4, entry.getLength());
         assertEquals(5, entry.getGeneration());
-        assertEquals(0, entry.getFullGeneration());
-        assertEquals(false, entry.isCompacted());
+        assertEquals(5, entry.getFullGeneration());
+        assertEquals(true, entry.isCompacted());
     }
 
 }
