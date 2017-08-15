@@ -371,7 +371,9 @@ public class FileStore extends AbstractFileStore {
      */
     public void cleanup() throws IOException {
         CompactionResult compactionResult = CompactionResult.skipped(
-                getGcGeneration(), garbageCollector.gcOptions);
+                getGcGeneration(),
+                garbageCollector.gcOptions,
+                revisions.getHead());
         fileReaper.add(garbageCollector.cleanup(compactionResult));
     }
 
@@ -1201,7 +1203,8 @@ public class FileStore extends AbstractFileStore {
          */
         static CompactionResult skipped(
                 @Nonnull GCGeneration currentGeneration,
-                @Nonnull final SegmentGCOptions gcOptions) {
+                @Nonnull final SegmentGCOptions gcOptions,
+                @Nonnull final RecordId compactedRootId) {
             return new CompactionResult(currentGeneration) {
                 @Override
                 Predicate<GCGeneration> reclaimer() {
@@ -1211,6 +1214,11 @@ public class FileStore extends AbstractFileStore {
                 @Override
                 boolean isSuccess() {
                     return true;
+                }
+
+                @Override
+                RecordId getCompactedRootId() {
+                    return compactedRootId;
                 }
             };
         }
@@ -1224,7 +1232,7 @@ public class FileStore extends AbstractFileStore {
 
         /**
          * @return  {@code true} for {@link #succeeded(GCGeneration, SegmentGCOptions, RecordId) succeeded}
-         *          and {@link #skipped(GCGeneration, SegmentGCOptions) skipped}, {@code false} otherwise.
+         *          and {@link #skipped(GCGeneration, SegmentGCOptions, RecordId) skipped}, {@code false} otherwise.
          */
         abstract boolean isSuccess();
 
