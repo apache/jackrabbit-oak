@@ -39,7 +39,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
+import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 import org.junit.Before;
@@ -115,7 +115,7 @@ public class UpgradeIT {
         try (TarFiles tarFiles = TarFiles.builder()
                 .withDirectory(fileStoreHome.getRoot())
                 .withTarRecovery((_1, _2, _3) -> fail("Unexpected recovery"))
-                .withIOMonitor(IOMonitor.NULL)
+                .withIOMonitor(new IOMonitorAdapter())
                 .withReadOnly()
                 .build()) {
 

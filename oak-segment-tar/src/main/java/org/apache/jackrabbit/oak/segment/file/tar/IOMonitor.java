@@ -26,16 +26,6 @@ import java.io.File;
 public interface IOMonitor {
 
     /**
-     * A trivial instance of {@code IOMonitor} that does nothing.
-     */
-    IOMonitor NULL = new IOMonitor(){
-        @Override public void beforeSegmentRead(File file, long msb, long lsb, int length) {}
-        @Override public void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed) {}
-        @Override public void beforeSegmentWrite(File file, long msb, long lsb, int length) {}
-        @Override public void afterSegmentWrite(File file, long msb, long lsb, int length, long elapsed) {}
-    };
-
-    /**
      * Called before a segment is read from the file system.
      *
      * @param file   File containing the segment.
