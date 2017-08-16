@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
@@ -46,7 +47,7 @@ class SegmentTarFixtureProvider {
         String path = options.getOptionBean(CommonOptions.class).getStoreArg();
         FileStoreBuilder builder = fileStoreBuilder(new File(path)).withMaxFileSize(256);
 
-        FileStoreBuilderCustomizer customizer = getService(wb, FileStoreBuilderCustomizer.class);
+        FileStoreTarBuilderCustomizer customizer = getService(wb, FileStoreTarBuilderCustomizer.class);
         if (customizer != null) {
             customizer.customize(builder);
         }
@@ -62,12 +63,14 @@ class SegmentTarFixtureProvider {
                     .buildReadOnly();
             closer.register(fileStore);
             nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            wb.register(ReadOnlyFileStore.class, fileStore, emptyMap());
         } else {
             FileStore fileStore = builder
                     .withStatisticsProvider(statisticsProvider)
                     .build();
             closer.register(fileStore);
             nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            wb.register(FileStore.class, fileStore, emptyMap());
         }
 
         return nodeStore;
