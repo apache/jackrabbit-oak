@@ -22,9 +22,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.File;
 import java.io.IOException;
 
-class ManifestChecker {
+public class ManifestChecker {
 
-    static ManifestChecker newManifestChecker(File path, boolean shouldExist, int minStoreVersion, int maxStoreVersion) {
+    public static ManifestChecker newManifestChecker(File path, boolean shouldExist, int minStoreVersion, int maxStoreVersion) {
         checkArgument(path != null, "path");
         checkArgument(minStoreVersion > 0, "minStoreVersion");
         checkArgument(maxStoreVersion > 0, "maxStoreVersion");
@@ -52,7 +52,7 @@ class ManifestChecker {
         updateManifest(manifest);
     }
 
-    void checkManifest() throws IOException, InvalidFileStoreVersionException {
+    public void checkManifest() throws IOException, InvalidFileStoreVersionException {
         checkManifest(openManifest());
     }
 
