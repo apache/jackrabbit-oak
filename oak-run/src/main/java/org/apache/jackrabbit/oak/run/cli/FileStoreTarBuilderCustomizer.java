@@ -19,12 +19,11 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 
-public interface FileStoreBuilderCustomizer {
+public interface FileStoreTarBuilderCustomizer {
 
-    void customize(FileStore.Builder builder) throws IOException;
+    void customize(FileStoreBuilder builder) throws IOException;
 }

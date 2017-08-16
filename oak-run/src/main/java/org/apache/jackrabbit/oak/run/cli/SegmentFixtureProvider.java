@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
 @SuppressWarnings("deprecation")
@@ -45,6 +46,11 @@ class SegmentFixtureProvider {
         FileStore.Builder builder = FileStore.builder(new File(path))
                 .withMaxFileSize(256).withDefaultMemoryMapping();
 
+        FileStoreBuilderCustomizer customizer = getService(wb, FileStoreBuilderCustomizer.class);
+        if (customizer != null) {
+            customizer.customize(builder);
+        }
+
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
@@ -56,12 +62,14 @@ class SegmentFixtureProvider {
                     .buildReadOnly();
             closer.register(fileStore);
             nodeStore = SegmentNodeStore.builder(fileStore).build();
+            wb.register(FileStore.ReadOnlyStore.class, fileStore, emptyMap());
         } else {
             FileStore fileStore = builder
                     .withStatisticsProvider(statisticsProvider)
                     .build();
             closer.register(fileStore);
             nodeStore = SegmentNodeStore.builder(fileStore).build();
+            wb.register(FileStore.class, fileStore, emptyMap());
         }
 
         return nodeStore;

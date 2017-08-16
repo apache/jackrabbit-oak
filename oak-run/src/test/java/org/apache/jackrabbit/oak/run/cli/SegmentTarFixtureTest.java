@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -73,8 +72,8 @@ public class SegmentTarFixtureTest {
     @Test
     public void customizerCalled() throws Exception{
         Options o = createSegmentOptions(folder.getRoot());
-        FileStoreBuilderCustomizer customizer = mock(FileStoreBuilderCustomizer.class);
-        o.getWhiteboard().register(FileStoreBuilderCustomizer.class, customizer, emptyMap());
+        FileStoreTarBuilderCustomizer customizer = mock(FileStoreTarBuilderCustomizer.class);
+        o.getWhiteboard().register(FileStoreTarBuilderCustomizer.class, customizer, emptyMap());
         try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(o, false)) {
 
         }
