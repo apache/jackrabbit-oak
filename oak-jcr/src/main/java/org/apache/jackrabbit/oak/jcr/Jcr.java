@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.version.VersionHook;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -59,7 +60,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
@@ -106,7 +106,7 @@ public class Jcr {
 
     private ContentRepository contentRepository;
     private Repository repository;
-    
+
     private Clusterable clusterable;
 
     public Jcr(Oak oak, boolean initialize) {
@@ -157,7 +157,7 @@ public class Jcr {
         this.clusterable = checkNotNull(c);
         return this;
     }
-    
+
     @Nonnull
     public final Jcr with(@Nonnull RepositoryInitializer initializer) {
         ensureRepositoryIsNotCreated();
@@ -170,7 +170,7 @@ public class Jcr {
         oak.withAtomicCounter();
         return this;
     }
-    
+
     private void ensureRepositoryIsNotCreated() {
         checkState(repository == null && contentRepository == null,
                 "Repository was already created");
@@ -384,7 +384,7 @@ public class Jcr {
         if (defaultWorkspaceName != null) {
             oak.with(defaultWorkspaceName);
         }
-        
+
         if (clusterable != null) {
             oak.with(clusterable);
         }

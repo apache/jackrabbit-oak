@@ -60,11 +60,11 @@ public final class RootFactory {
                                         @Nullable SecurityProvider securityProvider,
                                         @Nullable QueryEngineSettings queryEngineSettings,
                                         @Nullable QueryIndexProvider indexProvider) {
-        return new SystemRoot(store,
+        return SystemRoot.create(store,
                 (hook == null) ? EmptyHook.INSTANCE : hook,
                 (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
                 (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
-                (queryEngineSettings == null) ? new org.apache.jackrabbit.oak.spi.query.QueryEngineSettings() : queryEngineSettings,
+                queryEngineSettings,
                 (indexProvider == null) ? new CompositeQueryIndexProvider(): indexProvider);
 
     }
@@ -75,11 +75,10 @@ public final class RootFactory {
                                         @Nullable String workspaceName,
                                         @Nullable SecurityProvider securityProvider,
                                         @Nullable QueryIndexProvider indexProvider) {
-        return new SystemRoot(store,
+        return SystemRoot.create(store,
                 (hook == null) ? EmptyHook.INSTANCE : hook,
                 (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
                 (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
-                new org.apache.jackrabbit.oak.spi.query.QueryEngineSettings(),
                 (indexProvider == null) ? new CompositeQueryIndexProvider(): indexProvider);
 
     }

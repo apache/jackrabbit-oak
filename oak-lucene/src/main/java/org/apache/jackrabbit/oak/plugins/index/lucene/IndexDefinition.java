@@ -372,7 +372,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
         this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
         this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
-        this.queryPaths = getQueryPaths(defn);
+        this.queryPaths = getOptionalStrings(defn, IndexConstants.QUERY_PATHS);
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
         this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
 
@@ -949,7 +949,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
             return nullCheckEnabledProperties;
         }
-        
+
         public List<PropertyDefinition> getFunctionRestrictions() {
             return functionRestrictions;
         }
@@ -1076,12 +1076,12 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             return JcrConstants.NT_BASE.equals(baseNodeType);
         }
 
-        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, 
+        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config,
                                                                    List<NamePattern> patterns,
                                                                    List<Aggregate.Include> propAggregate,
                                                                    List<PropertyDefinition> nonExistentProperties,
                                                                    List<PropertyDefinition> existentProperties,
-                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps, 
+                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps,
                                                                    List<PropertyDefinition> functionRestrictions) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
@@ -1655,8 +1655,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return result;
     }
 
-    private String[] getQueryPaths(NodeState defn) {
-        PropertyState ps = defn.getProperty(IndexConstants.QUERY_PATHS);
+    private static String[] getOptionalStrings(NodeState defn, String propertyName) {
+        PropertyState ps = defn.getProperty(propertyName);
         if (ps != null){
             return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
         }

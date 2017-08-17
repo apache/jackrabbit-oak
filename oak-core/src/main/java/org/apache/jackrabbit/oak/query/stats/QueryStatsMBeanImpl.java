@@ -31,8 +31,8 @@ import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

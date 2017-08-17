@@ -108,5 +108,5 @@ public interface IndexConstants {
      * The index name hint (when using "option(index abc)", this is "abc")
      */
     String INDEX_NAME_OPTION = ":indexName";
-    
+
 }
