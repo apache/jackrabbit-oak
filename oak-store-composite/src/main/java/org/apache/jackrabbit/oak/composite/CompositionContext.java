@@ -90,12 +90,15 @@ class CompositionContext {
     }
 
     boolean shouldBeComposite(final String path) {
+        boolean supportMounts = false;
         if (nonDefaultStores.stream()
                 .map(MountedNodeStore::getMount)
                 .anyMatch(m -> m.isSupportFragment(path))) {
-            return true;
+            supportMounts = true;
+        } else if (!mip.getMountsPlacedUnder(path).isEmpty()) {
+            supportMounts = true;
         }
-        return !mip.getMountsPlacedUnder(path).isEmpty();
+        return supportMounts && mip.getMountByPath(path).isDefault();
     }
 
     private List<MountedNodeStore> getContributingStores(String path, Function<MountedNodeStore, Iterable<String>> childrenProvider) {
