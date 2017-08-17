@@ -28,7 +28,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -44,7 +44,7 @@ public class LuceneIndexQueryTestSQL2Optimisation extends LuceneIndexQueryTest {
             }
         });
     }
-    
+
     @Test
     public void oak2660() throws Exception {
         final String name = "name";
@@ -52,16 +52,16 @@ public class LuceneIndexQueryTestSQL2Optimisation extends LuceneIndexQueryTest {
         final String description = "description";
         final String added = "added";
         final String yes = "yes";
-        
+
         Tree t;
-        
+
         // re-define the lucene index
         t = root.getTree("/oak:index/" + TEST_INDEX_NAME);
         assertTrue(t.exists());
         t.remove();
         root.commit();
         assertFalse(root.getTree("/oak:index/" + TEST_INDEX_NAME).exists());
-        
+
         t = root.getTree("/");
         Tree indexDefn = createTestIndexNode(t, LuceneIndexConstants.TYPE_LUCENE);
         useV2(indexDefn);
@@ -72,9 +72,9 @@ public class LuceneIndexQueryTestSQL2Optimisation extends LuceneIndexQueryTest {
         TestUtil.enableForFullText(props, surname, false);
         TestUtil.enableForFullText(props, description, false);
         TestUtil.enableForOrdered(props, added);
-        
+
         root.commit();
-                
+
         // creating the dataset
         List<String> expected = Lists.newArrayList();
         Tree content = root.getTree("/").addChild("content");
@@ -131,19 +131,19 @@ public class LuceneIndexQueryTestSQL2Optimisation extends LuceneIndexQueryTest {
         for (String s : expected) {
             assertTrue("wrong initial state", root.getTree(s).exists());
         }
-        
-        final String statement = 
-            "SELECT * " + 
+
+        final String statement =
+            "SELECT * " +
             "FROM [" + NT_UNSTRUCTURED + "] AS c " +
             "WHERE " +
             "( " +
             "c.[" + name + "] = '" + yes + "' " +
-            "OR CONTAINS(c.[" + surname + "], '" + yes + "') " + 
-            "OR CONTAINS(c.[" + description + "], '" + yes + "') " + 
-            ") " + 
+            "OR CONTAINS(c.[" + surname + "], '" + yes + "') " +
+            "OR CONTAINS(c.[" + description + "], '" + yes + "') " +
+            ") " +
             "AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
             "ORDER BY " + added + " DESC ";
-     
+
         assertQuery(statement, SQL2, expected);
     }
 }

@@ -25,7 +25,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.After;
 import org.junit.Before;

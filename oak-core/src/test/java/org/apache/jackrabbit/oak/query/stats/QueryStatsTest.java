@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.query.stats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.Test;
 
 public class QueryStatsTest {

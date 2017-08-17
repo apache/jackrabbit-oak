@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.property;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.spi.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
 /**
  * checks the same as {@link PropertyIndexQueryTest} enabling the feature for optimising SQL2

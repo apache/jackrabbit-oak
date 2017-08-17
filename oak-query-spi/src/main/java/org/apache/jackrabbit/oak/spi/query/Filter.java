@@ -412,7 +412,19 @@ public interface Filter {
 
     Filter EMPTY_FILTER = new Filter() {
 
-        private final QueryEngineSettings EMPTY_SETTINGS = new QueryEngineSettings();
+        private final QueryLimits EMPTY_LIMITS = new QueryLimits() {
+
+            @Override
+            public long getLimitInMemory() {
+                return Long.MAX_VALUE;
+            }
+
+            @Override
+            public long getLimitReads() {
+                return Long.MAX_VALUE;
+            }
+
+        };
 
         @Override
         public Collection<PropertyRestriction> getPropertyRestrictions() {
@@ -430,8 +442,8 @@ public interface Filter {
         }
 
         @Override
-        public QueryEngineSettings getQueryLimits() {
-            return EMPTY_SETTINGS;
+        public QueryLimits getQueryLimits() {
+            return EMPTY_LIMITS;
         }
 
         @Override
