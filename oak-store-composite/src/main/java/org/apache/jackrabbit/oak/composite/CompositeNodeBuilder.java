@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -50,25 +51,22 @@ class CompositeNodeBuilder implements NodeBuilder {
 
     private final MountedNodeStore owningStore;
 
-    private final CompositeNodeBuilder parent;
-
     private final CompositeNodeBuilder rootBuilder;
 
     CompositeNodeBuilder(String path, NodeMap<NodeBuilder> nodeBuilders, CompositionContext ctx) {
-        this(path, nodeBuilders, ctx, null);
-    }
-
-    private CompositeNodeBuilder(String path, NodeMap<NodeBuilder> nodeBuilders, CompositionContext ctx, CompositeNodeBuilder parent) {
         this.path = path;
         this.ctx = ctx;
         this.nodeBuilders = nodeBuilders;
         this.owningStore = ctx.getOwningStore(path);
-        this.parent = parent;
-        if (parent == null) {
-            this.rootBuilder = this;
-        } else {
-            this.rootBuilder = parent.rootBuilder;
-        }
+        this.rootBuilder = this;
+    }
+
+    private CompositeNodeBuilder(String path, NodeMap<NodeBuilder> nodeBuilders, CompositionContext ctx, CompositeNodeBuilder rootBuilder) {
+        this.path = path;
+        this.ctx = ctx;
+        this.nodeBuilders = nodeBuilders;
+        this.owningStore = ctx.getOwningStore(path);
+        this.rootBuilder = rootBuilder;
     }
 
     NodeBuilder getNodeBuilder(MountedNodeStore mns) {
@@ -242,7 +240,7 @@ class CompositeNodeBuilder implements NodeBuilder {
         if (!ctx.shouldBeComposite(childPath)) {
             return nodeBuilders.get(ctx.getOwningStore(childPath)).getChildNode(name);
         }
-        return new CompositeNodeBuilder(childPath, nodeBuilders.lazyApply(b -> b.getChildNode(name)), ctx, this);
+        return new CompositeNodeBuilder(childPath, nodeBuilders.lazyApply(b -> b.getChildNode(name)), ctx, rootBuilder);
     }
 
     @Override
@@ -262,7 +260,7 @@ class CompositeNodeBuilder implements NodeBuilder {
         if (!ctx.shouldBeComposite(childPath)) {
             return childBuilder;
         }
-        return new CompositeNodeBuilder(childPath, nodeBuilders.lazyApply(b -> b.getChildNode(name)).replaceNode(childStore, childBuilder), ctx, this);
+        return new CompositeNodeBuilder(childPath, nodeBuilders.lazyApply(b -> b.getChildNode(name)).replaceNode(childStore, childBuilder), ctx, rootBuilder);
     }
 
     @Override
@@ -308,11 +306,27 @@ class CompositeNodeBuilder implements NodeBuilder {
     private final String getSourcePath() {
         // Traverse up the hierarchy until we encounter the first builder
         // having a source path annotation or until we hit the root
-        CompositeNodeBuilder builder = this;
-        String sourcePath = getSourcePathAnnotation(builder);
-        while (sourcePath == null && builder.parent != null) {
-            builder = builder.parent;
-            sourcePath = getSourcePathAnnotation(builder);
+        String sourcePath = null;
+        String annotatedPath = null;
+
+        StringBuilder pathBuilder = new StringBuilder();
+
+        NodeBuilder builder = this.rootBuilder;
+        Iterator<String> pathIterator = PathUtils.elements(path).iterator();
+        while (true) {
+            String s = getSourcePathAnnotation(builder);
+            if (s != null) {
+                sourcePath = s;
+                annotatedPath = pathBuilder.length() == 0 ? "/" : pathBuilder.toString();
+            }
+
+            if (!pathIterator.hasNext()) {
+                break;
+            }
+
+            String segment = pathIterator.next();
+            builder = builder.getChildNode(segment);
+            pathBuilder.append('/').append(segment);
         }
 
         if (sourcePath == null) {
@@ -324,11 +338,11 @@ class CompositeNodeBuilder implements NodeBuilder {
             // path annotation with the relative path from this builder up to that
             // parent appended.
             return PathUtils.concat(sourcePath,
-                    PathUtils.relativize(builder.getPath(), getPath()));
+                    PathUtils.relativize(annotatedPath, path));
         }
     }
 
-    private static String getSourcePathAnnotation(CompositeNodeBuilder builder) {
+    private static String getSourcePathAnnotation(NodeBuilder builder) {
         PropertyState base = builder.getBaseState().getProperty(MoveDetector.SOURCE_PATH);
         PropertyState head = builder.getNodeState().getProperty(MoveDetector.SOURCE_PATH);
         if (Objects.equal(base, head)) {
