@@ -23,4 +23,9 @@ public interface QueryLimits {
     long getLimitInMemory();
 
     long getLimitReads();
+
+    boolean getFullTextComparisonWithoutIndex();
+
+    boolean getFailTraversal();
+
 }

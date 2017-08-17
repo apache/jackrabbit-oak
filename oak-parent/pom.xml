@@ -238,6 +238,7 @@
                   <filter>!org.apache.jackrabbit.oak.spi.gc</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.lifecycle</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.query</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.query.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.state</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.whiteboard</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.xml</filter>

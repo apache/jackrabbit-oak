@@ -99,6 +99,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
@@ -385,8 +386,13 @@ public class Oak {
     }
 
     @Nonnull
-    public Oak with(@Nonnull QueryEngineSettings queryEngineSettings) {
-        this.queryEngineSettings = new AnnotatedQueryEngineSettings(queryEngineSettings);
+    public Oak with(@Nonnull QueryLimits settings) {
+        QueryEngineSettings s = new QueryEngineSettings();
+        s.setFailTraversal(settings.getFailTraversal());
+        s.setFullTextComparisonWithoutIndex(settings.getFullTextComparisonWithoutIndex());
+        s.setLimitInMemory(settings.getLimitInMemory());
+        s.setLimitReads(settings.getLimitReads());
+        this.queryEngineSettings = new AnnotatedQueryEngineSettings(s);
         return this;
     }
 
