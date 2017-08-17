@@ -136,6 +136,16 @@ public class FilterImpl implements Filter {
             public long getLimitReads() {
                 return Long.MAX_VALUE;
             }
+
+            @Override
+            public boolean getFullTextComparisonWithoutIndex() {
+                return false;
+            }
+
+            @Override
+            public boolean getFailTraversal() {
+                return false;
+            }
             
         });
     }
