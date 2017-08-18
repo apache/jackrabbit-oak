@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -96,11 +97,15 @@ public class LuceneIndexEditorContext {
         }
     }
 
-    static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition)
+    static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition, boolean buffered)
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
-            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), indexDefinition, false);
+            if (buffered) {
+                return new BufferedOakDirectory(definition, INDEX_DATA_CHILD_NAME, indexDefinition,null);
+            } else {
+                return new OakDirectory(definition, INDEX_DATA_CHILD_NAME, indexDefinition, false);
+            }
         } else {
             // try {
             File file = new File(path);
@@ -180,7 +185,10 @@ public class LuceneIndexEditorContext {
     IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
-            directory = newIndexDirectory(definition, definitionBuilder);
+            //When IndexCopier is enabled then use buffered directory
+            //as concurrent writes are possible
+            boolean buffered = indexCopier != null;
+            directory = newIndexDirectory(definition, definitionBuilder, buffered);
             IndexWriterConfig config;
             if (indexCopier != null){
                 directory = indexCopier.wrapForWrite(definition, directory, reindex);
@@ -200,12 +208,12 @@ public class LuceneIndexEditorContext {
         checkNotNull(writer);
         checkNotNull(definition);
         checkNotNull(directory);
-        
+
         int docs = writer.numDocs();
         int ram = writer.numRamDocs();
 
         log.trace("Writer for direcory {} - docs: {}, ramDocs: {}", definition, docs, ram);
-        
+
         String[] files = directory.listAll();
         long overallSize = 0;
         StringBuilder sb = new StringBuilder();
@@ -241,18 +249,18 @@ public class LuceneIndexEditorContext {
             if (log.isTraceEnabled()) {
                 trackIndexSizeInfo(writer, definition, directory);
             }
-            
+
             final long start = PERF_LOGGER.start();
 
             updateSuggester(writer.getAnalyzer());
             PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
-            
+
             writer.close();
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
-            
+
             directory.close();
             PERF_LOGGER.end(start, -1, "Closed directory for directory {}", definition);
-            
+
             //OAK-2029 Record the last updated status so
             //as to make IndexTracker detect changes when index
             //is stored in file system
@@ -260,7 +268,7 @@ public class LuceneIndexEditorContext {
             status.setProperty("lastUpdated", ISO8601.format(getCalendar()), Type.DATE);
             status.setProperty("indexedNodes",indexedNodes);
             PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
-            
+
             textExtractionStats.log(reindex);
             textExtractionStats.collectStats(extractedTextCache);
         }
