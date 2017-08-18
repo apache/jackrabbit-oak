@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
@@ -409,6 +411,30 @@ public class OakDirectoryTest {
             assertThat(e.getMessage(), containsString("test3.txt"));
         }
     }
+
+    @Test
+    public void blobFactory() throws Exception {
+        final AtomicInteger numBlobs = new AtomicInteger();
+        final int fileSize = 1024;
+        IndexDefinition def = new IndexDefinition(root, builder.getNodeState());
+        OakDirectory.BlobFactory factory = new OakDirectory.BlobFactory() {
+            @Override
+            public Blob createBlob(InputStream in) throws IOException {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                IOUtils.copy(in, out);
+                byte[] data = out.toByteArray();
+                assertEquals(fileSize, data.length);
+                numBlobs.incrementAndGet();
+                return new ArrayBasedBlob(data);
+            }
+        };
+        OakDirectory dir = new OakDirectory(builder, INDEX_DATA_CHILD_NAME, def, false, factory);
+        numBlobs.set(0);
+        writeFile(dir, "file", fileSize);
+        assertEquals(1, numBlobs.get());
+        dir.close();
+    }
+
 
     private static void readInputToEnd(long expectedSize, IndexInput input) throws IOException {
         int COPY_BUFFER_SIZE = 16384;
