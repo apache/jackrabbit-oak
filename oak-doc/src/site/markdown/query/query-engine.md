@@ -15,7 +15,40 @@
    limitations under the License.
   -->
 
+<!--
+TOC created with some help:
+grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's/\(#*\) \(.*\)/\1 * [\2](#\2)/g'
+-->
+
 ## The Query Engine
+
+* [Overview](#Overview)
+    * [Query Processing](#Query_Processing)
+        * [Cost Calculation](#Cost_Calculation)
+    * [Query Options](#Query_Options)
+        * [Query Option Traversal](#Query_Option_Traversal)
+        * [Query Option Index Tag](#Query_Option_Index_Tag)
+    * [Compatibility](#Compatibility)
+        * [Result Size](#Result_Size)
+        * [Quoting](#Quoting)
+        * [Equality for Path Constraints](#Equality_for_Path_Constraints)
+    * [Slow Queries and Read Limits](#Slow_Queries_and_Read_Limits)
+    * [Full-Text Queries](#Full-Text_Queries)
+    * [Native Queries](#Native_Queries)
+    * [Similarity Queries](#Similarity_Queries)
+    * [Spellchecking](#Spellchecking)
+    * [Suggestions](#Suggestions)
+    * [Facets](#Facets)
+    * [XPath to SQL-2 Transformation](#XPath_to_SQL-2_Transformation)
+    * [The Node Type Index](#The_Node_Type_Index)
+    * [Temporarily Disabling an Index](#Temporarily_Disabling_an_Index)
+    * [The Deprecated Ordered Index](#The_Deprecated_Ordered_Index)
+    * [Index Storage and Manual Inspection](#Index_Storage_and_Manual_Inspection)
+    * [SQL-2 Optimisation](#SQL-2_Optimisation)
+    * [Additional XPath and SQL-2 Features](#Additional_XPath_and_SQL-2_Features)
+  
+
+## Overview
 
 Oak does not index as much content by default as does Jackrabbit 2. You need to create custom 
 indexes when necessary, much like in traditional RDBMSs. If there is no index for a 
@@ -83,7 +116,12 @@ so the method should be reasonably fast (not read any data itself, or at least n
 
 If an index implementation can not query the data, it has to return `Infinity` (`Double.POSITIVE_INFINITY`).
 
-#### Query Options
+### Query Options
+
+With query options, you can enforce the usage of indexes (failing the query if there is no index), 
+and you can limit which indexes should be considered.
+
+#### Query Option Traversal
 
 By default, queries without index will log an info level message as follows
 (see OAK-4888, since Oak 1.6):
@@ -109,6 +147,52 @@ This is supported for both XPath and SQL-2, as follows:
     where ischildnode('/oak:index') 
     order by name()
     option(traversal ok)
+
+#### Query Option Index Tag
+
+`@since Oak 1.7.4 (OAK-937)`
+
+By default, queries will use the index with the lowest expected cost (as in relational databases).
+But in rare cases, it is needed to specify which index(es) should be considered for a query:
+
+* If there are multiple Lucene fulltext indexes with different aggregation rules,
+  and the index data overlaps.
+  In the query, you want to specify which aggregation rule to use.
+* To temporarily work around limitations of the index implementation, 
+  for example incorrect cost estimation.
+
+Using index tags should be the exception, and should only be used temporarily.
+To use index tags, 
+add `tags` (a multi-valued String property) to the index(es) of choice, for example:
+
+    /oak:index/lucene/tags = [x, y]
+
+Note each index can have multiple tags, and the same tag can be used in multiple indexes.
+The syntax to limit a query to a certain tag is: `<query> option(index tag <tagName>)`:
+
+    /jcr:root/content//element(*, nt:file)[jcr:contains(., 'test')] option(index tag x)
+
+    select * from [nt:file] 
+    where ischildnode('/content')
+    and contains(*, 'test')
+    option(index tag [x])
+  
+The query will only consider the indexes that contain the specified tag (that is, possibly multiple indexes).
+Each query supports one tag only.
+
+Limitations:
+
+* This is currently supported in indexes of type `lucene` compatVersion 2, and type `property`.
+* For indexes of type `lucene`, when adding adding or changing the property `tags`,
+  you need to also set the property `refresh` to `true` (Boolean), 
+  so that the change is applied. No indexing is required.
+* Solr indexes, and the reference index, don't support tags yet. 
+  That means they still might return a low cost, even if the tag does not match.
+* The nodetype index only partially supports this feature: if a tag is specified in the query, then the nodetype index
+  is not used. However, tags in the nodetype index itself are ignored currently.
+* There is currently no way to disable traversal that way.
+  So if the expected cost of traversal is very low, the query will traverse.
+  Note that traversal is never used for fulltext queries.
 
 ### Compatibility
 
@@ -377,7 +461,7 @@ Note that suggested terms come already filtered according to calling user privil
 so that users could see suggested
 terms only coming from indexed content they are allowed to read.
 
-### Facets 
+### Facets
 
 `@since Oak 1.3.14` Oak has support for [facets](https://en.wikipedia.org/wiki/Faceted_search). 
 Once enabled (see details for [Lucene](lucene.html#Facets) and/or [Solr](solr.html#Suggestions) indexes) 
@@ -399,9 +483,9 @@ field in Lucene / Solr) using the following snippet:
     
 Nodes/Rows can still be retrieved from within the QueryResult object the usual way.
 
-### XPath to SQL2 Transformation
+### XPath to SQL-2 Transformation
 
-To support the XPath query language, such queries are internally converted to SQL2. 
+To support the XPath query language, such queries are internally converted to SQL-2. 
 
 Every conversion is logged in `debug` level under the 
 `org.apache.jackrabbit.oak.query.QueryEngineImpl` logger:
@@ -414,7 +498,7 @@ Every conversion is logged in `debug` level under the
         /* xpath: //element(*)[@sling:resourceType = 'slingevent:Lock' 
         and @lock.created < xs:dateTime('2013-09-02T15:44:05.920+02:00')] */
 
-_Each transformed SQL2 query contains the original XPath query as a comment._
+_Each transformed SQL-2 query contains the original XPath query as a comment._
 
 When converting from XPath to SQL-2, `or` conditions are automatically converted to
 `union` queries, so that indexes can be used for conditions of the form 
@@ -433,7 +517,7 @@ To temporarily disable an index (for example for testing), set the index type to
 Please note that while the index type is not set, the index is not updated, so if you enable it again,
 it might not be correct. This is specially important for synchronous indexes.
 
-### The Ordered Index (deprecated since 1.1.8)
+### The Deprecated Ordered Index
 
 This index has been deprecated in favour of Lucene Property
 index. Please refer to [Lucene Index documentation](lucene.html) for
@@ -445,7 +529,7 @@ For help on migrating to a Lucece index please refer to:
 For historical information around the index please refer to:
 [Ordered Index](ordered-index.html).
 
-### Index storage and manual inspection
+### Index Storage and Manual Inspection
 
 Sometimes there is a need to inspect the index content for debugging (or pure curiosity).
 The index content is generally stored as content under the index definition as hidden nodes 
@@ -464,12 +548,12 @@ flavors store the content as unstructured nodes (clear readable text),
 the _Lucene_ index is stored as binaries, so one would need to export the
 entire Lucene directory to the local file system and browse it using a dedicated tool.
 
-### SQL2 Optimisation
+### SQL-2 Optimisation
 
     @since 1.3.9 with -Doak.query.sql2optimisation
 
 Enabled by default in 1.3.11 it will perform a round of optimisation
-on the `Query` object obtained after parsing a SQL2 statement. It will
+on the `Query` object obtained after parsing a SQL-2 statement. It will
 for example attempt a conversion of OR conditions into UNION
 [OAK-1617](https://issues.apache.org/jira/browse/OAK-1617).
 
