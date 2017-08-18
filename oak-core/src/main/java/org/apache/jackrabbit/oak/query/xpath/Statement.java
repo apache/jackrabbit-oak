@@ -347,9 +347,19 @@ public class Statement {
             if (optionCount > 0) {
                 buff.append(", ");
             }
-            buff.append("index [");
+            buff.append("index name [");
             buff.append(queryOptions.indexName);
             buff.append("]");
+            optionCount++;
+        }
+        if (queryOptions.indexTag != null) {
+            if (optionCount > 0) {
+                buff.append(", ");
+            }
+            buff.append("index tag [");
+            buff.append(queryOptions.indexTag);
+            buff.append("]");
+            optionCount++;
         }
         buff.append(")");
     }

@@ -125,17 +125,8 @@ class IndexPlanner {
     private IndexPlan.Builder getPlanBuilder() {
         log.trace("Evaluating plan with index definition {}", definition);
 
-        // skip index if "option(index <name>)" doesn't match
-        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
-        if (indexName != null && indexName.first != null) {
-            String name = indexName.first.getValue(Type.STRING);
-            String thisName = definition.getIndexName();
-            if (thisName != null) {
-                thisName = PathUtils.getName(thisName);
-                if (!thisName.equals(name)) {
-                    return null;
-                }
-            }
+        if (wrongIndex()) {
+            return null;
         }
 
         FullTextExpression ft = filter.getFullTextConstraint();
@@ -275,6 +266,45 @@ class IndexPlanner {
         //TODO Support for property existence queries
 
         return null;
+    }
+
+    private boolean wrongIndex() {
+        // REMARK: similar code is used in oak-core, PropertyIndex
+        // skip index if "option(index ...)" doesn't match
+        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        boolean wrong = false;
+        if (indexName != null && indexName.first != null) {
+            String name = indexName.first.getValue(Type.STRING);
+            String thisName = definition.getIndexName();
+            if (thisName != null) {
+                thisName = PathUtils.getName(thisName);
+                if (thisName.equals(name)) {
+                    // index name specified, and matches
+                    return false;
+                }
+            }
+            wrong = true;
+        }
+        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        if (indexTag != null && indexTag.first != null) {
+            // index tag specified
+            String[] tags = definition.getIndexTags();
+            if (tags == null) {
+                // no tag
+                return true;
+            }
+            String tag = indexTag.first.getValue(Type.STRING);
+            for(String t : tags) {
+                if (t.equals(tag)) {
+                    // tag matches
+                    return false;
+                }
+            }
+            // no tag matches
+            return true;
+        }
+        // no tag specified
+        return wrong;
     }
 
     private IndexPlan.Builder getNativeFunctionPlanBuilder(String indexingRuleBaseNodeType) {

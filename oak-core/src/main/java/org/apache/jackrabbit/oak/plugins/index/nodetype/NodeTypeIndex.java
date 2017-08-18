@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_NAME_OPTION;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -67,8 +67,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             // doesn't have a node type restriction
             return Double.POSITIVE_INFINITY;
         }
-        PropertyRestriction indexName = filter.getPropertyRestriction(INDEX_NAME_OPTION);
-        if (wrongIndexName(indexName)) {
+        if (wrongIndex(filter)) {
             return Double.POSITIVE_INFINITY;
         }
         
@@ -80,11 +79,16 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
         }
     }
     
-    private static boolean wrongIndexName(PropertyRestriction indexName) {
-        if (indexName == null || indexName.first == null) {
-            return false;
+    private static boolean wrongIndex(Filter filter) {
+        // skip index if "option(index ...)" doesn't match
+        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        if (indexName != null && indexName.first != null) {
+            // index name specified: just verify this, and ignore tags
+            return !"nodetype".equals(indexName.first.getValue(Type.STRING));
         }
-        return !"nodetype".equals(indexName.first.getValue(Type.STRING));
+        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        // index tag specified (the nodetype index doesn't support tags)
+        return indexTag != null && indexTag.first != null;
     }
 
     @Override

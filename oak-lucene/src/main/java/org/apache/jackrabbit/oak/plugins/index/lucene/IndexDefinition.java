@@ -255,6 +255,9 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     @Nullable
     private final String uid;
 
+    @Nullable
+    private final String[] indexTags;
+
     //~--------------------------------------------------------< Builder >
 
     public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
@@ -325,6 +328,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.definition = defn;
         this.indexPath = checkNotNull(indexPath);
         this.indexName = indexPath;
+        this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
 
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
         this.testMode = getOptionalValue(defn, LuceneIndexConstants.TEST_MODE, false);
@@ -492,6 +496,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public String getIndexName() {
         return indexName;
+    }
+
+    public String[] getIndexTags() {
+        return indexTags;
     }
 
     public int getMaxExtractLength() {
@@ -1657,7 +1665,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static String[] getOptionalStrings(NodeState defn, String propertyName) {
         PropertyState ps = defn.getProperty(propertyName);
-        if (ps != null){
+        if (ps != null) {
             return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
         }
         return null;

@@ -177,8 +177,11 @@ public class SQL2Parser {
                     String n = readName().toUpperCase(Locale.ENGLISH);
                     options.traversal = Traversal.valueOf(n);
                 } else if (readIf("INDEX")) {
-                    String n = readName();
-                    options.indexName = n;
+                    if (readIf("NAME")) {
+                        options.indexName = readName();
+                    } else if (readIf("TAG")) {
+                        options.indexTag = readName();
+                    }
                 } else {
                     break;
                 }

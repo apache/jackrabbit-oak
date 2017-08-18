@@ -415,9 +415,15 @@ public class SelectorImpl extends SourceImpl {
             constraint.restrict(f);
         }
         QueryOptions options = query.getQueryOptions();
-        if (options != null && options.indexName != null) {
-            f.restrictProperty(IndexConstants.INDEX_NAME_OPTION, 
-                    Operator.EQUAL, PropertyValues.newString(options.indexName));
+        if (options != null) {
+            if (options.indexName != null) {
+                f.restrictProperty(IndexConstants.INDEX_NAME_OPTION, 
+                        Operator.EQUAL, PropertyValues.newString(options.indexName));
+            }
+            if (options.indexTag != null) {
+                f.restrictProperty(IndexConstants.INDEX_TAG_OPTION, 
+                        Operator.EQUAL, PropertyValues.newString(options.indexTag));
+            }
         }
         return f;
     }

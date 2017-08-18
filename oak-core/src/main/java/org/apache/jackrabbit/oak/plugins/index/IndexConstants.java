@@ -105,6 +105,16 @@ public interface IndexConstants {
     String CHECKPOINT_CREATION_TIME = "indexingCheckpointTime";
     
     /**
+     * The index tag hint (when using "option(index tagged x, y)", this is IN("x", "y"))
+     */
+    String INDEX_TAG_OPTION = ":indexTag";
+
+    /**
+     * The tags property in the index definition.
+     */
+    String INDEX_TAGS = "tags";
+
+    /**
      * The index name hint (when using "option(index abc)", this is "abc")
      */
     String INDEX_NAME_OPTION = ":indexName";

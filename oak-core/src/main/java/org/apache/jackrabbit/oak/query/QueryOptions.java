@@ -20,6 +20,7 @@ public class QueryOptions {
     
     public Traversal traversal = Traversal.DEFAULT;
     public String indexName;
+    public String indexTag;
     
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning
