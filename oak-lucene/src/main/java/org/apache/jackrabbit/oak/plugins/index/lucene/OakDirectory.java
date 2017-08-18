@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -32,6 +34,8 @@ import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -71,14 +75,21 @@ class OakDirectory extends Directory {
     private final boolean readOnly;
     private final Set<String> fileNames = Sets.newConcurrentHashSet();
     private final String indexName;
+    private final BlobFactory blobFactory;
 
     public OakDirectory(NodeBuilder directoryBuilder, IndexDefinition definition, boolean readOnly) {
+        this(directoryBuilder, definition, readOnly, new NodeBuilderBlobFactory(directoryBuilder));
+    }
+
+    public OakDirectory(NodeBuilder directoryBuilder, IndexDefinition definition,
+        boolean readOnly, BlobFactory blobFactory) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
         this.directoryBuilder = directoryBuilder;
         this.definition = definition;
         this.readOnly = readOnly;
         this.fileNames.addAll(getListing());
         this.indexName = definition.getIndexName();
+        this.blobFactory = blobFactory;
     }
 
     @Override
@@ -101,7 +112,7 @@ class OakDirectory extends Directory {
     @Override
     public long fileLength(String name) throws IOException {
         NodeBuilder file = directoryBuilder.getChildNode(name);
-        OakIndexInput input = new OakIndexInput(name, file, indexName);
+        OakIndexInput input = new OakIndexInput(name, file, indexName, blobFactory);
         try {
             return input.length();
         } finally {
@@ -121,7 +132,7 @@ class OakDirectory extends Directory {
             file = directoryBuilder.child(name);
         }
         fileNames.add(name);
-        return new OakIndexOutput(name, file, indexName);
+        return new OakIndexOutput(name, file, indexName, blobFactory);
     }
 
 
@@ -130,7 +141,7 @@ class OakDirectory extends Directory {
             throws IOException {
         NodeBuilder file = directoryBuilder.getChildNode(name);
         if (file.exists()) {
-            return new OakIndexInput(name, file, indexName);
+            return new OakIndexInput(name, file, indexName, blobFactory);
         } else {
             String msg = String.format("[%s] %s", indexName, name);
             throw new FileNotFoundException(msg);
@@ -222,12 +233,16 @@ class OakDirectory extends Directory {
 
         private final String dirDetails;
 
-        public OakIndexFile(String name, NodeBuilder file, String dirDetails) {
+        private final BlobFactory blobFactory;
+
+        public OakIndexFile(String name, NodeBuilder file, String dirDetails,
+            @Nonnull BlobFactory blobFactory) {
             this.name = name;
             this.file = file;
             this.dirDetails = dirDetails;
             this.blobSize = determineBlobSize(file);
             this.blob = new byte[blobSize];
+            this.blobFactory = checkNotNull(blobFactory);
 
             PropertyState property = file.getProperty(JCR_DATA);
             if (property != null && property.getType() == BINARIES) {
@@ -254,6 +269,7 @@ class OakDirectory extends Directory {
             this.length = that.length;
             this.data = newArrayList(that.data);
             this.dataModified = that.dataModified;
+            this.blobFactory = that.blobFactory;
         }
 
         private void loadBlob(int i) throws IOException {
@@ -276,7 +292,7 @@ class OakDirectory extends Directory {
         private void flushBlob() throws IOException {
             if (blobModified) {
                 int n = (int) Math.min(blobSize, length - (long)index * blobSize);
-                Blob b = file.createBlob(new ByteArrayInputStream(blob, 0, n));
+                Blob b = blobFactory.createBlob(new ByteArrayInputStream(blob, 0, n));
                 if (index < data.size()) {
                     data.set(index, b);
                 } else {
@@ -388,10 +404,11 @@ class OakDirectory extends Directory {
         private final WeakIdentityMap<OakIndexInput, Boolean> clones;
         private final String dirDetails;
 
-        public OakIndexInput(String name, NodeBuilder file, String dirDetails) {
+        public OakIndexInput(String name, NodeBuilder file, String dirDetails,
+            BlobFactory blobFactory) {
             super(name);
             this.dirDetails = dirDetails;
-            this.file = new OakIndexFile(name, file, dirDetails);
+            this.file = new OakIndexFile(name, file, dirDetails, blobFactory);
             clones = WeakIdentityMap.newConcurrentHashMap();
         }
 
@@ -471,9 +488,10 @@ class OakDirectory extends Directory {
         private final String dirDetails;
         private final OakIndexFile file;
 
-        public OakIndexOutput(String name, NodeBuilder file, String dirDetails) throws IOException {
+        public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
+                              BlobFactory blobFactory) throws IOException {
             this.dirDetails = dirDetails;
-            this.file = new OakIndexFile(name, file, dirDetails);
+            this.file = new OakIndexFile(name, file, dirDetails, blobFactory);
         }
 
         @Override
@@ -529,4 +547,43 @@ class OakDirectory extends Directory {
 
     }
 
+    public interface BlobFactory {
+
+        Blob createBlob(InputStream in) throws IOException;
+    }
+
+    public static final class NodeBuilderBlobFactory implements BlobFactory {
+
+        private final NodeBuilder builder;
+
+        public NodeBuilderBlobFactory(NodeBuilder builder) {
+            this.builder = builder;
+        }
+
+        @Override
+        public Blob createBlob(InputStream in) throws IOException {
+            return builder.createBlob(in);
+        }
+    }
+
+    public static final class BlobStoreBlobFactory implements BlobFactory {
+
+        private final BlobStore store;
+
+        public BlobStoreBlobFactory(BlobStore store) {
+            this.store = store;
+        }
+
+        @Override
+        public Blob createBlob(InputStream in) throws IOException {
+            String blobId = store.writeBlob(in);
+            //TODO Reenable once OAK-5175 is backported
+            /*if (!ENABLE_AYNC_DS) {
+                blobId = store.writeBlob(in, new BlobOptions().setUpload(SYNCHRONOUS));
+            } else {
+                blobId = store.writeBlob(in);
+            }*/
+            return new BlobStoreBlob(store, blobId);
+        }
+    }
 }
