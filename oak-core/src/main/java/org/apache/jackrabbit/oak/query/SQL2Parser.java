@@ -180,7 +180,7 @@ public class SQL2Parser {
                     if (readIf("NAME")) {
                         options.indexName = readName();
                     } else if (readIf("TAG")) {
-                        options.indexTag = readName();
+                        options.indexTag = readLabel();
                     }
                 } else {
                     break;
@@ -289,6 +289,14 @@ public class SQL2Parser {
         }
 
         return factory.selector(nodeTypeInfo, selectorName);
+    }
+    
+    private String readLabel() throws ParseException {
+        String label = readName();
+        if (!label.matches("[a-zA-Z0-9_]*") || label.isEmpty() || label.length() > 128) {
+            throw getSyntaxError("a-z, A-Z, 0-9, _");
+        }
+        return label;
     }
 
     private String readName() throws ParseException {

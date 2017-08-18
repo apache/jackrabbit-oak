@@ -31,7 +31,10 @@ select [jcr:path], [jcr:score], *
   from [nt:base] as a
   where isdescendantnode(a, '/content') option(index name [b], index tag [a])
   /* xpath ... */
-  
+
+select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/content') option(index tag [a-b])
+java.text.ParseException: Query: select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/content') option(index tag [a-b](*)); expected: a-z, A-Z, 0-9, _
+
 # OAK-5949
 
 xpath2sql /jcr:root/home//element(*,rep:Authorizable)[jcr:like(@rep:authorizableId,'@')]
