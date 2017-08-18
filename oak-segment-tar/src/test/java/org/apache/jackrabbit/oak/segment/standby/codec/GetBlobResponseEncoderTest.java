@@ -25,6 +25,7 @@ import java.io.ByteArrayInputStream;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import org.junit.Test;
 
 public class GetBlobResponseEncoderTest {
@@ -36,7 +37,7 @@ public class GetBlobResponseEncoderTest {
         String blobId = "blobId";
         byte mask = createMask(1, 1);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new GetBlobResponseEncoder(3));
+        EmbeddedChannel channel = new EmbeddedChannel(new ChunkedWriteHandler(), new GetBlobResponseEncoder(3));
         channel.writeOutbound(new GetBlobResponse("clientId", blobId,new ByteArrayInputStream(blobData), blobData.length));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
         ByteBuf expected = createBlobChunkBuffer(Messages.HEADER_BLOB, blobId, blobData, mask);
@@ -52,7 +53,7 @@ public class GetBlobResponseEncoderTest {
 
         String blobId = "blobId";
 
-        EmbeddedChannel channel = new EmbeddedChannel(new GetBlobResponseEncoder(2));
+        EmbeddedChannel channel = new EmbeddedChannel(new ChunkedWriteHandler(), new GetBlobResponseEncoder(2));
         channel.writeOutbound(new GetBlobResponse("clientId", blobId,new ByteArrayInputStream(blobData), blobData.length));
         
         ByteBuf firstBuffer = (ByteBuf) channel.readOutbound();
