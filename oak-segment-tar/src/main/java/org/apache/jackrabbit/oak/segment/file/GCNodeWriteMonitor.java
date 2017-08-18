@@ -101,8 +101,8 @@ public class GCNodeWriteMonitor {
     public synchronized void onNode() {
         nodes++;
         if (gcProgressLog > 0 && nodes % gcProgressLog == 0) {
-            gcMonitor.info("TarMK GC #{}: compacted {} nodes, {} properties, {} binaries in {} ms.",
-                    gcCount, nodes, properties, binaries, System.currentTimeMillis() - start);
+            gcMonitor.info("TarMK GC #{}: compacted {} nodes, {} properties, {} binaries in {} ms. {}",
+                    gcCount, nodes, properties, binaries, System.currentTimeMillis() - start, getPercentageDone());
         }
     }
 
@@ -131,6 +131,13 @@ public class GCNodeWriteMonitor {
      */
     public synchronized long getEstimatedTotal() {
         return estimated;
+    }
+
+    @Nonnull
+    private String getPercentageDone() {
+        return estimated > 0
+            ? getEstimatedPercentage() + "% complete."
+            : "";
     }
 
     /**
