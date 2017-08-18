@@ -38,12 +38,10 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-@Ignore("OAK-5238")
 public class CopyOnWriteDirectoryTest {
 
     @Rule
@@ -92,7 +90,7 @@ public class CopyOnWriteDirectoryTest {
 
         IndexDefinition def = new IndexDefinition(ns.getRoot(), ns.getRoot().getChildNode("foo"));
         builder = ns.getRoot().builder();
-        Directory remote = LuceneIndexEditorContext.newIndexDirectory(def, builder.child("foo"));
+        Directory remote = LuceneIndexEditorContext.newIndexDirectory(def, builder.child("foo"), true);
         Directory dir = copier.wrapForWrite(def, remote, false);
         addFiles(dir);
         writeTree(builder);

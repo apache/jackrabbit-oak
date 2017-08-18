@@ -29,8 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -45,15 +43,12 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-@Ignore("OAK-5238")
 public class CopyOnWriteDirectory_Segment_Test {
 
     @Rule
@@ -109,7 +104,7 @@ public class CopyOnWriteDirectory_Segment_Test {
 
         IndexDefinition def = new IndexDefinition(ns.getRoot(), ns.getRoot().getChildNode("foo"));
         builder = ns.getRoot().builder();
-        Directory remote = LuceneIndexEditorContext.newIndexDirectory(def, builder.child("foo"));
+        Directory remote = LuceneIndexEditorContext.newIndexDirectory(def, builder.child("foo"), true);
         Directory dir = copier.wrapForWrite(def, remote, false);
         addFiles(dir);
 
@@ -128,7 +123,7 @@ public class CopyOnWriteDirectory_Segment_Test {
 
         IndexDefinition def = new IndexDefinition(ns.getRoot(), ns.getRoot().getChildNode("foo"));
         builder = ns.getRoot().builder();
-        Directory remote = LuceneIndexEditorContext.newIndexDirectory(def, builder.child("foo"));
+        Directory remote = LuceneIndexEditorContext.newIndexDirectory(def, builder.child("foo"), true);
         Directory dir = copier.wrapForWrite(def, remote, false);
 
         byte[] data = randomBytes();

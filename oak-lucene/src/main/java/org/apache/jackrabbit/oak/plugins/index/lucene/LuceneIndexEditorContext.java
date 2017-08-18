@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -60,6 +61,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
@@ -100,11 +102,15 @@ public class LuceneIndexEditorContext {
         }
     }
 
-    static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition)
+    static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition, boolean buffered)
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
-            return new OakDirectory(definition, indexDefinition, false);
+            if (buffered) {
+                return new BufferedOakDirectory(definition, INDEX_DATA_CHILD_NAME, indexDefinition,null);
+            } else {
+                return new OakDirectory(definition, indexDefinition, false);
+            }
         } else {
             // try {
             File file = new File(path);
@@ -188,7 +194,10 @@ public class LuceneIndexEditorContext {
     IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
-            directory = newIndexDirectory(definition, definitionBuilder);
+            //When IndexCopier is enabled then use buffered directory
+            //as concurrent writes are possible
+            boolean buffered = indexCopier != null;
+            directory = newIndexDirectory(definition, definitionBuilder, buffered);
             IndexWriterConfig config;
             if (indexCopier != null){
                 directory = indexCopier.wrapForWrite(definition, directory, reindex);
