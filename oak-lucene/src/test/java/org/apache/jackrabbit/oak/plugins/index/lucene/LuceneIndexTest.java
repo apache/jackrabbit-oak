@@ -73,7 +73,6 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -120,7 +119,6 @@ import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.search.Query;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -368,13 +366,13 @@ public class LuceneIndexTest {
     }
 
     private void purgeDeletedDocs(NodeBuilder idx, IndexDefinition definition) throws IOException {
-        IndexWriter writer = new IndexWriter(newIndexDirectory(definition, idx), getIndexWriterConfig(definition, true));
+        IndexWriter writer = new IndexWriter(newIndexDirectory(definition, idx, false), getIndexWriterConfig(definition, true));
         writer.forceMergeDeletes();
         writer.close();
     }
 
     public int getDeletedDocCount(NodeBuilder idx, IndexDefinition definition) throws IOException {
-        IndexReader reader = DirectoryReader.open(newIndexDirectory(definition, idx));
+        IndexReader reader = DirectoryReader.open(newIndexDirectory(definition, idx, false));
         int numDeletes = reader.numDeletedDocs();
         reader.close();
         return numDeletes;

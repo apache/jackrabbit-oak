@@ -88,7 +88,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.get
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
-class IndexDefinition implements Aggregate.AggregateMapper {
+public class IndexDefinition implements Aggregate.AggregateMapper {
     /**
      * Name of the internal property that contains the child order defined in
      * org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants
