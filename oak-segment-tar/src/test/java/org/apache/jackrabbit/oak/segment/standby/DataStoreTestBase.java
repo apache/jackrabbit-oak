@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -161,9 +160,8 @@ public abstract class DataStoreTestBase extends TestBase {
      * See OAK-5902.
      */
     @Test
-    @Ignore("OAK-6538")
     public void testSyncBigBlob() throws Exception {
-        final long blobSize = (long) (2.5 * GB);
+        final long blobSize = (long) (1 * GB);
         final int seed = 13;
         
         FileStore primary = getPrimary();
@@ -173,8 +171,8 @@ public abstract class DataStoreTestBase extends TestBase {
         addTestContentOnTheFly(store, "server", blobSize, seed);
         
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 256 * MB);
-                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 50_000)
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 128 * MB);
+                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 15_000)
         ) {
             serverSync.start();
             primary.flush();
