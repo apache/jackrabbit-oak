@@ -59,13 +59,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * Implementation of the Lucene {@link Directory} (a flat list of files)
  * based on an Oak {@link NodeBuilder}.
  */
-class OakDirectory extends Directory {
+public class OakDirectory extends Directory {
     static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(OakDirectory.class.getName() + ".perf"));
     static final String PROP_DIR_LISTING = "dirListing";
     static final String PROP_BLOB_SIZE = "blobSize";
@@ -76,6 +77,7 @@ class OakDirectory extends Directory {
     private final Set<String> fileNames = Sets.newConcurrentHashSet();
     private final String indexName;
     private final BlobFactory blobFactory;
+    private volatile boolean dirty;
 
     public OakDirectory(NodeBuilder directoryBuilder, IndexDefinition definition, boolean readOnly) {
         this(directoryBuilder, definition, readOnly, new NodeBuilderBlobFactory(directoryBuilder));
@@ -183,6 +185,46 @@ class OakDirectory extends Directory {
     @Override
     public String toString() {
         return "Directory for " + definition.getIndexName();
+    }
+
+    /**
+     * Copies the file with the given {@code name} to the {@code dest}
+     * directory. The file is copied 'by reference'. That is, the file in the
+     * destination directory will reference the same blob values as the source
+     * file.
+     * <p>
+     * This method is a no-op if the file does not exist in this directory.
+     *
+     * @param dest the destination directory.
+     * @param name the name of the file to copy.
+     * @throws IOException if an error occurs while copying the file.
+     * @throws IllegalArgumentException if the destination directory does not
+     *          use the same {@link BlobFactory} as {@code this} directory.
+     */
+    public void copy(OakDirectory dest, String name)
+            throws IOException {
+        if (blobFactory != dest.blobFactory) {
+            throw new IllegalArgumentException("Source and destination " +
+                    "directory must reference the same BlobFactory");
+        }
+        NodeBuilder file = directoryBuilder.getChildNode(name);
+        if (file.exists()) {
+            // overwrite potentially already existing child
+            NodeBuilder destFile = dest.directoryBuilder.setChildNode(name, EMPTY_NODE);
+            for (PropertyState p : file.getProperties()) {
+                destFile.setProperty(p);
+            }
+            dest.fileNames.add(name);
+            dest.markDirty();
+        }
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    private void markDirty() {
+        dirty = true;
     }
 
     private Set<String> getListing(){
