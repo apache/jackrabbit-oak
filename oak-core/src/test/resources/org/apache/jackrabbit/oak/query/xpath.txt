@@ -24,6 +24,14 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# OAK-937
+
+xpath2sql /jcr:root/content//* option(index tag a, index name b)
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where isdescendantnode(a, '/content') option(index name [b], index tag [a])
+  /* xpath ... */
+  
 # OAK-5949
 
 xpath2sql /jcr:root/home//element(*,rep:Authorizable)[jcr:like(@rep:authorizableId,'@')]

@@ -338,8 +338,11 @@ public class XPathToSQL2Converter {
                     String type = readIdentifier().toUpperCase(Locale.ENGLISH);
                     options.traversal = Traversal.valueOf(type);
                 } else if (readIf("index")) {
-                    String n = readIdentifier();
-                    options.indexName = n;
+                    if (readIf("name")) {
+                        options.indexName = readIdentifier();
+                    } else if (readIf("tag")) {
+                        options.indexTag = readIdentifier();
+                    }
                 } else {
                     break;
                 }
