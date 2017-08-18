@@ -31,7 +31,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -350,14 +349,16 @@ public class RepositorySidegrade {
 
         Map<String, String> nameToRevision = new LinkedHashMap<>();
         Map<String, String> checkpointSegmentToDoc = new LinkedHashMap<>();
-        NodeState previousRoot = EmptyNodeState.EMPTY_NODE;
-        NodeBuilder targetRoot = target.getRoot().builder();
+
+        NodeState initialRoot = target.getRoot();
+        NodeState previousRoot = initialRoot;
+        NodeBuilder targetRoot = previousRoot.builder();
         for (CheckpointRetriever.Checkpoint checkpoint : checkpoints) {
             NodeState checkpointRoot = source.retrieve(checkpoint.getName());
             Map<String, String> checkpointInfo = source.checkpointInfo(checkpoint.getName());
 
             boolean tracePaths;
-            if (previousRoot == EmptyNodeState.EMPTY_NODE) {
+            if (previousRoot == initialRoot) {
                 LOG.info("Migrating first checkpoint: {}", checkpoint.getName());
                 tracePaths = true;
             } else {
@@ -366,8 +367,8 @@ public class RepositorySidegrade {
             }
             LOG.info("Checkpoint expiry time: {}, metadata: {}", checkpoint.getExpiryTime(), checkpointInfo);
 
-            NodeState currentRoot = wrapSource(checkpointRoot, tracePaths, true);
-            NodeState baseRoot = previousRoot == EmptyNodeState.EMPTY_NODE ? previousRoot : wrapSource(previousRoot, false, true);
+            NodeState currentRoot = wrapNodeState(checkpointRoot, tracePaths, true);
+            NodeState baseRoot = wrapNodeState(previousRoot, false, true);
             currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetRoot));
 
             target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -382,7 +383,7 @@ public class RepositorySidegrade {
 
         NodeState sourceRoot = source.getRoot();
         boolean tracePaths;
-        if (previousRoot == EmptyNodeState.EMPTY_NODE) {
+        if (previousRoot == initialRoot) {
             LOG.info("No checkpoints found; migrating head");
             tracePaths = true;
         } else {
@@ -390,8 +391,8 @@ public class RepositorySidegrade {
             tracePaths = false;
         }
         
-        NodeState currentRoot = wrapSource(sourceRoot, tracePaths, true);
-        NodeState baseRoot = previousRoot == EmptyNodeState.EMPTY_NODE ? previousRoot : wrapSource(previousRoot, false, true);
+        NodeState currentRoot = wrapNodeState(sourceRoot, tracePaths, true);
+        NodeState baseRoot = wrapNodeState(previousRoot, false, true);
         currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetRoot));
 
         LOG.info("Rewriting checkpoint names in /:async {}", nameToRevision);
@@ -422,7 +423,7 @@ public class RepositorySidegrade {
             hooks.addAll(customCommitHooks);
         }
 
-        NodeState sourceRoot = wrapSource(source.getRoot(), true, false);
+        NodeState sourceRoot = wrapNodeState(source.getRoot(), true, false);
         NodeBuilder targetRoot = target.getRoot().builder();
         copyWorkspace(sourceRoot, targetRoot);
         removeCheckpointReferences(targetRoot);
@@ -532,7 +533,7 @@ public class RepositorySidegrade {
         }
     }
 
-    private NodeState wrapSource(NodeState source, boolean tracePaths, boolean filterPaths) {
+    private NodeState wrapNodeState(NodeState source, boolean tracePaths, boolean filterPaths) {
         NodeState wrapped = source;
         if (migrateDocumentMetadata) {
             wrapped = MetadataExposingNodeState.wrap(wrapped);
