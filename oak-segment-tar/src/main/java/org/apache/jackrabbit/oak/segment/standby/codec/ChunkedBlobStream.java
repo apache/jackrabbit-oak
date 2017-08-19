@@ -105,17 +105,22 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
 
     @Override
     public ByteBuf readChunk(ChannelHandlerContext ctx) throws Exception {
+        return readChunk(ctx.alloc());
+    }
+    
+    @Override
+    public ByteBuf readChunk(ByteBufAllocator allocator) throws Exception {
         if (isEndOfInput()) {
             return null;
         }
 
         boolean release = true;
-        ByteBuf decorated = ctx.alloc().buffer();
+        ByteBuf decorated = allocator.buffer();
 
         try {
-            ByteBuf buffer = ctx.alloc().buffer();
+            ByteBuf buffer = allocator.buffer();
             int written = buffer.writeBytes(in, chunkSize);
-            decorated = decorateRawBuffer(ctx.alloc(), buffer);
+            decorated = decorateRawBuffer(allocator, buffer);
 
             offset += written;
             log.info("Sending chunk {}/{} of size {} to client {}", roundDiv(offset, chunkSize),
@@ -168,5 +173,15 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
         }
 
         return mask;
+    }
+    
+    @Override
+    public long length() {
+        return length;
+    }
+
+    @Override
+    public long progress() {
+        return offset;
     }
 }

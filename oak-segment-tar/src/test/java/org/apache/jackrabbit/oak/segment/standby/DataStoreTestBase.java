@@ -171,7 +171,7 @@ public abstract class DataStoreTestBase extends TestBase {
         addTestContentOnTheFly(store, "server", blobSize, seed);
         
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 128 * MB);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 16 * MB);
                 StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 15_000)
         ) {
             serverSync.start();
