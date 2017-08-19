@@ -34,7 +34,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LineBasedFrameDecoder;
-import io.netty.handler.codec.compression.SnappyFramedEncoder;
+import io.netty.handler.codec.compression.SnappyFrameEncoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -165,7 +165,7 @@ class StandbyServer implements AutoCloseable {
 
                 // Snappy Encoder
 
-                p.addLast(new SnappyFramedEncoder());
+                p.addLast(new SnappyFrameEncoder());
 
                 // Use chunking transparently 
                 
