@@ -48,30 +48,36 @@
                             netty-*
                         </Embed-Dependency>
                         <Import-Package>
-                            com.google.protobuf.*;resolution:=optional,
-                            com.jcraft.jzlib.*;resolution:=optional,
-                            com.ning.compress.*;resolution:=optional,
-                            io.netty.internal.tcnative.*;resolution:=optional,
-                            io.netty.resolver.*;resolution:=optional,
-                            javax.security.cert.*;resolution:=optional,
-                            javassist.*;resolution:=optional,
-                            lzma.sdk.*;resolution:=optional,
-                            net.jpountz.*;resolution:=optional,
-                            org.apache.tomcat.*;resolution:=optional,
-                            org.bouncycastle.*;resolution:=optional,
-                            org.conscrypt.*;resolution:=optional,
-                            org.eclipse.jetty.alpn.*;resolution:=optional,
-                            org.eclipse.jetty.npn.*;resolution:=optional,
-                            org.jboss.marshalling.*;resolution:=optional,
-                            sun.misc.*;resolution:=optional,
-                            sun.nio.ch.*;resolution:=optional,
-                            sun.security.util.*;resolution:=optional,
-                            sun.security.x509.*;resolution:=optional,
-                            org.apache.commons.logging;resolution:=optional,
-                            org.apache.logging.log4j.*;resolution:=optional,
-                            org.apache.log4j.*;resolution:=optional,
-                            org.slf4j.*;resolution:=optional,
-                            com.codahale.metrics*;version="[3.1, 4)",
+                            com.codahale.metrics*;version="[3.1,4)",
+                            com.google.protobuf;version="[2.6,3)";resolution:=optional,
+                            com.google.protobuf.nano;resolution:=optional,
+                            com.jcraft.jzlib;resolution:=optional,
+                            com.ning.compress;version="[1.0,2)";resolution:=optional,
+                            com.ning.compress.lzf;version="[1.0,2)";resolution:=optional,
+                            com.ning.compress.lzf.util;version="[1.0,2)";resolution:=optional,
+                            io.netty.internal.tcnative;version="[2.0,3)";resolution:=optional,
+                            javax.security.cert;resolution:=optional,
+                            lzma.sdk;resolution:=optional,
+                            lzma.sdk.lzma;resolution:=optional,
+                            net.jpountz.lz4;resolution:=optional,
+                            net.jpountz.xxhash;resolution:=optional,
+                            org.apache.commons.logging;resolution:=optional;version="[1.2,2)",
+                            org.apache.log4j;resolution:=optional;version="[1.2,2)",
+                            org.apache.logging.log4j;resolution:=optional;version="[2.6,3)",
+                            org.bouncycastle.asn1.x500;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.cert;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.cert.jcajce;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.jce.provider;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.operator;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.operator.jcajce;version="[1.54,2)";resolution:=optional,
+                            org.conscrypt;resolution:=optional,
+                            org.eclipse.jetty.alpn;version="[1,2)";resolution:=optional,
+                            org.eclipse.jetty.npn;version="[1,2)";resolution:=optional,
+                            org.jboss.marshalling;resolution:=optional,
+                            sun.misc;resolution:=optional,
+                            sun.nio.ch;resolution:=optional,
+                            sun.security.util;resolution:=optional,
+                            sun.security.x509;resolution:=optional,
                             *
                         </Import-Package>
                     </instructions>
@@ -255,33 +261,39 @@
 
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-common</artifactId>
-            <version>${netty.version}</version>
-            <scope>compile</scope> <!-- it is embedded in the bundle -->
-        </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
             <artifactId>netty-buffer</artifactId>
             <version>${netty.version}</version>
-            <scope>compile</scope> <!-- it is embedded in the bundle -->
-        </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-transport</artifactId>
-            <version>${netty.version}</version>
-            <scope>compile</scope> <!-- it is embedded in the bundle -->
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec</artifactId>
             <version>${netty.version}</version>
-            <scope>compile</scope> <!-- it is embedded in the bundle -->
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-common</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-handler</artifactId>
             <version>${netty.version}</version>
-            <scope>compile</scope> <!-- it is embedded in the bundle -->
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Dependencies on Oak testing modules -->
