@@ -179,6 +179,7 @@ The syntax to limit a query to a certain tag is: `<query> option(index tag <tagN
   
 The query will only consider the indexes that contain the specified tag (that is, possibly multiple indexes).
 Each query supports one tag only.
+The tag name may only contain the characters `a-z, A-Z, 0-9, _`.
 
 Limitations:
 
