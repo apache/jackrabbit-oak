@@ -50,9 +50,16 @@
                         <Import-Package>
                             com.google.protobuf.*;resolution:=optional,
                             com.jcraft.jzlib.*;resolution:=optional,
+                            com.ning.compress.*;resolution:=optional,
+                            io.netty.internal.tcnative.*;resolution:=optional,
+                            io.netty.resolver.*;resolution:=optional,
+                            javax.security.cert.*;resolution:=optional,
                             javassist.*;resolution:=optional,
+                            lzma.sdk.*;resolution:=optional,
+                            net.jpountz.*;resolution:=optional,
                             org.apache.tomcat.*;resolution:=optional,
                             org.bouncycastle.*;resolution:=optional,
+                            org.conscrypt.*;resolution:=optional,
                             org.eclipse.jetty.alpn.*;resolution:=optional,
                             org.eclipse.jetty.npn.*;resolution:=optional,
                             org.jboss.marshalling.*;resolution:=optional,
@@ -60,8 +67,10 @@
                             sun.nio.ch.*;resolution:=optional,
                             sun.security.util.*;resolution:=optional,
                             sun.security.x509.*;resolution:=optional,
+                            org.apache.commons.logging;resolution:=optional,
                             org.apache.logging.log4j.*;resolution:=optional,
                             org.apache.log4j.*;resolution:=optional,
+                            org.slf4j.*;resolution:=optional,
                             com.codahale.metrics*;version="[3.1, 4)",
                             *
                         </Import-Package>
