@@ -40,6 +40,7 @@
           <instructions>
             <Import-Package>
               com.mongodb*;version="[2.14, 4)";resolution:=optional,
+              com.codahale.metrics*;version="[3.1, 4)";resolution:=optional,
               *
             </Import-Package>
             <Export-Package>
