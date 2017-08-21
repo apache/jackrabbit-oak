@@ -62,6 +62,7 @@
                             sun.security.x509.*;resolution:=optional,
                             org.apache.logging.log4j.*;resolution:=optional,
                             org.apache.log4j.*;resolution:=optional,
+                            com.codahale.metrics*;version="[3.1, 4)",
                             *
                         </Import-Package>
                     </instructions>
