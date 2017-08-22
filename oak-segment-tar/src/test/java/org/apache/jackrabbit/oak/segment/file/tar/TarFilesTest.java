@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.addAll;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -241,7 +242,7 @@ public class TarFilesTest {
         addAll(keys, a, b, c, d);
         assertEquals(keys, graph.keySet());
 
-        assertNull(graph.get(a));
+        assertEquals(emptyList(), graph.get(a));
         assertEquals(graph.get(b), singletonList(a));
         assertEquals(graph.get(c), singletonList(a));
         assertTrue(graph.get(d).containsAll(asList(b, c)));

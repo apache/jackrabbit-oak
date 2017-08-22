@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.emptyList;
 import static org.apache.commons.io.FileUtils.listFiles;
 
 import java.io.Closeable;
@@ -719,7 +720,7 @@ public class TarFiles implements Closeable {
         Map<UUID, List<UUID>> result = new HashMap<>();
         if (index != null) {
             for (UUID uuid : index) {
-                result.put(uuid, null);
+                result.put(uuid, emptyList());
             }
         }
         if (graph != null) {
