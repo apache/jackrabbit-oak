@@ -33,6 +33,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -285,4 +287,89 @@ public class TarFilesTest {
         assertEquals(new HashSet<>(asList(a, b, c)), segmentIds);
     }
 
+    @Test
+    public void testCleanup() throws Exception {
+        UUID a = randomUUID();
+        UUID b = randomUUID();
+        UUID c = randomUUID();
+        UUID d = randomUUID();
+        UUID e = randomUUID();
+
+        writeSegment(a);
+        writeSegment(b);
+        writeSegmentWithReferences(c, a, b);
+        writeSegment(d);
+        writeSegmentWithReferences(e, a, d);
+
+        // Traverse graph of segments starting with `e`. Mark as reclaimable
+        // every segment that are not traversed. The two segments `b` and `c`
+        // will be reclaimed.
+
+        CleanupResult result = tarFiles.cleanup(new CleanupContext() {
+
+            @Override
+            public Collection<UUID> initialReferences() {
+                return singletonList(e);
+            }
+
+            @Override
+            public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
+                return !referenced;
+            }
+
+            @Override
+            public boolean shouldFollow(UUID from, UUID to) {
+                return true;
+            }
+
+        });
+
+        assertFalse(result.isInterrupted());
+        assertFalse(result.getRemovableFiles().isEmpty());
+        assertEquals(new HashSet<>(asList(c, b)), result.getReclaimedSegmentIds());
+        assertTrue(result.getReclaimedSize() > 0);
+    }
+
+    @Test
+    public void testCleanupConnectedSegments() throws Exception {
+        UUID a = randomUUID();
+        UUID b = randomUUID();
+        UUID c = randomUUID();
+        UUID d = randomUUID();
+        UUID e = randomUUID();
+
+        writeSegment(a);
+        writeSegment(b);
+        writeSegmentWithReferences(c, a, b);
+        writeSegment(d);
+        writeSegmentWithReferences(e, c, d);
+
+        // Traverse graph of segments starting with `e`. Mark as reclaimable
+        // every segment that are not traversed. The segments are all connected,
+        // though. No segments will be removed.
+
+        CleanupResult result = tarFiles.cleanup(new CleanupContext() {
+
+            @Override
+            public Collection<UUID> initialReferences() {
+                return singletonList(e);
+            }
+
+            @Override
+            public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
+                return !referenced;
+            }
+
+            @Override
+            public boolean shouldFollow(UUID from, UUID to) {
+                return true;
+            }
+
+        });
+
+        assertFalse(result.isInterrupted());
+        assertTrue(result.getRemovableFiles().isEmpty());
+        assertTrue(result.getReclaimedSegmentIds().isEmpty());
+        assertEquals(0, result.getReclaimedSize());
+    }
 }
