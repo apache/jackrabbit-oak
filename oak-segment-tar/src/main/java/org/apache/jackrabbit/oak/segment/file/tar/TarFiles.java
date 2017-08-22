@@ -486,7 +486,7 @@ public class TarFiles implements Closeable {
                 }
             }
             if (size >= maxFileSize) {
-                newWriter();
+                internalNewWriter();
             }
         } finally {
             lock.writeLock().unlock();
@@ -503,13 +503,22 @@ public class TarFiles implements Closeable {
      * @throws IOException If an error occurs while operating on the TAR readers
      *                     or the TAR writer.
      */
-    private void newWriter() throws IOException {
+    private void internalNewWriter() throws IOException {
         TarWriter newWriter = writer.createNextGeneration();
         if (newWriter == writer) {
             return;
         }
         readers = new Node(TarReader.open(writer.getFile(), memoryMapping, ioMonitor), readers);
         writer = newWriter;
+    }
+
+    void newWriter() throws IOException {
+        lock.writeLock().lock();
+        try {
+            internalNewWriter();
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     public CleanupResult cleanup(CleanupContext context) throws IOException {
@@ -524,7 +533,7 @@ public class TarFiles implements Closeable {
         lock.readLock().lock();
         try {
             try {
-                newWriter();
+                internalNewWriter();
             } finally {
                 lock.writeLock().unlock();
             }
@@ -657,7 +666,7 @@ public class TarFiles implements Closeable {
         lock.writeLock().lock();
         try {
             if (writer != null) {
-                newWriter();
+                internalNewWriter();
             }
             head = readers;
         } finally {
