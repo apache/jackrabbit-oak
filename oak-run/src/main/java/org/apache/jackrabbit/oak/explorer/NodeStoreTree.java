@@ -37,7 +37,6 @@ import static org.apache.jackrabbit.oak.json.JsopDiff.diffToJsop;
 
 import java.awt.*;
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -403,7 +402,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         Set<UUID> uuids = newHashSet();
         for (Entry<String, Set<UUID>> e : index.entrySet()) {
             if (e.getKey().endsWith(file)) {
-                sb.append("SegmentNodeState references to ").append(new File(e.getKey()).getName());
+                sb.append("SegmentNodeState references to ").append(e.getKey());
                 sb.append(newline);
                 uuids = e.getValue();
                 break;
@@ -454,7 +453,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         sb.append(newline);
         for (Entry<String, Set<UUID>> e : index.entrySet()) {
             if (e.getValue().contains(id)) {
-                sb.append("Tar file: ").append(new File(e.getKey()).getName());
+                sb.append("Tar file: ").append(e.getKey());
                 sb.append(newline);
                 break;
             }

@@ -741,7 +741,7 @@ public class TarFiles implements Closeable {
 
         Map<String, Set<UUID>> index = new HashMap<>();
         for (TarReader reader : iterable(head)) {
-            index.put(reader.getFile().getAbsolutePath(), reader.getUUIDs());
+            index.put(reader.getFile().getName(), reader.getUUIDs());
         }
         return index;
     }

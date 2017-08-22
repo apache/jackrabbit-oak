@@ -235,8 +235,8 @@ public class TarFilesTest {
         writeSegmentWithReferences(d, b, c);
         tarFiles.newWriter();
 
-        File file = new File(tarFiles.getIndices().keySet().iterator().next());
-        Map<UUID, List<UUID>> graph = tarFiles.getGraph(file.getName());
+        String file = tarFiles.getIndices().keySet().iterator().next();
+        Map<UUID, List<UUID>> graph = tarFiles.getGraph(file);
 
         Set<UUID> keys = new HashSet<>();
         addAll(keys, a, b, c, d);
