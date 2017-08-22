@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.7.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.7.6
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.7.5 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.7.6 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.6.x
 release.
@@ -15,75 +15,91 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.7.5
+Changes in Oak 1.7.6
 ---------------------
+
+
+Sub-task
+
+    [OAK-6445] - Ensure mounted node stores don't contain versionable nodes
+
 
 Technical task
 
-    [OAK-6487] - IndexUpdate should not reindex newly imported index
-    definitions
+    [OAK-6505] - Ensure mounted node stores don't contain referenceable nodes
+    [OAK-6524] - Provide an extension point to customize the NodeStore builders
+    [OAK-6546] - JsonSerializer should taken an instance of JsopWriter
+
 
 Bug
 
-    [OAK-6481] - Missing versionable path property for
-    oak:mount-libs-crx.default
-    [OAK-6486] - NPE in CompositeNodeStore
-    [OAK-6490] - Pre-Extraction support fails for empty binaries
-    [OAK-6493] - LuceneIndexProviderService.enableHybridIndexing=false
-    results in NullPointerException
-    [OAK-6499] - MultiplexingPermissionProvider wrong privileges
-    composition
-    [OAK-6502] - Property index: include/exclude key pattern list
-    (escaping)
+    [OAK-6372] - ListRecord cannot handle more than 16581375 entries
+    [OAK-6416] - Test failure: MapRecordTest.testOak1104
+    [OAK-6452] - IllegalStateException: too much data for a segment during oak-upgrade from segment to segment-tar
+    [OAK-6500] - NRTIndex leaks file handles due to unclosed IndexReader
+    [OAK-6503] - Active deletion of blobs tries to delete sub-16k inlined blobs in case of seg-tar
+    [OAK-6504] - Active deletion of blobs needs to indicate information about purged blobs to mark-sweep collector
+    [OAK-6507] - Cleanup incorrectly removes base state created by full compaction
+    [OAK-6527] - CompositeNodeStore permission evaluation fails for open setups
+    [OAK-6529] - IndexLoaderV1 and IndexLoaderV2 should not rely on Buffer.array()
+    [OAK-6541] - While importing new index property indexes are getting marked for reindex
+    [OAK-6548] - Composite node builder/state keeps references to all the ancestor states
+    [OAK-6567] - Fix OSGi wiring after netty update to 4.1.x
 
-Documentation
-
-    [OAK-6370] - Improve documentation for text pre-extraction
 
 Improvement
 
-    [OAK-5602] - Avoid missing journal entries
-    [OAK-6359] - Change behavior for very complex queries
-    [OAK-6409] - Oak-run indexing: improved (user friendly) output
-    [OAK-6461] - Merge all security related validators into a single
-    hook
-    [OAK-6469] - CompositePermissionProvider should implement
-    AggregatedPermissionProvider
-    [OAK-6470] - Remove extra call to createGroupPrincipal in
-    UserPrincipalProvider
-    [OAK-6472] - Expose constructor in JsonSerializer which takes
-    filer and JsopBuilder
-    [OAK-6475] - JsonSerializer should not emit :childNodeCount
-    property
-    [OAK-6482] - Remove org.apache.sling.testing.osgi-mock dependency
-    from oak-run
-    [OAK-6488] - Move journal maxRevisionAge to DocumentNodeStore
-    [OAK-6491] - Add JCR_CREATED support to
-    JcrLastModifiedConflictHandler
-    [OAK-6492] - Allow DummyDataStore to read files written by it
-    [OAK-6494] - Change journalGCMaxAge default
-    [OAK-6495] - Fallback to classic diff when journal is broken
+    [OAK-937] - Query engine index selection tweaks: shortcut and hint
+    [OAK-5902] - Cold standby should allow syncing of blobs bigger than 2.2 GB
+    [OAK-6407] -  Refactor oak.spi.query into a separate module/bundle
+    [OAK-6450] - Stop relying on the service.pid property in SecurityProviderRegistration
+    [OAK-6497] - Support old Segment NodeStore setups for oak-run index tooling
+    [OAK-6510] - Fix string representation of the old generation reclaimer
+    [OAK-6518] - Implement transparent usage of different TAR index formats
+    [OAK-6520] - Improve tail compactions resilience when base state cannot be determined
+    [OAK-6523] - Tune DocumentNodeStore setup for indexing flow for index command
+    [OAK-6525] - Index consistency checker should check all indexes even after failure
+    [OAK-6526] - Slow queries: ability to track them via JMX
+    [OAK-6528] - Implement transparent usage of different binary references index formats
+    [OAK-6530] - Expose last RGC result via Supplier
+    [OAK-6534] - Compute indexPaths from index definitions json
+    [OAK-6536] - Periodic log message from continuous RGC
+    [OAK-6537] - Don't encode the checksums in the TAR index tests
+    [OAK-6539] - Decrease version export for org.apache.jackrabbit.oak.spi.security.authentication
+    [OAK-6540] - Session.hasAccess(...) should reflect read-only status of mounts
+    [OAK-6543] - NodeCounter: JMX description
+    [OAK-6549] - Move gcType to SegmentGCOptions
+    [OAK-6552] - Dump index command should fallback to dumping NodeState incase of error
+    [OAK-6556] - gc.log should contain recordId of compacted root after offline compaction
+    [OAK-6558] - Remove the 'parent' field from the CompositeNodeBuilder
+    [OAK-6559] - Don't allow to place mounts under mounts
+    [OAK-6564] - Update netty dependency to 4.1.x
+    [OAK-6565] - GetBlobResponseEncoder should not write all chunks at once
+
 
 New Feature
 
-    [OAK-3349] - Partial compaction
-    [OAK-6456] - Include the tail generation in the TAR index
-    [OAK-6458] - Increment the manifest version number
-    [OAK-6468] - Include the tail generation in the binary references
-    index
-    [OAK-6471] - Support adding or updating index definitions via
-    oak-run
-    [OAK-6476] - Support deserializing json as NodeState
-    [OAK-6477] - RevisionGC metrics for DocumentNodeStore
-    [OAK-6484] - Include tail generation in the GC journal
-    [OAK-6485] - Expose tail and full compaction via different methods
+    [OAK-3710] - Continuous revision GC
+    [OAK-6457] - Increment the segment version number
+    [OAK-6531] - Implement rolling upgrade from Oak 1.6
+    [OAK-6545] - Support for dumping repository content as json along with blobs via oak-run
+    [OAK-6553] - Progress indicator for compaction
+
 
 Task
 
-    [OAK-6265] - Remove Mounts.defaultMount methods
-    [OAK-6473] - Use JsonSerializer instead of custom json logic in
-    IndexDefinitionPrinter
-    [OAK-6478] - Move LoggingGCMonitor from segment-tar to core-spi
+    [OAK-6399] - Re-establish full offline compaction functionality
+    [OAK-6449] - Stop using the maven-scr-plugin
+    [OAK-6498] - Update Oak trunk to Jackrabbit 2.15.5
+    [OAK-6511] - Switch to official OSGi versioning annotations
+    [OAK-6519] - Properly handle tail compactions in deduplication caches
+    [OAK-6522] - Implement unit tests for OnlineCompactor
+    [OAK-6532] - Minimise usage of junit-addons
+    [OAK-6533] - Adjust test classpath order to reduce number of error markers in Eclipse
+    [OAK-6538] - Investigate cold standby memory consumption
+    [OAK-6554] - Update Dropwizard Metrics bundles to 3.2 to eliminate sun.misc dependency.
+    [OAK-6555] - Implement ITs for rolling upgrade
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
