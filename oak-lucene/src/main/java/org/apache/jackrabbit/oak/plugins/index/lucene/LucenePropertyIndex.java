@@ -539,7 +539,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         LOG.debug("Change in index version detected. Query would be performed without offset");
                     }
 
-                    //TODO Add testcase for this scenario
                     indexSearcher = indexNode.getSearcher();
                     indexNodeId = indexNode.getIndexNodeId();
                     lastDoc = null;
