@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,9 +37,11 @@ import javax.management.AttributeNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
@@ -47,10 +50,13 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -61,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.OptionalEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
@@ -96,12 +103,14 @@ import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNoException;
 
@@ -379,6 +388,46 @@ public class HybridIndexTest extends AbstractQueryTest {
         System.out.printf("Open file count - At end %d", getOpenFileCount());
 
         assertThat(fileCount4, lessThanOrEqualTo(fileCount3));
+    }
+
+    @Ignore("OAK-6572")
+    @Test
+    public void paging() throws Exception{
+        String idxName = "hybridtest";
+        Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
+        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        root.commit();
+        runAsyncIndex();
+
+        createTestData("/content", LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2);
+        runAsyncIndex();
+
+        String query = "select [jcr:path] from [nt:base] where [foo] = 'bar'";
+        Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Iterator<? extends ResultRow> itr = result.getRows().iterator();
+        int count = 0;
+        for (int i = 0; i < LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE - 10; i++) {
+            assertTrue(itr.hasNext());
+            itr.next();
+            count++;
+        }
+
+        createTestData("/content2", 5);
+        LogCustomizer lc = LogCustomizer.forLogger(LucenePropertyIndex.class.getName())
+                .filter(Level.WARN)
+                .create();
+        lc.starting();
+
+        int size = Iterators.size(itr);
+
+        if (!lc.getLogs().isEmpty()){
+            fail(lc.getLogs().toString());
+        }
+
+        lc.finished();
+
+        int totalSize = LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2 + 5;
+        assertEquals(totalSize, count + size);
     }
 
     private long createTestDataAndRunAsync(String parentPath, int count) throws Exception {
