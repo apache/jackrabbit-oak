@@ -122,7 +122,8 @@ public class OptionParserFactory {
         op.accepts(DST_S3_CONFIG, "Configuration file for the target S3DataStore").withRequiredArg()
                 .ofType(String.class);
         op.accepts(IGNORE_MISSING_BINARIES, "Don't break the migration if some binaries are missing");
-        op.accepts(SRC_EXTERNAL_BLOBS, "Flag specifying if the source Store has external references or not");
+        op.accepts(SRC_EXTERNAL_BLOBS, "Flag specifying if the source Store has external references or not")
+                .withRequiredArg().ofType(Boolean.class);
     }
 
     private static void addRdbOptions(OptionParser op) {
