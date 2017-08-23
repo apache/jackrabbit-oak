@@ -390,7 +390,6 @@ public class HybridIndexTest extends AbstractQueryTest {
         assertThat(fileCount4, lessThanOrEqualTo(fileCount3));
     }
 
-    @Ignore("OAK-6572")
     @Test
     public void paging() throws Exception{
         String idxName = "hybridtest";
