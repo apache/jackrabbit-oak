@@ -190,7 +190,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     /**
      * Batch size for fetching results from Lucene queries.
      */
-    static final int LUCENE_QUERY_BATCH_SIZE = 50;
+    public static final int LUCENE_QUERY_BATCH_SIZE = 50;
 
     protected final IndexTracker tracker;
 
