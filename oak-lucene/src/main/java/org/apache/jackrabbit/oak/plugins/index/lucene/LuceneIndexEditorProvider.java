@@ -62,7 +62,6 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;
     private final IndexAugmentorFactory augmentorFactory;
-    private LuceneIndexWriterFactory indexWriterFactory;
     private final IndexTracker indexTracker;
     private final MountInfoProvider mountInfoProvider;
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
@@ -131,8 +130,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
             BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
             indexingContext.registerIndexCommitCallback(blobDeletionCallback);
-            indexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider, newDirectoryFactory(blobDeletionCallback));
-            LuceneIndexWriterFactory writerFactory = indexWriterFactory;
+            LuceneIndexWriterFactory writerFactory = null;
             IndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
             if (nrtIndexingEnabled() && !indexingContext.isAsync() && IndexDefinition.supportsSyncOrNRTIndexing(definition)) {
@@ -178,6 +176,10 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 definition = new ReadOnlyBuilder(definition.getNodeState());
 
                 asyncIndexing = false;
+            }
+
+            if (writerFactory == null) {
+                writerFactory = new DefaultIndexWriterFactory(mountInfoProvider, newDirectoryFactory(blobDeletionCallback));
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
