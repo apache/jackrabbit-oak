@@ -192,7 +192,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     /**
      * Batch size for fetching results from Lucene queries.
      */
-    static final int LUCENE_QUERY_BATCH_SIZE = 50;
+    public static final int LUCENE_QUERY_BATCH_SIZE = 50;
 
     protected final IndexTracker tracker;
 
@@ -541,7 +541,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         LOG.debug("Change in index version detected. Query would be performed without offset");
                     }
 
-                    //TODO Add testcase for this scenario
                     indexSearcher = indexNode.getSearcher();
                     indexNodeId = indexNode.getIndexNodeId();
                     lastDoc = null;

@@ -56,7 +56,7 @@ public class IndexNodeManager {
      */
     static final String ASYNC = ":async";
 
-    private static final AtomicInteger INDEX_NODE_COUNTER = new AtomicInteger();
+    private static final AtomicInteger SEARCHER_ID_COUNTER = new AtomicInteger();
 
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(IndexNodeManager.class.getName() + ".perf"));
@@ -101,8 +101,6 @@ public class IndexNodeManager {
     };
 
     private boolean closed = false;
-
-    private final int indexNodeId = INDEX_NODE_COUNTER.incrementAndGet();
 
     IndexNodeManager(String name, IndexDefinition definition, List<LuceneIndexReader> readers, @Nullable NRTIndex nrtIndex)
             throws IOException {
@@ -155,10 +153,6 @@ public class IndexNodeManager {
 
     private void release() {
         lock.readLock().unlock();
-    }
-
-    private int getIndexNodeId() {
-        return indexNodeId;
     }
 
     void close() throws IOException {
@@ -267,6 +261,7 @@ public class IndexNodeManager {
     private static class SearcherHolder {
         final IndexSearcher searcher;
         final List<LuceneIndexReader> nrtReaders;
+        final int searcherId = SEARCHER_ID_COUNTER.incrementAndGet();
 
         public SearcherHolder(IndexSearcher searcher, List<LuceneIndexReader> nrtReaders) {
             this.searcher = searcher;
@@ -325,7 +320,7 @@ public class IndexNodeManager {
 
         @Override
         public int getIndexNodeId() {
-            return IndexNodeManager.this.getIndexNodeId();
+            return holder.searcherId;
         }
 
         @Override
