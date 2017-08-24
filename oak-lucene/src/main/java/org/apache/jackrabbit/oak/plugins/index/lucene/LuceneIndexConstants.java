@@ -114,6 +114,11 @@ public interface LuceneIndexConstants {
     String CODEC_NAME = "codec";
 
     /**
+     * Name of the merge policy to be used while indexing
+     */
+    String MERGE_POLICY_NAME = "mergePolicy";
+
+    /**
      * Child node name under which property details are provided
      */
     String PROP_NODE = "properties";

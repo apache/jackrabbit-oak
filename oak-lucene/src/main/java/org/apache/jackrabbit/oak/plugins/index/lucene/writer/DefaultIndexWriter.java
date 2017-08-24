@@ -148,6 +148,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             } else {
                 config = getIndexWriterConfig(definition, true);
             }
+            config.setMergePolicy(definition.getMergePolicy());
             writer = new IndexWriter(directory, config);
             genAtStart = getLatestGeneration(directory);
             PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
@@ -159,7 +160,6 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * eventually update suggest dictionary
      * @throws IOException if suggest dictionary update fails
      * @param analyzer the analyzer used to update the suggester
-     * @param blobStore
      */
     private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
         NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
