@@ -51,6 +51,7 @@ public class IndexWriterUtils {
             }
             Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
+//            config.setMergePolicy(definition.getMergePolicy());
             if (remoteDir) {
                 config.setMergeScheduler(new SerialMergeScheduler());
             }

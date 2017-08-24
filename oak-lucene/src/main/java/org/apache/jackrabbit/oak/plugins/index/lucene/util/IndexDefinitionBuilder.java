@@ -100,6 +100,11 @@ public final class IndexDefinitionBuilder {
         return this;
     }
 
+    public IndexDefinitionBuilder mergePolicy(String mergePolicy) {
+        tree.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, checkNotNull(mergePolicy));
+        return this;
+    }
+
     public IndexDefinitionBuilder noAsync(){
         tree.removeProperty("async");
         return this;

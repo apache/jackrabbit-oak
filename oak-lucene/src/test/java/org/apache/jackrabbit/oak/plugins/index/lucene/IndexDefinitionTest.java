@@ -30,9 +30,14 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.index.LogByteSizeMergePolicy;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.TieredMergePolicy;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -151,6 +156,49 @@ public class IndexDefinitionTest {
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertNotNull(defn.getCodec());
         assertEquals(simple.getName(), defn.getCodec().getName());
+    }
+
+    @Test
+    public void mergePolicyConfig() throws Exception{
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "tiered");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "logbyte");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(LogByteSizeMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "logdoc");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(LogDocMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "no");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(NoMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "default");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "mitigated");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
+
+        // wrong mp name falls back to default
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "whoawhoa");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
     }
 
     @Test

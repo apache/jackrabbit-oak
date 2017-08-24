@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
@@ -67,6 +68,11 @@ import org.apache.lucene.analysis.miscellaneous.LimitTokenCountAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.path.PathHierarchyTokenizerFactory;
 import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.index.LogByteSizeMergePolicy;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.TieredMergePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -422,6 +428,12 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     @CheckForNull
     public Codec getCodec() {
         return codec;
+    }
+
+    @Nonnull
+    public MergePolicy getMergePolicy() {
+        // MP is not cached to avoid complaining about multiple IWs with multiplexing writers
+        return createMergePolicy();
     }
 
     public long getReindexCount(){
@@ -1492,6 +1504,28 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             codec = new OakCodec();
         }
         return codec;
+    }
+
+    private MergePolicy createMergePolicy() {
+        String mergePolicyName = getOptionalValue(definition, LuceneIndexConstants.MERGE_POLICY_NAME, null);
+        MergePolicy mergePolicy = null;
+        if (mergePolicyName != null) {
+            if (mergePolicyName.equalsIgnoreCase("no")) {
+                mergePolicy = NoMergePolicy.COMPOUND_FILES;
+            } else if (mergePolicyName.equalsIgnoreCase("mitigated") || mergePolicyName.equalsIgnoreCase("default")) {
+                mergePolicy = new CommitMitigatingTieredMergePolicy();
+            } else if (mergePolicyName.equalsIgnoreCase("tiered")) {
+                mergePolicy = new TieredMergePolicy();
+            } else if (mergePolicyName.equalsIgnoreCase("logbyte")) {
+                mergePolicy = new LogByteSizeMergePolicy();
+            } else if (mergePolicyName.equalsIgnoreCase("logdoc")) {
+                mergePolicy = new LogDocMergePolicy();
+            }
+        }
+        if (mergePolicy == null) {
+            mergePolicy = new CommitMitigatingTieredMergePolicy();
+        }
+        return mergePolicy;
     }
 
     private static Set<String> getMultiProperty(NodeState definition, String propName){
