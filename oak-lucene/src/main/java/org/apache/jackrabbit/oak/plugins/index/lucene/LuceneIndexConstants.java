@@ -247,6 +247,16 @@ public interface LuceneIndexConstants {
     String TIKA_MAX_EXTRACT_LENGTH = "maxExtractLength";
 
     /**
+     *  Config node under tika which defines mime type mappings
+     */
+    String TIKA_MIME_TYPES = "mimeTypes";
+
+    /**
+     * Property name within the mime type structure which defines a mime type mapping
+     */
+    String TIKA_MAPPED_TYPE = "mappedType";
+
+    /**
      * The maximum number of terms that will be indexed for a single field in a
      * document.  This limits the amount of memory required for indexing, so that
      * collections with very large files will not crash the indexing process by

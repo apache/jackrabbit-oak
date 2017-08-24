@@ -615,6 +615,23 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void customTikaMimeTypes() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING));
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals("application/test", defn.getTikaMappedMimeType("application/test"));
+
+        defnb.child(LuceneIndexConstants.TIKA)
+                .child(LuceneIndexConstants.TIKA_MIME_TYPES)
+                .child("application")
+                .child("test")
+                .setProperty(LuceneIndexConstants.TIKA_MAPPED_TYPE, "text/plain");
+        defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals("text/plain", defn.getTikaMappedMimeType("application/test"));
+        assertEquals("application/test-unmapped", defn.getTikaMappedMimeType("application/test-unmapped"));
+    }
+
+    @Test
     public void maxExtractLength() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "lucene", of(TYPENAME_STRING));
