@@ -91,9 +91,7 @@ class CompositionContext {
 
     boolean shouldBeComposite(final String path) {
         boolean supportMounts = false;
-        if (nonDefaultStores.stream()
-                .map(MountedNodeStore::getMount)
-                .anyMatch(m -> m.isSupportFragment(path))) {
+        if (mip.getNonDefaultMounts().stream().anyMatch(m -> m.isSupportFragmentUnder(path))) {
             supportMounts = true;
         } else if (!mip.getMountsPlacedUnder(path).isEmpty()) {
             supportMounts = true;

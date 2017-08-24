@@ -62,4 +62,46 @@ public class MountInfoTest {
         assertFalse(md.isDirectlyUnder("/etc/my/config"));
         assertFalse(md.isDirectlyUnder("/libs"));
     }
+
+    @Test
+    public void testSupportFragment() {
+        MountInfo md = new MountInfo("foo", false, of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
+
+        assertFalse(md.isSupportFragment("/"));
+        assertTrue(md.isSupportFragment("/apps"));
+        assertTrue(md.isSupportFragment("/apps/acme"));
+
+        assertFalse(md.isSupportFragment("/libs"));
+        assertFalse(md.isSupportFragment("/libs/acme"));
+        assertTrue(md.isSupportFragment("/libs/acme/site"));
+        assertTrue(md.isSupportFragment("/libs/acme/site/abc"));
+
+        assertFalse(md.isSupportFragment("/content"));
+        assertTrue(md.isSupportFragment("/content/site"));
+        assertFalse(md.isSupportFragment("/content/site/abc"));
+
+        assertTrue(md.isSupportFragment("/var"));
+        assertFalse(md.isSupportFragment("/var/abc"));
+    }
+
+    @Test
+    public void testSupportFragmentUnder() {
+        MountInfo md = new MountInfo("foo", false, of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
+
+        assertTrue(md.isSupportFragmentUnder("/"));
+        assertTrue(md.isSupportFragmentUnder("/apps"));
+        assertTrue(md.isSupportFragmentUnder("/apps/acme"));
+
+        assertTrue(md.isSupportFragmentUnder("/libs"));
+        assertTrue(md.isSupportFragmentUnder("/libs/acme"));
+        assertTrue(md.isSupportFragmentUnder("/libs/acme/site"));
+        assertTrue(md.isSupportFragmentUnder("/libs/acme/site/abc"));
+
+        assertTrue(md.isSupportFragmentUnder("/content"));
+        assertTrue(md.isSupportFragmentUnder("/content/site"));
+        assertFalse(md.isSupportFragmentUnder("/content/site/abc"));
+
+        assertTrue(md.isSupportFragmentUnder("/var"));
+        assertFalse(md.isSupportFragmentUnder("/var/abc"));
+    }
 }
