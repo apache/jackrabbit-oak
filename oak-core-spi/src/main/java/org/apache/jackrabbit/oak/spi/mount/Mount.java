@@ -86,6 +86,15 @@ public interface Mount {
     boolean isSupportFragment(String path);
 
     /**
+     * Checks if any path supporting the fragments falls under the specified path.
+     *
+     * @param path ancestor path
+     * @return true if the path fragment mounts are supported under some descendants
+     * of the specified path
+     */
+    boolean isSupportFragmentUnder(String path);
+
+    /**
      * Checks if given path belongs to this <code>Mount</code>
      *
      * <p>A path belongs to a Mount in two scenarios:</p>

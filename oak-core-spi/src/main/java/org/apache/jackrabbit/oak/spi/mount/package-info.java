@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@Version("3.0.0")
+@Version("3.1.0")
 package org.apache.jackrabbit.oak.spi.mount;
 
 import org.osgi.annotation.versioning.Version;

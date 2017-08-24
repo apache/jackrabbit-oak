@@ -23,15 +23,19 @@ import java.io.StringWriter;
 import java.util.Collection;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Set;
 import java.util.TreeSet;
 
 import com.google.common.base.Function;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.FULL_MATCH;
+import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.PARTIAL_MATCH;
 
 /**
  * Default {@link Mount} implementation for non-default mounts.
@@ -51,7 +55,7 @@ final class MountInfo implements Mount {
     private final String name;
     private final boolean readOnly;
     private final String pathFragmentName;
-    private final NavigableSet<String> pathsSupportingFragments;
+    private final Set<String> pathsSupportingFragments;
     private final NavigableSet<String> includedPaths;
 
     MountInfo(String name, boolean readOnly, List<String> pathsSupportingFragments,
@@ -60,7 +64,7 @@ final class MountInfo implements Mount {
         this.readOnly = readOnly;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
-        this.pathsSupportingFragments = cleanCopy(pathsSupportingFragments);
+        this.pathsSupportingFragments = newHashSet(pathsSupportingFragments);
     }
 
     @Override
@@ -106,9 +110,18 @@ final class MountInfo implements Mount {
 
     @Override
     public boolean isSupportFragment(String path) {
-        path = SANITIZE_PATH.apply(path);
-        String previousPath = pathsSupportingFragments.floor(path);
-        return previousPath != null && (previousPath.equals(path) || isAncestor(previousPath, path));
+        String subject = SANITIZE_PATH.apply(path);
+        return pathsSupportingFragments.stream()
+                .map(pattern -> FragmentMatcher.startsWith(pattern, subject))
+                .anyMatch(FULL_MATCH::equals);
+    }
+
+    @Override
+    public boolean isSupportFragmentUnder(String path) {
+        String subject = SANITIZE_PATH.apply(path);
+        return pathsSupportingFragments.stream()
+                .map(pattern -> FragmentMatcher.startsWith(pattern, subject))
+                .anyMatch(r -> r == PARTIAL_MATCH || r == FULL_MATCH);
     }
 
     @Override
