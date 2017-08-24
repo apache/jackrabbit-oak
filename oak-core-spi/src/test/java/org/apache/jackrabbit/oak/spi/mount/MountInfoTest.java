@@ -104,4 +104,31 @@ public class MountInfoTest {
         assertTrue(md.isSupportFragmentUnder("/var"));
         assertFalse(md.isSupportFragmentUnder("/var/abc"));
     }
+
+    @Test
+    public void testIsMountedWithFragments() {
+        MountInfo md = new MountInfo("foo", false, of("/apps", "/libs/*/site", "/content/*$", "/var$"), Collections.emptyList());
+
+        assertFalse(md.isMounted("/oak:mount-foo"));
+        assertTrue(md.isMounted("/apps/oak:mount-foo"));
+        assertTrue(md.isMounted("/apps/oak:mount-foo/xyz"));
+        assertTrue(md.isMounted("/apps/acme/oak:mount-foo"));
+        assertTrue(md.isMounted("/apps/acme/oak:mount-foo/xyz"));
+
+        assertFalse(md.isMounted("/libs/oak:mount-foo"));
+        assertFalse(md.isMounted("/libs/acme/oak:mount-foo"));
+        assertTrue(md.isMounted("/libs/acme/site/oak:mount-foo"));
+        assertTrue(md.isMounted("/libs/acme/site/oak:mount-foo/xyz"));
+        assertTrue(md.isMounted("/libs/acme/site/abc/oak:mount-foo"));
+
+        assertFalse(md.isMounted("/oak:mount-foo"));
+        assertFalse(md.isMounted("/content/oak:mount-foo"));
+        assertTrue(md.isMounted("/content/site/oak:mount-foo"));
+        assertTrue(md.isMounted("/content/site/oak:mount-foo/xyz"));
+        assertFalse(md.isMounted("/content/site/abc/oak:mount-foo"));
+        assertFalse(md.isMounted("/content/site/abc/oak:mount-foo/xyz"));
+
+        assertTrue(md.isMounted("/var/oak:mount-foo"));
+        assertFalse(md.isMounted("/var/abc/oak:mount-foo"));
+    }
 }

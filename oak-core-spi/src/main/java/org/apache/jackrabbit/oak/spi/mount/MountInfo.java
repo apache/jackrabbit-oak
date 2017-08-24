@@ -83,8 +83,12 @@ final class MountInfo implements Mount {
 
     @Override
     public boolean isMounted(String path) {
-        if (isSupportFragment(path) && path.contains(pathFragmentName)){
-            return true;
+        if (path.contains(pathFragmentName)) {
+            String parent = path.substring(0, path.indexOf(pathFragmentName));
+            parent = parent.substring(0, parent.lastIndexOf('/'));
+            if (isSupportFragment(parent)) {
+                return true;
+            }
         }
 
         path = SANITIZE_PATH.apply(path);
