@@ -29,6 +29,7 @@ import org.codehaus.groovy.tools.shell.IO;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.codehaus.groovy.tools.shell.util.Preferences;
 
 /**
  * A command line console.
@@ -63,6 +64,9 @@ public class Console {
                     new GroovyConsole(ConsoleSession.create(fixture.getStore(), fixture.getWhiteboard()), new IO(), fixture);
 
             if (!scriptArgs.isEmpty()) {
+                if (!options.has(shell)) {
+                    Preferences.verbosity = IO.Verbosity.QUIET;
+                }
                 code = console.execute(scriptArgs);
             }
 
