@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil.getLongestPrefix;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -189,21 +190,21 @@ public class ValuePatternTest {
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.EQUAL, 
                 PropertyValues.newString("hello"));
-        assertEquals("hello", PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertEquals("hello", getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_OR_EQUAL, 
                 PropertyValues.newString("hello welt"));
         filter.restrictProperty("x", Operator.LESS_OR_EQUAL, 
                 PropertyValues.newString("hello world"));
-        assertEquals("hello w", PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertEquals("hello w", getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_THAN, 
                 PropertyValues.newString("hello welt"));
         filter.restrictProperty("x", Operator.LESS_THAN, 
                 PropertyValues.newString("hello world"));
-        assertEquals("hello w", PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertEquals("hello w", getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_THAN, 
@@ -214,14 +215,14 @@ public class ValuePatternTest {
                 PropertyValues.newString("hello world"));
         filter.restrictProperty("x", Operator.EQUAL, 
                 PropertyValues.newString("hell"));
-        assertEquals("hell", PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertEquals("hell", getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_THAN, 
                 PropertyValues.newString("abc"));
         filter.restrictProperty("x", Operator.LESS_THAN, 
                 PropertyValues.newString("bde"));
-        assertNull(PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_THAN, 
@@ -230,40 +231,40 @@ public class ValuePatternTest {
                 PropertyValues.newString("bcd"));
         filter.restrictProperty("x", Operator.LESS_THAN, 
                 PropertyValues.newString("dce"));
-        assertNull(PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.LIKE, 
                 PropertyValues.newString("hello%"));
-        assertNull(PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_OR_EQUAL, 
                 PropertyValues.newString("hello"));
-        assertNull(PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.LESS_THAN, 
                 PropertyValues.newString("hello"));
-        assertNull(PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.NOT_EQUAL, null);
-        assertNull(PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_THAN,
                 PropertyValues.newString(Arrays.asList("a0", "a1")));
         filter.restrictProperty("x", Operator.LESS_THAN,
                 PropertyValues.newString("a2"));
-        assertNull(PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertNull(getLongestPrefix(filter, "x"));
 
         filter = new FilterImpl(null, null, null);
         filter.restrictProperty("x", Operator.GREATER_THAN,
                 PropertyValues.newString("a0"));
         filter.restrictProperty("x", Operator.LESS_THAN,
                 PropertyValues.newString(Arrays.asList("a3", "a4")));
-        assertNull(PropertyIndexPlan.getLongestPrefix(filter, "x"));
+        assertNull(getLongestPrefix(filter, "x"));
         
     }
     

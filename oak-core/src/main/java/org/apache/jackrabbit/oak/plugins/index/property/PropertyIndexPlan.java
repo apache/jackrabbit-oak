@@ -19,18 +19,14 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newLinkedHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -145,13 +141,13 @@ public class PropertyIndexPlan {
                         // of the child node (well, we could, for some node types)
                         continue;
                     }
-                    Set<String> values = getValues(restriction, new ValuePattern());
+                    Set<String> values = ValuePatternUtil.getValues(restriction, new ValuePattern());
                     if (valuePattern.matchesAll()) {
                         // matches all values: not a problem
                     } else if (values == null) {
                         // "is not null" condition, but we have a value pattern
                         // that doesn't match everything
-                        String prefix = getLongestPrefix(filter, property);
+                        String prefix = ValuePatternUtil.getLongestPrefix(filter, property);
                         if (!valuePattern.matchesPrefix(prefix)) {
                             // region match which is not fully in the pattern
                             continue;
@@ -191,70 +187,6 @@ public class PropertyIndexPlan {
         this.depth = bestDepth;
         this.values = bestValues;
         this.cost = COST_OVERHEAD + bestCost;
-    }
-
-    /**
-     * Get the longest prefix of restrictions on a property.
-     * 
-     * @param filter the filter with all restrictions
-     * @param property the property
-     * @return the longest prefix, or null if none
-     */
-    public static String getLongestPrefix(Filter filter, String property) {
-        boolean first = false, last = false;
-        List<String> list = new ArrayList<>();
-        for(PropertyRestriction p : filter.getPropertyRestrictions(property)) {
-            if (p.isLike) {
-                continue;
-            }
-            if (p.first != null) {
-                if (p.first.isArray()) {
-                    return null;
-                }
-                list.add(p.first.getValue(Type.STRING));
-                first = true;
-            } 
-            if (p.last != null) {
-                if (p.last.isArray()) {
-                    return null;
-                }
-                list.add(p.last.getValue(Type.STRING));
-                last = true;
-            }
-        }
-        if (!first || !last) {
-            return null;
-        }
-        String prefix = list.get(0);
-        for (String s : list) {
-            while (!s.startsWith(prefix)) {
-                prefix = prefix.substring(0, prefix.length() - 1);
-                if (prefix.isEmpty()) {
-                    return null;
-                }
-            }
-        }
-        return prefix;
-    }
-
-    private static Set<String> getValues(PropertyRestriction restriction, ValuePattern pattern) {
-        if (restriction.firstIncluding
-                && restriction.lastIncluding
-                && restriction.first != null
-                && restriction.first.equals(restriction.last)) {
-            // "[property] = $value"
-            return PropertyIndex.read(restriction.first, pattern);
-        } else if (restriction.list != null) {
-            // "[property] IN (...)
-            Set<String> values = newLinkedHashSet(); // keep order for testing
-            for (PropertyValue value : restriction.list) {
-                values.addAll(PropertyIndex.read(value, pattern));
-            }
-            return values;
-        } else {
-            // "[property] is not null" or "[property] is null"
-            return null;
-        }
     }
 
     String getName() {
