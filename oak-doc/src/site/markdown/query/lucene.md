@@ -37,6 +37,7 @@
 * [LuceneIndexProvider Configuration](#osgi-config)
 * [Tika Config](#tika-config)
     * [Mime type usage](#mime-type-usage)
+    * [Mime type mapping](#mime-type-mapping)
 * [Non Root Index Definitions](#non-root-index)
 * [Native Query and Index Selection](#native-query)
 * [CopyOnRead](#copy-on-read)
@@ -969,6 +970,23 @@ and that is supported by Tika. By default indexer uses [TypeDetector][OAK-2895]
 instead of default `DefaultDetector` which relies on the `jcr:mimeType` to pick up the
 right parser. 
 
+#### <a name="mime-type-mapping"></a>Mime type mapping
+
+`@since Oak 1.7.7`
+
+In certain circumstances, it may be desired to pass a value other than the `jcr:mimeType` property
+into the Tika parser. For example, this would be necessary if a binary has an application-specific 
+mime type, but is parsable by the standard Tika parser for some generic type. To support these cases,
+create a node structure under the `tika/mimeTypes` node following the mime type structure, e.g.
+
+    + tika
+        + mimeTypes (nt:unstructured)
+          + application (nt:unstructured)
+            + vnd.mycompany-document (nt:unstructured)
+              - mappedType = application/pdf
+
+When this index is indexing a binary of type `application/vnd.mycompany-document` it will force Tika
+to treat it as a binary of type `application/pdf`.
 
 ### <a name="non-root-index"></a>Non Root Index Definitions
 

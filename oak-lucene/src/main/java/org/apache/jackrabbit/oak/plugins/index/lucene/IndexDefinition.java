@@ -228,6 +228,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean hasCustomTikaConfig;
 
+    private final Map<String, String> customTikaMimeTypeMappings;
+
     private final int maxFieldLength;
 
     private final int maxExtractLength;
@@ -376,6 +378,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.analyzers = collectAnalyzers(defn);
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
+        this.customTikaMimeTypeMappings = buildMimeTypeMap(definition.getChildNode(TIKA).getChildNode(TIKA_MIME_TYPES));
         this.maxExtractLength = determineMaxExtractLength();
         this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
                 DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
@@ -504,6 +507,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public InputStream getTikaConfig(){
         return ConfigUtil.getBlob(getTikaConfigNode(), TIKA_CONFIG).getNewStream();
+    }
+
+    public String getTikaMappedMimeType(String type) {
+        return customTikaMimeTypeMappings.getOrDefault(type, type);
     }
 
     public String getIndexName() {
@@ -1750,6 +1757,22 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         }
         NodeState storedState = defn.getChildNode(INDEX_DEFINITION_NODE);
         return storedState.exists() ? storedState : defn;
+    }
+
+    private static Map<String, String> buildMimeTypeMap(NodeState node) {
+        ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
+        for (ChildNodeEntry child : node.getChildNodeEntries()) {
+            for (ChildNodeEntry subChild : child.getNodeState().getChildNodeEntries()) {
+                StringBuilder typeBuilder = new StringBuilder(child.getName())
+                        .append('/')
+                        .append(subChild.getName());
+                PropertyState property = subChild.getNodeState().getProperty(TIKA_MAPPED_TYPE);
+                if (property != null) {
+                    map.put(typeBuilder.toString(), property.getValue(Type.STRING));
+                }
+            }
+        }
+        return map.build();
     }
 
 }
