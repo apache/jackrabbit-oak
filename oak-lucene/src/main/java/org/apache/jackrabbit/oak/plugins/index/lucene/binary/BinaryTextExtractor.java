@@ -92,6 +92,7 @@ public class BinaryTextExtractor {
 
         //jcr:mimeType is mandatory for a binary to be indexed
         String type = state.getString(JcrConstants.JCR_MIMETYPE);
+        type = definition.getTikaMappedMimeType(type);
 
         if (type == null || !isSupportedMediaType(type)) {
             log.trace(
