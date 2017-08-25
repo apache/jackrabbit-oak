@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -227,6 +228,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     private final Map<String, Analyzer> analyzers;
 
     private final boolean hasCustomTikaConfig;
+    private final Map<String, String> customTikaMimeTypeMappings;
 
     private final int maxFieldLength;
 
@@ -376,6 +378,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.analyzers = collectAnalyzers(defn);
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
+
+        NodeState mimeTypes = definition.getChildNode(TIKA).getChildNode(TIKA_MIME_TYPES);
+        if (mimeTypes.exists()) {
+            customTikaMimeTypeMappings = buildMimeTypeMap(mimeTypes);
+        } else {
+            customTikaMimeTypeMappings = Collections.emptyMap();
+        }
         this.maxExtractLength = determineMaxExtractLength();
         this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
                 DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
@@ -504,6 +513,14 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public InputStream getTikaConfig(){
         return ConfigUtil.getBlob(getTikaConfigNode(), TIKA_CONFIG).getNewStream();
+    }
+
+    public String getTikaMappedMimeType(String type) {
+        if (customTikaMimeTypeMappings.containsKey(type)) {
+            return customTikaMimeTypeMappings.get(type);
+        } else {
+            return type;
+        }
     }
 
     public String getIndexName() {
@@ -1750,6 +1767,21 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         }
         NodeState storedState = defn.getChildNode(INDEX_DEFINITION_NODE);
         return storedState.exists() ? storedState : defn;
+    }
+
+    private static Map<String, String> buildMimeTypeMap(NodeState node) {
+        Map<String, String> map = new HashMap<>();
+        for (ChildNodeEntry child : node.getChildNodeEntries()) {
+            StringBuilder typeBuilder = new StringBuilder(child.getName()).append('/');
+            for (ChildNodeEntry subChild : child.getNodeState().getChildNodeEntries()) {
+                typeBuilder.append(subChild.getName());
+                PropertyState property = subChild.getNodeState().getProperty(TIKA_MAPPED_TYPE);
+                if (property != null) {
+                    map.put(typeBuilder.toString(), property.getValue(Type.STRING));
+                }
+            }
+        }
+        return Collections.unmodifiableMap(map);
     }
 
 }
