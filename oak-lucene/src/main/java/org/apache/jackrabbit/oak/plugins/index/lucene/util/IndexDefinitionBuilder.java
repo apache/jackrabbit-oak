@@ -349,6 +349,21 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule valuePattern(String valuePattern){
+            propTree.setProperty(IndexConstants.VALUE_PATTERN, valuePattern);
+            return this;
+        }
+
+        public PropertyRule valueExcludedPrefixes(String... values){
+            propTree.setProperty(IndexConstants.VALUE_EXCLUDED_PREFIXES, asList(values), STRINGS);
+            return this;
+        }
+
+        public PropertyRule valueIncludedPrefixes(String... values){
+            propTree.setProperty(IndexConstants.VALUE_INCLUDED_PREFIXES, asList(values), STRINGS);
+            return this;
+        }
+
         public IndexRule enclosingRule(){
             return indexRule;
         }

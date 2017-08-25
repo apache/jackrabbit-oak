@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
+import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,6 +114,8 @@ class PropertyDefinition {
      */    
     final String[] functionCode;
 
+    final ValuePattern valuePattern;
+
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
@@ -152,6 +155,7 @@ class PropertyDefinition {
         this.function = FunctionIndexProcessor.convertToPolishNotation(
                 getOptionalValue(defn, LuceneIndexConstants.PROP_FUNCTION, null));
         this.functionCode = FunctionIndexProcessor.getFunctionCode(this.function);
+        this.valuePattern = new ValuePattern(defn);
         validate();
     }
 

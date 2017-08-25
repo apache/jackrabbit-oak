@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.CheckForNull;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
+import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
@@ -197,6 +199,28 @@ class IndexPlanner {
                 if (pd != null && pd.propertyIndexEnabled()) {
                     if (pr.isNullRestriction() && !pd.nullCheckEnabled){
                         continue;
+                    }
+
+                    if (!pd.valuePattern.matchesAll()){
+                        //So we have a valuePattern defined. So determine if
+                        //this index can return a plan based on values
+                        Set<String> values = ValuePatternUtil.getAllValues(pr);
+                        if (values == null) {
+                            // "is not null" condition, but we have a value pattern
+                            // that doesn't match everything
+                            // case of like search
+                            String prefix = ValuePatternUtil.getLongestPrefix(filter, name);
+                            if (!pd.valuePattern.matchesPrefix(prefix)) {
+                                // region match which is not fully in the pattern
+                                continue;
+                            }
+                        } else {
+                            // we have a value pattern, for example (a|b),
+                            // but we search (also) for 'c': can't match
+                            if (!pd.valuePattern.matchesAll(values)) {
+                                continue;
+                            }
+                        }
                     }
 
                     //A property definition with weight == 0 is only meant to be used
