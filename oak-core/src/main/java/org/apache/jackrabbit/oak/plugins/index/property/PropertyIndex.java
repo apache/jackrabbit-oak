@@ -115,21 +115,7 @@ class PropertyIndex implements QueryIndex {
     }
     
     static Set<String> encode(PropertyValue value, ValuePattern pattern) {
-        return encode(read(value, pattern));
-    }
-    
-    static Set<String> read(PropertyValue value, ValuePattern pattern) {
-        if (value == null) {
-            return null;
-        }
-        Set<String> values = new HashSet<String>();
-        for (String v : value.getValue(Type.STRINGS)) {
-            if (!pattern.matches(v)) {
-                continue;
-            }
-            values.add(v);
-        }
-        return values;
+        return encode(ValuePatternUtil.read(value, pattern));
     }
 
     static Set<String> encode(Set<String> set) {

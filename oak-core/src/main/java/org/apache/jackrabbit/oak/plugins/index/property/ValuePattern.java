@@ -30,7 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * A value pattern.
  */
 public class ValuePattern {
-    
+    public final static ValuePattern MATCH_ALL = new ValuePattern();
+
     private final Pattern pattern;
     private final Iterable<String> includePrefixes;
     private final Iterable<String> excludePrefixes;
