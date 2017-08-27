@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Closer;
@@ -82,12 +81,7 @@ public class SegmentFactory implements NodeStoreFactory {
         }
         closer.register(asCloseable(fs));
 
-        return new TarNodeStore(SegmentNodeStore.builder(fs).build(), new TarNodeStore.SuperRootProvider() {
-            @Override
-            public NodeState getSuperRoot() {
-                return fs.getHead();
-            }
-        });
+        return SegmentNodeStore.builder(fs).build();
     }
 
     @Override

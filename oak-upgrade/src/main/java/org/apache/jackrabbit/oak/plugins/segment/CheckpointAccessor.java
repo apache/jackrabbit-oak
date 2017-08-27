@@ -14,35 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.node;
+package org.apache.jackrabbit.oak.plugins.segment;
 
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 
-public class TarNodeStore extends ProxyNodeStore {
+public final class CheckpointAccessor {
 
-    private final NodeStore ns;
-
-    private final SuperRootProvider superRootProvider;
-
-    public TarNodeStore(NodeStore ns, SuperRootProvider superRootProvider) {
-        this.ns = ns;
-        this.superRootProvider = superRootProvider;
+    private CheckpointAccessor() {
     }
 
-    public NodeState getSuperRoot() {
-        return superRootProvider.getSuperRoot();
+    public static NodeState getCheckpointsRoot(SegmentNodeStore segmentNodeStore) {
+        return segmentNodeStore.getCheckpoints();
     }
 
-    @Override
-    protected NodeStore getNodeStore() {
-        return ns;
-    }
-
-    interface SuperRootProvider {
-
-        NodeState getSuperRoot();
-
-    }
 }
