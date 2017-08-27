@@ -25,6 +25,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -243,7 +244,7 @@ public class CompositeChildrenCountTest {
         @Nonnull
         @Override
         public NodeBuilder builder() {
-            return new ReadOnlyBuilder(this);
+            return new MemoryNodeBuilder(this);
         }
 
         private <T> Iterable<T> asCountingIterable(Iterable<T> input) {

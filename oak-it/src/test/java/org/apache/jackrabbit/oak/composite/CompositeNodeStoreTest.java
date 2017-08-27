@@ -82,6 +82,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -628,6 +629,7 @@ public class CompositeNodeStoreTest {
     }
 
     @Test
+    @Ignore("Test ignored, since only the default store is writeable")
     public void moveNodeBetweenStores() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
 
