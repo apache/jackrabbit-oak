@@ -64,6 +64,8 @@
               org.apache.jackrabbit.oak.plugins.index.reference,
               org.apache.jackrabbit.oak.plugins.itemsave,
               org.apache.jackrabbit.oak.plugins.lock,
+              org.apache.jackrabbit.oak.plugins.migration,
+              org.apache.jackrabbit.oak.plugins.migration.report,
               org.apache.jackrabbit.oak.plugins.name,
               org.apache.jackrabbit.oak.plugins.nodetype,
               org.apache.jackrabbit.oak.plugins.nodetype.write,

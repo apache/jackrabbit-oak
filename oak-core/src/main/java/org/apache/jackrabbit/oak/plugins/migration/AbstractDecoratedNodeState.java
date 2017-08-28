@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.nodestate;
+package org.apache.jackrabbit.oak.plugins.migration;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -47,6 +47,10 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
 
     protected AbstractDecoratedNodeState(@Nonnull final NodeState delegate) {
         this.delegate = delegate;
+    }
+
+    public NodeState getDelegate() {
+        return delegate;
     }
 
     protected boolean hideChild(@Nonnull final String name, @Nonnull final NodeState delegateChild) {

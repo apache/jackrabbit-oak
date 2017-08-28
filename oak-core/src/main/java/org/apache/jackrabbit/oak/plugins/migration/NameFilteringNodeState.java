@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.nodestate;
+package org.apache.jackrabbit.oak.plugins.migration;
 
 import com.google.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyState;

@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.nodestate.report;
+package org.apache.jackrabbit.oak.plugins.migration.report;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.migration.AbstractDecoratedNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.AbstractDecoratedNodeState;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
