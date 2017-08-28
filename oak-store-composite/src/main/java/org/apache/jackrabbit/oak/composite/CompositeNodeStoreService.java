@@ -25,6 +25,7 @@ import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
@@ -42,6 +43,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.HashSet;
@@ -84,6 +86,11 @@ public class CompositeNodeStoreService {
     )
     private static final String PROP_PARTIAL_READ_ONLY = "partialReadOnly";
 
+    @Property(label = "Pre-populate seed mount",
+            description = "Setting this parameter to a mount name will enable pre-populating the empty default store"
+    )
+    private static final String PROP_SEED_MOUNT = "seedMount";
+
     private ComponentContext context;
 
     private Set<NodeStoreProvider> nodeStoresInUse = newIdentityHashSet();
@@ -98,11 +105,14 @@ public class CompositeNodeStoreService {
 
     private boolean partialReadOnly;
 
+    private String seedMount;
+
     @Activate
-    protected void activate(ComponentContext context, Map<String, ?> config) {
+    protected void activate(ComponentContext context, Map<String, ?> config) throws IOException, CommitFailedException {
         this.context = context;
         ignoreReadOnlyWritePaths = PropertiesUtil.toStringArray(config.get(PROP_IGNORE_READ_ONLY_WRITES), new String[0]);
         partialReadOnly = PropertiesUtil.toBoolean(config.get(PROP_PARTIAL_READ_ONLY), true);
+        seedMount = PropertiesUtil.toString(config.get(PROP_SEED_MOUNT), null);
         registerCompositeNodeStore();
     }
 
@@ -111,7 +121,7 @@ public class CompositeNodeStoreService {
         unregisterCompositeNodeStore();
     }
 
-    private void registerCompositeNodeStore() {
+    private void registerCompositeNodeStore() throws IOException, CommitFailedException {
         if (nsReg != null) {
             return; // already registered
         }
@@ -155,10 +165,16 @@ public class CompositeNodeStoreService {
                 continue;
             }
             String mountName = getMountName(ns);
-            if (mountName != null) {
-                builder.addMount(mountName, ns.getNodeStoreProvider().getNodeStore());
-                LOG.info("Mounting {} as {}", ns.getDescription(), mountName);
-                nodeStoresInUse.add(ns.getNodeStoreProvider());
+            if (mountName == null) {
+                continue;
+            }
+
+            builder.addMount(mountName, ns.getNodeStoreProvider().getNodeStore());
+            LOG.info("Mounting {} as {}", ns.getDescription(), mountName);
+            nodeStoresInUse.add(ns.getNodeStoreProvider());
+
+            if (mountName.equals(seedMount)) {
+                new InitialContentMigrator(globalNs.nodeStore.getNodeStore(), ns.getNodeStoreProvider().getNodeStore(), mountInfoProvider.getMountByName(seedMount)).migrate();
             }
         }
 
@@ -219,7 +235,7 @@ public class CompositeNodeStoreService {
         nodeStoresInUse.clear();
     }
 
-    protected void bindNodeStore(NodeStoreProvider ns, Map<String, ?> config) {
+    protected void bindNodeStore(NodeStoreProvider ns, Map<String, ?> config) throws IOException, CommitFailedException {
         NodeStoreWithProps newNs = new NodeStoreWithProps(ns, config);
         nodeStores.add(newNs);
 
