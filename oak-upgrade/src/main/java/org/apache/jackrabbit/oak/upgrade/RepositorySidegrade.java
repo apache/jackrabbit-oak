@@ -83,7 +83,7 @@ public class RepositorySidegrade {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySidegrade.class);
 
-    private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
+    static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
     private static final String WORKSPACE_NAME_PROP = "oak.upgrade.workspaceName";
 
@@ -423,13 +423,17 @@ public class RepositorySidegrade {
     }
 
     private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot, boolean tracePaths) throws IOException, CommitFailedException {
-        NodeState currentRoot = wrapNodeState(after, tracePaths, true);
-        NodeState baseRoot = wrapNodeState(before, false, true);
 
         NodeBuilder targetBuilder = targetRoot.builder();
         if (targetFileStore == null) {
+            NodeState currentRoot = wrapNodeState(after, tracePaths, true);
+            NodeState baseRoot = wrapNodeState(before, false, true);
+
             currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetBuilder));
         } else {
+            NodeState currentRoot = wrapNodeState(after, false, true);
+            NodeState baseRoot = wrapNodeState(before, false, true);
+
             SegmentNodeState state = PersistingDiff.applyDiffOnNodeState(targetFileStore, baseRoot, currentRoot, targetRoot);
             state.compareAgainstBaseState(targetRoot, new ApplyDiff(targetBuilder));
         }
