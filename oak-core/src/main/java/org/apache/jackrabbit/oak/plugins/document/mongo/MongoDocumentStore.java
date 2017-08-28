@@ -271,9 +271,11 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                     new boolean[]{true, true}, false, false);
         } else if (!hasIndex(nodes, NodeDocument.MODIFIED_IN_SECS, Document.ID)) {
             hasModifiedIdCompoundIndex = false;
-            LOG.warn("Detected an upgrade from Oak version <= 1.2. For optimal " +
-                    "performance it is recommended to create a compound index " +
-                    "for the 'nodes' collection on {_modified:1, _id:1}.");
+            if (!builder.getReadOnlyMode()) {
+                LOG.warn("Detected an upgrade from Oak version <= 1.2. For optimal " +
+                        "performance it is recommended to create a compound index " +
+                        "for the 'nodes' collection on {_modified:1, _id:1}.");
+            }
         }
 
         // index on the _bin flag to faster access nodes with binaries for GC
@@ -289,12 +291,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
             }
         } else if (!hasIndex(nodes, DELETED_ONCE, MODIFIED_IN_SECS)) {
-            LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
-                    "Revision GC performance it is recommended to create a " +
-                    "partial index for the 'nodes' collection on " +
-                    "{_deletedOnce:1, _modified:1} with a partialFilterExpression " +
-                    "{_deletedOnce:true}. Partial indexes require MongoDB 3.2 " +
-                    "or higher.");
+            if (!builder.getReadOnlyMode()) {
+                LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
+                        "Revision GC performance it is recommended to create a " +
+                        "partial index for the 'nodes' collection on " +
+                        "{_deletedOnce:1, _modified:1} with a partialFilterExpression " +
+                        "{_deletedOnce:true}. Partial indexes require MongoDB 3.2 " +
+                        "or higher.");
+            }
         }
 
         // compound index on _sdType and _sdMaxRevTime
@@ -304,10 +308,12 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             createIndex(nodes, new String[]{SD_TYPE, SD_MAX_REV_TIME_IN_SECS},
                     new boolean[]{true, true}, false, true);
         } else if (!hasIndex(nodes, SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
-            LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
-                    "Revision GC performance it is recommended to create a " +
-                    "sparse compound index for the 'nodes' collection on " +
-                    "{_sdType:1, _sdMaxRevTime:1}.");
+            if (!builder.getReadOnlyMode()) {
+                LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
+                        "Revision GC performance it is recommended to create a " +
+                        "sparse compound index for the 'nodes' collection on " +
+                        "{_sdType:1, _sdMaxRevTime:1}.");
+            }
         }
 
         // index on _modified for journal entries
