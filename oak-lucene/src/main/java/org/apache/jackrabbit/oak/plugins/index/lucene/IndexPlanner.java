@@ -201,26 +201,8 @@ class IndexPlanner {
                         continue;
                     }
 
-                    if (!pd.valuePattern.matchesAll()){
-                        //So we have a valuePattern defined. So determine if
-                        //this index can return a plan based on values
-                        Set<String> values = ValuePatternUtil.getAllValues(pr);
-                        if (values == null) {
-                            // "is not null" condition, but we have a value pattern
-                            // that doesn't match everything
-                            // case of like search
-                            String prefix = ValuePatternUtil.getLongestPrefix(filter, name);
-                            if (!pd.valuePattern.matchesPrefix(prefix)) {
-                                // region match which is not fully in the pattern
-                                continue;
-                            }
-                        } else {
-                            // we have a value pattern, for example (a|b),
-                            // but we search (also) for 'c': can't match
-                            if (!pd.valuePattern.matchesAll(values)) {
-                                continue;
-                            }
-                        }
+                    if (!matchesValuePattern(pr, pd)) {
+                        continue;
                     }
 
                     //A property definition with weight == 0 is only meant to be used
@@ -290,6 +272,31 @@ class IndexPlanner {
         //TODO Support for property existence queries
 
         return null;
+    }
+
+    private boolean matchesValuePattern(PropertyRestriction pr, PropertyDefinition pd) {
+        if (!pd.valuePattern.matchesAll()){
+            //So we have a valuePattern defined. So determine if
+            //this index can return a plan based on values
+            Set<String> values = ValuePatternUtil.getAllValues(pr);
+            if (values == null) {
+                // "is not null" condition, but we have a value pattern
+                // that doesn't match everything
+                // case of like search
+                String prefix = ValuePatternUtil.getLongestPrefix(filter, pr.propertyName);
+                if (!pd.valuePattern.matchesPrefix(prefix)) {
+                    // region match which is not fully in the pattern
+                    return false;
+                }
+            } else {
+                // we have a value pattern, for example (a|b),
+                // but we search (also) for 'c': can't match
+                if (!pd.valuePattern.matchesAll(values)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private boolean wrongIndex() {
