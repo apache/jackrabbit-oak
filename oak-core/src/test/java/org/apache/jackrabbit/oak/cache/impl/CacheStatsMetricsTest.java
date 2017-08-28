@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.ELEMENT;
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.EVICTION;
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.HIT;
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.MISS;
+import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.REQUEST;
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.metricName;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -43,6 +44,7 @@ public class CacheStatsMetricsTest {
     private static final Random RANDOM = new Random();
     private static final long HIT_COUNT = RANDOM.nextInt(Integer.MAX_VALUE);
     private static final long MISS_COUNT = RANDOM.nextInt(Integer.MAX_VALUE);
+    private static final long REQUEST_COUNT = HIT_COUNT + MISS_COUNT;
     private static final long EVICTION_COUNT = RANDOM.nextInt(Integer.MAX_VALUE);
     private static final long ELEMENT_COUNT = RANDOM.nextInt(Integer.MAX_VALUE);
     private static final long LOAD_TIME = RANDOM.nextInt(Integer.MAX_VALUE);
@@ -58,7 +60,11 @@ public class CacheStatsMetricsTest {
 
         Map<String, Counter> counters = registry.getCounters();
 
-        Counter counter = counters.get(metricName(bean.getName(), HIT));
+        Counter counter = counters.get(metricName(bean.getName(), REQUEST));
+        assertNotNull(counter);
+        assertEquals(REQUEST_COUNT, counter.getCount());
+
+        counter = counters.get(metricName(bean.getName(), HIT));
         assertNotNull(counter);
         assertEquals(HIT_COUNT, counter.getCount());
 

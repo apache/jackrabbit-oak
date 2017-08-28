@@ -44,6 +44,7 @@ public class CacheStatsMetrics {
 
     private static final Logger LOG = LoggerFactory.getLogger(CacheStatsMetrics.class);
 
+    static final String REQUEST = "request";
     static final String HIT = "hit";
     static final String MISS = "miss";
     static final String EVICTION = "eviction";
@@ -51,7 +52,7 @@ public class CacheStatsMetrics {
     static final String LOAD_TIME = "loadTime";
 
     private static final List<String> TYPES = ImmutableList.of(
-            HIT, MISS, EVICTION, ELEMENT, LOAD_TIME);
+            REQUEST, HIT, MISS, EVICTION, ELEMENT, LOAD_TIME);
 
     private Map<String, CacheStatsMBean> cacheStatsMBeans = Maps.newHashMap();
     private MetricRegistry registry = new MetricRegistry();
@@ -86,6 +87,7 @@ public class CacheStatsMetrics {
 
     private static void registerCacheStatsMBean(MetricRegistry registry,
                                                 CacheStatsMBean stats) {
+        registerMetric(registry, new RequestCounter(stats));
         registerMetric(registry, new HitCounter(stats));
         registerMetric(registry, new MissCounter(stats));
         registerMetric(registry, new EvictionCounter(stats));
@@ -125,6 +127,18 @@ public class CacheStatsMetrics {
 
         String getName() {
             return metricName(stats.getName(), type);
+        }
+    }
+
+    private static final class RequestCounter extends CacheStatsMBeanCounter {
+
+        RequestCounter(CacheStatsMBean stats) {
+            super(stats, REQUEST);
+        }
+
+        @Override
+        public long getCount() {
+            return stats.getRequestCount();
         }
     }
 
