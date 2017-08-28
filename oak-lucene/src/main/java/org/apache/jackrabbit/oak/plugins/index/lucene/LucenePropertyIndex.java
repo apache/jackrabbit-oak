@@ -1103,6 +1103,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return new TermQuery(new Term(FieldNames.NOT_NULL_PROPS, defn.name));
         }
 
+        String propertyName = pr.propertyName;
         switch (propType) {
             case PropertyType.DATE: {
                 Long first = pr.first != null ? FieldFactory.dateToLong(pr.first.getValue(Type.DATE)) : null;
@@ -1110,26 +1111,26 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, first, true, true);
+                    return NumericRangeQuery.newLongRange(propertyName, first, first, true, true);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, last,
+                    return NumericRangeQuery.newLongRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, null, pr.firstIncluding, true);
+                    return NumericRangeQuery.newLongRange(propertyName, first, null, pr.firstIncluding, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return NumericRangeQuery.newLongRange(pr.propertyName, null, last, true, pr.lastIncluding);
+                    return NumericRangeQuery.newLongRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
                     BooleanQuery in = new BooleanQuery();
                     for (PropertyValue value : pr.list) {
                         Long dateVal = FieldFactory.dateToLong(value.getValue(Type.DATE));
-                        in.add(NumericRangeQuery.newLongRange(pr.propertyName, dateVal, dateVal, true, true), BooleanClause.Occur.SHOULD);
+                        in.add(NumericRangeQuery.newLongRange(propertyName, dateVal, dateVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
                     // not null. For date lower bound of zero can be used
-                    return NumericRangeQuery.newLongRange(pr.propertyName, 0L, Long.MAX_VALUE, true, true);
+                    return NumericRangeQuery.newLongRange(propertyName, 0L, Long.MAX_VALUE, true, true);
                 }
 
                 break;
@@ -1140,26 +1141,26 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, first, first, true, true);
+                    return NumericRangeQuery.newDoubleRange(propertyName, first, first, true, true);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, first, last,
+                    return NumericRangeQuery.newDoubleRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, first, null, pr.firstIncluding, true);
+                    return NumericRangeQuery.newDoubleRange(propertyName, first, null, pr.firstIncluding, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, null, last, true, pr.lastIncluding);
+                    return NumericRangeQuery.newDoubleRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
                     BooleanQuery in = new BooleanQuery();
                     for (PropertyValue value : pr.list) {
                         Double doubleVal = value.getValue(Type.DOUBLE);
-                        in.add(NumericRangeQuery.newDoubleRange(pr.propertyName, doubleVal, doubleVal, true, true), BooleanClause.Occur.SHOULD);
+                        in.add(NumericRangeQuery.newDoubleRange(propertyName, doubleVal, doubleVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
                     // not null.
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
+                    return NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
                 }
                 break;
             }
@@ -1169,32 +1170,32 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, first, true, true);
+                    return NumericRangeQuery.newLongRange(propertyName, first, first, true, true);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, last,
+                    return NumericRangeQuery.newLongRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, null, pr.firstIncluding, true);
+                    return NumericRangeQuery.newLongRange(propertyName, first, null, pr.firstIncluding, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return NumericRangeQuery.newLongRange(pr.propertyName, null, last, true, pr.lastIncluding);
+                    return NumericRangeQuery.newLongRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
                     BooleanQuery in = new BooleanQuery();
                     for (PropertyValue value : pr.list) {
                         Long longVal = value.getValue(LONG);
-                        in.add(NumericRangeQuery.newLongRange(pr.propertyName, longVal, longVal, true, true), BooleanClause.Occur.SHOULD);
+                        in.add(NumericRangeQuery.newLongRange(propertyName, longVal, longVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
                     // not null.
-                    return NumericRangeQuery.newLongRange(pr.propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
+                    return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 }
                 break;
             }
             default: {
                 if (pr.isLike) {
-                    return createLikeQuery(pr.propertyName, pr.first.getValue(STRING));
+                    return createLikeQuery(propertyName, pr.first.getValue(STRING));
                 }
 
                 //TODO Confirm that all other types can be treated as string
@@ -1203,25 +1204,25 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
-                    return new TermQuery(new Term(pr.propertyName, first));
+                    return new TermQuery(new Term(propertyName, first));
                 } else if (pr.first != null && pr.last != null) {
-                    return TermRangeQuery.newStringRange(pr.propertyName, first, last,
+                    return TermRangeQuery.newStringRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return TermRangeQuery.newStringRange(pr.propertyName, first, null, pr.firstIncluding, true);
+                    return TermRangeQuery.newStringRange(propertyName, first, null, pr.firstIncluding, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return TermRangeQuery.newStringRange(pr.propertyName, null, last, true, pr.lastIncluding);
+                    return TermRangeQuery.newStringRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
                     BooleanQuery in = new BooleanQuery();
                     for (PropertyValue value : pr.list) {
                         String strVal = value.getValue(STRING);
-                        in.add(new TermQuery(new Term(pr.propertyName, strVal)), BooleanClause.Occur.SHOULD);
+                        in.add(new TermQuery(new Term(propertyName, strVal)), BooleanClause.Occur.SHOULD);
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
-                    return new TermRangeQuery(pr.propertyName, null, null, true, true);
+                    return new TermRangeQuery(propertyName, null, null, true, true);
                 }
             }
         }
