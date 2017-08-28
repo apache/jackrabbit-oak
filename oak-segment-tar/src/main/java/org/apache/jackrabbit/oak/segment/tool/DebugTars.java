@@ -35,7 +35,6 @@ import java.util.UUID;
 import javax.jcr.PropertyType;
 
 import com.google.common.escape.Escapers;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
