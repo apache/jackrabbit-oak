@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * Factory for {@link MTFulltextQueryTermsProvider}
  */
 @Component(
-        name = "org.apache.jackrabbit.oak.plugins.index.lucene.mt.MTFulltextQueryTermsProviderFactory",
+        name = "org.apache.jackrabbit.oak.plugins.index.mt.MTFulltextQueryTermsProviderFactory",
         label = "Apache Jackrabbit Oak Machine Translation Fulltext Query Terms Provider",
         configurationFactory = true,
         metatype = true,
