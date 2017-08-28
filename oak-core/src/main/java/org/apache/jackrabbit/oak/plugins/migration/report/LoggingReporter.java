@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.nodestate.report;
+package org.apache.jackrabbit.oak.plugins.migration.report;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;

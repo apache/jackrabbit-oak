@@ -16,19 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.nodestate.report;
+package org.apache.jackrabbit.oak.plugins.migration.report;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.upgrade.nodestate.report.AssertingPeriodicReporter.hasReportedNode;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.report.AssertingPeriodicReporter.hasReportedNodes;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.report.AssertingPeriodicReporter.hasReportedProperty;
+import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedNode;
+import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedNodes;
+import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedProperty;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;

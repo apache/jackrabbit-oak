@@ -23,12 +23,12 @@ import java.util.Calendar;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.upgrade.DescendantsIterator;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.util.ISO8601;
 
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_PATH;

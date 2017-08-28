@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.nodestate.report;
+package org.apache.jackrabbit.oak.plugins.migration.report;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.atomic.AtomicLong;

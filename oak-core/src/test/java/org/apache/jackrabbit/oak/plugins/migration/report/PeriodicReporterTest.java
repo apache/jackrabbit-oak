@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.nodestate.report;
+package org.apache.jackrabbit.oak.plugins.migration.report;
 
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.upgrade.nodestate.report.AssertingPeriodicReporter.hasReportedNode;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.report.AssertingPeriodicReporter.hasReportedProperty;
+import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedNode;
+import static org.apache.jackrabbit.oak.plugins.migration.report.AssertingPeriodicReporter.hasReportedProperty;
 import static org.junit.Assert.assertThat;
 
 public class PeriodicReporterTest {

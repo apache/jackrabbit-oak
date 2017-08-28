@@ -16,16 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.nodestate;
-
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.builder;
-import static org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils.commit;
-import static org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils.create;
-import static org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils.createNodeStoreWithContent;
-import static org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils.expectDifference;
-
-import java.io.IOException;
+package org.apache.jackrabbit.oak.plugins.migration;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +25,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
+
+import java.io.IOException;
+
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.builder;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.commit;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.create;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.createNodeStoreWithContent;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.expectDifference;
 
 public class NodeStateCopierTest {
 
