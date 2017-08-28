@@ -173,10 +173,10 @@ public class DebugTars implements Runnable {
         }
 
         try {
-            Map<UUID, List<UUID>> graph = store.getTarGraph(t);
+            Map<UUID, Set<UUID>> graph = store.getTarGraph(t);
             System.out.println();
             System.out.println("Tar graph:");
-            for (Map.Entry<UUID, List<UUID>> entry : graph.entrySet()) {
+            for (Map.Entry<UUID, Set<UUID>> entry : graph.entrySet()) {
                 System.out.println("" + entry.getKey() + '=' + entry.getValue());
             }
         } catch (IOException e) {

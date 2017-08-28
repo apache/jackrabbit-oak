@@ -131,7 +131,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
     }
 
     @Override
-    public Map<UUID, List<UUID>> getTarGraph(String file) throws IOException {
+    public Map<UUID, Set<UUID>> getTarGraph(String file) throws IOException {
         return store.getTarGraph(file);
     }
 
@@ -153,8 +153,8 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
                 continue;
             }
             for (String f : getTarFiles()) {
-                Map<UUID, List<UUID>> graph = store.getTarGraph(f);
-                for (Entry<UUID, List<UUID>> g : graph.entrySet()) {
+                Map<UUID, Set<UUID>> graph = store.getTarGraph(f);
+                for (Entry<UUID, Set<UUID>> g : graph.entrySet()) {
                     if (g.getValue() != null && g.getValue().contains(uuid)) {
                         UUID uuidP = g.getKey();
                         if (!todos.contains(uuidP)) {

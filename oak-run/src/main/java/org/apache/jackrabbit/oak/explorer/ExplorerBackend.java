@@ -38,7 +38,7 @@ interface ExplorerBackend {
 
     Map<String, Set<UUID>> getTarReaderIndex();
 
-    Map<UUID, List<UUID>> getTarGraph(String file) throws IOException;
+    Map<UUID, Set<UUID>> getTarGraph(String file) throws IOException;
 
     List<String> getTarFiles();
 
