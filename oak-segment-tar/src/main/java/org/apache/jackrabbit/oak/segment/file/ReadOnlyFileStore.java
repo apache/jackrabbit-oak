@@ -142,7 +142,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         return tarFiles.getIndices();
     }
 
-    public Map<UUID, List<UUID>> getTarGraph(String fileName) throws IOException {
+    public Map<UUID, Set<UUID>> getTarGraph(String fileName) throws IOException {
         return tarFiles.getGraph(fileName);
     }
 

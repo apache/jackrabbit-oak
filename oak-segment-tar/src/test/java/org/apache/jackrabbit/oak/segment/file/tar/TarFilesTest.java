@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.addAll;
 import static java.util.Collections.emptyList;
@@ -35,8 +36,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -236,16 +237,15 @@ public class TarFilesTest {
         tarFiles.newWriter();
 
         String file = tarFiles.getIndices().keySet().iterator().next();
-        Map<UUID, List<UUID>> graph = tarFiles.getGraph(file);
+        Map<UUID, Set<UUID>> graph = tarFiles.getGraph(file);
 
-        Set<UUID> keys = new HashSet<>();
-        addAll(keys, a, b, c, d);
-        assertEquals(keys, graph.keySet());
+        Map<UUID, Set<UUID>> expected = new HashMap<>();
+        expected.put(a, emptySet());
+        expected.put(b, singleton(a));
+        expected.put(c, singleton(a));
+        expected.put(d, newHashSet(b, c));
 
-        assertEquals(emptyList(), graph.get(a));
-        assertEquals(graph.get(b), singletonList(a));
-        assertEquals(graph.get(c), singletonList(a));
-        assertTrue(graph.get(d).containsAll(asList(b, c)));
+        assertEquals(expected, graph);
     }
 
     @Test

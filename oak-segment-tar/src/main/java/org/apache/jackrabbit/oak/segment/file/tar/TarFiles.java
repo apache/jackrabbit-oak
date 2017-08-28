@@ -24,6 +24,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static org.apache.commons.io.FileUtils.listFiles;
 
 import java.io.Closeable;
@@ -38,6 +39,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
@@ -696,7 +698,7 @@ public class TarFiles implements Closeable {
         return ids;
     }
 
-    public Map<UUID, List<UUID>> getGraph(String fileName) throws IOException {
+    public Map<UUID, Set<UUID>> getGraph(String fileName) throws IOException {
         Node head;
 
         lock.readLock().lock();
@@ -717,14 +719,16 @@ public class TarFiles implements Closeable {
             }
         }
 
-        Map<UUID, List<UUID>> result = new HashMap<>();
+        Map<UUID, Set<UUID>> result = new HashMap<>();
         if (index != null) {
             for (UUID uuid : index) {
-                result.put(uuid, emptyList());
+                result.put(uuid, emptySet());
             }
         }
         if (graph != null) {
-            result.putAll(graph);
+            for (Entry<UUID, List<UUID>> entry : graph.entrySet()) {
+                result.put(entry.getKey(), new HashSet<>(entry.getValue()));
+            }
         }
         return result;
     }

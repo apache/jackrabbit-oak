@@ -423,9 +423,9 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
 
         sb.append(newline);
         try {
-            Map<UUID, List<UUID>> graph = backend.getTarGraph(file);
+            Map<UUID, Set<UUID>> graph = backend.getTarGraph(file);
             sb.append("Tar graph:").append(newline);
-            for (Entry<UUID, List<UUID>> entry : graph.entrySet()) {
+            for (Entry<UUID, Set<UUID>> entry : graph.entrySet()) {
                 sb.append(entry.getKey()).append('=').append(entry.getValue())
                         .append(newline);
             }
