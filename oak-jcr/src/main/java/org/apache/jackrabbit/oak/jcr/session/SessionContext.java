@@ -28,6 +28,7 @@ import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -56,6 +57,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -89,6 +91,7 @@ public class SessionContext implements NamePathMapper {
     private final SessionDelegate delegate;
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
+    private MountInfoProvider mountInfoProvider;
 
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
@@ -118,7 +121,7 @@ public class SessionContext implements NamePathMapper {
              int observationQueueLength, CommitRateLimiter commitRateLimiter) {
         
         this(repository, statisticManager, securityProvider, whiteboard, attributes, delegate,
-            observationQueueLength, commitRateLimiter, false);
+            observationQueueLength, commitRateLimiter, null, false);
     }
 
     public SessionContext(
@@ -126,7 +129,7 @@ public class SessionContext implements NamePathMapper {
             @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
             @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
             int observationQueueLength, CommitRateLimiter commitRateLimiter,
-            boolean fastQueryResultSize) {
+            MountInfoProvider mountInfoProvider, boolean fastQueryResultSize) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -135,6 +138,7 @@ public class SessionContext implements NamePathMapper {
         this.delegate = checkNotNull(delegate);
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
+        this.mountInfoProvider = mountInfoProvider;
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
@@ -315,6 +319,11 @@ public class SessionContext implements NamePathMapper {
             return Boolean.getBoolean("oak.fastQuerySize");
         }
         return fastQueryResultSize;
+    }
+
+    @Nullable
+    public MountInfoProvider getMountInfoProvider() {
+        return mountInfoProvider;
     }
 
     //-----------------------------------------------------< NamePathMapper >---

@@ -22,6 +22,7 @@ import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.Closeable;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
@@ -61,8 +62,10 @@ import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
@@ -105,6 +108,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final Clock.Fast clock;
     private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
     private final Registration gcMonitorRegistration;
+    private final MountInfoProvider mountInfoProvider;
 
     /**
      * {@link ThreadLocal} counter that keeps track of the save operations
@@ -152,6 +156,17 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.clock = new Clock.Fast(scheduledExecutor);
         this.gcMonitorRegistration = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
         this.fastQueryResultSize = fastQueryResultSize;
+
+        Tracker<MountInfoProvider> tracker = whiteboard.track(MountInfoProvider.class);
+        List<MountInfoProvider> services = tracker.getServices();
+        tracker.stop();
+
+        if ( services.isEmpty() )
+            this.mountInfoProvider = null;
+        else if ( services.size() == 1 )
+            this.mountInfoProvider = services.get(0);
+        else
+            throw new IllegalArgumentException("Found " + services.size() + " MountInfoProvider references, expected at most 1.");
     }
 
     //---------------------------------------------------------< Repository >---
@@ -343,7 +358,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength,
             CommitRateLimiter commitRateLimiter) {
         return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
-                delegate, observationQueueLength, commitRateLimiter, fastQueryResultSize);
+                delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, fastQueryResultSize);
     }
 
     /**
