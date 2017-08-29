@@ -47,6 +47,7 @@ under the License.
           <item href="clustering.html" name="Clustering" />
         </item>
         <item href="nodestore/segment/overview.html" name="Segment NodeStore" />
+        <item href="nodestore/compositens.html" name="Composite NodeStore" />
       </item>
       <item href="plugins/blobstore.html" name="Blob Storage" />
       <item href="query/query.html" name="Query" collapse="false">
