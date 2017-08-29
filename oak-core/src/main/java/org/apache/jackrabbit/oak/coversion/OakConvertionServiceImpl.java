@@ -17,20 +17,41 @@
 
 package org.apache.jackrabbit.oak.coversion;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.conversion.OakConversionService;
 import org.apache.jackrabbit.oak.spi.adapter.AdapterManager;
-// import org.osgi.service.component.annotations.Component;
+
+import javax.annotation.Nonnull;
 
 /**
  * Exposed OSGi service implementing the OakConversionService.
- * Commented out the Component annotation since oak-core doesnt depend on OSGi, not certain where this should be.
- * TODO: move the a better location where OSGi is valid.
+ * This is the service that components outside Oak should
  */
-// @Component(service = OakConversionService.class, immediate = true)
+@Component( immediate = true)
+@Service(OakConversionService.class)
 public class OakConvertionServiceImpl implements OakConversionService {
+
+
+    @Reference
+    private AdapterManager adapterManager;
+
+
+    public OakConvertionServiceImpl() {
+
+    }
+
+    /**
+     * Non OSGi IoC constructor, requires and AdapterManager implementation.
+     * @param adapterManager
+     */
+    public OakConvertionServiceImpl(@Nonnull AdapterManager adapterManager) {
+        this.adapterManager = adapterManager;
+    }
 
     @Override
     public <T> T convertTo(Object source, Class<T> targetClass) {
-        return AdapterManager.getInstance().getAdapter(source, targetClass);
+        return adapterManager.adaptTo(source, targetClass);
     }
 }

@@ -42,6 +42,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -67,6 +68,7 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
     public static final String END_PRIVATE_KEY = "-----END PRIVATE KEY-----";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(S3SignedUrlAdapterFactory.class);
+    private AdapterManager adapterManager;
     private String cloudFrontUrl;
     private long ttl;
     private String keyPairId;
@@ -79,30 +81,50 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
     }
 
     /**
-     * Non OSGi constructor, close must be called when done.
-     * @param properties
+     * Non OSGi IoC constructor, close must be called when done.
+     * @param adapterManager
+     * @param cloudFrontUrl
+     * @param ttl
+     * @param privateKeyPEM
+     * @param privateKeyId
      * @throws InvalidKeySpecException
      * @throws NoSuchAlgorithmException
      */
-    public S3SignedUrlAdapterFactory(Map<String, Object> properties) throws InvalidKeySpecException, NoSuchAlgorithmException {
-        activate(properties);
+    public S3SignedUrlAdapterFactory(AdapterManager adapterManager,
+                                     String cloudFrontUrl,
+                                     long ttl,
+                                     String privateKeyPEM,
+                                     String privateKeyId) throws InvalidKeySpecException, NoSuchAlgorithmException {
+        this.adapterManager = adapterManager;
+        this.adapterManager.removeAdapterFactory(this);
+        init(cloudFrontUrl, ttl, privateKeyPEM, privateKeyId);
+    }
+
+    public void close() {
+        deactivate(new HashMap<String, Object>());
+        if ( adapterManager != null) {
+            adapterManager.addAdapterFactory(this);
+        }
     }
 
     @Deactivate
-    public void close() {
-        AdapterManager.getInstance().removeAdapterFactory(this);
+    public void deactivate(Map<String, Object> properties) {
     }
 
 
     @Activate
     public void activate(Map<String, Object> properties) throws InvalidKeySpecException, NoSuchAlgorithmException {
-        cloudFrontUrl = (String) properties.get(CLOUD_FRONT_URL);
-        ttl = Long.parseLong((String) properties.get(TTL));
-        privateKey = getPrivateKey((String) properties.get(PRIVATE_KEY));
-        keyPairId = (String) properties.get(KEY_PAIR_ID);
-        // For simplicity in this PoC the AdapterManager is part of core and is a static singleton.
-        // normally it would be a OSGi component listening for AdapterFactory registrations.
-        AdapterManager.getInstance().addAdapterFactory(this);
+        init((String) properties.get(CLOUD_FRONT_URL),
+                Long.parseLong((String) properties.get(TTL)),
+                (String) properties.get(PRIVATE_KEY),
+                (String) properties.get(KEY_PAIR_ID));
+    }
+
+    private void init(String cloudFrontUrl, long ttl, String privateKeyPEM, String privateKeyId) throws InvalidKeySpecException, NoSuchAlgorithmException {
+        this.cloudFrontUrl = cloudFrontUrl;
+        this.ttl = ttl;
+        this.privateKey = getPrivateKey(privateKeyPEM);
+        this.keyPairId = privateKeyId;
     }
 
 

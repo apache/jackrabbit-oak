@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.spi.adapter;
 /**
  * Concept borrowed from Sling.
  * Modules that want to provide object conversions should implement this class and register it with the AdapterManager.
- * It might need to be comparable if there is preference.
  */
 public interface AdapterFactory  {
 

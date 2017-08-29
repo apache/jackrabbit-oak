@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.api.conversion;
 
 /**
  * OSGi Service to allow things in OSGi to convert objects.
- * TODO: Needs to be moved to the correct location for this type of API.
  */
 public interface OakConversionService {
 

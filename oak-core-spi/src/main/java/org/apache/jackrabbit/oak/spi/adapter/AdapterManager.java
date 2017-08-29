@@ -14,67 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.jackrabbit.oak.spi.adapter;
 
 import javax.annotation.Nonnull;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 
 /**
- * The AdapterManager maintains a map of lists of AdapterFactories keyed by target class.
- * For simplicity in this PoC its going to be a Singleton, but if the container is always OSGi it
- * could be an OSGi Component.
+ * An adapter manager allows objects to be converted to target class instances using registered AdapterFactory implementations.
  */
-public class AdapterManager {
+public interface AdapterManager {
 
-    private static AdapterManager singletonAdapterManager = new AdapterManager();
+    /**
+     * Adapt from the cupplied object to an instance of the target class. If the adaption is not possible, return null.
+     * @param o the source object.
+     * @param targetClass the target class.
+     * @param <T> the type of the target class.
+     * @return an instance of the target class or null of the adaption cant be perfomed.
+     */
+    @Nullable
+    <T> T adaptTo(@Nonnull Object o, @Nonnull Class<T> targetClass);
 
-    public static AdapterManager getInstance() {
-        return singletonAdapterManager;
-    }
+    /**
+     * Only to be active in a non OSGi environment, otherwise throw an exception.
+     * @param adapterFactory the adapterFactory to add.
+     */
+    void addAdapterFactory(AdapterFactory adapterFactory);
 
-    private AdapterManager() {
-
-    }
-
-    private Map<String, List<AdapterFactory>> adapterFactories = new ConcurrentHashMap<String, List<AdapterFactory>>();
-
-    public <T> T getAdapter(@Nonnull  Object o, @Nonnull Class<T> targetClass) {
-        List<AdapterFactory> possibleAdapters = adapterFactories.get(targetClass.getName());
-        for ( AdapterFactory af : possibleAdapters) {
-            T target = af.adaptTo(o, targetClass);
-            if ( target != null) {
-                return target;
-            }
-        }
-        return null;
-    }
-
-
-    public synchronized void addAdapterFactory(AdapterFactory adapterFactory) {
-        for( String className: adapterFactory.getTargetClasses()) {
-            List<AdapterFactory> possibleAdapters = adapterFactories.get(className);
-            if ( possibleAdapters == null) {
-                possibleAdapters = new ArrayList<>();
-                adapterFactories.put(className, possibleAdapters);
-            }
-            possibleAdapters.add(adapterFactory);
-            Collections.sort(possibleAdapters, new Comparator<AdapterFactory>() {
-                @Override
-                public int compare(AdapterFactory o1, AdapterFactory o2) {
-                    return o1.getPriority() - o2.getPriority();
-                }
-            });
-        }
-    }
-
-    public synchronized void removeAdapterFactory(AdapterFactory adapterFactory) {
-        for( String className: adapterFactory.getTargetClasses()) {
-            List<AdapterFactory> possibleAdapters = adapterFactories.get(className);
-            if (possibleAdapters != null) {
-                possibleAdapters.remove(adapterFactory);
-            }
-        }
-
-    }
+    /**
+     * Only to be active in a non OSGi environment, otherwise throw an exception.
+     * @param adapterFactory the adapterFactory to remove.
+     */
+    void removeAdapterFactory(AdapterFactory adapterFactory);
 }
