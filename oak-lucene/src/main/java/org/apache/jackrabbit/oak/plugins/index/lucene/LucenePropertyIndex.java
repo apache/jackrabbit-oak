@@ -838,7 +838,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 PropertyDefinition pd = planResult.getOrderedProperty(i);
                 PropertyRestriction orderRest = new PropertyRestriction();
                 orderRest.propertyName = oe.getPropertyName();
-                Query q = createQuery(orderRest, pd);
+                Query q = createQuery(oe.getPropertyName(), orderRest, pd);
                 if (q != null) {
                     qs.add(q);
                 }
@@ -1029,7 +1029,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 continue;
             }
 
-            Query q = createQuery(pr, pd);
+            Query q = createQuery(planResult.getPropertyName(pr), pr, pd);
             if (q != null) {
                 qs.add(q);
             }
@@ -1089,7 +1089,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     @CheckForNull
-    private static Query createQuery(PropertyRestriction pr,
+    private static Query createQuery(String propertyName, PropertyRestriction pr,
                                      PropertyDefinition defn) {
         int propType = determinePropertyType(defn, pr);
 
@@ -1103,7 +1103,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return new TermQuery(new Term(FieldNames.NOT_NULL_PROPS, defn.name));
         }
 
-        String propertyName = pr.propertyName;
         switch (propType) {
             case PropertyType.DATE: {
                 Long first = pr.first != null ? FieldFactory.dateToLong(pr.first.getValue(Type.DATE)) : null;

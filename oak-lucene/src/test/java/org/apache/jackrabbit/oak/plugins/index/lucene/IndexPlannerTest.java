@@ -858,6 +858,99 @@ public class IndexPlannerTest {
         assertNull(planner.getPlan());
     }
 
+    @Test
+    public void relativeProperty_Basics() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.indexRule("nt:base").property("jcr:content/bar").propertyIndex();
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.build(), "/foo");
+        IndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("/bar"));
+
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+
+        IndexPlanner.PlanResult pr = pr(plan);
+        assertTrue(pr.isPathTransformed());
+        assertEquals("/a/b", pr.transformPath("/a/b/jcr:content"));
+        assertNull(pr.transformPath("/a/b/c"));
+
+        assertTrue(pr.hasProperty("jcr:content/foo"));
+        assertFalse(pr.hasProperty("bar"));
+
+        Filter.PropertyRestriction r = new Filter.PropertyRestriction();
+        r.propertyName = "jcr:content/foo";
+        assertEquals("foo", pr.getPropertyName(r));
+    }
+
+    @Test
+    public void relativeProperty_Non_NtBase() throws Exception {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:unstructured").property("foo").propertyIndex();
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.build(), "/foo");
+        IndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:unstructured");
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        //Should not return a plan for index rule other than nt:base
+        assertNull(plan);
+    }
+
+    @Test
+    public void relativeProperty_FullText() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.aggregateRule("nt:base").include("*");
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.build(), "/foo");
+        IndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+        FullTextExpression ft = FullTextParser.parse("jcr:content/*", "mountain OR valley");
+        filter.setFullTextConstraint(ft);
+
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        IndexPlanner.PlanResult pr = pr(plan);
+        assertFalse(pr.hasProperty("jcr:content/foo"));
+    }
+
+    @Test
+    public void relativeProperty_MultipleMatch() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.indexRule("nt:base").property("bar").propertyIndex();
+        defnb.indexRule("nt:base").property("baz").propertyIndex();
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.build(), "/foo");
+        IndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.restrictProperty("jcr:content/bar", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.restrictProperty("metadata/baz", Operator.EQUAL, PropertyValues.newString("/bar"));
+
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+
+        IndexPlanner.PlanResult pr = pr(plan);
+        assertTrue(pr.hasProperty("jcr:content/foo"));
+        assertTrue(pr.hasProperty("jcr:content/bar"));
+        assertFalse(pr.hasProperty("metadata/baz"));
+    }
+
     private IndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp) throws IOException {
         IndexNode node = createIndexNode(new IndexDefinition(root, defn, "/foo"));
         FilterImpl filter = createFilter("nt:base");
