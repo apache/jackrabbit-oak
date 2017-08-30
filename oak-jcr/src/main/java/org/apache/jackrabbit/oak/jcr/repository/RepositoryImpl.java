@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
@@ -156,17 +157,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.clock = new Clock.Fast(scheduledExecutor);
         this.gcMonitorRegistration = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
         this.fastQueryResultSize = fastQueryResultSize;
-
-        Tracker<MountInfoProvider> tracker = whiteboard.track(MountInfoProvider.class);
-        List<MountInfoProvider> services = tracker.getServices();
-        tracker.stop();
-
-        if ( services.isEmpty() )
-            this.mountInfoProvider = null;
-        else if ( services.size() == 1 )
-            this.mountInfoProvider = services.get(0);
-        else
-            throw new IllegalArgumentException("Found " + services.size() + " MountInfoProvider references, expected at most 1.");
+        this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
     }
 
     //---------------------------------------------------------< Repository >---
