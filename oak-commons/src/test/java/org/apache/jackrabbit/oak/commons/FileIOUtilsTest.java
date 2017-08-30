@@ -40,7 +40,9 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Longs;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
 import org.junit.Assert;
@@ -65,6 +67,7 @@ import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBre
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 
 /**
@@ -159,6 +162,46 @@ public class FileIOUtilsTest {
         closeQuietly(reader);
         Collections.sort(list);
         assertArrayEquals(Arrays.toString(list.toArray()), list.toArray(), retrieved.toArray());
+    }
+    
+    @Test
+    public void sortLargeFileWithCustomComparatorTest() throws IOException {
+        final int numEntries = 100000;      // must be large enough to trigger split/merge functionality of the sort
+        long[] entries = new long[numEntries];
+        Random r = new Random(0);
+        for (int i = 0; i < numEntries; i++) {
+            entries[i] = r.nextLong();
+        }
+        
+        Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
+        Iterator<String> hexEntries = Iterators.transform(boxedEntries, new Function<Long, String>() {
+                    @Nullable @Override public String apply(@Nullable Long input) {
+                        return Long.toHexString(input);
+                    }
+                });
+        File f = assertWrite(hexEntries, false, numEntries);
+        
+        Comparator<String> prefixComparator = new Comparator<String>() {
+            @Override public int compare(String s1, String s2) {
+                return s1.substring(0, 3).compareTo(s2.substring(0, 3));
+            }
+        };
+        
+        sort(f, prefixComparator);
+        BufferedReader reader =
+            new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
+        String previous = reader.readLine().substring(0, 3);
+        while (true) {
+            String current = reader.readLine();
+            if (current == null) {
+                break;
+            }
+            current = current.substring(0, 3);
+            assertFalse("Distinct sort didn't filter out duplicates properly.", previous.equals(current));
+            assertTrue("Sort didn't create increasing order", previous.compareTo(current) < 0);
+            previous = current;
+        }
+        closeQuietly(reader);
     }
 
     @Test
