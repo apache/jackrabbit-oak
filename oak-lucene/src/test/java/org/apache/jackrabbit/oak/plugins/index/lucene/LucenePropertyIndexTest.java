@@ -2592,6 +2592,30 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertNotNull(info.getIndexDefinitionDiff());
     }
 
+    @Test
+    public void relativeProperties() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").addChild("jcr:content").setProperty("foo", "bar");
+        rootTree.addChild("b").addChild("jcr:content").setProperty("foo", "bar");
+        rootTree.addChild("c").setProperty("foo", "bar");
+        rootTree.addChild("d").addChild("jcr:content").addChild("metadata").addChild("sub").setProperty("foo", "bar");
+
+        root.commit();
+
+        assertPlanAndQuery("select * from [nt:base] where [jcr:content/foo] = 'bar'",
+                "lucene:test1(/oak:index/test1)", asList("/a", "/b"));
+
+        assertPlanAndQuery("select * from [nt:base] where [jcr:content/metadata/sub/foo] = 'bar'",
+                "lucene:test1(/oak:index/test1)", asList("/d"));
+    }
+
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
         assertThat(explain(query), containsString(planExpectation));
         assertQuery(query, paths);
