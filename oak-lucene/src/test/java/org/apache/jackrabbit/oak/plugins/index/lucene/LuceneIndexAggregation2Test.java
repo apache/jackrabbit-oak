@@ -25,17 +25,22 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -43,6 +48,9 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
@@ -65,6 +73,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -173,10 +182,14 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
         includeSingleRel.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
         includeSingleRel.setProperty(LuceneIndexConstants.AGG_PATH, "firstLevelChild");
 
-        //Include all properties
-        Tree props = TestUtil.newRulePropTree(indexDefn, "test:Asset");
-        TestUtil.enableForFullText(props, "jcr:content/metadata/format");
-        TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
+        // Include all properties for both assets and pages
+        Tree assetProps = TestUtil.newRulePropTree(indexDefn, NT_TEST_ASSET);
+        TestUtil.enableForFullText(assetProps, "jcr:content/metadata/format");
+        TestUtil.enableForFullText(assetProps, LuceneIndexConstants.REGEX_ALL_PROPS, true);
+
+        Tree pageProps = TestUtil.newRulePropTree(indexDefn, NT_TEST_PAGE);
+        TestUtil.enableForFullText(pageProps, LuceneIndexConstants.REGEX_ALL_PROPS, true);
+
         root.commit();
     }
 
@@ -351,6 +364,37 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
         assertQuery(statement, "xpath", expected);
     }
 
+    @Ignore("OAK-6597")
+    @Test
+    public void excerpt() throws Exception {
+        setTraversalEnabled(false);
+        final String statement = "select [rep:excerpt] from [test:Page] as page where contains(*, '%s*')";
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree pageContent = createPageStructure(content, "foo");
+        // contains 'aliq' but not 'tinc'
+        pageContent.setProperty("bar", "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque aliquet odio varius odio "
+                + "imperdiet, non egestas ex consectetur. Fusce congue ac augue quis finibus. Sed vulputate sollicitudin neque, nec "
+                + "lobortis nisl varius eget.");
+        // doesn't contain 'aliq' but 'tinc'
+        pageContent.getParent().setProperty("bar", "Donec lacinia luctus leo, sed rutrum nulla. Sed sed hendrerit turpis. Donec ex quam, "
+                + "bibendum et metus at, tristique tincidunt leo. Nam at elit ligula. Etiam ullamcorper, elit sit amet varius molestie, "
+                + "nisl ex egestas libero, quis elementum enim mi a quam.");
+
+        root.commit();
+
+        for (String term : new String[] {"tinc", "aliq"}) {
+            Result result = executeQuery(String.format(statement, term), "JCR-SQL2", NO_BINDINGS);
+            Iterator<? extends ResultRow> rows = result.getRows().iterator();
+            assertTrue(rows.hasNext());
+            ResultRow firstHit = rows.next();
+            assertFalse(rows.hasNext()); // assert that there is only a single hit
+
+            PropertyValue excerptValue = firstHit.getValue("rep:excerpt");
+            assertNotNull(excerptValue);
+            assertFalse("Excerpt for '" + term + "' is not supposed to be empty.", "".equals(excerptValue.getValue(STRING)));
+        }
+    }
 
     /**
      * <p>
@@ -390,6 +434,43 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
         node.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSETCONTENT, NAME);
         node = node.addChild("metadata");
         node.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
+        return node;
+    }
+
+    /**
+     * <p>
+     * convenience method that create an "page" structure like
+     * </p>
+     *
+     * <pre>
+     *  "parent" : {
+     *      "nodeName" : {
+     *          "jcr:primaryType" : "test:Page",
+     *          "jcr:content" : {
+     *              "jcr:primaryType" : "test:PageContent"
+     *          }
+     *      }
+     *  }
+     * </pre>
+     *
+     * <p>
+     *  and returns the {@code jcr:content} node
+     * </p>
+     *
+     * @param parent the parent under which creating the node
+     * @param nodeName the node name to be used
+     * @return the {@code jcr:content} node. See above for details
+     */
+    private static Tree createPageStructure(@Nonnull final Tree parent,
+                                            @Nonnull final String nodeName) {
+        checkNotNull(parent);
+        checkArgument(!Strings.isNullOrEmpty(nodeName), "nodeName cannot be null or empty");
+
+        Tree node = parent.addChild(nodeName);
+        node.setProperty(JCR_PRIMARYTYPE, NT_TEST_PAGE, NAME);
+        node = node.addChild(JCR_CONTENT);
+        node.setProperty(JCR_PRIMARYTYPE, NT_TEST_PAGECONTENT, NAME);
+
         return node;
     }
 }
