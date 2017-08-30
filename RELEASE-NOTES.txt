@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.17
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.18
 
 Introduction
 ------------
@@ -7,34 +7,32 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.17 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.18 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.4.17
+Changes in Oak 1.4.18
 ---------------------
+
+Sub-task
+
+    [OAK-5299] - Introduce BlobFactory in OakDirectory
 
 Bug
 
-    [OAK-4883] - Missing BlobGarbageCollection MBean on standby
-    instance
-    [OAK-5949] - XPath: string literals parsed as identifiers
-    [OAK-6317] - LMSEstimator update amount depending on cost amount
-    [OAK-6391] - With FastQuerySize, getSize() returns -1 if there are
-    exactly 21 rows
-    [OAK-6448] - Backport OAK-4883 to the 1.4 branch
+    [OAK-5228] - Incorrect minTimestamp in
+    DocumentNodeStore.diffImpl()
+    [OAK-5238] - IndexCopier causes concurrent update on NodeBuilder
 
 Improvement
 
-    [OAK-6351] - Invalidate cache entries when getChildNodes() is
-    aborted
-
-Test
-
-    [OAK-6427] - Duplicate class: MongoDocumentStoreHelper
+    [OAK-6333] - IndexPlanner should use actual entryCount instead of
+    limiting it to 1000
+    [OAK-6359] - Change behavior for very complex queries
+    [OAK-6495] - Fallback to classic diff when journal is broken
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
