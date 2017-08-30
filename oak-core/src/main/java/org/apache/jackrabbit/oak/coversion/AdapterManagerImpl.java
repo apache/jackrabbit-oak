@@ -60,10 +60,12 @@ public class AdapterManagerImpl implements AdapterManager {
     @Override
     public <T> T adaptTo(@Nonnull  Object o, @Nonnull Class<T> targetClass) {
         List<AdapterFactory> possibleAdapters = adapterFactories.get(targetClass.getName());
-        for ( AdapterFactory af : possibleAdapters) {
-            T target = af.adaptTo(o, targetClass);
-            if ( target != null) {
-                return target;
+        if ( possibleAdapters != null) {
+            for (AdapterFactory af : possibleAdapters) {
+                T target = af.adaptTo(o, targetClass);
+                if (target != null) {
+                    return target;
+                }
             }
         }
         return null;

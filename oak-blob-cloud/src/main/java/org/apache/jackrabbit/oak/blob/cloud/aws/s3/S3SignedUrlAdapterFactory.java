@@ -49,7 +49,13 @@ import java.util.Map;
 /**
  * Adapts from Value to URI where Value has a Binary value.
  * If running as an OSGi Component would expect an OSGi AdapterManager to pick it up.
- * other
+ * other.
+ *
+ * To generate keys in PKCS8 format use OpenSSL
+ * openssl genrsa -out private_key.pem 1024
+ * openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in private_key.pem -out private_key.pkcs8
+ * See http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-trusted-signers.html#private-content-creating-cloudfront-key-pairs for
+ * details on how to configure CloudFront.
  */
 @Component(immediate = true, metatype = true)
 @Service(AdapterFactory.class)
@@ -177,8 +183,12 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
     private String signS3Url(@Nonnull String contentIdentity, long ttl, @Nonnull String cloudFrontUrl,
                              @Nonnull String keyPairId, @Nonnull RSAPrivateKey privateKey) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, UnsupportedEncodingException {
         long expiry = (System.currentTimeMillis()/1000)+ttl;
+        StringBuilder urlToSign = new StringBuilder();
 
-        String urlToSign =  cloudFrontUrl+getS3Key(contentIdentity)+"?Expires="+expiry;
+        urlToSign.append(cloudFrontUrl)
+                .append(getS3Key(contentIdentity))
+                .append("?Expires=")
+                .append(expiry);
         StringBuilder toSign = new StringBuilder();
         toSign.append("{Statement\":[{ \"Resource\":\"")
                 .append(urlToSign)
@@ -187,11 +197,11 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
 
         String signature = generateSignature(toSign, privateKey);
 
-        toSign.append("&Signature=")
+        urlToSign.append("&Signature=")
                 .append(URLEncoder.encode(signature,"utf8"))
                 .append("&Key-Pair-Id=")
                 .append(URLEncoder.encode(keyPairId,"utf8"));
-        return toSign.toString();
+        return urlToSign.toString();
 
     }
 
@@ -209,7 +219,7 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
         return signBase64(toSign.toString(), privateKey).replace('+','-').replace('=','_').replace('/','~');
     }
 
-    public String signBase64(String toSign, RSAPrivateKey privKey) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException {
+    private String signBase64(String toSign, RSAPrivateKey privKey) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException {
         Signature rsa = Signature.getInstance("SHA1withRSA");
         rsa.initSign(privKey);
         rsa.update(toSign.toString().getBytes());
@@ -218,7 +228,7 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
     }
 
 
-    public RSAPrivateKey getPrivateKey(String privateKeyPKCS8) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private RSAPrivateKey getPrivateKey(String privateKeyPKCS8) throws NoSuchAlgorithmException, InvalidKeySpecException {
         int is = privateKeyPKCS8.indexOf(BEGIN_PRIVATE_KEY);
         int ie = privateKeyPKCS8.indexOf(END_PRIVATE_KEY);
         if (ie < 0 || is < 0) {
