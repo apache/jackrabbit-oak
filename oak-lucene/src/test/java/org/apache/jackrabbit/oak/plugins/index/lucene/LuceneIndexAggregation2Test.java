@@ -72,8 +72,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
-public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
-    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexAggregationTest2.class);
+public class LuceneIndexAggregation2Test extends AbstractQueryTest {
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexAggregation2Test.class);
     
     private static final String NT_TEST_PAGE = "test:Page";
     private static final String NT_TEST_PAGECONTENT = "test:PageContent";
@@ -94,7 +94,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
                     // registering additional node types for wider testing
                     InputStream stream = null;
                     try {
-                        stream = LuceneIndexAggregationTest2.class
+                        stream = LuceneIndexAggregation2Test.class
                             .getResourceAsStream("test_nodetypes.cnd");
                         NodeState base = builder.getNodeState();
                         NodeStore store = new MemoryNodeStore(base);
@@ -316,6 +316,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
 
         Tree original = metadata.getParent().addChild("renditions").addChild("original");
         original.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE);
+        original.addChild("jcr:content").setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIMETYPE, "text/plain"));
         original.addChild("jcr:content").setProperty(PropertyStates.createProperty("jcr:data", "fox jumps".getBytes()));
 
         expected.add("/content/tagged");
