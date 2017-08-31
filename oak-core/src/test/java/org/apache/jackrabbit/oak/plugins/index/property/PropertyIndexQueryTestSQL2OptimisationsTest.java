@@ -16,20 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ALTERNATIVE;
-
-import org.junit.Before;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
 /**
- * should be executing the {@link MultiPropertyOrTest} by forcing the optimisation in place.
+ * checks the same as {@link PropertyIndexQueryTest} enabling the feature for optimising SQL2
+ * statements.
  */
-public class MultiPropertyOrTestOptimisation extends MultiPropertyOrTest {
-    
+public class PropertyIndexQueryTestSQL2OptimisationsTest extends PropertyIndexQueryTest {
+
     @Override
-    @Before
-    public void before() throws Exception {
-        super.before();
-        setQuerySelectionMode(ALTERNATIVE);
-        setTraversalEnabled(false);
-    }    
+    Oak getOakRepositoryInstance() {
+        return super.getOakRepositoryInstance()
+            .with(new QueryEngineSettings() {
+                @Override
+                public boolean isSql2Optimisation() {
+                    return true;
+                }
+            });
+    }
 }

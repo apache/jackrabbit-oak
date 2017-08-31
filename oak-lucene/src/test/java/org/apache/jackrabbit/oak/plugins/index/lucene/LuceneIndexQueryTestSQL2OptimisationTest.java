@@ -33,7 +33,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-public class LuceneIndexQueryTestSQL2Optimisation extends LuceneIndexQueryTest {
+public class LuceneIndexQueryTestSQL2OptimisationTest extends LuceneIndexQueryTest {
 
     @Override
     Oak getOakRepo() {
