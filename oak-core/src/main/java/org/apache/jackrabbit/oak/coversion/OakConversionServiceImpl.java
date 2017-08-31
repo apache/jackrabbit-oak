@@ -31,14 +31,14 @@ import javax.annotation.Nonnull;
  */
 @Component( immediate = true)
 @Service(OakConversionService.class)
-public class OakConvertionServiceImpl implements OakConversionService {
+public class OakConversionServiceImpl implements OakConversionService {
 
 
     @Reference
     private AdapterManager adapterManager;
 
 
-    public OakConvertionServiceImpl() {
+    public OakConversionServiceImpl() {
 
     }
 
@@ -46,7 +46,7 @@ public class OakConvertionServiceImpl implements OakConversionService {
      * Non OSGi IoC constructor, requires and AdapterManager implementation.
      * @param adapterManager
      */
-    public OakConvertionServiceImpl(@Nonnull AdapterManager adapterManager) {
+    public OakConversionServiceImpl(@Nonnull AdapterManager adapterManager) {
         this.adapterManager = adapterManager;
     }
 

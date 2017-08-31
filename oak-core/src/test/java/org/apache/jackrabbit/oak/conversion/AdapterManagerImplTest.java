@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.conversion;
 
 import org.apache.jackrabbit.oak.coversion.AdapterManagerImpl;
-import org.apache.jackrabbit.oak.coversion.OakConvertionServiceImpl;
+import org.apache.jackrabbit.oak.coversion.OakConversionServiceImpl;
 import org.apache.jackrabbit.oak.spi.adapter.AdapterFactory;
 import org.junit.Assert;
 import org.junit.Before;
@@ -161,7 +161,7 @@ public class AdapterManagerImplTest {
 
     @Test
     public void testOakConversionService() {
-        OakConvertionServiceImpl oakConvertionService = new OakConvertionServiceImpl(adapterManager);
+        OakConversionServiceImpl oakConvertionService = new OakConversionServiceImpl(adapterManager);
 
         URI testing123_A0 = oakConvertionService.convertTo("http://testing.com/123", URI.class);
         URI testing123_B0 = oakConvertionService.convertTo("file://testing.com/123", URI.class);
