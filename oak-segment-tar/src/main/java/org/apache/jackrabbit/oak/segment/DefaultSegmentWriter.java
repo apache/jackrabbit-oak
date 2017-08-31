@@ -990,7 +990,16 @@ public class DefaultSegmentWriter implements SegmentWriter {
             try {
                 GCGeneration thatGen = id.getSegmentId().getGcGeneration();
                 GCGeneration thisGen = writer.getGCGeneration();
-                return thatGen.compareWith(thisGen) < 0;
+                if (thatGen.isCompacted()) {
+                    // If the segment containing the base state is compacted it is
+                    // only considered old if it is from a earlier full generation.
+                    // Otherwise it is from the same tail and it is safe to reference.
+                    return thatGen.getFullGeneration() < thisGen.getFullGeneration();
+                } else {
+                    // If the segment containing the base state is from a regular writer
+                    // it is considered old as soon as it is from an earlier generation.
+                    return thatGen.compareWith(thisGen) < 0;
+                }
             } catch (SegmentNotFoundException snfe) {
                 // This SNFE means a defer compacted node state is too far
                 // in the past. It has been gc'ed already and cannot be
