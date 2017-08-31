@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.standby.benchmark;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,13 +32,58 @@ import com.google.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 
 class BenchmarkBase {
 
-    private static File createTmpTargetDir(String name) throws IOException {
-        return Files.createTempDirectory(Paths.get("target"), name).toFile();
+    private static class TemporaryFolder implements Closeable {
+
+        private final File folder;
+
+        TemporaryFolder(String prefix) throws IOException {
+            folder = Files.createTempDirectory(Paths.get("target"), prefix).toFile();
+        }
+
+        File toFile() {
+            return folder;
+        }
+
+        @Override
+        public void close() throws IOException {
+            FileUtils.deleteDirectory(folder);
+        }
+
+    }
+
+    private static class TemporaryExecutor implements Closeable {
+
+        private final ScheduledExecutorService executor;
+
+        TemporaryExecutor() {
+            executor = Executors.newSingleThreadScheduledExecutor();
+        }
+
+        ScheduledExecutorService toScheduledExecutorService() {
+            return executor;
+        }
+
+        @Override
+        public void close() throws IOException {
+            new ExecutorCloser(executor).close();
+        }
+
+    }
+
+    private static FileStore newFileStore(File directory, ScheduledExecutorService executor) throws Exception {
+        return fileStoreBuilder(directory)
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .withNodeDeduplicationCacheSize(1)
+            .withSegmentCacheSize(0)
+            .withStringCacheSize(0)
+            .withTemplateCacheSize(0)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .build();
     }
 
     private Closer closer;
@@ -49,23 +95,13 @@ class BenchmarkBase {
     void setUpServerAndClient() throws Exception {
         closer = Closer.create();
 
-        File primaryDirectory = createTmpTargetDir("primary-");
-        closer.register(() -> FileUtils.deleteDirectory(primaryDirectory));
+        File primaryDirectory = closer.register(new TemporaryFolder("primary-")).toFile();
+        ScheduledExecutorService primaryExecutor = closer.register(new TemporaryExecutor()).toScheduledExecutorService();
+        primaryStore = closer.register(newFileStore(primaryDirectory, primaryExecutor));
 
-        ScheduledExecutorService primaryExecutor = Executors.newSingleThreadScheduledExecutor();
-        closer.register(new ExecutorCloser(primaryExecutor));
-
-        primaryStore = setupPrimary(primaryDirectory, primaryExecutor);
-        closer.register(primaryStore);
-
-        File standbyDirectory = createTmpTargetDir("standby-");
-        closer.register(() -> FileUtils.deleteDirectory(standbyDirectory));
-
-        ScheduledExecutorService standbyExecutor = Executors.newSingleThreadScheduledExecutor();
-        closer.register(new ExecutorCloser(standbyExecutor));
-
-        standbyStore = setupStandby(standbyDirectory, standbyExecutor);
-        closer.register(standbyStore);
+        File standbyDirectory = closer.register(new TemporaryFolder("standby-")).toFile();
+        ScheduledExecutorService standbyExecutor = closer.register(new TemporaryExecutor()).toScheduledExecutorService();
+        standbyStore = closer.register(newFileStore(standbyDirectory, standbyExecutor));
     }
 
     void closeServerAndClient() {
@@ -74,26 +110,6 @@ class BenchmarkBase {
         } catch (IOException e) {
             e.printStackTrace(System.err);
         }
-    }
-
-    private static FileStore newFileStore(File directory, ScheduledExecutorService executor) throws Exception {
-        return fileStoreBuilder(directory)
-                .withMaxFileSize(1)
-                .withMemoryMapping(false)
-                .withNodeDeduplicationCacheSize(1)
-                .withSegmentCacheSize(0)
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
-    }
-
-    private FileStore setupPrimary(File directory, ScheduledExecutorService executor) throws Exception {
-        return newFileStore(directory, executor);
-    }
-
-    private FileStore setupStandby(File directory, ScheduledExecutorService executor) throws Exception {
-        return newFileStore(directory, executor);
     }
 
 }
