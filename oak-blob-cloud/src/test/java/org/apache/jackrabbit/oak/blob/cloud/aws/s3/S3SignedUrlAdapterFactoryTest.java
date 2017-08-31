@@ -137,7 +137,7 @@ public class S3SignedUrlAdapterFactoryTest {
     public void testSignedURL() throws InvalidKeySpecException, NoSuchAlgorithmException, RepositoryException {
         long t2 = System.currentTimeMillis();
         S3SignedUrlAdapterFactory adapterFactory1024 = new S3SignedUrlAdapterFactory(adapterManager,
-                "http://applicationA1.cloudfront.net",
+                "http://applicationA1.cloudfront.net/",
                 60,
                 PRIVATE_KEY_1024,
         "123");
@@ -145,7 +145,7 @@ public class S3SignedUrlAdapterFactoryTest {
 
         long t = System.currentTimeMillis();
         S3SignedUrlAdapterFactory adapterFactory4096 = new S3SignedUrlAdapterFactory(adapterManager,
-                "http://applicationA1.cloudfront.net",
+                "http://applicationA1.cloudfront.net/",
                 60,
                 PRIVATE_KEY_4096,
                 "PRIVATE_KEY_4096");

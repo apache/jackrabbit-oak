@@ -20,8 +20,13 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
+import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.felix.scr.annotations.*;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
 import org.apache.jackrabbit.oak.spi.adapter.AdapterFactory;
@@ -32,16 +37,15 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
-import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -182,49 +186,13 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
     @Nonnull
     private String signS3Url(@Nonnull String contentIdentity, long ttl, @Nonnull String cloudFrontUrl,
                              @Nonnull String keyPairId, @Nonnull RSAPrivateKey privateKey) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, UnsupportedEncodingException {
+
         long expiry = (System.currentTimeMillis()/1000)+ttl;
         StringBuilder urlToSign = new StringBuilder();
 
         urlToSign.append(cloudFrontUrl)
-                .append(getS3Key(contentIdentity))
-                .append("?Expires=")
-                .append(expiry);
-        StringBuilder toSign = new StringBuilder();
-        toSign.append("{Statement\":[{ \"Resource\":\"")
-                .append(urlToSign)
-                .append("\",\"Condition\":{\"DateLessThan\":{\"AWS:EpochTime\":")
-                .append(expiry).append("}}}]}");
-
-        String signature = generateSignature(toSign, privateKey);
-
-        urlToSign.append("&Signature=")
-                .append(URLEncoder.encode(signature,"utf8"))
-                .append("&Key-Pair-Id=")
-                .append(URLEncoder.encode(keyPairId,"utf8"));
-        return urlToSign.toString();
-
-    }
-
-    /**
-     * This signature method assumes the private key is stored as a PEM PKCS8 encoded property on the resource.
-     * For containers that have their own private key management, this will be different.
-     * @param toSign
-     * @param privateKey
-     * @return
-     */
-    @Nonnull
-    private String generateSignature(@Nonnull StringBuilder toSign, @Nonnull  RSAPrivateKey privateKey)
-            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SignatureException {
-        // AWS has slightly odd replacements.
-        return signBase64(toSign.toString(), privateKey).replace('+','-').replace('=','_').replace('/','~');
-    }
-
-    private String signBase64(String toSign, RSAPrivateKey privKey) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException {
-        Signature rsa = Signature.getInstance("SHA1withRSA");
-        rsa.initSign(privKey);
-        rsa.update(toSign.toString().getBytes());
-        return Base64.encodeBase64String(rsa.sign());
-
+                .append(getS3Key(contentIdentity));
+        return CloudFrontUrlSigner.getSignedURLWithCannedPolicy(urlToSign.toString(), keyPairId, privateKey, new Date(expiry));
     }
 
 
