@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * A set of simple cluster tests.
  */
-public class ClusterTest2 {
+public class Cluster2Test {
 
     @Test
     public void twoNodes() throws Exception {
