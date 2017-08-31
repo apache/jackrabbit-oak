@@ -20,12 +20,13 @@
 package org.apache.jackrabbit.oak.segment.standby.benchmark;
 
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Method;
+import java.util.Random;
 import java.util.Set;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
+import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
@@ -37,115 +38,122 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class BulkTransferBenchmark extends BenchmarkBase {
 
-    public void setUp() throws Exception {
-        setUpServerAndClient();
+    private static final String HOST = "127.0.0.1";
+
+    private static final int PORT = Integer.getInteger("standby.server.port", 52800);
+
+    private static final int TIMEOUT = Integer.getInteger("standby.test.timeout", 500);
+
+    private void test100Nodes() throws Exception {
+        test("100 nodes", 100);
     }
 
-    public void after() {
-        closeServerAndClient();
+    private void test1000Nodes() throws Exception {
+        test("1K nodes", 1000);
     }
 
-    public void test100Nodes() throws Exception {
-        test(100, 1, 1, 3000, 3100);
+    private void test10000Nodes() throws Exception {
+        test("10K nodes", 10000);
     }
 
-    public void test1000Nodes() throws Exception {
-        test(1000, 1, 1, 53000, 55000);
+    private void test100000Nodes() throws Exception {
+        test("100K nodes", 100000);
     }
 
-    public void test10000Nodes() throws Exception {
-        test(10000, 1, 1, 245000, 246000);
+    private void test1MillionNodes() throws Exception {
+        test("1M nodes", 1000000);
     }
 
-    public void test100000Nodes() throws Exception {
-        test(100000, 9, 9, 2210000, 2220000);
+    private void test1MillionNodesUsingSSL() throws Exception {
+        test("1M nodes with SSL", 1000000, true);
     }
 
-    public void test1MillionNodes() throws Exception {
-        test(1000000, 87, 87, 22700000, 22800000);
+    private void test10MillionNodes() throws Exception {
+        test("10M nodes", 10000000);
     }
 
-    public void test1MillionNodesUsingSSL() throws Exception {
-        test(1000000, 87, 87, 22700000, 22800000, true);
+    private void test(String name, int number) throws Exception {
+        test(name, number, false);
     }
 
-    public void test10MillionNodes() throws Exception {
-        test(10000000, 856, 856, 223000000, 224000000);
+    private void createNodes(int nodeCount) throws Exception {
+        NodeStore store = SegmentNodeStoreBuilders.builder(primaryStore).build();
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        createNodes(rootBuilder.child("store"), nodeCount, new Random());
+        store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        primaryStore.flush();
     }
 
-    private void test(int number, int minExpectedSegments, int maxExpectedSegments, long minExpectedBytes, long maxExpectedBytes) throws Exception {
-        test(number, minExpectedSegments, maxExpectedSegments, minExpectedBytes, maxExpectedBytes, false);
-    }
-
-    private void test(int number, int minExpectedSegments, int maxExpectedSegments, long minExpectedBytes, long maxExpectedBytes,
-                      boolean useSSL) throws Exception {
-        NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
-        NodeBuilder rootbuilder = store.getRoot().builder();
-        NodeBuilder b = rootbuilder.child("store");
-        for (int j=0; j<=number / 1000; j++) {
-            NodeBuilder builder = b.child("Folder#" + j);
-            for (int i = 0; i <(number < 1000 ? number : 1000); i++) {
-                builder.child("Test#" + i).setProperty("ts", System.currentTimeMillis());
+    private static void createNodes(NodeBuilder builder, int nodeCount, Random random) {
+        for (int j = 0; j <= nodeCount / 1000; j++) {
+            NodeBuilder folder = builder.child("Folder#" + j);
+            for (int i = 0; i < (nodeCount < 1000 ? nodeCount : 1000); i++) {
+                folder.child("Test#" + i).setProperty("ts", random.nextLong());
             }
         }
-        store.merge(rootbuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        storeS.flush();
+    }
 
-        final StandbyServerSync serverSync = new StandbyServerSync(port, storeS, 1 * MB, useSSL);
-        serverSync.start();
+    private void test(String name, int nodeCount, boolean useSSL) throws Exception {
+        createNodes(nodeCount);
 
-        System.setProperty(StandbyClientSync.CLIENT_ID_PROPERTY_NAME, "Bar");
-        StandbyClientSync clientSync = newStandbyClientSync(storeC, port, useSSL);
+        try (StandbyServerSync serverSync = new StandbyServerSync(PORT, primaryStore, 1024 * 1024, useSSL);
+             StandbyClientSync clientSync = new StandbyClientSync(HOST, PORT, standbyStore, useSSL, TIMEOUT, false)) {
+            serverSync.start();
 
-        final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
-        ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
-        ObjectName clientStatus = new ObjectName(clientSync.getMBeanName());
-        ObjectName serverStatus = new ObjectName(serverSync.getMBeanName());
+            MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
+            ObjectName status = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=*");
+            ObjectName clientStatus = new ObjectName(clientSync.getMBeanName());
+            ObjectName serverStatus = new ObjectName(serverSync.getMBeanName());
 
-        long start = System.currentTimeMillis();
-        clientSync.run();
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            clientSync.run();
+            stopwatch.stop();
 
-        try {
             Set<ObjectName> instances = jmxServer.queryNames(status, null);
             ObjectName connectionStatus = null;
             for (ObjectName s : instances) {
-                if (!s.equals(clientStatus) && !s.equals(serverStatus)) connectionStatus = s;
+                if (!s.equals(clientStatus) && !s.equals(serverStatus)) {
+                    connectionStatus = s;
+                }
             }
-            assert(connectionStatus != null);
+            assert (connectionStatus != null);
 
-            long segments = ((Long)jmxServer.getAttribute(connectionStatus, "TransferredSegments")).longValue();
-            long bytes = ((Long)jmxServer.getAttribute(connectionStatus, "TransferredSegmentBytes")).longValue();
+            long segments = (Long) jmxServer.getAttribute(connectionStatus, "TransferredSegments");
+            long bytes = (Long) jmxServer.getAttribute(connectionStatus, "TransferredSegmentBytes");
 
-            System.out.println("did transfer " + segments + " segments with " + bytes + " bytes in " + (System.currentTimeMillis() - start) / 1000 + " seconds.");
-        } finally {
-            serverSync.close();
-            clientSync.close();
+            System.out.printf("%s: segments = %d, segments size = %d bytes, time = %s\n", name, segments, bytes, stopwatch);
         }
     }
-    
+
+    private interface Test {
+
+        void run() throws Exception;
+
+    }
+
     public static void main(String[] args) {
         BulkTransferBenchmark benchmark = new BulkTransferBenchmark();
-        
-        String[] methodNames = new String[] {
-                "test100Nodes",
-                "test1000Nodes",
-                "test10000Nodes",
-                "test100000Nodes",
-                "test1MillionNodes",
-                "test1MillionNodesUsingSSL",
-                "test10MillionNodes"
+
+        Test[] tests = new Test[] {
+            benchmark::test100Nodes,
+            benchmark::test1000Nodes,
+            benchmark::test10000Nodes,
+            benchmark::test100000Nodes,
+            benchmark::test1MillionNodes,
+            benchmark::test1MillionNodesUsingSSL,
+            benchmark::test10MillionNodes
         };
-        
-        for (String methodName : methodNames) {
+
+        for (Test test : tests) {
             try {
-                Method method = benchmark.getClass().getMethod(methodName);
-                
-                benchmark.setUp();
-                method.invoke(benchmark);
-                benchmark.after();
+                benchmark.setUpServerAndClient();
+                test.run();
             } catch (Exception e) {
-                e.printStackTrace();
-            } 
+                e.printStackTrace(System.err);
+            } finally {
+                benchmark.closeServerAndClient();
+            }
         }
     }
+
 }
