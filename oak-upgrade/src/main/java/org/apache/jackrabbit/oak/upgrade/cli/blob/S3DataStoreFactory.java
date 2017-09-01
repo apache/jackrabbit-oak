@@ -27,9 +27,7 @@ import java.util.regex.Pattern;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -83,7 +81,7 @@ public class S3DataStoreFactory implements BlobStoreFactory {
         } catch (RepositoryException e) {
             throw new IOException(e);
         }
-        closer.register(asCloseable(delegate, tempHomeDir));
+        closer.register(asCloseable(delegate));
         if (ignoreMissingBlobs) {
             return new SafeDataStoreBlobStore(delegate);
         } else {
@@ -91,20 +89,13 @@ public class S3DataStoreFactory implements BlobStoreFactory {
         }
     }
 
-    private static Closeable asCloseable(final CachingDataStore store, final File tempHomeDir) {
+    private static Closeable asCloseable(final S3DataStore store) {
         return new Closeable() {
             @Override
             public void close() throws IOException {
                 try {
-                    while (!store.getPendingUploads().isEmpty()) {
-                        log.info("Waiting for following uploads to finish: " + store.getPendingUploads());
-                        Thread.sleep(1000);
-                    }
                     store.close();
-                    FileUtils.deleteDirectory(tempHomeDir);
                 } catch (DataStoreException e) {
-                    throw new IOException(e);
-                } catch (InterruptedException e) {
                     throw new IOException(e);
                 }
             }
