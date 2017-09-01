@@ -292,6 +292,7 @@ public class FileStoreBuilder {
         return this;
     }
 
+    @Nonnull
     public FileStoreBuilder withIOMonitor(IOMonitor ioMonitor) {
         this.ioMonitor = checkNotNull(ioMonitor);
         return this;
