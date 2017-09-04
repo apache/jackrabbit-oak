@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.4
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.5
 
 Introduction
 ------------
@@ -7,31 +7,25 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.4 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.5 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.4
+Changes in Oak 1.6.5
 ---------------------
-
 
 Bug
 
-    [OAK-6442] - Update Oak 1.6 to Jackrabbit 2.14.2
-    [OAK-6462] - Incorrect memory calculation for bundled node states
-    [OAK-6493] - LuceneIndexProviderService.enableHybridIndexing=false results in NullPointerException
-    [OAK-6500] - NRTIndex leaks file handles due to unclosed IndexReader
+    [OAK-6572] - IndexReaderClosed exception seen after some run
+    [OAK-6596] - Blob store consistency check can show bogus errors
+    about missing blobs
 
 Improvement
 
-    [OAK-5827] - Don't use SHA-1 for new DataStore binaries
-    [OAK-6333] - IndexPlanner should use actual entryCount instead of limiting it to 1000
-    [OAK-6359] - Change behavior for very complex queries
-    [OAK-6464] - Public constructor for RandomStream
-    [OAK-6495] - Fallback to classic diff when journal is broken
+    [OAK-6336] - Use the oak-blob-cloud for s3 support in oak-upgrade
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
