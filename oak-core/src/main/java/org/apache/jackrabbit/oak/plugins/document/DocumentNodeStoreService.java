@@ -52,6 +52,7 @@ import javax.sql.DataSource;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -974,38 +975,27 @@ public class DocumentNodeStoreService {
     private void registerLastRevRecoveryJob(final DocumentNodeStore nodeStore) {
         long leaseTime = toLong(context.getProperties().get(PROP_REV_RECOVERY_INTERVAL),
                 ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
-        Runnable recoverJob = new Runnable() {
-            @Override
-            public void run() {
-                nodeStore.getLastRevRecoveryAgent().performRecoveryIfNeeded();
-            }
-        };
         addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
-                recoverJob, TimeUnit.MILLISECONDS.toSeconds(leaseTime),
+                new LastRevRecoveryJob(nodeStore), TimeUnit.MILLISECONDS.toSeconds(leaseTime),
                 false/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
     private void registerJournalGC(final DocumentNodeStore nodeStore) {
         long journalGCInterval = toLong(context.getProperties().get(PROP_JOURNAL_GC_INTERVAL_MILLIS),
                 DEFAULT_JOURNAL_GC_INTERVAL_MILLIS);
-
-        Runnable journalGCJob = new Runnable() {
-            @Override
-            public void run() {
-                nodeStore.getJournalGarbageCollector().gc();
-            }
-
-        };
         addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
-                journalGCJob, TimeUnit.MILLISECONDS.toSeconds(journalGCInterval),
+                new JournalGCJob(nodeStore),
+                jobPropertiesFor(JournalGCJob.class),
+                TimeUnit.MILLISECONDS.toSeconds(journalGCInterval),
                 true/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
     private void registerVersionGCJob(final DocumentNodeStore nodeStore) {
         if (isContinuousRevisionGC()) {
-            final long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
+            long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
             addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
                     new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs),
+                    jobPropertiesFor(RevisionGCJob.class),
                     MODIFIED_IN_SECS_RESOLUTION, true, true));
         }
     }
@@ -1137,5 +1127,37 @@ public class DocumentNodeStoreService {
                 resetStats();
             }
         }
+    }
+
+    private static final class JournalGCJob implements Runnable {
+
+        private final DocumentNodeStore nodeStore;
+
+        JournalGCJob(DocumentNodeStore ns) {
+            this.nodeStore = ns;
+        }
+
+        @Override
+        public void run() {
+            nodeStore.getJournalGarbageCollector().gc();
+        }
+    }
+
+    private static final class LastRevRecoveryJob implements Runnable {
+
+        private final DocumentNodeStore nodeStore;
+
+        LastRevRecoveryJob(DocumentNodeStore ns) {
+            this.nodeStore = ns;
+        }
+
+        @Override
+        public void run() {
+            nodeStore.getLastRevRecoveryAgent().performRecoveryIfNeeded();
+        }
+    }
+
+    private static Map<String, Object> jobPropertiesFor(Class clazz) {
+        return ImmutableMap.of("scheduler.name", clazz.getName());
     }
 }
