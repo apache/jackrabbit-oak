@@ -28,19 +28,14 @@ import java.util.regex.Pattern;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 
 public class S3DataStoreFactory implements BlobStoreFactory {
-
-    private static final Logger log = LoggerFactory.getLogger(S3DataStoreFactory.class);
 
     private static final Pattern STRIP_VALUE_PATTERN = Pattern.compile("^[TILFDXSCB]?\"(.*)\"\\W*$");
 
@@ -94,8 +89,10 @@ public class S3DataStoreFactory implements BlobStoreFactory {
             @Override
             public void close() throws IOException {
                 try {
-                    store.close();
-                } catch (DataStoreException e) {
+                    while (store.getStats().get(1).getElementCount() > 0) {
+                        Thread.sleep(100);
+                    }
+                } catch (InterruptedException e) {
                     throw new IOException(e);
                 }
             }
