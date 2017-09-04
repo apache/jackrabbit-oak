@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -456,6 +457,16 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             size = Integer.MAX_VALUE;
         }
         return (int) size;
+    }
+
+    public Iterable<DocumentNodeState> getAllBundledNodesStates() {
+        return new TreeTraverser<DocumentNodeState>(){
+            @Override
+            public Iterable<DocumentNodeState> children(DocumentNodeState root) {
+                return Iterables.transform(() -> root.getBundledChildren(), ce -> (DocumentNodeState)ce.getNodeState());
+            }
+        }.preOrderTraversal(this)
+         .filter(dns -> !dns.getPath().equals(this.getPath()) ); //Exclude this
     }
 
     //------------------------------< internal >--------------------------------

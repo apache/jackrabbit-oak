@@ -80,6 +80,7 @@ import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -260,13 +261,25 @@ public class DocumentBundlingTest {
         builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
 
         merge(builder);
-        NodeState appNode = getNode(store.getRoot(), "test/book.jpg");
+        DocumentNodeState appNode = (DocumentNodeState)getNode(store.getRoot(), "test/book.jpg");
 
         assertEquals("jcr:content", getBundlingPath(appNode.getChildNode("jcr:content")));
         assertEquals("jcr:content/metadata",
                 getBundlingPath(appNode.getChildNode("jcr:content").getChildNode("metadata")));
         assertEquals("jcr:content/renditions/original",
                 getBundlingPath(appNode.getChildNode("jcr:content").getChildNode("renditions").getChildNode("original")));
+
+        List<String> bundledPaths = new ArrayList<>();
+        for (DocumentNodeState bs : appNode.getAllBundledNodesStates()) {
+            bundledPaths.add(bs.getPath());
+        }
+        assertThat(bundledPaths, containsInAnyOrder(
+                "/test/book.jpg/jcr:content",
+                "/test/book.jpg/jcr:content/metadata",
+                "/test/book.jpg/jcr:content/renditions",
+                "/test/book.jpg/jcr:content/renditions/original",
+                "/test/book.jpg/jcr:content/renditions/original/jcr:content")
+        );
     }
     
     @Test
