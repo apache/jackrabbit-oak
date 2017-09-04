@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -94,6 +95,12 @@ public class S3DataStoreFactory implements BlobStoreFactory {
                     }
                 } catch (InterruptedException e) {
                     throw new IOException(e);
+                } finally {
+                    try {
+                        store.close();
+                    } catch (DataStoreException e) {
+                        throw new IOException(e);
+                    }
                 }
             }
         };
