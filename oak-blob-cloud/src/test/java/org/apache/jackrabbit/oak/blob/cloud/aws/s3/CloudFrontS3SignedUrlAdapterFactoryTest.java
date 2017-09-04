@@ -39,7 +39,7 @@ import java.security.spec.InvalidKeySpecException;
 /**
  * Tests Signing URLS with a 1024 key and a 4096 key.
  */
-public class S3SignedUrlAdapterFactoryTest {
+public class CloudFrontS3SignedUrlAdapterFactoryTest {
 
 
     /**
@@ -121,7 +121,7 @@ public class S3SignedUrlAdapterFactoryTest {
         "QByVjsFDed4Te13qthgFthy6iGyk1JZFu9lCnAaiAdg4AA0OyF9FxFUzCsOGD1HS\n" +
         "GoRuVX4I/AZR74Sx \n" +
         "-----END PRIVATE KEY-----";
-    private static final Logger LOGGER = LoggerFactory.getLogger(S3SignedUrlAdapterFactoryTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CloudFrontS3SignedUrlAdapterFactoryTest.class);
     @Mock
     private AdapterManager adapterManager;
     @Mock
@@ -129,14 +129,14 @@ public class S3SignedUrlAdapterFactoryTest {
     @Mock
     private Blob blob;
 
-    public S3SignedUrlAdapterFactoryTest() {
+    public CloudFrontS3SignedUrlAdapterFactoryTest() {
         MockitoAnnotations.initMocks(this);
     }
 
     @Test
     public void testSignedURL() throws InvalidKeySpecException, NoSuchAlgorithmException, RepositoryException {
         long t2 = System.currentTimeMillis();
-        S3SignedUrlAdapterFactory adapterFactory1024 = new S3SignedUrlAdapterFactory(adapterManager,
+        CloudFrontS3SignedUrlAdapterFactory adapterFactory1024 = new CloudFrontS3SignedUrlAdapterFactory(adapterManager,
                 "http://applicationA1.cloudfront.net/",
                 60,
                 PRIVATE_KEY_1024,
@@ -144,7 +144,7 @@ public class S3SignedUrlAdapterFactoryTest {
         LOGGER.info("Loaded 1024 private key in {} ms "+(System.currentTimeMillis()-t2));
 
         long t = System.currentTimeMillis();
-        S3SignedUrlAdapterFactory adapterFactory4096 = new S3SignedUrlAdapterFactory(adapterManager,
+        CloudFrontS3SignedUrlAdapterFactory adapterFactory4096 = new CloudFrontS3SignedUrlAdapterFactory(adapterManager,
                 "http://applicationA1.cloudfront.net/",
                 60,
                 PRIVATE_KEY_4096,

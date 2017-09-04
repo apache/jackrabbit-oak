@@ -63,7 +63,7 @@ import java.util.Map;
  */
 @Component(immediate = true, metatype = true)
 @Service(AdapterFactory.class)
-public class S3SignedUrlAdapterFactory implements AdapterFactory {
+public class CloudFrontS3SignedUrlAdapterFactory implements AdapterFactory {
     private static final String[] TARGET_CLASSES = new String[]{URI.class.getName()};
 
     @Property
@@ -77,7 +77,7 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
     public static final String BEGIN_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\n";
     public static final String END_PRIVATE_KEY = "-----END PRIVATE KEY-----";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(S3SignedUrlAdapterFactory.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CloudFrontS3SignedUrlAdapterFactory.class);
     private AdapterManager adapterManager;
     private String cloudFrontUrl;
     private long ttl;
@@ -87,7 +87,7 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
     /**
      * Default Constructor used by OSGi.
      */
-    public S3SignedUrlAdapterFactory() {
+    public CloudFrontS3SignedUrlAdapterFactory() {
     }
 
     /**
@@ -100,11 +100,11 @@ public class S3SignedUrlAdapterFactory implements AdapterFactory {
      * @throws InvalidKeySpecException
      * @throws NoSuchAlgorithmException
      */
-    public S3SignedUrlAdapterFactory(AdapterManager adapterManager,
-                                     String cloudFrontUrl,
-                                     long ttl,
-                                     String privateKeyPEM,
-                                     String privateKeyId) throws InvalidKeySpecException, NoSuchAlgorithmException {
+    public CloudFrontS3SignedUrlAdapterFactory(AdapterManager adapterManager,
+                                               String cloudFrontUrl,
+                                               long ttl,
+                                               String privateKeyPEM,
+                                               String privateKeyId) throws InvalidKeySpecException, NoSuchAlgorithmException {
         this.adapterManager = adapterManager;
         this.adapterManager.removeAdapterFactory(this);
         init(cloudFrontUrl, ttl, privateKeyPEM, privateKeyId);

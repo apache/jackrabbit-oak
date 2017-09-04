@@ -76,29 +76,41 @@ public class AdapterManagerImpl implements AdapterManager {
     @Override
     public synchronized void addAdapterFactory(AdapterFactory adapterFactory) {
         for( String className: adapterFactory.getTargetClasses()) {
-            List<AdapterFactory> possibleAdapters = adapterFactories.get(className);
-            if ( possibleAdapters == null) {
-                possibleAdapters = new ArrayList<>();
-                adapterFactories.put(className, possibleAdapters);
-            }
-            possibleAdapters.add(adapterFactory);
-            Collections.sort(possibleAdapters, new Comparator<AdapterFactory>() {
+            // create a new copy every time so that the read only usages don't have
+            // to be synchronised.
+            List<AdapterFactory> updatedAdapters = copyOrCreateAdapterFactoryList(className);
+            updatedAdapters.add(adapterFactory);
+            Collections.sort(updatedAdapters, new Comparator<AdapterFactory>() {
                 @Override
                 public int compare(AdapterFactory o1, AdapterFactory o2) {
                     return o1.getPriority() - o2.getPriority();
                 }
             });
+            adapterFactories.put(className, updatedAdapters);
         }
     }
+
 
     @Override
     public synchronized void removeAdapterFactory(AdapterFactory adapterFactory) {
         for( String className: adapterFactory.getTargetClasses()) {
-            List<AdapterFactory> possibleAdapters = adapterFactories.get(className);
-            if (possibleAdapters != null) {
-                possibleAdapters.remove(adapterFactory);
+            // create a new copy every time so that the read only usages don't have
+            // to be synchronised.
+            List<AdapterFactory> updatedAdapters = copyOrCreateAdapterFactoryList(className);
+            if (updatedAdapters != null) {
+                updatedAdapters.remove(adapterFactory);
             }
+            adapterFactories.put(className, updatedAdapters);
         }
-
     }
+
+    private List<AdapterFactory> copyOrCreateAdapterFactoryList(String className) {
+        List<AdapterFactory> copy = new ArrayList<AdapterFactory>();
+        List<AdapterFactory> source = adapterFactories.get(className);
+        if ( source != null) {
+            copy.addAll(source);
+        }
+        return copy;
+    }
+
 }
