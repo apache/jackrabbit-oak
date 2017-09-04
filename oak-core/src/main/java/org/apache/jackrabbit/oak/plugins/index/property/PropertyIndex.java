@@ -93,14 +93,6 @@ class PropertyIndex implements QueryIndex {
 
     private static final String PROPERTY = "property";
 
-    // TODO the max string length should be removed, or made configurable
-    private static final int MAX_STRING_LENGTH = 100;
-
-    /**
-     * name used when the indexed value is an empty string
-     */
-    private static final String EMPTY_TOKEN = ":";
-
     private static final Logger LOG = LoggerFactory.getLogger(PropertyIndex.class);
 
     private final MountInfoProvider mountInfoProvider;
@@ -112,33 +104,6 @@ class PropertyIndex implements QueryIndex {
 
     PropertyIndex(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
-    }
-    
-    static Set<String> encode(PropertyValue value, ValuePattern pattern) {
-        return encode(ValuePatternUtil.read(value, pattern));
-    }
-
-    static Set<String> encode(Set<String> set) {
-        if (set == null || set.isEmpty()) {
-            return set;
-        }
-        try {
-            Set<String> values = new HashSet<String>();
-            for(String v : set) {
-                if (v.length() > MAX_STRING_LENGTH) {
-                    v = v.substring(0, MAX_STRING_LENGTH);
-                }
-                if (v.isEmpty()) {
-                    v = EMPTY_TOKEN;
-                } else {
-                    v = URLEncoder.encode(v, Charsets.UTF_8.name());
-                }
-                values.add(v);
-            }
-            return values;
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("UTF-8 is unsupported", e);
-        }
     }
 
     private PropertyIndexPlan getPlan(NodeState root, Filter filter) {

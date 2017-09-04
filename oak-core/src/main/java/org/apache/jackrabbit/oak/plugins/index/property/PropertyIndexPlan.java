@@ -159,7 +159,7 @@ public class PropertyIndexPlan {
                             continue;
                         }
                     }
-                    values = PropertyIndex.encode(values);
+                    values = PropertyIndexUtil.encode(values);
                     double cost = strategies.isEmpty() ? MAX_COST : 0;
                     for (IndexStoreStrategy strategy : strategies) {
                         cost += strategy.count(filter, root, definition,

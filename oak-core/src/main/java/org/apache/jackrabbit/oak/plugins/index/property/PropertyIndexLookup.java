@@ -23,7 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NA
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
 import java.util.Collections;
 import java.util.List;
