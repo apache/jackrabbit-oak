@@ -93,7 +93,7 @@ public final class Mounts {
 
         @Override
         public String getName() {
-            return "";
+            return "<default>";
         }
 
         @Override
