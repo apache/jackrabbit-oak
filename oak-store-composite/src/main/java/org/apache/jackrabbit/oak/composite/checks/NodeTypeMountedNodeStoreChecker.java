@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.composite.MountedNodeStore;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -78,7 +79,7 @@ public class NodeTypeMountedNodeStoreChecker implements
     }
 
     @Override
-    public Context createContext(NodeStore globalStore) {
+    public Context createContext(NodeStore globalStore, MountInfoProvider mip) {
         
         Root globalRoot = RootFactory.createReadOnlyRoot(globalStore.getRoot());
         ReadOnlyNodeTypeManager typeManager = ReadOnlyNodeTypeManager.getInstance(globalRoot, NamePathMapper.DEFAULT);
@@ -87,12 +88,14 @@ public class NodeTypeMountedNodeStoreChecker implements
     }
 
     @Override
-    public void check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, Context context) {
+    public boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, Context context) {
         
         if ( context.getTypeManager().isNodeType(tree, invalidNodeType) &&
                 !isExcluded(mountedStore, tree, context) ) {
             errorHolder.report(mountedStore, tree.getPath(), errorLabel);
         }
+        
+        return true;
     }
 
     private boolean isExcluded(MountedNodeStore mountedStore, Tree tree, Context context) {

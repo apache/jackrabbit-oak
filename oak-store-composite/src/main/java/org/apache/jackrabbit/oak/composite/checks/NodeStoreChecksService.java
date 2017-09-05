@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.composite.MountedNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,9 @@ public class NodeStoreChecksService implements NodeStoreChecks {
             unbind = "unbindChecker",
             referenceInterface = MountedNodeStoreChecker.class)
     private List<MountedNodeStoreChecker<?>> checkers = new CopyOnWriteArrayList<>();
+    
+    @Reference
+    private MountInfoProvider mip;
 
     // used by SCR
     public NodeStoreChecksService() {
@@ -49,8 +53,9 @@ public class NodeStoreChecksService implements NodeStoreChecks {
     }
     
     // visible for testing
-    public NodeStoreChecksService(List<MountedNodeStoreChecker<?>> checkers) {
+    public NodeStoreChecksService(MountInfoProvider mip, List<MountedNodeStoreChecker<?>> checkers) {
         this.checkers = checkers;
+        this.mip = mip;
     }
 
     @Override
@@ -72,7 +77,7 @@ public class NodeStoreChecksService implements NodeStoreChecks {
     private <T> void check(MountedNodeStore mountedStore, ErrorHolder errorHolder, NodeStore globalStore,
             MountedNodeStoreChecker<T> c) {
         
-        T context = c.createContext(globalStore);
+        T context = c.createContext(globalStore, mip);
         Tree mountRoot = TreeFactory.createReadOnlyTree(mountedStore.getNodeStore().getRoot());
         
         visit(mountRoot, mountedStore,  errorHolder, context, c);
@@ -89,11 +94,12 @@ public class NodeStoreChecksService implements NodeStoreChecks {
         boolean mounted = mount.isMounted(tree.getPath());
         
         
+        boolean keepGoing = true;
         if ( mounted ) {
-            c.check(mountedStore, tree, errorHolder, context);
+            keepGoing = c.check(mountedStore, tree, errorHolder, context);
         }
 
-        if ( mounted || under ) {
+        if ( ( mounted || under ) && keepGoing ) {
             tree.getChildren().forEach( child -> visit(child, mountedStore, errorHolder, context, c));
         }
     }    

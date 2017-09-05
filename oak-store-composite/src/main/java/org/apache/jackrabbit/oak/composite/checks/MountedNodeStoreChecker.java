@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.composite.checks;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.composite.MountedNodeStore;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
@@ -33,8 +34,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public interface MountedNodeStoreChecker<T> {
     
-    public T createContext(NodeStore globalStore);
+    public T createContext(NodeStore globalStore, MountInfoProvider mip);
     
-    void check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, T context);
+    boolean check(MountedNodeStore mountedStore, Tree tree, ErrorHolder errorHolder, T context);
 
 }
