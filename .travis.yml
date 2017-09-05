@@ -40,7 +40,3 @@ addons:
       - oracle-java8-installer
 notifications:
   email: false
-  webhooks:
-    urls:       http://zitting.name/travis/notify
-    on_success: change
-    on_failure: change
