@@ -16,96 +16,76 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.HashSet;
+import java.io.Closeable;
 import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Queue;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Queues;
 
 /**
  * An iterator over all referenced binaries.
  * <p>
- * Only top-level referenced are returned (indirection, if any, is not resolved).
- * The items are returned in no particular order.
- * An item might be returned multiple times.
+ * Only top-level referenced are returned (indirection, if any, is not
+ * resolved). The items are returned in no particular order. An item might be
+ * returned multiple times.
  */
-public class BlobReferenceIterator implements Iterator<ReferencedBlob> {
+public class BlobReferenceIterator extends AbstractIterator<ReferencedBlob> implements Closeable {
 
-    private static final int BATCH_SIZE = 1000;
-    private final DocumentStore docStore;
+    private final DocumentStore documentStore;
     private final BlobCollector blobCollector;
-    private HashSet<ReferencedBlob> batch = new HashSet<ReferencedBlob>();
-    private Iterator<ReferencedBlob> batchIterator;
-    private boolean done;
-    private String fromKey = NodeDocument.MIN_ID_VALUE;
+    private final Queue<ReferencedBlob> blobs = Queues.newArrayDeque();
+
+    private Iterator<NodeDocument> iterator;
 
     public BlobReferenceIterator(DocumentNodeStore nodeStore) {
-        this.docStore = nodeStore.getDocumentStore();
-        batchIterator = batch.iterator();
+        this.documentStore = nodeStore.getDocumentStore();
         this.blobCollector = new BlobCollector(nodeStore);
     }
 
     @Override
-    public boolean hasNext() {
-        if (!batchIterator.hasNext()) {
+    protected ReferencedBlob computeNext() {
+        if (blobs.isEmpty()) {
             loadBatch();
         }
-        return batchIterator.hasNext() || !done;
-    }
 
-    @Override
-    public ReferencedBlob next() {
-        // this will load the next batch if required
-        if (!hasNext()) {
-            throw new NoSuchElementException();
+        if (!blobs.isEmpty()) {
+            return blobs.remove();
+        } else {
+            return endOfData();
         }
-        return batchIterator.next();
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
     }
 
     private void loadBatch() {
-        if (done) {
-            return;
+        if (this.iterator == null) {
+            this.iterator = getIteratorOverDocsWithBinaries();
         }
-        batch.clear();
-        // read until at least BATCH_SIZE references are available
-        while (true) {
-            boolean hasMore = loadBatchQuery();
-            if (!hasMore) {
-                done = true;
-                break;
-            }
-            if (batch.size() > BATCH_SIZE) {
-                break;
-            }
+        // Some node which have the '_bin' flag set might not have any binaries
+        // in it so move forward if blobs is still empty and cursor has more
+        // elements
+        while (iterator.hasNext() && blobs.isEmpty()) {
+            collectBinaries(iterator.next());
         }
-        batchIterator = batch.iterator();
     }
 
-    private boolean loadBatchQuery() {
-        // read about BATCH_SIZE documents
-        List<NodeDocument> list =
-                docStore.query(Collection.NODES, fromKey, NodeDocument.MAX_ID_VALUE, NodeDocument.HAS_BINARY_FLAG,
-                        NodeDocument.HAS_BINARY_VAL,
-                        BATCH_SIZE);
-        boolean hasMore = false;
-        for (NodeDocument doc : list) {
-            if (doc.getId().equals(fromKey)) {
-                // already read
-                continue;
-            }
-            hasMore = true;
-            fromKey = doc.getId();
-            blobCollector.collect(doc, batch);
-        }
-        return hasMore;
+    private void collectBinaries(NodeDocument nodeDocument) {
+        blobCollector.collect(nodeDocument, blobs);
     }
 
+    /**
+     * Override this document to use a document store specific iterator.
+     */
+    public Iterator<NodeDocument> getIteratorOverDocsWithBinaries() {
+        int batchSize = 1000;
+        return Utils.getSelectedDocuments(documentStore, NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL, batchSize)
+                .iterator();
+    }
 
-
+    @Override
+    public void close() {
+        Utils.closeIfCloseable(iterator);
+    }
 }
