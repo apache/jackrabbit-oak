@@ -23,7 +23,7 @@ import com.google.common.base.Stopwatch
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
