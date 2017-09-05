@@ -339,6 +339,11 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule excludeFromAggregation(){
+            propTree.setProperty(LuceneIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, true);
+            return this;
+        }
+
         public PropertyRule notNullCheckEnabled(){
             propTree.setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
             return this;
