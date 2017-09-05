@@ -25,7 +25,6 @@ import java.io.IOException;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.ReindexOperations;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

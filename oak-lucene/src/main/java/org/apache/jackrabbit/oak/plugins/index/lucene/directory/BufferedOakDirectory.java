@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.plugins.index.lucene.BlobFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

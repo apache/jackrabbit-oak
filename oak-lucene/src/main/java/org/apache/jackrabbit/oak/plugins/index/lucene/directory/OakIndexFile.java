@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.lucene;
+package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
@@ -163,7 +163,6 @@ class OakIndexFile {
     private void loadBlob(int i) throws IOException {
         checkElementIndex(i, data.size());
         if (index != i) {
-            LOG.info("Load {}th blob from {}", i, name);
             flushBlob();
             checkState(!blobModified);
 
@@ -179,7 +178,6 @@ class OakIndexFile {
     }
 
     private void flushBlob() throws IOException {
-        LOG.info("Flushing blob {}. Modified: {}", name, blobModified);
         if (blobModified) {
             int n = (int) Math.min(blobSize, length - (long)index * blobSize);
             InputStream in = new ByteArrayInputStream(blob, 0, n);
@@ -240,7 +238,6 @@ class OakIndexFile {
      * @throws IOException
      */
     public void seek(long pos) throws IOException {
-        LOG.info("Seek to {} in {}", pos, name);
         // seek() may be called with pos == length
         // see https://issues.apache.org/jira/browse/LUCENE-1196
         if (pos < 0 || pos > length) {
@@ -263,7 +260,6 @@ class OakIndexFile {
     public void readBytes(byte[] b, int offset, int len)
             throws IOException {
         checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
-        LOG.info("read {} bytes from {}", len, name);
 
         if (len < 0 || position + len > length) {
             String msg = String.format("Invalid byte range request for [%s][%s], " +
@@ -299,7 +295,6 @@ class OakIndexFile {
      */
     public void writeBytes(byte[] b, int offset, int len)
             throws IOException {
-        LOG.info("Write {} bytes at {} in {}", len, offset, name);
         int i = (int) (position / blobSize);
         int o = (int) (position % blobSize);
         while (len > 0) {

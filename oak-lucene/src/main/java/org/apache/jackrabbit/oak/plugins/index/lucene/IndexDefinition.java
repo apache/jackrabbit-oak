@@ -113,7 +113,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * Blob size to use by default. To avoid issues in OAK-2105 the size should not
      * be power of 2.
      */
-    static final int DEFAULT_BLOB_SIZE = 1024 * 1024 - 1024;
+    public static final int DEFAULT_BLOB_SIZE = 1024 * 1024 - 1024;
 
     /**
      * Default entry count to keep estimated entry count low.
