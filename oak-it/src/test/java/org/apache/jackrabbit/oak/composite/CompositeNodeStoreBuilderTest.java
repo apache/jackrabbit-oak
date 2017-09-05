@@ -115,7 +115,7 @@ public class CompositeNodeStoreBuilderTest {
 
         new CompositeNodeStore.Builder(mip, root)
             .addMount("readOnly", mount)
-            .with(new NodeStoreChecksService(Collections.singletonList(new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_VERSIONABLE, "test error"))))
+            .with(new NodeStoreChecksService(mip, Collections.singletonList(new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_VERSIONABLE, "test error"))))
             .build();        
         
     }

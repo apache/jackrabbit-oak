@@ -58,7 +58,7 @@ public class NodeTypeMountedNodeStoreCheckerTest {
                 .build();
         
         NodeTypeMountedNodeStoreChecker checker = new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_REFERENCEABLE, "test error");
-        Context context = checker.createContext(root);
+        Context context = checker.createContext(root, mip);
         ErrorHolder errorHolder = new ErrorHolder();
         
         checker.check(new MountedNodeStore(mip.getMountByName("first"), mount), TreeFactory.createReadOnlyTree(mount.getRoot()).getChild("first"), errorHolder, context);
@@ -88,7 +88,7 @@ public class NodeTypeMountedNodeStoreCheckerTest {
         
         NodeTypeMountedNodeStoreChecker checker = new NodeTypeMountedNodeStoreChecker(JcrConstants.MIX_REFERENCEABLE, "test error", 
                 JcrConstants.NT_RESOURCE);
-        Context context = checker.createContext(root);
+        Context context = checker.createContext(root, mip);
         ErrorHolder errorHolder = new ErrorHolder();
         
         checker.check(new MountedNodeStore(mip.getMountByName("first"), mount), TreeFactory.createReadOnlyTree(mount.getRoot()).getChild("first"), errorHolder, context);

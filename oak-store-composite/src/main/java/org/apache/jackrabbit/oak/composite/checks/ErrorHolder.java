@@ -34,6 +34,15 @@ class ErrorHolder {
         }
     }
     
+    public void report(MountedNodeStore firstNS, String firstPath, MountedNodeStore secondNS, String secondPath, String value, String error) {
+        errors.add(String.format("For NodeStore mount %s, path %s, and NodeStore mount %s, path %s, encountered the following clash for value %s: '%s'", 
+                firstNS.getMount().getName(), firstPath, secondNS.getMount().getName(), secondPath, value, error));
+        if ( errors.size() == FAIL_IMMEDIATELY_THRESHOLD ) { 
+            end();
+        }
+        
+    }
+    
     public void end() {
         if ( errors.isEmpty() ) {
             return;
