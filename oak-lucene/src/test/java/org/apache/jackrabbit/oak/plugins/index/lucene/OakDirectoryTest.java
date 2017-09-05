@@ -104,9 +104,9 @@ public class OakDirectoryTest {
 
     @Test
     public void testCompatibility() throws Exception{
-        builder.setProperty(LuceneIndexConstants.BLOB_SIZE, OakDirectory.DEFAULT_BLOB_SIZE);
+        builder.setProperty(LuceneIndexConstants.BLOB_SIZE, OakIndexFile.DEFAULT_BLOB_SIZE);
         Directory dir = createDir(builder, false, "/foo");
-        byte[] data = assertWrites(dir, OakDirectory.DEFAULT_BLOB_SIZE);
+        byte[] data = assertWrites(dir, OakIndexFile.DEFAULT_BLOB_SIZE);
 
         NodeBuilder testNode = builder.child(INDEX_DATA_CHILD_NAME).child("test");
         //Remove the size property to simulate old behaviour
@@ -473,7 +473,7 @@ public class OakDirectoryTest {
         final AtomicBoolean identifiableBlob = new AtomicBoolean(false);
 
         IndexDefinition def = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        OakDirectory.BlobFactory factory = new OakDirectory.BlobFactory() {
+        BlobFactory factory = new BlobFactory() {
             @Override
             public Blob createBlob(InputStream in) throws IOException {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -521,7 +521,7 @@ public class OakDirectoryTest {
         final AtomicInteger numBlobs = new AtomicInteger();
         final int fileSize = 1024;
         IndexDefinition def = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        OakDirectory.BlobFactory factory = new OakDirectory.BlobFactory() {
+        BlobFactory factory = new BlobFactory() {
             @Override
             public Blob createBlob(InputStream in) throws IOException {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();

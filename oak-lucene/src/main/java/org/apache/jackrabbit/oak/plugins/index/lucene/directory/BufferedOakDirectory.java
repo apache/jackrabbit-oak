@@ -16,21 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Sets;
-
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.BlobFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory.BlobFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
@@ -41,6 +31,14 @@ import org.apache.lucene.store.Lock;
 import org.apache.lucene.store.LockFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
@@ -89,8 +87,8 @@ public final class BufferedOakDirectory extends Directory {
                                 @Nullable BlobStore blobStore,
                                 @Nonnull BlobDeletionCallback blobDeletionCallback) {
         this.blobFactory = blobStore != null ?
-                new OakDirectory.BlobStoreBlobFactory(blobStore) :
-                new OakDirectory.NodeBuilderBlobFactory(builder);
+                BlobFactory.getBlobStoreBlobFactory(blobStore) :
+                BlobFactory.getNodeBuilderBlobFactory(builder);
         this.blobDeletionCallback = blobDeletionCallback;
         this.dataNodeName = checkNotNull(dataNodeName);
         this.definition = checkNotNull(definition);
