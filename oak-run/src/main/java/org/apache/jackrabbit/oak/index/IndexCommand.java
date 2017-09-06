@@ -37,6 +37,7 @@ import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -187,7 +188,7 @@ public class IndexCommand implements Command {
         }
 
         String checkpoint = indexOpts.getCheckpoint();
-        File destDir = reindex(indexHelper, checkpoint);
+        File destDir = reindex(indexOpts, indexHelper, checkpoint);
         log.info("To complete indexing import the created index files via IndexerMBean#importIndex operation with " +
                 "[{}] as input", getPath(destDir));
     }
@@ -199,7 +200,7 @@ public class IndexCommand implements Command {
         }
     }
 
-    private File reindex(IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
+    private File reindex(IndexOptions idxOpts, IndexHelper indexHelper, String checkpoint) throws IOException, CommitFailedException {
         checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
         Stopwatch w = Stopwatch.createStarted();
@@ -207,8 +208,15 @@ public class IndexCommand implements Command {
         log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint,
                 indexerSupport.getCheckpointInfo());
 
-        try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, indexerSupport)) {
-            indexer.reindex();
+        if (opts.getCommonOpts().isMongo() && idxOpts.isDocTraversalMode()) {
+            log.info("Using Document order traversal to perform reindexing");
+            try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(indexHelper, indexerSupport)) {
+                indexer.reindex();
+            }
+        } else {
+            try (OutOfBandIndexer indexer = new OutOfBandIndexer(indexHelper, indexerSupport)) {
+                indexer.reindex();
+            }
         }
 
         indexerSupport.writeMetaInfo(checkpoint);
@@ -245,7 +253,7 @@ public class IndexCommand implements Command {
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts, true);
             closer.register(fixture);
             IndexHelper indexHelper = createIndexHelper(fixture, indexOpts, closer);
-            reindex(indexHelper, checkpoint);
+            reindex(indexOpts, indexHelper, checkpoint);
             return new File(indexOpts.getOutDir(), OutOfBandIndexer.LOCAL_INDEX_ROOT_DIR);
         }
     }

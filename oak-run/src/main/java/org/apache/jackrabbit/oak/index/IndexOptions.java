@@ -51,6 +51,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> dumpIndex;
     private final OptionSpec<Void> reindex;
     private final OptionSpec<Void> importIndex;
+    private final OptionSpec<Void> docTraversal;
     private final OptionSpec<Integer> consistencyCheck;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
@@ -90,6 +91,8 @@ public class IndexOptions implements OptionsBean {
         reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
 
         importIndex = parser.accepts("index-import", "Imports index");
+        docTraversal = parser.accepts("doc-traversal-mode", "Use Document traversal mode for reindex in " +
+                "DocumentNodeStore setups. This may provide better performance in some cases (experimental)");
 
         indexImportDir = parser.accepts("index-import-dir", "Directory containing index files. This " +
                 "is required when --index-import operation is selected")
@@ -177,6 +180,10 @@ public class IndexOptions implements OptionsBean {
 
     public boolean isImportIndex() {
         return options.has(importIndex);
+    }
+
+    public boolean isDocTraversalMode() {
+        return  options.has(docTraversal);
     }
 
     public String getCheckpoint(){
