@@ -29,6 +29,10 @@ import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -41,7 +45,6 @@ import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
-import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
@@ -60,6 +63,7 @@ import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -276,6 +280,43 @@ public class LuceneIndexProviderServiceTest {
                 (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
         assertNotNull(editorProvider.getBlobStore());
     }
+
+    @Ignore("OAK-6622")
+    @Test
+    public void executorPoolBehaviour() throws Exception{
+        MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+        ExecutorService executor = service.getExecutorService();
+
+        final CountDownLatch latch1 = new CountDownLatch(1);
+        final CountDownLatch latch2 = new CountDownLatch(1);
+
+        Callable cb1 = new Callable() {
+            @Override
+            public Object call() throws Exception {
+                latch1.await();
+                return null;
+            }
+        };
+
+        Callable cb2 = new Callable() {
+            @Override
+            public Object call() throws Exception {
+                latch2.countDown();
+                return null;
+            }
+        };
+
+        executor.submit(cb1);
+        executor.submit(cb2);
+
+        //Even if one task gets stuck the other task must get completed
+        assertTrue("Second task not executed", latch2.await(1, TimeUnit.MINUTES));
+        latch1.countDown();
+
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+
 
     private void reactivate() {
         MockOsgi.deactivate(service, context.bundleContext());
