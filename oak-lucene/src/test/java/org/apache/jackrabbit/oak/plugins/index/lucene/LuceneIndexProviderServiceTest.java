@@ -281,7 +281,6 @@ public class LuceneIndexProviderServiceTest {
         assertNotNull(editorProvider.getBlobStore());
     }
 
-    @Ignore("OAK-6622")
     @Test
     public void executorPoolBehaviour() throws Exception{
         MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());

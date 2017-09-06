@@ -514,7 +514,7 @@ public class LuceneIndexProviderService {
 
     }
 
-    private ExecutorService getExecutorService(){
+    ExecutorService getExecutorService(){
         if (executorService == null){
             executorService = createExecutor();
         }
@@ -522,7 +522,7 @@ public class LuceneIndexProviderService {
     }
 
     private ExecutorService createExecutor() {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(0, 5, 60L, TimeUnit.SECONDS,
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger();
             private final Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
