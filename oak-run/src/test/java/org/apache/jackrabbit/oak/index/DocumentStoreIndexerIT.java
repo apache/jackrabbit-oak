@@ -46,10 +46,12 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -61,7 +63,9 @@ import org.junit.Test;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -129,7 +133,8 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         wb.register(MongoDocumentStore.class, ds, emptyMap());
         wb.register(StatisticsProvider.class, StatisticsProvider.NOOP, emptyMap());
 
-        configureBunding(store);
+        configureIndex(store);
+        configureBundling(store);
 
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder appNB = newNode("app:Asset");
@@ -152,13 +157,13 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         String checkpoint = store.checkpoint(100000);
 
         IndexHelper helper = new IndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
-                temporaryFolder.newFolder(), asList("/oak:index/foo"));
+                temporaryFolder.newFolder(), asList(TEST_INDEX_PATH));
         IndexerSupport support = new IndexerSupport(helper, checkpoint);
 
         CollectingIndexer testIndexer = new CollectingIndexer(p -> p.startsWith("/test"));
         DocumentStoreIndexer index = new DocumentStoreIndexer(helper, support) {
             @Override
-            protected CompositeIndexer prepareIndexers() {
+            protected CompositeIndexer prepareIndexers(NodeStore nodeStore, NodeBuilder builder) {
                 return new CompositeIndexer(asList(testIndexer));
             }
         };
@@ -182,6 +187,17 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
     }
 
+    private void configureIndex(DocumentNodeStore store) throws CommitFailedException {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder idxb = childBuilder(builder, TEST_INDEX_PATH);
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder(idxb);
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.build();
+
+        merge(store, builder);
+    }
+
     private DocumentNodeStore getNodeStore(){
         return builderProvider.newBuilder().setMongoDB(getConnection().getDB()).getNodeStore();
     }
@@ -193,7 +209,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         return conn;
     }
 
-    private static void configureBunding(DocumentNodeStore store) throws CommitFailedException {
+    private static void configureBundling(DocumentNodeStore store) throws CommitFailedException {
         NodeState registryState = BundledTypesRegistry.builder()
                 .forType("app:Asset")
                 .include("jcr:content")

@@ -89,10 +89,9 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         NodeState baseState = copyOnWriteStore.getRoot();
         //TODO Check for indexPaths being empty
 
-        switchIndexLanesAndReindexFlag();
+        indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
         preformIndexUpdate(baseState);
-        switchIndexLanesBack();
-        indexerSupport.dumpIndexDefinitions(copyOnWriteStore);
+        indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
     private File getLocalIndexDir() throws IOException {
@@ -163,37 +162,6 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         return luceneIndexHelper.createEditorProvider();
     }
 
-    private void switchIndexLanesAndReindexFlag() throws CommitFailedException, IOException {
-        NodeState root = copyOnWriteStore.getRoot();
-        NodeBuilder builder = root.builder();
-        indexerSupport.updateIndexDefinitions(builder);
-
-        for (String indexPath : indexHelper.getIndexPaths()) {
-            //TODO Do it only for lucene indexes for now
-            NodeBuilder idxBuilder = childBuilder(builder, indexPath, false);
-            checkState(idxBuilder.exists(), "No index definition found at path [%s]", indexPath);
-
-            idxBuilder.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
-            AsyncLaneSwitcher.switchLane(idxBuilder, REINDEX_LANE);
-        }
-
-        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        log.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
-    }
-
-    private void switchIndexLanesBack() throws CommitFailedException, IOException {
-        NodeState root = copyOnWriteStore.getRoot();
-        NodeBuilder builder = root.builder();
-
-        for (String indexPath : indexHelper.getIndexPaths()) {
-            NodeBuilder idxBuilder = childBuilder(builder, indexPath, false);
-            AsyncLaneSwitcher.revertSwitch(idxBuilder, indexPath);
-        }
-
-        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        log.info("Switched the async lane for indexes at {} back to there original lanes", indexHelper.getIndexPaths());
-    }
-
     private void configureEstimators(IndexUpdate indexUpdate) {
         StatisticsProvider statsProvider = indexHelper.getStatisticsProvider();
         if (statsProvider instanceof MetricStatisticsProvider) {
@@ -205,10 +173,4 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         indexUpdate.setNodeCountEstimator(estimator);
     }
 
-    private static NodeBuilder childBuilder(NodeBuilder nb, String path, boolean createNew) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            nb = createNew ? nb.child(name) : nb.getChildNode(name);
-        }
-        return nb;
-    }
 }
