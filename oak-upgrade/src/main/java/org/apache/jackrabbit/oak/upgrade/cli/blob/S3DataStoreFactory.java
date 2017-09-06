@@ -22,6 +22,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,6 +36,8 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 public class S3DataStoreFactory implements BlobStoreFactory {
 
@@ -72,6 +75,13 @@ public class S3DataStoreFactory implements BlobStoreFactory {
         S3DataStore delegate = new S3DataStore();
         delegate.setProperties(props);
         delegate.setPath(directory);
+
+        // Initialize a default stats provider
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor());
+        delegate.setStatisticsProvider(statsProvider);
+        // Reduce staging purge interval to 60 seconds
+        delegate.setStagingPurgeInterval(60);
+
         try {
             delegate.init(tempHomeDir.getPath());
         } catch (RepositoryException e) {
