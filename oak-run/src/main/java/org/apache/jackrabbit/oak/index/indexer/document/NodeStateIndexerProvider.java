@@ -25,6 +25,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public interface NodeStateIndexerProvider extends Closeable {
@@ -32,6 +33,6 @@ public interface NodeStateIndexerProvider extends Closeable {
     @CheckForNull
     NodeStateIndexer getIndexer(@Nonnull String type,
                                 @Nonnull String indexPath,
-                                @Nonnull NodeState definition,
+                                @Nonnull NodeBuilder definition,
                                 @Nonnull NodeState root, IndexingProgressReporter progressReporter);
 }

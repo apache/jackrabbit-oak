@@ -27,9 +27,14 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -37,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 public class IndexerSupport {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -50,6 +56,11 @@ public class IndexerSupport {
      * This would be mostly used for testing purpose
      */
     private static final String HEAD_AS_CHECKPOINT = "head";
+
+    /**
+     * Index lane name which is used for indexing
+     */
+    private static final String REINDEX_LANE = "offline-reindex-async";
     private Map<String, String> checkpointInfo = Collections.emptyMap();
     private final IndexHelper indexHelper;
     private File localIndexDir;
@@ -92,18 +103,54 @@ public class IndexerSupport {
         return checkpointedState;
     }
 
-    public void updateIndexDefinitions(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
+    private void updateIndexDefinitions(NodeBuilder rootBuilder) throws IOException, CommitFailedException {
         if (indexDefinitions != null) {
             new IndexDefinitionUpdater(indexDefinitions).apply(rootBuilder);
         }
     }
 
-    public void dumpIndexDefinitions(NodeStore nodeStore) throws IOException, CommitFailedException {
+    private void dumpIndexDefinitions(NodeStore nodeStore) throws IOException, CommitFailedException {
         IndexDefinitionPrinter printer = new IndexDefinitionPrinter(nodeStore, indexHelper.getIndexPathService());
         printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
         PrinterDumper dumper = new PrinterDumper(getLocalIndexDir(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON,
                 false, Format.JSON, printer);
         dumper.dump();
+    }
+
+    public void switchIndexLanesAndReindexFlag(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
+        NodeState root = copyOnWriteStore.getRoot();
+        NodeBuilder builder = root.builder();
+        updateIndexDefinitions(builder);
+
+        for (String indexPath : indexHelper.getIndexPaths()) {
+            //TODO Do it only for lucene indexes for now
+            NodeBuilder idxBuilder = childBuilder(builder, indexPath, false);
+            checkState(idxBuilder.exists(), "No index definition found at path [%s]", indexPath);
+
+            idxBuilder.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+            AsyncLaneSwitcher.switchLane(idxBuilder, REINDEX_LANE);
+        }
+
+        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        log.info("Switched the async lane for indexes at {} to {} and marked them for reindex", indexHelper.getIndexPaths(), REINDEX_LANE);
+    }
+
+    public void postIndexWork(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
+        switchIndexLanesBack(copyOnWriteStore);
+        dumpIndexDefinitions(copyOnWriteStore);
+    }
+
+    private void switchIndexLanesBack(NodeStore copyOnWriteStore) throws CommitFailedException, IOException {
+        NodeState root = copyOnWriteStore.getRoot();
+        NodeBuilder builder = root.builder();
+
+        for (String indexPath : indexHelper.getIndexPaths()) {
+            NodeBuilder idxBuilder = childBuilder(builder, indexPath, false);
+            AsyncLaneSwitcher.revertSwitch(idxBuilder, indexPath);
+        }
+
+        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        log.info("Switched the async lane for indexes at {} back to there original lanes", indexHelper.getIndexPaths());
     }
 
     public Map<String, String> getCheckpointInfo() {
@@ -112,5 +159,12 @@ public class IndexerSupport {
 
     public void setIndexDefinitions(File indexDefinitions) {
         this.indexDefinitions = indexDefinitions;
+    }
+
+    public static NodeBuilder childBuilder(NodeBuilder nb, String path, boolean createNew) {
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            nb = createNew ? nb.child(name) : nb.getChildNode(name);
+        }
+        return nb;
     }
 }

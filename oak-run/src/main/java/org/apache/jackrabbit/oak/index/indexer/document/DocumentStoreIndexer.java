@@ -45,9 +45,14 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,8 +78,13 @@ public class DocumentStoreIndexer implements Closeable{
 
     public void reindex() throws CommitFailedException, IOException {
         configureEstimators();
-        //TODO Support for adding new index definition
-        CompositeIndexer indexer = prepareIndexers();
+
+        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
+
+        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
+        CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder);
         if (indexer.isEmpty()) {
             return;
         }
@@ -82,7 +92,6 @@ public class DocumentStoreIndexer implements Closeable{
         closer.register(indexer);
 
         //TODO How to ensure we can safely read from secondary
-        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
@@ -107,6 +116,10 @@ public class DocumentStoreIndexer implements Closeable{
 
         progressReporter.reindexingTraversalEnd();
         progressReporter.logReport();
+
+        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
     private void configureEstimators() {
@@ -182,18 +195,19 @@ public class DocumentStoreIndexer implements Closeable{
         traversalLog.trace(id);
     }
 
-    protected CompositeIndexer prepareIndexers() {
-        NodeState root = indexHelper.getNodeStore().getRoot();
+    protected CompositeIndexer prepareIndexers(NodeStore copyOnWriteStore, NodeBuilder builder) {
+        NodeState root = copyOnWriteStore.getRoot();
         List<NodeStateIndexer> indexers = new ArrayList<>();
         for (String indexPath : indexHelper.getIndexPaths()) {
             NodeState indexState = NodeStateUtils.getNode(root, indexPath);
+            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
             String type = indexState.getString(TYPE_PROPERTY_NAME);
             if (type == null) {
                 log.warn("No 'type' property found on indexPath [{}]. Skipping it", indexPath);
                 continue;
             }
             for (NodeStateIndexerProvider indexerProvider : indexerProviders) {
-                NodeStateIndexer indexer = indexerProvider.getIndexer(type, indexPath, indexState, root, progressReporter);
+                NodeStateIndexer indexer = indexerProvider.getIndexer(type, indexPath, idxBuilder, root, progressReporter);
                 if (indexer != null) {
                     indexers.add(indexer);
                     closer.register(indexer);

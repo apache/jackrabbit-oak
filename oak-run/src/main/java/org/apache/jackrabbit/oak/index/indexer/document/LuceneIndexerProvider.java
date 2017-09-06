@@ -57,21 +57,20 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
 
     @Override
     public NodeStateIndexer getIndexer(@Nonnull String type, @Nonnull String indexPath,
-                                       @Nonnull NodeState definition, @Nonnull NodeState root,
+                                       @Nonnull NodeBuilder definition, @Nonnull NodeState root,
                                        IndexingProgressReporter progressReporter) {
         if (!TYPE_LUCENE.equals(definition.getString(TYPE_PROPERTY_NAME))) {
             return null;
         }
 
-        NodeBuilder builder = definition.builder();
-        IndexDefinition idxDefinition = IndexDefinition.newBuilder(root, definition, indexPath).reindex().build();
+        IndexDefinition idxDefinition = IndexDefinition.newBuilder(root, definition.getNodeState(), indexPath).reindex().build();
 
-        LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, builder, true);
+        LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, true);
         BinaryTextExtractor textExtractor = new BinaryTextExtractor(textCache, idxDefinition, true);
         return new LuceneIndexer(
                 idxDefinition,
                 indexWriter,
-                builder,
+                definition,
                 textExtractor,
                 progressReporter
         );
