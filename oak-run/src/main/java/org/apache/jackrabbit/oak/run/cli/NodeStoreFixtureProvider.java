@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -33,6 +34,8 @@ import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
@@ -46,8 +49,8 @@ public class NodeStoreFixtureProvider {
 
     public static NodeStoreFixture create(Options options, boolean readOnly) throws Exception {
         CommonOptions commonOpts = options.getOptionBean(CommonOptions.class);
-        Whiteboard wb = options.getWhiteboard();
         Closer closer = Closer.create();
+        Whiteboard wb = new ClosingWhiteboard(options.getWhiteboard(), closer);
         BlobStoreFixture blobFixture = BlobStoreFixtureProvider.create(options);
         BlobStore blobStore = null;
         if (blobFixture != null) {
@@ -146,6 +149,33 @@ public class NodeStoreFixtureProvider {
         @Override
         public void close() throws IOException {
             closer.close();
+        }
+    }
+
+    private static class ClosingWhiteboard implements Whiteboard {
+        private final Whiteboard delegate;
+        private final Closer closer;
+
+        public ClosingWhiteboard(Whiteboard delegate, Closer closer) {
+            this.delegate = delegate;
+            this.closer = closer;
+        }
+
+        @Override
+        public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
+            Registration reg = delegate.register(type, service, properties);
+            closer.register(reg::unregister);
+            return reg;
+        }
+
+        @Override
+        public <T> Tracker<T> track(Class<T> type) {
+            return delegate.track(type);
+        }
+
+        @Override
+        public <T> Tracker<T> track(Class<T> type, Map<String, String> filterProperties) {
+            return delegate.track(type, filterProperties);
         }
     }
 }
