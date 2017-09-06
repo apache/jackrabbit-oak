@@ -97,10 +97,12 @@ public class DocumentStoreIndexer implements Closeable{
                 continue;
             }
 
-            //TODO Handle bundled NodeStates
-
             NodeStateEntry entry = new NodeStateEntry(nodeState, path);
             indexer.index(entry);
+
+            for (DocumentNodeState bundledState : nodeState.getAllBundledNodesStates()) {
+               indexer.index(new NodeStateEntry(bundledState, bundledState.getPath()));
+            }
         }
 
         progressReporter.reindexingTraversalEnd();
@@ -180,7 +182,7 @@ public class DocumentStoreIndexer implements Closeable{
         traversalLog.trace(id);
     }
 
-    private CompositeIndexer prepareIndexers() {
+    protected CompositeIndexer prepareIndexers() {
         NodeState root = indexHelper.getNodeStore().getRoot();
         List<NodeStateIndexer> indexers = new ArrayList<>();
         for (String indexPath : indexHelper.getIndexPaths()) {
