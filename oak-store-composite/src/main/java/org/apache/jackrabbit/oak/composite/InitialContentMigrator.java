@@ -89,6 +89,7 @@ public class InitialContentMigrator {
     public void migrate() throws IOException, CommitFailedException {
         if (isTargetInitialized()) {
             LOG.info("The target is already initialized, no need to copy the seed mount");
+            return;
         }
 
         LOG.info("Initializing the default mount using seed {}", seedMount.getName());
