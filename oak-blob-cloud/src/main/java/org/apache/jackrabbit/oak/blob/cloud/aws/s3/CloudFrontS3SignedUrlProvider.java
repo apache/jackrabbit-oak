@@ -70,7 +70,7 @@ public class CloudFrontS3SignedUrlProvider implements URIProvider {
     public static final String CLOUD_FRONT_URL = "cloudFrontUrl";
     @Property(intValue = 60)
     public static final String TTL = "ttl";
-    @Property
+    @Property(passwordValue = "")
     public static final String PRIVATE_KEY = "privateKey";
     @Property
     public static final String KEY_PAIR_ID = "keyPairId";
