@@ -103,8 +103,26 @@ public class UpgradeIT {
                 .withForce(true)
                 .build()
                 .run();
+
+        // Upgraded
         checkStoreVersion(2);
         checkSegmentVersion(V_13);
+    }
+
+    @Test
+    public void offRCUpgradesRequiresForce() throws IOException, InvalidFileStoreVersionException {
+        checkSegmentVersion(V_12);
+        checkStoreVersion(1);
+        Compact.builder()
+                .withPath(fileStoreHome.getRoot())
+                .withMmap(true)
+                .withForce(false)
+                .build()
+                .run();
+
+        // Not upgraded
+        checkStoreVersion(1);
+        checkSegmentVersion(V_12);
     }
 
     private void checkStoreVersion(int version) throws IOException, InvalidFileStoreVersionException {
