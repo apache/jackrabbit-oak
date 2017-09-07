@@ -58,6 +58,8 @@ public class Compact implements Runnable {
         @CheckForNull
         private Boolean mmap;
 
+        private boolean force;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -86,6 +88,16 @@ public class Compact implements Runnable {
         }
 
         /**
+         * Whether to fail if run on an older version of the store of force upgrading its format.
+         * @param force   upgrade iff {@code true}
+         * @return this builder.
+         */
+        public Builder withForce(boolean force) {
+            this.force = force;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Compact} command.
          *
          * @return an instance of {@link Runnable}.
@@ -102,9 +114,12 @@ public class Compact implements Runnable {
     @CheckForNull
     private final Boolean mmap;
 
+    private final boolean strictVersionCheck;
+
     private Compact(Builder builder) {
         this.path = builder.path;
         this.mmap = builder.mmap;
+        this.strictVersionCheck = !builder.force;
     }
 
     @Override
@@ -141,6 +156,7 @@ public class Compact implements Runnable {
 
     private FileStore newFileStore() throws IOException, InvalidFileStoreVersionException {
         FileStoreBuilder fileStoreBuilder = fileStoreBuilder(path.getAbsoluteFile())
+                .withStrictVersionCheck(strictVersionCheck)
                 .withGCOptions(defaultGCOptions()
                     .setOffline()
                     .setGCLogInterval(logAt));

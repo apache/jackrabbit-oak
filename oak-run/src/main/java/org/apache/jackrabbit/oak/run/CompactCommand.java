@@ -25,13 +25,12 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Stopwatch;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-
-import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.run.commons.Command;
 
 class CompactCommand implements Command {
@@ -45,6 +44,12 @@ class CompactCommand implements Command {
                 "Use memory mapped access if true, use file access if false. " +
                         "If not specified memory mapped access is used on 64 bit systems " +
                         "and file access is used on 32 bit systems.")
+                .withOptionalArg()
+                .ofType(Boolean.class);
+        OptionSpec<Boolean> forceArg = parser.accepts("force",
+                "Force compaction and ignore a non matching segment store version. " +
+                        "CAUTION: this will upgrade the segment store to the latest version, " +
+                        "which is incompatible with older versions of Oak.")
                 .withOptionalArg()
                 .ofType(Boolean.class);
 
@@ -73,6 +78,9 @@ class CompactCommand implements Command {
         } else {
             System.out.println("With file access");
         }
+
+        boolean force = isTrue(forceArg.value(options));
+
         System.out.println("    before ");
         beforeLs.addAll(list(directory));
         long sizeBefore = FileUtils.sizeOfDirectory(directory);
@@ -82,7 +90,7 @@ class CompactCommand implements Command {
         System.out.println("    -> compacting");
 
         try {
-            SegmentTarUtils.compact(directory, mmap);
+            SegmentTarUtils.compact(directory, mmap, force);
             success = true;
         } catch (Throwable e) {
             System.out.println("Compaction failure stack trace:");
@@ -106,6 +114,10 @@ class CompactCommand implements Command {
                 System.exit(1);
             }
         }
+    }
+
+    private static boolean isTrue(Boolean value) {
+        return value != null && value;
     }
 
     private static Set<String> list(File directory) {

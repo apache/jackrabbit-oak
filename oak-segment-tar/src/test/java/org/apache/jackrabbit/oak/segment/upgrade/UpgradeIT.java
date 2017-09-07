@@ -100,6 +100,7 @@ public class UpgradeIT {
         Compact.builder()
                 .withPath(fileStoreHome.getRoot())
                 .withMmap(true)
+                .withForce(true)
                 .build()
                 .run();
         checkStoreVersion(2);

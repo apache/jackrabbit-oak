@@ -174,10 +174,11 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void compact(@Nonnull File directory, @Nullable Boolean mmap) {
+    static void compact(@Nonnull File directory, @Nullable Boolean mmap, boolean force) {
         Compact.builder()
                 .withPath(directory)
                 .withMmap(mmap)
+                .withForce(force)
                 .build()
                 .run();
     }

@@ -121,6 +121,8 @@ public class FileStoreBuilder {
     private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;
 
     private IOMonitor ioMonitor = new IOMonitorAdapter();
+
+    private boolean strictVersionCheck;
     
     private boolean built;
 
@@ -297,6 +299,20 @@ public class FileStoreBuilder {
         this.ioMonitor = checkNotNull(ioMonitor);
         return this;
     }
+
+    /**
+     * Enable strict version checking. With strict version checking enabled Oak
+     * will fail to start if the store version does not exactly match this Oak version.
+     * This is useful to e.g. avoid inadvertent upgrades during when running offline
+     * compaction accidentally against an older version of a store.
+     * @param strictVersionCheck  enables strict version checking iff {@code true}.
+     * @return this instance
+     */
+    @Nonnull
+    public FileStoreBuilder withStrictVersionCheck(boolean strictVersionCheck) {
+        this.strictVersionCheck = strictVersionCheck;
+        return this;
+    }
     
     /**
      * Create a new {@link FileStore} instance with the settings specified in this
@@ -446,6 +462,10 @@ public class FileStoreBuilder {
 
     IOMonitor getIOMonitor() {
         return ioMonitor;
+    }
+
+    boolean getStrictVersionCheck() {
+        return strictVersionCheck;
     }
 
     @Override
