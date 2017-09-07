@@ -38,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.slf4j.Logger;
@@ -52,19 +51,17 @@ public class S3DataStoreUtils extends DataStoreUtils {
 
     private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
 
-    protected static Class JR2_S3 = SharedS3DataStore.class;
     protected static Class S3 = S3DataStore.class;
 
     public static List<String> getFixtures() {
         return ImmutableList.of(
-            S3.getName(),
-            JR2_S3.getName());
+            S3.getName());
     }
 
     public static boolean isS3DataStore() {
         String dsName = System.getProperty(DS_CLASS_NAME);
         boolean s3Class =
-            (dsName != null) && (dsName.equals(S3.getName()) || dsName.equals(JR2_S3.getName()));
+            (dsName != null) && (dsName.equals(S3.getName()));
         if (!isS3Configured()) {
             return false;
         }
@@ -126,8 +123,6 @@ public class S3DataStoreUtils extends DataStoreUtils {
         // Set the props object
         if (S3.getName().equals(className)) {
             ((S3DataStore) ds).setProperties(props);
-        } else if (JR2_S3.getName().equals(className)) {
-            ((org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore) ds).setProperties(props);
         }
         ds.init(homeDir);
 

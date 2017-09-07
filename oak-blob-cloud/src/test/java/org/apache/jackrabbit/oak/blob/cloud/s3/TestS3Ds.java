@@ -23,7 +23,6 @@ import java.util.Properties;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
 import org.junit.After;
 import org.junit.Assume;
@@ -107,16 +106,12 @@ public class TestS3Ds extends AbstractDataStoreTest {
         return s3ds;
     }
 
-    /**----------Only run with org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore-----------**/
+    /**----------Not supported-----------**/
     @Override
     public void testUpdateLastModifiedOnAccess() {
-        Assume.assumeThat(s3Class, new Equals(fixtures().get(1)));
-        super.testUpdateLastModifiedOnAccess();
     }
 
     @Override
     public void testDeleteAllOlderThan() {
-        Assume.assumeThat(s3Class, new Equals(fixtures().get(1)));
-        super.testDeleteAllOlderThan();
     }
 }
