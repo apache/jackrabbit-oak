@@ -24,8 +24,6 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
-
 /**
  * A cache for child node diffs.
  */
@@ -100,7 +98,7 @@ abstract class DiffCache {
             }
             switch (r) {
                 case '+': {
-                    String name = unshareString(t.readString());
+                    String name = t.readString();
                     t.read(':');
                     t.read('{');
                     while (t.read() != '}') {
@@ -110,12 +108,12 @@ abstract class DiffCache {
                     break;
                 }
                 case '-': {
-                    String name = unshareString(t.readString());
+                    String name = t.readString();
                     continueComparison = diff.childNodeDeleted(name);
                     break;
                 }
                 case '^': {
-                    String name = unshareString(t.readString());
+                    String name = t.readString();
                     t.read(':');
                     t.read('{');
                     t.read('}');
