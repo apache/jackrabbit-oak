@@ -89,11 +89,11 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      */
     private static final int MAX_STORE_VERSION = 2;
 
-    static ManifestChecker newManifestChecker(File directory) {
+    static ManifestChecker newManifestChecker(File directory, boolean strictVersionCheck) {
         return ManifestChecker.newManifestChecker(
                 new File(directory, MANIFEST_FILE_NAME),
                 notEmptyDirectory(directory),
-                MIN_STORE_VERSION,
+                strictVersionCheck ? MAX_STORE_VERSION : MIN_STORE_VERSION,
                 MAX_STORE_VERSION
         );
     }

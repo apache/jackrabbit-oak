@@ -191,7 +191,7 @@ public class FileStore extends AbstractFileStore {
                 builder.getCacheManager(),
                 builder.getStatsProvider());
 
-        newManifestChecker(directory).checkAndUpdateManifest();
+        newManifestChecker(directory, builder.getStrictVersionCheck()).checkAndUpdateManifest();
 
         this.stats = new FileStoreStats(builder.getStatsProvider(), this, 0);
         this.tarFiles = TarFiles.builder()
