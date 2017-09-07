@@ -613,9 +613,6 @@ public class FileStore extends AbstractFileStore {
                     return;
                 }
 
-                GCMemoryBarrier gcMemoryBarrier = new GCMemoryBarrier(
-                        sufficientMemory, gcListener, GC_COUNT.get(), gcOptions);
-    
                 boolean sufficientEstimatedGain = true;
                 if (gcOptions.isEstimationDisabled()) {
                     gcListener.info("TarMK GC #{}: estimation skipped because it was explicitly disabled", GC_COUNT);
@@ -642,18 +639,21 @@ public class FileStore extends AbstractFileStore {
     
                 if (sufficientEstimatedGain) {
                     if (!gcOptions.isPaused()) {
-                        CompactionResult compactionResult = compact.get();
-                        if (compactionResult.isSuccess()) {
-                            lastSuccessfullGC = System.currentTimeMillis();
-                        } else {
-                            gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
+                        try (GCMemoryBarrier gcMemoryBarrier = new GCMemoryBarrier(
+                                sufficientMemory, gcListener, GC_COUNT.get(), gcOptions))
+                        {
+                            CompactionResult compactionResult = compact.get();
+                            if (compactionResult.isSuccess()) {
+                                lastSuccessfullGC = System.currentTimeMillis();
+                            } else {
+                                gcListener.info("TarMK GC #{}: cleaning up after failed compaction", GC_COUNT);
+                            }
+                            fileReaper.add(cleanup(compactionResult));
                         }
-                        fileReaper.add(cleanup(compactionResult));
                     } else {
                         gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
                     }
                 }
-                gcMemoryBarrier.close();
             } finally {
                 compactionMonitor.finished();
                 gcListener.updateStatus(IDLE.message());
