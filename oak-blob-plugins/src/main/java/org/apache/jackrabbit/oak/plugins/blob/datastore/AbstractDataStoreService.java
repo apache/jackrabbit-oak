@@ -53,9 +53,6 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 
 @Component(componentAbstract = true)
 public abstract class AbstractDataStoreService {
-    public static final String JR2_CACHING_PROP = "oak.datastore.jr2caching";
-    protected final boolean JR2_CACHING = Boolean.getBoolean(JR2_CACHING_PROP);
-
     private static final String PROP_HOME = "repository.home";
 
     public static final String PROP_ENCODE_LENGTH = "encodeLengthInId";
