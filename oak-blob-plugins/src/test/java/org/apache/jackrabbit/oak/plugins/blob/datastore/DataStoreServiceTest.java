@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService
-    .JR2_CACHING_PROP;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -36,10 +34,7 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.data.Backend;
-import org.apache.jackrabbit.core.data.CachingFDS;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.FSBackend;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -71,39 +66,6 @@ public class DataStoreServiceTest {
 
         assertNotNull(context.getService(BlobStoreStatsMBean.class));
         assertNotNull(context.getService(CacheStatsMBean.class));
-    }
-
-    /**
-     *
-     * Test @CachingFDS is returned when cacheSize > 0
-     */
-    @Test
-    public void configCachingFDS() throws Exception {
-        System.setProperty(JR2_CACHING_PROP, "true");
-        try {
-            String nasPath = folder.getRoot().getAbsolutePath() + "/NASPath";
-            String cachePath = folder.getRoot().getAbsolutePath() + "/cachePath";
-            long cacheSize = 100L;
-            Map<String, Object> config = new HashMap<String, Object>();
-            config.put("repository.home", folder.getRoot().getAbsolutePath());
-            config.put(FileDataStoreService.CACHE_SIZE, cacheSize);
-            config.put(FileDataStoreService.PATH, nasPath);
-            config.put(FileDataStoreService.CACHE_PATH, cachePath);
-            FileDataStoreService fdsSvc = new FileDataStoreService();
-
-            DataStore ds = fdsSvc.createDataStore(context.componentContext(), config);
-            PropertiesUtil.populate(ds, config, false);
-            ds.init(folder.getRoot().getAbsolutePath());
-            assertTrue("not instance of CachingFDS", ds instanceof CachingFDS);
-            CachingFDS cds = (CachingFDS) ds;
-            assertEquals("cachesize not equal", cacheSize, cds.getCacheSize());
-            assertEquals("cachepath not equal", cachePath, cds.getPath());
-            Backend backend = cds.getBackend();
-            Properties props = (Properties) getField(backend);
-            assertEquals("path not equal", nasPath, props.getProperty(FSBackend.FS_BACKEND_PATH));
-        } finally {
-            System.clearProperty(JR2_CACHING_PROP);
-        }
     }
 
     /**
