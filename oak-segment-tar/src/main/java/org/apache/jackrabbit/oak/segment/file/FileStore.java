@@ -638,10 +638,14 @@ public class FileStore extends AbstractFileStore {
                 }
     
                 if (sufficientEstimatedGain) {
-                    if (!gcOptions.isPaused()) {
-                        try (GCMemoryBarrier gcMemoryBarrier = new GCMemoryBarrier(
-                                sufficientMemory, gcListener, GC_COUNT.get(), gcOptions))
-                        {
+                    try (GCMemoryBarrier gcMemoryBarrier = new GCMemoryBarrier(
+                            sufficientMemory, gcListener, GC_COUNT.get(), gcOptions))
+                    {
+                        if (gcOptions.isPaused()) {
+                            gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
+                        } else if (!sufficientMemory.get()) {
+                            gcListener.skipped("TarMK GC #{}: compaction skipped. Not enough memory", GC_COUNT);
+                        } else {
                             CompactionResult compactionResult = compact.get();
                             if (compactionResult.isSuccess()) {
                                 lastSuccessfullGC = System.currentTimeMillis();
@@ -650,8 +654,6 @@ public class FileStore extends AbstractFileStore {
                             }
                             fileReaper.add(cleanup(compactionResult));
                         }
-                    } else {
-                        gcListener.skipped("TarMK GC #{}: compaction paused", GC_COUNT);
                     }
                 }
             } finally {
