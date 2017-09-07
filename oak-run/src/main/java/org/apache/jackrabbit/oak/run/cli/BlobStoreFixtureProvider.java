@@ -119,16 +119,9 @@ public class BlobStoreFixtureProvider {
             }
         }
 
-        configureDefaultProps(props);
         return props;
     }
-
-    private static void configureDefaultProps(Properties props) {
-        if (!props.containsKey("secret")){
-            props.setProperty("secret", UUID.randomUUID().toString());
-        }
-    }
-
+    
     private static class DataStoreFixture implements BlobStoreFixture {
         private final DataStoreBlobStore blobStore;
         private final Closer closer;
