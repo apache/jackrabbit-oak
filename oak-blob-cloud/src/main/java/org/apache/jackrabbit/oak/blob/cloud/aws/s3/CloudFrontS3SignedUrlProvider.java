@@ -28,13 +28,13 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.conversion.URIProvider;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
-import org.apache.jackrabbit.oak.spi.adapter.AdapterFactory;
-import org.apache.jackrabbit.oak.spi.adapter.AdapterManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.jcr.Value;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.InvalidKeyException;
@@ -62,8 +62,8 @@ import java.util.Map;
  * details on how to configure CloudFront.
  */
 @Component(immediate = true, metatype = true)
-@Service(AdapterFactory.class)
-public class CloudFrontS3SignedUrlAdapterFactory implements AdapterFactory {
+@Service(URIProvider.class)
+public class CloudFrontS3SignedUrlProvider implements URIProvider {
     private static final String[] TARGET_CLASSES = new String[]{URI.class.getName()};
 
     @Property
@@ -77,8 +77,7 @@ public class CloudFrontS3SignedUrlAdapterFactory implements AdapterFactory {
     public static final String BEGIN_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\n";
     public static final String END_PRIVATE_KEY = "-----END PRIVATE KEY-----";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CloudFrontS3SignedUrlAdapterFactory.class);
-    private AdapterManager adapterManager;
+    private static final Logger LOGGER = LoggerFactory.getLogger(CloudFrontS3SignedUrlProvider.class);
     private String cloudFrontUrl;
     private long ttl;
     private String keyPairId;
@@ -87,12 +86,11 @@ public class CloudFrontS3SignedUrlAdapterFactory implements AdapterFactory {
     /**
      * Default Constructor used by OSGi.
      */
-    public CloudFrontS3SignedUrlAdapterFactory() {
+    public CloudFrontS3SignedUrlProvider() {
     }
 
     /**
      * Non OSGi IoC constructor, close must be called when done.
-     * @param adapterManager
      * @param cloudFrontUrl
      * @param ttl
      * @param privateKeyPEM
@@ -100,21 +98,15 @@ public class CloudFrontS3SignedUrlAdapterFactory implements AdapterFactory {
      * @throws InvalidKeySpecException
      * @throws NoSuchAlgorithmException
      */
-    public CloudFrontS3SignedUrlAdapterFactory(AdapterManager adapterManager,
-                                               String cloudFrontUrl,
-                                               long ttl,
-                                               String privateKeyPEM,
-                                               String privateKeyId) throws InvalidKeySpecException, NoSuchAlgorithmException {
-        this.adapterManager = adapterManager;
-        this.adapterManager.removeAdapterFactory(this);
+    public CloudFrontS3SignedUrlProvider(String cloudFrontUrl,
+                                         long ttl,
+                                         String privateKeyPEM,
+                                         String privateKeyId) throws InvalidKeySpecException, NoSuchAlgorithmException {
         init(cloudFrontUrl, ttl, privateKeyPEM, privateKeyId);
     }
 
     public void close() {
         deactivate(new HashMap<String, Object>());
-        if ( adapterManager != null) {
-            adapterManager.addAdapterFactory(this);
-        }
     }
 
     @Deactivate
@@ -139,18 +131,18 @@ public class CloudFrontS3SignedUrlAdapterFactory implements AdapterFactory {
 
 
     @Override
-    public <T> T adaptTo(Object source, Class<T> targetClass) {
+    public URI toURI(Value value) {
         String u = null;
         // The conversion is javax.jcr.Value -> URI, but for Oak all Values are OakValues and we can only do it for Values.
-        if ( source instanceof OakValue && targetClass.equals(URI.class) ) {
+        if ( value instanceof OakValue ) {
             try {
-                Blob b = ((OakValue) source).getBlob();
+                Blob b = ((OakValue) value).getBlob();
                 if (b != null) {
                     String contentId = b.getContentIdentity();
                     if ( contentId != null ) {
                         // could get the cloudFrontUrl, keyParId and private key based on the resource
                         // so that multiple S3 stores or even multiple CDNs could be used, but for this PoC keeping it simple.
-                        return (T) new URI(signS3Url(contentId, ttl, cloudFrontUrl, keyPairId, privateKey));
+                        return new URI(signS3Url(contentId, ttl, cloudFrontUrl, keyPairId, privateKey));
                     }
                 }
             } catch (Exception e) {
@@ -161,15 +153,6 @@ public class CloudFrontS3SignedUrlAdapterFactory implements AdapterFactory {
         return null;
     }
 
-    @Override
-    public String[] getTargetClasses() {
-        return TARGET_CLASSES;
-    }
-
-    @Override
-    public int getPriority() {
-        return 0;
-    }
 
 
     /**
