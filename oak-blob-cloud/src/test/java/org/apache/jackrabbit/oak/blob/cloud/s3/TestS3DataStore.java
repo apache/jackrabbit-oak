@@ -94,21 +94,6 @@ public class TestS3DataStore {
     }
 
     @Test
-    public void testNoSecretDefined() throws Exception {
-        assumeTrue(isS3Configured());
-        assumeTrue(s3Class.equals(S3DataStoreUtils.JR2_S3.getName()));
-
-        Random randomGen = new Random();
-        props = S3DataStoreUtils.getS3Config();
-        ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
-        byte[] data = new byte[4096];
-        randomGen.nextBytes(data);
-        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
-        assertEquals(data.length, rec.getLength());
-        assertNull(rec.getReference());
-    }
-
-    @Test
     public void testNoSecretDefinedUseDefault() throws Exception {
         assumeTrue(isS3Configured());
         assumeTrue(s3Class.equals(S3DataStoreUtils.S3.getName()));

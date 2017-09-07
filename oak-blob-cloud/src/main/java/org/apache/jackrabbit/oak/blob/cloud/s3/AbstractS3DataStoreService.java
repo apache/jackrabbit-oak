@@ -27,7 +27,6 @@ import java.util.Properties;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
 import org.osgi.framework.Constants;
@@ -45,35 +44,20 @@ public abstract class AbstractS3DataStoreService extends AbstractDataStoreServic
         Properties properties = new Properties();
         properties.putAll(config);
 
-        if (JR2_CACHING) {
-            SharedS3DataStore dataStore = new SharedS3DataStore();
-            dataStore.setProperties(properties);
+        S3DataStore dataStore = new S3DataStore();
+        dataStore.setStatisticsProvider(getStatisticsProvider());
+        dataStore.setProperties(properties);
 
-            Dictionary<String, Object> props = new Hashtable<String, Object>();
-            props.put(Constants.SERVICE_PID, dataStore.getClass().getName());
-            props.put(DESCRIPTION, getDescription());
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put(Constants.SERVICE_PID, dataStore.getClass().getName());
+        props.put(DESCRIPTION, getDescription());
 
-            delegateReg = context.getBundleContext().registerService(new String[] {
-                SharedS3DataStore.class.getName(),
-                SharedS3DataStore.class.getName()
-            }, dataStore , props);
-            return dataStore;
-        } else {
-            S3DataStore dataStore = new S3DataStore();
-            dataStore.setStatisticsProvider(getStatisticsProvider());
-            dataStore.setProperties(properties);
+        delegateReg = context.getBundleContext().registerService(new String[] {
+            AbstractSharedCachingDataStore.class.getName(),
+            AbstractSharedCachingDataStore.class.getName()
+        }, dataStore , props);
 
-            Dictionary<String, Object> props = new Hashtable<String, Object>();
-            props.put(Constants.SERVICE_PID, dataStore.getClass().getName());
-            props.put(DESCRIPTION, getDescription());
-
-            delegateReg = context.getBundleContext().registerService(new String[] {
-                AbstractSharedCachingDataStore.class.getName(),
-                AbstractSharedCachingDataStore.class.getName()
-            }, dataStore , props);
-
-            return dataStore;
-        }
+        return dataStore;
     }
 
     protected void deactivate() throws DataStoreException {
