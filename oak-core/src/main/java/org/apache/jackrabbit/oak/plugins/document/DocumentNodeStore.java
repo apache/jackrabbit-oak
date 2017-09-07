@@ -1214,7 +1214,7 @@ public final class DocumentNodeStore
                 }
                 if (c.children.size() < limit) {
                     // add to children until limit is reached
-                    c.children.add(Utils.unshareString(PathUtils.getName(p)));
+                    c.children.add(PathUtils.getName(p));
                 } else {
                     // enough collected and we know there are more
                     c.hasMore = true;
@@ -1390,7 +1390,7 @@ public final class DocumentNodeStore
                 DocumentNodeState.Children c = new DocumentNodeState.Children();
                 Set<String> set = Sets.newTreeSet();
                 for (String p : added) {
-                    set.add(Utils.unshareString(PathUtils.getName(p)));
+                    set.add(PathUtils.getName(p));
                 }
                 c.children.addAll(set);
                 PathRev key = childNodeCacheKey(path, afterLastRev, null);
@@ -1439,7 +1439,7 @@ public final class DocumentNodeStore
                     // list is complete. use before children as basis
                     Set<String> afterChildren = Sets.newTreeSet(children.children);
                     for (String p : added) {
-                        afterChildren.add(Utils.unshareString(PathUtils.getName(p)));
+                        afterChildren.add(PathUtils.getName(p));
                     }
                     for (String p : removed) {
                         afterChildren.remove(PathUtils.getName(p));
