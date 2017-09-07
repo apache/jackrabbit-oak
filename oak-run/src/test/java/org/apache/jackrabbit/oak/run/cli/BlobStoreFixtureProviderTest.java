@@ -92,7 +92,6 @@ public class BlobStoreFixtureProviderTest {
 
         Properties p2 = BlobStoreFixtureProvider.loadConfig(config.getAbsolutePath());
         assertEquals("bar", p2.getProperty("foo"));
-        assertNotNull(p2.getProperty("secret"));
     }
 
     @Test
@@ -111,7 +110,6 @@ public class BlobStoreFixtureProviderTest {
         assertEquals("bar", p2.getProperty("foo"));
         assertEquals(1, p2.get("a"));
         assertArrayEquals(new int[]{1, 2}, (int[]) p2.get("b"));
-        assertNotNull(p2.getProperty("secret"));
     }
 
     private Options createFDSOptions(String... args) throws IOException {
