@@ -282,9 +282,12 @@ public class IndexNodeManager {
         @Override
         public void release() {
             if (released.compareAndSet(false, true)) {
-                //Decrement on each release
-                decrementSearcherUsageCount(holder.searcher);
-                IndexNodeManager.this.release();
+                try {
+                    //Decrement on each release
+                    decrementSearcherUsageCount(holder.searcher);
+                } finally {
+                    IndexNodeManager.this.release();
+                }
             }
         }
 
