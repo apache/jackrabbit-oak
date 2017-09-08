@@ -59,7 +59,7 @@ class CompositeNodeState extends AbstractNodeState {
     private final String path;
 
     CompositeNodeState(String path, NodeMap<NodeState> nodeStates, CompositionContext ctx) {
-        this.path = path;
+        this.path = ctx.getPathCache().get(path);
         this.ctx = ctx;
         this.nodeStates = nodeStates;
         this.owningStore = ctx.getOwningStore(getPath());
