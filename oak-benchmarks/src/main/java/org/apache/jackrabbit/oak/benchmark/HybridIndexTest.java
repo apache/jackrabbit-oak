@@ -28,8 +28,8 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -77,6 +77,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.singleton;
@@ -134,8 +136,9 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private final AtomicInteger indexedNodeCount = new AtomicInteger();
     private List<TestContext> contexts = new ArrayList<>();
     private final StatisticsProvider statsProvider;
-    private final ScheduledExecutorService executorService = MoreExecutors.getExitingScheduledExecutorService(
-            (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final ExecutorService executorService = MoreExecutors.getExitingExecutorService(
+            (ThreadPoolExecutor) Executors.newFixedThreadPool(5));
 
 
     public HybridIndexTest(File workDir, StatisticsProvider statsProvider) {
@@ -339,6 +342,8 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         queue = new DocumentQueue(queueSize, tracker, executorService, statsProvider);
         localIndexObserver = new LocalIndexObserver(queue, statsProvider);
         luceneEditorProvider.setIndexingQueue(queue);
+
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> log.warn("Uncaught exception", e));
     }
 
     private void runAsyncIndex() {
