@@ -50,7 +50,10 @@ class CompositionContext {
 
     private final Set<MountedNodeStore> allStores;
 
+    private final StringCache pathCache;
+
     CompositionContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
+        this.pathCache = new StringCache();
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
         this.nonDefaultStores = nonDefaultStores;
@@ -173,6 +176,10 @@ class CompositionContext {
             throw new IllegalArgumentException("Too many root states passed: " + rootStates.size());
         }
         return new CompositeNodeState("/", NodeMap.create(rootStates), this);
+    }
+
+    StringCache getPathCache() {
+        return pathCache;
     }
 
 }
