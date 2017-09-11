@@ -287,6 +287,19 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         session.save();
 
         observationManager.addEventListener(listeners, Event.PROPERTY_ADDED, "/", true, null, null, false);
+        
+        // OAK-6639 : the above addEventListener registers an Observer with the NodeStore
+        // that (an Observable in general) in turn as the very first activity does a contentChanged call (with
+        // CommitInfo.EMPTY_EXTERNAL) to 'initialize' the Observer
+        // (see eg https://github.com/apache/jackrabbit-oak/blob/2634dbde9aedc2549f0512285e9abee5858b256f/oak-store-spi/src/main/java/org/apache/jackrabbit/oak/spi/commit/ChangeDispatcher.java#L66)
+        // normally that initial call should be processed very quickly by the
+        // BackgroundObserver, but it seems like there are some cases where
+        // this (main) thread gets priority and is able to do the 6 session.save
+        // calls before the BackgroundObserver is able to dequeue the 'init-token'.
+        // in *that* case the queue overfills unexpectedly.
+        // To avoid this, give the BackgroundObserver 2sec here to process the
+        // init-token, so that the test can actually start with an empty BackgroundObserver queue
+        Thread.sleep(2000);
 
         int propCounter = 0;
         // send out 6 events (or in general: queue length + 1):
