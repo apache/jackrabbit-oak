@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.7.6
+Release Notes -- Apache Jackrabbit Oak -- Version 1.7.7
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.7.6 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.7.7 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.6.x
 release.
@@ -15,91 +15,107 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.7.6
+Changes in Oak 1.7.7
 ---------------------
-
-
-Sub-task
-
-    [OAK-6445] - Ensure mounted node stores don't contain versionable nodes
-
 
 Technical task
 
-    [OAK-6505] - Ensure mounted node stores don't contain referenceable nodes
-    [OAK-6524] - Provide an extension point to customize the NodeStore builders
-    [OAK-6546] - JsonSerializer should taken an instance of JsopWriter
-
+    [OAK-6506] - Ensure unique property indexes are consistent when
+    mounting NodeStores
+    [OAK-6581] - Ensure mounts are consistent with the namespace
+    registry
+    [OAK-6591] - Refactor ValuePattern related logic to utility
+    methods
+    [OAK-6603] - [oak-blob-cloud] Remove the older S3 connector
+    relying on JR caching
+    [OAK-6612] - Refactor encoding logic in property index to utility
+    class
+    [OAK-6630] - Remove older cached FileDataStore relying on JR
+    caching
 
 Bug
 
-    [OAK-6372] - ListRecord cannot handle more than 16581375 entries
-    [OAK-6416] - Test failure: MapRecordTest.testOak1104
-    [OAK-6452] - IllegalStateException: too much data for a segment during oak-upgrade from segment to segment-tar
-    [OAK-6500] - NRTIndex leaks file handles due to unclosed IndexReader
-    [OAK-6503] - Active deletion of blobs tries to delete sub-16k inlined blobs in case of seg-tar
-    [OAK-6504] - Active deletion of blobs needs to indicate information about purged blobs to mark-sweep collector
-    [OAK-6507] - Cleanup incorrectly removes base state created by full compaction
-    [OAK-6527] - CompositeNodeStore permission evaluation fails for open setups
-    [OAK-6529] - IndexLoaderV1 and IndexLoaderV2 should not rely on Buffer.array()
-    [OAK-6541] - While importing new index property indexes are getting marked for reindex
-    [OAK-6548] - Composite node builder/state keeps references to all the ancestor states
-    [OAK-6567] - Fix OSGi wiring after netty update to 4.1.x
-
+    [OAK-6560] - Sidegrade uses too much memory
+    [OAK-6572] - IndexReaderClosed exception seen after some run
+    [OAK-6573] - The --src-external-ds option does not mandate
+    argument but reads it later
+    [OAK-6596] - Blob store consistency check can show bogus errors
+    about missing blobs
+    [OAK-6598] - LuceneIndexAggregationTest2 doesn't get executed by
+    mvn test
+    [OAK-6601] - SegmentWriteOperation.isOldGeneration() too eager
+    [OAK-6602] - Improve resource management in BulkTransferBenchmark
+    [OAK-6604] - Oak Blob Cloud is not used by oak-upgrade
+    [OAK-6611] - [upgrade][oak-blob-cloud] Many S3DataStore errors
+    during migration with oak-upgrade
+    [OAK-6620] - NodeStoreFixtureProvider should unregister services
+    registered with whiteboard
+    [OAK-6624] - InitialContentMigrator overwrites an existing
+    repository
+    [OAK-6640] - test failure in ResponseDecoderTest
 
 Improvement
 
-    [OAK-937] - Query engine index selection tweaks: shortcut and hint
-    [OAK-5902] - Cold standby should allow syncing of blobs bigger than 2.2 GB
-    [OAK-6407] -  Refactor oak.spi.query into a separate module/bundle
-    [OAK-6450] - Stop relying on the service.pid property in SecurityProviderRegistration
-    [OAK-6497] - Support old Segment NodeStore setups for oak-run index tooling
-    [OAK-6510] - Fix string representation of the old generation reclaimer
-    [OAK-6518] - Implement transparent usage of different TAR index formats
-    [OAK-6520] - Improve tail compactions resilience when base state cannot be determined
-    [OAK-6523] - Tune DocumentNodeStore setup for indexing flow for index command
-    [OAK-6525] - Index consistency checker should check all indexes even after failure
-    [OAK-6526] - Slow queries: ability to track them via JMX
-    [OAK-6528] - Implement transparent usage of different binary references index formats
-    [OAK-6530] - Expose last RGC result via Supplier
-    [OAK-6534] - Compute indexPaths from index definitions json
-    [OAK-6536] - Periodic log message from continuous RGC
-    [OAK-6537] - Don't encode the checksums in the TAR index tests
-    [OAK-6539] - Decrease version export for org.apache.jackrabbit.oak.spi.security.authentication
-    [OAK-6540] - Session.hasAccess(...) should reflect read-only status of mounts
-    [OAK-6543] - NodeCounter: JMX description
-    [OAK-6549] - Move gcType to SegmentGCOptions
-    [OAK-6552] - Dump index command should fallback to dumping NodeState incase of error
-    [OAK-6556] - gc.log should contain recordId of compacted root after offline compaction
-    [OAK-6558] - Remove the 'parent' field from the CompositeNodeBuilder
-    [OAK-6559] - Don't allow to place mounts under mounts
-    [OAK-6564] - Update netty dependency to 4.1.x
-    [OAK-6565] - GetBlobResponseEncoder should not write all chunks at once
-
+    [OAK-2710] - Remove Utils.unshareString
+    [OAK-4906] - Lucene: Support relative property based query by
+    transforming the path
+    [OAK-5192] - Reduce Lucene related growth of repository size
+    [OAK-6030] - Add tests for TarFiles
+    [OAK-6563] - Session.hasCapability(...) should reflect read-only
+    status of mounts
+    [OAK-6568] - TarFiles returns null instead of an empty list in the
+    graph
+    [OAK-6569] - TarFiles should uniformly use TAR file names instead
+    of paths
+    [OAK-6570] - TarFiles represents referenced segments in a graph as
+    a list instead of a set
+    [OAK-6574] - Lucene index: include/exclude key pattern list
+    [OAK-6578] - Enhance the UniqueEntryStoreStrategy to return list
+    of matching values and paths
+    [OAK-6585] - Allow to use patterns in the
+    Mount#pathSupportingFragments
+    [OAK-6587] - Provide a way to "force" Tika to treat binaries with
+    a different mime type than the jcr:mimeType property
+    [OAK-6588] - MongoDocumentStore should avoid logging warning when
+    connect in read only mode
+    [OAK-6589] - Close the fixture in oak run console
+    [OAK-6590] - Avoid logging import statements for :load command
+    execution
+    [OAK-6592] - Remove path and rootBuilder from the
+    CompositeNodeBuilder
+    [OAK-6595] - Pre-populate the default store when running composite
+    node store
+    [OAK-6605] - Provide job name for async index update
+    [OAK-6609] - Provide job name for JournalGC and RevisionGC job
+    [OAK-6613] - Provide list of all bundled nodes within a given
+    DocumentNodeState
+    [OAK-6614] - Add ability to add 'excludeFromAggregation' setting
+    while building index definition
+    [OAK-6617] - Mounts.DefaultMount.getName() should not be empty
+    [OAK-6621] - Initialize a default sensible stats provider in
+    UploadStagingCache
+    [OAK-6622] - Configure default core pool size for thread pool used
+    by oak-lucene
+    [OAK-6625] - Avoid oak-run compact inadvertently upgrading the
+    segment format
+    [OAK-6634] - Confusing log entries when memory requirements are
+    not met at start of OnRC
+    [OAK-6636] - Create a path cache for the CompositeNodeState
+    [OAK-6637] - Release IndexNode lock in finally clause
 
 New Feature
 
-    [OAK-3710] - Continuous revision GC
-    [OAK-6457] - Increment the segment version number
-    [OAK-6531] - Implement rolling upgrade from Oak 1.6
-    [OAK-6545] - Support for dumping repository content as json along with blobs via oak-run
-    [OAK-6553] - Progress indicator for compaction
-
+    [OAK-4348] - Cross language search via SMT
+    [OAK-6514] - Make Lucene merge policy configurable
+    [OAK-6593] - CacheStats metrics
 
 Task
 
-    [OAK-6399] - Re-establish full offline compaction functionality
-    [OAK-6449] - Stop using the maven-scr-plugin
-    [OAK-6498] - Update Oak trunk to Jackrabbit 2.15.5
-    [OAK-6511] - Switch to official OSGi versioning annotations
-    [OAK-6519] - Properly handle tail compactions in deduplication caches
-    [OAK-6522] - Implement unit tests for OnlineCompactor
-    [OAK-6532] - Minimise usage of junit-addons
-    [OAK-6533] - Adjust test classpath order to reduce number of error markers in Eclipse
-    [OAK-6538] - Investigate cold standby memory consumption
-    [OAK-6554] - Update Dropwizard Metrics bundles to 3.2 to eliminate sun.misc dependency.
-    [OAK-6555] - Implement ITs for rolling upgrade
-
+    [OAK-6576] - Refactor OakDirectory to be more manageable
+    [OAK-6599] - Review testcases which do not confirm to Maven test
+    pattern
+    [OAK-6629] - Remove unused datastore code relying on JR2 data
+    store caching
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
