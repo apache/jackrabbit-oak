@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvi
 public class RemoteSolrServerConfiguration extends SolrServerConfiguration<RemoteSolrServerProvider> {
 
     private final String solrConfDir;
+    private final int socketTimeout;
+    private final int connectionTimeout;
     private final String[] solrHttpUrls;
     private final String solrZkHost;
     private final String solrCollection;
@@ -33,7 +35,9 @@ public class RemoteSolrServerConfiguration extends SolrServerConfiguration<Remot
     private final int solrReplicationFactor;
 
     public RemoteSolrServerConfiguration(String solrZkHost, String solrCollection, int solrShardsNo, int solrReplicationFactor,
-                                         String solrConfDir, String... solrHttpUrls) {
+                                         String solrConfDir, int socketTimeout, int connectionTimeout, String... solrHttpUrls) {
+        this.socketTimeout = socketTimeout;
+        this.connectionTimeout = connectionTimeout;
         this.solrHttpUrls = solrHttpUrls;
         this.solrZkHost = solrZkHost;
         this.solrCollection = solrCollection;
@@ -66,10 +70,20 @@ public class RemoteSolrServerConfiguration extends SolrServerConfiguration<Remot
         return solrConfDir;
     }
 
+    public int getSocketTimeout() {
+        return socketTimeout;
+    }
+
+    public int getConnectionTimeout() {
+        return connectionTimeout;
+    }
+
     @Override
     public String toString() {
         return "RemoteSolrServerConfiguration{" +
                 "solrConfDir='" + solrConfDir + '\'' +
+                ", socketTimeout=" + socketTimeout +
+                ", connectionTimeout=" + connectionTimeout +
                 ", solrHttpUrls=" + Arrays.toString(solrHttpUrls) +
                 ", solrZkHost='" + solrZkHost + '\'' +
                 ", solrCollection='" + solrCollection + '\'' +
