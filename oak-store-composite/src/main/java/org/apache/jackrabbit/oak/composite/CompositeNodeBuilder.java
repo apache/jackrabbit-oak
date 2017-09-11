@@ -42,14 +42,11 @@ class CompositeNodeBuilder implements NodeBuilder {
 
     private final CompositionContext ctx;
 
-    private NodeMap<NodeBuilder> nodeBuilders;
+    private final NodeMap<NodeBuilder> nodeBuilders;
 
-    private final MountedNodeStore owningStore;
-
-    CompositeNodeBuilder(String path, NodeMap<NodeBuilder> nodeBuilders, CompositionContext ctx) {
+    CompositeNodeBuilder(NodeMap<NodeBuilder> nodeBuilders, CompositionContext ctx) {
         this.ctx = ctx;
         this.nodeBuilders = nodeBuilders;
-        this.owningStore = ctx.getOwningStore(path);
     }
 
     NodeBuilder getNodeBuilder(MountedNodeStore mns) {
@@ -58,12 +55,12 @@ class CompositeNodeBuilder implements NodeBuilder {
 
     @Override
     public CompositeNodeState getNodeState() {
-        return new CompositeNodeState(getPath(), nodeBuilders.getAndApply(n -> n.exists() ? n.getNodeState() : MISSING_NODE), ctx);
+        return new CompositeNodeState(getPath(), nodeBuilders.getAndApply((mns, b) -> b.exists() ? b.getNodeState() : MISSING_NODE), ctx);
     }
 
     @Override
     public CompositeNodeState getBaseState() {
-        return new CompositeNodeState(getPath(), nodeBuilders.getAndApply(NodeBuilder::getBaseState), ctx);
+        return new CompositeNodeState(getPath(), nodeBuilders.getAndApply((mns, b) -> b.getBaseState()), ctx);
     }
 
     // node or property-related methods ; directly delegate to wrapped builder
@@ -213,7 +210,7 @@ class CompositeNodeBuilder implements NodeBuilder {
         if (!ctx.shouldBeComposite(childPath)) {
             return nodeBuilders.get(ctx.getOwningStore(childPath)).getChildNode(name);
         }
-        return new CompositeNodeBuilder(childPath, nodeBuilders.lazyApply(b -> b.getChildNode(name)), ctx);
+        return new CompositeNodeBuilder(nodeBuilders.lazyApply((mns, b) -> b.getChildNode(name)), ctx);
     }
 
     @Override
@@ -226,14 +223,14 @@ class CompositeNodeBuilder implements NodeBuilder {
         checkState(exists(), "This builder does not exist: " + PathUtils.getName(getPath()));
         String childPath = simpleConcat(getPath(), name);
         final MountedNodeStore childStore = ctx.getOwningStore(childPath);
-        if (childStore != owningStore && !nodeBuilders.get(childStore).exists()) {
+        if (childStore != ctx.getGlobalStore() && !nodeBuilders.get(childStore).exists()) {
             throw new IllegalStateException("The mount root doesn't exist: " + getPath() + " for " + childStore);
         }
         final NodeBuilder childBuilder = nodeBuilders.get(childStore).setChildNode(name, nodeState);
         if (!ctx.shouldBeComposite(childPath)) {
             return childBuilder;
         }
-        return new CompositeNodeBuilder(childPath, nodeBuilders.lazyApply(b -> b.getChildNode(name)).replaceNode(childStore, childBuilder), ctx);
+        return new CompositeNodeBuilder(nodeBuilders.lazyApply((mns, b) -> b.getChildNode(name)).replaceNode(childStore, childBuilder), ctx);
     }
 
     @Override
@@ -252,7 +249,7 @@ class CompositeNodeBuilder implements NodeBuilder {
     }
 
     private NodeBuilder getWrappedNodeBuilder() {
-        return nodeBuilders.get(owningStore);
+        return nodeBuilders.get(ctx.getGlobalStore());
     }
 
     String getPath() {

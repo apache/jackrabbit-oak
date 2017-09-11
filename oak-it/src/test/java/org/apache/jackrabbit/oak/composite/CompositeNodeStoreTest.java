@@ -724,23 +724,10 @@ public class CompositeNodeStoreTest {
         //assertTrue(builderFromState.getBaseState().getBoolean("newProperty")); // FIXME
     }
 
-    @Test
+    @Test (expected = UnsupportedOperationException.class)
     public void readOnlyMountRejectsChanges() throws Exception {
-        NodeState oldState = store.getRoot();
-        try {
-            NodeBuilder builder = store.getRoot().builder();
-            builder.getChildNode("readOnly").child("newChild");
-            builder.getChildNode("libs").child("otherChild");
-            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        } catch (CommitFailedException e) {
-            // expected
-            // validate that changes were not applied
-            CountingDiff countingDiff = new CountingDiff();
-            store.getRoot().compareAgainstBaseState(oldState, countingDiff);
-            assertThat("Unexpected number of changes", countingDiff.getNumChanges(), equalTo(0));
-        } catch ( Exception e ) {
-            throw e;
-        }
+        NodeBuilder builder = store.getRoot().builder();
+        builder.getChildNode("readOnly").child("newChild");
     }
 
     @Test

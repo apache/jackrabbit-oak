@@ -224,9 +224,14 @@ public class CompositeNodeStore implements NodeStore, Observable {
         CompositeNodeBuilder nodeBuilder = (CompositeNodeBuilder) builder;
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
         for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
-            NodeStore nodeStore = mountedNodeStore.getNodeStore();
-            NodeBuilder partialBuilder = nodeBuilder.getNodeBuilder(mountedNodeStore);
-            NodeState result = nodeStore.reset(partialBuilder);
+            NodeState result;
+            if (mountedNodeStore.getMount().isReadOnly()) {
+                result = mountedNodeStore.getNodeStore().getRoot();
+            } else {
+                NodeStore nodeStore = mountedNodeStore.getNodeStore();
+                NodeBuilder partialBuilder = nodeBuilder.getNodeBuilder(mountedNodeStore);
+                result = nodeStore.reset(partialBuilder);
+            }
             resultStates.put(mountedNodeStore, result);
         }
         return ctx.createRootNodeState(resultStates);

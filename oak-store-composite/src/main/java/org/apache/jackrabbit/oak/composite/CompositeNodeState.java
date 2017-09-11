@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 
 import java.util.List;
 
@@ -54,15 +55,12 @@ class CompositeNodeState extends AbstractNodeState {
 
     private final CompositionContext ctx;
 
-    private final MountedNodeStore owningStore;
-
     private final String path;
 
     CompositeNodeState(String path, NodeMap<NodeState> nodeStates, CompositionContext ctx) {
         this.path = ctx.getPathCache().get(path);
         this.ctx = ctx;
         this.nodeStates = nodeStates;
-        this.owningStore = ctx.getOwningStore(getPath());
     }
 
     NodeState getNodeState(MountedNodeStore mns) {
@@ -109,7 +107,7 @@ class CompositeNodeState extends AbstractNodeState {
         if (!ctx.shouldBeComposite(childPath)) {
             return nodeStates.get(ctx.getOwningStore(childPath)).getChildNode(name);
         }
-        NodeMap<NodeState> newNodeStates = nodeStates.lazyApply(n -> n.getChildNode(name));
+        NodeMap<NodeState> newNodeStates = nodeStates.lazyApply((mns, n) -> n.getChildNode(name));
         return new CompositeNodeState(childPath, newNodeStates, ctx);
     }
 
@@ -159,9 +157,9 @@ class CompositeNodeState extends AbstractNodeState {
         if (base instanceof CompositeNodeState) {
             CompositeNodeState multiBase = (CompositeNodeState) base;
             NodeStateDiff wrappingDiff = new WrappingDiff(diff, multiBase);
-            boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), new ChildrenDiffFilter(wrappingDiff, owningStore, true));
+            boolean full = getWrappedNodeState().compareAgainstBaseState(multiBase.getWrappedNodeState(), new ChildrenDiffFilter(wrappingDiff, ctx.getGlobalStore(), true));
             for (MountedNodeStore mns : ctx.getContributingStoresForNodes(path, nodeStates)) {
-                if (owningStore == mns) {
+                if (ctx.getGlobalStore() == mns) {
                     continue;
                 }
                 NodeStateDiff childrenDiffFilter = new ChildrenDiffFilter(wrappingDiff, mns, false);
@@ -178,11 +176,17 @@ class CompositeNodeState extends AbstractNodeState {
     // write operations
     @Override
     public CompositeNodeBuilder builder() {
-        return new CompositeNodeBuilder(getPath(), nodeStates.lazyApply(NodeState::builder), ctx);
+        return new CompositeNodeBuilder(nodeStates.lazyApply((mns, n) -> {
+            if (mns.getMount().isReadOnly()) {
+                return new ReadOnlyBuilder(n);
+            } else {
+                return n.builder();
+            }
+        }), ctx);
     }
 
     private NodeState getWrappedNodeState() {
-        return nodeStates.get(owningStore);
+        return nodeStates.get(ctx.getGlobalStore());
     }
 
     private boolean belongsToStore(MountedNodeStore mns, String childName) {
