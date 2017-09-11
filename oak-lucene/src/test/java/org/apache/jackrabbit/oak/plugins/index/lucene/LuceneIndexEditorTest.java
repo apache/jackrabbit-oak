@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
+import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
@@ -30,13 +31,12 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newLuceneI
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,9 +49,9 @@ import java.util.concurrent.Executors;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
@@ -403,7 +403,8 @@ public class LuceneIndexEditorTest {
 
     @Test
     public void copyOnWriteAndLocks() throws Exception {
-        assumeNotWindows();
+        assumeFalse(CIHelper.windows());
+
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         IndexCopier copier = new IndexCopier(executorService, temporaryFolder.getRoot());
 
@@ -612,10 +613,6 @@ public class LuceneIndexEditorTest {
                 }
             }
         }
-    }
-
-    private static void assumeNotWindows() {
-        assumeTrue(!StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows"));
     }
 
 }

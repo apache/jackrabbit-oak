@@ -16,23 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import com.google.common.base.StandardSystemProperty;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollectorImpl;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
-import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.mockito.internal.util.collections.Sets;
+import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_FAILED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,15 +43,23 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
-import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_FAILED;
-import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.CIHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollectorImpl;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.mockito.internal.util.collections.Sets;
 
 public class ActiveDeletedBlobCollectorTest {
     @Rule
@@ -262,7 +263,7 @@ public class ActiveDeletedBlobCollectorTest {
 
     @Test
     public void inaccessibleWorkDirGivesNoop() throws Exception {
-        assumeNotWindows();
+        assumeFalse(CIHelper.windows());
 
         File rootDir = blobCollectionRoot.getRoot();
         File unwritableExistingRootFolder = new File(rootDir, "existingRoot");
@@ -291,10 +292,6 @@ public class ActiveDeletedBlobCollectorTest {
         }
 
         assertThat(blobStore.deletedChunkIds, containsInAnyOrder(chunkIds.toArray()));
-    }
-
-    private static void assumeNotWindows() {
-        assumeTrue(!StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows"));
     }
 
     class ChunkDeletionTrackingBlobStore implements GarbageCollectableBlobStore {
