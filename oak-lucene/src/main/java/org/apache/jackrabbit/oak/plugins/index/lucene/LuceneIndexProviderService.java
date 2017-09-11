@@ -239,7 +239,7 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_DISABLE_STORED_INDEX_DEFINITION = "disableStoredIndexDefinition";
 
-    private static final int PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL = -1;
+    private static final int PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL = 12*60*60;
     @Property(
             intValue = PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL,
             label = "Time interval (in seconds) for actively removing deleted index blobs from blob store",
