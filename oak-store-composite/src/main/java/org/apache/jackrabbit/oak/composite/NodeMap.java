@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -48,16 +49,20 @@ public class NodeMap<T> {
         return suppliers.get(nodeStore).get();
     }
 
-    public <R> NodeMap<R> getAndApply(Function<T, R> function) {
+    public <R> NodeMap<R> getAndApply(BiFunction<MountedNodeStore, T, R> function) {
         ImmutableMap.Builder<MountedNodeStore, CacheableSupplier<R>> newSuppliers = ImmutableMap.builder();
-        suppliers.forEach((mns, node) -> newSuppliers.put(mns, node.getAndApply(function)));
+        suppliers.forEach((mns, node) -> newSuppliers.put(mns, node.getAndApply(curry(function, mns))));
         return new NodeMap<>(newSuppliers.build());
     }
 
-    public <R> NodeMap<R> lazyApply(Function<T, R> function) {
+    public <R> NodeMap<R> lazyApply(BiFunction<MountedNodeStore, T, R> function) {
         ImmutableMap.Builder<MountedNodeStore, CacheableSupplier<R>> newSuppliers = ImmutableMap.builder();
-        suppliers.forEach((mns, node) -> newSuppliers.put(mns, node.lazyApply(function)));
+        suppliers.forEach((mns, node) -> newSuppliers.put(mns, node.lazyApply(curry(function, mns))));
         return new NodeMap<>(newSuppliers.build());
+    }
+
+    private static <T, U, R> Function<U, R> curry(BiFunction<T, U, R> function, T value) {
+        return u -> function.apply(value, u);
     }
 
     public NodeMap<T> replaceNode(MountedNodeStore nodeStore, T node) {
@@ -77,7 +82,7 @@ public class NodeMap<T> {
 
         private volatile T value;
 
-        public CacheableSupplier(Supplier<T> supplier) {
+        private CacheableSupplier(Supplier<T> supplier) {
             this.supplier = supplier;
         }
 

@@ -50,8 +50,14 @@ class CommitHookEnhancer implements CommitHook {
         Map<MountedNodeStore, NodeState> beforeStates = newHashMap();
         Map<MountedNodeStore, NodeState> afterStates = newHashMap();
         for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
-            afterStates.put(mns, mns.getNodeStore().rebase(builder.getNodeBuilder(mns)));
-            beforeStates.put(mns, builder.getNodeBuilder(mns).getBaseState());
+            if (mns.getMount().isReadOnly()) {
+                NodeState root = mns.getNodeStore().getRoot();
+                afterStates.put(mns, root);
+                beforeStates.put(mns, root);
+            } else {
+                afterStates.put(mns, mns.getNodeStore().rebase(builder.getNodeBuilder(mns)));
+                beforeStates.put(mns, builder.getNodeBuilder(mns).getBaseState());
+            }
         }
         afterStates.put(ctx.getGlobalStore(), after);
         beforeStates.put(ctx.getGlobalStore(), before);
