@@ -98,7 +98,7 @@ public class NodeStateCopier {
      * Create a NodeStateCopier.Builder.
      *
      * @return a NodeStateCopier.Builder
-     * @see org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.Builder
+     * @see NodeStateCopier.Builder
      */
     public static Builder builder() {
         return new Builder();
@@ -112,7 +112,7 @@ public class NodeStateCopier {
      * @param target NodeStore to copy to.
      * @return true if the target has been modified
      * @throws CommitFailedException if the operation fails
-     * @see org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.Builder#copy(NodeStore, NodeStore)
+     * @see NodeStateCopier.Builder#copy(NodeStore, NodeStore)
      */
     public static boolean copyNodeStore(@Nonnull final NodeStore source, @Nonnull final NodeStore target)
             throws CommitFailedException {
