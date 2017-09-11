@@ -53,6 +53,7 @@ Bug
     [OAK-6624] - InitialContentMigrator overwrites an existing
     repository
     [OAK-6640] - test failure in ResponseDecoderTest
+    [OAK-6645] - 1.7.7 release fails on javadoc
 
 Improvement
 
