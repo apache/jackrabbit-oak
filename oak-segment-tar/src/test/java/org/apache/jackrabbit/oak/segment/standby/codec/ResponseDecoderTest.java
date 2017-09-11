@@ -29,6 +29,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.InputStream;
 import java.util.UUID;
 
 import com.google.common.base.Charsets;
@@ -64,10 +65,12 @@ public class ResponseDecoderTest {
         GetBlobResponse response = (GetBlobResponse) channel.readInbound();
         assertEquals("blobId", response.getBlobId());
         assertEquals(blobData.length, response.getLength());
-        byte[] receivedData = IOUtils.toByteArray(response.getInputStream());
-        assertArrayEquals(blobData, receivedData);
+        try (InputStream is = response.getInputStream()) {
+            byte[] receivedData = IOUtils.toByteArray(is);
+            assertArrayEquals(blobData, receivedData);
+        }
     }
-    
+
     @Test
     public void shouldDecodeValidTwoChunksGetBlobResponses() throws Exception {
         byte[] blobData = new byte[] {1, 2, 3, 4};
