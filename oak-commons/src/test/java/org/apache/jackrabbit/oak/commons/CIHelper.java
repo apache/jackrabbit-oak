@@ -23,6 +23,8 @@ import static com.google.common.base.Objects.equal;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.getenv;
 
+import com.google.common.base.StandardSystemProperty;
+
 /**
  * Utility class for ITs to determine the environment running in.
  */
@@ -85,6 +87,13 @@ public final class CIHelper {
             }
         }
         return false;
+    }
+
+    /**
+     * @return  {@code true} iff running in a Windows environment
+     */
+    public static boolean windows() {
+        return StandardSystemProperty.OS_NAME.value().toLowerCase().contains("windows");
     }
 
 }
