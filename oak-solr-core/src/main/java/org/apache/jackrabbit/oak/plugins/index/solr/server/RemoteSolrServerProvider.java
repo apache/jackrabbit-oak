@@ -81,7 +81,11 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
         if (server instanceof HttpSolrServer) {
             String url = ((HttpSolrServer) server).getBaseURL();
-            server = new ConcurrentUpdateSolrServer(url, 1000, Runtime.getRuntime().availableProcessors());
+            ConcurrentUpdateSolrServer concurrentUpdateSolrServer = new ConcurrentUpdateSolrServer(url, 1000, Runtime.getRuntime().availableProcessors());
+            concurrentUpdateSolrServer.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
+            concurrentUpdateSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
+            concurrentUpdateSolrServer.blockUntilFinished();
+            server = concurrentUpdateSolrServer;
         }
         return server;
     }
@@ -95,6 +99,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private SolrServer initializeWithExistingHttpServer() throws IOException, SolrServerException {
         // try basic Solr HTTP client
         HttpSolrServer httpSolrServer = new HttpSolrServer(remoteSolrServerConfiguration.getSolrHttpUrls()[0]);
+        httpSolrServer.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
+        httpSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
         SolrPingResponse ping = httpSolrServer.ping();
         if (ping != null && 0 == ping.getStatus()) {
             return httpSolrServer;
@@ -107,7 +113,9 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private SolrServer initializeWithCloudSolrServer() throws IOException {
         // try SolrCloud client
         CloudSolrServer cloudSolrServer = new CloudSolrServer(remoteSolrServerConfiguration.getSolrZkHost());
-        cloudSolrServer.setZkConnectTimeout(100);
+        cloudSolrServer.setZkConnectTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
+        cloudSolrServer.setZkClientTimeout(remoteSolrServerConfiguration.getSocketTimeout());
+
         if (connectToZK(cloudSolrServer)) {
             cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
 

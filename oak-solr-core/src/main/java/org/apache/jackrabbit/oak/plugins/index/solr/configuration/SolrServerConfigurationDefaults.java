@@ -35,5 +35,6 @@ public class SolrServerConfigurationDefaults {
     public static final int SHARDS_NO = 2;
     public static final int REPLICATION_FACTOR = 2;
     public static final String CONFIGURATION_DIRECTORY = "";
-
+    public static final int SOCKET_TIMEOUT = 3000;
+    public static final int CONNECTION_TIMEOUT = 3000;
 }

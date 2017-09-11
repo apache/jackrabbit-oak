@@ -60,7 +60,8 @@ public class RemoteSolrServerProviderIT {
             }
             if (cloudServerAvailable) {
                 String collection = "sample_" + System.nanoTime();
-                RemoteSolrServerProvider remoteSolrServerProvider = new RemoteSolrServerProvider(new RemoteSolrServerConfiguration(host, collection, 2, 2, null));
+                RemoteSolrServerProvider remoteSolrServerProvider = new RemoteSolrServerProvider(
+                        new RemoteSolrServerConfiguration(host, collection, 2, 2, null, 10, 10, null));
                 SolrServer solrServer = remoteSolrServerProvider.getSolrServer();
                 assertNotNull(solrServer);
                 solrServer.shutdown();

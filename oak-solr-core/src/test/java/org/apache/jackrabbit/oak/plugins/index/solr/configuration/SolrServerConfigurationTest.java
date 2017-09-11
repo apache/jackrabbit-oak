@@ -29,7 +29,8 @@ public class SolrServerConfigurationTest {
 
     @Test
     public void testCreateRemoteServerFromConfig() throws Exception {
-        SolrServerConfiguration<RemoteSolrServerProvider> remoteSolrServerProviderSolrServerConfiguration = new RemoteSolrServerConfiguration(null, null, 1, 1, null);
+        SolrServerConfiguration<RemoteSolrServerProvider> remoteSolrServerProviderSolrServerConfiguration =
+                new RemoteSolrServerConfiguration(null, null, 1, 1, null, 10, 10, null);
         RemoteSolrServerProvider remoteSolrServerProvider = remoteSolrServerProviderSolrServerConfiguration.getProvider();
         assertNotNull(remoteSolrServerProvider);
     }
