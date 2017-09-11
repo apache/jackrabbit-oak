@@ -210,8 +210,13 @@ public class CompositeNodeStore implements NodeStore, Observable {
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
         for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
             NodeStore nodeStore = mountedNodeStore.getNodeStore();
-            NodeBuilder partialBuilder = nodeBuilder.getNodeBuilder(mountedNodeStore);
-            NodeState result = nodeStore.rebase(partialBuilder);
+            NodeState result;
+            if (mountedNodeStore.getMount().isReadOnly()) {
+                result = nodeStore.getRoot();
+            } else {
+                NodeBuilder partialBuilder = nodeBuilder.getNodeBuilder(mountedNodeStore);
+                result = nodeStore.rebase(partialBuilder);
+            }
             resultStates.put(mountedNodeStore, result);
         }
         return ctx.createRootNodeState(resultStates);
@@ -224,11 +229,11 @@ public class CompositeNodeStore implements NodeStore, Observable {
         CompositeNodeBuilder nodeBuilder = (CompositeNodeBuilder) builder;
         Map<MountedNodeStore, NodeState> resultStates = newHashMap();
         for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
+            NodeStore nodeStore = mountedNodeStore.getNodeStore();
             NodeState result;
             if (mountedNodeStore.getMount().isReadOnly()) {
-                result = mountedNodeStore.getNodeStore().getRoot();
+                result = nodeStore.getRoot();
             } else {
-                NodeStore nodeStore = mountedNodeStore.getNodeStore();
                 NodeBuilder partialBuilder = nodeBuilder.getNodeBuilder(mountedNodeStore);
                 result = nodeStore.reset(partialBuilder);
             }
