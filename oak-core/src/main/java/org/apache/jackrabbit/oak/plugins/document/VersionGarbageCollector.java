@@ -1044,7 +1044,8 @@ public class VersionGarbageCollector {
             long oldestPossible;
             long collectLimit = options.collectLimit;
 
-            lastOldestTimestamp = getLongSetting(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
+            Map<String, Long> settings = getLongSettings();
+            lastOldestTimestamp = settings.get(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
             if (lastOldestTimestamp == 0) {
                 log.debug("No lastOldestTimestamp found, querying for the oldest deletedOnce candidate");
                 oldestPossible = versionStore.getOldestDeletedOnceTimestamp(nodeStore.getClock(), options.precisionMs) - 1;
@@ -1056,7 +1057,7 @@ public class VersionGarbageCollector {
             TimeInterval scope = new TimeInterval(oldestPossible, Long.MAX_VALUE);
             scope = scope.notLaterThan(keep.fromMs);
 
-            suggestedIntervalMs = getLongSetting(SETTINGS_COLLECTION_REC_INTERVAL_PROP);
+            suggestedIntervalMs = settings.get(SETTINGS_COLLECTION_REC_INTERVAL_PROP);
             if (suggestedIntervalMs > 0) {
                 suggestedIntervalMs = Math.max(suggestedIntervalMs, options.precisionMs);
                 if (suggestedIntervalMs < scope.getDurationMs()) {
@@ -1154,20 +1155,25 @@ public class VersionGarbageCollector {
             }
         }
 
-        private long getLongSetting(String propName) {
+        private Map<String, Long> getLongSettings() {
             Document versionGCDoc = ds.find(Collection.SETTINGS, SETTINGS_COLLECTION_ID, 0);
+            Map<String, Long> settings = Maps.newHashMap();
+            // default values
+            settings.put(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, 0L);
+            settings.put(SETTINGS_COLLECTION_REC_INTERVAL_PROP, 0L);
             if (versionGCDoc != null) {
-                Long l = (Long) versionGCDoc.get(propName);
-                if (l != null) {
-                    return l;
+                for (String k : versionGCDoc.keySet()) {
+                    Object value = versionGCDoc.get(k);
+                    if (value instanceof Number) {
+                        settings.put(k, ((Number) value).longValue());
+                    }
                 }
             }
-            return 0;
+            return settings;
         }
 
         private void setLongSetting(String propName, long val) {
-            UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID,
-                    (ds.find(Collection.SETTINGS, SETTINGS_COLLECTION_ID) == null));
+            UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, true);
             updateOp.set(propName, val);
             ds.createOrUpdate(Collection.SETTINGS, updateOp);
         }

@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 
@@ -227,6 +228,14 @@ public class VersionGCTest {
         assertTrue(infoMessages.get(2).startsWith("Revision garbage collection finished"));
     }
 
+    @Test
+    public void findVersionGC() throws Exception {
+        store.findVersionGC.set(0);
+        gc.gc(1, TimeUnit.HOURS);
+        // must only read once
+        assertEquals(1, store.findVersionGC.get());
+    }
+
     private Future<VersionGCStats> gc() {
         // run gc in a separate thread
         return execService.submit(new Callable<VersionGCStats>() {
@@ -258,6 +267,8 @@ public class VersionGCTest {
 
         Semaphore semaphore = new Semaphore(1);
 
+        AtomicLong findVersionGC = new AtomicLong();
+
         @Nonnull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection,
@@ -272,6 +283,16 @@ public class VersionGCTest {
             } finally {
                 semaphore.release();
             }
+        }
+
+        @Override
+        public <T extends Document> T find(Collection<T> collection,
+                                           String key) {
+            if (collection == Collection.SETTINGS
+                    && key.equals("versionGC")) {
+                findVersionGC.incrementAndGet();
+            }
+            return super.find(collection, key);
         }
     }
 
