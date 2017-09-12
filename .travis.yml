@@ -31,12 +31,7 @@ jdk:
 cache:
   directories:
     - $HOME/.m2
-addons:
-  apt:
-    sources:
-      - mongodb-upstart
-    packages:
-      - mongodb-org-server
-      - oracle-java8-installer
+services:
+  - mongodb
 notifications:
   email: false
