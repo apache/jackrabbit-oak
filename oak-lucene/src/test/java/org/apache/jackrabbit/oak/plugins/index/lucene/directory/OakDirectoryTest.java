@@ -28,6 +28,7 @@ import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_BLOB_SIZE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNIQUE_KEY;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.UNIQUE_KEY_SIZE;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -177,6 +178,26 @@ public class OakDirectoryTest {
         Set<String> files =  newHashSet(dir.listAll());
         dir.close();
         assertEquals(fileNames, files);
+    }
+
+    // OAK-6562
+    @Test
+    public void createOutputReInitsFile() throws Exception {
+        builder.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
+        Directory dir = createDir(builder, false, "/foo");
+
+        final String fileName = "foo";
+        dir.createOutput(fileName, IOContext.DEFAULT);
+        String firstUniqueKey = builder.getChildNode(INDEX_DATA_CHILD_NAME)
+                .getChildNode(fileName).getString(PROP_UNIQUE_KEY);
+
+        dir.createOutput(fileName, IOContext.DEFAULT);
+        String secondUniqueKey = builder.getChildNode(INDEX_DATA_CHILD_NAME)
+                .getChildNode(fileName).getString(PROP_UNIQUE_KEY);
+
+        assertFalse("Unique key must change on re-incarnating output with same name",
+                firstUniqueKey.equals(secondUniqueKey));
+
     }
 
     byte[] assertWrites(Directory dir, int blobSize) throws IOException {

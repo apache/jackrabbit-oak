@@ -175,16 +175,20 @@ public class OakDirectory extends Directory {
             throws IOException {
         checkArgument(!readOnly, "Read only directory");
         NodeBuilder file;
-        if (!directoryBuilder.hasChildNode(name)) {
-            file = directoryBuilder.child(name);
-            byte[] uniqueKey = new byte[UNIQUE_KEY_SIZE];
-            secureRandom.nextBytes(uniqueKey);
-            String key = StringUtils.convertBytesToHex(uniqueKey);
-            file.setProperty(PROP_UNIQUE_KEY, key);
-            file.setProperty(PROP_BLOB_SIZE, definition.getBlobSize());
-        } else {
-            file = directoryBuilder.child(name);
+
+        // OAK-6562: Learn from FSDirectory and delete existing file
+        // on creating output
+        if (directoryBuilder.hasChildNode(name)) {
+            directoryBuilder.getChildNode(name).remove();
         }
+
+        file = directoryBuilder.child(name);
+        byte[] uniqueKey = new byte[UNIQUE_KEY_SIZE];
+        secureRandom.nextBytes(uniqueKey);
+        String key = StringUtils.convertBytesToHex(uniqueKey);
+        file.setProperty(PROP_UNIQUE_KEY, key);
+        file.setProperty(PROP_BLOB_SIZE, definition.getBlobSize());
+
         fileNames.add(name);
         markDirty();
         return new OakIndexOutput(name, file, indexName, blobFactory);
