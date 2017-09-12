@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Supplier;
@@ -63,7 +64,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
         this(indexName, NOOP);
     }
 
-    public UniqueEntryStoreStrategy(String indexName, Consumer<NodeBuilder> insertCallback) {
+    public UniqueEntryStoreStrategy(String indexName, @Nonnull Consumer<NodeBuilder> insertCallback) {
         this.indexName = indexName;
         this.insertCallback = insertCallback;
     }
