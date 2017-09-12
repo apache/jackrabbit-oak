@@ -152,8 +152,12 @@ public abstract class DataStoreTestBase extends TestBase {
         Blob b = ps.getValue(Type.BINARY);
         assertEquals(blobSize, b.length());
         byte[] testData = new byte[blobSize];
-        ByteStreams.readFully(b.getNewStream(), testData);
-        assertArrayEquals(data, testData);
+        try (
+                InputStream blobInputStream = b.getNewStream()
+        ) {
+            ByteStreams.readFully(blobInputStream, testData);
+            assertArrayEquals(data, testData);
+        }
     }
 
     /*
@@ -190,7 +194,12 @@ public abstract class DataStoreTestBase extends TestBase {
         Blob b = ps.getValue(Type.BINARY);
         assertEquals(blobSize, b.length());
         
-        assertTrue(IOUtils.contentEquals(newRandomInputStream(blobSize, seed), b.getNewStream()));
+        try (
+                InputStream randomInputStream = newRandomInputStream(blobSize, seed);
+                InputStream blobInputStream = b.getNewStream()
+        ) {
+            assertTrue(IOUtils.contentEquals(randomInputStream, blobInputStream));
+        }
     }
     
     /*
@@ -302,7 +311,11 @@ public abstract class DataStoreTestBase extends TestBase {
         Blob b = ps.getValue(Type.BINARY);
         assertEquals(blobSize, b.length());
         byte[] testData = new byte[blobSize];
-        ByteStreams.readFully(b.getNewStream(), testData);
-        assertArrayEquals(data, testData);
+        try (
+                InputStream blobInputStream = b.getNewStream()
+        ) {
+            ByteStreams.readFully(blobInputStream, testData);
+            assertArrayEquals(data, testData);
+        }
     }
 }
