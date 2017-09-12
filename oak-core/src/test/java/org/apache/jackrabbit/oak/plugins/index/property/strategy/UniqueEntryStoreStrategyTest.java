@@ -23,14 +23,15 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -79,5 +80,20 @@ public class UniqueEntryStoreStrategyTest {
         Iterable<IndexEntry> hits = store.queryEntries(FilterImpl.newTestInstance(), indexName, indexMeta.getNodeState(), Arrays.asList("key3"));
         
         assertThat(hits, iterableWithSize(0));
+    }
+
+    @Test
+    public void callbackInvoked() throws Exception{
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+        store = new UniqueEntryStoreStrategy(INDEX_CONTENT_NODE_NAME, (nb) -> callbackInvoked.set(true));
+
+        indexName = "foo";
+
+        NodeState root = EMPTY_NODE;
+        indexMeta = root.builder();
+        Supplier<NodeBuilder> index = memoize(() -> indexMeta.child(INDEX_CONTENT_NODE_NAME));
+        store.update(index, "/some/node1", null, null, EMPTY, newHashSet("key1"));
+
+        assertTrue(callbackInvoked.get());
     }
 }
