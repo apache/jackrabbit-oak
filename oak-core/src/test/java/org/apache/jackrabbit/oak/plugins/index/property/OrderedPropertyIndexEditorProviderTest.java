@@ -31,17 +31,20 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -55,8 +58,8 @@ public class OrderedPropertyIndexEditorProviderTest {
     private final String indexName = "mickey";
     private final String indexedProperty = "mouse";
     
-    private void createIndexDef(NodeBuilder root) throws RepositoryException {
-        IndexUtils
+    private Tree createIndexDef(NodeBuilder root) throws RepositoryException {
+        return IndexUtils
         .createIndexDefinition(
             TreeFactory.createTree(root
                 .child(IndexConstants.INDEX_DEFINITIONS_NAME)), indexName, false,
@@ -106,5 +109,22 @@ public class OrderedPropertyIndexEditorProviderTest {
         custom.finished();
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)
             .getChildNode(INDEX_CONTENT_NODE_NAME).exists());
+    }
+
+    @Ignore("OAK-6656")
+    @Test
+    public void providerShouldBeAvailable() throws Exception {
+        CommitHook hook = new EditorHook(new IndexUpdateProvider(
+                new OrderedPropertyIndexEditorProvider(), null, true));
+
+        NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
+
+        createIndexDef(root).setProperty("reindex", false);
+
+        NodeState before = root.getNodeState();
+        root.child("foo");
+        NodeState after = root.getNodeState();
+
+        hook.processCommit(before, after, CommitInfo.EMPTY);
     }
 }
