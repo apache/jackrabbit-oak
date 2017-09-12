@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,15 +37,12 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -57,6 +55,9 @@ public class OrderedPropertyIndexEditorProviderTest {
     
     private final String indexName = "mickey";
     private final String indexedProperty = "mouse";
+
+    private final String DEPRECATION_MESSAGE = OrderedIndex.DEPRECATION_MESSAGE.replace("{}",
+            "/" + INDEX_DEFINITIONS_NAME + "/" + indexName);
     
     private Tree createIndexDef(NodeBuilder root) throws RepositoryException {
         return IndexUtils
@@ -68,7 +69,7 @@ public class OrderedPropertyIndexEditorProviderTest {
     
     @Test
     public void withIndexDefSingleNode() throws RepositoryException, CommitFailedException {
-        NodeBuilder root = InitialContent.INITIAL_CONTENT.builder();
+        NodeBuilder root = EMPTY_NODE.builder();
         
         createIndexDef(root);
         
@@ -79,7 +80,7 @@ public class OrderedPropertyIndexEditorProviderTest {
         custom.starting();
         root = hook.processCommit(before, after, CommitInfo.EMPTY).builder();
         assertEquals(1, custom.getLogs().size());
-        assertThat(custom.getLogs(), hasItem(OrderedIndex.DEPRECATION_MESSAGE));
+        assertThat(custom.getLogs(), hasItem(DEPRECATION_MESSAGE));
         custom.finished();
         
         NodeBuilder b = root.getChildNode(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE)
@@ -91,10 +92,10 @@ public class OrderedPropertyIndexEditorProviderTest {
     public void withIndexMultipleNodes() throws RepositoryException, CommitFailedException {
         final int threshold = 5;
         final int nodes = 16;
-        final int traces = nodes / threshold;
+        final int traces = 1 + (nodes - 1) / threshold;
         OrderedPropertyIndexEditorProvider.setThreshold(threshold);
-        final List<String> expected = Collections.nCopies(traces, OrderedIndex.DEPRECATION_MESSAGE); 
-        NodeBuilder root = InitialContent.INITIAL_CONTENT.builder();
+        final List<String> expected = Collections.nCopies(traces, DEPRECATION_MESSAGE);
+        NodeBuilder root = EMPTY_NODE.builder();
         createIndexDef(root);
 
         custom.starting();
@@ -111,13 +112,12 @@ public class OrderedPropertyIndexEditorProviderTest {
             .getChildNode(INDEX_CONTENT_NODE_NAME).exists());
     }
 
-    @Ignore("OAK-6656")
     @Test
     public void providerShouldBeAvailable() throws Exception {
         CommitHook hook = new EditorHook(new IndexUpdateProvider(
                 new OrderedPropertyIndexEditorProvider(), null, true));
 
-        NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
+        NodeBuilder root = EMPTY_NODE.builder();
 
         createIndexDef(root).setProperty("reindex", false);
 

@@ -472,7 +472,7 @@ public class IndexUpdate implements Editor, PathSource {
         private boolean failOnMissingIndexProvider = Boolean
                 .getBoolean("oak.indexUpdate.failOnMissingIndexProvider");
 
-        private final Set<String> ignore = newHashSet("disabled");
+        private final Set<String> ignore = newHashSet("disabled", "ordered");
 
         public void onMissingIndex(String type, NodeBuilder definition, String indexPath)
                 throws CommitFailedException {
