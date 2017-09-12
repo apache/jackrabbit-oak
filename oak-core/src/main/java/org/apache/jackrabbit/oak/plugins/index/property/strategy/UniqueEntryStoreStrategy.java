@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -48,14 +49,23 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
 
     static final Logger LOG = LoggerFactory.getLogger(UniqueEntryStoreStrategy.class);
 
+    private static final Consumer<NodeBuilder> NOOP = (nb) -> {};
+
     private final String indexName;
+
+    private final Consumer<NodeBuilder> insertCallback;
 
     public UniqueEntryStoreStrategy() {
         this(INDEX_CONTENT_NODE_NAME);
     }
 
     public UniqueEntryStoreStrategy(String indexName) {
+        this(indexName, NOOP);
+    }
+
+    public UniqueEntryStoreStrategy(String indexName, Consumer<NodeBuilder> insertCallback) {
         this.indexName = indexName;
+        this.insertCallback = insertCallback;
     }
 
     @Override
@@ -95,7 +105,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
         }
     }
     
-    private static void insert(NodeBuilder index, String key, String value) {
+    private void insert(NodeBuilder index, String key, String value) {
         ApproximateCounter.adjustCountSync(index, 1);
         NodeBuilder k = index.child(key);
         ArrayList<String> list = new ArrayList<String>();
@@ -114,6 +124,8 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
         }
         PropertyState s2 = MultiStringPropertyState.stringProperty("entry", list);
         k.setProperty(s2);
+
+        insertCallback.accept(k);
     }
 
     @Override
