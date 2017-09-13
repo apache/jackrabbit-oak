@@ -24,7 +24,6 @@ import java.util.Properties;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -58,7 +57,6 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
     public OakDocumentRDBRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
 
-        Session session = null;
         final DocumentNodeStore m;
         try {
             String prefix = "T" + Long.toHexString(System.currentTimeMillis());
@@ -68,16 +66,12 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
                     setPersistentCache("target/persistentCache,time").
                     setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, USERNAME, PASSWD), options).
                     getNodeStore();
-            this.repository = new Jcr(m).with(getQueryEngineSettings()).createRepository();
-            session = getRepository().login(superuser);
-            TestContentLoader loader = new TestContentLoader();
-            loader.loadTestContent(session);
+            Jcr jcr = new Jcr(m);
+            preCreateRepository(jcr);
+            this.repository = jcr.createRepository();
+            loadTestContent(repository);
         } catch (Exception e) {
             throw new RepositoryException(e);
-        } finally {
-            if (session != null) {
-                session.logout();
-            }
         }
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
