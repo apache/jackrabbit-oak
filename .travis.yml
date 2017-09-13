@@ -14,6 +14,16 @@
 # limitations under the License.
 
 sudo: false
+env:
+  global:
+    - MONGO_VER=2.6.12
+before_install:
+  - wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-$MONGO_VER.tgz
+  - tar xfz mongodb-linux-x86_64-$MONGO_VER.tgz
+  - export PATH=`pwd`/mongodb-linux-x86_64-$MONGO_VER/bin:$PATH
+  - mkdir -p target/data/db
+  - mongod --dbpath=target/data/db --logpath=target/mongodb.log &
+  - sleep 3
 install:  true
 script:   mvn --batch-mode verify -Ppedantic,integrationTesting -pl :oak-lucene -am
 language: java
@@ -22,7 +32,5 @@ jdk:
 cache:
   directories:
     - $HOME/.m2
-services:
-  - mongodb
 notifications:
   email: false
