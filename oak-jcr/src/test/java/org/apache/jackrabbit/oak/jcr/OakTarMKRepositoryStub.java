@@ -21,7 +21,6 @@ import java.util.Properties;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -48,25 +47,16 @@ public class OakTarMKRepositoryStub extends OakRepositoryStub {
     public OakTarMKRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
 
-        Session session = null;
         try {
             File directory =
                     new File("target", "tarmk-" + System.currentTimeMillis());
             this.store = FileStoreBuilder.fileStoreBuilder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
             Jcr jcr = new Jcr(new Oak(SegmentNodeStoreBuilders.builder(store).build()));
-            jcr.with(getQueryEngineSettings());
             preCreateRepository(jcr);
             this.repository = jcr.createRepository();
-
-            session = getRepository().login(superuser);
-            TestContentLoader loader = new TestContentLoader();
-            loader.loadTestContent(session);
+            loadTestContent(repository);
         } catch (Exception e) {
             throw new RepositoryException(e);
-        } finally {
-            if (session != null) {
-                session.logout();
-            }
         }
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
@@ -74,15 +64,6 @@ public class OakTarMKRepositoryStub extends OakRepositoryStub {
                 store.close();
             }
         }));
-    }
-
-    /**
-     * Override in base class and perform additional configuration on the
-     * {@link Jcr} builder before the repository is created.
-     *
-     * @param jcr the builder.
-     */
-    protected void preCreateRepository(Jcr jcr) {
     }
 
     /**
