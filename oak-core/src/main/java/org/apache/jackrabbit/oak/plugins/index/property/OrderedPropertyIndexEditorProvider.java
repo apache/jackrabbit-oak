@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 @Service(IndexEditorProvider.class)
 public class OrderedPropertyIndexEditorProvider implements IndexEditorProvider, OrderedIndex {
    private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexEditorProvider.class);
-   private static int hits;
+   private int hits;
    private static int threshold = OrderedIndex.TRACK_DEPRECATION_EVERY;
    
    @Override
@@ -46,11 +46,11 @@ public class OrderedPropertyIndexEditorProvider implements IndexEditorProvider, 
                                 @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
         if (OrderedIndex.TYPE.equals(type)) {
             if (hit() % threshold == 0) {
-                LOG.warn(OrderedIndex.DEPRECATION_MESSAGE);                
+                LOG.warn(OrderedIndex.DEPRECATION_MESSAGE, definition);
             }
         }
         return null;
-    }
+   }
    
    private synchronized int hit() {
        return hits++;
