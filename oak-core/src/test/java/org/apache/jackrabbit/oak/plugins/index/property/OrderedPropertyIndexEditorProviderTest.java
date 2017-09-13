@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,11 +31,11 @@ import java.util.List;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -54,18 +55,24 @@ public class OrderedPropertyIndexEditorProviderTest {
     
     private final String indexName = "mickey";
     private final String indexedProperty = "mouse";
-    
-    private void createIndexDef(NodeBuilder root) throws RepositoryException {
-        IndexUtils
-        .createIndexDefinition(
-            new NodeUtil(TreeFactory.createTree(root
-                .child(IndexConstants.INDEX_DEFINITIONS_NAME))), indexName, false,
-            new String[] { indexedProperty }, null, OrderedIndex.TYPE);
+
+    // Resorting to this hack as we don't have OAK-4642 in this branch yet :(
+    private final String DEFNITION_NODE_STATE_TO_STRING = "MemoryNodeBuilder{path=/oak:index/mickey}";
+    private final String DEPRECATION_MESSAGE = OrderedIndex.DEPRECATION_MESSAGE.replace("{}",
+            DEFNITION_NODE_STATE_TO_STRING);
+
+    private Tree createIndexDef(NodeBuilder root) throws RepositoryException {
+        return IndexUtils
+                .createIndexDefinition(
+                        new NodeUtil(TreeFactory.createTree(root
+                                .child(IndexConstants.INDEX_DEFINITIONS_NAME))), indexName, false,
+                        new String[] { indexedProperty }, null, OrderedIndex.TYPE)
+                .getTree();
     }
     
     @Test
     public void withIndexDefSingleNode() throws RepositoryException, CommitFailedException {
-        NodeBuilder root = InitialContent.INITIAL_CONTENT.builder();
+        NodeBuilder root = EMPTY_NODE.builder();
         
         createIndexDef(root);
         
@@ -76,7 +83,7 @@ public class OrderedPropertyIndexEditorProviderTest {
         custom.starting();
         root = hook.processCommit(before, after, CommitInfo.EMPTY).builder();
         assertEquals(1, custom.getLogs().size());
-        assertThat(custom.getLogs(), hasItem(OrderedIndex.DEPRECATION_MESSAGE));
+        assertThat(custom.getLogs(), hasItem(DEPRECATION_MESSAGE));
         custom.finished();
         
         NodeBuilder b = root.getChildNode(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE)
@@ -88,10 +95,10 @@ public class OrderedPropertyIndexEditorProviderTest {
     public void withIndexMultipleNodes() throws RepositoryException, CommitFailedException {
         final int threshold = 5;
         final int nodes = 16;
-        final int traces = nodes / threshold;
+        final int traces = 1 + (nodes - 1) / threshold;
         OrderedPropertyIndexEditorProvider.setThreshold(threshold);
-        final List<String> expected = Collections.nCopies(traces, OrderedIndex.DEPRECATION_MESSAGE); 
-        NodeBuilder root = InitialContent.INITIAL_CONTENT.builder();
+        final List<String> expected = Collections.nCopies(traces, DEPRECATION_MESSAGE);
+        NodeBuilder root = EMPTY_NODE.builder();
         createIndexDef(root);
 
         custom.starting();
@@ -106,5 +113,30 @@ public class OrderedPropertyIndexEditorProviderTest {
         custom.finished();
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName)
             .getChildNode(INDEX_CONTENT_NODE_NAME).exists());
+    }
+
+    @Test
+    public void providerShouldBeAvailable() throws Exception {
+        String failOnMissingProviderName = "oak.indexUpdate.failOnMissingIndexProvider";
+        String oldVal = System.getProperty(failOnMissingProviderName);
+        System.setProperty(failOnMissingProviderName, "true");
+
+        CommitHook hook = new EditorHook(new IndexUpdateProvider(new OrderedPropertyIndexEditorProvider()));
+
+        NodeBuilder root = EMPTY_NODE.builder();
+
+        createIndexDef(root).setProperty("reindex", false);
+
+        NodeState before = root.getNodeState();
+        root.child("foo");
+        NodeState after = root.getNodeState();
+
+        hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        if (oldVal == null) {
+            System.clearProperty(failOnMissingProviderName);
+        } else {
+            System.setProperty(failOnMissingProviderName, oldVal);
+        }
     }
 }
