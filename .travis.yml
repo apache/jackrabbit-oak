@@ -27,15 +27,11 @@ install:  mvn --batch-mode -DskipTests install -pl :${MODULE} -am
 script:   mvn --batch-mode clean verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :${MODULE}
 language: java
 jdk:
-  - oraclejdk7
+  - openjdk7
 cache:
   directories:
     - $HOME/.m2
-addons:
-  apt:
-    sources:
-      - mongodb-upstart
-    packages:
-      - mongodb-org-server
+services:
+  - mongodb
 notifications:
   email: false
