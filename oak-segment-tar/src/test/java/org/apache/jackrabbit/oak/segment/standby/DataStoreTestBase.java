@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
+import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.test.proxy.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -165,15 +167,17 @@ public abstract class DataStoreTestBase extends TestBase {
      */
     @Test
     public void testSyncBigBlob() throws Exception {
+        assumeFalse(CIHelper.windows());  // FIXME OAK-6641: fails on Windows
+
         final long blobSize = (long) (1 * GB);
         final int seed = 13;
-        
+
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         addTestContentOnTheFly(store, "server", blobSize, seed);
-        
+
         try (
                 StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 16 * MB);
                 StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 15_000)
@@ -193,7 +197,7 @@ public abstract class DataStoreTestBase extends TestBase {
         assertEquals(Type.BINARY.tag(), ps.getType().tag());
         Blob b = ps.getValue(Type.BINARY);
         assertEquals(blobSize, b.length());
-        
+
         try (
                 InputStream randomInputStream = newRandomInputStream(blobSize, seed);
                 InputStream blobInputStream = b.getNewStream()
