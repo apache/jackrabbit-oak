@@ -22,11 +22,7 @@ package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
+import org.apache.felix.scr.annotations.*;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.conversion.URIProvider;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
@@ -61,7 +57,7 @@ import java.util.Map;
  * See http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-trusted-signers.html#private-content-creating-cloudfront-key-pairs for
  * details on how to configure CloudFront.
  */
-@Component(immediate = true, metatype = true)
+@Component(immediate = true, metatype = true, policy = ConfigurationPolicy.REQUIRE)
 @Service(URIProvider.class)
 public class CloudFrontS3SignedUrlProvider implements URIProvider {
     private static final String[] TARGET_CLASSES = new String[]{URI.class.getName()};
