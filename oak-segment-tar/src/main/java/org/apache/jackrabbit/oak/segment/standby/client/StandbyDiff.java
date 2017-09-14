@@ -63,7 +63,7 @@ class StandbyDiff implements NodeStateDiff {
      * missing binaries can be sync'ed if needed
      */
     private final boolean logOnly;
-
+    
     StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, Supplier<Boolean> running) {
         this(builder, store, client, "/", false, running);
     }
@@ -87,13 +87,11 @@ class StandbyDiff implements NodeStateDiff {
         if (stop()) {
             return false;
         }
-
-        if (logOnly) {
-            binaryCheck(after);
-        } else {
-            builder.setProperty(binaryCheck(after));
+        
+        if (!logOnly) {
+            builder.setProperty(after);
         }
-
+        
         return true;
     }
 
@@ -102,13 +100,11 @@ class StandbyDiff implements NodeStateDiff {
         if (stop()) {
             return false;
         }
-
-        if (logOnly) {
-            binaryCheck(after);
-        } else {
-            builder.setProperty(binaryCheck(after));
+        
+        if (!logOnly) {
+            builder.setProperty(after);
         }
-
+        
         return true;
     }
 
@@ -121,10 +117,70 @@ class StandbyDiff implements NodeStateDiff {
         if (!logOnly) {
             builder.removeProperty(before.getName());
         }
+        
+        return true;
+    }
+
+    @Override
+    public boolean childNodeAdded(String name, NodeState after) {
+        return process(name, "childNodeAdded", EmptyNodeState.EMPTY_NODE, after);
+    }
+
+    @Override
+    public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+        return process(name, "childNodeChanged", before, after);
+    }
+    
+    @Override
+    public boolean childNodeDeleted(String name, NodeState before) {
+        log.trace("childNodeDeleted {}, RO:{}", path + name, logOnly);
+
+        if (!logOnly) {
+            builder.getChildNode(name).remove();
+        }
 
         return true;
     }
 
+    private boolean process(String name, String op, NodeState before, NodeState after) {
+        if (stop()) {
+            return false;
+        }
+
+        if (after instanceof SegmentNodeState) {
+            if (log.isTraceEnabled()) {
+                log.trace("{} {}, readonly binary check {}", op, path + name, logOnly);
+            }
+            
+            if (!logOnly) {
+                RecordId id = ((SegmentNodeState) after).getRecordId();
+                builder.setChildNode(name, store.getReader().readNode(id));
+            }
+            
+            if ("checkpoints".equals(name)) {
+                // if we're on the /checkpoints path, there's no need for a deep
+                // traversal to verify binaries
+                return true;
+            }
+
+            if (!hasDataStore) {
+                return true;
+            }
+
+            // has external data store, we need a deep
+            // traversal to verify binaries
+
+            for (PropertyState propertyState : after.getProperties()) {
+                binaryCheck(propertyState);
+            }
+
+            return after.compareAgainstBaseState(before,
+                    new StandbyDiff(builder.getChildNode(name), store, client, path + name + "/", true, running));
+        }
+
+        return false;
+    }
+    
     private PropertyState binaryCheck(PropertyState property) {
         Type<?> type = property.getType();
 
@@ -162,7 +218,7 @@ class StandbyDiff implements NodeStateDiff {
             }
         }
     }
-
+    
     private void readBlob(String blobId, String pName) throws InterruptedException {
         InputStream in = client.getBlob(blobId);
 
@@ -178,69 +234,6 @@ class StandbyDiff implements NodeStateDiff {
         } catch (IOException f) {
             throw new IllegalStateException("Unable to persist blob " + blobId + " at " + path + "#" + pName, f);
         }
-    }
-
-    @Override
-    public boolean childNodeAdded(String name, NodeState after) {
-        return process(name, "childNodeAdded", EmptyNodeState.EMPTY_NODE, after);
-    }
-
-    @Override
-    public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-        try {
-            return process(name, "childNodeChanged", before, after);
-        } catch (RuntimeException e) {
-            log.trace("Check binaries for node {} and retry to process childNodeChanged", name);
-            // Attempt to load the binaries and retry, see OAK-4969
-            for (PropertyState propertyState : after.getProperties()) {
-                binaryCheck(propertyState);
-            }
-            return process(name, "childNodeChanged", before, after);
-        }
-    }
-
-    private boolean process(String name, String op, NodeState before, NodeState after) {
-        if (stop()) {
-            return false;
-        }
-
-        if (after instanceof SegmentNodeState) {
-            if (log.isTraceEnabled()) {
-                log.trace("{} {}, readonly binary check {}", op, path + name, logOnly);
-            }
-
-            if (!logOnly) {
-                RecordId id = ((SegmentNodeState) after).getRecordId();
-                builder.setChildNode(name, store.getReader().readNode(id));
-            }
-
-            if ("checkpoints".equals(name)) {
-                // if we're on the /checkpoints path, there's no need for a deep
-                // traversal to verify binaries
-                return true;
-            }
-
-            if (!hasDataStore) {
-                return true;
-
-            }
-            // has external datastore, we need a deep
-            // traversal to verify binaries
-            return after.compareAgainstBaseState(before, new StandbyDiff(builder.getChildNode(name), store, client, path + name + "/", true, running));
-        }
-
-        return false;
-    }
-
-    @Override
-    public boolean childNodeDeleted(String name, NodeState before) {
-        log.trace("childNodeDeleted {}, RO:{}", path + name, logOnly);
-
-        if (!logOnly) {
-            builder.getChildNode(name).remove();
-        }
-
-        return true;
     }
 
 }
