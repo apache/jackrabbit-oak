@@ -721,7 +721,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.1.1.jre6</version>
+          <version>42.1.4.jre6</version>
         </dependency>
       </dependencies>
     </profile>
