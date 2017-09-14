@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -232,6 +233,7 @@ public class SecondaryStoreCacheTest {
 
         NodeBuilder builder = primary.getRoot().builder();
         new InitialContent().initialize(builder);
+        BundlingConfigInitializer.INSTANCE.initialize(builder);
         merge(builder);
 
         BundledTypesRegistry registry = BundledTypesRegistry.from(NodeStateUtils.getNode(primary.getRoot(),

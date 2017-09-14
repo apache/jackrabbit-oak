@@ -114,6 +114,7 @@ public class DocumentBundlingTest {
 
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);
+        BundlingConfigInitializer.INSTANCE.initialize(builder);
         builder.getChildNode("jcr:system")
                 .getChildNode(DOCUMENT_NODE_STORE)
                 .getChildNode(BUNDLOR)

@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -219,6 +220,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
                 .build();
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);
+        BundlingConfigInitializer.INSTANCE.initialize(builder);
         builder.getChildNode("jcr:system")
                 .getChildNode(DOCUMENT_NODE_STORE)
                 .getChildNode(BUNDLOR)
