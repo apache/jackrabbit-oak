@@ -40,7 +40,7 @@ public class GetBlobResponseEncoderTest {
         EmbeddedChannel channel = new EmbeddedChannel(new ChunkedWriteHandler(), new GetBlobResponseEncoder(3));
         channel.writeOutbound(new GetBlobResponse("clientId", blobId,new ByteArrayInputStream(blobData), blobData.length));
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
-        ByteBuf expected = createBlobChunkBuffer(Messages.HEADER_BLOB, blobId, blobData, mask);
+        ByteBuf expected = createBlobChunkBuffer(Messages.HEADER_BLOB, 3L, blobId, blobData, mask);
         
         assertEquals(expected, buffer);
     }
@@ -58,13 +58,13 @@ public class GetBlobResponseEncoderTest {
         
         ByteBuf firstBuffer = (ByteBuf) channel.readOutbound();
         byte firstMask = createMask(1, 2);
-        ByteBuf firstExpected = createBlobChunkBuffer(Messages.HEADER_BLOB, blobId, firstChunkData, firstMask);
+        ByteBuf firstExpected = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, firstChunkData, firstMask);
 
         assertEquals(firstExpected, firstBuffer);
         
         ByteBuf secondBuffer = (ByteBuf) channel.readOutbound();
         byte secondMask = createMask(2, 2);
-        ByteBuf secondExpected = createBlobChunkBuffer(Messages.HEADER_BLOB, blobId, secondChunkbData, secondMask);
+        ByteBuf secondExpected = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, secondChunkbData, secondMask);
 
         assertEquals(secondExpected, secondBuffer);
     }
