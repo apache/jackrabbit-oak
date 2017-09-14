@@ -26,6 +26,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
@@ -123,7 +124,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
     private static void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) throws IOException {
         byte mask = in.readByte();
-
+        long blobLength = in.readLong();
+        
         int blobIdLength = in.readInt();
         byte[] blobIdBytes = new byte[blobIdLength];
         in.readBytes(blobIdBytes);
@@ -134,7 +136,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         if ((mask & (1 << 0)) != 0) {
             if (tempFile.exists()) {
                 log.debug("Detected previous incomplete transfer for {}. Cleaning up...", blobId);
-                tempFile.delete();
+                Files.delete(tempFile.toPath());
             }
         }
 
@@ -144,7 +146,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         byte[] chunkData = new byte[in.readableBytes()];
         in.readBytes(chunkData);
 
-        if (hash(mask, chunkData) != hash) {
+        if (hash(mask, blobLength, chunkData) != hash) {
             log.debug("Invalid checksum, discarding current chunk from {}", blobId);
             return;
         } else {
@@ -158,8 +160,12 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         if ((mask & (1 << 1)) != 0) {
             log.debug("Received entire blob {}", blobId);
 
-            FileInputStream fis = new DeleteOnCloseFileInputStream(tempFile);
-            out.add(new GetBlobResponse(null, blobId, fis, fis.getChannel().size()));
+            if (blobLength == tempFile.length()) {
+                FileInputStream fis = new DeleteOnCloseFileInputStream(tempFile);
+                out.add(new GetBlobResponse(null, blobId, fis, fis.getChannel().size()));
+            } else {
+                log.debug("Size mismatch for blob {}", blobId);
+            }
         }
     }
 
@@ -194,8 +200,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
     }
 
-    private static long hash(byte mask, byte[] data) {
-        return Hashing.murmur3_32().newHasher().putByte(mask).putBytes(data).hash().padToLong();
+    private static long hash(byte mask, long blobLength, byte[] data) {
+        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
     }
     
 }
