@@ -58,8 +58,8 @@ public class StandbyTestUtils {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
     }
     
-    public static long hash(byte mask, byte[] data) {
-        return Hashing.murmur3_32().newHasher().putByte(mask).putBytes(data).hash().padToLong();
+    public static long hash(byte mask, long blobLength, byte[] data) {
+        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
     }
     
     public static byte createMask(int currentChunk, int totalChunks) {
@@ -75,16 +75,17 @@ public class StandbyTestUtils {
         return mask;
     }
     
-    public static ByteBuf createBlobChunkBuffer(byte header,String blobId, byte[] data, byte mask) {
+    public static ByteBuf createBlobChunkBuffer(byte header, long blobLength, String blobId, byte[] data, byte mask) {
         byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
         
         ByteBuf buf = Unpooled.buffer();
-        buf.writeInt(1 + 1 + 4 + blobIdBytes.length + 8 + data.length);
+        buf.writeInt(1 + 1 + 8 + 4 + blobIdBytes.length + 8 + data.length);
         buf.writeByte(header);
         buf.writeByte(mask);
+        buf.writeLong(blobLength);
         buf.writeInt(blobIdBytes.length);
         buf.writeBytes(blobIdBytes);
-        buf.writeLong(hash(mask, data));
+        buf.writeLong(hash(mask, blobLength, data));
         buf.writeBytes(data);
         
         return buf;
