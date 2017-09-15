@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.exporter;
+package org.apache.jackrabbit.oak.plugins.blob.serializer;
 
 import java.io.File;
 import java.io.InputStream;
@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.junit.Rule;
