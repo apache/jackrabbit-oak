@@ -77,13 +77,4 @@ interface CugConstants {
      * </ul>
      */
     String PARAM_CUG_ENABLED = "cugEnabled";
-
-    /**
-     * Name of the configuration options specifying the
-     * {@link org.apache.jackrabbit.oak.spi.mount.MountInfoProvider} in non-OSGi
-     * setup scenarios.
-     *
-     * @since OAK 1.8
-     */
-    String PARAM_MOUNT_PROVIDER = "mountInfoProvider";
 }

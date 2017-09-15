@@ -33,8 +33,11 @@ final class CugSecurityProvider extends SecurityProviderImpl {
         if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
             throw new IllegalStateException();
         } else {
+            CugConfiguration cugConfiguration = new CugConfiguration();
+            cugConfiguration.setSecurityProvider(this);
+            cugConfiguration.activate(configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY));
             AuthorizationConfiguration defConfig = checkNotNull(((CompositeAuthorizationConfiguration) authorizationConfiguration).getDefaultConfig());
-            bindAuthorizationConfiguration(new CugConfiguration(this));
+            bindAuthorizationConfiguration(cugConfiguration);
             bindAuthorizationConfiguration(defConfig);
         }
     }

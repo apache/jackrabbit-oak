@@ -16,60 +16,45 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertSame;
 
 public class CugConfigurationWithMountsTest extends AbstractSecurityTest {
 
     private static CugConfiguration createConfiguration(MountInfoProvider mip) {
-        ConfigurationParameters params = ConfigurationParameters.of(
-                AbstractCugTest.CUG_CONFIG,
-                ConfigurationParameters.of(CugConstants.PARAM_MOUNT_PROVIDER, mip));
-
-        SecurityProvider sp = new CugSecurityProvider(ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, params)));
-        return new CugConfiguration(sp);
-    }
-
-    @Test
-    public void testDefaultMountInfoProvider() {
-        CugConfiguration configuration = createConfiguration(Mounts.defaultMountInfoProvider());
-
-        ConfigurationParameters params = configuration.getParameters();
-        assertSame(Mounts.defaultMountInfoProvider(), params.get(CugConstants.PARAM_MOUNT_PROVIDER));
+        CugConfiguration cugConfiguration = new CugConfiguration();
+        cugConfiguration.bindMountInfoProvider(mip);
+        cugConfiguration.activate(AbstractCugTest.CUG_CONFIG);
+        return cugConfiguration;
     }
 
     @Test(expected = IllegalStateException.class)
     public void testMountAtCugSupportedPath() {
         MountInfoProvider mip = Mounts.newBuilder().mount("mnt", AbstractCugTest.SUPPORTED_PATH).build();
-        CugConfiguration configuration = createConfiguration(mip);
+        createConfiguration(mip);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testMountBelowCugSupportedPath() {
         MountInfoProvider mip = Mounts.newBuilder().mount("mnt", AbstractCugTest.SUPPORTED_PATH + "/mount").build();
-        CugConfiguration configuration = createConfiguration(mip);
+        createConfiguration(mip);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testMountAboveCugSupportedPath() {
         MountInfoProvider mip = Mounts.newBuilder().mount("mnt", PathUtils.getParentPath(AbstractCugTest.SUPPORTED_PATH3)).build();
-        CugConfiguration configuration = createConfiguration(mip);
+        createConfiguration(mip);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testMountAtRootWithSupportedPaths() {
         MountInfoProvider mip = Mounts.newBuilder().mount("mnt", PathUtils.ROOT_PATH).build();
-        CugConfiguration configuration = createConfiguration(mip);
+        createConfiguration(mip);
     }
 
     @Test
