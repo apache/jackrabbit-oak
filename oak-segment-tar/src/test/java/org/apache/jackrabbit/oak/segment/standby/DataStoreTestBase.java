@@ -167,8 +167,6 @@ public abstract class DataStoreTestBase extends TestBase {
      */
     @Test
     public void testSyncBigBlob() throws Exception {
-        assumeFalse(CIHelper.windows());  // FIXME OAK-6641: fails on Windows
-
         final long blobSize = (long) (1 * GB);
         final int seed = 13;
 
@@ -179,8 +177,8 @@ public abstract class DataStoreTestBase extends TestBase {
         addTestContentOnTheFly(store, "server", blobSize, seed);
 
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 16 * MB);
-                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 15_000)
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 8 * MB);
+                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 20_000)
         ) {
             serverSync.start();
             primary.flush();
