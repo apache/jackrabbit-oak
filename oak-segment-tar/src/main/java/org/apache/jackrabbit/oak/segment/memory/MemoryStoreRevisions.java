@@ -61,6 +61,12 @@ public class MemoryStoreRevisions implements Revisions {
         return head;
     }
 
+    @Nonnull
+    @Override
+    public RecordId getPersistedHead() {
+        return getHead();
+    }
+    
     @Override
     public synchronized boolean setHead(
             @Nonnull RecordId expected, @Nonnull RecordId head,

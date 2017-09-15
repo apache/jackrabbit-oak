@@ -47,6 +47,14 @@ public interface Revisions {
      */
     @Nonnull
     RecordId getHead();
+    
+    /**
+     * Returns the <b>persisted</b> to disk record id of the head state. 
+     * The returned id is a valid id for a {@code SegmentNodeState}.
+     * @return  id of the head state
+     */
+    @Nonnull
+    RecordId getPersistedHead();
 
     /**
      * Atomically set the record id of the current head state to the

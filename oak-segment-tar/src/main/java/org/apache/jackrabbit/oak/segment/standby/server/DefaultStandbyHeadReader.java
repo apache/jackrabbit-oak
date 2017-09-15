@@ -29,7 +29,7 @@ class DefaultStandbyHeadReader implements StandbyHeadReader {
 
     @Override
     public String readHeadRecordId() {
-        return store.getHead().getRecordId().toString();
+        return store.getRevisions().getPersistedHead().toString();
     }
 
 }

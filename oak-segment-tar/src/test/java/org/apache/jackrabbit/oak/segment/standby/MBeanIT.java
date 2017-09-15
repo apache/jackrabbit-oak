@@ -157,6 +157,7 @@ public class MBeanIT extends TestBase {
                 StandbyClientSync clientSync = newStandbyClientSync(clientFileStore.fileStore(), serverPort.getPort())
         ) {
             serverSync.start();
+            serverFileStore.fileStore().flush();
 
             clientSync.start();
             clientSync.run();

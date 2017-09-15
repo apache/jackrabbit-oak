@@ -91,6 +91,12 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
         checkBound();
         return head.get();
     }
+    
+    @Nonnull
+    @Override
+    public RecordId getPersistedHead() {
+        return getHead();
+    }
 
     @Override
     public boolean setHead(@Nonnull RecordId expected, @Nonnull RecordId head, @Nonnull Option... options) {

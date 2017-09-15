@@ -228,6 +228,13 @@ public class TarRevisions implements Revisions, Closeable {
         checkBound();
         return head.get();
     }
+    
+    @Nonnull
+    @Override
+    public RecordId getPersistedHead() {
+        checkBound();
+        return persistedHead.get();
+    }
 
     /**
      * This implementation blocks if a concurrent call to
