@@ -39,8 +39,9 @@ public class DefaultStandbyHeadReaderTest {
     @Test
     public void shouldReturnHeadSegmentId() throws Exception {
         try (FileStore store = newFileStore()) {
+            store.flush();
             DefaultStandbyHeadReader reader = new DefaultStandbyHeadReader(store);
-            assertEquals(store.getHead().getRecordId().toString(), reader.readHeadRecordId());
+            assertEquals(store.getRevisions().getPersistedHead().toString(), reader.readHeadRecordId());
         }
     }
 
