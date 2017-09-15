@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commons.sort;
 
+import static com.google.common.collect.Iterables.transform;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -31,9 +32,17 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.Function;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
+import com.google.common.io.Files;
+import com.google.common.primitives.Ints;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -441,6 +450,90 @@ public class ExternalSortTest {
         assertArrayEquals(Arrays.toString(result.toArray()),
                 EXPECTED_HEADER_RESULTS, result.toArray());
 
+    }
+
+    @Test
+    public void customType() throws Exception{
+        File out = folder.newFile();
+        int testCount = 1000;
+
+        List<TestLine> testLines = new ArrayList<>(1000);
+        for (int i = 0; i < testCount; i++) {
+            testLines.add(new TestLine(i + ":" + "foo-"+i));
+        }
+
+        Collections.shuffle(testLines);
+
+        Comparator<TestLine> cmp = Comparator.naturalOrder();
+        Charset charset = Charsets.UTF_8;
+
+        Function<String, TestLine> stringToType = line -> line != null ? new TestLine(line) : null;
+        Function<TestLine, String> typeToString = tl -> tl != null ? tl.line : null;
+
+        String testData = Joiner.on('\n').join(transform(testLines, tl -> tl.line));
+        File testFile = folder.newFile();
+        Files.write(testData, testFile, charset);
+
+        List<File> listOfFiles = ExternalSort.sortInBatch(testFile, cmp,
+                ExternalSort.DEFAULTMAXTEMPFILES,
+                100,
+                charset,
+                folder.newFolder(),
+                false,
+                0,
+                false,
+                typeToString,
+                stringToType);
+
+        ExternalSort.mergeSortedFiles(listOfFiles, out, cmp,
+                charset, false, true, false, typeToString, stringToType);
+
+
+        Collections.sort(testLines);
+
+        List<TestLine> linesFromSortedFile = new ArrayList<>();
+        Files.readLines(out, charset).forEach(line -> linesFromSortedFile.add(new TestLine(line)));
+
+        assertEquals(testLines, linesFromSortedFile);
+
+    }
+
+    private static class TestLine implements Comparable<TestLine> {
+        final String line;
+        final int value;
+
+        public TestLine(String line) {
+            this.line = line;
+            this.value = Integer.valueOf(line.substring(0, line.indexOf(':')));
+        }
+
+        @Override
+        public int compareTo(TestLine o) {
+            return Ints.compare(value, o.value);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            TestLine testLine = (TestLine) o;
+
+            if (value != testLine.value) return false;
+            return line.equals(testLine.line);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = line.hashCode();
+            result = 31 * result + value;
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return line;
+        }
     }
 
     public static ArrayList<String> readLines(File f) throws IOException {
