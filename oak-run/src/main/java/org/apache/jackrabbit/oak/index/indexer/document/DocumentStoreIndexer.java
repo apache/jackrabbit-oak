@@ -26,21 +26,15 @@ import java.util.List;
 import java.util.Set;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
-import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -96,23 +90,18 @@ public class DocumentStoreIndexer implements Closeable{
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
         progressReporter.reindexingTraversalStart("/");
-        for (NodeDocument doc : getIncludedDocs(indexer)) {
-            String path = doc.getPath();
 
-            DocumentNodeState nodeState = nodeStore.getNode(path, rootDocumentState.getRootRevision());
+        NodeStateEntryTraverser nsep =
+                new NodeStateEntryTraverser(rootDocumentState.getRootRevision(),
+                        nodeStore, getMongoDocumentStore())
+                        .withProgressCallback(this::reportDocumentRead)
+                        .withPathPredicate(indexer::shouldInclude);
 
-            //At DocumentNodeState api level the nodeState can be null
-            if (nodeState == null || !nodeState.exists()) {
-                continue;
-            }
-
-            NodeStateEntry entry = new NodeStateEntry(nodeState, path);
+        for (NodeStateEntry entry : nsep) {
             indexer.index(entry);
-
-            for (DocumentNodeState bundledState : nodeState.getAllBundledNodesStates()) {
-               indexer.index(new NodeStateEntry(bundledState, bundledState.getPath()));
-            }
         }
+
+        nsep.close();
 
         progressReporter.reindexingTraversalEnd();
         progressReporter.logReport();
@@ -120,6 +109,10 @@ public class DocumentStoreIndexer implements Closeable{
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         indexerSupport.postIndexWork(copyOnWriteStore);
+    }
+
+    private MongoDocumentStore getMongoDocumentStore() {
+        return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
     private void configureEstimators() {
@@ -140,50 +133,6 @@ public class DocumentStoreIndexer implements Closeable{
     @Override
     public void close() throws IOException {
         closer.close();
-    }
-
-    @SuppressWarnings("Guava")
-    private Iterable<NodeDocument> getIncludedDocs(CompositeIndexer indexer) {
-        return FluentIterable.from(getDocsFilteredByPath(indexer))
-                .filter(doc -> !doc.isSplitDocument())
-                .filter(indexer::shouldInclude);
-    }
-
-    private Iterable<NodeDocument> getDocsFilteredByPath(CompositeIndexer indexer) {
-        CloseableIterable<NodeDocument> docs = findAllDocuments(indexer);
-        closer.register(docs);
-        return docs;
-    }
-
-    private CloseableIterable<NodeDocument> findAllDocuments(CompositeIndexer indexer) {
-        MongoDocumentStore mds = indexHelper.getService(MongoDocumentStore.class);
-        checkNotNull(mds);
-        return new MongoDocumentTraverser(mds).getAllDocuments(Collection.NODES, id -> includeId(id, indexer));
-    }
-
-    private boolean includeId(String id, NodeStateIndexer indexer) {
-        reportDocumentRead(id);
-        //Cannot interpret long paths as they are hashed. So let them
-        //be included
-        if (Utils.isIdFromLongPath(id)){
-            return true;
-        }
-
-        //Not easy to determine path for previous docs
-        //Given there count is pretty low compared to others
-        //include them all
-        if (Utils.isPreviousDocId(id)){
-            return true;
-        }
-
-        String path = Utils.getPathFromId(id);
-
-        //Exclude hidden nodes from index data
-        if (NodeStateUtils.isHiddenPath(path)){
-            return false;
-        }
-
-        return indexer.shouldInclude(path);
     }
 
     private void reportDocumentRead(String id) {
