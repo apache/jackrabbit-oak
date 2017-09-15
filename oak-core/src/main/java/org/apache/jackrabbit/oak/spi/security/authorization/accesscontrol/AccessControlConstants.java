@@ -82,6 +82,4 @@ public interface AccessControlConstants {
     Collection<String> AC_NODETYPE_NAMES = ImmutableSet.of(NT_REP_POLICY, NT_REP_ACL, NT_REP_ACE, NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_RESTRICTIONS);
 
     String PARAM_RESTRICTION_PROVIDER = "restrictionProvider";
-
-    String PARAM_MOUNT_PROVIDER = "mountInfoProvider";
 }

@@ -115,7 +115,7 @@ import com.google.common.collect.ImmutableList;
 public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
 
     @Reference
-    private MountInfoProvider mountInfoProvider;
+    private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     public AuthorizationConfigurationImpl() {
         super();
@@ -129,8 +129,6 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     public AuthorizationConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
-        mountInfoProvider = getParameters().getConfigValue(AccessControlConstants.PARAM_MOUNT_PROVIDER,
-                Mounts.defaultMountInfoProvider(), MountInfoProvider.class);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -206,5 +204,13 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
             return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(),
                     getParameters(), ctx);
         }
+    }
+
+    public void bindMountInfoProvider(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+    }
+
+    public void unbindMountInfoProvider(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = null;
     }
 }
