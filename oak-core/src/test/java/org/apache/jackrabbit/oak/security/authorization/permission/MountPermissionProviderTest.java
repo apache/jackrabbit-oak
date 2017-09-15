@@ -21,7 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.security.Principal;
-import java.util.Collections;
 
 import javax.jcr.security.AccessControlManager;
 
@@ -33,20 +32,20 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 public class MountPermissionProviderTest extends AbstractSecurityTest
         implements AccessControlConstants, PrivilegeConstants, PermissionConstants {
@@ -78,10 +77,13 @@ public class MountPermissionProviderTest extends AbstractSecurityTest
     }
 
     @Override
-    protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters authConfig = ConfigurationParameters.of(Collections.singletonMap(
-                AccessControlConstants.PARAM_MOUNT_PROVIDER, Preconditions.checkNotNull(mountInfoProvider)));
-        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, authConfig));
+    protected SecurityProvider initSecurityProvider() {
+        SecurityProvider sp = super.initSecurityProvider();
+        AuthorizationConfiguration acConfig = sp.getConfiguration(AuthorizationConfiguration.class);
+        Assert.assertTrue(acConfig instanceof CompositeAuthorizationConfiguration);
+        ((AuthorizationConfigurationImpl) ((CompositeAuthorizationConfiguration) acConfig).getDefaultConfig())
+                .bindMountInfoProvider(mountInfoProvider);
+        return sp;
     }
 
     @Test
