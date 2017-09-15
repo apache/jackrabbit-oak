@@ -24,7 +24,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -41,7 +40,6 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
-import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.test.proxy.NetworkErrorProxy;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -178,7 +176,7 @@ public abstract class DataStoreTestBase extends TestBase {
 
         try (
                 StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 8 * MB);
-                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 20_000)
+                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 60_000)
         ) {
             serverSync.start();
             primary.flush();
