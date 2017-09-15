@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.exporter;
+package org.apache.jackrabbit.oak.plugins.blob.serializer;
 
 import java.io.Closeable;
 import java.io.File;
