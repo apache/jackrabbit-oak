@@ -442,8 +442,8 @@ public class FileStore extends AbstractFileStore {
         closeAndLogOnFail(closer);
 
         // Try removing pending files in case the scheduler didn't have a chance to run yet
-        fileReaper.reap();
         System.gc(); // for any memory-mappings that are no longer used
+        fileReaper.reap();
 
         log.info("TarMK closed: {}", directory);
     }

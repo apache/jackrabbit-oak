@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.segment.file.ManifestChecker.newManifest
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +36,6 @@ import java.lang.ProcessBuilder.Redirect;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -51,10 +49,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class UpgradeIT {
 
-    private final File upgradeItHome = new File("target/upgrade-it");
-
     @Rule
-    public TemporaryFolder fileStoreHome = new TemporaryFolder(upgradeItHome);
+    public TemporaryFolder fileStoreHome = new TemporaryFolder(new File("target"));
 
     /**
      * Launch a groovy script in an Oak 1.6. console to initialise the upgrade
@@ -62,13 +58,11 @@ public class UpgradeIT {
      */
     @Before
     public void setup() throws IOException, InterruptedException {
-        assumeFalse(CIHelper.windows());  // FIXME OAK-6648: fails on Windows
-
         Process oakConsole = new ProcessBuilder(
                 "java", "-jar", "oak-run.jar",
                 "console", fileStoreHome.getRoot().getAbsolutePath(), "--read-write",
                 ":load create16store.groovy")
-                .directory(upgradeItHome)
+                .directory(new File("target", "upgrade-it"))
                 .redirectError(Redirect.INHERIT)
                 .redirectOutput(Redirect.INHERIT)
                 .redirectInput(Redirect.INHERIT)
@@ -130,7 +124,7 @@ public class UpgradeIT {
     }
 
     private void checkStoreVersion(int version) throws IOException, InvalidFileStoreVersionException {
-        newManifestChecker(new File(fileStoreHome.getRoot(), "/manifest"),
+        newManifestChecker(new File(fileStoreHome.getRoot(), "manifest"),
                 true, version, version).checkManifest();
     }
 
