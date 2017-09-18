@@ -34,6 +34,7 @@ public final class AvailableModes {
             .put("check", new CheckCommand())
             .put("datastorecacheupgrade", new DataStoreCacheUpgradeCommand())
             .put("compact", new CompactCommand())
+            .put("composite-prepare", new CompositePrepareCommand())
             .put("console", new ConsoleCommand())
             .put("datastorecheck", new DataStoreCheckCommand())
             .put("debug", new DebugCommand())
