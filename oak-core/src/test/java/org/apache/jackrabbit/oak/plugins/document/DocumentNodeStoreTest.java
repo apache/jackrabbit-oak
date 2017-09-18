@@ -3146,6 +3146,7 @@ public class DocumentNodeStoreTest {
 
     // OAK-6392
     @Test
+    @Ignore("OAK-6680")
     public void disabledBranchesWithBackgroundWrite() throws Exception {
         final Thread current = Thread.currentThread();
         final Set<Integer> updates = Sets.newHashSet();
