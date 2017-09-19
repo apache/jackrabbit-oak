@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.jcr.session.WorkspaceImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
@@ -268,7 +269,8 @@ public class ImporterImpl implements Importer {
         for (PropInfo pi : propInfos) {
             // find applicable definition
             //TODO find better heuristics?
-            PropertyDefinition def = pi.getPropertyDef(effectiveNodeTypeProvider.getEffectiveNodeType(tree));
+            EffectiveNodeType ent = effectiveNodeTypeProvider.getEffectiveNodeType(tree);
+            PropertyDefinition def = ent.getPropertyDefinition(pi.getName(), pi.getType(), pi.isUnknownMultiple());
             if (def.isProtected()) {
                 // skip protected property
                 log.debug("Protected property {}", pi.getName());
