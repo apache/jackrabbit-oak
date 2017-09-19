@@ -41,7 +41,7 @@ public class CompositionContextTest {
                                 "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default")
                         )
                 .build();
-        CompositionContext ctx = new CompositionContext(mip, null, Collections.emptyList());
+        CompositionContext ctx = new CompositionContext(mip, null, Collections.emptyList(), CompositeNodeStoreMonitor.EMPTY_INSTANCE, CompositeNodeStoreMonitor.EMPTY_INSTANCE);
 
         assertTrue(ctx.shouldBeComposite("/"));
         assertTrue(ctx.shouldBeComposite("/oak:index"));

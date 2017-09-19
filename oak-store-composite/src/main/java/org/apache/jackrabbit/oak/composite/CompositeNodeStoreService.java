@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -37,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -54,7 +57,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.google.common.collect.Sets.newIdentityHashSet;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class CompositeNodeStoreService {
@@ -74,6 +76,9 @@ public class CompositeNodeStoreService {
     @Reference
     private NodeStoreChecks checks;
 
+    @Reference
+    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+
     @Property(label = "Ignore read only writes",
             unbounded = PropertyUnbounded.ARRAY,
             description = "Writes to these read-only paths won't fail the commit"
@@ -91,13 +96,19 @@ public class CompositeNodeStoreService {
     )
     private static final String PROP_SEED_MOUNT = "seedMount";
 
+    @Property(label = "Gather path statistics",
+            description = "Whether the CompositeNodeStoreStatsMBean should gather information about the most popular paths (may be expensive)",
+            boolValue = false
+    )
+    private static final String PATH_STATS = "pathStats";
+
     private ComponentContext context;
 
     private Set<NodeStoreProvider> nodeStoresInUse = newIdentityHashSet();
 
     private ServiceRegistration nsReg;
 
-    private Registration checkpointReg;
+    private Closer mbeanRegistrations;
 
     private ObserverTracker observerTracker;
 
@@ -107,17 +118,20 @@ public class CompositeNodeStoreService {
 
     private String seedMount;
 
+    private boolean pathStats;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws IOException, CommitFailedException {
         this.context = context;
         ignoreReadOnlyWritePaths = PropertiesUtil.toStringArray(config.get(PROP_IGNORE_READ_ONLY_WRITES), new String[0]);
         partialReadOnly = PropertiesUtil.toBoolean(config.get(PROP_PARTIAL_READ_ONLY), true);
         seedMount = PropertiesUtil.toString(config.get(PROP_SEED_MOUNT), null);
+        pathStats = PropertiesUtil.toBoolean(config.get(PATH_STATS), false);
         registerCompositeNodeStore();
     }
 
     @Deactivate
-    protected void deactivate() {
+    protected void deactivate() throws IOException {
         unregisterCompositeNodeStore();
     }
 
@@ -178,6 +192,10 @@ public class CompositeNodeStoreService {
             }
         }
 
+        CompositeNodeStoreStats nodeStateStats = new CompositeNodeStoreStats(statisticsProvider, "NODE_STATE", pathStats);
+        CompositeNodeStoreStats nodeBuilderStats = new CompositeNodeStoreStats(statisticsProvider, "NODE_BUILDER", pathStats);
+        builder.with(nodeStateStats, nodeBuilderStats);
+
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, CompositeNodeStore.class.getName());
         props.put("oak.nodestore.description", new String[] { "nodeStoreType=compositeStore" } );
@@ -188,11 +206,23 @@ public class CompositeNodeStoreService {
         observerTracker.start(context.getBundleContext());
 
         Whiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-        checkpointReg = registerMBean(whiteboard,
+
+        mbeanRegistrations = Closer.create();
+        registerMBean(whiteboard,
                 CheckpointMBean.class,
                 new CompositeCheckpointMBean(store),
                 CheckpointMBean.TYPE,
                 "Composite node store checkpoint management");
+        registerMBean(whiteboard,
+                CompositeNodeStoreStatsMBean.class,
+                nodeStateStats,
+                CompositeNodeStoreStatsMBean.TYPE,
+                "Composite node store statistics (node state)");
+        registerMBean(whiteboard,
+                CompositeNodeStoreStatsMBean.class,
+                nodeBuilderStats,
+                CompositeNodeStoreStatsMBean.TYPE,
+                "Composite node store statistics (node builder)");
 
         LOG.info("Registering the composite node store");
         nsReg = context.getBundleContext().registerService(
@@ -201,6 +231,12 @@ public class CompositeNodeStoreService {
                 },
                 store,
                 props);
+    }
+
+    private <T> void registerMBean(Whiteboard whiteboard,
+                          Class<T> iface, T bean, String type, String name) {
+        Registration reg = WhiteboardUtils.registerMBean(whiteboard, iface, bean, type, name);
+        mbeanRegistrations.register(() -> reg.unregister());
     }
 
     private boolean isGlobalNodeStore(NodeStoreWithProps ns) {
@@ -218,15 +254,15 @@ public class CompositeNodeStoreService {
         return role.substring(MOUNT_ROLE_PREFIX.length());
     }
 
-    private void unregisterCompositeNodeStore() {
+    private void unregisterCompositeNodeStore() throws IOException {
         if (nsReg != null) {
             LOG.info("Unregistering the composite node store");
             nsReg.unregister();
             nsReg = null;
         }
-        if (checkpointReg != null) {
-            checkpointReg.unregister();
-            checkpointReg = null;
+        if (mbeanRegistrations != null) {
+            mbeanRegistrations.close();
+            mbeanRegistrations = null;
         }
         if (observerTracker != null) {
             observerTracker.stop();
@@ -249,7 +285,7 @@ public class CompositeNodeStoreService {
         }
     }
 
-    protected void unbindNodeStore(NodeStoreProvider ns) {
+    protected void unbindNodeStore(NodeStoreProvider ns) throws IOException {
         Iterator<NodeStoreWithProps> it = nodeStores.iterator();
         while (it.hasNext()) {
             if (it.next().getNodeStoreProvider() == ns) {

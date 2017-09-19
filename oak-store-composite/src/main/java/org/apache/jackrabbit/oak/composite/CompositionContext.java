@@ -52,8 +52,12 @@ class CompositionContext {
 
     private final StringCache pathCache;
 
-    CompositionContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores) {
-        this.pathCache = new StringCache();
+    private final CompositeNodeStoreMonitor nodeStateMonitor;
+
+    private final CompositeNodeStoreMonitor nodeBuilderMonitor;
+
+    CompositionContext(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStores, CompositeNodeStoreMonitor nodeStateMonitor, CompositeNodeStoreMonitor nodeBuilderMonitor) {
+        this.pathCache = new StringCache().withMonitor(nodeStateMonitor);
         this.mip = mip;
         this.globalStore = new MountedNodeStore(mip.getDefaultMount(), globalStore);
         this.nonDefaultStores = nonDefaultStores;
@@ -64,7 +68,8 @@ class CompositionContext {
         allStores = b.build();
 
         this.nodeStoresByMount = allStores.stream().collect(Collectors.toMap(MountedNodeStore::getMount, Function.identity()));
-
+        this.nodeStateMonitor = nodeStateMonitor;
+        this.nodeBuilderMonitor = nodeBuilderMonitor;
     }
 
     MountedNodeStore getGlobalStore() {
@@ -180,6 +185,14 @@ class CompositionContext {
 
     StringCache getPathCache() {
         return pathCache;
+    }
+
+    CompositeNodeStoreMonitor getNodeStateMonitor() {
+        return nodeStateMonitor;
+    }
+
+    CompositeNodeStoreMonitor getNodeBuilderMonitor() {
+        return nodeBuilderMonitor;
     }
 
 }

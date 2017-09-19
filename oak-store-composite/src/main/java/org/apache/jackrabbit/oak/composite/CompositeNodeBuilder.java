@@ -47,6 +47,7 @@ class CompositeNodeBuilder implements NodeBuilder {
     CompositeNodeBuilder(NodeMap<NodeBuilder> nodeBuilders, CompositionContext ctx) {
         this.ctx = ctx;
         this.nodeBuilders = nodeBuilders;
+        ctx.getNodeBuilderMonitor().onCreateNodeObject(getPath());
     }
 
     NodeBuilder getNodeBuilder(MountedNodeStore mns) {
@@ -208,7 +209,9 @@ class CompositeNodeBuilder implements NodeBuilder {
     public NodeBuilder getChildNode(final String name) {
         String childPath = simpleConcat(getPath(), name);
         if (!ctx.shouldBeComposite(childPath)) {
-            return nodeBuilders.get(ctx.getOwningStore(childPath)).getChildNode(name);
+            MountedNodeStore mns = ctx.getOwningStore(childPath);
+            ctx.getNodeBuilderMonitor().onSwitchNodeToNative(mns.getMount());
+            return nodeBuilders.get(mns).getChildNode(name);
         }
         return new CompositeNodeBuilder(nodeBuilders.lazyApply((mns, b) -> b.getChildNode(name)), ctx);
     }
