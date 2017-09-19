@@ -61,6 +61,7 @@ class CompositeNodeState extends AbstractNodeState {
         this.path = ctx.getPathCache().get(path);
         this.ctx = ctx;
         this.nodeStates = nodeStates;
+        ctx.getNodeStateMonitor().onCreateNodeObject(path);
     }
 
     NodeState getNodeState(MountedNodeStore mns) {
@@ -105,7 +106,9 @@ class CompositeNodeState extends AbstractNodeState {
     public NodeState getChildNode(final String name) {
         String childPath = simpleConcat(getPath(), name);
         if (!ctx.shouldBeComposite(childPath)) {
-            return nodeStates.get(ctx.getOwningStore(childPath)).getChildNode(name);
+            MountedNodeStore mns = ctx.getOwningStore(childPath);
+            ctx.getNodeStateMonitor().onSwitchNodeToNative(mns.getMount());
+            return nodeStates.get(mns).getChildNode(name);
         }
         NodeMap<NodeState> newNodeStates = nodeStates.lazyApply((mns, n) -> n.getChildNode(name));
         return new CompositeNodeState(childPath, newNodeStates, ctx);

@@ -36,11 +36,23 @@ public class StringCache {
 
     private final ConcurrentMap<String, String> cache = new ConcurrentHashMap<>(CACHE_SIZE);
 
+    private CompositeNodeStoreMonitor monitor;
+
     public String get(String path) {
         if (cache.size() >= CACHE_SIZE && !cache.containsKey(path)) {
             LOG.debug("Cache size too big. Revise your mount setup.");
             return path;
         }
-        return cache.computeIfAbsent(path, (k) -> path);
+        return cache.computeIfAbsent(path, (k) -> {
+            if (monitor != null) {
+                monitor.onAddStringCacheEntry();
+            }
+            return path;
+        });
+    }
+
+    public StringCache withMonitor(CompositeNodeStoreMonitor monitor) {
+        this.monitor = monitor;
+        return this;
     }
 }
