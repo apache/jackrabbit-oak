@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
@@ -360,6 +361,44 @@ public class EffectiveNodeType {
        throw new ConstraintViolationException(
                "No matching property definition found for " + propertyName);
    }
+
+    /**
+     * Calculates the applicable definition for the property with the specified
+     * characteristics under a parent with this effective type.
+     *
+     * @param name The internal oak name of the property for which the definition should be retrieved.
+     * @param type The target type of the property.
+     * @param unknownMultiple {@code true} if the target property has an unknown type, {@code false} if it is known to be a multi-valued property.
+     * @return the applicable definition for the target property or {@code null} if no matching definition can be found.
+     */
+    public PropertyDefinition getPropertyDefinition(String name, int type, boolean unknownMultiple) {
+        // TODO check multivalue handling
+        Iterable<PropertyDefinition> definitions = getNamedPropertyDefinitions(name);
+
+        for (PropertyDefinition def : definitions) {
+            int requiredType = def.getRequiredType();
+            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED || requiredType == type)
+                    && (def.isMultiple() || unknownMultiple)) {
+                return def;
+            }
+        }
+        definitions = getResidualPropertyDefinitions();
+        for (PropertyDefinition def : definitions) {
+            int requiredType = def.getRequiredType();
+            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED || requiredType == type)
+                    && !def.isMultiple() && unknownMultiple) {
+                return def;
+            }
+        }
+        for (PropertyDefinition def : definitions) {
+            int requiredType = def.getRequiredType();
+            if ((requiredType == PropertyType.UNDEFINED || type == PropertyType.UNDEFINED || requiredType == type)
+                    && def.isMultiple()) {
+                return def;
+            }
+        }
+        return null;
+    }
 
     /**
      *

@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 
 /**
  * Information about a property being imported. This class is used
@@ -134,6 +133,10 @@ public class PropInfo {
         return type;
     }
 
+    public boolean isUnknownMultiple() {
+        return multipleStatus == MultipleStatus.UNKNOWN;
+    }
+
     @Nonnull
     public TextValue getTextValue() throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
@@ -166,35 +169,6 @@ public class PropInfo {
             }
             return vs;
         }
-    }
-
-    //TODO check multivalue handling
-    public PropertyDefinition getPropertyDef(EffectiveNodeType ent) {
-        Iterable<PropertyDefinition> definitions = ent.getNamedPropertyDefinitions(getName());
-        int knownType = getType();
-        for (PropertyDefinition def : definitions) {
-            int requiredType = def.getRequiredType();
-            if ((requiredType == PropertyType.UNDEFINED || knownType == PropertyType.UNDEFINED || requiredType == knownType)
-                    && (def.isMultiple() || multipleStatus == MultipleStatus.UNKNOWN)) {
-                return def;
-            }
-        }
-        definitions = ent.getResidualPropertyDefinitions();
-        for (PropertyDefinition def : definitions) {
-            int requiredType = def.getRequiredType();
-            if ((requiredType == PropertyType.UNDEFINED || knownType == PropertyType.UNDEFINED || requiredType == knownType)
-                    && !def.isMultiple() && multipleStatus == MultipleStatus.UNKNOWN) {
-                return def;
-            }
-        }
-        for (PropertyDefinition def : definitions) {
-            int requiredType = def.getRequiredType();
-            if ((requiredType == PropertyType.UNDEFINED || knownType == PropertyType.UNDEFINED || requiredType == knownType)
-                    && def.isMultiple()) {
-                return def;
-            }
-        }
-        return null;
     }
 
     public PropertyState asPropertyState(@Nonnull PropertyDefinition propertyDefinition) throws RepositoryException {
