@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,6 +50,7 @@ public class CompositeNodeStoreServiceTest {
 		MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").build();
 		
 		ctx.registerService(MountInfoProvider.class, mip);
+		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite:global", "registerDescriptors", Boolean.TRUE));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite:mount:libs"));
 		ctx.registerInjectActivateService(new NodeStoreChecksService());
@@ -71,6 +73,7 @@ public class CompositeNodeStoreServiceTest {
 		MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").readOnlyMount("missing", "/missing").build();
 		
 		ctx.registerService(MountInfoProvider.class, mip);
+		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite:global", "registerDescriptors", Boolean.TRUE));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite:mount:libs"));
 		ctx.registerInjectActivateService(new NodeStoreChecksService());
@@ -91,6 +94,7 @@ public class CompositeNodeStoreServiceTest {
 		MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/apps").build();
 		
 		ctx.registerService(MountInfoProvider.class, mip);
+		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), ImmutableMap.of("role", "composite:mount:libs"));
 		ctx.registerInjectActivateService(new NodeStoreChecksService());
 		
