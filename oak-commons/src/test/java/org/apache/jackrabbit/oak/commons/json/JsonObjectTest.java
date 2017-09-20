@@ -33,11 +33,8 @@ import static org.junit.Assert.*;
  * @see JsonObject
  **/
 public class JsonObjectTest {
-
-
     @Test
     public void testCreateThrowsIllegalArgumentExceptionOne() {
-
         JsopTokenizer jsopTokenizer = new JsopTokenizer("\"XHIG\":w@+v0I (");
 
         try {
@@ -47,13 +44,10 @@ public class JsonObjectTest {
             assertEquals("\"XHIG\":w@[*]+v0I ( expected: '}'",e.getMessage());
             assertEquals(JsopTokenizer.class.getName(), e.getStackTrace()[0].getClassName());
         }
-
     }
-
 
     @Test
     public void testCreateWithNonNull() {
-
         JsopTokenizer jsopTokenizer = new JsopTokenizer("\"XHIN\":{@+p0I (");
 
         try {
@@ -63,13 +57,10 @@ public class JsonObjectTest {
             assertEquals("\"XHIN\":{@[*]+p0I ( expected: string",e.getMessage());
             assertEquals(JsopTokenizer.class.getName(), e.getStackTrace()[0].getClassName());
         }
-
     }
-
 
     @Test
     public void testCreateThrowsIllegalArgumentExceptionTwo() {
-
         JsopTokenizer jsopTokenizer = new JsopTokenizer("\"X?IslG\":w,U@4v0I (");
 
         try {
@@ -79,13 +70,10 @@ public class JsonObjectTest {
             assertEquals("\"X?IslG\":w,U[*]@4v0I ( expected: string",e.getMessage());
             assertEquals(JsopTokenizer.class.getName(), e.getStackTrace()[0].getClassName());
         }
-
     }
-
 
     @Test
     public void testCreate() {
-
         JsopTokenizer jsopTokenizer = new JsopTokenizer("}", 0);
         JsonObject jsonObject = JsonObject.create(jsopTokenizer);
 
@@ -97,37 +85,28 @@ public class JsonObjectTest {
 
         assertNull(jsopTokenizer.getEscapedToken());
         assertNotNull(jsonObject);
-
     }
-
 
     @Test
     public void testGetProperties() {
-
         JsonObject jsonObject = new JsonObject();
         Map<String, String> map = jsonObject.getProperties();
 
         assertTrue(map.isEmpty());
         assertEquals(0, map.size());
-
     }
-
 
     @Test
     public void testToJsonOne() {
-
         JsonObject jsonObject = new JsonObject();
         JsopBuilder jsopBuilder = new JsopBuilder();
         jsonObject.toJson(jsopBuilder);
 
         assertEquals("{}", jsopBuilder.toString());
-
     }
-
 
     @Test
     public void testToJsonThree() {
-
         JsonObject jsonObject = new JsonObject();
         JsopBuilder jsopBuilder = new JsopBuilder();
         jsopBuilder.key("a");
@@ -136,20 +115,14 @@ public class JsonObjectTest {
         jsonObject.toJson(jsopBuilder);
 
         assertEquals("\"a\":{\"a\":{}}", jsopBuilder.toString());
-
     }
-
 
     @Test
     public void testGetChildren() {
-
         JsonObject jsonObject = new JsonObject();
         Map<String, JsonObject> map = jsonObject.getChildren();
 
         assertTrue(map.isEmpty());
         assertEquals(0, map.size());
-
     }
-
-
 }
