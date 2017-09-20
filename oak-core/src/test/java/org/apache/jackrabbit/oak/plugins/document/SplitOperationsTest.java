@@ -20,7 +20,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -28,7 +27,6 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-@Ignore
 public class SplitOperationsTest extends BaseDocumentMKTest {
 
     private static final String ROOT_ID = Utils.getIdFromPath("/");

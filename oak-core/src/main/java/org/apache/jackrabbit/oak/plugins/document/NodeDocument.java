@@ -145,7 +145,7 @@ public final class NodeDocument extends Document {
     static final int MODIFIED_IN_SECS_RESOLUTION = 5;
 
     private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP =
-            Maps.unmodifiableNavigableMap(new TreeMap<Revision, Range>());
+            Maps.unmodifiableNavigableMap(new TreeMap<Revision, Range>(REVERSE));
 
     /**
      * The list of revision to root commit depth mappings to find out if a
