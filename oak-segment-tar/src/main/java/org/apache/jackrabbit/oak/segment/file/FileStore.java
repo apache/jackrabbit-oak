@@ -1137,9 +1137,10 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * Instances of this class represent the result from a compaction.
-     * Either {@link #succeeded(GCGeneration, SegmentGCOptions, RecordId) succeeded},
-     * {@link #aborted(GCGeneration, GCGeneration) aborted} or {@link #skipped(GCGeneration, SegmentGCOptions) skipped}.
+     * Instances of this class represent the result from a compaction. Either
+     * {@link #succeeded(GCGeneration, SegmentGCOptions, RecordId) succeeded},
+     * {@link #aborted(GCGeneration, GCGeneration) aborted} or {@link
+     * #skipped(GCGeneration, SegmentGCOptions, RecordId)}  skipped}.
      */
     private abstract static class CompactionResult {
         @Nonnull
