@@ -338,9 +338,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             try {
                 state = new JackrabbitNodeState(this, name, loader.loadBundle(id));
                 nodeStateCache.put(id, state);
-            } catch (ItemStateException e) {
-                handleBundleLoadingException(name, e);
-            } catch (NullPointerException e) {
+            } catch (ItemStateException | NullPointerException e) {
                 handleBundleLoadingException(name, e);
             }
         }

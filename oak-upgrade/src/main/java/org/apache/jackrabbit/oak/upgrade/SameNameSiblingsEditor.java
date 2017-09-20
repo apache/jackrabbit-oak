@@ -203,9 +203,7 @@ public class SameNameSiblingsEditor extends DefaultEditor {
         Map<String, String> toBeRenamed = new HashMap<String, String>();
         for (String name : parent.getChildNodeNames()) {
             Matcher m = SNS_REGEX.matcher(name);
-            if (!m.matches()) {
-                continue;
-            } else if (isSnsAllowedForChild(parentNode, name)) {
+            if (!m.matches() || isSnsAllowedForChild(parentNode, name)) {
                 continue;
             }
             String prefix = m.group(1);

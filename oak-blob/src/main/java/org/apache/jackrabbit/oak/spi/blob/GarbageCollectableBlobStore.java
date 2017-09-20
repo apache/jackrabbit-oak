@@ -94,6 +94,7 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * @param maxLastModifiedTime the max last modified time to consider for retrieval,
      *            with the special value '0' meaning no filtering by time
      * @return true, if successful
+     * @deprecated
      * @throws Exception the exception
      */
     @Deprecated
