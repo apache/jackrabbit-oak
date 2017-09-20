@@ -17,12 +17,11 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.core;
+package org.apache.jackrabbit.oak.spi.commit;
 
 import java.util.Map;
 
 import com.google.common.collect.Maps;
-import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
