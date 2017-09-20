@@ -59,9 +59,10 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
                 .createContentRepository();
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void errorIfQueryDefinitionsNotIndexed() throws Exception{
-        indexPathService.getIndexPaths();
+    @Test
+    public void noErrorIfQueryDefinitionsNotIndexed() throws Exception{
+        Set<String> paths = Sets.newHashSet(indexPathService.getIndexPaths());
+        assertThat(paths, hasItem("/oak:index/uuid"));
     }
 
     @Test(expected = IllegalStateException.class)
