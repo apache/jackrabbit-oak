@@ -64,7 +64,6 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
 
             final NodeStore target = getTargetNodeStore();
             doUpgradeRepository(sourceDir, target, false);
-            fileStore.flush();
 
             fileStore = fileStoreBuilder(sourceDir).build();
             segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
@@ -80,7 +79,6 @@ public class RepeatedRepositorySidegradeTest extends RepeatedRepositoryUpgradeTe
             }
 
             doUpgradeRepository(sourceDir, target, true);
-            fileStore.flush();
 
             upgradeComplete = true;
         }
