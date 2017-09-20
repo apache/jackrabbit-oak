@@ -119,9 +119,8 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         IndexDefinition defn = IndexDefinition.newBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
         for (String dirName : idxState.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(dirName) && MultiplexersLucene.isIndexDirName(dirName)) {
-                Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true);
-                try (DirectoryReader dirReader = DirectoryReader.open(dir)) {
-                    info.numEntries += dirReader.numDocs();
+                try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true)) {
+                    info.numEntries += DirectoryUtils.getNumDocs(dir);
                     info.size = DirectoryUtils.dirSize(dir);
                 }
             }
