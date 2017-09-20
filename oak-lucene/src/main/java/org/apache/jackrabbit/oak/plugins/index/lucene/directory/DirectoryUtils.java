@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.lucene.index.SegmentCommitInfo;
+import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.store.Directory;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
@@ -81,6 +83,18 @@ public class DirectoryUtils {
             indexDir = existingDirs.get(0).dir;
         }
         return indexDir;
+    }
+
+    public static int getNumDocs(Directory dir) throws IOException {
+        int count = 0;
+        SegmentInfos sis = new SegmentInfos();
+        sis.read(dir);
+
+        for (SegmentCommitInfo sci : sis) {
+            count += sci.info.getDocCount() - sci.getDelCount();
+        }
+
+        return count;
     }
 
     static File createSubDir(File indexDir, String name) throws IOException {
