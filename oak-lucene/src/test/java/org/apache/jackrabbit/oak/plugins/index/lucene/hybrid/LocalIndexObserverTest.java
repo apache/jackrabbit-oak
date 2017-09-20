@@ -22,10 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.util.concurrent.Executor;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Before;
 import org.junit.Test;
