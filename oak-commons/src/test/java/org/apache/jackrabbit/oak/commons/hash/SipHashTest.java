@@ -29,26 +29,11 @@ import static org.junit.Assert.assertNull;
  * @see SipHash
  **/
 public class SipHashTest {
-
-
     @Test
     public void testCreatesSipHashTakingThreeArguments() {
-
         SipHash sipHash = new SipHash(4553L);
         SipHash sipHashTwo = new SipHash(sipHash, (-813L));
 
         assertFalse(sipHashTwo.equals(sipHash));
-
     }
-
-
-    @Test
-    public void testHashCode() {
-
-        SipHash sipHash = new SipHash(4553L);
-        sipHash.hashCode();
-
-    }
-
-
 }
