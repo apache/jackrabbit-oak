@@ -21,12 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Iterator;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -38,17 +37,25 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 
 @Component
 @Service
 public class IndexPathServiceImpl implements IndexPathService {
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final QueryEngineSettings settings = new QueryEngineSettings();
 
@@ -82,20 +89,19 @@ public class IndexPathServiceImpl implements IndexPathService {
 
         //Check if oak:QueryIndexDefinition is indexed as part of nodetype index
         boolean indxDefnTypeIndexed = Iterables.contains(nodeType.getNames(DECLARING_NODE_TYPES), INDEX_DEFINITIONS_NODE_TYPE);
-        checkState(indxDefnTypeIndexed, INDEX_DEFINITIONS_NODE_TYPE + " is not found to be indexed as part of " +
-                "nodetype index. Cannot determine the paths of all indexes");
 
-        return new Iterable<String>() {
-            @Override
-            public Iterator<String> iterator() {
-                Iterator<IndexRow> itr = getIndex().query(createFilter(INDEX_DEFINITIONS_NODE_TYPE), nodeStore.getRoot());
-                return Iterators.transform(itr, new Function<IndexRow, String>() {
-                    @Override
-                    public String apply(IndexRow input) {
-                        return input.getPath();
-                    }
-                });
-            }
+        if (!indxDefnTypeIndexed) {
+            log.warn("{} is not found to be indexed as part of nodetype index. Non root indexes would " +
+                    "not be listed", INDEX_DEFINITIONS_NODE_TYPE);
+            NodeState oakIndex = nodeStore.getRoot().getChildNode("oak:index");
+            return transform(filter(oakIndex.getChildNodeEntries(),
+                    cne -> INDEX_DEFINITIONS_NODE_TYPE.equals(cne.getNodeState().getName(JCR_PRIMARYTYPE))),
+                    cne -> PathUtils.concat("/oak:index", cne.getName()));
+        }
+
+        return () -> {
+            Iterator<IndexRow> itr = getIndex().query(createFilter(INDEX_DEFINITIONS_NODE_TYPE), nodeStore.getRoot());
+            return transform(itr, input -> input.getPath());
         };
     }
 
