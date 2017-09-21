@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.state.ConflictType;

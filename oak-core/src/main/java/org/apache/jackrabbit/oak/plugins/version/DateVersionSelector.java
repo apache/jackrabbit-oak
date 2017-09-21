@@ -46,7 +46,7 @@ import org.apache.jackrabbit.util.ISO8601;
  * new DateVersionSelector(null, true).select() -&gt; V1.2
  * </pre>
  */
-public class DateVersionSelector implements VersionSelector {
+class DateVersionSelector implements VersionSelector {
 
     /**
      * a version date hint

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 interface TokenConstants {
 

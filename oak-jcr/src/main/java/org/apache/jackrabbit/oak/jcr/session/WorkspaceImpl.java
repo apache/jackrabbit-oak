@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr.session;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.jcr.session.SessionImpl.checkIndexOnName;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 import java.io.IOException;
 import java.io.InputStream;
