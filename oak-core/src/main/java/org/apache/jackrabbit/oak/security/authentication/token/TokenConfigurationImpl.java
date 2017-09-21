@@ -22,9 +22,14 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -32,6 +37,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.References;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -40,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CompositeCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
@@ -80,12 +87,17 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
                 propertyPrivate = true,
                 value = "org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl")
 })
+@References({
+    @Reference(
+            name = "credentialsSupport",
+            referenceInterface = CredentialsSupport.class,
+            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC)
+})
 public class TokenConfigurationImpl extends ConfigurationBase implements TokenConfiguration {
 
-    @Reference(
-            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC)
-    private CredentialsSupport credentialsSupport = SimpleCredentialsSupport.getInstance();
+    private final Map<String, CredentialsSupport> credentialsSupport = new ConcurrentHashMap<>(
+            ImmutableMap.of(SimpleCredentialsSupport.class.getName(), SimpleCredentialsSupport.getInstance()));
 
     @SuppressWarnings("UnusedDeclaration")
     public TokenConfigurationImpl() {
@@ -103,17 +115,12 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         setParameters(ConfigurationParameters.of(properties));
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     public void bindCredentialsSupport(CredentialsSupport credentialsSupport) {
-        this.credentialsSupport = credentialsSupport;
+        this.credentialsSupport.put(credentialsSupport.getClass().getName(), credentialsSupport);
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     public void unbindCredentialsSupport(CredentialsSupport credentialsSupport) {
-        if (credentialsSupport == this.credentialsSupport) {
-            // reset to default implementation
-            this.credentialsSupport = SimpleCredentialsSupport.getInstance();
-        }
+        this.credentialsSupport.remove(credentialsSupport.getClass().getName());
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -141,6 +148,14 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     @Override
     public TokenProvider getTokenProvider(Root root) {
         UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
-        return new TokenProviderImpl(root, getParameters(), uc, credentialsSupport);
+        return new TokenProviderImpl(root, getParameters(), uc, newCredentialsSupport());
+    }
+
+    private CredentialsSupport newCredentialsSupport() {
+        if (!credentialsSupport.isEmpty()) {
+            return CompositeCredentialsSupport.newInstance(() -> ImmutableSet.copyOf(credentialsSupport.values()));
+        } else {
+            return SimpleCredentialsSupport.getInstance();
+        }
     }
 }

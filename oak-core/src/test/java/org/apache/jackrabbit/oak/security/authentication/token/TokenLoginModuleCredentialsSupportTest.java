@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Collections;
 import java.util.Map;
+
+import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
@@ -42,6 +44,7 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
     private TokenConfigurationImpl tc;
     private CredentialsSupport credentialsSupport;
 
+    @Override
     @Before
     public void before() throws Exception {
         super.before();
@@ -107,6 +110,26 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
             assertEquals(userId, cs.getAuthInfo().getUserID());
         } finally {
             cs.close();
+        }
+    }
+
+    @Test
+    public void testSimpleCredentials() throws Exception {
+        SimpleCredentials credentials = (SimpleCredentials) getAdminCredentials();
+        credentials.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, "");
+
+        ContentSession cs = null;
+        try {
+            cs = login(credentials);
+            assertEquals(credentials.getUserID(), cs.getAuthInfo().getUserID());
+            String token = credentials.getAttribute(TokenConstants.TOKEN_ATTRIBUTE).toString();
+            assertFalse(token.isEmpty());
+            cs.close();
+        } finally {
+
+            if (cs != null) {
+                cs.close();
+            }
         }
     }
 }

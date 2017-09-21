@@ -23,7 +23,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 
@@ -66,7 +69,7 @@ public class TestCredentialsSupport implements CredentialsSupport {
         if (credentials instanceof Creds) {
             return ((Creds) credentials).attributes;
         } else {
-            throw new IllegalArgumentException();
+            return ImmutableMap.of();
         }
     }
 
@@ -76,16 +79,16 @@ public class TestCredentialsSupport implements CredentialsSupport {
             ((Creds) credentials).attributes.putAll(attributes);
             return true;
         } else {
-            throw new IllegalArgumentException();
+            return false;
         }
     }
 
     static final class Creds implements Credentials {
 
-        private final Map attributes;
+        private final Map<String, Object> attributes;
 
         Creds() {
-            attributes = new HashMap();
+            attributes = Maps.newHashMap();
             attributes.put(TokenConstants.TOKEN_ATTRIBUTE, "");
         }
     }

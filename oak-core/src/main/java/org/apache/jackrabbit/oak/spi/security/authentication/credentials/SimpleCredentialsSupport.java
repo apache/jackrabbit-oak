@@ -29,8 +29,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 /**
- * Implementation of the {@code SupportedCredentials} interface that handles
- * {@link javax.jcr.SimpleCredentials}.
+ * Implementation of the
+ * {@link org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport}
+ * interface that handles {@link javax.jcr.SimpleCredentials}.
  */
 public final class SimpleCredentialsSupport implements CredentialsSupport {
 
