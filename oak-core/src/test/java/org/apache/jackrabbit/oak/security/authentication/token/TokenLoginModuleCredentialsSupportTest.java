@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.junit.Before;
 import org.junit.Test;
 
