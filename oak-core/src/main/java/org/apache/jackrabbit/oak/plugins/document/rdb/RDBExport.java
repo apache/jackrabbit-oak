@@ -52,7 +52,8 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.OakVersion;
+
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 
 /**
  * Utility for dumping contents from {@link RDBDocumentStore}'s tables.
@@ -109,7 +110,7 @@ public class RDBExport {
                     String fields = args[++i];
                     fieldList = Arrays.asList(fields.split(","));
                 } else if ("--version".equals(param)) {
-                    System.out.println(RDBExport.class.getName() + " version " + OakVersion.getVersion());
+                    System.out.println(RDBExport.class.getName() + " version " + getModuleVersion());
                     System.exit(0);
                 } else if ("--help".equals(param)) {
                     printHelp();
