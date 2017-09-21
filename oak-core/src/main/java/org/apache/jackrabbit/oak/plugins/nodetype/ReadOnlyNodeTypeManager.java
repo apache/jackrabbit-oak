@@ -22,8 +22,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.Iterator;
 import java.util.List;
@@ -55,6 +55,10 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.spi.nodetype.DefinitionProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -335,7 +339,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         for (int i = 0; i < mixins.length; i++) {
             mixinImpls[i] = (NodeTypeImpl) mixins[i]; // FIXME
         }
-        return new EffectiveNodeType(primary, mixinImpls, this);
+        return new EffectiveNodeTypeImpl(primary, mixinImpls, this);
     }
 
     @Override
@@ -351,13 +355,13 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
         PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
         if (jcrMixinType == null) {
-            return new EffectiveNodeType(primaryType, this);
+            return new EffectiveNodeTypeImpl(primaryType, this);
         } else {
             NodeTypeImpl[] mixinTypes = new NodeTypeImpl[jcrMixinType.count()];
             for (int i = 0; i < mixinTypes.length; i++) {
                 mixinTypes[i] = internalGetNodeType(jcrMixinType.getValue(Type.NAME, i));
             }
-            return new EffectiveNodeType(primaryType, mixinTypes, this);
+            return new EffectiveNodeTypeImpl(primaryType, mixinTypes, this);
         }
     }
 

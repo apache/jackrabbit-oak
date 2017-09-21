@@ -23,6 +23,7 @@ import javax.jcr.version.OnParentVersionAction;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

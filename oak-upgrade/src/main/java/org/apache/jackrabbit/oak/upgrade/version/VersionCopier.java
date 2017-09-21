@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.upgrade.DescendantsIterator;
 import org.apache.jackrabbit.util.ISO8601;
 
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_PATH;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getRelativeVersionHistoryPath;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryNodeState;

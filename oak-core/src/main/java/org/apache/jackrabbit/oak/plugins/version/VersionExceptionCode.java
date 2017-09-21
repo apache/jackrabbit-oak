@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.version;
  * {@code VersionExceptionCode} contains the codes for version related
  * commit failures.
  */
-public enum VersionExceptionCode {
+enum VersionExceptionCode {
 
     UNEXPECTED_REPOSITORY_EXCEPTION("Unexpected RepositoryException"),
     NODE_CHECKED_IN("Node is checked in"),

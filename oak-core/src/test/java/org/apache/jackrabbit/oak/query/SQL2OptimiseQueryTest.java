@@ -21,7 +21,7 @@ import static com.google.common.collect.ImmutableList.of;
 import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ALTERNATIVE;
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.CHEAPEST;

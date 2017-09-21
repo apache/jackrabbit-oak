@@ -31,9 +31,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.relativize;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_NODE_TYPE_NAMES;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_NT_NAMES;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_PATH;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_NODE_TYPE_NAMES;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_NT_NAMES;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
 /**
  * Validates changes on the version store.

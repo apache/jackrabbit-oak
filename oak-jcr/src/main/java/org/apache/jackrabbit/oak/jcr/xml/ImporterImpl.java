@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -58,9 +56,10 @@ import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.WorkspaceImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
-import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.nodetype.DefinitionProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
@@ -69,9 +68,10 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 public class ImporterImpl implements Importer {
     private static final Logger log = LoggerFactory.getLogger(ImporterImpl.class);

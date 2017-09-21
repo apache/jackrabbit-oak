@@ -32,7 +32,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.WEAK_REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_PATH;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
 import java.util.Map;
 import java.util.Map.Entry;

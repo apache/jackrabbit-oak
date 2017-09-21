@@ -49,7 +49,7 @@ import org.apache.jackrabbit.oak.benchmark.TestInputStream;
 import org.apache.jackrabbit.oak.benchmark.util.Date;
 import org.apache.jackrabbit.oak.benchmark.util.MimeType;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
 
 

@@ -24,8 +24,8 @@ import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionManager;
 
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**

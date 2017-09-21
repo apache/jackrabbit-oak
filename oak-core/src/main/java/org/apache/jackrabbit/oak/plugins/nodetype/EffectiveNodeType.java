@@ -39,6 +39,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,9 +51,9 @@ import com.google.common.collect.Maps;
 /**
  * EffectiveNodeType... TODO
  */
-public class EffectiveNodeType {
+class EffectiveNodeTypeImpl implements org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType {
 
-    private static final Logger log = LoggerFactory.getLogger(EffectiveNodeType.class);
+    private static final Logger log = LoggerFactory.getLogger(EffectiveNodeTypeImpl.class);
 
     private static final NodeTypeImpl[] NO_MIXINS = new NodeTypeImpl[0];
 
@@ -60,7 +61,7 @@ public class EffectiveNodeType {
 
     private final ReadOnlyNodeTypeManager ntMgr;
 
-    EffectiveNodeType(
+    EffectiveNodeTypeImpl(
             NodeTypeImpl primary, NodeTypeImpl[] mixins,
             ReadOnlyNodeTypeManager ntMgr) {
         this.ntMgr = ntMgr;
@@ -80,7 +81,7 @@ public class EffectiveNodeType {
         }
     }
 
-    EffectiveNodeType(NodeTypeImpl primary, ReadOnlyNodeTypeManager ntMgr) {
+    EffectiveNodeTypeImpl(NodeTypeImpl primary, ReadOnlyNodeTypeManager ntMgr) {
         this(primary, NO_MIXINS, ntMgr);
     }
 
@@ -102,6 +103,7 @@ public class EffectiveNodeType {
      * @param nodeTypeName name of node type
      * @return {@code true} if the given node type is included, otherwise {@code false}.
      */
+    @Override
     public boolean includesNodeType(String nodeTypeName) {
         return nodeTypes.containsKey(nodeTypeName);
     }
@@ -115,6 +117,7 @@ public class EffectiveNodeType {
      * @return {@code true} if all of the given node types are included,
      *         otherwise {@code false}
      */
+    @Override
     public boolean includesNodeTypes(String[] nodeTypeNames) {
         for (String ntName : nodeTypeNames) {
             if (!includesNodeType(ntName)) {
@@ -130,6 +133,7 @@ public class EffectiveNodeType {
      * @param mixin name of mixin type
      * @return {@code true} if the mixin type is supported, otherwise {@code false}
      */
+    @Override
     public boolean supportsMixin(String mixin) {
         if (includesNodeType(mixin)) {
             return true;
@@ -148,6 +152,7 @@ public class EffectiveNodeType {
         return true;
     }
 
+    @Override
     public Iterable<NodeDefinition> getNodeDefinitions() {
         List<NodeDefinition> definitions = new ArrayList<NodeDefinition>();
         for (NodeType nt : nodeTypes.values()) {
@@ -156,6 +161,7 @@ public class EffectiveNodeType {
         return definitions;
     }
 
+    @Override
     public Iterable<PropertyDefinition> getPropertyDefinitions() {
         List<PropertyDefinition> definitions = new ArrayList<PropertyDefinition>();
         for (NodeType nt : nodeTypes.values()) {
@@ -164,6 +170,7 @@ public class EffectiveNodeType {
         return definitions;
     }
 
+    @Override
     public Iterable<NodeDefinition> getAutoCreateNodeDefinitions() {
         return Iterables.filter(getNodeDefinitions(), new Predicate<NodeDefinition>() {
             @Override
@@ -173,6 +180,7 @@ public class EffectiveNodeType {
         });
     }
 
+    @Override
     public Iterable<PropertyDefinition> getAutoCreatePropertyDefinitions() {
         return Iterables.filter(getPropertyDefinitions(), new Predicate<PropertyDefinition>() {
             @Override
@@ -182,6 +190,7 @@ public class EffectiveNodeType {
         });
     }
 
+    @Override
     public Iterable<NodeDefinition> getMandatoryNodeDefinitions() {
         return Iterables.filter(getNodeDefinitions(), new Predicate<NodeDefinition>() {
             @Override
@@ -191,6 +200,7 @@ public class EffectiveNodeType {
         });
     }
 
+    @Override
     public Iterable<PropertyDefinition> getMandatoryPropertyDefinitions() {
         return Iterables.filter(getPropertyDefinitions(), new Predicate<PropertyDefinition>() {
             @Override
@@ -206,6 +216,7 @@ public class EffectiveNodeType {
      * @param oakName An internal oak name.
      * @return All node definitions that match the given internal oak name.
      */
+    @Override
     @Nonnull
     public Iterable<NodeDefinition> getNamedNodeDefinitions(
             final String oakName) {
@@ -225,6 +236,7 @@ public class EffectiveNodeType {
      * @param oakName An internal oak name.
      * @return All property definitions that match the given internal oak name.
      */
+    @Override
     @Nonnull
     public Iterable<PropertyDefinition> getNamedPropertyDefinitions(
             String oakName) {
@@ -240,6 +252,7 @@ public class EffectiveNodeType {
      *
      * @return All residual node definitions.
      */
+    @Override
     @Nonnull
     public Iterable<NodeDefinition> getResidualNodeDefinitions() {
         List<NodeDefinition> definitions = newArrayList();
@@ -254,6 +267,7 @@ public class EffectiveNodeType {
      *
      * @return All residual property definitions.
      */
+    @Override
     @Nonnull
     public Iterable<PropertyDefinition> getResidualPropertyDefinitions() {
         List<PropertyDefinition> definitions = newArrayList();
@@ -263,6 +277,7 @@ public class EffectiveNodeType {
         return definitions;
     }
 
+    @Override
     public void checkSetProperty(PropertyState property) throws RepositoryException {
         PropertyDefinition definition = getDefinition(property);
         if (definition.isProtected()) {
@@ -283,6 +298,7 @@ public class EffectiveNodeType {
         }
     }
 
+    @Override
     public void checkRemoveProperty(PropertyState property) throws RepositoryException {
         PropertyDefinition definition = getDefinition(property);
         if (definition.isProtected()) {
@@ -294,6 +310,7 @@ public class EffectiveNodeType {
         }
     }
 
+    @Override
     public void checkMandatoryItems(Tree tree) throws ConstraintViolationException {
         for (NodeType nodeType : nodeTypes.values()) {
             for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
@@ -313,6 +330,7 @@ public class EffectiveNodeType {
         }
     }
 
+    @Override
     public void checkOrderableChildNodes() throws UnsupportedRepositoryOperationException {
         for (NodeType nt : nodeTypes.values()) {
             if (nt.hasOrderableChildNodes()) {
@@ -336,6 +354,7 @@ public class EffectiveNodeType {
      * @return the applicable definition for the target property.
      * @throws ConstraintViolationException If no matching definition can be found.
      */
+    @Override
     public PropertyDefinition getPropertyDefinition(
             String propertyName, boolean isMultiple,
             int type, boolean exactTypeMatch)
@@ -371,6 +390,7 @@ public class EffectiveNodeType {
      * @param unknownMultiple {@code true} if the target property has an unknown type, {@code false} if it is known to be a multi-valued property.
      * @return the applicable definition for the target property or {@code null} if no matching definition can be found.
      */
+    @Override
     public PropertyDefinition getPropertyDefinition(String name, int type, boolean unknownMultiple) {
         // TODO check multivalue handling
         Iterable<PropertyDefinition> definitions = getNamedPropertyDefinitions(name);
@@ -407,6 +427,7 @@ public class EffectiveNodeType {
      * @return the node definition
      * @throws ConstraintViolationException
      */
+    @Override
     public NodeDefinition getNodeDefinition(
             String childName, EffectiveNodeType childEffective)
             throws ConstraintViolationException {

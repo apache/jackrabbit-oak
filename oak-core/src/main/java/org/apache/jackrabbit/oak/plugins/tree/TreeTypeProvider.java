@@ -21,8 +21,9 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 
 public final class TreeTypeProvider {
 

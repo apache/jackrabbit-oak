@@ -31,10 +31,10 @@ import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_RESOURCE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_LASTMODIFIEDBY;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_RESOURCE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_INDEXABLE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_LASTMODIFIEDBY;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_RESOURCE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_INDEXABLE;
 
 import java.io.Closeable;
 import java.io.IOException;

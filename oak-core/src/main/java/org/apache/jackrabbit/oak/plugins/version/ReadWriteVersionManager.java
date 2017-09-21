@@ -69,9 +69,9 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.JCR_COPIED_FROM;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_PATH;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.JCR_COPIED_FROM;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSIONSTORAGE;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
 /**
  * Extends the {@link ReadOnlyVersionManager} with methods to modify the

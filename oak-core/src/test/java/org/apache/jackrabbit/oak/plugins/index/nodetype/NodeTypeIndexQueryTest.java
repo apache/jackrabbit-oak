@@ -20,7 +20,7 @@ import static com.google.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
 /**

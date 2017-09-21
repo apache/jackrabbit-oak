@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype.write;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 import java.util.Arrays;
 

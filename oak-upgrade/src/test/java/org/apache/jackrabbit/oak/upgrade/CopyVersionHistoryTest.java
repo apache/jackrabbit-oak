@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.upgrade;
 import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.createLabeledVersions;
 import static org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.getOrAddNodeWithMixins;
 import static org.junit.Assert.assertEquals;
