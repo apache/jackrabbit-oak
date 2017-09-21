@@ -76,7 +76,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
 
         TokenProvider tp = tokenConfiguration.getTokenProvider(root);
 
-        assertFalse(tp.doCreateToken(sc));
+        assertTrue(tp.doCreateToken(sc));
         assertTrue(tp.doCreateToken(new TestCredentialsSupport.Creds()));
     }
 
@@ -86,7 +86,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
         ServiceRegistration registration = context.bundleContext().registerService(CredentialsSupport.class.getName(), testSupport, new Hashtable());
 
         TokenProvider tp = tokenConfiguration.getTokenProvider(root);
-        assertFalse(tp.doCreateToken(sc));
+        assertTrue(tp.doCreateToken(sc));
         assertTrue(tp.doCreateToken(new TestCredentialsSupport.Creds()));
 
         registration.unregister();
