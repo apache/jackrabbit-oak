@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -45,7 +46,6 @@ import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
-import org.apache.jackrabbit.oak.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,7 +108,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         } catch (IOException ex) {
             LOG.error("closing connection handler", ex);
         }
-        LOG.info("RDBBlobStore (" + OakVersion.getVersion() + ") closed"
+        LOG.info("RDBBlobStore (" + getModuleVersion() + ") closed"
                 + (dropped.isEmpty() ? "" : " (tables dropped: " + dropped + ")"));
     }
 
@@ -220,7 +220,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 tablesToBeDropped.addAll(tablesCreated);
             }
 
-            LOG.info("RDBBlobStore (" + OakVersion.getVersion() + ") instantiated for database " + dbDesc + ", using driver: "
+            LOG.info("RDBBlobStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
                     + driverDesc + ", connecting to: " + dbUrl + ", transaction isolation level: " + isolationDiags);
             if (!tablesPresent.isEmpty()) {
                 LOG.info("Tables present upon startup: " + tablesPresent);

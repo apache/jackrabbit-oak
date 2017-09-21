@@ -39,6 +39,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
 import static org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 
@@ -123,7 +124,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.OakVersion;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2532,7 +2532,7 @@ public final class DocumentNodeStore
                         "in read-write mode. Existing data in DocumentStore " +
                         "was written with older version. Store version: " +
                         storeVersion + ", this version: " + VERSION + ". Use " +
-                        "the oak-run-" + OakVersion.getVersion() + ".jar tool " +
+                        "the oak-run-" + getModuleVersion() + ".jar tool " +
                         "with the unlockUpgrade command first.");
             }
         }

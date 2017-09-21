@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.ACTIVE;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 
 import java.lang.management.ManagementFactory;
 import java.net.NetworkInterface;
@@ -35,7 +36,6 @@ import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -210,7 +210,7 @@ public class ClusterNodeInfo {
     /**
      * The Oak version.
      */
-    private static final String OAK_VERSION = OakVersion.getVersion();
+    private static final String OAK_VERSION = getModuleVersion();
 
     /**
      * The number of milliseconds for a lease (2 minute by default, and

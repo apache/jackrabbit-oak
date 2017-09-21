@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkCondit
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.createTableName;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -83,7 +84,6 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
-import org.apache.jackrabbit.oak.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -706,7 +706,7 @@ public class RDBDocumentStore implements DocumentStore {
         } catch (IOException ex) {
             LOG.warn("Error occurred while closing nodes cache", ex);
         }
-        LOG.info("RDBDocumentStore (" + OakVersion.getVersion() + ") disposed" + getCnStats()
+        LOG.info("RDBDocumentStore (" + getModuleVersion() + ") disposed" + getCnStats()
                 + (this.droppedTables.isEmpty() ? "" : " (tables dropped: " + this.droppedTables + ")"));
     }
 
@@ -893,7 +893,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         String diag = dbInfo.getAdditionalDiagnostics(this.ch, this.tableMeta.get(Collection.NODES).getName());
 
-        LOG.info("RDBDocumentStore (" + OakVersion.getVersion() + ") instantiated for database " + dbDesc + ", using driver: "
+        LOG.info("RDBDocumentStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
                 + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag))
                 + ", transaction isolation level: " + isolationDiags + tableDiags);
         if (!tablesPresent.isEmpty()) {

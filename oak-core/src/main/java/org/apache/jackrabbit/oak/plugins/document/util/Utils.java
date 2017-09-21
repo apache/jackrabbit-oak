@@ -40,6 +40,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -61,6 +62,8 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedE
  */
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
+
+    private static String MODULE_VERSION = null;
 
     /**
      * Approximate length of a Revision string.
@@ -877,5 +880,19 @@ public class Utils {
                 // ignore
             }
         }
+    }
+
+    /**
+     * Returns the version of the module that contains the DocumentNodeStore.
+     *
+     * @return the module version or "SNAPSHOT" if unknown.
+     */
+    public static String getModuleVersion() {
+        String v = MODULE_VERSION;
+        if (v == null) {
+            v = OakVersion.getVersion("oak-core", Utils.class);
+            MODULE_VERSION = v;
+        }
+        return v;
     }
 }
