@@ -14,7 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak;
+package org.apache.jackrabbit.oak.commons;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 import javax.annotation.Nonnull;
 
@@ -23,21 +27,34 @@ import javax.annotation.Nonnull;
  */
 public final class OakVersion {
 
-    private static String version = null;
-
     private OakVersion() {
     }
 
     /**
-     * Returns the version of oak-core.
+     * Returns the version of an Oak module.
      * 
+     * @param moduleName the name of the module
+     * @param clazz a class of the module
      * @return the version (or "SNAPSHOT" when unknown)
      */
     @Nonnull
-    public synchronized static String getVersion() {
-        if (version == null) {
-            version = org.apache.jackrabbit.oak.commons.OakVersion.getVersion(
-                    "oak-core", OakVersion.class);
+    public static String getVersion(String moduleName, Class clazz) {
+        String version = "SNAPSHOT"; // fallback
+        InputStream stream = clazz.getResourceAsStream(
+                "/META-INF/maven/org.apache.jackrabbit/" +
+                        moduleName + "/pom.properties");
+        if (stream != null) {
+            try {
+                try {
+                    Properties properties = new Properties();
+                    properties.load(stream);
+                    version = properties.getProperty("version", version);
+                } finally {
+                    stream.close();
+                }
+            } catch (IOException e) {
+                // ignore
+            }
         }
         return version;
     }
