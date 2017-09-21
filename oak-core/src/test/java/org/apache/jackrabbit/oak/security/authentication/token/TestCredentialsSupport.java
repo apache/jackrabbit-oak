@@ -25,6 +25,7 @@ import javax.jcr.Credentials;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 
 /**
  * Dummy implementation of {@link CredentialsSupport} that only supports

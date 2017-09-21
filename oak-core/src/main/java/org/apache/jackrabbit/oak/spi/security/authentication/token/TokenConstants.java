@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.token;
+package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
-interface TokenConstants {
+public interface TokenConstants {
 
     /**
      * Constant for the token attribute passed with valid simple credentials to
