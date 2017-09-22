@@ -23,10 +23,9 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -73,7 +72,7 @@ public class CompositePatternTest {
 
     @Test
     public void testMatchesTree() {
-        Tree tree = TreeFactory.createReadOnlyTree(EmptyNodeState.EMPTY_NODE);
+        Tree tree = Mockito.mock(Tree.class);
 
         assertTrue(alwaysMatching.matches(tree, null));
         assertFalse(neverMatching.matches(tree, null));
@@ -81,7 +80,7 @@ public class CompositePatternTest {
 
     @Test
     public void testMatchesTreeProperty() {
-        Tree tree = TreeFactory.createReadOnlyTree(EmptyNodeState.EMPTY_NODE);
+        Tree tree = Mockito.mock(Tree.class);
         PropertyState property = PropertyStates.createProperty("prop", "value");
 
         assertTrue(alwaysMatching.matches(tree, property));
