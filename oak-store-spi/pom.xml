@@ -42,7 +42,8 @@
                 org.apache.jackrabbit.oak.spi.lifecycle,
                 org.apache.jackrabbit.oak.spi.state,
                 org.apache.jackrabbit.oak.plugins.memory,
-                org.apache.jackrabbit.oak.plugins.value
+                org.apache.jackrabbit.oak.plugins.value,
+                org.apache.jackrabbit.oak.plugins.value.jcr
               </Export-Package>
             </instructions>
           </configuration>

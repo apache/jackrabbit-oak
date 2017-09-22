@@ -72,7 +72,6 @@
               org.apache.jackrabbit.oak.plugins.observation,
               org.apache.jackrabbit.oak.plugins.observation.filter,
               org.apache.jackrabbit.oak.plugins.tree,
-              org.apache.jackrabbit.oak.plugins.value.jcr,
               org.apache.jackrabbit.oak.plugins.version,
               org.apache.jackrabbit.oak.spi.security,
               org.apache.jackrabbit.oak.spi.security.authentication,

@@ -20,28 +20,24 @@
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
 import java.util.Calendar;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
-import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 
 public class PropertyStatesTest {
 
-    private final NamePathMapperImpl namePathMapper =
-            new NamePathMapperImpl(new LocalNameMapper(
-                    singletonMap("oak-prefix", "http://jackrabbit.apache.org"),
-                    singletonMap("jcr-prefix", "http://jackrabbit.apache.org")));
+    private final NamePathMapper namePathMapper = Mockito.mock(NamePathMapper.class);
 
     @Test
     public void namePropertyFromNameValue() throws RepositoryException {
