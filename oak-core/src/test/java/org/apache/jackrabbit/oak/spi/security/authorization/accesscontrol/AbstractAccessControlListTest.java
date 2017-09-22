@@ -33,11 +33,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
-import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.AbstractRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -48,13 +44,14 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
+import org.mockito.Mockito;
 
-import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for functionality provided by {@link AbstractAccessControlList}.
@@ -136,9 +133,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
 
     @Test
     public void testGetPath() {
-        NameMapper nameMapper = new GlobalNameMapper(
-                Collections.singletonMap("jr", "http://jackrabbit.apache.org"));
-        NamePathMapper npMapper = new NamePathMapperImpl(nameMapper);
+        NamePathMapper npMapper = mockNamePathMapper(getTestPath());
 
         // map of jcr-path to standard jcr-path
         Map<String, String> paths = new HashMap<String, String>();
@@ -156,25 +151,37 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
 
     @Test
     public void testGetOakPath() {
-        NamePathMapper npMapper = new NamePathMapperImpl(new LocalNameMapper(
-                singletonMap("oak", "http://jackrabbit.apache.org"),
-                singletonMap("jcr", "http://jackrabbit.apache.org")));
+        NamePathMapper npMapper = mockNamePathMapper(getTestPath());
+
         // map of jcr-path to oak path
         Map<String, String> paths = new HashMap<String, String>();
         paths.put(null, null);
         paths.put(getTestPath(), getTestPath());
         paths.put("/", "/");
         String oakPath = "/oak:testPath";
-        String jcrPath = "/jcr:testPath";
-        paths.put(jcrPath, oakPath);
-        jcrPath = "/{http://jackrabbit.apache.org}testPath";
-        paths.put(jcrPath, oakPath);
+        paths.put("/jr:testPath", oakPath);
+        paths.put("/{http://jackrabbit.apache.org}testPath", oakPath);
 
         // test if oak-path is properly set.
         for (String path : paths.keySet()) {
             AbstractAccessControlList acl = createACL(path, Collections.<JackrabbitAccessControlEntry>emptyList(), npMapper);
             assertEquals(paths.get(path), acl.getOakPath());
         }
+    }
+
+    private static NamePathMapper mockNamePathMapper(String testPath) {
+        NamePathMapper npMapper = Mockito.mock(NamePathMapper.class);
+        when(npMapper.getOakPath("/")).thenReturn("/");
+        when(npMapper.getOakPath(null)).thenReturn(null);
+        when(npMapper.getOakPath(testPath)).thenReturn(testPath);
+        when(npMapper.getOakPath("/jr:testPath")).thenReturn("/oak:testPath");
+        when(npMapper.getOakPath("/{http://jackrabbit.apache.org}testPath")).thenReturn("/oak:testPath");
+        when(npMapper.getJcrPath("/")).thenReturn("/");
+        when(npMapper.getJcrPath(null)).thenReturn(null);
+        when(npMapper.getJcrPath(testPath)).thenReturn(testPath);
+        when(npMapper.getJcrPath("/oak:testPath")).thenReturn("/jr:testPath");
+        when(npMapper.getJcrPath("/{http://jackrabbit.apache.org}testPath")).thenReturn("/jr:testPath");
+        return npMapper;
     }
 
     @Test
