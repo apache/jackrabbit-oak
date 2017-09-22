@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -71,7 +71,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
 
         NodeUtil a = new NodeUtil(root.getTree("/a"));
         NodeUtil test = a.addChild("referenceable", NT_NAME);
-        test.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
+        test.setString(JcrConstants.JCR_UUID, UUIDUtils.generateUUID());
         referenceablePath = test.getTree().getPath();
     }
 
@@ -94,7 +94,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
 
         NodeUtil a = new NodeUtil(testRoot.getTree("/a"));
         NodeUtil test = a.addChild("referenceable2", NT_NAME);
-        test.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
+        test.setString(JcrConstants.JCR_UUID, UUIDUtils.generateUUID());
         testRoot.commit();
     }
 
@@ -153,7 +153,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
         try {
             Root testRoot = getTestRoot();
             NodeUtil a = new NodeUtil(testRoot.getTree("/a"));
-            a.setString(JCR_UUID, IdentifierManager.generateUUID());
+            a.setString(JCR_UUID, UUIDUtils.generateUUID());
             testRoot.commit();
             fail("Creating a jcr:uuid property for an unstructured node without ADD_PROPERTY permission must fail.");
         } catch (CommitFailedException e) {
@@ -195,7 +195,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             Root testRoot = getTestRoot();
             a = new NodeUtil(testRoot.getTree("/a"));
             assertNotNull(a.getString(JCR_UUID, null));
-            a.setString(JCR_UUID, IdentifierManager.generateUUID());
+            a.setString(JCR_UUID, UUIDUtils.generateUUID());
             testRoot.commit();
             fail("Modifying a jcr:uuid property for an unstructured node without MODIFY_PROPERTY permission must fail.");
         } catch (CommitFailedException e) {

@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
@@ -357,7 +357,7 @@ public final class TreeUtil {
                                                    @Nonnull Tree definition,
                                                    @CheckForNull String userID) {
         if (JCR_UUID.equals(name)) {
-            String uuid = IdentifierManager.generateUUID();
+            String uuid = UUIDUtils.generateUUID();
             return PropertyStates.createProperty(name, uuid, STRING);
         } else if (JCR_CREATED.equals(name)) {
             String now = ISO8601.format(Calendar.getInstance());

@@ -39,11 +39,11 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.DecimalPropertyState;
@@ -260,12 +260,12 @@ public class ValueFactoryImpl implements ValueFactory {
                     }
                     return newValue(GenericPropertyState.pathProperty("", oakValue), namePathMapper);
                 case PropertyType.REFERENCE:
-                    if (!IdentifierManager.isValidUUID(value)) {
+                    if (!UUIDUtils.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid reference value " + value);
                     }
                     return newValue(GenericPropertyState.referenceProperty("", value), namePathMapper);
                 case PropertyType.WEAKREFERENCE:
-                    if (!IdentifierManager.isValidUUID(value)) {
+                    if (!UUIDUtils.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid weak reference value " + value);
                     }
                     return newValue(GenericPropertyState.weakreferenceProperty("", value), namePathMapper);
@@ -277,9 +277,7 @@ public class ValueFactoryImpl implements ValueFactory {
                 default:
                     throw new ValueFormatException("Invalid type: " + type);
             }
-        } catch (NumberFormatException e) {
-            throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
-        } catch (URISyntaxException e) {
+        } catch (NumberFormatException | URISyntaxException e) {
             throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
         }
     }
