@@ -27,13 +27,12 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -42,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +67,7 @@ public class AtomicCompositeMergeTest {
 
     private static final int THREADS = 6;
 
-    private static final String TEST_UUID = IdentifierManager.generateUUID();
+    private static final String TEST_UUID = UUIDUtils.generateUUID();
 
     private Closer closer;
 
@@ -167,7 +165,7 @@ public class AtomicCompositeMergeTest {
     }
 
     private void waitForReindexing(ContentSession session) throws CommitFailedException, ParseException {
-        String tmpUuid = IdentifierManager.generateUUID();
+        String tmpUuid = UUIDUtils.generateUUID();
 
         Root root = session.getLatestRoot();
         root.getTree("/").addChild("tmp").setProperty(JcrConstants.JCR_UUID, tmpUuid);

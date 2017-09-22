@@ -76,10 +76,10 @@ import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.slf4j.Logger;
@@ -626,7 +626,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
                 }
                 case PropertyType.REFERENCE:
                 case PropertyType.WEAKREFERENCE:
-                    return IdentifierManager.isValidUUID(value.getString());
+                    return UUIDUtils.isValidUUID(value.getString());
                 case PropertyType.URI:
                     new URI(value.getString());
                     return true;

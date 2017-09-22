@@ -29,7 +29,7 @@ import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.junit.Test;
 
 public class NamePathMapperImplTest {
@@ -53,7 +53,7 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testInvalidIdentifierPath() {
-        String uuid = IdentifierManager.generateUUID();
+        String uuid = UUIDUtils.generateUUID();
         List<String> invalid = new ArrayList<String>();
         invalid.add('[' + uuid + "]abc");
         invalid.add('[' + uuid + "]/a/b/c");

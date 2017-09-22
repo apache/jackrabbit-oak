@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -155,7 +155,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             // jcr:versionableUuid property
             node.setProperty(JCR_VERSIONABLEUUID, vUUID, Type.STRING);
             node.setProperty(JCR_UUID,
-                    IdentifierManager.generateUUID(), Type.STRING);
+                    UUIDUtils.generateUUID(), Type.STRING);
 
             // jcr:versionLabels child node
             NodeBuilder vLabels = node.child(JCR_VERSIONLABELS);
@@ -373,7 +373,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             predecessors = ImmutableList.copyOf(state.getValue(Type.REFERENCES));
             version = vHistory.child(calculateVersion(vHistory, versionable));
         }
-        String versionUUID = IdentifierManager.generateUUID();
+        String versionUUID = UUIDUtils.generateUUID();
         version.setProperty(JCR_UUID, versionUUID, Type.STRING);
         version.setProperty(JCR_PRIMARYTYPE, NT_VERSION, Type.NAME);
         version.setProperty(JCR_CREATED, ISO8601.format(Calendar.getInstance()), Type.DATE);
