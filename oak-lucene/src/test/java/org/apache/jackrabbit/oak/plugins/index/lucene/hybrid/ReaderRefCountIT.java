@@ -70,6 +70,7 @@ public class ReaderRefCountIT {
         indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
     }
 
+    @Ignore("OAK-6635")
     @Test
     public void syncIndex() throws Exception{
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
