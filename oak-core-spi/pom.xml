@@ -38,6 +38,7 @@
             <Export-Package>
               org.apache.jackrabbit.oak.cache,
               org.apache.jackrabbit.oak.commons.jmx,
+              org.apache.jackrabbit.oak.namepath,
               org.apache.jackrabbit.oak.osgi,
               org.apache.jackrabbit.oak.spi.descriptors,
               org.apache.jackrabbit.oak.spi.gc,

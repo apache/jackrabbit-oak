@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.namepath;
+package org.apache.jackrabbit.oak.namepath.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -27,6 +27,7 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;

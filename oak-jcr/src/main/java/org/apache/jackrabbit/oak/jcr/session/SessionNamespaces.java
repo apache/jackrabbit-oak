@@ -29,7 +29,7 @@ import javax.jcr.NamespaceException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.util.XMLChar;
 
 import com.google.common.collect.Maps;

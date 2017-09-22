@@ -55,7 +55,7 @@ public final class JcrNameParser {
          * {@link JcrNameParser#parse(String, Listener, int)}
          *
          * @param name The resulting name upon successful completion of
-         * {@link org.apache.jackrabbit.oak.namepath.JcrNameParser#parse(String, Listener, int)}
+         * {@link JcrNameParser#parse(String, Listener, int)}
          * @param index the index (or {@code 0} when not specified)
          */
         boolean name(String name, int index);
