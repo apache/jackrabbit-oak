@@ -141,8 +141,9 @@ public class IndexNodeManager {
             boolean success = false;
             try {
                 refreshPolicy.refreshOnReadIfRequired(refreshCallback);
+                IndexNode indexNode = new IndexNodeImpl(searcherHolder);
                 success = true;
-                return new IndexNodeImpl(searcherHolder);
+                return indexNode;
             } finally {
                 if (!success) {
                     lock.readLock().unlock();
