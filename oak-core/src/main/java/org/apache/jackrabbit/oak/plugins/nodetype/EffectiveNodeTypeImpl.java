@@ -49,9 +49,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 /**
- * EffectiveNodeType... TODO
+ * EffectiveNodeTypeImpl... TODO
  */
-class EffectiveNodeTypeImpl implements org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType {
+class EffectiveNodeTypeImpl implements EffectiveNodeType {
 
     private static final Logger log = LoggerFactory.getLogger(EffectiveNodeTypeImpl.class);
 
