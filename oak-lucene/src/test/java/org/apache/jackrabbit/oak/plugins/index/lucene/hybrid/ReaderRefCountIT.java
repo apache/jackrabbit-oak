@@ -26,11 +26,11 @@ import java.io.StringWriter;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -56,19 +56,20 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPat
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.junit.Assert.fail;
 
-public class RefreshPolicyIT {
+public class ReaderRefCountIT {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     private NodeState root = INITIAL_CONTENT;
     private IndexCopier indexCopier;
+    private int runTimeInSecs = 60;
+    private int noOfThread = 5;
 
     @Before
     public void setUp() throws IOException {
         indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
     }
 
-    @Ignore("OAK-6635")
     @Test
     public void syncIndex() throws Exception{
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
@@ -100,7 +101,7 @@ public class RefreshPolicyIT {
         String indexPath = "/oak:index/fooIndex";
 
         AtomicBoolean stop = new AtomicBoolean();
-        List<Throwable> exceptionList = new ArrayList<>();
+        List<Throwable> exceptionList = new CopyOnWriteArrayList<>();
 
         IndexTracker tracker = new IndexTracker(new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier), nrtFactory);
         tracker.update(repoState);
@@ -154,7 +155,7 @@ public class RefreshPolicyIT {
         Thread wt = new Thread(writer);
         List<Thread> threads = new ArrayList<>();
         threads.add(wt);
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < noOfThread; i++) {
             Thread t = new Thread(reader);
             threads.add(t);
             t.setUncaughtExceptionHandler(uh);
@@ -164,7 +165,7 @@ public class RefreshPolicyIT {
             t.start();
         }
 
-        errorLatch.await(10, TimeUnit.SECONDS);
+        errorLatch.await(runTimeInSecs, TimeUnit.SECONDS);
 
         stop.set(true);
 
