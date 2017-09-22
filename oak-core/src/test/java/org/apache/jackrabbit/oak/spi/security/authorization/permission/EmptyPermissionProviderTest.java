@@ -19,11 +19,10 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -33,7 +32,7 @@ public class EmptyPermissionProviderTest {
 
     private final PermissionProvider emptyProvider = EmptyPermissionProvider.getInstance();
 
-    private final Tree tree = TreeFactory.createReadOnlyTree(EmptyNodeState.EMPTY_NODE);
+    private final Tree tree = Mockito.mock(Tree.class);
 
     @Test
     public void testGetPrivileges() {

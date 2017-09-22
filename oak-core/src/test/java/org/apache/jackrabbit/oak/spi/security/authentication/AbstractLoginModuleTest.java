@@ -41,8 +41,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
@@ -588,7 +586,8 @@ public class AbstractLoginModuleTest {
         @Override
         public ContentSession login(@Nullable Credentials credentials, @Nullable String workspaceName) {
             ContentSession cs = Mockito.mock(ContentSession.class);
-            Mockito.when(cs.getLatestRoot()).thenReturn(RootFactory.createReadOnlyRoot(EmptyNodeState.EMPTY_NODE));
+            Root root = Mockito.mock(Root.class);
+            Mockito.when(cs.getLatestRoot()).thenReturn(root);
             return cs;
 
         }
