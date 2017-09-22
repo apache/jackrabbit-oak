@@ -47,7 +47,7 @@
               org.apache.jackrabbit.oak,
               org.apache.jackrabbit.oak.management,
               org.apache.jackrabbit.oak.util,
-              org.apache.jackrabbit.oak.namepath,
+              org.apache.jackrabbit.oak.namepath.impl,
               org.apache.jackrabbit.oak.plugins.atomic,
               org.apache.jackrabbit.oak.plugins.commit,
               org.apache.jackrabbit.oak.plugins.document.spi,

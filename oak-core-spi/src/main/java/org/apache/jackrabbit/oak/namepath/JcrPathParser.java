@@ -38,7 +38,7 @@ public final class JcrPathParser {
     private JcrPathParser() {
     }
 
-    interface Listener extends JcrNameParser.Listener {
+    public interface Listener extends JcrNameParser.Listener {
         boolean root();
         boolean current();
         boolean parent();
