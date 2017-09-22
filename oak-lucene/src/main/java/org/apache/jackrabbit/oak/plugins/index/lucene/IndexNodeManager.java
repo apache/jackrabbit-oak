@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -93,10 +94,18 @@ public class IndexNodeManager {
 
     private final ReaderRefreshPolicy refreshPolicy;
 
+    private final Semaphore refreshLock = new Semaphore(1);
+
     private final Runnable refreshCallback = new Runnable() {
         @Override
         public void run() {
-            refreshReaders();
+            if (refreshLock.tryAcquire()) {
+                try {
+                    refreshReaders();
+                }finally {
+                    refreshLock.release();
+                }
+            }
         }
     };
 
@@ -141,7 +150,14 @@ public class IndexNodeManager {
             boolean success = false;
             try {
                 refreshPolicy.refreshOnReadIfRequired(refreshCallback);
-                IndexNode indexNode = new IndexNodeImpl(searcherHolder);
+                SearcherHolder local = searcherHolder;
+                int tryCount = 0;
+                while (!local.searcher.getIndexReader().tryIncRef()) {
+                    checkState(++tryCount < 10, "Not able to " +
+                            "get open searcher in %s attempts", tryCount);
+                    local = searcherHolder;
+                }
+                IndexNode indexNode = new IndexNodeImpl(local);
                 success = true;
                 return indexNode;
             } finally {
@@ -245,10 +261,6 @@ public class IndexNodeManager {
         decrementSearcherUsageCount(holder.searcher);
     }
 
-    private static void incrementSearcherUsageCount(IndexSearcher searcher) {
-        searcher.getIndexReader().incRef();
-    }
-
     private void decrementSearcherUsageCount(IndexSearcher searcher) {
         try {
             //Decrement the count by 1 as we increased it while creating the searcher
@@ -276,8 +288,6 @@ public class IndexNodeManager {
 
         private IndexNodeImpl(SearcherHolder searcherHolder) {
             this.holder = searcherHolder;
-            //Increment on each acquire
-            incrementSearcherUsageCount(holder.searcher);
         }
 
         @Override
