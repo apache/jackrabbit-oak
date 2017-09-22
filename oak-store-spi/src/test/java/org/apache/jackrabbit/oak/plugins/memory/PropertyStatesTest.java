@@ -32,7 +32,6 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 
 public class PropertyStatesTest {
