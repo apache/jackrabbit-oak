@@ -162,7 +162,7 @@ public class IndexDefinitionTest {
     public void mergePolicyConfig() throws Exception{
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertNotNull(defn.getMergePolicy());
-        assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
+        assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
 
         builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "tiered");
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
@@ -187,7 +187,7 @@ public class IndexDefinitionTest {
         builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "default");
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertNotNull(defn.getMergePolicy());
-        assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
+        assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
 
         builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "mitigated");
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
@@ -198,7 +198,7 @@ public class IndexDefinitionTest {
         builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "whoawhoa");
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertNotNull(defn.getMergePolicy());
-        assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
+        assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
     }
 
     @Test

@@ -1519,9 +1519,9 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         if (mergePolicyName != null) {
             if (mergePolicyName.equalsIgnoreCase("no")) {
                 mergePolicy = NoMergePolicy.COMPOUND_FILES;
-            } else if (mergePolicyName.equalsIgnoreCase("mitigated") || mergePolicyName.equalsIgnoreCase("default")) {
+            } else if (mergePolicyName.equalsIgnoreCase("mitigated")) {
                 mergePolicy = new CommitMitigatingTieredMergePolicy();
-            } else if (mergePolicyName.equalsIgnoreCase("tiered")) {
+            } else if (mergePolicyName.equalsIgnoreCase("tiered") || mergePolicyName.equalsIgnoreCase("default")) {
                 mergePolicy = new TieredMergePolicy();
             } else if (mergePolicyName.equalsIgnoreCase("logbyte")) {
                 mergePolicy = new LogByteSizeMergePolicy();
@@ -1530,7 +1530,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         if (mergePolicy == null) {
-            mergePolicy = new CommitMitigatingTieredMergePolicy();
+            mergePolicy = new TieredMergePolicy();
         }
         return mergePolicy;
     }
