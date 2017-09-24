@@ -348,8 +348,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         seenPaths.add(path);
                     }
 
-                    LOG.trace("Matched path {}", path);
-                    return new LuceneResultRow(path, doc.score, excerpt, facets, explanation);
+                    boolean shouldIncludeForHierarchy = shouldInclude(path, plan);
+                    LOG.trace("Matched path {}; shouldIncludeForHierarchy: {}", path, shouldIncludeForHierarchy);
+                    return shouldIncludeForHierarchy? new LuceneResultRow(path, doc.score, excerpt, facets, explanation)
+                            : null;
                 }
                 return null;
             }
@@ -601,6 +603,27 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
 
         return query;
+    }
+
+    private static boolean shouldInclude(String docPath, IndexPlan plan) {
+        String path = getPathRestriction(plan);
+
+        boolean include = true;
+
+        Filter filter = plan.getFilter();
+        switch (filter.getPathRestriction()) {
+            case EXACT:
+                include = path.equals(docPath);
+                break;
+            case DIRECT_CHILDREN:
+                include = PathUtils.getParentPath(docPath).equals(path);
+                break;
+            case ALL_CHILDREN:
+                include = PathUtils.isAncestor(path, docPath);
+                break;
+        }
+
+        return include;
     }
 
     private String getExcerpt(Query query, Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc,
