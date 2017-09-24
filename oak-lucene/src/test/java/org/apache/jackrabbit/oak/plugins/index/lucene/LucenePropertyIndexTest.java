@@ -127,7 +127,6 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -166,6 +165,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private LuceneIndexProvider provider;
 
+    private ResultCountingIndexProvider queryIndexProvider;
+
     @After
     public void after() {
         new ExecutorCloser(executorService).close();
@@ -182,11 +183,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         IndexCopier copier = createIndexCopier();
         editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10* FileUtils.ONE_MB, 100));
         provider = new LuceneIndexProvider(copier);
+        queryIndexProvider = new ResultCountingIndexProvider(provider);
         nodeStore = new MemoryNodeStore();
         return new Oak(nodeStore)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
+                .with(queryIndexProvider)
                 .with((Observer) provider)
                 .with(editorProvider)
                 .with(optionalEditorProvider)
@@ -1149,6 +1151,54 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         //asert that (1) result gets returned correctly, (2) parent isn't there, and (3) child is returned
         assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", asList("/test/test1"));
+    }
+
+    @Test
+    public void queryPathRescrictionWithoutEvaluatePathRestriction() throws Exception {
+        Tree parent = root.getTree("/");
+        Tree idx = createIndex(parent, "test1", of());
+        idx.addChild(PROP_NODE).addChild("propa");
+
+        Tree test = parent.addChild("test");
+        test.addChild("a").addChild("c").addChild("d").setProperty("propa", "a");
+        test.addChild("b").addChild("c").addChild("d").setProperty("propa", "a");
+
+        parent = root.getTree("/").addChild("subRoot");
+        idx = createIndex(parent, "test1", of());
+        idx.addChild(PROP_NODE).addChild("propa");
+
+        test = parent.addChild("test");
+        test.addChild("a").addChild("c").addChild("d").setProperty("propa", "a");
+        test.addChild("b").addChild("c").addChild("d").setProperty("propa", "a");
+        root.commit();
+
+        queryIndexProvider.setShouldCount(true);
+
+        // Top level index
+        assertQuery("/jcr:root/test/a/c/d[@propa='a']", XPATH, asList("/test/a/c/d"));
+        assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+        queryIndexProvider.reset();
+
+        assertQuery("/jcr:root/test/a/c/*[@propa='a']", XPATH, asList("/test/a/c/d"));
+        assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+        queryIndexProvider.reset();
+
+        assertQuery("/jcr:root/test/a//*[@propa='a']", XPATH, asList("/test/a/c/d"));
+        assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+        queryIndexProvider.reset();
+
+        // Sub-root index
+        assertQuery("/jcr:root/subRoot/test/a/c/d[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+        assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+        queryIndexProvider.reset();
+
+        assertQuery("/jcr:root/subRoot/test/a/c/*[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+        assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+        queryIndexProvider.reset();
+
+        assertQuery("/jcr:root/subRoot/test/a//*[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+        assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+        queryIndexProvider.reset();
     }
 
     @Test
@@ -2898,5 +2948,4 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             accessCount = 0;
         }
     }
-
 }
