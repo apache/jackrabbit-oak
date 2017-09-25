@@ -37,12 +37,8 @@ public interface EffectiveNodeTypeProvider {
      * @param tree The tree to be tested.
      * @param nodeTypeName The internal oak name of the node type to be tested.
      * @return true if the specified node is of the given node type.
-     * @throws NoSuchNodeTypeException If the specified node type name doesn't
-     * refer to an existing node type.
-     * @throws RepositoryException If the given node type name is invalid or if
-     * some other error occurs.
      */
-    boolean isNodeType(Tree tree, String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
+    boolean isNodeType(Tree tree, String nodeTypeName);
 
     /**
      * Returns {@code true} if {@code typeName} is of the specified primary node
