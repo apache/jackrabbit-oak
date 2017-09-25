@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.roundDiv;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -69,6 +70,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
             }
         }
     }
+    
+    private int blobChunkSize;
     
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
@@ -122,7 +125,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         out.add(new GetSegmentResponse(null, segmentId, data));
     }
 
-    private static void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) throws IOException {
+    private void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) throws IOException {
         byte mask = in.readByte();
         long blobLength = in.readLong();
         
@@ -134,6 +137,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         
         // START_CHUNK flag enabled
         if ((mask & (1 << 0)) != 0) {
+            blobChunkSize = in.readableBytes() - 8;
+            
             if (tempFile.exists()) {
                 log.debug("Detected previous incomplete transfer for {}. Cleaning up...", blobId);
                 Files.delete(tempFile.toPath());
@@ -142,7 +147,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
         long hash = in.readLong();
 
-        log.debug("Received chunk of size {} from blob {} ", in.readableBytes(), blobId);
+        log.debug("Received chunk {}/{} of size {} from blob {}", roundDiv(tempFile.length() + in.readableBytes(), blobChunkSize),
+                roundDiv(blobLength, blobChunkSize), in.readableBytes(), blobId);
         byte[] chunkData = new byte[in.readableBytes()];
         in.readBytes(chunkData);
 
@@ -164,7 +170,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
                 FileInputStream fis = new DeleteOnCloseFileInputStream(tempFile);
                 out.add(new GetBlobResponse(null, blobId, fis, fis.getChannel().size()));
             } else {
-                log.debug("Size mismatch for blob {}", blobId);
+                log.debug("Blob {} discarded due to size mismatch. Expected size: {}, actual size: {} ", blobId,
+                        blobLength, tempFile.length());
             }
         }
     }

@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class FileStoreUtil {
+public final class FileStoreUtil {
 
     private static final Logger log = LoggerFactory.getLogger(FileStoreUtil.class);
 
@@ -33,6 +33,10 @@ final class FileStoreUtil {
         // Prevent instantiation
     }
 
+    public static int roundDiv(long x, int y) {
+        return (int) Math.ceil((double) x / (double) y);
+    }
+    
     static Segment readSegmentWithRetry(FileStore store, SegmentId id) {
         for (int i = 0; i < 160; i++) {
             if (store.containsSegment(id)) {
