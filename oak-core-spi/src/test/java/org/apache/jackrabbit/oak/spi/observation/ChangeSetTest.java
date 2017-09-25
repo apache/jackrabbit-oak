@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.spi.observation;
 
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;

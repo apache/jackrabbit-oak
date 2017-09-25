@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -131,7 +132,7 @@ public class ChangeCollectorProviderTest {
         CommitContext commitContext = (CommitContext) recorder.changes.get(0).info.getInfo().get(CommitContext.NAME);
         assertNotNull(commitContext);
         ChangeSet changeSet = (ChangeSet) commitContext
-                .get(ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+                .get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
         assertNotNull(changeSet);
         return changeSet;
     }

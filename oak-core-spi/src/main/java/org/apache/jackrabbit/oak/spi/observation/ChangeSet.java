@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.spi.observation;
 
 import java.util.Set;
 
@@ -61,6 +61,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopWriter;
  * a change. While properties naturally are leafs.
  */
 public final class ChangeSet {
+
+    public static final String COMMIT_CONTEXT_OBSERVATION_CHANGESET = "oak.observation.changeSet";
 
     private final int maxPathDepth;
     private final Set<String> parentPaths;

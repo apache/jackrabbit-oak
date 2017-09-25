@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -45,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
@@ -109,7 +109,7 @@ public class ExternalChangesTest {
         CommitInfo ci = c2.getExternalChange();
         CommitContext cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
         assertNotNull(cc);
-        ChangeSet cs = (ChangeSet) cc.get(ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+        ChangeSet cs = (ChangeSet) cc.get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
         assertNotNull(cs);
         assertFalse(cs.anyOverflow());
         assertThat(cs.getPropertyNames(), containsInAnyOrder("foo1", "foo2"));
@@ -136,7 +136,7 @@ public class ExternalChangesTest {
         CommitInfo ci = c2.getExternalChange();
         CommitContext cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
         assertNotNull(cc);
-        ChangeSet cs = (ChangeSet) cc.get(ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+        ChangeSet cs = (ChangeSet) cc.get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
         assertNotNull(cs);
 
         //ChangeSet should result in overflow
@@ -169,7 +169,7 @@ public class ExternalChangesTest {
         CommitInfo ci = c2.getExternalChange();
         CommitContext cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
         assertNotNull(cc);
-        ChangeSet cs = (ChangeSet) cc.get(ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+        ChangeSet cs = (ChangeSet) cc.get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
         assertNotNull(cs);
         assertTrue(cs.getPropertyNames().containsAll(propNames));
     }
