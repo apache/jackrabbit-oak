@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -68,11 +69,11 @@ public class IdentifierManager {
     private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
 
     private final Root root;
-    private final ReadOnlyNodeTypeManager nodeTypeManager;
+    private final EffectiveNodeTypeProvider effectiveNodeTypeProvider;
 
     public IdentifierManager(Root root) {
         this.root = root;
-        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+        this.effectiveNodeTypeProvider = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
     }
 
     /**
@@ -212,7 +213,7 @@ public class IdentifierManager {
      */
     @Nonnull
     public Iterable<String> getReferences(boolean weak, @Nonnull Tree tree, @Nullable final String propertyName) {
-        if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+        if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
@@ -305,7 +306,7 @@ public class IdentifierManager {
     @Nonnull
     public Iterable<String> getReferences(@Nonnull Tree tree, @Nonnull final String propertyName,
                                           @Nonnull String ntName, boolean weak) {
-        if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+        if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
