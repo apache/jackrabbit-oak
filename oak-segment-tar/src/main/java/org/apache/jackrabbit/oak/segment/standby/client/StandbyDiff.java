@@ -204,7 +204,8 @@ class StandbyDiff implements NodeStateDiff {
         InputStream in = client.getBlob(blobId);
 
         if (in == null) {
-            throw new IllegalStateException("Unable to load remote blob " + blobId + " at " + path + "#" + pName);
+            throw new IllegalStateException("Unable to load remote blob " + blobId + " at " + path + "#" + pName
+                    + " in " + client.getReadTimeoutMs() + "ms. Please increase the timeout and try again.");
         }
 
         try {

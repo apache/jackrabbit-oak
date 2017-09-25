@@ -103,7 +103,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         try {
             jmxServer.registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
-            log.error("can register standby status mbean", e);
+            log.error("cannot register standby status mbean", e);
         }
     }
 
@@ -119,7 +119,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         try {
             jmxServer.unregisterMBean(new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
-            log.error("can unregister standby status mbean", e);
+            log.error("cannot unregister standby status mbean", e);
         }
         closeGroup();
         observer.unregister();

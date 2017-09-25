@@ -78,7 +78,7 @@ class StandbyClientSyncExecution {
         compareAgainstBaseState(current, before, builder);
         boolean ok = store.getRevisions().setHead(before.getRecordId(), remoteHead);
         store.flush();
-        log.debug("updated head state successfully: {} in {}ms.", ok, System.currentTimeMillis() - t);
+        log.info("updated head state successfully: {} in {}ms.", ok, System.currentTimeMillis() - t);
     }
 
     @Nullable

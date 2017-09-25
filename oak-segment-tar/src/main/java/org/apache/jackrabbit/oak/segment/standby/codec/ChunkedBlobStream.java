@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
+import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.roundDiv;
+
 import java.io.InputStream;
 import java.io.PushbackInputStream;
 
@@ -123,8 +125,8 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
             decorated = decorateRawBuffer(allocator, buffer);
 
             offset += written;
-            log.info("Sending chunk {}/{} of size {} to client {}", roundDiv(offset, chunkSize),
-                    roundDiv(length, chunkSize), written, clientId);
+            log.debug("Sending chunk {}/{} of size {} from blob {} to client {}", roundDiv(offset, chunkSize),
+                    roundDiv(length, chunkSize), written, blobId, clientId);
 
             release = false;
             return decorated;
@@ -157,10 +159,6 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
         out.writeBytes(data);
 
         return out;
-    }
-
-    private static int roundDiv(long x, int y) {
-        return (int) Math.ceil((double) x / (double) y);
     }
 
     private byte createMask(int bytesRead) {

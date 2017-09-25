@@ -212,4 +212,8 @@ class StandbyClient implements AutoCloseable {
         return response.getReferences();
     }
 
+    public int getReadTimeoutMs() {
+        return readTimeoutMs;
+    }
+    
 }
