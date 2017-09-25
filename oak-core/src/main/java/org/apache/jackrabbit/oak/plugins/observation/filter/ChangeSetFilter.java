@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 
 /**
  * A ChangeSetFilter is capable of inspecting a ChangeSet

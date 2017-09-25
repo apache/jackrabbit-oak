@@ -29,8 +29,8 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSetBuilder;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -38,9 +38,9 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSetBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -42,9 +42,10 @@
               org.apache.jackrabbit.oak.osgi,
               org.apache.jackrabbit.oak.spi.descriptors,
               org.apache.jackrabbit.oak.spi.gc,
+              org.apache.jackrabbit.oak.spi.mount,
               org.apache.jackrabbit.oak.spi.namespace,
               org.apache.jackrabbit.oak.spi.nodetype,
-              org.apache.jackrabbit.oak.spi.mount,
+              org.apache.jackrabbit.oak.spi.observation,
               org.apache.jackrabbit.oak.spi.version,
               org.apache.jackrabbit.oak.spi.whiteboard,
               org.apache.jackrabbit.oak.stats
@@ -164,6 +165,12 @@
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
       <version>1.10.19</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-all</artifactId>
+      <version>1.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -40,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -67,8 +69,6 @@ public class ChangeCollectorProvider extends ValidatorProvider {
     public static final String TYPE = "changeCollectorProvider";
 
     private static final Logger LOG = LoggerFactory.getLogger(ChangeCollectorProvider.class);
-
-    public static final String COMMIT_CONTEXT_OBSERVATION_CHANGESET = "oak.observation.changeSet";
 
     private static final int DEFAULT_MAX_ITEMS = 50;
     @Property(longValue = DEFAULT_MAX_ITEMS, label = "Maximum Number of Collected Items (per type)", description = "Integer value indicating maximum number of individual items of changes - "
@@ -192,7 +192,7 @@ public class ChangeCollectorProvider extends ValidatorProvider {
             // CommitContext of the CommitInfo
             CommitContext commitContext = (CommitContext) support.info.getInfo().get(CommitContext.NAME);
             ChangeSet changeSet = support.changeSetBuilder.build();
-            commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
+            commitContext.set(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
             LOG.debug("Collected changeSet for commit {} is {}", support.info, changeSet);
         }
 
