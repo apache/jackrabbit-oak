@@ -220,7 +220,7 @@ public class VersionGCTest {
         };
         gc.setGCMonitor(monitor);
 
-        gc.gc(1, TimeUnit.HOURS);
+        gc.gc(2, TimeUnit.HOURS);
 
         assertEquals(3, infoMessages.size());
         assertTrue(infoMessages.get(0).startsWith("Start "));
