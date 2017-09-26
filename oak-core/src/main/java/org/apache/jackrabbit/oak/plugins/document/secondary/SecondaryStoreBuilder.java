@@ -24,7 +24,7 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 

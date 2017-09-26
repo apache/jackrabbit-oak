@@ -23,7 +23,6 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.binary.BinaryTextExtractor
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.document.Document;
 

@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;

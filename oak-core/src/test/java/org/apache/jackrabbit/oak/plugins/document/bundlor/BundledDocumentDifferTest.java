@@ -35,9 +35,9 @@ import org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNo
 import org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreCache;
 import org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserver;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
