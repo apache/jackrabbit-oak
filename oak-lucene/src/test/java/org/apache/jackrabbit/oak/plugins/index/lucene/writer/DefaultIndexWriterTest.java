@@ -19,22 +19,36 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import java.io.File;
+
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.ConcurrentMergeScheduler;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultIndexWriterTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
     private NodeState root = INITIAL_CONTENT;
 
     private NodeBuilder builder = EMPTY_NODE.builder();
@@ -42,21 +56,24 @@ public class DefaultIndexWriterTest {
     @Test
     public void lazyInit() throws Exception {
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, false);
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, null,
+                INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, false);
         assertFalse(writer.close(0));
     }
 
     @Test
     public void writeInitializedUponReindex() throws Exception {
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true);
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder,
+                new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true);
         assertTrue(writer.close(0));
     }
 
     @Test
     public void indexUpdated() throws Exception {
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
-        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder, new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, false);
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder,
+                new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, false);
 
         Document document = new Document();
         document.add(newPathField("/a/b"));
@@ -64,5 +81,26 @@ public class DefaultIndexWriterTest {
         writer.updateDocument("/a/b", document);
 
         assertTrue(writer.close(0));
+    }
+
+    @Test
+    public void indexWriterConfig_Scheduler_NonRemote() throws Exception{
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder,
+                new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true);
+
+        IndexWriter w = writer.getWriter();
+        assertThat(w.getConfig().getMergeScheduler(), instanceOf(SerialMergeScheduler.class));
+    }
+
+    @Test
+    public void indexWriterConfig_Scheduler_Remote() throws Exception{
+        FSDirectoryFactory fsdir = new FSDirectoryFactory(folder.getRoot());
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder,
+                fsdir, INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true);
+
+        IndexWriter w = writer.getWriter();
+        assertThat(w.getConfig().getMergeScheduler(), instanceOf(ConcurrentMergeScheduler.class));
     }
 }
