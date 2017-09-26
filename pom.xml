@@ -42,6 +42,7 @@
     <module>oak-core-spi</module>
     <module>oak-store-spi</module>
     <module>oak-query-spi</module>
+    <module>oak-security-spi</module>
     <module>oak-store-composite</module>
     <module>oak-store-document</module>
 
