@@ -43,6 +43,7 @@
     <module>oak-store-spi</module>
     <module>oak-query-spi</module>
     <module>oak-store-composite</module>
+    <module>oak-store-document</module>
 
     <module>oak-blob-plugins</module>
     <module>oak-blob</module>
