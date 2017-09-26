@@ -84,7 +84,7 @@ public class DefaultIndexWriterTest {
     }
 
     @Test
-    public void indexWriterConfig_Scheduler_NonRemote() throws Exception{
+    public void indexWriterConfig_Scheduler_Remote() throws Exception{
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder,
                 new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME, true);
@@ -94,7 +94,7 @@ public class DefaultIndexWriterTest {
     }
 
     @Test
-    public void indexWriterConfig_Scheduler_Remote() throws Exception{
+    public void indexWriterConfig_Scheduler_Local() throws Exception{
         FSDirectoryFactory fsdir = new FSDirectoryFactory(folder.getRoot());
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         DefaultIndexWriter writer = new DefaultIndexWriter(defn, builder,
