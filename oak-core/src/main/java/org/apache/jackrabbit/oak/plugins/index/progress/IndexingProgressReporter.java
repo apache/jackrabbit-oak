@@ -179,6 +179,8 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
                         TimeDurationFormatter.forLogging().format(timeRequired, TimeUnit.SECONDS),
                         percentComplete
                 );
+            } else {
+                return String.format("(Elapsed %s)", watch);
             }
         }
         return "";
