@@ -235,6 +235,7 @@
                   <filter>!org.apache.jackrabbit.oak.query.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.security</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.commit</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.filter</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.gc</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.lifecycle</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.query</filter>
