@@ -16,7 +16,7 @@
 sudo: false
 env:
   - MODULE=oak-jcr
-  - MODULE=oak-core
+  - MODULE=oak-store-document
   - MODULE=oak-it
   - MODULE=oak-lucene
   - MODULE=oak-run
