@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.migration;
 
 import com.google.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +69,7 @@ public class NameFilteringNodeState extends AbstractDecoratedNodeState {
      *
      * @param name
      *            to check
-     * @return true if the name is longer than {@link Utils#NODE_NAME_LIMIT}
+     * @return true if the name is longer than {@code org.apache.jackrabbit.oak.plugins.document.util.Utils#NODE_NAME_LIMIT}
      */
     public static boolean isNameTooLong(@Nonnull String name) {
         // OAK-1589: maximum supported length of name for DocumentNodeStore
