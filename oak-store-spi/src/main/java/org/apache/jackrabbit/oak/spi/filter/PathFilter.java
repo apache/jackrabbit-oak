@@ -18,7 +18,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index;
+package org.apache.jackrabbit.oak.spi.filter;
 
 import java.util.Arrays;
 import java.util.Collection;

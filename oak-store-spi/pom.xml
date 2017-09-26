@@ -39,6 +39,7 @@
                 org.apache.jackrabbit.oak.json,
                 org.apache.jackrabbit.oak.spi.cluster,
                 org.apache.jackrabbit.oak.spi.commit,
+                org.apache.jackrabbit.oak.spi.filter,
                 org.apache.jackrabbit.oak.spi.lifecycle,
                 org.apache.jackrabbit.oak.spi.state,
                 org.apache.jackrabbit.oak.plugins.memory,
