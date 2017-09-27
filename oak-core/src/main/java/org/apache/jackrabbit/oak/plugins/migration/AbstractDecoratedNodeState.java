@@ -39,7 +39,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static com.google.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
 

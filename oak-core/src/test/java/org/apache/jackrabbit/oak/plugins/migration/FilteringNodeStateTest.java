@@ -42,7 +42,7 @@ import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.cre
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.commit;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.createNodeStoreWithContent;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.getNodeState;
-import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
