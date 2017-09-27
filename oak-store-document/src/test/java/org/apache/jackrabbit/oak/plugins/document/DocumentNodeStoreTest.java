@@ -3146,7 +3146,6 @@ public class DocumentNodeStoreTest {
 
     // OAK-6392
     @Test
-    @Ignore("OAK-6680")
     public void disabledBranchesWithBackgroundWrite() throws Exception {
         final Thread current = Thread.currentThread();
         final Set<Integer> updates = Sets.newHashSet();
@@ -3185,12 +3184,18 @@ public class DocumentNodeStoreTest {
         });
         bgThread.start();
 
-        for (int j = 0; j < 20; j++) {
+        // perform up to 200 merges
+        for (int j = 0; j < 200; j++) {
             builder = ns.getRoot().builder();
             for (int i = 0; i < 30; i++) {
                 builder.child("node-" + i).child("test").setProperty("p", j);
             }
             merge(ns, builder);
+
+            // break out after 20 when there are updates
+            if (j > 20 && !updates.isEmpty()) {
+                break;
+            }
         }
         running.set(false);
         bgThread.join();
