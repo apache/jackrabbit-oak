@@ -182,11 +182,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         try {
             for (String tableName : new String[] { this.tnData, this.tnMeta }) {
-                PreparedStatement checkStatement = null;
+                Statement checkStatement = null;
                 try {
-                    checkStatement = con.prepareStatement("select ID from " + tableName + " where ID = ?");
-                    checkStatement.setString(1, "0");
-                    checkStatement.executeQuery().close();
+                    // avoid PreparedStatement due to weird DB2 behavior (OAK-6237)
+                    checkStatement = con.createStatement();
+                    checkStatement.executeQuery("select ID from " + tableName + " where ID = '0'").close();
                     checkStatement.close();
                     checkStatement = null;
                     con.commit();
