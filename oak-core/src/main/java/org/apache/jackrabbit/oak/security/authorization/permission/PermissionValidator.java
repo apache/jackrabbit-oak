@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ChildOrderDiff;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 
 import static com.google.common.base.Preconditions.checkNotNull;
