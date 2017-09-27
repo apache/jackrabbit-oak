@@ -39,19 +39,19 @@
     <plugins>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptors>
+            <descriptor>test-bundles.xml</descriptor>
+          </descriptors>
+          <finalName>test</finalName>
+          <attach>false</attach>
+        </configuration>
         <executions>
           <execution>
             <phase>pre-integration-test</phase>
             <goals>
               <goal>single</goal>
             </goals>
-            <configuration>
-              <descriptors>
-                <descriptor>test-bundles.xml</descriptor>
-              </descriptors>
-              <finalName>test</finalName>
-              <attach>false</attach>
-            </configuration>
           </execution>
         </executions>
       </plugin>
