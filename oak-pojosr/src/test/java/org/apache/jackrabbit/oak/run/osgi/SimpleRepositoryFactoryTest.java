@@ -41,7 +41,7 @@ public class SimpleRepositoryFactoryTest {
     @Rule
     public final TemporaryFolder tmpFolder = new TemporaryFolder(new File("target"));
 
-    @Test
+    @Test(timeout = 60)
     public void testRepositoryService() throws Exception{
         Map<String,String> config = new HashMap<String, String>();
         config.put("org.apache.jackrabbit.repository.home",
