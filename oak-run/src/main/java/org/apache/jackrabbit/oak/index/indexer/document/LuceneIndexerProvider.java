@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -52,7 +53,8 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     public LuceneIndexerProvider(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
         this.indexHelper = indexHelper;
         this.dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
-        this.indexWriterFactory = new DefaultIndexWriterFactory(indexHelper.getMountInfoProvider(), dirFactory);
+        this.indexWriterFactory = new DefaultIndexWriterFactory(indexHelper.getMountInfoProvider(),
+                dirFactory, new LuceneIndexWriterConfig());
     }
 
     @Override

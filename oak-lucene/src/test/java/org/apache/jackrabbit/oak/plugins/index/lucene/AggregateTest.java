@@ -39,9 +39,12 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeInclude;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeIncludeResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.PropertyIncludeResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -420,7 +423,9 @@ public class AggregateTest {
         LuceneDocumentMaker maker = new LuceneDocumentMaker(defn, defn.getApplicableIndexingRule("nt:folder"), "/bar");
         Document doc = maker.makeDocument(nb.getNodeState());
 
-        DefaultIndexWriterFactory writerFactory = new DefaultIndexWriterFactory(Mounts.defaultMountInfoProvider(), null, null);
+        DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
+        DefaultIndexWriterFactory writerFactory = new DefaultIndexWriterFactory(Mounts.defaultMountInfoProvider(),
+                directoryFactory, new LuceneIndexWriterConfig());
         LuceneIndexWriter writer = writerFactory.newInstance(defn, EMPTY_NODE.builder(), false);
         writer.updateDocument("/bar", doc);
         writer.close(100);

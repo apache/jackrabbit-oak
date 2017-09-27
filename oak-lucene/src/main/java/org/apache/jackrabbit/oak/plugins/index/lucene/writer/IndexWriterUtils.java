@@ -37,7 +37,12 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 
 public class IndexWriterUtils {
 
-    public static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition, boolean remoteDir) {
+    public static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition, boolean remoteDir){
+        return getIndexWriterConfig(definition, remoteDir, new LuceneIndexWriterConfig());
+    }
+
+    public static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition, boolean remoteDir,
+                                                         LuceneIndexWriterConfig writerConfig) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
         ClassLoader loader = thread.getContextClassLoader();
@@ -51,13 +56,13 @@ public class IndexWriterUtils {
             }
             Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
-//            config.setMergePolicy(definition.getMergePolicy());
             if (remoteDir) {
                 config.setMergeScheduler(new SerialMergeScheduler());
             }
             if (definition.getCodec() != null) {
                 config.setCodec(definition.getCodec());
             }
+            config.setRAMBufferSizeMB(writerConfig.getRamBufferSizeMB());
             return config;
         } finally {
             thread.setContextClassLoader(loader);

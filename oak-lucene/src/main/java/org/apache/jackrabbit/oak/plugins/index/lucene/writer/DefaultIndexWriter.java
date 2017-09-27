@@ -59,6 +59,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private final String dirName;
     private final String suggestDirName;
     private final boolean reindex;
+    private final LuceneIndexWriterConfig writerConfig;
     private IndexWriter writer;
     private Directory directory;
     private long genAtStart = -1;
@@ -66,13 +67,14 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
                               DirectoryFactory directoryFactory, String dirName, String suggestDirName,
-                              boolean reindex) {
+                              boolean reindex, LuceneIndexWriterConfig writerConfig) {
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
         this.directoryFactory = directoryFactory;
         this.dirName = dirName;
         this.suggestDirName = suggestDirName;
         this.reindex = reindex;
+        this.writerConfig = writerConfig;
     }
 
     @Override
@@ -142,7 +144,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
             directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
-            IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory());
+            IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
             config.setMergePolicy(definition.getMergePolicy());
             writer = new IndexWriter(directory, config);
             genAtStart = getLatestGeneration(directory);
