@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.tree.impl;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -29,7 +29,7 @@ import static com.google.common.collect.Sets.newLinkedHashSet;
  * Helper class to handle modifications to the hidden
  * {@link org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants#OAK_CHILD_ORDER} property.
  */
-public final class ChildOrderDiff {
+final class ChildOrderDiff {
 
     private ChildOrderDiff() {}
 
@@ -44,7 +44,7 @@ public final class ChildOrderDiff {
      * reorder happened; {@code null} otherwise.
      */
     @CheckForNull
-    public static String firstReordered(PropertyState before, PropertyState after) {
+    static String firstReordered(PropertyState before, PropertyState after) {
         Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
         Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));
 
