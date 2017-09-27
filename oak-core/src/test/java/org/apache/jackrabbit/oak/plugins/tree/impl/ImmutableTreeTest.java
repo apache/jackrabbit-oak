@@ -18,14 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -36,12 +29,24 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class ImmutableTreeTest extends AbstractSecurityTest {
 
@@ -269,5 +274,45 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
             }
         }));
         assertEquals(Lists.newArrayList(names), actual);
+    }
+
+    @Test
+    public void testSetType() {
+        assertNull(immutable.getType());
+
+        immutable.setType(TreeType.VERSION);
+        assertSame(TreeType.VERSION, immutable.getType());
+
+        immutable.setType(TreeType.DEFAULT);
+        assertSame(TreeType.DEFAULT, immutable.getType());
+    }
+
+    @Test
+    public void testGetTypeForImmutableTree() {
+        TreeTypeProvider typeProvider = new TreeTypeProvider(getConfig(AuthorizationConfiguration.class).getContext());
+        for (String path : new String[] {"/", "/testPath"}) {
+            Tree t = RootFactory.createReadOnlyRoot(root).getTree(path);
+            assertEquals(TreeType.DEFAULT, typeProvider.getType(t));
+            // also for repeated calls
+            assertEquals(TreeType.DEFAULT, typeProvider.getType(t));
+
+            // the type of an immutable tree is set after the first call irrespective of the passed parent type.
+            assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.DEFAULT));
+            assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.HIDDEN));
+        }
+    }
+
+    @Test
+    public void testGetTypeForImmutableTreeWithParent() {
+        TreeTypeProvider typeProvider = new TreeTypeProvider(getConfig(AuthorizationConfiguration.class).getContext());
+
+        Tree t = RootFactory.createReadOnlyRoot(root).getTree("/:hidden/testPath");
+        assertEquals(TreeType.HIDDEN, typeProvider.getType(t, TreeType.HIDDEN));
+
+        // the type of an immutable tree is set after the first call irrespective of the passed parent type.
+        assertEquals(TreeType.HIDDEN, typeProvider.getType(t));
+        assertEquals(TreeType.HIDDEN, typeProvider.getType(t, TreeType.DEFAULT));
+        assertEquals(TreeType.HIDDEN, typeProvider.getType(t, TreeType.ACCESS_CONTROL));
+        assertEquals(TreeType.HIDDEN, typeProvider.getType(t, TreeType.VERSION));
     }
 }

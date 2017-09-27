@@ -14,12 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.tree.impl;
+package org.apache.jackrabbit.oak.plugins.tree;
 
-public interface TreeConstants {
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
-    /**
-     * Name of the internal property that contains the child order
-     */
-    String OAK_CHILD_ORDER = ":childOrder";
+public interface TreeTypeAware {
+
+    @CheckForNull
+    TreeType getType();
+
+    void setType(@Nonnull TreeType type);
 }

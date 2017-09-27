@@ -22,12 +22,13 @@ import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 
 import static com.google.common.collect.Sets.newLinkedHashSet;
 
 /**
  * Helper class to handle modifications to the hidden
- * {@link org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants#OAK_CHILD_ORDER} property.
+ * {@link TreeConstants#OAK_CHILD_ORDER} property.
  */
 final class ChildOrderDiff {
 
@@ -35,7 +36,7 @@ final class ChildOrderDiff {
 
     /**
      * Tests if there was any user-supplied reordering involved with the
-     * modification of the {@link org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants#OAK_CHILD_ORDER}
+     * modification of the {@link TreeConstants#OAK_CHILD_ORDER}
      * property.
      *
      * @param before

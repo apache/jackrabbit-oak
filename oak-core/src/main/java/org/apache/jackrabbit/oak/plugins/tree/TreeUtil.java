@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.util.ISO8601;
 
 import static com.google.common.collect.Iterables.contains;
@@ -499,6 +498,6 @@ public final class TreeUtil {
      * @see org.apache.jackrabbit.oak.plugins.tree.RootFactory#createReadOnlyRoot(org.apache.jackrabbit.oak.spi.state.NodeState)
      */
     public static boolean isReadOnlyTree(@Nonnull Tree tree) {
-        return tree instanceof ImmutableTree;
+        return tree instanceof ReadOnly;
     }
 }

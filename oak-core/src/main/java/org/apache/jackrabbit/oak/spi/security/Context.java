@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeContext;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
-import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * {@code Context} represents item related information in relation to a

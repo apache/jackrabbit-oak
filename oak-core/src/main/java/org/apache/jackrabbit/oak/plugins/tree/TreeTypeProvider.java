@@ -20,8 +20,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
-import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 
@@ -38,11 +36,11 @@ public final class TreeTypeProvider {
             return TreeType.DEFAULT;
         } else {
             TreeType type;
-            if (tree instanceof ImmutableTree) {
-                type = ((ImmutableTree) tree).getType();
+            if (tree instanceof TreeTypeAware) {
+                type = ((TreeTypeAware) tree).getType();
                 if (type == null) {
                     type = internalGetType(tree);
-                    ((ImmutableTree) tree).setType(type);
+                    ((TreeTypeAware) tree).setType(type);
                 }
             } else {
                 type = internalGetType(tree);
@@ -57,11 +55,11 @@ public final class TreeTypeProvider {
         }
 
         TreeType type;
-        if (tree instanceof ImmutableTree) {
-            type = ((ImmutableTree) tree).getType();
+        if (tree instanceof TreeTypeAware) {
+            type = ((TreeTypeAware) tree).getType();
             if (type == null) {
                 type = internalGetType(tree, parentType);
-                ((ImmutableTree) tree).setType(type);
+                ((TreeTypeAware) tree).setType(type);
             }
         } else {
             type = internalGetType(tree, parentType);

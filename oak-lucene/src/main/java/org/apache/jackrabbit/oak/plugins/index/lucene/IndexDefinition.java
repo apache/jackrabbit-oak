@@ -101,7 +101,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
 public final class IndexDefinition implements Aggregate.AggregateMapper {
     /**
      * Name of the internal property that contains the child order defined in
-     * org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants
+     * org.apache.jackrabbit.oak.plugins.tree.TreeConstants
      */
     private static final String OAK_CHILD_ORDER = ":childOrder";
 
