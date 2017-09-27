@@ -30,6 +30,8 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  This {@link MergePolicy} extends Lucene's {@link org.apache.lucene.index.TieredMergePolicy} by providing mitigation
@@ -42,12 +44,15 @@ import org.apache.lucene.index.SegmentInfos;
  *
  */
 public class CommitMitigatingTieredMergePolicy extends MergePolicy {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     /** Default noCFSRatio.  If a merge's size is &gt;= 10% of
      *  the index, then we disable compound file for it.
      *  @see MergePolicy#setNoCFSRatio */
     public static final double DEFAULT_NO_CFS_RATIO = 0.1;
 
-    public static final double DEFAULT_MAX_COMMIT_RATE_DOCS = 1000;
+    private static final double DEFAULT_MAX_COMMIT_RATE_DOCS = 1000;
     private static final double DEFAULT_MAX_COMMIT_RATE_MB = 5;
 
     private int maxMergeAtOnce = 10;
@@ -61,6 +66,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     private double maxCommitRateDocs = DEFAULT_MAX_COMMIT_RATE_DOCS;
     private double maxCommitRateMB = DEFAULT_MAX_COMMIT_RATE_MB;
+
     private double docCount = 0d;
     private double mb = 0d;
     private double time = System.currentTimeMillis();
@@ -271,6 +277,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         long now = System.currentTimeMillis();
         double timeDelta = (now / 1000d) - (time / 1000d);
         double commitRate = Math.abs(docCount - infos.totalDocCount()) / timeDelta;
+        log.debug("committing {} docs/sec", commitRate);
 
         docCount = infos.totalDocCount();
         time = now;
@@ -370,6 +377,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             double bytes = idxBytes - this.mb;
             double mbRate = bytes / timeDelta;
+            log.debug("committing {} MBs/sec", mbRate);
 
             if (verbose()) {
                 message(mbRate + "mb/s (max: " + maxCommitRateMB + "mb/s)");
