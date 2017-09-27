@@ -1042,15 +1042,15 @@ public class RDBDocumentStore implements DocumentStore {
         }
         String tableName = tmd.getName();
 
-        PreparedStatement checkStatement = null;
+        Statement checkStatement = null;
 
         ResultSet checkResultSet = null;
         Statement creatStatement = null;
         Statement upgradeStatement = null;
         try {
-            checkStatement = con.prepareStatement("select * from " + tableName + " where ID = ?");
-            checkStatement.setString(1, "0:/");
-            checkResultSet = checkStatement.executeQuery();
+            // avoid PreparedStatement due to weird DB2 behavior (OAK-6237)
+            checkStatement = con.createStatement();
+            checkResultSet = checkStatement.executeQuery("select * from " + tableName + " where ID = '0'");
 
             // try to discover size of DATA column and binary-ness of ID
             ResultSetMetaData met = checkResultSet.getMetaData();
