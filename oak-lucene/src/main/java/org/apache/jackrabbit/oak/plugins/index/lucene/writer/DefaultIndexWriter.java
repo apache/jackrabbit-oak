@@ -79,7 +79,11 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     @Override
     public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
-        getWriter().updateDocument(newPathTerm(path), doc);
+        if (reindex) {
+            getWriter().addDocument(doc);
+        } else {
+            getWriter().updateDocument(newPathTerm(path), doc);
+        }
         indexUpdated = true;
     }
 

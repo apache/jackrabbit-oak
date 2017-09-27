@@ -114,6 +114,34 @@ public class DefaultIndexWriterTest {
         assertEquals(w.getConfig().getRAMBufferSizeMB(), 42, 0);
     }
 
+    @Test
+    public void useAddForReindex() throws Exception{
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        DefaultIndexWriter writer = createWriter(defn, true);
+
+        Document document = new Document();
+        document.add(newPathField("/a/b"));
+
+        writer.updateDocument("/a/b", document);
+
+        assertFalse(writer.getWriter().hasDeletions());
+        writer.close(100);
+    }
+
+    @Test
+    public void useUpdateForNormalIndexing() throws Exception{
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        DefaultIndexWriter writer = createWriter(defn, false);
+
+        Document document = new Document();
+        document.add(newPathField("/a/b"));
+
+        writer.updateDocument("/a/b", document);
+
+        assertTrue(writer.getWriter().hasDeletions());
+        writer.close(100);
+    }
+
     private DefaultIndexWriter createWriter(IndexDefinition defn, boolean reindex) {
         return new DefaultIndexWriter(defn, builder,
                 new DefaultDirectoryFactory(null, null), INDEX_DATA_CHILD_NAME,
