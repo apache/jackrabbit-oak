@@ -26,15 +26,13 @@ import java.io.IOException;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.CorruptIndexHandler;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
-import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
@@ -54,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.asList;
 
 public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTraversalCallback {
@@ -159,7 +156,9 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         LuceneIndexHelper luceneIndexHelper = indexHelper.getLuceneIndexHelper();
         DirectoryFactory dirFactory = new FSDirectoryFactory(getLocalIndexDir());
         luceneIndexHelper.setDirectoryFactory(dirFactory);
-        return luceneIndexHelper.createEditorProvider();
+        LuceneIndexEditorProvider provider = luceneIndexHelper.createEditorProvider();
+        provider.setWriterConfig(luceneIndexHelper.getWriterConfigForReindex());
+        return provider;
     }
 
     private void configureEstimators(IndexUpdate indexUpdate) {

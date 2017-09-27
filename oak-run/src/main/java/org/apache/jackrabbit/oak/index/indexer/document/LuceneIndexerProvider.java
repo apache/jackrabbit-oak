@@ -54,7 +54,7 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
         this.indexHelper = indexHelper;
         this.dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
         this.indexWriterFactory = new DefaultIndexWriterFactory(indexHelper.getMountInfoProvider(),
-                dirFactory, new LuceneIndexWriterConfig());
+                dirFactory, indexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
     }
 
     @Override
