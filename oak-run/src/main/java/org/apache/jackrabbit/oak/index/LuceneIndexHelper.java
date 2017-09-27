@@ -27,12 +27,19 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-class LuceneIndexHelper implements Closeable {
+public class LuceneIndexHelper implements Closeable {
+    private static final String PROP_BUFFER_SIZE = "oak.index.ramBufferSizeMB";
+    private static final int BUFFER_SIZE_DEFAULT = 32;
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexHelper indexHelper;
     private IndexCopier indexCopier;
     private DirectoryFactory directoryFactory;
+
 
     LuceneIndexHelper(IndexHelper indexHelper) {
         this.indexHelper = indexHelper;
@@ -64,6 +71,15 @@ class LuceneIndexHelper implements Closeable {
         editor.setBlobStore(indexHelper.getGCBlobStore());
 
         return editor;
+    }
+
+    public LuceneIndexWriterConfig getWriterConfigForReindex() {
+        int buffSize = Integer.getInteger(PROP_BUFFER_SIZE, BUFFER_SIZE_DEFAULT);
+
+        log.info("Setting RAMBufferSize for LuceneIndexWriter (configurable via " +
+                "system property '{}') to {} MB", PROP_BUFFER_SIZE, buffSize);
+
+        return new LuceneIndexWriterConfig(buffSize);
     }
 
     public void setDirectoryFactory(DirectoryFactory directoryFactory) {
