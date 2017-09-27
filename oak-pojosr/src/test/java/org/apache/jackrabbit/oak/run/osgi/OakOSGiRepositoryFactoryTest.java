@@ -85,7 +85,7 @@ public class OakOSGiRepositoryFactoryTest {
         copyConfig("common");
     }
 
-    @Test(timeout = 60)
+    @Test(timeout = 60 * 1000)
     public void testRepositoryTar() throws Exception {
         copyConfig("tar");
         config.put(BundleActivator.class.getName(), new TestActivator());
