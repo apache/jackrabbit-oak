@@ -21,16 +21,12 @@ package org.apache.jackrabbit.oak.run.osgi
 
 import groovy.util.logging.Slf4j
 import org.apache.felix.connect.launch.PojoServiceRegistry
-import org.apache.felix.scr.Component
-import org.apache.felix.scr.ScrService
 import org.junit.Assert
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import javax.jcr.RepositoryException
 import javax.jcr.Session
-import java.util.concurrent.TimeUnit
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
@@ -51,10 +47,9 @@ class RepositoryClosedTest extends AbstractRepositoryFactoryTest{
         Session s = createAdminSession()
 
         //2 Trigger repository shutdown
-        disableComponents(
-                'org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager',
-                'org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider'
-        )
+        disableComponent('org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager')
+        disableComponent('org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider')
+
         log.info("Repository shutdown complete. Proceeding with save")
 
         //Null out repository to prevent shutdown attempt in teardown
@@ -74,15 +69,4 @@ class RepositoryClosedTest extends AbstractRepositoryFactoryTest{
         OakOSGiRepositoryFactory.shutdown(registry, 5)
     }
 
-    private void disableComponents(String ... names){
-        ScrService scr = getService(ScrService.class)
-        names.each {String name ->
-            Component[] c = scr.getComponents(name)
-            assert c : "No component with name '$name' found"
-            c[0].componentInstance?.dispose()
-            log.info("Disabling {}", name)
-        }
-
-        TimeUnit.SECONDS.sleep(1)
-    }
 }
