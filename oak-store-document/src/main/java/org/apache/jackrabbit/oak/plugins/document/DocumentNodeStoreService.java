@@ -58,15 +58,6 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -116,21 +107,27 @@ import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * The OSGi service to start/stop a DocumentNodeStore instance.
  */
-@Component(policy = ConfigurationPolicy.REQUIRE,
-        metatype = true,
-        label = "Apache Jackrabbit Oak Document NodeStore Service",
-        description = "NodeStore implementation based on Document model. For configuration option refer " +
-                "to http://jackrabbit.apache.org/oak/docs/osgi_config.html#DocumentNodeStore. Note that for system " +
-                "stability purpose it is advisable to not change these settings at runtime. Instead the config change " +
-                "should be done via file system based config file and this view should ONLY be used to determine which " +
-                "options are supported"
-)
+@Component(
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        service = {})
+@Designate(ocd = DocumentNodeStoreService.Configuration.class)
 public class DocumentNodeStoreService {
 
     private static final long MB = 1024 * 1024;
@@ -144,6 +141,27 @@ public class DocumentNodeStoreService {
     private static final boolean DEFAULT_CONTINUOUS_RGC = false;
     private static final String PREFIX = "oak.documentstore.";
     private static final String DESCRIPTION = "oak.nodestore.description";
+    private static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
+    static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
+    private static final String DEFAULT_PROP_HOME = "./repository";
+    private static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60;
+    private static final boolean DEFAULT_BUNDLING_DISABLED = false;
+
+    /**
+     * Revisions older than this time would be garbage collected
+     */
+    private static final long DEFAULT_VER_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
+
+
+    /**
+     * Blob modified before this time duration would be considered for Blob GC
+     */
+    private static final long DEFAULT_BLOB_GC_MAX_AGE = 24 * 60 * 60;
+
+    /**
+     * Default interval for taking snapshots of locally tracked blob ids.
+     */
+    private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
 
     /**
      * Name of framework property to configure Mongo Connection URI
@@ -161,133 +179,219 @@ public class DocumentNodeStoreService {
      */
     private static final String FWK_PROP_SO_KEEP_ALIVE = "oak.mongo.socketKeepAlive";
 
-    @Property(value = DEFAULT_URI,
-            label = "Mongo URI",
-            description = "Mongo connection URI used to connect to Mongo. Refer to " +
-                    "http://docs.mongodb.org/manual/reference/connection-string/ for details. Note that this value " +
-                    "can be overridden via framework property 'oak.mongo.uri'"
-    )
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak Document NodeStore Service",
+            description = "NodeStore implementation based on Document model. For configuration option refer " +
+                    "to http://jackrabbit.apache.org/oak/docs/osgi_config.html#DocumentNodeStore. Note that for system " +
+                    "stability purpose it is advisable to not change these settings at runtime. Instead the config change " +
+                    "should be done via file system based config file and this view should ONLY be used to determine which " +
+                    "options are supported")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Mongo URI",
+                description = "Mongo connection URI used to connect to Mongo. Refer to " +
+                        "http://docs.mongodb.org/manual/reference/connection-string/ for details. Note that this value " +
+                        "can be overridden via framework property 'oak.mongo.uri'")
+        String mongouri() default DEFAULT_URI;
+
+        @AttributeDefinition(
+                name = "Mongo DB name",
+                description = "Name of the database in Mongo. Note that this value " +
+                        "can be overridden via framework property 'oak.mongo.db'")
+        String db() default DEFAULT_DB;
+
+
+        @AttributeDefinition(
+                name = "MongoDB socket keep-alive option",
+                description = "Whether socket keep-alive should be enabled for " +
+                        "connections to MongoDB. Note that this value can be " +
+                        "overridden via framework property 'oak.mongo.socketKeepAlive'")
+        boolean socketKeepAlive() default DEFAULT_SO_KEEP_ALIVE;
+
+        @AttributeDefinition(
+                name = "Cache Size (in MB)",
+                description = "Cache size in MB. This is distributed among various caches used in DocumentNodeStore")
+        int cache() default DEFAULT_CACHE;
+
+        @AttributeDefinition(
+                name = "NodeState Cache",
+                description = "Percentage of cache to be allocated towards Node cache")
+        int nodeCachePercentage() default DEFAULT_NODE_CACHE_PERCENTAGE;
+
+        @AttributeDefinition(
+                name = "PreviousDocument Cache",
+                description = "Percentage of cache to be allocated towards Previous Document cache")
+        int prevDocCachePercentage() default DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+
+        @AttributeDefinition(
+                name = "NodeState Children Cache",
+                description = "Percentage of cache to be allocated towards Children cache")
+        int childrenCachePercentage() default DEFAULT_CHILDREN_CACHE_PERCENTAGE;
+
+        @AttributeDefinition(
+                name = "Diff Cache",
+                description = "Percentage of cache to be allocated towards Diff cache")
+        int diffCachePercentage() default DEFAULT_DIFF_CACHE_PERCENTAGE;
+
+        @AttributeDefinition(
+                name = "LIRS Cache Segment Count",
+                description = "The number of segments in the LIRS cache " +
+                        "(default 16, a higher count means higher concurrency " +
+                        "but slightly lower cache hit rate)")
+        int cacheSegmentCount() default DEFAULT_CACHE_SEGMENT_COUNT;
+
+        @AttributeDefinition(
+                name = "LIRS Cache Stack Move Distance",
+                description = "The delay to move entries to the head of the queue " +
+                        "in the LIRS cache " +
+                        "(default 16, a higher value means higher concurrency " +
+                        "but slightly lower cache hit rate)")
+        int cacheStackMoveDistance() default DEFAULT_CACHE_STACK_MOVE_DISTANCE;
+
+        @AttributeDefinition(
+                name = "Blob Cache Size (in MB)",
+                description = "Cache size to store blobs in memory. Used only with default BlobStore " +
+                        "(as per DocumentStore type)")
+        int blobCacheSize() default DEFAULT_BLOB_CACHE_SIZE;
+
+        @AttributeDefinition(
+                name = "Persistent Cache Config",
+                description = "Configuration for persistent cache. Refer to " +
+                        "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options")
+        String persistentCache() default DEFAULT_PERSISTENT_CACHE;
+
+        @AttributeDefinition(
+                name = "Journal Cache Config",
+                description = "Configuration for journal cache. Refer to " +
+                        "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options")
+        String journalCache() default DEFAULT_JOURNAL_CACHE;
+
+        @AttributeDefinition(
+                name = "Custom BlobStore",
+                description = "Boolean value indicating that a custom BlobStore is to be used. " +
+                        "By default, for MongoDB, MongoBlobStore is used; for RDB, RDBBlobStore is used.")
+        boolean customBlobStore() default false;
+
+
+        @AttributeDefinition(
+                name = "Journal Garbage Collection Interval (millis)",
+                description = "Long value indicating interval (in milliseconds) with which the "
+                        + "journal (for external changes) is cleaned up. Default is " + DEFAULT_JOURNAL_GC_INTERVAL_MILLIS)
+        long journalGCInterval() default DEFAULT_JOURNAL_GC_INTERVAL_MILLIS;
+        
+        @AttributeDefinition(
+                name = "Maximum Age of Journal Entries (millis)",
+                description = "Long value indicating max age (in milliseconds) that "
+                        + "journal (for external changes) entries are kept (older ones are candidates for gc). "
+                        + "Default is " + DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS)
+        long journalGCMaxAge() default DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
+
+        @AttributeDefinition(
+                name = "Pre-fetch external changes",
+                description = "Boolean value indicating if external changes should " +
+                        "be pre-fetched in a background thread.")
+        boolean prefetchExternalChanges() default false;
+
+        @AttributeDefinition(
+                name = "NodeStoreProvider role",
+                description = "Property indicating that this component will not register as a NodeStore but as a " +
+                        "NodeStoreProvider with given role")
+        String role();
+
+        @AttributeDefinition(
+                name = "Version GC Max Age (in secs)",
+                description = "Version Garbage Collector (GC) logic will only consider those deleted for GC which " +
+                        "are not accessed recently (currentTime - lastModifiedTime > versionGcMaxAgeInSecs). For " +
+                        "example as per default only those document which have been *marked* deleted 24 hrs ago will be " +
+                        "considered for GC. This also applies how older revision of live document are GC.")
+        long versionGcMaxAgeInSecs() default DEFAULT_VER_GC_MAX_AGE;
+
+        @AttributeDefinition(
+                name = "Continuous Version GC Mode",
+                description = "Run Version GC continuously as a background task.")
+        boolean versionGCContinuous() default DEFAULT_CONTINUOUS_RGC;
+
+        @AttributeDefinition(
+                name = "Blob GC Max Age (in secs)",
+                description = "Blob Garbage Collector (GC) logic will only consider those blobs for GC which " +
+                        "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For " +
+                        "example as per default only those blobs which have been created 24 hrs ago will be " +
+                        "considered for GC")
+        long blobGcMaxAgeInSecs() default DEFAULT_BLOB_GC_MAX_AGE;
+
+        @AttributeDefinition(
+                name = "Blob tracking snapshot interval (in secs)",
+                description = "This is the default interval in which the snapshots of locally tracked blob ids will"
+                        + "be taken and synchronized with the blob store. This should be configured to be less than the "
+                        + "frequency of blob GC so that deletions during blob GC can be accounted for "
+                        + "in the next GC execution.")
+        long blobTrackSnapshotIntervalInSecs() default DEFAULT_BLOB_SNAPSHOT_INTERVAL;
+
+        @AttributeDefinition(
+                name = "Root directory",
+                description = "Root directory for local tracking of blob ids. This service " +
+                        "will first lookup the 'repository.home' framework property and " +
+                        "then a component context property with the same name. If none " +
+                        "of them is defined, a sub directory 'repository' relative to " +
+                        "the current working directory is used.")
+        String repository_home();
+
+        @AttributeDefinition(
+                name = "Max Replication Lag (in secs)",
+                description = "Value in seconds. Determines the duration beyond which it can be safely assumed " +
+                        "that the state on the secondaries is consistent with the primary, and it is safe to read from them")
+        long maxReplicationLagInSecs() default DEFAULT_MAX_REPLICATION_LAG;
+
+        @AttributeDefinition(
+                name = "DocumentStore Type",
+                description = "Type of DocumentStore to use for persistence. Defaults to MONGO",
+                options = {
+                        @Option(label = "MONGO", value = "MONGO"),
+                        @Option(label = "RDB", value = "RDB")})
+        String documentStoreType() default "MONGO";
+
+        @AttributeDefinition(
+                name = "Bundling Disabled",
+                description = "Boolean value indicating that Node bundling is disabled")
+        boolean bundlingDisabled() default DEFAULT_BUNDLING_DISABLED;
+
+        @AttributeDefinition(
+                name = "DocumentNodeStore update.limit",
+                description = "Number of content updates that need to happen before " +
+                        "the updates are automatically purged to the private branch.")
+        int updateLimit();
+    }
+    
+    // property name constants - values can come from framework properties or OSGi config
     private static final String PROP_URI = "mongouri";
-
-    @Property(value = DEFAULT_DB,
-            label = "Mongo DB name",
-            description = "Name of the database in Mongo. Note that this value " +
-                    "can be overridden via framework property 'oak.mongo.db'"
-    )
     private static final String PROP_DB = "db";
-
-    @Property(boolValue = DEFAULT_SO_KEEP_ALIVE,
-            label = "MongoDB socket keep-alive option",
-            description = "Whether socket keep-alive should be enabled for " +
-                    "connections to MongoDB. Note that this value can be " +
-                    "overridden via framework property 'oak.mongo.socketKeepAlive'"
-    )
     static final String PROP_SO_KEEP_ALIVE = "socketKeepAlive";
-
-    @Property(intValue = DEFAULT_CACHE,
-            label = "Cache Size (in MB)",
-            description = "Cache size in MB. This is distributed among various caches used in DocumentNodeStore"
-    )
     private static final String PROP_CACHE = "cache";
-
-    @Property(intValue = DEFAULT_NODE_CACHE_PERCENTAGE,
-            label = "NodeState Cache",
-            description = "Percentage of cache to be allocated towards Node cache"
-    )
     private static final String PROP_NODE_CACHE_PERCENTAGE = "nodeCachePercentage";
-
-    @Property(intValue = DEFAULT_PREV_DOC_CACHE_PERCENTAGE,
-            label = "PreviousDocument Cache",
-            description = "Percentage of cache to be allocated towards Previous Document cache"
-    )
     private static final String PROP_PREV_DOC_CACHE_PERCENTAGE = "prevDocCachePercentage";
-
-    @Property(intValue = DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE,
-            label = "NodeState Children Cache",
-            description = "Percentage of cache to be allocated towards Children cache"
-    )
     private static final String PROP_CHILDREN_CACHE_PERCENTAGE = "childrenCachePercentage";
-    
-    @Property(intValue = DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE,
-            label = "Diff Cache",
-            description = "Percentage of cache to be allocated towards Diff cache"
-    )
     private static final String PROP_DIFF_CACHE_PERCENTAGE = "diffCachePercentage";
-    
-    @Property(intValue = DEFAULT_CACHE_SEGMENT_COUNT,
-            label = "LIRS Cache Segment Count",
-            description = "The number of segments in the LIRS cache " + 
-                    "(default 16, a higher count means higher concurrency " + 
-                    "but slightly lower cache hit rate)"
-    )
     private static final String PROP_CACHE_SEGMENT_COUNT = "cacheSegmentCount";
-
-    @Property(intValue = DEFAULT_CACHE_STACK_MOVE_DISTANCE,
-            label = "LIRS Cache Stack Move Distance",
-            description = "The delay to move entries to the head of the queue " + 
-                    "in the LIRS cache " +
-                    "(default 16, a higher value means higher concurrency " + 
-                    "but slightly lower cache hit rate)"
-    )
     private static final String PROP_CACHE_STACK_MOVE_DISTANCE = "cacheStackMoveDistance";
-
-    @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE,
-            label = "Blob Cache Size (in MB)",
-            description = "Cache size to store blobs in memory. Used only with default BlobStore " +
-                    "(as per DocumentStore type)"
-    )
     private static final String PROP_BLOB_CACHE_SIZE = "blobCacheSize";
-
-    @Property(value = DEFAULT_PERSISTENT_CACHE,
-            label = "Persistent Cache Config",
-            description = "Configuration for persistent cache. Refer to " +
-                    "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options"
-    )
     private static final String PROP_PERSISTENT_CACHE = "persistentCache";
-
-    @Property(value = DEFAULT_JOURNAL_CACHE,
-            label = "Journal Cache Config",
-            description = "Configuration for journal cache. Refer to " +
-                    "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options"
-    )
     private static final String PROP_JOURNAL_CACHE = "journalCache";
-
-    @Property(boolValue = false,
-            label = "Custom BlobStore",
-            description = "Boolean value indicating that a custom BlobStore is to be used. " +
-                    "By default, for MongoDB, MongoBlobStore is used; for RDB, RDBBlobStore is used."
-    )
-    public static final String CUSTOM_BLOB_STORE = "customBlobStore";
-
-    private static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
-    @Property(longValue = DEFAULT_JOURNAL_GC_INTERVAL_MILLIS,
-            label = "Journal Garbage Collection Interval (millis)",
-            description = "Long value indicating interval (in milliseconds) with which the "
-                    + "journal (for external changes) is cleaned up. Default is " + DEFAULT_JOURNAL_GC_INTERVAL_MILLIS
-    )
-    private static final String PROP_JOURNAL_GC_INTERVAL_MILLIS = "journalGCInterval";
-    
-    static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
-    @Property(longValue = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS,
-            label = "Maximum Age of Journal Entries (millis)",
-            description = "Long value indicating max age (in milliseconds) that "
-                    + "journal (for external changes) entries are kept (older ones are candidates for gc). "
-                    + "Default is " + DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS
-    )
-    private static final String PROP_JOURNAL_GC_MAX_AGE_MILLIS = "journalGCMaxAge";
-
-    @Property (boolValue = false,
-            label = "Pre-fetch external changes",
-            description = "Boolean value indicating if external changes should " +
-                    "be pre-fetched in a background thread."
-    )
     public static final String PROP_PREFETCH_EXTERNAL_CHANGES = "prefetchExternalChanges";
-
-    @Property(
-            label = "NodeStoreProvider role",
-            description = "Property indicating that this component will not register as a NodeStore but as a NodeStoreProvider with given role"
-    )
+    private static final String PROP_JOURNAL_GC_MAX_AGE_MILLIS = "journalGCMaxAge";
+    public static final String CUSTOM_BLOB_STORE = "customBlobStore";
+    public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
+    public static final String PROP_VER_GC_CONTINUOUS = "versionGCContinuous";
+    public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
+    public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
+    public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
+    private static final String PROP_HOME = "repository.home";
+    public static final String PROP_REPLICATION_LAG = "maxReplicationLagInSecs";
+    public static final String PROP_DS_TYPE = "documentStoreType";
+    private static final String PROP_BUNDLING_DISABLED = "bundlingDisabled";
+    public static final String PROP_UPDATE_LIMIT = "updateLimit";
     public static final String PROP_ROLE = "role";
+    private static final String PROP_JOURNAL_GC_INTERVAL_MILLIS = "journalGCInterval";
 
     private static enum DocumentStoreType {
         MONGO, RDB;
@@ -306,24 +410,12 @@ public class DocumentNodeStoreService {
     private Closer closer;
     private WhiteboardExecutor executor;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
     private volatile BlobStore blobStore;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC,
-            target = "(datasource.name=oak)"
-    )
     private volatile DataSource dataSource;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC,
-            target = "(datasource.name=oak)"
-    )
     private volatile DataSource blobDataSource;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC)
     private volatile DocumentNodeStateCache nodeStateCache;
 
     private DocumentNodeStore nodeStore;
@@ -332,99 +424,7 @@ public class DocumentNodeStoreService {
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
-
-
-    /**
-     * Revisions older than this time would be garbage collected
-     */
-    private static final long DEFAULT_VER_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
-    @Property (longValue = DEFAULT_VER_GC_MAX_AGE,
-            label = "Version GC Max Age (in secs)",
-            description = "Version Garbage Collector (GC) logic will only consider those deleted for GC which " +
-                    "are not accessed recently (currentTime - lastModifiedTime > versionGcMaxAgeInSecs). For " +
-                    "example as per default only those document which have been *marked* deleted 24 hrs ago will be " +
-                    "considered for GC. This also applies how older revision of live document are GC."
-    )
-    public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
-
-    @Property (boolValue = DEFAULT_CONTINUOUS_RGC,
-            label = "Continuous Version GC Mode",
-            description = "Run Version GC continuously as a background task.")
-    public static final String PROP_VER_GC_CONTINUOUS = "versionGCContinuous";
-
-    public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
-
-    /**
-     * Blob modified before this time duration would be considered for Blob GC
-     */
-    private static final long DEFAULT_BLOB_GC_MAX_AGE = 24 * 60 * 60;
-    @Property (longValue = DEFAULT_BLOB_GC_MAX_AGE,
-            label = "Blob GC Max Age (in secs)",
-            description = "Blob Garbage Collector (GC) logic will only consider those blobs for GC which " +
-                    "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For " +
-                    "example as per default only those blobs which have been created 24 hrs ago will be " +
-                    "considered for GC"
-    )
-    public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
-
-    /**
-     * Default interval for taking snapshots of locally tracked blob ids.
-     */
-    private static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
-    @Property (longValue = DEFAULT_BLOB_SNAPSHOT_INTERVAL,
-        label = "Blob tracking snapshot interval (in secs)",
-        description = "This is the default interval in which the snapshots of locally tracked blob ids will"
-            + "be taken and synchronized with the blob store. This should be configured to be less than the "
-            + "frequency of blob GC so that deletions during blob GC can be accounted for "
-            + "in the next GC execution."
-    )
-    public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
-
-    private static final String DEFAULT_PROP_HOME = "./repository";
-    @Property(
-        label = "Root directory",
-        description = "Root directory for local tracking of blob ids. This service " +
-                "will first lookup the 'repository.home' framework property and " +
-                "then a component context property with the same name. If none " +
-                "of them is defined, a sub directory 'repository' relative to " +
-                "the current working directory is used."
-    )
-    private static final String PROP_HOME = "repository.home";
-
-    private static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60;
-    @Property(longValue = DEFAULT_MAX_REPLICATION_LAG,
-            label = "Max Replication Lag (in secs)",
-            description = "Value in seconds. Determines the duration beyond which it can be safely assumed " +
-                    "that the state on the secondaries is consistent with the primary, and it is safe to read from them"
-    )
-    public static final String PROP_REPLICATION_LAG = "maxReplicationLagInSecs";
-    private long maxReplicationLagInSecs = DEFAULT_MAX_REPLICATION_LAG;
-
-    @Property(options = {
-                @PropertyOption(name = "MONGO", value = "MONGO"),
-                @PropertyOption(name = "RDB", value = "RDB")
-            },
-            value = "MONGO",
-            label = "DocumentStore Type",
-            description = "Type of DocumentStore to use for persistence. Defaults to MONGO"
-    )
-    public static final String PROP_DS_TYPE = "documentStoreType";
-
-    private static final boolean DEFAULT_BUNDLING_DISABLED = false;
-    @Property(boolValue = DEFAULT_BUNDLING_DISABLED,
-            label = "Bundling Disabled",
-            description = "Boolean value indicating that Node bundling is disabled"
-    )
-    private static final String PROP_BUNDLING_DISABLED = "bundlingDisabled";
-
-    @Property(
-            label = "DocumentNodeStore update.limit",
-            description = "Number of content updates that need to happen before " +
-                    "the updates are automatically purged to the private branch."
-    )
-    public static final String PROP_UPDATE_LIMIT = "updateLimit";
-
-    private DocumentStoreType documentStoreType;
+    private long maxReplicationLagInSecs;
 
     @Reference
     private StatisticsProvider statisticsProvider;
@@ -436,15 +436,15 @@ public class DocumentNodeStoreService {
     private BlobStore defaultBlobStore;
 
     @Activate
-    protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
+    protected void activate(ComponentContext context, Configuration config) throws Exception {
         closer = Closer.create();
         this.context = context;
         whiteboard = new OsgiWhiteboard(context.getBundleContext());
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
-        maxReplicationLagInSecs = toLong(config.get(PROP_REPLICATION_LAG), DEFAULT_MAX_REPLICATION_LAG);
+        maxReplicationLagInSecs = config.maxReplicationLagInSecs();
         customBlobStore = toBoolean(prop(CUSTOM_BLOB_STORE), false);
-        documentStoreType = DocumentStoreType.fromString(PropertiesUtil.toString(config.get(PROP_DS_TYPE), "MONGO"));
+        documentStoreType = DocumentStoreType.fromString(config.documentStoreType());
 
         registerNodeStoreIfPossible();
     }
@@ -730,6 +730,11 @@ public class DocumentNodeStoreService {
         unregisterNodeStore();
     }
 
+    @Reference(name = "blobStore",
+            cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC,
+            target = ONLY_STANDALONE_TARGET
+    )
     @SuppressWarnings("UnusedDeclaration")
     protected void bindBlobStore(BlobStore blobStore) throws IOException {
         if (defaultBlobStore == blobStore){
@@ -749,6 +754,11 @@ public class DocumentNodeStoreService {
         unregisterNodeStore();
     }
 
+    @Reference(name = "dataSource",
+            cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC,
+            target = "(datasource.name=oak)"
+    )
     @SuppressWarnings("UnusedDeclaration")
     protected void bindDataSource(DataSource dataSource) throws IOException {
         if (this.dataSource != null) {
@@ -771,6 +781,14 @@ public class DocumentNodeStoreService {
         }
     }
 
+
+    private DocumentStoreType documentStoreType;
+
+    @Reference(name = "blobDataSource",
+            cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC,
+            target = "(datasource.name=oak)"
+    )
     @SuppressWarnings("UnusedDeclaration")
     protected void bindBlobDataSource(DataSource dataSource) throws IOException {
         if (this.blobDataSource != null) {
@@ -794,6 +812,10 @@ public class DocumentNodeStoreService {
         }
     }
 
+    @Reference(name = "nodeStateCache",
+            cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC
+    )
     @SuppressWarnings("UnusedDeclaration")
     protected void bindNodeStateCache(DocumentNodeStateCache nodeStateCache) throws IOException {
        if (nodeStore != null){

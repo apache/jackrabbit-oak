@@ -19,19 +19,10 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
-
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -43,7 +34,12 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,38 +54,54 @@ import org.slf4j.LoggerFactory;
  */
 @Component(
         immediate = true,
-        metatype = true,
-        label = "Apache Jackrabbit Oak Change Collector Service",
-        description = "It hooks into the commit and collects a ChangeSet of changed items of a commit which " +
-                "is then used to speed up observation processing"
-)
-@Property(name = "type", value = ChangeCollectorProvider.TYPE, propertyPrivate = true)
-@Service({ValidatorProvider.class, EditorProvider.class})
+        service = {ValidatorProvider.class, EditorProvider.class},
+        property = "type=" + ChangeCollectorProvider.TYPE)
+@Designate(ocd = ChangeCollectorProvider.Configuration.class)
 public class ChangeCollectorProvider extends ValidatorProvider {
+
+    private static final int DEFAULT_MAX_ITEMS = 50;
+
+    private static final int DEFAULT_MAX_PATH_DEPTH = 9;
+
+    private static final boolean DEFAULT_ENABLED = true;
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak Change Collector Service",
+            description = "It hooks into the commit and collects a ChangeSet of changed items of a commit which " +
+                    "is then used to speed up observation processing"
+    )
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Maximum Number of Collected Items (per type)",
+                description = "Integer value indicating maximum number of individual items of changes - "
+                + "such as property, nodeType, node name, path - to be collected. If there are "
+                + "more changes, the collection is considered failed and marked as such. "
+                + "Default is " + DEFAULT_MAX_ITEMS)
+        int maxItems() default DEFAULT_MAX_ITEMS;
+
+        @AttributeDefinition(
+                name = "Maximum depth of paths to collect",
+                description = "Integer value indicating maximum depth of paths to collect. "
+                + "Paths deeper than this will not be individually reported, and instead "
+                + "a path at this max depth will be added. Note that this doesn't affect "
+                + "any other collected item such as property, nodeType - ie those will "
+                + "all be collected irrespective of this config param." + "Default is " + DEFAULT_MAX_PATH_DEPTH)
+        int maxPathDepth() default DEFAULT_MAX_PATH_DEPTH;
+
+        @AttributeDefinition(
+                name = "enable/disable this validator",
+                description = "Whether this validator is enabled. If disabled no ChangeSet will be generated. Default is "
+                        + DEFAULT_ENABLED)
+        boolean enabled() default DEFAULT_ENABLED;
+
+
+    }
+
     public static final String TYPE = "changeCollectorProvider";
 
     private static final Logger LOG = LoggerFactory.getLogger(ChangeCollectorProvider.class);
 
-    private static final int DEFAULT_MAX_ITEMS = 50;
-    @Property(longValue = DEFAULT_MAX_ITEMS, label = "Maximum Number of Collected Items (per type)", description = "Integer value indicating maximum number of individual items of changes - "
-            + "such as property, nodeType, node name, path - to be collected. If there are "
-            + "more changes, the collection is considered failed and marked as such. " + "Default is "
-            + DEFAULT_MAX_ITEMS)
-    private static final String PROP_MAX_ITEMS = "maxItems";
-
-    private static final int DEFAULT_MAX_PATH_DEPTH = 9;
-    @Property(longValue = DEFAULT_MAX_PATH_DEPTH, label = "Maximum depth of paths to collect", description = "Integer value indicating maximum depth of paths to collect. "
-            + "Paths deeper than this will not be individually reported, and instead "
-            + "a path at this max depth will be added. Note that this doesn't affect "
-            + "any other collected item such as property, nodeType - ie those will "
-            + "all be collected irrespective of this config param." + "Default is " + DEFAULT_MAX_PATH_DEPTH)
-    private static final String PROP_MAX_PATH_DEPTH = "maxPathDepth";
-
-    private static final boolean DEFAULT_ENABLED = true;
-    @Property(boolValue = DEFAULT_ENABLED, label = "enable/disable this validator", 
-            description = "Whether this validator is enabled. If disabled no ChangeSet will be generated. Default is "
-            + DEFAULT_ENABLED)
-    private static final String PROP_ENABLED = "enabled";
+    public static final String COMMIT_CONTEXT_OBSERVATION_CHANGESET = "oak.observation.changeSet";
 
     /**
      * There is one CollectorSupport per validation process - it is shared
@@ -277,21 +289,21 @@ public class ChangeCollectorProvider extends ValidatorProvider {
     private boolean enabled = DEFAULT_ENABLED;
 
     @Activate
-    protected void activate(ComponentContext context, Map<String, ?> config) {
+    protected void activate(final Configuration config) {
         reconfig(config);
         LOG.info("activate: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth + ", enabled=" + enabled);
     }
 
     @Modified
-    protected void modified(final Map<String, Object> config) {
+    protected void modified(final Configuration config) {
         reconfig(config);
         LOG.info("modified: maxItems=" + maxItems + ", maxPathDepth=" + maxPathDepth + ", enabled=" + enabled);
     }
 
-    private void reconfig(Map<String, ?> config) {
-        maxItems = toInteger(config.get(PROP_MAX_ITEMS), DEFAULT_MAX_ITEMS);
-        maxPathDepth = toInteger(config.get(PROP_MAX_PATH_DEPTH), DEFAULT_MAX_PATH_DEPTH);
-        enabled = toBoolean(config.get(PROP_ENABLED), DEFAULT_ENABLED);
+    private void reconfig(final Configuration config) {
+        maxItems = config.maxItems();
+        maxPathDepth = config.maxPathDepth();
+        enabled = config.enabled();
     }
 
     /** FOR TESTING-ONLY **/

@@ -26,12 +26,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -52,82 +46,115 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
 
 /**
  * Default implementation of the {@link UserConfiguration}.
  */
-@Component(metatype = true, label = "Apache Jackrabbit Oak UserConfiguration")
-@Service({UserConfiguration.class, SecurityConfiguration.class})
-@Properties({
-        @Property(name = UserConstants.PARAM_USER_PATH,
-                label = "User Path",
-                description = "Path underneath which user nodes are being created.",
-                value = UserConstants.DEFAULT_USER_PATH),
-        @Property(name = UserConstants.PARAM_GROUP_PATH,
-                label = "Group Path",
-                description = "Path underneath which group nodes are being created.",
-                value = UserConstants.DEFAULT_GROUP_PATH),
-        @Property(name = UserConstants.PARAM_SYSTEM_RELATIVE_PATH,
-                label = "System User Relative Path",
-                description = "Path relative to the user root path underneath which system user nodes are being created. The default value is 'system'.",
-                value = UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH),
-        @Property(name = UserConstants.PARAM_DEFAULT_DEPTH,
-                label = "Default Depth",
-                description = "Number of levels that are used by default to store authorizable nodes",
-                intValue = UserConstants.DEFAULT_DEPTH),
-        @Property(name = ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR,
-                label = "Import Behavior",
+@Component(service = {UserConfiguration.class, SecurityConfiguration.class})
+@Designate(ocd = UserConfigurationImpl.Configuration.class)
+public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
+
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak UserConfiguration")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "User Path",
+                description = "Path underneath which user nodes are being created.")
+        String usersPath() default UserConstants.DEFAULT_USER_PATH;
+
+        @AttributeDefinition(
+                name = "Group Path",
+                description = "Path underneath which group nodes are being created.")
+        String groupsPath() default UserConstants.DEFAULT_GROUP_PATH;
+
+        @AttributeDefinition(
+                name = "System User Relative Path",
+                description = "Path relative to the user root path underneath which system user nodes are being " +
+                        "created. The default value is 'system'.")
+        String systemRelativePath() default UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
+
+        @AttributeDefinition(
+                name = "Default Depth",
+                description = "Number of levels that are used by default to store authorizable nodes")
+        int defaultDepth() default UserConstants.DEFAULT_DEPTH;
+
+        @AttributeDefinition(
+                name = "Import Behavior",
                 description = "Behavior for user/group related items upon XML import.",
                 options = {
-                        @PropertyOption(name = ImportBehavior.NAME_ABORT, value = ImportBehavior.NAME_ABORT),
-                        @PropertyOption(name = ImportBehavior.NAME_BESTEFFORT, value = ImportBehavior.NAME_BESTEFFORT),
-                        @PropertyOption(name = ImportBehavior.NAME_IGNORE, value = ImportBehavior.NAME_IGNORE)
-                },
-                value = ImportBehavior.NAME_IGNORE),
-        @Property(name = UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
-                label = "Hash Algorithm",
-                description = "Name of the algorithm used to generate the password hash.",
-                value = PasswordUtil.DEFAULT_ALGORITHM),
-        @Property(name = UserConstants.PARAM_PASSWORD_HASH_ITERATIONS,
-                label = "Hash Iterations",
-                description = "Number of iterations to generate the password hash.",
-                intValue = PasswordUtil.DEFAULT_ITERATIONS),
-        @Property(name = UserConstants.PARAM_PASSWORD_SALT_SIZE,
-                label = "Hash Salt Size",
-                description = "Salt size to generate the password hash.",
-                intValue = PasswordUtil.DEFAULT_SALT_SIZE),
-        @Property(name = UserConstants.PARAM_OMIT_ADMIN_PW,
-                label = "Omit Admin Password",
-                description = "Boolean flag to prevent the administrator account to be created with a password upon repository initialization. Please note that changing this option after the initial repository setup will have no effect.",
-                boolValue = false),
-        @Property(name = UserConstants.PARAM_SUPPORT_AUTOSAVE,
-                label = "Autosave Support",
-                description = "Configuration option to enable autosave behavior. Note: this config option is present for backwards compatibility with Jackrabbit 2.x and should only be used for broken code that doesn't properly verify the autosave behavior (see Jackrabbit API). If this option is turned on autosave will be enabled by default; otherwise autosave is not supported.",
-                boolValue = false),
-        @Property(name = UserConstants.PARAM_PASSWORD_MAX_AGE,
-                label = "Maximum Password Age",
-                description = "Maximum age in days a password may have. Values greater 0 will implicitly enable password expiry. A value of 0 indicates unlimited password age.",
-                intValue = UserConstants.DEFAULT_PASSWORD_MAX_AGE),
-        @Property(name = UserConstants.PARAM_PASSWORD_INITIAL_CHANGE,
-                label = "Change Password On First Login",
-                description = "When enabled, forces users to change their password upon first login.",
-                boolValue = UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE),
-        @Property(name = UserConstants.PARAM_PASSWORD_HISTORY_SIZE,
-                label = "Maximum Password History Size",
-                description = "Maximum number of passwords recorded for a user after changing her password (NOTE: upper limit is 1000). When changing the password the new password must not be present in the password history. A value of 0 indicates no password history is recorded.",
-                intValue = UserConstants.PASSWORD_HISTORY_DISABLED_SIZE),
-        @Property(name = UserPrincipalProvider.PARAM_CACHE_EXPIRATION,
-                label = "Principal Cache Expiration",
+                        @Option(label = ImportBehavior.NAME_ABORT, value = ImportBehavior.NAME_ABORT),
+                        @Option(label = ImportBehavior.NAME_BESTEFFORT, value = ImportBehavior.NAME_BESTEFFORT),
+                        @Option(label = ImportBehavior.NAME_IGNORE, value = ImportBehavior.NAME_IGNORE)
+                })
+        String importBehavior() default ImportBehavior.NAME_IGNORE;
+
+        @AttributeDefinition(
+                name = "Hash Algorithm",
+                description = "Name of the algorithm used to generate the password hash.")
+        String passwordHashAlgorithm() default PasswordUtil.DEFAULT_ALGORITHM;
+
+        @AttributeDefinition(
+                name = "Hash Iterations",
+                description = "Number of iterations to generate the password hash.")
+        int passwordHashIterations() default PasswordUtil.DEFAULT_ITERATIONS;
+
+        @AttributeDefinition(
+                name = "Hash Salt Size",
+                description = "Salt size to generate the password hash.")
+        int passwordSaltSize() default PasswordUtil.DEFAULT_SALT_SIZE;
+
+        @AttributeDefinition(
+                name = "Omit Admin Password",
+                description = "Boolean flag to prevent the administrator account to be created with a password " +
+                        "upon repository initialization. Please note that changing this option after the initial " +
+                        "repository setup will have no effect.")
+        boolean omitAdminPw() default false;
+
+        @AttributeDefinition(
+                name = "Autosave Support",
+                description = "Configuration option to enable autosave behavior. Note: this config option is " +
+                        "present for backwards compatibility with Jackrabbit 2.x and should only be used for " +
+                        "broken code that doesn't properly verify the autosave behavior (see Jackrabbit API). " +
+                        "If this option is turned on autosave will be enabled by default; otherwise autosave is " +
+                        "not supported.")
+        boolean supportAutoSave() default false;
+
+        @AttributeDefinition(
+                name = "Maximum Password Age",
+                description = "Maximum age in days a password may have. Values greater 0 will implicitly enable " +
+                        "password expiry. A value of 0 indicates unlimited password age.")
+        int passwordMaxAge() default UserConstants.DEFAULT_PASSWORD_MAX_AGE;
+
+        @AttributeDefinition(
+                name = "Change Password On First Login",
+                description = "When enabled, forces users to change their password upon first login.")
+        boolean initialPasswordChange() default UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE;
+
+        @AttributeDefinition(
+                name = "Maximum Password History Size",
+                description = "Maximum number of passwords recorded for a user after changing her password (NOTE: " +
+                        "upper limit is 1000). When changing the password the new password must not be present in the " +
+                        "password history. A value of 0 indicates no password history is recorded.")
+        int passwordHistorySize() default UserConstants.PASSWORD_HISTORY_DISABLED_SIZE;
+
+        @AttributeDefinition(
+                name = "Principal Cache Expiration",
                 description = "Optional configuration defining the number of milliseconds " +
-                        "until the principal cache expires (NOTE: currently only respected for principal resolution with the internal system session such as used for login). " +
-                        "If not set or equal/lower than zero no caches are created/evaluated.",
-                longValue = UserPrincipalProvider.EXPIRATION_NO_CACHE),
-        @Property(name = UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE,
-                label = "RFC7613 Username Comparison Profile",
-                description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.",
-                boolValue = false)
-})
-public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
+                        "until the principal cache expires (NOTE: currently only respected for principal resolution " +
+                        "with the internal system session such as used for login). If not set or equal/lower than zero " +
+                        "no caches are created/evaluated.")
+        long cacheExpiration() default UserPrincipalProvider.EXPIRATION_NO_CACHE;
+
+        @AttributeDefinition(
+                name = "RFC7613 Username Comparison Profile",
+                description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.")
+        boolean enableRFC7613UsercaseMappedProfile() default false;
+    }
 
     private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();
 

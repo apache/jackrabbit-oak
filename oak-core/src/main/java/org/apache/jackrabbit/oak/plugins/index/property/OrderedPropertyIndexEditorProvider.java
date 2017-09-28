@@ -20,8 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -29,11 +27,11 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component
-@Service(IndexEditorProvider.class)
+@Component(service = IndexEditorProvider.class)
 public class OrderedPropertyIndexEditorProvider implements IndexEditorProvider, OrderedIndex {
    private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexEditorProvider.class);
    private int hits;

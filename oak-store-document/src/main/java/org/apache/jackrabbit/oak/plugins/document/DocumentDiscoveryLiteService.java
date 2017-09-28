@@ -30,13 +30,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -46,6 +39,12 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,8 +135,10 @@ import org.slf4j.LoggerFactory;
  * 
  * @see #OAK_DISCOVERYLITE_CLUSTERVIEW
  */
-@Component(immediate = true, name = DocumentDiscoveryLiteService.COMPONENT_NAME)
-@Service(value = { DocumentDiscoveryLiteService.class, Observer.class })
+@Component(
+        name = DocumentDiscoveryLiteService.COMPONENT_NAME,
+        immediate = true,
+        service = { DocumentDiscoveryLiteService.class, Observer.class })
 public class DocumentDiscoveryLiteService implements ClusterStateChangeListener, Observer {
 
     static final String COMPONENT_NAME = "org.apache.jackrabbit.oak.plugins.document.DocumentDiscoveryLiteService";
@@ -287,8 +288,8 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
      * Require a static reference to the NodeStore. Note that this implies the
      * service is only active for documentNS
      **/
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
-    private volatile DocumentNodeStore nodeStore;
+    @Reference
+    private DocumentNodeStore nodeStore;
 
     /**
      * inactive nodes that have been so for a while, ie they have no backlog

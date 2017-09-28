@@ -21,17 +21,17 @@ import static com.google.common.collect.Lists.newArrayList;
 
 import java.util.List;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(policy = ConfigurationPolicy.REQUIRE)
-@Service(QueryIndexProvider.class)
+@Component(
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        service = QueryIndexProvider.class)
 public class OrderedPropertyIndexProvider implements QueryIndexProvider {
     private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexProvider.class);
     private static int hits;

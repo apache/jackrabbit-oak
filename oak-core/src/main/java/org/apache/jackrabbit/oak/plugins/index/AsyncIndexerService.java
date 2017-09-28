@@ -24,19 +24,11 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
@@ -50,6 +42,14 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,48 +57,45 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(
-        policy = ConfigurationPolicy.REQUIRE,
-        metatype = true,
-        label = "Apache Jackrabbit Oak Async Indexer Service",
-        description = "Configures the async indexer services which performs periodic indexing of repository content"
-)
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        service = {})
+@Designate(ocd = AsyncIndexerService.Configuration.class)
 public class AsyncIndexerService {
-    @Property(
-            value = {
-                    "async:5"
-            },
-            cardinality = 1024,
-            label = "Async Indexer Configs",
-            description = "Async indexer configs in the form of <name>:<interval in secs> e.g. \"async:5\""
-    )
-    private static final String PROP_ASYNC_CONFIG = "asyncConfigs";
 
-    private static final int PROP_LEASE_TIMEOUT_DEFAULT = 15;
-    @Property(
-            intValue = PROP_LEASE_TIMEOUT_DEFAULT,
-            label = "Lease time out",
-            description = "Lease timeout in minutes. AsyncIndexer would wait for this timeout period before breaking " +
-                    "async indexer lease"
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak Async Indexer Service",
+            description = "Configures the async indexer services which performs periodic indexing of repository content"
     )
-    private static final String PROP_LEASE_TIME_OUT = "leaseTimeOutMinutes";
+    @interface Configuration {
 
-    private static final long PROP_FAILING_INDEX_TIMEOUT_DEFAULT = 30 * 60;
-    @Property(
-            longValue = PROP_FAILING_INDEX_TIMEOUT_DEFAULT,
-            label = "Failing Index Timeout (s)",
-            description = "Time interval in seconds after which a failing index is considered as corrupted and " +
-                    "ignored from further indexing untill reindex. To disable this set it to 0"
-    )
-    private static final String PROP_FAILING_INDEX_TIMEOUT = "failingIndexTimeoutSeconds";
+        @AttributeDefinition(
+                cardinality = 1024,
+                name = "Async Indexer Configs",
+                description = "Async indexer configs in the form of <name>:<interval in secs> e.g. \"async:5\""
+        )
+        String[] asyncConfigs() default {"async:5"};
+        
+        @AttributeDefinition(
+                name = "Lease time out",
+                description = "Lease timeout in minutes. AsyncIndexer would wait for this timeout period before breaking " +
+                        "async indexer lease"
+        )
+        int leaseTimeOutMinutes() default 15;
 
-    private static final long PROP_ERROR_WARN_INTERVAL_DEFAULT = 15 * 60;
-    @Property(
-            longValue = PROP_ERROR_WARN_INTERVAL_DEFAULT,
-            label = "Error warn interval (s)",
-            description = "Time interval in seconds after which a warning log would be logged for skipped indexes. " +
-                    "This is done to avoid flooding the log in case of corrupted index."
-    )
-    private static final String PROP_ERROR_WARN_INTERVAL = "errorWarnIntervalSeconds";
+        @AttributeDefinition(
+                name = "Failing Index Timeout (s)",
+                description = "Time interval in seconds after which a failing index is considered as corrupted and " +
+                        "ignored from further indexing untill reindex. To disable this set it to 0"
+        )
+        long failingIndexTimeoutSeconds() default 30 * 60;
+
+        @AttributeDefinition(
+                name = "Error warn interval (s)",
+                description = "Time interval in seconds after which a warning log would be logged for skipped indexes. " +
+                        "This is done to avoid flooding the log in case of corrupted index."
+        )
+        long errorWarnIntervalSeconds() default 15 * 60;
+    }
 
     private static final char CONFIG_SEP = ':';
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -120,16 +117,15 @@ public class AsyncIndexerService {
     private WhiteboardExecutor executor;
 
     @Activate
-    public void activate(BundleContext bundleContext, Map<String, Object> config) {
-        List<AsyncConfig> asyncIndexerConfig = getAsyncConfig(PropertiesUtil.toStringArray(config.get
-                (PROP_ASYNC_CONFIG), new String[0]));
+    public void activate(BundleContext bundleContext, Configuration config) {
+        List<AsyncConfig> asyncIndexerConfig = getAsyncConfig(config.asyncConfigs());
         Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
         indexRegistration = new IndexMBeanRegistration(whiteboard);
         indexEditorProvider.start(whiteboard);
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
 
-        long leaseTimeOutMin = PropertiesUtil.toInteger(config.get(PROP_LEASE_TIME_OUT), PROP_LEASE_TIMEOUT_DEFAULT);
+        long leaseTimeOutMin = config.leaseTimeOutMinutes();
 
         if (!(nodeStore instanceof Clusterable)){
             leaseTimeOutMin = 0;
@@ -187,20 +183,17 @@ public class AsyncIndexerService {
 
     //~-------------------------------------------< internal >
 
-    private TrackingCorruptIndexHandler createCorruptIndexHandler(Map<String, Object> config) {
-        long failingIndexTimeoutSeconds = PropertiesUtil.toLong(config.get(PROP_FAILING_INDEX_TIMEOUT),
-                PROP_FAILING_INDEX_TIMEOUT_DEFAULT);
-        long errorWarnIntervalSeconds = PropertiesUtil.toLong(config.get(PROP_ERROR_WARN_INTERVAL),
-                PROP_ERROR_WARN_INTERVAL_DEFAULT);
+    private TrackingCorruptIndexHandler createCorruptIndexHandler(Configuration config) {
+        long failingIndexTimeoutSeconds = config.failingIndexTimeoutSeconds();
+        long errorWarnIntervalSeconds = config.errorWarnIntervalSeconds();
 
         TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
         corruptIndexHandler.setCorruptInterval(failingIndexTimeoutSeconds, TimeUnit.SECONDS);
         corruptIndexHandler.setErrorWarnInterval(errorWarnIntervalSeconds, TimeUnit.SECONDS);
 
         if (failingIndexTimeoutSeconds <= 0){
-            log.info("[{}] is set to {}. Auto corrupt index isolation handling is disabled, warning log would be " +
-                            "logged every {} s",
-                    PROP_FAILING_INDEX_TIMEOUT, failingIndexTimeoutSeconds, errorWarnIntervalSeconds);
+            log.info("[failingIndexTimeoutSeconds] is set to {}. Auto corrupt index isolation handling is disabled, warning log would be " +
+                            "logged every {} s", failingIndexTimeoutSeconds, errorWarnIntervalSeconds);
         } else {
             log.info("Auto corrupt index isolation handling is enabled. Any async index which fails for {}s would " +
                     "be marked as corrupted and would be skipped from further indexing. A warning log would be " +

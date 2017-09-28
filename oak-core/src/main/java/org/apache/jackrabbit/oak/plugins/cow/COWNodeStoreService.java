@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.cow;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.api.jmx.CopyOnWriteStoreMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -36,6 +28,13 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,18 +44,21 @@ import java.util.Map;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
-@Component(policy = ConfigurationPolicy.REQUIRE)
+@Component(
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        service = {})
 public class COWNodeStoreService {
 
     private static final Logger LOG = LoggerFactory.getLogger(COWNodeStoreService.class);
 
-    @Property(
-            label = "NodeStoreProvider role",
-            description = "Property indicating that this component will not register as a NodeStore but as a NodeStoreProvider with given role"
-    )
+    /**
+     * NodeStoreProvider role
+     * <br>
+     * Property indicating that this component will not register as a
+     * NodeStore but as a NodeStoreProvider with given role
+     */
     public static final String PROP_ROLE = "role";
 
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.DYNAMIC, target = "(role=copy-on-write)", bind = "bindNodeStoreProvider", unbind = "unbindNodeStoreProvider")
     private NodeStoreProvider nodeStoreProvider;
 
     private String nodeStoreDescription;
@@ -162,6 +164,11 @@ public class COWNodeStoreService {
         }
     }
 
+    @Reference(
+            name = "nodeStoreProvider",
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            target = "(role=copy-on-write)")
     protected void bindNodeStoreProvider(NodeStoreProvider ns, Map<String, ?> config) {
         this.nodeStoreProvider = ns;
         this.nodeStoreDescription = PropertiesUtil.toString(config.get("oak.nodestore.description"), ns.getClass().getName());

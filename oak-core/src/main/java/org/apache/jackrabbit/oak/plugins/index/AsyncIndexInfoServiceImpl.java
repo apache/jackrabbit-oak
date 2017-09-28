@@ -25,28 +25,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 
 @Component
-@Service
 public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
 
-    @Reference(policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-            policyOption = ReferencePolicyOption.GREEDY,
-            referenceInterface = IndexStatsMBean.class
-    )
     private final Map<String, IndexStatsMBean> statsMBeans = new ConcurrentHashMap<>();
 
     @Reference
@@ -104,6 +97,12 @@ public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
         return root.getChildNode(AsyncIndexUpdate.ASYNC);
     }
 
+    @Reference(name = "statsMBeans",
+            policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policyOption = ReferencePolicyOption.GREEDY,
+            service = IndexStatsMBean.class
+    )
     protected void bindStatsMBeans(IndexStatsMBean mBean) {
         statsMBeans.put(mBean.getName(), mBean);
     }
