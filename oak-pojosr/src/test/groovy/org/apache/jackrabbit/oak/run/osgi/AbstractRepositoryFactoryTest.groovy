@@ -31,6 +31,9 @@ import org.osgi.framework.ServiceEvent
 import org.osgi.framework.ServiceListener
 import org.osgi.framework.ServiceReference
 import org.osgi.service.cm.ConfigurationAdmin
+import org.osgi.service.component.runtime.ServiceComponentRuntime
+import org.osgi.service.component.runtime.dto.ComponentDescriptionDTO
+import org.osgi.util.promise.Promise
 import org.osgi.util.tracker.ServiceTracker
 
 import javax.jcr.*
@@ -222,5 +225,25 @@ abstract class AbstractRepositoryFactoryTest{
         } finally {
             registry.removeServiceListener(listener)
         }
+    }
+
+    protected void disableComponent(String name) {
+        ServiceComponentRuntime scr = getServiceWithWait(ServiceComponentRuntime.class)
+        ComponentDescriptionDTO dto = getComponentDTO(scr, name)
+        Promise p = scr.disableComponent(dto)
+        p.getValue() //Block on get
+    }
+
+    protected void enableComponent(String name) {
+        ServiceComponentRuntime scr = getServiceWithWait(ServiceComponentRuntime.class)
+        ComponentDescriptionDTO dto = getComponentDTO(scr, name)
+        Promise p = scr.enableComponent(dto)
+        p.getValue() //Block on get
+    }
+
+    ComponentDescriptionDTO getComponentDTO(ServiceComponentRuntime scr, String name) {
+        ComponentDescriptionDTO dto = scr.getComponentDescriptionDTOs().find {ComponentDescriptionDTO d -> (d.name == name) }
+        assert dto : "No component found with name $name"
+        return dto
     }
 }

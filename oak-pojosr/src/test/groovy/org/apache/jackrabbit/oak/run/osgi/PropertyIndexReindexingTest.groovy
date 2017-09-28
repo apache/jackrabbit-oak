@@ -20,8 +20,6 @@
 package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.felix.connect.launch.PojoServiceRegistry
-import org.apache.felix.scr.Component
-import org.apache.felix.scr.ScrService
 import org.apache.jackrabbit.JcrConstants
 import org.apache.jackrabbit.commons.JcrUtils
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants
@@ -66,17 +64,14 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
         s.logout()
 
         //4. Disable the PropertyIndexEditor
-        ScrService scr = getService(ScrService.class)
-        Component[] c = scr.getComponents('org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider')
-        assert c
-
-        c[0].disable()
+        def indexComponent = 'org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider'
+        disableComponent(indexComponent)
         TimeUnit.SECONDS.sleep(1)
        assert registry.getServiceReference(Repository.class.name) == null : "Repository should be unregistered " +
                "if no property index editor found"
 
         //5. Re-enable the editor and wait untill repository gets re-registered
-        c[0].enable()
+        enableComponent(indexComponent)
         getServiceWithWait(Repository.class, registry.bundleContext)
 
         //6. Reindex flag should be stable
