@@ -29,7 +29,7 @@ import org.junit.BeforeClass;
 
 public class TestBase {
     static final int MB = 1024 * 1024;
-    private static final int timeout = Integer.getInteger("standby.test.timeout", 500);
+    private static final int timeout = Integer.getInteger("standby.test.timeout", 5000);
 
     // Java 6 on Windows doesn't support dual IP stacks, so we will skip our
     // IPv6 tests.

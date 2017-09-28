@@ -22,9 +22,9 @@ package org.apache.jackrabbit.oak.segment.standby;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -125,6 +124,58 @@ public abstract class DataStoreTestBase extends TestBase {
     public void after() {
         proxy.close();
     }
+    
+    @Test
+    public void testResilientSync() throws Exception {
+        final int blobSize = 5 * MB;
+        FileStore primary = getPrimary();
+        FileStore secondary = getSecondary();
+
+        NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
+        byte[] data = addTestContent(store, "server", blobSize);
+
+        // run 1: unsuccessful
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
+                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 4_000)
+        ) {
+            serverSync.start();
+            // no persisted head on primary
+            // sync shouldn't be successful, but shouldn't throw exception either,
+            // timeout too low for TarMK flush thread to kick-in
+            cl.run();
+            assertNotEquals(primary.getHead(), secondary.getHead());
+        }
+        
+        // run 2: successful
+        try (
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
+                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 4_000)
+        ) {
+            serverSync.start();
+            // this time persisted head will be available on primary
+            // waited at least 4s + 4s > 5s (TarMK flush thread run frequency)
+            cl.run();
+            assertEquals(primary.getHead(), secondary.getHead());
+        }
+
+        assertTrue(primary.getStats().getApproximateSize() < MB);
+        assertTrue(secondary.getStats().getApproximateSize() < MB);
+
+        PropertyState ps = secondary.getHead().getChildNode("root")
+                .getChildNode("server").getProperty("testBlob");
+        assertNotNull(ps);
+        assertEquals(Type.BINARY.tag(), ps.getType().tag());
+        Blob b = ps.getValue(Type.BINARY);
+        assertEquals(blobSize, b.length());
+        byte[] testData = new byte[blobSize];
+        try (
+                InputStream blobInputStream = b.getNewStream()
+        ) {
+            ByteStreams.readFully(blobInputStream, testData);
+            assertArrayEquals(data, testData);
+        }
+    }
 
     @Test
     public void testSync() throws Exception {
@@ -167,8 +218,6 @@ public abstract class DataStoreTestBase extends TestBase {
      */
     @Test
     public void testSyncBigBlob() throws Exception {
-        assumeFalse(CIHelper.jenkins());  // FIXME OAK-6678: fails on Jenkins
-        
         final long blobSize = (long) (1 * GB);
         final int seed = 13;
 
