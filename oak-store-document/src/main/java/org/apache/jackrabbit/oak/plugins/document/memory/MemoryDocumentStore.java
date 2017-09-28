@@ -92,10 +92,17 @@ public class MemoryDocumentStore implements DocumentStore {
 
     private final Map<String, String> metadata;
 
+    private final boolean maintainModCount;
+
     public MemoryDocumentStore() {
+        this(false);
+    }
+
+    public MemoryDocumentStore(boolean maintainModCount) {
         metadata = ImmutableMap.<String,String>builder()
                         .put("type", "memory")
                         .build();
+        this.maintainModCount = maintainModCount;
     }
 
     @Override
@@ -326,6 +333,7 @@ public class MemoryDocumentStore implements DocumentStore {
             }
             // update the document
             UpdateUtils.applyChanges(doc, update);
+            maintainModCount(doc);
             doc.seal();
             map.put(update.getId(), doc);
             return oldDoc;
@@ -465,5 +473,16 @@ public class MemoryDocumentStore implements DocumentStore {
     public long determineServerTimeDifferenceMillis() {
         // the MemoryDocumentStore has no delays, thus return 0
         return 0;
+    }
+
+    private void maintainModCount(Document doc) {
+        if (!maintainModCount) {
+            return;
+        }
+        Long modCount = doc.getModCount();
+        if (modCount == null) {
+            modCount = 0L;
+        }
+        doc.put(Document.MOD_COUNT, modCount + 1);
     }
 }
