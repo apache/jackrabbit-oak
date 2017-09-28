@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;

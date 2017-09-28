@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;

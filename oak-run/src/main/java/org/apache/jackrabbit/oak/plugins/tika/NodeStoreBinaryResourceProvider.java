@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeFactory.createReadOnlyTree;
+import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
