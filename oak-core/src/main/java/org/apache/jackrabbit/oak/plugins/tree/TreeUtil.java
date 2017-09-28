@@ -488,14 +488,11 @@ public final class TreeUtil {
 
 
     /**
-     * Returns {@code true} if the specified {@code tree} is a read-only tree
-     * such as obtained through {@link org.apache.jackrabbit.oak.plugins.tree.TreeFactory}
-     * or a {@link org.apache.jackrabbit.oak.plugins.tree.RootFactory read-only Root}.
+     * Returns {@code true} if the specified {@code tree} is a read-only tree..
      *
      * @param tree The tree object to be tested.
      * @return {@code true} if the specified tree is an immutable read-only tree.
-     * @see org.apache.jackrabbit.oak.plugins.tree.TreeFactory#createReadOnlyTree(org.apache.jackrabbit.oak.spi.state.NodeState)
-     * @see org.apache.jackrabbit.oak.plugins.tree.RootFactory#createReadOnlyRoot(org.apache.jackrabbit.oak.spi.state.NodeState)
+     * @see {@link ReadOnly}
      */
     public static boolean isReadOnlyTree(@Nonnull Tree tree) {
         return tree instanceof ReadOnly;

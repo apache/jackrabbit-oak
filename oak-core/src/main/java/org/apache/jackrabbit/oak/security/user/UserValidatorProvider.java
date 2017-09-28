@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
