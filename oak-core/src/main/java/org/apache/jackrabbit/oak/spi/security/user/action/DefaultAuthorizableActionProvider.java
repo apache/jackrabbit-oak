@@ -24,14 +24,14 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,35 +39,41 @@ import org.slf4j.LoggerFactory;
  * Default implementation of the {@link AuthorizableActionProvider} interface
  * that allows to config all actions provided by the OAK.
  */
-@Component(metatype = true, label = "Apache Jackrabbit Oak AuthorizableActionProvider")
-@Service(AuthorizableActionProvider.class)
-@Properties({
-        @Property(name = DefaultAuthorizableActionProvider.ENABLED_ACTIONS,
-                label = "Authorizable Actions",
+@Component(
+        service = AuthorizableActionProvider.class,
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider")
+@Designate(ocd = DefaultAuthorizableActionProvider.Configuration.class)
+public class DefaultAuthorizableActionProvider implements AuthorizableActionProvider {
+
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak AuthorizableActionProvider")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Authorizable Actions",
                 description = "The set of actions that is supported by this provider implementation.",
                 cardinality = 4,
                 options = {
-                        @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction", value = "AccessControlAction"),
-                        @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction", value = "PasswordValidationAction"),
-                        @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction", value = "PasswordChangeAction"),
-                        @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction", value = "ClearMembershipAction")
-                }),
-        @Property(name = AccessControlAction.USER_PRIVILEGE_NAMES,
-                label = "Configure AccessControlAction: User Privileges",
-                description = "The name of the privileges that should be granted to a given user on it's home.",
-                cardinality = Integer.MAX_VALUE),
-        @Property(name = AccessControlAction.GROUP_PRIVILEGE_NAMES,
-                label = "Configure AccessControlAction: Group Privileges",
-                description = "The name of the privileges that should be granted to a given group on it's home.",
-                cardinality = Integer.MAX_VALUE),
-        @Property(name = PasswordValidationAction.CONSTRAINT,
-                label = "Configure PasswordValidationAction: Password Constraint",
-                description = "A regular expression specifying the pattern that must be matched by a user's password."),
-        @Property(name = OAK_SECURITY_NAME,
-                 propertyPrivate = true,
-                 value = "org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider")
-})
-public class DefaultAuthorizableActionProvider implements AuthorizableActionProvider {
+                        @Option(label = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction", value = "AccessControlAction"),
+                        @Option(label = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction", value = "PasswordValidationAction"),
+                        @Option(label = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction", value = "PasswordChangeAction"),
+                        @Option(label = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction", value = "ClearMembershipAction")
+                })
+        String[] enabledActions();
+
+        @AttributeDefinition(
+                name = "Configure AccessControlAction: User Privileges",
+                description = "The name of the privileges that should be granted to a given user on it's home.")
+        String[] userPrivilegeNames();
+
+        @AttributeDefinition(
+                name = "Configure AccessControlAction: Group Privileges",
+                description = "The name of the privileges that should be granted to a given group on it's home.")
+        String[] groupPrivilegeNames();
+
+        @AttributeDefinition(
+                name = "Configure PasswordValidationAction: Password Constraint",
+                description = "A regular expression specifying the pattern that must be matched by a user's password.")
+        String constraint();
+    }
 
     private static final Logger log = LoggerFactory.getLogger(DefaultAuthorizableActionProvider.class);
 

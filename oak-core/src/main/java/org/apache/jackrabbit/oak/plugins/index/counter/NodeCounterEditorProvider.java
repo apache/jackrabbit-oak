@@ -23,8 +23,6 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,9 +33,9 @@ import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.service.component.annotations.Component;
 
-@Component
-@Service(IndexEditorProvider.class)
+@Component(service = IndexEditorProvider.class)
 public class NodeCounterEditorProvider implements IndexEditorProvider {
 
     public static final String TYPE = "counter";

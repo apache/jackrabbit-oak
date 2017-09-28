@@ -24,26 +24,26 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.management.MBeanServer;
 
 import com.google.common.collect.Lists;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,12 +52,27 @@ import org.slf4j.LoggerFactory;
  * <a href="http://metrics.dropwizard.io">Metrics</a> library is present or not. If present
  * then it configures a MetricsStatisticsProvider otherwise fallbacks to DefaultStatisticsProvider
  */
-@Component(metatype = true,
-        label = "Apache Jackrabbit Oak StatisticsProviderFactory",
-        description = "Creates a statistics providers used by Oak. By default if checks if Metrics (" +
-                "See http://metrics.dropwizard.io) library is present then that is used. Otherwise it fallbacks " +
-                "to default")
+@Component
+@Designate(ocd = StatisticsProviderFactory.Configuration.class)
 public class StatisticsProviderFactory {
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak StatisticsProviderFactory",
+            description = "Creates a statistics providers used by Oak. By default if checks if Metrics (" +
+                    "See http://metrics.dropwizard.io) library is present then that is used. Otherwise it fallbacks " +
+                    "to default"
+    )
+    @interface Configuration {
+
+        @AttributeDefinition(options = {
+                    @Option(label = TYPE_DEFAULT, value = TYPE_DEFAULT),
+                    @Option(label = TYPE_METRIC, value = TYPE_METRIC),
+                    @Option(label = TYPE_NONE, value = TYPE_NONE)
+                })
+        String providerType() default TYPE_AUTO;
+
+    }
+
     private static final String TYPE_DEFAULT = "DEFAULT";
     private static final String TYPE_METRIC = "METRIC";
     private static final String TYPE_NONE = "NONE";
@@ -65,11 +80,6 @@ public class StatisticsProviderFactory {
     private static final String METRIC_PROVIDER_CLASS =
             "com.codahale.metrics.MetricRegistry";
 
-    @Property(value = TYPE_AUTO, options = {
-            @PropertyOption(name = TYPE_DEFAULT, value = TYPE_DEFAULT),
-            @PropertyOption(name = TYPE_METRIC, value = TYPE_METRIC),
-            @PropertyOption(name = TYPE_NONE, value = TYPE_NONE)})
-    static final String PROVIDER_TYPE = "providerType";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -78,18 +88,18 @@ public class StatisticsProviderFactory {
      * Further Metrics would bound to default platform MBeanServer is no explicit
      * server is provided.
      */
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL)
     private MBeanServer server;
+    
     private StatisticsProvider statisticsProvider;
     private List<ServiceRegistration> regs = Lists.newArrayList();
     private ScheduledExecutorService executor;
     private BundleContext bundleContext;
 
     @Activate
-    private void activate(BundleContext context, Map<String, Object> config) {
+    private void activate(BundleContext context, Configuration config) {
         this.bundleContext = context;
-        String providerType = PropertiesUtil.toString(config.get(PROVIDER_TYPE), TYPE_AUTO);
-        statisticsProvider = createProvider(providerType);
+        statisticsProvider = createProvider(config.providerType());
 
         if (statisticsProvider != null) {
             regs.add(context.registerService(StatisticsProvider.class.getName(),

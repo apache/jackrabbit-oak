@@ -22,9 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.Iterator;
 
 import com.google.common.collect.Iterables;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -41,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_N
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 
 @Component
-@Service
 public class IndexPathServiceImpl implements IndexPathService {
     private final Logger log = LoggerFactory.getLogger(getClass());
 

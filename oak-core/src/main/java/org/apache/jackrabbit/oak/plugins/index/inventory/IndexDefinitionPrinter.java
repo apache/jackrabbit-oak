@@ -23,27 +23,23 @@ import java.io.PrintWriter;
 
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
-import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
-@Component
-@Service
-@Properties({
-        @Property(name = "felix.inventory.printer.name", value = "oak-index-defn"),
-        @Property(name = "felix.inventory.printer.title", value = "Oak Index Definitions"),
-        @Property(name = "felix.inventory.printer.format", value = {"JSON"})
-})
+@Component(
+        service = InventoryPrinter.class,
+        property = {
+                "felix.inventory.printer.name=oak-index-defn",
+                "felix.inventory.printer.title=Oak Index Definitions",
+                "felix.inventory.printer.format=JSON"
+        })
 public class IndexDefinitionPrinter implements InventoryPrinter {
 
     @Reference
@@ -51,6 +47,7 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
 
     @Reference
     private NodeStore nodeStore;
+    
     private String filter = "{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:*\"]}";;
 
     public IndexDefinitionPrinter() {

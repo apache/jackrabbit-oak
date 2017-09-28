@@ -25,15 +25,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,18 +40,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 
 @Component
-@Service
 public class IndexInfoServiceImpl implements IndexInfoService{
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Reference
     private IndexPathService indexPathService;
 
-    @Reference(policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-            policyOption = ReferencePolicyOption.GREEDY,
-            referenceInterface = IndexInfoProvider.class
-    )
     private final Map<String, IndexInfoProvider> infoProviders = new ConcurrentHashMap<>();
 
     @Reference
@@ -110,6 +103,12 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         return infoProvider.isValid(indexPath);
     }
 
+    @Reference(name = "infoProviders",
+            policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policyOption = ReferencePolicyOption.GREEDY,
+            service = IndexInfoProvider.class
+    )
     public void bindInfoProviders(IndexInfoProvider infoProvider){
         infoProviders.put(checkNotNull(infoProvider.getType()), infoProvider);
     }

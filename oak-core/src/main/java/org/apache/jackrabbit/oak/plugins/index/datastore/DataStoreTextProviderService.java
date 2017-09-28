@@ -21,44 +21,49 @@ package org.apache.jackrabbit.oak.plugins.index.datastore;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Component(
-        policy = ConfigurationPolicy.REQUIRE,
-        name = "org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextProviderService",
-        metatype = true,
-        label = "Apache Jackrabbit Oak DataStore PreExtractedTextProvider",
-        description = "Configures a PreExtractedTextProvider based on extracted text stored on FileSystem"
-)
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        service = {},
+        configurationPid = "org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextProviderService")
+@Designate(ocd = DataStoreTextProviderService.Configuration.class)
 public class DataStoreTextProviderService {
-    @Property(
-            label = "Path",
-            description = "Local file system path where extracted text is stored in files."
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak DataStore PreExtractedTextProvider",
+            description = "Configures a PreExtractedTextProvider based on extracted text stored on FileSystem"
     )
-    private static final String PROP_DIR = "dir";
+    @interface Configuration {
+
+        @AttributeDefinition(
+                name = "Path",
+                description = "Local file system path where extracted text is stored in files."
+        )
+        String dir();
+    }
 
     private DataStoreTextWriter textWriter;
 
     private ServiceRegistration reg;
 
     @Activate
-    private void activate(BundleContext context, Map<String,? > config) throws IOException {
-        String dirPath = PropertiesUtil.toString(config.get(PROP_DIR), null);
-
-        checkNotNull(dirPath, "Directory path not configured via '%s", PROP_DIR);
+    private void activate(BundleContext context, Configuration config) throws IOException {
+        String dirPath = config.dir();
+        checkNotNull(dirPath, "Directory path not configured via 'dir'");
         File dir = new File(dirPath);
         checkArgument(dir.exists(), "Directory %s does not exist", dir.getAbsolutePath());
         textWriter = new DataStoreTextWriter(dir, true);

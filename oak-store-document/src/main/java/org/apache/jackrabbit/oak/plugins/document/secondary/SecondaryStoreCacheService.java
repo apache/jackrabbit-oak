@@ -20,28 +20,16 @@
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toStringArray;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executor;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyUnbounded;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
@@ -60,15 +48,47 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(label = "Apache Jackrabbit Oak DocumentNodeStateCache Provider",
-        metatype = true,
-        immediate = true,
-        description = "Configures a DocumentNodeStateCache based on a secondary NodeStore"
-)
+@Component
+@Designate(ocd = SecondaryStoreCacheService.Configuration.class)
 public class SecondaryStoreCacheService {
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak DocumentNodeStateCache Provider",
+            description = "Configures a DocumentNodeStateCache based on a secondary NodeStore"
+    )
+    @interface Configuration {
+
+        @AttributeDefinition(
+                name = "Included Paths",
+                description = "List of paths which are to be included in the secondary store"
+        )
+        String[] includedPaths() default {"/"};
+
+        @AttributeDefinition(
+                name = "Async Observation",
+                description = "Enable async observation processing"
+        )
+        boolean enableAsyncObserver() default true;
+
+        @AttributeDefinition(
+                name = "Observer queue size",
+                description = "Observer queue size. Used if 'enableAsyncObserver' is set to true"
+        )
+        int observerQueueSize() default BackgroundObserver.DEFAULT_QUEUE_SIZE;
+    }
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     /**
      * Having a reference to BlobStore ensures that DocumentNodeStoreService does register a BlobStore
@@ -89,32 +109,9 @@ public class SecondaryStoreCacheService {
      * Have an optional dependency on DocumentNodeStore such that we do not have hard dependency
      * on it and DocumentNodeStore can make use of this service even after it has unregistered
      */
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL,
             policy = ReferencePolicy.DYNAMIC)
-    private DocumentNodeStore documentNodeStore;
-
-    @Property(unbounded = PropertyUnbounded.ARRAY,
-            label = "Included Paths",
-            description = "List of paths which are to be included in the secondary store",
-            value = {"/"}
-    )
-    private static final String PROP_INCLUDES = "includedPaths";
-
-    private static final boolean PROP_ASYNC_OBSERVER_DEFAULT = true;
-    @Property(
-            boolValue = PROP_ASYNC_OBSERVER_DEFAULT,
-            label = "Async Observation",
-            description = "Enable async observation processing"
-    )
-    private static final String PROP_ASYNC_OBSERVER = "enableAsyncObserver";
-
-    private static final int PROP_OBSERVER_QUEUE_SIZE_DEFAULT = BackgroundObserver.DEFAULT_QUEUE_SIZE;
-    @Property(
-            intValue = PROP_OBSERVER_QUEUE_SIZE_DEFAULT,
-            label = "Observer queue size",
-            description = "Observer queue size. Used if 'enableAsyncObserver' is set to true"
-    )
-    private static final String PROP_OBSERVER_QUEUE_SIZE = "observerQueueSize";
+    private volatile DocumentNodeStore documentNodeStore;
 
     private final List<Registration> oakRegs = Lists.newArrayList();
 
@@ -129,10 +126,10 @@ public class SecondaryStoreCacheService {
     private final MultiplexingNodeStateDiffer differ = new MultiplexingNodeStateDiffer();
 
     @Activate
-    private void activate(BundleContext context, Map<String, Object> config){
+    private void activate(BundleContext context, Configuration config){
         bundleContext = context;
         whiteboard = new OsgiWhiteboard(context);
-        String[] includedPaths = toStringArray(config.get(PROP_INCLUDES), new String[]{"/"});
+        String[] includedPaths = config.includedPaths();
 
         //TODO Support for exclude is not possible as once a NodeState is loaded from secondary
         //store it assumes that complete subtree is in same store. With exclude it would need to
@@ -180,9 +177,9 @@ public class SecondaryStoreCacheService {
 
     //~----------------------------------------------------< internal >
 
-    private void registerObserver(Observer observer, Map<String, Object> config) {
-        boolean enableAsyncObserver = toBoolean(config.get(PROP_ASYNC_OBSERVER), PROP_ASYNC_OBSERVER_DEFAULT);
-        int  queueSize = toInteger(config.get(PROP_OBSERVER_QUEUE_SIZE), PROP_OBSERVER_QUEUE_SIZE_DEFAULT);
+    private void registerObserver(Observer observer, Configuration config) {
+        boolean enableAsyncObserver = config.enableAsyncObserver();
+        int  queueSize = config.observerQueueSize();
         if (enableAsyncObserver){
             BackgroundObserver bgObserver = new BackgroundObserver(observer, executor, queueSize);
             oakRegs.add(registerMBean(whiteboard,

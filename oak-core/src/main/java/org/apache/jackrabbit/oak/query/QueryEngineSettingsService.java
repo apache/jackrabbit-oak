@@ -19,60 +19,66 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import java.util.Map;
-
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(
-        policy = ConfigurationPolicy.REQUIRE,
-        metatype = true,
-        label = "Apache Jackrabbit Query Engine Settings Service",
-        description = "Various settings exposed by Oak QueryEngine. Note that settings done by system property " +
-                "supersedes the one defined via OSGi config"
-)
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = QueryEngineSettingsService.Configuration.class)
 public class QueryEngineSettingsService {
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Query Engine Settings Service",
+            description = "Various settings exposed by Oak QueryEngine. Note that settings done by system property " +
+                    "supersedes the one defined via OSGi config"
+    )
+    @interface Configuration {
+
+        @AttributeDefinition(
+                name = "In memory limit",
+                description = "Maximum number of entries that can be held in memory while evaluating any query"
+        )
+        int queryLimitInMemory() default DEFAULT_QUERY_LIMIT_IN_MEMORY;
+
+        @AttributeDefinition(
+                name = "In memory read limit",
+                description = "Maximum number of results which can be read by any query"
+        )
+        int queryLimitReads() default DEFAULT_QUERY_LIMIT_READS;
+
+        @AttributeDefinition(
+                name = "Fail traversal",
+                description = "If enabled any query execution which results in traversal would fail."
+        )
+        boolean queryFailTraversal() default DEFAULT_QUERY_FAIL_TRAVERSAL;
+
+        @AttributeDefinition(
+                name = "Fast result size",
+                description = "Whether the query result size should return an estimation (or -1 if disabled) " +
+                        "for large queries"
+        )
+        boolean fastQuerySize() default false;
+    }
 
     // should be the same as QueryEngineSettings.DEFAULT_QUERY_LIMIT_IN_MEMORY
     private static final int DEFAULT_QUERY_LIMIT_IN_MEMORY = 500000;
-    @Property(
-            intValue = DEFAULT_QUERY_LIMIT_IN_MEMORY,
-            label = "In memory limit",
-            description = "Maximum number of entries that can be held in memory while evaluating any query"
-    )
     static final String QUERY_LIMIT_IN_MEMORY = "queryLimitInMemory";
 
     // should be the same as QueryEngineSettings.DEFAULT_QUERY_LIMIT_READS
     private static final int DEFAULT_QUERY_LIMIT_READS = 100000;
-    @Property(
-            intValue = DEFAULT_QUERY_LIMIT_READS,
-            label = "In memory read limit",
-            description = "Maximum number of results which can be read by any query"
-    )
     static final String QUERY_LIMIT_READS = "queryLimitReads";
 
     private static final boolean DEFAULT_QUERY_FAIL_TRAVERSAL = false;
-    @Property(
-            boolValue = DEFAULT_QUERY_FAIL_TRAVERSAL,
-            label = "Fail traversal",
-            description = "If enabled any query execution which results in traversal would fail."
-    )
     static final String QUERY_FAIL_TRAVERSAL = "queryFailTraversal";
-
-    @Property(
-            boolValue = false,
-            label = "Fast result size",
-            description = "Whether the query result size should return an estimation (or -1 if disabled) " +
-                    "for large queries"
-    )
+    
     static final String QUERY_FAST_QUERY_SIZE = "fastQuerySize";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -81,33 +87,30 @@ public class QueryEngineSettingsService {
     private QueryEngineSettingsMBean queryEngineSettings;
 
     @Activate
-    private void activate(BundleContext context, Map<String, Object> config) {
+    private void activate(BundleContext context, Configuration config) {
         if (System.getProperty(QueryEngineSettings.OAK_QUERY_LIMIT_IN_MEMORY) == null) {
-            int queryLimitInMemory = PropertiesUtil.toInteger(config.get(QUERY_LIMIT_IN_MEMORY),
-                    DEFAULT_QUERY_LIMIT_IN_MEMORY);
+            int queryLimitInMemory = config.queryLimitInMemory();
             queryEngineSettings.setLimitInMemory(queryLimitInMemory);
         } else {
             logMsg(QUERY_LIMIT_IN_MEMORY, QueryEngineSettings.OAK_QUERY_LIMIT_IN_MEMORY);
         }
 
         if (System.getProperty(QueryEngineSettings.OAK_QUERY_LIMIT_READS) == null) {
-            int queryLimitReads = PropertiesUtil.toInteger(config.get(QUERY_LIMIT_READS),
-                    DEFAULT_QUERY_LIMIT_READS);
+            int queryLimitReads = config.queryLimitReads();
             queryEngineSettings.setLimitReads(queryLimitReads);
         } else {
             logMsg(QUERY_LIMIT_IN_MEMORY, QueryEngineSettings.OAK_QUERY_LIMIT_READS);
         }
 
         if (System.getProperty(QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL) == null) {
-            boolean failTraversal = PropertiesUtil.toBoolean(config.get(QUERY_FAIL_TRAVERSAL),
-                    DEFAULT_QUERY_FAIL_TRAVERSAL);
+            boolean failTraversal = config.queryFailTraversal();
             queryEngineSettings.setFailTraversal(failTraversal);
         } else {
             logMsg(QUERY_FAIL_TRAVERSAL, QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL);
         }
 
         boolean fastQuerySizeSysProp = QueryEngineSettings.DEFAULT_FAST_QUERY_SIZE;
-        boolean fastQuerySizeFromConfig = PropertiesUtil.toBoolean(config.get(QUERY_FAST_QUERY_SIZE), false);
+        boolean fastQuerySizeFromConfig = config.fastQuerySize();
         queryEngineSettings.setFastQuerySize(fastQuerySizeFromConfig || fastQuerySizeSysProp);
 
         log.info("Initialize QueryEngine settings {}", queryEngineSettings);

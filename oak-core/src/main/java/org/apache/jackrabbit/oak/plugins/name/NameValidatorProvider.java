@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.service.component.annotations.Component;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -35,8 +34,7 @@ import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PRE
  * as any name values are syntactically valid and that any namespace prefixes
  * are properly registered.
  */
-@Component
-@Service(EditorProvider.class)
+@Component(service = EditorProvider.class)
 public class NameValidatorProvider extends ValidatorProvider {
 
     @Override

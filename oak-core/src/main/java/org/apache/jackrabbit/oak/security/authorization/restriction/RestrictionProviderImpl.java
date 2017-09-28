@@ -27,9 +27,6 @@ import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -40,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,10 +57,9 @@ import org.slf4j.LoggerFactory;
  *     is {@link org.apache.jackrabbit.oak.api.Type#STRINGS}.</li>
  * </ul>
  */
-@Component
-@Service(RestrictionProvider.class)
-@Property(name = OAK_SECURITY_NAME,
-        value = "org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl")
+@Component(
+        service = RestrictionProvider.class,
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl")
 public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(RestrictionProviderImpl.class);
