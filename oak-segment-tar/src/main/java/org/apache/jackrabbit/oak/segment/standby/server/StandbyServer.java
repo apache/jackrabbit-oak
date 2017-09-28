@@ -55,6 +55,13 @@ import org.slf4j.LoggerFactory;
 class StandbyServer implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(StandbyServer.class);
+    
+    /**
+     * If a persisted head state cannot be acquired in less than this timeout,
+     * the 'get head' request from the client will be discarded.
+     */
+    static final long READ_HEAD_TIMEOUT =
+            Long.getLong("standby.server.timeout", 10_000L);
 
     static Builder builder(int port, StoreProvider provider, int blobChunkSize) {
         return new Builder(port, provider, blobChunkSize);
@@ -183,7 +190,7 @@ class StandbyServer implements AutoCloseable {
 
                 FileStore store = builder.storeProvider.provideStore();
 
-                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store)));
+                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store, READ_HEAD_TIMEOUT)));
                 p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(store)));
                 p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store.getBlobStore())));
                 p.addLast(new GetReferencesRequestHandler(new DefaultStandbyReferencesReader(store)));

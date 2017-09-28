@@ -64,7 +64,8 @@ class StandbyClientSyncExecution {
         RecordId remoteHead = getHead();
 
         if (remoteHead == null) {
-            throw new IllegalStateException("Unable to fetch remote head");
+            log.error("Unable to fetch remote head");
+            return;
         }
 
         if (remoteHead.equals(store.getHead().getRecordId())) {
