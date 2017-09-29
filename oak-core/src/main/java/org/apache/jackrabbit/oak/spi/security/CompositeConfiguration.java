@@ -196,23 +196,25 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public List<? extends CommitHook> getCommitHooks(@Nonnull final String workspaceName) {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends CommitHook>>() {
+        Iterable<CommitHook> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends CommitHook>>() {
             @Override
             public List<? extends CommitHook> apply(T securityConfiguration) {
                 return securityConfiguration.getCommitHooks(workspaceName);
             }
-        })));
+        }));
+        return ImmutableList.copyOf(t);
     }
 
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull final String workspaceName, @Nonnull final Set<Principal> principals, @Nonnull final MoveTracker moveTracker) {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ValidatorProvider>>() {
+        Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ValidatorProvider>>() {
             @Override
             public List<? extends ValidatorProvider> apply(T securityConfiguration) {
                 return securityConfiguration.getValidators(workspaceName, principals, moveTracker);
             }
-        })));
+        }));
+        return ImmutableList.copyOf(t);
     }
 
     @Nonnull
@@ -224,12 +226,13 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ProtectedItemImporter>>() {
+        Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ProtectedItemImporter>>() {
             @Override
             public List<? extends ProtectedItemImporter> apply(T securityConfiguration) {
                 return securityConfiguration.getProtectedItemImporters();
             }
-        })));
+        }));
+        return ImmutableList.copyOf(t);
     }
 
     @Nonnull
