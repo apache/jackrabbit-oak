@@ -170,6 +170,10 @@
                     <groupId>org.apache.lucene</groupId>
                     <artifactId>lucene-core</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-annotations</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
