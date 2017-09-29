@@ -21,7 +21,10 @@
 package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.plugins.value.OakValue;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.ValueImpl;
+import org.apache.jackrabbit.oak.plugins.value.ValueImplFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -31,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -124,12 +126,10 @@ public class CloudFrontS3SignedUrlProviderTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(CloudFrontS3SignedUrlProviderTest.class);
     @Mock
     private Blob blob;
-
-    interface MockJCRValue extends Value, OakValue {
-    }
-
     @Mock
-    private MockJCRValue value;
+    private PropertyState property;
+    @Mock
+    private NamePathMapper namePathMapper;
 
 
     public CloudFrontS3SignedUrlProviderTest() {
@@ -142,6 +142,7 @@ public class CloudFrontS3SignedUrlProviderTest {
         CloudFrontS3SignedUrlProvider provider = new CloudFrontS3SignedUrlProvider(
                 "http://applicationA1.cloudfront.net/",
                 60,
+                1,
                 PRIVATE_KEY_1024,
         "123");
         LOGGER.info("Loaded 1024 private key in {} ms "+(System.currentTimeMillis()-t2));
@@ -150,6 +151,7 @@ public class CloudFrontS3SignedUrlProviderTest {
         CloudFrontS3SignedUrlProvider provider4096 = new CloudFrontS3SignedUrlProvider(
                 "http://applicationA1.cloudfront.net/",
                 60,
+                1,
                 PRIVATE_KEY_4096,
                 "PRIVATE_KEY_4096");
         LOGGER.info("Loaded 4096 private key in {} ms "+(System.currentTimeMillis()-t));
@@ -157,14 +159,17 @@ public class CloudFrontS3SignedUrlProviderTest {
 
 
         t = System.currentTimeMillis();
-        Mockito.when(value.getBlob()).thenReturn(blob);
+        ValueImpl value = ValueImplFactory.newValue(blob, property, 0,namePathMapper);
+
+
+        Mockito.when(blob.length()).thenReturn((long)1024*1024); // 1MB
         Mockito.when(blob.getContentIdentity()).thenReturn("1234567891ABCDEFGH");
         URI u = provider4096.toURI(value);
         Assert.assertNotNull(u);
         LOGGER.info("Signed with 4096 key in {} ms ",(System.currentTimeMillis()-t));
 
         t = System.currentTimeMillis();
-        Mockito.when(value.getBlob()).thenReturn(blob);
+        Mockito.when(blob.length()).thenReturn((long)1024*1024); // 1MB
         Mockito.when(blob.getContentIdentity()).thenReturn("1234567891ABCDEFGH");
         u = provider.toURI(value);
         Assert.assertNotNull(u);

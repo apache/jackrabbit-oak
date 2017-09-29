@@ -17,7 +17,8 @@
 
 package org.apache.jackrabbit.oak.api.conversion;
 
-import org.osgi.annotation.versioning.ProviderType;
+
+import aQute.bnd.annotation.ProviderType;
 
 import javax.jcr.Value;
 import java.net.URI;
