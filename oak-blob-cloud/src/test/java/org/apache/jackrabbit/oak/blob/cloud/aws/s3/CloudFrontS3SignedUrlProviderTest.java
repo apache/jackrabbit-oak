@@ -142,6 +142,7 @@ public class CloudFrontS3SignedUrlProviderTest {
         CloudFrontS3SignedUrlProvider provider = new CloudFrontS3SignedUrlProvider(
                 "http://applicationA1.cloudfront.net/",
                 60,
+                1,
                 PRIVATE_KEY_1024,
         "123");
         LOGGER.info("Loaded 1024 private key in {} ms "+(System.currentTimeMillis()-t2));
@@ -150,6 +151,7 @@ public class CloudFrontS3SignedUrlProviderTest {
         CloudFrontS3SignedUrlProvider provider4096 = new CloudFrontS3SignedUrlProvider(
                 "http://applicationA1.cloudfront.net/",
                 60,
+                1,
                 PRIVATE_KEY_4096,
                 "PRIVATE_KEY_4096");
         LOGGER.info("Loaded 4096 private key in {} ms "+(System.currentTimeMillis()-t));
@@ -157,6 +159,7 @@ public class CloudFrontS3SignedUrlProviderTest {
 
 
         t = System.currentTimeMillis();
+        Mockito.when(blob.length()).thenReturn((long)1024*1024); // 1MB
         Mockito.when(value.getBlob()).thenReturn(blob);
         Mockito.when(blob.getContentIdentity()).thenReturn("1234567891ABCDEFGH");
         URI u = provider4096.toURI(value);
@@ -164,6 +167,7 @@ public class CloudFrontS3SignedUrlProviderTest {
         LOGGER.info("Signed with 4096 key in {} ms ",(System.currentTimeMillis()-t));
 
         t = System.currentTimeMillis();
+        Mockito.when(blob.length()).thenReturn((long)1024*1024); // 1MB
         Mockito.when(value.getBlob()).thenReturn(blob);
         Mockito.when(blob.getContentIdentity()).thenReturn("1234567891ABCDEFGH");
         u = provider.toURI(value);
