@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.store.DataInput;
 
 import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
@@ -296,6 +297,16 @@ class OakBufferedIndexFile implements OakIndexFile {
             i++;
             o = 0;
         }
+    }
+
+    @Override
+    public boolean supportsCopyFromDataInput() {
+        return false;
+    }
+
+    @Override
+    public void copyBytes(DataInput input, long numBytes) throws IOException {
+        throw new IllegalArgumentException("Don't call copyBytes for buffered case");
     }
 
     private static int determineBlobSize(NodeBuilder file){

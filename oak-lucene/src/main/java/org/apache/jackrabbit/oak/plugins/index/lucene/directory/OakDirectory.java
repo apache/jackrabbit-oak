@@ -73,6 +73,7 @@ public class OakDirectory extends Directory {
     private final IndexDefinition definition;
     private LockFactory lockFactory;
     private final boolean readOnly;
+    private final boolean streamingWriteEnabled;
     private final Set<String> fileNames = Sets.newConcurrentHashSet();
     private final Set<String> fileNamesAtStart;
     private final String indexName;
@@ -109,6 +110,14 @@ public class OakDirectory extends Directory {
     public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
                         boolean readOnly, BlobFactory blobFactory,
                         @Nonnull BlobDeletionCallback blobDeletionCallback) {
+        this(builder, dataNodeName, definition, readOnly, blobFactory, blobDeletionCallback, false);
+    }
+
+    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+                        boolean readOnly, BlobFactory blobFactory,
+                        @Nonnull BlobDeletionCallback blobDeletionCallback,
+                        boolean streamingWriteEnabled) {
+
         this.lockFactory = NoLockFactory.getNoLockFactory();
         this.builder = builder;
         this.dataNodeName = dataNodeName;
@@ -120,6 +129,7 @@ public class OakDirectory extends Directory {
         this.indexName = definition.getIndexName();
         this.blobFactory = blobFactory;
         this.blobDeletionCallback = blobDeletionCallback;
+        this.streamingWriteEnabled = streamingWriteEnabled;
     }
 
     @Override
@@ -191,7 +201,7 @@ public class OakDirectory extends Directory {
 
         fileNames.add(name);
         markDirty();
-        return new OakIndexOutput(name, file, indexName, blobFactory);
+        return new OakIndexOutput(name, file, indexName, blobFactory, streamingWriteEnabled);
     }
 
 

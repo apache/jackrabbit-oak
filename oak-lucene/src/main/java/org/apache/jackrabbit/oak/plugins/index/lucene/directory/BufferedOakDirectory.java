@@ -48,6 +48,35 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze
  * except for blob values. Those are written immediately to the store.
  */
 public final class BufferedOakDirectory extends Directory {
+    public static final String ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM = "oak.lucene.enableSingleBlobIndexFiles";
+    private static boolean enableWritingSingleBlobIndexFile = Boolean.parseBoolean(
+            System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true"));
+    public static void setEnableWritingSingleBlobIndexFile (boolean val) {
+        String cliValStr = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+
+        if (cliValStr != null) {
+            boolean cliVal = Boolean.parseBoolean(cliValStr);
+
+            if (cliVal != val) {
+                LOG.warn("Ignoring configuration {} as CLI param overrides with a different value", val);
+                if (cliVal != enableWritingSingleBlobIndexFile) {
+                    enableWritingSingleBlobIndexFile = cliVal;
+                }
+                return;
+            }
+        }
+        enableWritingSingleBlobIndexFile = val;
+    }
+    public static boolean isEnableWritingSingleBlobIndexFile() {
+        return enableWritingSingleBlobIndexFile;
+    }
+    // for test
+    static void reReadCommandLineParam() {
+        String val = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+        if (val != null) {
+            enableWritingSingleBlobIndexFile = Boolean.parseBoolean(val);
+        }
+    }
 
     static final int DELETE_THRESHOLD_UNTIL_REOPEN = 100;
 
@@ -91,7 +120,7 @@ public final class BufferedOakDirectory extends Directory {
         this.dataNodeName = checkNotNull(dataNodeName);
         this.definition = checkNotNull(definition);
         this.base = new OakDirectory(checkNotNull(builder), dataNodeName,
-                definition, false, blobFactory, blobDeletionCallback);
+                definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
         reopenBuffered();
     }
 
@@ -224,6 +253,6 @@ public final class BufferedOakDirectory extends Directory {
         // those are files that were created and later deleted again
         bufferedBuilder = squeeze(bufferedBuilder.getNodeState()).builder();
         buffered = new OakDirectory(bufferedBuilder, dataNodeName,
-                definition, false, blobFactory, blobDeletionCallback);
+                definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
     }
 }

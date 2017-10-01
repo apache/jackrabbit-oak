@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBuilder;
@@ -254,6 +255,16 @@ public class LuceneIndexProviderService {
     final long MIN_BLOB_AGE_TO_ACTIVELY_DELETE = Long.getLong("oak.active.deletion.minAge",
             TimeUnit.HOURS.toSeconds(24));
 
+
+    private static final boolean PROP_ENABLE_SINGLE_BLOB_PER_INDEX_FILE_DEFAULT = true;
+    @Property(
+            boolValue = PROP_ENABLE_SINGLE_BLOB_PER_INDEX_FILE_DEFAULT,
+            label = "With CoW enabled, should index files by written as single blobs",
+            description = "Index files can be written as single blobs as chunked into smaller blobs. Enable" +
+                    " this to write single blob per index file. This would reduce number of blobs in the data store."
+    )
+    private static final String PROP_NAME_ENABLE_SINGLE_BLOB_PER_INDEX_FILE = "enableSingleBlobIndexFiles";
+
     private final Clock clock = Clock.SIMPLE;
 
     private Whiteboard whiteboard;
@@ -334,6 +345,13 @@ public class LuceneIndexProviderService {
         configureIndexDefinitionStorage(config);
         configureBooleanClauseLimit(config);
         initializeFactoryClassLoaders(getClass().getClassLoader());
+        if (System.getProperty(BufferedOakDirectory.ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM) == null) {
+            BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(PropertiesUtil.toBoolean(
+                    config.get(PROP_NAME_ENABLE_SINGLE_BLOB_PER_INDEX_FILE),
+                    PROP_ENABLE_SINGLE_BLOB_PER_INDEX_FILE_DEFAULT));
+        } else {
+            log.info("Not setting config for single blob for an index file as it's set by command line!");
+        }
 
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);

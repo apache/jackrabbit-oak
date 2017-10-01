@@ -1,8 +1,42 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.store.DataInput;
+
+import javax.annotation.Nonnull;
 import java.io.IOException;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
+
 public interface OakIndexFile {
+    static OakIndexFile getOakIndexFile(String name, NodeBuilder file, String dirDetails,
+                                        @Nonnull BlobFactory blobFactory) {
+        return getOakIndexFile(name, file, dirDetails, blobFactory, false);
+    }
+
+    static OakIndexFile getOakIndexFile(String name, NodeBuilder file, String dirDetails,
+                                        @Nonnull BlobFactory blobFactory, boolean streamingWriteEnabled) {
+
+        boolean useStreaming;
+        PropertyState property = file.getProperty(JCR_DATA);
+        if (property != null) { //reading
+                useStreaming = property.getType() == BINARY;
+        } else { //writing
+            useStreaming = streamingWriteEnabled;
+        }
+
+        return useStreaming ?
+                new OakStreamingIndexFile(name, file, dirDetails, blobFactory) :
+                new OakBufferedIndexFile(name, file, dirDetails, blobFactory);
+    }
+
+    /**
+     * @return if the file implementation supports copying data from {@link DataInput} directly.
+     */
+    boolean supportsCopyFromDataInput();
+
     /**
      * @return name of the index being accessed
      */
@@ -59,6 +93,10 @@ public interface OakIndexFile {
      */
     void writeBytes(byte[] b, int offset, int len)
             throws IOException;
+
+    /** Copy numBytes bytes from input to ourself. */
+    void copyBytes(DataInput input, long numBytes) throws IOException;
+
 
     /**
      * Flushes the content into storage. Before calling this method, written
