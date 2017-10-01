@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -63,7 +64,6 @@ import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -316,6 +316,23 @@ public class LuceneIndexProviderServiceTest {
     }
 
 
+    @Test
+    public void singleBlobPerIndexFileConfig() throws Exception {
+        Map<String, Object> config = getDefaultConfig();
+        config.put("enableSingleBlobIndexFiles", "true");
+        MockOsgi.activate(service, context.bundleContext(), config);
+        assertTrue("Enabling property must reflect in BufferedOakDirectory state",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+        MockOsgi.deactivate(service, context.bundleContext());
+
+        config = getDefaultConfig();
+        config.put("enableSingleBlobIndexFiles", "false");
+        MockOsgi.activate(service, context.bundleContext(), config);
+        assertFalse("Enabling property must reflect in BufferedOakDirectory state",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+        MockOsgi.deactivate(service, context.bundleContext());
+
+    }
 
     private void reactivate() {
         MockOsgi.deactivate(service, context.bundleContext());
