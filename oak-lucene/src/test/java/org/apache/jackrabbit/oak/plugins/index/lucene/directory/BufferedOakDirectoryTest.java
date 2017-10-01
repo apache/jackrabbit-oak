@@ -22,9 +22,12 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.Set;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.collect.Sets;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -37,6 +40,8 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.DELETE_THRESHOLD_UNTIL_REOPEN;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.reReadCommandLineParam;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -141,6 +146,251 @@ public class BufferedOakDirectoryTest {
         dir = createDir(builder, false);
         assertEquals(names, Sets.newHashSet(dir.listAll()));
         dir.close();
+    }
+
+    @Test
+    public void respectSettingConfigForSingleBlobWrite() {
+        boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+        assertTrue("Flag not setting as set by configuration",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        assertFalse("Flag not setting as set by configuration",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(oldVal);
+    }
+
+    @Test
+    public void selectWriteStrategyBasedOnFlagAndMode() throws Exception {
+        boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        try (Directory multiBlobDir = createDir(builder, true)) {
+            IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+
+            multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.flush();
+        }
+
+        PropertyState jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
+        assertTrue("multiple blobs not written", jcrData.isArray());
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+        try (Directory multiBlobDir = createDir(builder, true)) {
+            IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+
+            multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.flush();
+        }
+
+        jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
+        assertFalse("multiple blobs written", jcrData.isArray());
+
+        try (Directory multiBlobDir = createDir(builder, false)) {
+            IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+
+            multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.flush();
+        }
+
+        jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
+        assertTrue("multiple blobs not written despite disabled buffered directory", jcrData.isArray());
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(oldVal);
+    }
+
+    @Test
+    public void readNonStreamingWhenMultipleBlobsExist() throws Exception {
+        boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        try (Directory multiBlobDir = createDir(builder, true)) {
+            IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+
+            multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.flush();
+        }
+
+        // Enable feature... reader shouldn't care about the flag.
+        // Repo state needs to be used for that
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+        try (Directory multiBlobDir = createDir(builder, true)) {
+            OakIndexInput multiBlobIndexInput = (OakIndexInput)multiBlobDir.openInput("foo", IOContext.DEFAULT);
+
+            assertTrue("OakBufferedIndexFile must be used",
+                    multiBlobIndexInput.file instanceof OakBufferedIndexFile);
+        }
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(oldVal);
+    }
+
+    @Test
+    public void readStreamingWithSingleBlob() throws Exception {
+        boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+        try (Directory multiBlobDir = createDir(builder, true)) {
+            IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+
+            multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.flush();
+        }
+
+        // Enable feature... reader shouldn't care about the flag.
+        // Repo state needs to be used for that
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        try (Directory multiBlobDir = createDir(builder, true)) {
+            OakIndexInput multiBlobIndexInput = (OakIndexInput)multiBlobDir.openInput("foo", IOContext.DEFAULT);
+
+            assertTrue("OakStreamingIndexFile must be used",
+                    multiBlobIndexInput.file instanceof OakStreamingIndexFile);
+        }
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(oldVal);
+    }
+
+    @Test
+    public void writeNonStreamingIfDisabledByFlag() throws Exception {
+        boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        try (Directory multiBlobDir = createDir(builder, true)) {
+            OakIndexOutput multiBlobIndexOutput = (OakIndexOutput)multiBlobDir.createOutput("foo1", IOContext.DEFAULT);
+
+            assertTrue("OakBufferedIndexFile must be used",
+                    multiBlobIndexOutput.file instanceof OakBufferedIndexFile);
+        }
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+        try (Directory multiBlobDir = createDir(builder, true)) {
+            OakIndexOutput multiBlobIndexOutput = (OakIndexOutput)multiBlobDir.createOutput("foo2", IOContext.DEFAULT);
+
+            assertTrue("OakStreamingIndexFile must be used",
+                    multiBlobIndexOutput.file instanceof OakStreamingIndexFile);
+        }
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(oldVal);
+    }
+
+    @Test
+    public void defaultValue() {
+        BufferedOakDirectory bufferedOakDirectory = (BufferedOakDirectory)createDir(builder, true);
+        assertTrue("Flag not setting as set by command line flag",
+                bufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+    }
+
+    @Test
+    public void commandLineParamSetsValue() {
+        String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true");
+        reReadCommandLineParam();
+        assertTrue("Flag not setting as set by command line flag",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "false");
+        reReadCommandLineParam();
+        assertFalse("Flag not setting as set by command line flag",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+
+        if (oldVal == null) {
+            System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+        } else {
+            System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, oldVal);
+        }
+    }
+
+    @Test
+    public void commandLineOverridesSetter() {
+        String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true");
+        reReadCommandLineParam();
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        assertTrue("Flag not setting as set by command line flag",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "false");
+        reReadCommandLineParam();
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        assertFalse("Flag not setting as set by command line flag",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+
+        if (oldVal == null) {
+            System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+        } else {
+            System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, oldVal);
+        }
+    }
+
+    @Test
+    public void settingConfigDifferentFromCLIWarns() {
+        String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+
+        final LogCustomizer custom = LogCustomizer
+                .forLogger(BufferedOakDirectory.class.getName())
+                .contains("Ignoring configuration ")
+                .enable(Level.WARN).create();
+
+        custom.starting();
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true");
+        reReadCommandLineParam();
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        assertEquals("Warn on conflicting config on CLI and set method", 1, custom.getLogs().size());
+        custom.finished();
+
+        custom.starting();
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "false");
+        reReadCommandLineParam();
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+        assertEquals("Warn on conflicting config on CLI and set method", 1, custom.getLogs().size());
+        custom.finished();
+
+        if (oldVal == null) {
+            System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+        } else {
+            System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, oldVal);
+        }
+    }
+
+    @Test
+    public void dontWarnUnnecesarily() {
+        String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+
+        final LogCustomizer custom = LogCustomizer
+                .forLogger(BufferedOakDirectory.class.getName())
+                .contains("Ignoring configuration ")
+                .enable(Level.WARN).create();
+
+        custom.starting();
+
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+        assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true");
+        reReadCommandLineParam();
+        assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+        assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+        System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "false");
+        reReadCommandLineParam();
+        assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+        BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+        assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+        System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+
+        custom.finished();
+
+        if (oldVal == null) {
+            System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+        } else {
+            System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, oldVal);
+        }
     }
 
     private void assertFile(Directory dir, String file, byte[] expected)
