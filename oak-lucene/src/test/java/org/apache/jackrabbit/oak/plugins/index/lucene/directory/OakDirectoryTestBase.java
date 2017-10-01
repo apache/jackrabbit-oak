@@ -19,13 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNIQUE_KEY;
@@ -37,7 +35,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -54,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -65,6 +63,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentTestConstants;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -79,7 +78,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class OakDirectoryTest {
+abstract public class OakDirectoryTestBase {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
 
@@ -87,7 +86,7 @@ public class OakDirectoryTest {
 
     private NodeState root = INITIAL_CONTENT;
 
-    private NodeBuilder builder = root.builder();
+    protected NodeBuilder builder = root.builder();
 
     int fileSize = IndexDefinition.DEFAULT_BLOB_SIZE * 2 + rnd.nextInt(1000);
 
@@ -95,13 +94,6 @@ public class OakDirectoryTest {
     public void writes_DefaultSetup() throws Exception{
         Directory dir = createDir(builder, false, "/foo");
         assertWrites(dir, IndexDefinition.DEFAULT_BLOB_SIZE);
-    }
-
-    @Test
-    public void writes_CustomBlobSize() throws Exception{
-        builder.setProperty(LuceneIndexConstants.BLOB_SIZE, 300);
-        Directory dir = createDir(builder, false, "/foo");
-        assertWrites(dir, 300);
     }
 
     @Test
@@ -216,11 +208,12 @@ public class OakDirectoryTest {
         NodeBuilder testNode = builder.child(INDEX_DATA_CHILD_NAME).child("test");
         assertEquals(blobSize, testNode.getProperty(PROP_BLOB_SIZE).getValue(Type.LONG).longValue());
 
-        List<Blob> blobs = newArrayList(testNode.getProperty(JCR_DATA).getValue(BINARIES));
-        assertEquals(blobSize + UNIQUE_KEY_SIZE, blobs.get(0).length());
+        assertBlobSizeInWrite(testNode.getProperty(JCR_DATA), blobSize, fileSize);
 
         return data;
     }
+
+    abstract void assertBlobSizeInWrite(PropertyState jcrData, int blobSize, int fileSize);
 
     private int createFile(Directory dir, String fileName) throws IOException {
         int size = rnd.nextInt(1000) + 1;
@@ -231,9 +224,8 @@ public class OakDirectoryTest {
         return size;
     }
 
-    private OakDirectory createDir(NodeBuilder builder, boolean readOnly, String indexPath){
-        return new OakDirectory(builder,
-                new IndexDefinition(root, builder.getNodeState(), indexPath), readOnly);
+    protected OakDirectory createDir(NodeBuilder builder, boolean readOnly, String indexPath){
+        return getOakDirectoryBuilder(builder, indexPath).setReadOnly(readOnly).build();
     }
 
     byte[] randomBytes(int size) {
@@ -367,11 +359,11 @@ public class OakDirectoryTest {
     public void largeFile() throws Exception{
         FileStore store = FileStoreBuilder.fileStoreBuilder(tempFolder.getRoot())
                 .withMemoryMapping(false)
-                .withBlobStore(new BlackHoleBlobStore())
+                .withBlobStore(getBlackHoleBlobStore())
                 .build();
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
         IndexDefinition defn = new IndexDefinition(INITIAL_CONTENT, EmptyNodeState.EMPTY_NODE, "/foo");
-        Directory directory = new OakDirectory(nodeStore.getRoot().builder(), defn, false);
+        Directory directory = getOakDirectoryBuilder(nodeStore.getRoot().builder(), defn).setReadOnly(false).build();
 
         long expectedSize = ONE_GB * 2 + ONE_MB;
         String fileName = "test";
@@ -444,27 +436,13 @@ public class OakDirectoryTest {
             assertThat(e.getMessage(), containsString("test1.txt"));
         }
 
-        blobStore.reset();
-
-        IndexOutput o3 = dir.createOutput("test3.txt", IOContext.DEFAULT);
-        o3.writeBytes(randomBytes(minFileSize), minFileSize);
-
-        blobStore.startFailing();
-        try{
-            o3.flush();
-            fail();
-        } catch (IOException e){
-            assertThat(e.getMessage(), containsString(indexPath));
-            assertThat(e.getMessage(), containsString("test3.txt"));
-        }
-
         store.close();
     }
 
     @Test
     public void readOnlyDirectory() throws Exception{
-        Directory dir = new OakDirectory(new ReadOnlyBuilder(builder.getNodeState()),
-                new IndexDefinition(root, builder.getNodeState(), "/foo"), true);
+        Directory dir = getOakDirectoryBuilder(new ReadOnlyBuilder(builder.getNodeState()),"/foo")
+                .setReadOnly(true).build();
         assertEquals(0, dir.listAll().length);
     }
 
@@ -515,17 +493,20 @@ public class OakDirectoryTest {
             }
         };
 
-        OakDirectory dir = new OakDirectory(builder, INDEX_DATA_CHILD_NAME, def, false, factory,
-                new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
-                    @Override
-                    public void deleted(String blobId, Iterable<String> ids) {
-                        assertEquals("Only blobs with content identity must be reported as deleted", deletedBlobId, blobId);
-                    }
+        OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
+                .with(factory).
+                with(
+                    new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                        @Override
+                        public void deleted(String blobId, Iterable<String> ids) {
+                            assertEquals("Only blobs with content identity must be reported as deleted", deletedBlobId, blobId);
+                        }
 
-                    @Override
-                    public void commitProgress(IndexProgress indexProgress) {
-                    }
-                });
+                        @Override
+                        public void commitProgress(IndexProgress indexProgress) {
+                        }
+                    })
+                .build();
 
         writeFile(dir, "file1", fileSize);
         writeFile(dir, "file2", fileSize);
@@ -554,7 +535,7 @@ public class OakDirectoryTest {
                 return new ArrayBasedBlob(data);
             }
         };
-        OakDirectory dir = new OakDirectory(builder, INDEX_DATA_CHILD_NAME, def, false, factory);
+        OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false).with(factory).build();
         numBlobs.set(0);
         writeFile(dir, "file", fileSize);
         assertEquals(1, numBlobs.get());
@@ -577,7 +558,7 @@ public class OakDirectoryTest {
         dir.close();
     }
 
-    private static void readInputToEnd(long expectedSize, IndexInput input) throws IOException {
+    static void readInputToEnd(long expectedSize, IndexInput input) throws IOException {
         int COPY_BUFFER_SIZE = 16384;
         byte[] copyBuffer = new byte[(int) ONE_MB];
         long left = expectedSize;
@@ -593,44 +574,21 @@ public class OakDirectoryTest {
         }
     }
 
-    private static void writeFile(Directory directory, String fileName,  long size) throws Exception{
+    static void writeFile(Directory directory, String fileName,  long size) throws Exception{
         IndexOutput o = directory.createOutput(fileName, IOContext.DEFAULT);
         o.copyBytes(new InputStreamDataInput(new NullInputStream(size)), size);
         o.close();
     }
 
-    private static class BlackHoleBlobStore extends MemoryBlobStore {
-        private String blobId;
-        private byte[] data;
-        @Override
-        protected synchronized void storeBlock(byte[] digest, int level, byte[] data) {
-            //Eat up all the writes
-        }
-
-        @Override
-        public String writeBlob(InputStream in) throws IOException {
-            //Avoid expensive digest calculation as all content is 0 byte. So memorize
-            //the id if same content is passed
-            if (blobId == null) {
-                data = IOUtils.toByteArray(in);
-                blobId = super.writeBlob(new ByteArrayInputStream(data));
-                return blobId;
-            } else {
-                byte[] bytes = IOUtils.toByteArray(in);
-                if (Arrays.equals(data, bytes)) {
-                    return blobId;
-                }
-                return super.writeBlob(new ByteArrayInputStream(bytes));
-            }
-        }
-
-        @Override
-        protected byte[] readBlockFromBackend(BlockId id) {
-            return data;
-        }
+    OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder, String indexPath) {
+        return getOakDirectoryBuilder(builder, new IndexDefinition(root, builder.getNodeState(), indexPath));
     }
 
-    private static class FailOnDemandBlobStore extends MemoryBlobStore {
+    abstract OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder, IndexDefinition indexDefinition);
+
+    abstract MemoryBlobStore getBlackHoleBlobStore();
+
+    static class FailOnDemandBlobStore extends MemoryBlobStore {
         private boolean fail;
 
         @Override
@@ -647,6 +605,54 @@ public class OakDirectoryTest {
 
         public void reset(){
             fail = false;
+        }
+    }
+
+    static class OakDirectoryBuilder {
+        private final NodeBuilder builder;
+        private final IndexDefinition defn;
+        private final boolean streamingEnabled;
+
+        public OakDirectoryBuilder(NodeBuilder builder, IndexDefinition defn, boolean streamingEnabled) {
+            this.builder = builder;
+            this.defn = defn;
+            this.streamingEnabled = streamingEnabled;
+        }
+
+        private boolean readOnly = false;
+        public OakDirectoryBuilder setReadOnly(boolean readOnly) {
+            this.readOnly = readOnly;
+            return this;
+        }
+
+        private GarbageCollectableBlobStore blobStore = null;
+        private OakDirectoryBuilder with(GarbageCollectableBlobStore blobStore) {
+            this.blobStore = blobStore;
+            return this;
+        }
+
+        private BlobFactory blobFactory = null;
+        public OakDirectoryBuilder with(BlobFactory blobFactory) {
+            this.blobFactory = blobFactory;
+            return this;
+        }
+
+        private ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback =
+                ActiveDeletedBlobCollectorFactory.BlobDeletionCallback.NOOP;
+        public OakDirectoryBuilder with(ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
+            this.blobDeletionCallback = blobDeletionCallback;
+            return this;
+        }
+
+        public OakDirectory build() {
+            if (blobFactory == null) {
+                blobFactory = blobStore != null ?
+                                    BlobFactory.getBlobStoreBlobFactory(blobStore) :
+                                    BlobFactory.getNodeBuilderBlobFactory(builder);
+            }
+
+            return new OakDirectory(builder, INDEX_DATA_CHILD_NAME, defn, readOnly,
+                    blobFactory, blobDeletionCallback, streamingEnabled);
         }
     }
 }
