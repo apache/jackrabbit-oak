@@ -28,7 +28,7 @@ final class OakIndexOutput extends IndexOutput {
     public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
                           BlobFactory blobFactory) throws IOException {
         this.dirDetails = dirDetails;
-        this.file = new OakIndexFile(name, file, dirDetails, blobFactory);
+        this.file = new OakBufferedIndexFile(name, file, dirDetails, blobFactory);
     }
 
     @Override

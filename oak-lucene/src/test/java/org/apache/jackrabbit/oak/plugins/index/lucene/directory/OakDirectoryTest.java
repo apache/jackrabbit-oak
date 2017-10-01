@@ -57,10 +57,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BlobFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -110,9 +106,9 @@ public class OakDirectoryTest {
 
     @Test
     public void testCompatibility() throws Exception{
-        builder.setProperty(LuceneIndexConstants.BLOB_SIZE, OakIndexFile.DEFAULT_BLOB_SIZE);
+        builder.setProperty(LuceneIndexConstants.BLOB_SIZE, OakBufferedIndexFile.DEFAULT_BLOB_SIZE);
         Directory dir = createDir(builder, false, "/foo");
-        byte[] data = assertWrites(dir, OakIndexFile.DEFAULT_BLOB_SIZE);
+        byte[] data = assertWrites(dir, OakBufferedIndexFile.DEFAULT_BLOB_SIZE);
 
         NodeBuilder testNode = builder.child(INDEX_DATA_CHILD_NAME).child("test");
         //Remove the size property to simulate old behaviour
