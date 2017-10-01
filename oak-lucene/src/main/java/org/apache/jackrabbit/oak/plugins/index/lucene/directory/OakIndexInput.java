@@ -35,7 +35,7 @@ class OakIndexInput extends IndexInput {
                          BlobFactory blobFactory) {
         super(name);
         this.dirDetails = dirDetails;
-        this.file = new OakIndexFile(name, file, dirDetails, blobFactory);
+        this.file = new OakBufferedIndexFile(name, file, dirDetails, blobFactory);
         clones = WeakIdentityMap.newConcurrentHashMap();
     }
 
