@@ -24,9 +24,11 @@ import org.apache.lucene.util.WeakIdentityMap;
 import java.io.IOException;
 import java.util.Iterator;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile.getOakIndexFile;
+
 class OakIndexInput extends IndexInput {
 
-    private final OakIndexFile file;
+    final OakIndexFile file;
     private boolean isClone = false;
     private final WeakIdentityMap<OakIndexInput, Boolean> clones;
     private final String dirDetails;
@@ -35,7 +37,7 @@ class OakIndexInput extends IndexInput {
                          BlobFactory blobFactory) {
         super(name);
         this.dirDetails = dirDetails;
-        this.file = new OakBufferedIndexFile(name, file, dirDetails, blobFactory);
+        this.file = getOakIndexFile(name, file, dirDetails, blobFactory);
         clones = WeakIdentityMap.newConcurrentHashMap();
     }
 

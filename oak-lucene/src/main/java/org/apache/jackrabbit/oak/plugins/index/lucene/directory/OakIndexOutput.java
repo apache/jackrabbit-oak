@@ -17,18 +17,21 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.IndexOutput;
 
 import java.io.IOException;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile.getOakIndexFile;
+
 final class OakIndexOutput extends IndexOutput {
     private final String dirDetails;
-    private final OakIndexFile file;
+    final OakIndexFile file;
 
     public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
-                          BlobFactory blobFactory) throws IOException {
+                          BlobFactory blobFactory, boolean streamingWriteEnabled) throws IOException {
         this.dirDetails = dirDetails;
-        this.file = new OakBufferedIndexFile(name, file, dirDetails, blobFactory);
+        this.file = getOakIndexFile(name, file, dirDetails, blobFactory, streamingWriteEnabled);
     }
 
     @Override
@@ -59,6 +62,16 @@ final class OakIndexOutput extends IndexOutput {
     @Override
     public void writeByte(byte b) throws IOException {
         writeBytes(new byte[] { b }, 0, 1);
+    }
+
+    @Override
+    public void copyBytes(DataInput input, long numBytes) throws IOException {
+        //TODO: Do we know that copyBytes would always reach us via copy??
+        if (file.supportsCopyFromDataInput()) {
+            file.copyBytes(input, numBytes);
+        } else {
+            super.copyBytes(input, numBytes);
+        }
     }
 
     @Override
