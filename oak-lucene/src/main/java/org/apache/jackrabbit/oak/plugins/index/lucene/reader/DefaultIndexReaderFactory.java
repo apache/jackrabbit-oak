@@ -109,9 +109,12 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
         }
 
         if (directory != null) {
-            OakDirectory suggestDirectory = null;
+            Directory suggestDirectory = null;
             if (definition.isSuggestEnabled()) {
                 suggestDirectory = new OakDirectory(new ReadOnlyBuilder(defnNodeState), suggestDataNodeName, definition, true);
+                if (cloner != null && definition.getUniqueId() != null) {
+                    suggestDirectory = cloner.wrapForRead(indexPath, definition, suggestDirectory, suggestDataNodeName);
+                }
             }
 
             try{
