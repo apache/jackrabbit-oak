@@ -653,6 +653,7 @@ class IndexPlanner {
                 .setIncludesNodeData(false) // we should not include node data
                 .setFilter(filter)
                 .setPathPrefix(getPathPrefix())
+                .setSupportsPathRestriction(definition.evaluatePathRestrictions())
                 .setDelayed(true) //Lucene is always async
                 .setAttribute(LucenePropertyIndex.ATTR_PLAN_RESULT, result)
                 .setEstimatedEntryCount(estimatedEntryCount())

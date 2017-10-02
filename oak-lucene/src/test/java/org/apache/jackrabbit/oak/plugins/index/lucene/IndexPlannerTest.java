@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EVALUATE_PATH_RESTRICTION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
@@ -949,6 +950,28 @@ public class IndexPlannerTest {
         assertTrue(pr.hasProperty("jcr:content/foo"));
         assertTrue(pr.hasProperty("jcr:content/bar"));
         assertFalse(pr.hasProperty("metadata/baz"));
+    }
+
+    @Test
+    public void evaluatePathRestrictionExposesSupportCorrectly() throws Exception{
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+
+        // Evaluates path restriction
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async")
+                .setProperty(EVALUATE_PATH_RESTRICTION, true);
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertTrue(plan.getSupportsPathRestriction());
+
+        // Doesn't evaluate path restriction
+        defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async")
+                .setProperty(EVALUATE_PATH_RESTRICTION, false);
+        node = createIndexNode(new IndexDefinition(root, defn.getNodeState(), "/foo1"));
+        planner = new IndexPlanner(node, "/foo1", filter, Collections.<OrderEntry>emptyList());
+        plan = planner.getPlan();
+        assertFalse(plan.getSupportsPathRestriction());
     }
 
     private IndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp) throws IOException {
