@@ -1032,18 +1032,28 @@ public class QueryImpl implements Query {
             }
         }
         potentiallySlowTraversalQuery = bestIndex == null;
-        if (traversalEnabled) {
-            TraversingIndex traversal = new TraversingIndex();
-            double cost = traversal.getCost(filter, rootState);
+        if (bestPlan != null &&
+                (filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION ||
+                        bestPlan.getSupportsPathRestriction())) {
             if (LOG.isDebugEnabled()) {
-                logDebug("cost for " + traversal.getIndexName() + " is " + cost);
+                logDebug("Ignoring traversal. Params:: best index:" + bestIndex + ";" +
+                        " property restriction: " + filter.getPathRestriction() + ";" +
+                        " best plans supports path restriction: " + bestPlan.getSupportsPathRestriction());
             }
-            if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
-                bestCost = cost;
-                bestPlan = null;
-                bestIndex = traversal;
-                if (potentiallySlowTraversalQuery) {
-                    potentiallySlowTraversalQuery = traversal.isPotentiallySlow(filter, rootState);
+        } else {
+            if (traversalEnabled) {
+                TraversingIndex traversal = new TraversingIndex();
+                double cost = traversal.getCost(filter, rootState);
+                if (LOG.isDebugEnabled()) {
+                    logDebug("cost for " + traversal.getIndexName() + " is " + cost);
+                }
+                if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
+                    bestCost = cost;
+                    bestPlan = null;
+                    bestIndex = traversal;
+                    if (potentiallySlowTraversalQuery) {
+                        potentiallySlowTraversalQuery = traversal.isPotentiallySlow(filter, rootState);
+                    }
                 }
             }
         }
