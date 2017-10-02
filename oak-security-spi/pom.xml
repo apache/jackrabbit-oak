@@ -39,22 +39,7 @@
           <configuration>
             <instructions>
               <Export-Package>
-                org.apache.jackrabbit.oak.plugins.tree,
-                org.apache.jackrabbit.oak.spi.security,
-                org.apache.jackrabbit.oak.spi.security.authentication,
-                org.apache.jackrabbit.oak.spi.security.authentication.callback,
-                org.apache.jackrabbit.oak.spi.security.authentication.credentials,
-                org.apache.jackrabbit.oak.spi.security.authentication.token,
-                org.apache.jackrabbit.oak.spi.security.authorization,
-                org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol,
-                org.apache.jackrabbit.oak.spi.security.authorization.permission,
-                org.apache.jackrabbit.oak.spi.security.authorization.restriction,
-                org.apache.jackrabbit.oak.spi.security.principal,
-                org.apache.jackrabbit.oak.spi.security.privilege,
-                org.apache.jackrabbit.oak.spi.security.user,
-                org.apache.jackrabbit.oak.spi.security.user.action,
-                org.apache.jackrabbit.oak.spi.security.user.util,
-                org.apache.jackrabbit.oak.spi.xml
+
               </Export-Package>
             </instructions>
           </configuration>
@@ -97,13 +82,10 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.service.component.annotations</artifactId>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.scr.annotations</artifactId>
+      <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.service.metatype.annotations</artifactId>
-   </dependency>
 
     <!-- JCR and Jackrabbit dependencies -->
     <dependency>

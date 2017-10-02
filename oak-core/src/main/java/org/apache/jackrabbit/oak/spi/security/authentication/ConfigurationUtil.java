@@ -21,6 +21,8 @@ import java.util.Map;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 
 /**
@@ -74,8 +76,7 @@ public final class ConfigurationUtil {
 
     private static final class DefaultEntry extends AppConfigurationEntry {
         private DefaultEntry(Map<String, ?> options) {
-            super("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl",
-                    LoginModuleControlFlag.REQUIRED, options);
+            super(LoginModuleImpl.class.getName(), LoginModuleControlFlag.REQUIRED, options);
         }
     }
 
@@ -89,8 +90,7 @@ public final class ConfigurationUtil {
     private static final class TokenEntry extends AppConfigurationEntry {
 
         private TokenEntry(Map<String, ?> options) {
-            super("org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule",
-                    LoginModuleControlFlag.SUFFICIENT, options);
+            super(TokenLoginModule.class.getName(), LoginModuleControlFlag.SUFFICIENT, options);
         }
     }
 

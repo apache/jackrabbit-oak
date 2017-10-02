@@ -14,21 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.jackrabbit.oak.spi.security;
+package org.apache.jackrabbit.oak.plugins.tree;
 
 /**
- * Holds the names of well-known registration properties for security-related components
- *
+ * Marker interface to indicate if a {@link Tree} or {@link org.apache.jackrabbit.oak.api.Root}
+ * can only be read (write operations not implemented).
  */
-public abstract class RegistrationConstants {
-
-    /**
-     * Name to be used when registering components that are required by the {@code org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration}
-     */
-    public static final String OAK_SECURITY_NAME = "oak.security.name";
-    
-    private RegistrationConstants() {
-        
-    }
+public interface ReadOnly {
 }
