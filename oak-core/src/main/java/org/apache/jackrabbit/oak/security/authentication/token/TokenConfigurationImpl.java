@@ -117,7 +117,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     }
 
     @Reference(name = "credentialsSupport",
-            cardinality = ReferenceCardinality.OPTIONAL,
+            cardinality = ReferenceCardinality.MULTIPLE,
             policy = ReferencePolicy.DYNAMIC)
     @SuppressWarnings("UnusedDeclaration")
     public void bindCredentialsSupport(CredentialsSupport credentialsSupport) {
@@ -126,7 +126,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
 
     @SuppressWarnings("UnusedDeclaration")
     public void unbindCredentialsSupport(CredentialsSupport credentialsSupport) {
-		this.credentialsSupport.remove(credentialsSupport.getClass().getName());
+        this.credentialsSupport.remove(credentialsSupport.getClass().getName());
     }
 
     //----------------------------------------------< SecurityConfiguration >---
