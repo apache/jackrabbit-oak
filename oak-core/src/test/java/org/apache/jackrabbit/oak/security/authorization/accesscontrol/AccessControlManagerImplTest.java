@@ -47,7 +47,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -68,9 +71,9 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.TestACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -2366,5 +2369,70 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
 
         // now try to write it back, which is expected to throw AccessControlException
         acMgr.removePolicy(acl.getPath(), acl);
+    }
+
+    private final static class TestACL extends AbstractAccessControlList {
+
+        private final List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
+        private final RestrictionProvider restrictionProvider;
+
+        public TestACL(@Nullable String jcrPath,
+                       @Nonnull RestrictionProvider restrictionProvider,
+                       @Nonnull NamePathMapper namePathMapper,
+                       @Nonnull List<JackrabbitAccessControlEntry> entries) {
+            super((jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath), namePathMapper);
+            this.entries.addAll(entries);
+            this.restrictionProvider = restrictionProvider;
+        }
+
+        public TestACL(@Nullable String jcrPath,
+                       @Nonnull RestrictionProvider restrictionProvider,
+                       @Nonnull NamePathMapper namePathMapper,
+                       @Nonnull JackrabbitAccessControlEntry... entry) {
+            this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return entries.isEmpty();
+        }
+
+        @Override
+        public int size() {
+            return entries.size();
+        }
+
+        @Override
+        public boolean addEntry(Principal principal, Privilege[] privileges,
+                                boolean isAllow, Map<String, Value> restrictions) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions) throws AccessControlException, RepositoryException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void removeAccessControlEntry(AccessControlEntry ace) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Nonnull
+        @Override
+        public List<JackrabbitAccessControlEntry> getEntries() {
+            return entries;
+        }
+
+        @Nonnull
+        @Override
+        public RestrictionProvider getRestrictionProvider() {
+            return restrictionProvider;
+        }
     }
 }

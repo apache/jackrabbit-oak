@@ -229,6 +229,7 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.nodetype.write</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.observation</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.observation.filter</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.tree</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.tree.factories</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.value</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.version</filter>
