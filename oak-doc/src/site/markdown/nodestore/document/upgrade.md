@@ -45,6 +45,11 @@ before they are applied to production.
 The following instructions assume a cluster with two nodes C1 and C2 running on
 Oak 1.6 or older.
 
+* Remove documents potentially created by [OAK-4345][0]. The issue only affected
+deployments based on MongoDB. Connect to the database with a MongoDB shell and
+then execute:
+
+        > db.nodes.remove({_id:{$type:7}})
 * Stop cluster node C1. If possible, the cluster node should be shut down
 gracefully because the next step can only be executed when C1 is considered
 inactive. A recovery of C1 is otherwise necessary if it is forcefully killed.
@@ -105,7 +110,8 @@ should be replaced. Please note, the partial index on `_deletedOnce` and
         > db.nodes.dropIndex("_deletedOnce_1")
         { "nIndexesWas" : 6, "ok" : 1 }
         
-    See also instructions how to [build indexes on a replica set][0] to minimize
+    See also instructions how to [build indexes on a replica set][1] to minimize
     impact on the system.
 
-[0]: https://docs.mongodb.com/manual/tutorial/build-indexes-on-replica-sets/#index-building-replica-sets
+[0]: https://issues.apache.org/jira/browse/OAK-4345
+[1]: https://docs.mongodb.com/manual/tutorial/build-indexes-on-replica-sets/#index-building-replica-sets
