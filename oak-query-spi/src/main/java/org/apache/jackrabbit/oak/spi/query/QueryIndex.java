@@ -290,6 +290,11 @@ public interface QueryIndex {
         String getPathPrefix();
 
         /**
+         * Whether index for this plan supports handling path restrictions natively.
+         */
+        boolean getSupportsPathRestriction();
+
+        /**
          * The property restriction for this index plan or <code>null</code> if
          * this index plan isn't base on a property restriction. E.g. a plan
          * based on an order by clause in the query.
@@ -344,6 +349,7 @@ public interface QueryIndex {
             protected NodeState definition;
             protected PropertyRestriction propRestriction;
             protected String pathPrefix = "/";
+            protected boolean supportsPathRestriction = false;
             protected Map<String, Object> attributes = Maps.newHashMap();
             protected String planName;
 
@@ -402,6 +408,11 @@ public interface QueryIndex {
                 return this;
             }
 
+            public Builder setSupportsPathRestriction(boolean supportsPathRestriction) {
+                this.supportsPathRestriction = supportsPathRestriction;
+                return this;
+            }
+
             public Builder setAttribute(String key, Object value) {
                this.attributes.put(key, value);
                return this;
@@ -440,6 +451,8 @@ public interface QueryIndex {
                             Builder.this.propRestriction;
                     private final String pathPrefix =
                             Builder.this.pathPrefix;
+                    private final boolean supportsPathRestriction =
+                            Builder.this.supportsPathRestriction;
                     private final Map<String, Object> attributes =
                             Builder.this.attributes;
                     private final String planName = Builder.this.planName;
@@ -457,7 +470,8 @@ public interface QueryIndex {
                             + " sortOrder : %s,"
                             + " definition : %s,"
                             + " propertyRestriction : %s,"
-                            + " pathPrefix : %s }",
+                            + " pathPrefix : %s,"
+                            + " supportsPathRestriction : %s }",
                             costPerExecution,
                             costPerEntry,
                             estimatedEntryCount,
@@ -468,7 +482,8 @@ public interface QueryIndex {
                             sortOrder,
                             definition,
                             propRestriction,
-                            pathPrefix
+                            pathPrefix,
+                            supportsPathRestriction
                             );
                     }
 
@@ -530,6 +545,11 @@ public interface QueryIndex {
                     @Override
                     public String getPathPrefix() {
                         return pathPrefix;
+                    }
+
+                    @Override
+                    public boolean getSupportsPathRestriction() {
+                        return supportsPathRestriction;
                     }
 
                     @Override
