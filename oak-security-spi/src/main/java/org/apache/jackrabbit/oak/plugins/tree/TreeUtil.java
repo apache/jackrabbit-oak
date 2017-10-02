@@ -75,7 +75,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_RESID
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 /**
- * Utility providing common operations for the {@code Tree} that are not provided
+ * Utility providing common operations for the {@link org.apache.jackrabbit.oak.api.Tree} that are not provided
  * by the API.
  */
 public final class TreeUtil {
@@ -492,7 +492,7 @@ public final class TreeUtil {
      *
      * @param tree The tree object to be tested.
      * @return {@code true} if the specified tree is an immutable read-only tree.
-     * @see {@link ReadOnly}
+     * @see org.apache.jackrabbit.oak.plugins.tree.ReadOnly
      */
     public static boolean isReadOnlyTree(@Nonnull Tree tree) {
         return tree instanceof ReadOnly;
