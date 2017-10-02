@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNotNull;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -961,6 +962,50 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             fail("missing query results (broken collation handling in persistence?): " + diff);
         }
         assertEquals("incorrect result ordering in query result (broken collation handling in persistence?)", expected, result);
+    }
+
+    @Test
+    public void modCountCondition() {
+        String id = this.getClass().getName() + ".modCountCondition";
+        removeMe.add(id);
+        UpdateOp op = new UpdateOp(id, true);
+        op.set("p", "a");
+        assertTrue(ds.create(Collection.NODES, Collections.singletonList(op)));
+        NodeDocument doc = ds.find(Collection.NODES, id);
+        assertNotNull(doc);
+        Long modCount = doc.getModCount();
+        // can only proceed if store maintains modCount
+        assumeNotNull(modCount);
+        // check equals (non-matching)
+        op = new UpdateOp(id, false);
+        op.set("p", "b");
+        op.equals(Document.MOD_COUNT, modCount + 1);
+        assertNull(ds.findAndUpdate(Collection.NODES, op));
+        // check equals (matching)
+        op = new UpdateOp(id, false);
+        op.set("p", "b");
+        op.equals(Document.MOD_COUNT, modCount);
+        assertNotNull(ds.findAndUpdate(Collection.NODES, op));
+        // validate
+        doc = ds.find(Collection.NODES, id);
+        assertNotNull(doc);
+        assertEquals("b", doc.get("p"));
+        modCount = doc.getModCount();
+        assertNotNull(modCount);
+        // check not equals (non-matching)
+        op = new UpdateOp(id, false);
+        op.set("p", "c");
+        op.notEquals(Document.MOD_COUNT, modCount);
+        assertNull(ds.findAndUpdate(Collection.NODES, op));
+        // check not equals (matching)
+        op = new UpdateOp(id, false);
+        op.set("p", "c");
+        op.notEquals(Document.MOD_COUNT, modCount + 1);
+        assertNotNull(ds.findAndUpdate(Collection.NODES, op));
+        // validate
+        doc = ds.find(Collection.NODES, id);
+        assertNotNull(doc);
+        assertEquals("c", doc.get("p"));
     }
 
     private List<String> getKeys(List<NodeDocument> docs) {

@@ -823,20 +823,29 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             // perform a conditional update with limited result
             // if we have a matching modCount
             if (modCount != null) {
+                // only perform the conditional update when there are
+                // no conditions and the check is OK. this avoid an
+                // unnecessary call when the conditions do not match
+                if (!checkConditions || UpdateUtils.checkConditions(cachedDoc, updateOp.getConditions())) {
+                    QueryBuilder query = createQueryForUpdate(updateOp.getId(),
+                            updateOp.getConditions());
+                    // below condition may overwrite a user supplied condition
+                    // on _modCount. This fine, because the conditions were
+                    // already checked against the cached document with the
+                    // matching _modCount value. There is no need to check the
+                    // user supplied condition on _modCount again on the server
+                    query.and(Document.MOD_COUNT).is(modCount);
 
-                QueryBuilder query = createQueryForUpdate(updateOp.getId(),
-                        updateOp.getConditions());
-                query.and(Document.MOD_COUNT).is(modCount);
-
-                WriteResult result = dbCollection.update(query.get(), update);
-                if (result.getN() > 0) {
-                    // success, update cached document
-                    if (collection == Collection.NODES) {
-                        NodeDocument newDoc = (NodeDocument) applyChanges(collection, cachedDoc, updateOp);
-                        nodesCache.put(newDoc);
+                    WriteResult result = dbCollection.update(query.get(), update);
+                    if (result.getN() > 0) {
+                        // success, update cached document
+                        if (collection == Collection.NODES) {
+                            NodeDocument newDoc = (NodeDocument) applyChanges(collection, cachedDoc, updateOp);
+                            nodesCache.put(newDoc);
+                        }
+                        // return previously cached document
+                        return cachedDoc;
                     }
-                    // return previously cached document
-                    return cachedDoc;
                 }
             }
 
