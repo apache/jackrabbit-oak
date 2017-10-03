@@ -111,7 +111,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
             }
 
             if (log.isTraceEnabled()) {
-                log.trace("[{}] Property index updated for [{}/@{}] with values [{}]", indexPath, nodePath,
+                log.trace("[{}] Property index updated for [{}/@{}] with values {}", indexPath, nodePath,
                         propertyRelativePath, afterKeys);
             }
         }
