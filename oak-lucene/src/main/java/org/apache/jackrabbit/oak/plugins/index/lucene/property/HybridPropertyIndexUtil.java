@@ -35,6 +35,12 @@ class HybridPropertyIndexUtil {
      */
     static final String PROP_PREVIOUS_BUCKET = "previous";
 
+    static final String PROP_STORAGE_TYPE = "storageType";
+
+    static final String STORAGE_TYPE_CONTENT_MIRROR = "contentMirror";
+
+    static final String STORAGE_TYPE_UNIQUE = "unique";
+
     static String getNodeName(String propertyRelativePath) {
         return propertyRelativePath.replace('/', '_');
     }

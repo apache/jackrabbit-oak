@@ -41,6 +41,9 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_STORAGE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.STORAGE_TYPE_CONTENT_MIRROR;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.STORAGE_TYPE_UNIQUE;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
 public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
@@ -120,6 +123,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
         NodeBuilder idx = propertyIndex.child(nodeName);
         if (idx.isNew()) {
             idx.setProperty(PROP_HEAD_BUCKET, DEFAULT_HEAD_BUCKET);
+            idx.setProperty(PROP_STORAGE_TYPE, STORAGE_TYPE_CONTENT_MIRROR);
         }
 
         String headBucketName = idx.getString(PROP_HEAD_BUCKET);
@@ -130,7 +134,11 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
     }
 
     private static NodeBuilder getUniqueIndexBuilder(NodeBuilder propertyIndex, String nodeName) {
-        return propertyIndex.child(nodeName);
+        NodeBuilder idx = propertyIndex.child(nodeName);
+        if (idx.isNew()) {
+            idx.setProperty(PROP_STORAGE_TYPE, STORAGE_TYPE_UNIQUE);
+        }
+        return idx;
     }
 
     private static Set<String> getValueKeys(PropertyState property, ValuePattern pattern) {
