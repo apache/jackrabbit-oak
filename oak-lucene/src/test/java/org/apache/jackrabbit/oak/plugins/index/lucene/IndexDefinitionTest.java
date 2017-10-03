@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -973,6 +974,16 @@ public class IndexDefinitionTest {
 
         assertFalse(defn.hasMatchingNodeTypeReg(root2));
         assertTrue(defn.hasMatchingNodeTypeReg(root3));
+    }
+
+    @Test
+    public void uniqueIsSync() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").sync);
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").unique);
     }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled

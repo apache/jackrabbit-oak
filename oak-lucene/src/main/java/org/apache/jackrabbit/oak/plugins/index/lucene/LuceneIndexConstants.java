@@ -156,6 +156,16 @@ public interface LuceneIndexConstants {
     String PROP_WEIGHT = "weight";
 
     /**
+     * Boolean property in property definition to mark sync properties
+     */
+    String PROP_SYNC = "sync";
+
+    /**
+     * Boolean property in property definition to mark unique properties
+     */
+    String PROP_UNIQUE = "unique";
+
+    /**
      * Integer property indicating that LuceneIndex should be
      * used in compat mode to specific version
      */

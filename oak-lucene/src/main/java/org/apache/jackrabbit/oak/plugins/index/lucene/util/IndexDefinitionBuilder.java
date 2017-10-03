@@ -369,6 +369,16 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule sync(){
+            propTree.setProperty(LuceneIndexConstants.PROP_SYNC, true);
+            return this;
+        }
+
+        public PropertyRule unique(){
+            propTree.setProperty(LuceneIndexConstants.PROP_UNIQUE, true);
+            return this;
+        }
+
         public IndexRule enclosingRule(){
             return indexRule;
         }
