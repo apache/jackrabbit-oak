@@ -29,6 +29,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -49,6 +50,10 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class LuceneIndexEditor2Test {
@@ -59,6 +64,7 @@ public class LuceneIndexEditor2Test {
     private ExtractedTextCache extractedTextCache = new ExtractedTextCache(0, 0);
     private TestIndexingContext indexingContext = new TestIndexingContext();
     private TestWriterFactory writerFactory = new TestWriterFactory();
+    private TestPropertyUpdateCallback propCallback = new TestPropertyUpdateCallback();
     private TestWriter writer = new TestWriter();
     private String indexPath = "/oak:index/fooIndex";
 
@@ -79,6 +85,52 @@ public class LuceneIndexEditor2Test {
         hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
 
         assertThat(writer.docs.keySet(), containsInAnyOrder("/a"));
+    }
+
+    @Test
+    public void simplePropertyUpdateCallback() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        ctx.setPropertyUpdateCallback(propCallback);
+
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        //Property added
+        NodeBuilder builder = before.builder();
+        builder.child("a").setProperty("foo", "bar");
+        builder.child("a").setProperty("foo2", "bar");
+
+        before = hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+        propCallback.state.assertState("/a", "foo", UpdateState.ADDED);
+        assertEquals(1, propCallback.invocationCount);
+        propCallback.reset();
+
+        //Property updated
+        builder = before.builder();
+        builder.child("a").setProperty("foo", "bar2");
+        builder.child("a").setProperty("foo2", "bar2");
+        before = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+
+        propCallback.state.assertState("/a", "foo", UpdateState.UPDATED);
+
+        assertEquals(1, propCallback.invocationCount);
+        propCallback.reset();
+
+        //Property deleted
+        builder = before.builder();
+        builder.child("a").removeProperty("foo");
+        builder.child("a").removeProperty("foo2");
+        before = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+
+        propCallback.state.assertState("/a", "foo", UpdateState.DELETED);
+        assertEquals(1, propCallback.invocationCount);
+        propCallback.reset();
     }
 
     private void updateBefore(IndexDefinitionBuilder defnb) {
@@ -110,6 +162,63 @@ public class LuceneIndexEditor2Test {
     private LuceneIndexEditorContext newContext(NodeBuilder defnBuilder, IndexDefinition defn, boolean asyncIndex) {
         return new LuceneIndexEditorContext(root, defnBuilder, defn, updateCallback, writerFactory,
                 extractedTextCache, null, indexingContext, asyncIndex);
+    }
+
+
+    private static class TestPropertyUpdateCallback implements PropertyUpdateCallback {
+        int invocationCount;
+        CallbackState state;
+
+        @Override
+        public void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd,
+                                    PropertyState before, PropertyState after) {
+            assertNotNull(nodePath);
+            assertNotNull(propertyRelativePath);
+            assertNotNull(pd);
+
+            if (before == null && after == null) {
+                fail("Both states cannot be null at same time");
+            }
+
+            state = new CallbackState(nodePath, propertyRelativePath, pd, before, after);
+            invocationCount++;
+        }
+
+        void reset(){
+            state = null;
+            invocationCount = 0;
+        }
+    }
+
+    enum UpdateState {ADDED, UPDATED, DELETED}
+
+    private static class CallbackState {
+        final String nodePath;
+        final String propertyPath;
+        final PropertyDefinition pd;
+        final PropertyState before;
+        final PropertyState after;
+
+
+        public CallbackState(String nodePath, String propertyPath, PropertyDefinition pd,
+                              PropertyState before, PropertyState after) {
+            this.nodePath = nodePath;
+            this.propertyPath = propertyPath;
+            this.pd = pd;
+            this.before = before;
+            this.after = after;
+        }
+
+        public void assertState(String expectedPath, String expectedName, UpdateState us) {
+            assertEquals(expectedPath, nodePath);
+            assertEquals(expectedName, propertyPath);
+
+            switch (us) {
+                case ADDED: assertNotNull(after); assertNull(before); break;
+                case UPDATED: assertNotNull(after); assertNotNull(before); break;
+                case DELETED: assertNull(after); assertNotNull(before); break;
+            }
+        }
     }
 
 

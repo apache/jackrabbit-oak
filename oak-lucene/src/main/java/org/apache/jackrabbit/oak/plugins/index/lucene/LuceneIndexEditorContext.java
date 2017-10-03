@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.IOException;
 import java.util.Calendar;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -88,6 +89,8 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
 
     private BinaryTextExtractor textExtractor;
 
+    private PropertyUpdateCallback propertyUpdateCallback;
+
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition,
                              @Nullable IndexDefinition indexDefinition,
                              IndexUpdateCallback updateCallback,
@@ -125,6 +128,15 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
 
     public IndexingContext getIndexingContext() {
         return indexingContext;
+    }
+
+    @CheckForNull
+    public PropertyUpdateCallback getPropertyUpdateCallback() {
+        return propertyUpdateCallback;
+    }
+
+    void setPropertyUpdateCallback(PropertyUpdateCallback propertyUpdateCallback) {
+        this.propertyUpdateCallback = propertyUpdateCallback;
     }
 
     /**
