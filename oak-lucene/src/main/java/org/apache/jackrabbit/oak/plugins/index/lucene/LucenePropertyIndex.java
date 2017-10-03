@@ -34,7 +34,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
@@ -125,6 +127,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -1553,6 +1556,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
     }
 
+    @SuppressWarnings("Guava")
     private static Iterator<LuceneResultRow> mergePropertyIndexResult(IndexPlan plan, NodeState rootState,
                                                                       Iterator<LuceneResultRow> itr) {
         PlanResult pr = getPlanResult(plan);
@@ -1560,11 +1564,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 NodeStateUtils.getNode(rootState, pr.indexPath));
         PropertyIndexResult pir = pr.getPropertyIndexResult();
         Iterable<String> paths = lookup.query(plan.getFilter(), pir.pd, pir.propertyName, pir.pr);
-        Iterator<LuceneResultRow> propIndexItr = Iterators.transform(paths.iterator(),
-                (path) -> new LuceneResultRow(path, 0, null, null, null));
+
+        //No need for path restriction evaluation as thats taken care by PropertyIndex impl itself
+        //via content mirror strategy
+        FluentIterable<LuceneResultRow> propIndex = FluentIterable.from(paths)
+                .transform(path -> pr.isPathTransformed() ? pr.transformPath(path) : path)
+                .filter(notNull())
+                .transform(path -> new LuceneResultRow(path, 0, null, null, null));
 
         //Property index itr should come first
-        return Iterators.concat(propIndexItr, itr);
+        return Iterators.concat(propIndex.iterator(), itr);
     }
 
     static class LuceneResultRow {
