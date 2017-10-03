@@ -116,6 +116,10 @@ class PropertyDefinition {
 
     final ValuePattern valuePattern;
 
+    final boolean sync;
+
+    final boolean unique;
+
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
@@ -156,6 +160,8 @@ class PropertyDefinition {
                 getOptionalValue(defn, LuceneIndexConstants.PROP_FUNCTION, null));
         this.functionCode = FunctionIndexProcessor.getFunctionCode(this.function);
         this.valuePattern = new ValuePattern(defn);
+        this.unique = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_UNIQUE, false);
+        this.sync = unique || getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_SYNC, false);
         validate();
     }
 
