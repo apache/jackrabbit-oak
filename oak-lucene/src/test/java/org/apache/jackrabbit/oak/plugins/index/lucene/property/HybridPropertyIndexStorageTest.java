@@ -40,12 +40,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newString;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 public class HybridPropertyIndexStorageTest {
@@ -151,6 +155,48 @@ public class HybridPropertyIndexStorageTest {
 
         // /b should not come as pruning is disabled
         assertThat(query("foo", newString("bar")), empty());
+    }
+
+    //~---------------------------------------< buckets >
+
+    @Test
+    public void bucketSwitch() throws Exception{
+        String propName = "foo";
+        defnb.indexRule("nt:base").property(propName).sync();
+
+        newCallback().propertyUpdated("/a", propName, pd(propName),
+                null, createProperty(propName, "bar"));
+
+        assertThat(query(propName, newString("bar")), containsInAnyOrder("/a"));
+
+        switchBucket(propName);
+
+        newCallback().propertyUpdated("/b", propName, pd(propName),
+                null, createProperty(propName, "bar"));
+
+        assertThat(query(propName, newString("bar")), containsInAnyOrder("/a", "/b"));
+
+        switchBucket(propName);
+
+        newCallback().propertyUpdated("/c", propName, pd(propName),
+                null, createProperty(propName, "bar"));
+
+        //Now /a should not come as its in 3rd bucket and we only consider head and previous buckets
+        assertThat(query(propName, newString("bar")), containsInAnyOrder("/b", "/c"));
+    }
+
+    private void switchBucket(String propertyName) {
+        NodeBuilder propertyIndex = builder.child(PROPERTY_INDEX);
+        NodeBuilder idx = propertyIndex.child(HybridPropertyIndexUtil.getNodeName(propertyName));
+
+        String head = idx.getString(HybridPropertyIndexUtil.PROP_HEAD_BUCKET);
+        assertNotNull(head);
+
+        int id = Integer.parseInt(head);
+        idx.setProperty(PROP_PREVIOUS_BUCKET, head);
+        idx.setProperty(PROP_HEAD_BUCKET, String.valueOf(id + 1));
+
+        builder = builder.getNodeState().builder();
     }
 
     private List<String> query(String propertyName, PropertyValue value) {
