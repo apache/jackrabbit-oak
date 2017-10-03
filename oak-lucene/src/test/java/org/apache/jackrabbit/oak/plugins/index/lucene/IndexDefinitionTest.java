@@ -83,6 +83,7 @@ public class IndexDefinitionTest {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertTrue(idxDefn.saveDirListing());
         assertFalse(idxDefn.isNRTIndexingEnabled());
+        assertFalse(idxDefn.hasSyncPropertyDefinitions());
     }
 
     @Test
@@ -984,6 +985,15 @@ public class IndexDefinitionTest {
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
         assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").sync);
         assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").unique);
+    }
+
+    @Test
+    public void syncPropertyDefinitions() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.hasSyncPropertyDefinitions());
     }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled

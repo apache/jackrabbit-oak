@@ -266,6 +266,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     @Nullable
     private final String[] indexTags;
 
+    private final boolean syncPropertyIndexes;
+
     //~--------------------------------------------------------< Builder >
 
     public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
@@ -402,6 +404,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
         this.nrtIndexMode = supportsNRTIndexing(defn);
         this.syncIndexMode = supportsSyncIndexing(defn);
+        this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
     }
 
     public NodeState getDefinitionNodeState() {
@@ -553,6 +556,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public boolean isSyncIndexingEnabled() {
         return syncIndexMode;
+    }
+
+    public boolean hasSyncPropertyDefinitions() {
+        return syncPropertyIndexes;
     }
 
     /**
@@ -871,6 +878,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         private final List<PropertyDefinition> functionRestrictions;
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
         private final List<PropertyDefinition> nodeScopeAnalyzedProps;
+        private final List<PropertyDefinition> syncProps;
         private final boolean indexesAllNodesOfMatchingType;
         private final boolean nodeNameIndexed;
 
@@ -897,9 +905,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             List<PropertyDefinition> functionRestrictions = newArrayList();
             List<PropertyDefinition> existentProperties = newArrayList();
             List<PropertyDefinition> nodeScopeAnalyzedProps = newArrayList();
+            List<PropertyDefinition> syncProps = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
             this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
-                    existentProperties, nodeScopeAnalyzedProps, functionRestrictions);
+                    existentProperties, nodeScopeAnalyzedProps, functionRestrictions, syncProps);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
@@ -913,6 +922,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
             this.indexesAllNodesOfMatchingType = areAlMatchingNodeByTypeIndexed();
             this.nodeNameIndexed = evaluateNodeNameIndexed(config);
+            this.syncProps = ImmutableList.copyOf(syncProps);
             validateRuleDefinition();
         }
 
@@ -942,6 +952,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || original.nodeFullTextIndexed;
             this.indexesAllNodesOfMatchingType = areAlMatchingNodeByTypeIndexed();
             this.nodeNameIndexed = original.nodeNameIndexed;
+            this.syncProps = original.syncProps;
         }
 
         /**
@@ -1109,7 +1120,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                                                                    List<PropertyDefinition> nonExistentProperties,
                                                                    List<PropertyDefinition> existentProperties,
                                                                    List<PropertyDefinition> nodeScopeAnalyzedProps,
-                                                                   List<PropertyDefinition> functionRestrictions) {
+                                                                   List<PropertyDefinition> functionRestrictions,
+                                                                   List<PropertyDefinition> syncProps) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -1164,6 +1176,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                             && pd.analyzed
                             && !pd.isRegexp){
                         nodeScopeAnalyzedProps.add(pd);
+                    }
+
+                    if (pd.sync) {
+                        syncProps.add(pd);
                     }
                 }
             }
