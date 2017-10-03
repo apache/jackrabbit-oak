@@ -1561,7 +1561,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                                                       Iterator<LuceneResultRow> itr) {
         PlanResult pr = getPlanResult(plan);
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(pr.indexPath,
-                NodeStateUtils.getNode(rootState, pr.indexPath));
+                NodeStateUtils.getNode(rootState, pr.indexPath), plan.getPathPrefix(), false);
         PropertyIndexResult pir = pr.getPropertyIndexResult();
         Iterable<String> paths = lookup.query(plan.getFilter(), pir.pd, pir.propertyName, pir.pr);
 

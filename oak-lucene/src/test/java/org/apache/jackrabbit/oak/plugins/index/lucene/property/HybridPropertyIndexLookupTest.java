@@ -114,6 +114,33 @@ public class HybridPropertyIndexLookupTest {
         assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
     }
 
+    @Test
+    public void nonRootIndex() throws Exception{
+        defnb.indexRule("nt:base").property("foo").sync();
+        indexPath = "/content/oak:index/fooIndex";
+
+        propertyUpdated("/a", "foo", "bar");
+
+        String propertyName = "foo";
+        FilterImpl filter = createFilter();
+        filter.restrictProperty("foo", Operator.EQUAL, newString("bar"));
+        filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
+
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState(),
+                "/content", false);
+        Iterable<String> paths = lookup.query(filter, pd(propertyName), propertyName,
+                filter.getPropertyRestriction(propertyName));
+
+        assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
+
+        lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState(),
+                "/content", true);
+        paths = lookup.query(filter, pd(propertyName), propertyName,
+                filter.getPropertyRestriction(propertyName));
+
+        assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/content/a"));
+    }
+
     private void propertyUpdated(String nodePath, String propertyRelativeName, String value){
         callback.propertyUpdated(nodePath, propertyRelativeName, pd(propertyRelativeName),
                 null, createProperty(PathUtils.getName(propertyRelativeName), value));
