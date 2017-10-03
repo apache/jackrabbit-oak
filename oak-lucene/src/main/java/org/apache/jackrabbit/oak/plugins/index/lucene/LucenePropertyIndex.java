@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -47,6 +48,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PropertyIndexResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
@@ -72,6 +75,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Document;
@@ -576,6 +580,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return -1;
             }
         };
+
+        if (pr.hasPropertyIndexResult()) {
+            itr = mergePropertyIndexResult(plan, rootState, itr);
+        }
+
         return new LucenePathCursor(itr, plan, settings, sizeEstimator);
     }
 
@@ -1525,6 +1534,20 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     private static Query newDepthQuery(String path) {
         int depth = PathUtils.getDepth(path) + 1;
         return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
+    }
+
+    private static Iterator<LuceneResultRow> mergePropertyIndexResult(IndexPlan plan, NodeState rootState,
+                                                                      Iterator<LuceneResultRow> itr) {
+        PlanResult pr = getPlanResult(plan);
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(pr.indexPath,
+                NodeStateUtils.getNode(rootState, pr.indexPath));
+        PropertyIndexResult pir = pr.getPropertyIndexResult();
+        Iterable<String> paths = lookup.query(plan.getFilter(), pir.pd, pir.propertyName, pir.pr);
+        Iterator<LuceneResultRow> propIndexItr = Iterators.transform(paths.iterator(),
+                (path) -> new LuceneResultRow(path, 0, null, null, null));
+
+        //Property index itr should come first
+        return Iterators.concat(propIndexItr, itr);
     }
 
     static class LuceneResultRow {

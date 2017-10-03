@@ -40,6 +40,9 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.IndexingQueue;
+import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -48,6 +51,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -55,13 +59,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -76,11 +86,17 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     private LuceneIndexProvider luceneIndexProvider;
     private IndexingQueue queue = mock(IndexingQueue.class);
     private NodeStore nodeStore = new MemoryNodeStore();
+    private NRTIndexFactory nrtIndexFactory;
     private Whiteboard wb;
 
 
     private IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
     private String indexPath  = "/oak:index/foo";
+
+    @Before
+    public void setUp(){
+        setTraversalEnabled(false);
+    }
 
     @After
     public void tearDown() throws IOException {
@@ -97,7 +113,11 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
             throw new RuntimeException(e);
         }
 
-        IndexTracker tracker = new IndexTracker();
+        nrtIndexFactory = new NRTIndexFactory(copier, Clock.SIMPLE, 1000, StatisticsProvider.NOOP);
+        MountInfoProvider mip = defaultMountInfoProvider();
+        LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
+        IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
+
         luceneIndexProvider = new LuceneIndexProvider(tracker);
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
                 tracker,
@@ -166,6 +186,68 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         root.refresh();
 
         createPath("/b").setProperty("foo", "bar");
+        try {
+            root.commit();
+            fail();
+        } catch (CommitFailedException e) {
+            assertEquals(CONSTRAINT, e.getType());
+        }
+    }
+
+    @Test
+    public void nonUniqueIndex() throws Exception{
+        defnb.async("async", "nrt");
+        defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where [foo] = 'bar'", asList("/a"));
+
+        runAsyncIndex();
+
+        createPath("/b").setProperty("foo", "bar");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where [foo] = 'bar'", asList("/a", "/b"));
+
+        //Do multiple runs which lead to path being returned from both property and lucene
+        //index. But the actual result should only contain unique paths
+        runAsyncIndex();
+        runAsyncIndex();
+
+        assertQuery("select * from [nt:base] where [foo] = 'bar'", asList("/a", "/b"));
+    }
+
+    @Test
+    public void uniquePaths() throws Exception{
+        defnb.async("async", "nrt");
+        defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where [foo] = 'bar'", singletonList("/a"));
+
+        runAsyncIndex();
+        createPath("/b").setProperty("foo", "bar2");
+        root.commit();
+
+        runAsyncIndex();
+        createPath("/c").setProperty("foo", "bar3");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where [foo] = 'bar'", singletonList("/a"));
+        assertQuery("select * from [nt:base] where [foo] = 'bar2'", singletonList("/b"));
+        assertQuery("select * from [nt:base] where [foo] = 'bar3'", singletonList("/c"));
+
+        createPath("/d").setProperty("foo", "bar");
         try {
             root.commit();
             fail();
