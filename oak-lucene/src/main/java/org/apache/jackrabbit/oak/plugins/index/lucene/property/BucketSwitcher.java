@@ -113,8 +113,8 @@ class BucketSwitcher {
         return false;
     }
 
-    private static int getOptionalValue(NodeBuilder nb, String propName, int defaultVal){
+    private static long getOptionalValue(NodeBuilder nb, String propName, int defaultVal){
         PropertyState ps = nb.getProperty(propName);
-        return ps == null ? defaultVal : Ints.checkedCast(ps.getValue(Type.LONG));
+        return ps == null ? defaultVal : ps.getValue(Type.LONG);
     }
 }
