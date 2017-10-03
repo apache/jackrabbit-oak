@@ -291,6 +291,12 @@ class IndexPlanner {
                 result.enableNodeNameRestriction();
             }
 
+            boolean uniqueIndexFound = planForSyncIndexes();
+            if (uniqueIndexFound) {
+                //For unique index there would be at max 1 entry
+                plan.setEstimatedEntryCount(1);
+            }
+
             return plan.setCostPerEntry(definition.getCostPerEntry() / costPerEntryFactor);
         }
 
@@ -618,6 +624,44 @@ class IndexPlanner {
         return indexingRule.getConfig(name);
     }
 
+    private boolean planForSyncIndexes() {
+        //If no sync index involved then return right away
+        if (!definition.hasSyncPropertyDefinitions() || result.propDefns.isEmpty()) {
+            return false;
+        }
+
+        List<PropertyIndexResult> unique = newArrayList();
+        List<PropertyIndexResult> nonUnique = newArrayList();
+
+        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            String propertyName = result.getPropertyName(pr);
+            PropertyDefinition pd = result.propDefns.get(pr.propertyName);
+
+            if (pd != null) {
+                PropertyIndexResult e = new PropertyIndexResult(pd, propertyName, pr);
+                if (pd.unique) {
+                    unique.add(e);
+                } else {
+                    nonUnique.add(e);
+                }
+            }
+        }
+
+        //TODO NodeType restrictions
+        //Pick the first index (if multiple). For unique its fine
+        //For non unique we can probably later add support for cost
+        //based selection
+        boolean uniqueIndexFound = false;
+        if (!unique.isEmpty()) {
+            result.propertyIndexResult = unique.get(0);
+            uniqueIndexFound = true;
+        } else if (!nonUnique.isEmpty()) {
+            result.propertyIndexResult = nonUnique.get(0);
+        }
+
+        return uniqueIndexFound;
+    }
+
     private boolean canEvalPathRestrictions(IndexingRule rule) {
         //Opt out if one is looking for all children for '/' as its equivalent to
         //NO_RESTRICTION
@@ -805,7 +849,12 @@ class IndexPlanner {
         final IndexDefinition indexDefinition;
         final IndexingRule indexingRule;
         private final List<PropertyDefinition> sortedProperties = newArrayList();
+
+        //Map of actual property name as present in our property definitions
         private final Map<String, PropertyDefinition> propDefns = newHashMap();
+
+        //Map of property restriction name -> property definition name
+        //like 'jcr:content/status' -> 'status'
         private final Map<String, String> relPropMapping = newHashMap();
 
         private boolean nonFullTextConstraints;
@@ -815,6 +864,7 @@ class IndexPlanner {
         private boolean nodeTypeRestrictions;
         private boolean nodeNameRestriction;
         private boolean uniquePathsRequired = true;
+        private PropertyIndexResult propertyIndexResult;
 
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
@@ -882,6 +932,15 @@ class IndexPlanner {
 
         public boolean evaluateNodeNameRestriction() {return nodeNameRestriction;}
 
+        @CheckForNull
+        public PropertyIndexResult getPropertyIndexResult() {
+            return propertyIndexResult;
+        }
+
+        public boolean hasPropertyIndexResult(){
+            return propertyIndexResult != null;
+        }
+
         private void setParentPath(String relativePath){
             parentPathSegment = "/" + relativePath;
             if (relativePath.isEmpty()){
@@ -908,6 +967,18 @@ class IndexPlanner {
 
         private void disableUniquePaths(){
             uniquePathsRequired = false;
+        }
+    }
+
+    public static class PropertyIndexResult {
+        final PropertyDefinition pd;
+        final String propertyName;
+        final PropertyRestriction pr;
+
+        public PropertyIndexResult(PropertyDefinition pd, String propertyName, PropertyRestriction pr) {
+            this.pd = pd;
+            this.propertyName = propertyName;
+            this.pr = pr;
         }
     }
 }
