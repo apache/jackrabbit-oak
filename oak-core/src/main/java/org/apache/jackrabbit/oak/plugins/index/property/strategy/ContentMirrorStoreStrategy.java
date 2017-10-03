@@ -82,13 +82,33 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     public static final int TRAVERSING_WARN = Integer.getInteger("oak.traversing.warn", 10000);
 
     private final String indexName;
+    private final String pathPrefix;
+    private final boolean prependPathPrefix;
 
     public ContentMirrorStoreStrategy() {
         this(INDEX_CONTENT_NODE_NAME);
     }
 
     public ContentMirrorStoreStrategy(String indexName) {
+        this(indexName, "", true);
+    }
+
+    /**
+     * Constructs a ContentMirrorStoreStrategy
+     *
+     * @param indexName name of sub node under which paths are stored
+     * @param pathPrefix path of the index in repository. Defaults to empty for indexes at root nodes i.e.
+     *                   those stored directly under '/oak:index'. For non root index its the path excluding
+     *                   the '/oak:index' node. For e.g. for index at '/content/oak:index/fooIndex' the
+     *                   pathPrefix would be '/content'.
+     *                   If this is appened to the paths returned by index then they would become absolute
+     *                   path in repository
+     * @param prependPathPrefix Should the path prefix be added to the query result
+     */
+    public ContentMirrorStoreStrategy(String indexName, String pathPrefix, boolean prependPathPrefix) {
         this.indexName = indexName;
+        this.pathPrefix = pathPrefix;
+        this.prependPathPrefix = prependPathPrefix;
     }
 
     @Override
@@ -148,7 +168,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                PathIterator it = new PathIterator(filter, indexName, "");
+                PathIterator it = new PathIterator(filter, indexName, pathPrefix, prependPathPrefix);
                 if (values == null) {
                     it.setPathContainsValue(true);
                     it.enqueue(getChildNodeEntries(index).iterator());
@@ -330,6 +350,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private String parentPath;
         private String currentPath;
         private boolean pathContainsValue;
+        private final boolean prependPathPrefix;
         
         /**
          * Keep the returned path, to avoid returning duplicate entries.
@@ -337,7 +358,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private final Set<String> knownPaths = Sets.newHashSet();
         private final QueryLimits settings;
 
-        PathIterator(Filter filter, String indexName, String pathPrefix) {
+        PathIterator(Filter filter, String indexName, String pathPrefix, boolean prependPathPrefix) {
             this.filter = filter;
             this.pathPrefix = pathPrefix;
             this.indexName = indexName;
@@ -353,6 +374,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             parentPath = "";
             currentPath = "/";
             this.settings = filter.getQueryLimits();
+            this.prependPathPrefix = prependPathPrefix;
         }
 
         void enqueue(Iterator<? extends ChildNodeEntry> it) {
@@ -460,7 +482,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 fetchNext();
                 init = true;
             }
-            String result = PathUtils.concat(pathPrefix, currentPath);
+            String result = prependPathPrefix ? PathUtils.concat(pathPrefix, currentPath) : currentPath;
             fetchNext();
             return result;
         }
