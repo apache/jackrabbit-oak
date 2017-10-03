@@ -288,6 +288,31 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         assertQuery("select * from [nt:base] where [jcr:content/foo] = 'bar'", singletonList("/a"));
     }
 
+    @Test
+    public void nonRootIndex() throws Exception{
+        createPath("/content/oak:index");
+        root.commit();
+
+        defnb.async("async", "nrt");
+        defnb.indexRule("nt:base").property("foo").sync();
+
+        indexPath = "/content/oak:index/fooIndex";
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a").setProperty("foo", "bar");
+        createPath("/content/a").setProperty("foo", "bar");
+        createPath("/content/a/jcr:content").setProperty("foo", "bar");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/content') " +
+                "and [jcr:content/foo] = 'bar'", singletonList("/content/a"));
+
+        assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/content') " +
+                "and [foo] = 'bar'", asList("/content/a", "/content/a/jcr:content"));
+
+    }
+
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb,
                 Runnable.class, input -> input instanceof AsyncIndexUpdate);

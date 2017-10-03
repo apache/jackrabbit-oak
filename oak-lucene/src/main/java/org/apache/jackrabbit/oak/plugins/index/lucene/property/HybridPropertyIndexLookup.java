@@ -42,10 +42,19 @@ import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil
 public class HybridPropertyIndexLookup {
     private final String indexPath;
     private final NodeState indexState;
+    private final String pathPrefix;
+    private final boolean prependPathPrefix;
 
     public HybridPropertyIndexLookup(String indexPath, NodeState indexState) {
+       this(indexPath, indexState, "", false);
+    }
+
+    public HybridPropertyIndexLookup(String indexPath, NodeState indexState,
+                                     String pathPrefix, boolean prependPathPrefix) {
         this.indexPath = indexPath;
         this.indexState = indexState;
+        this.pathPrefix = pathPrefix;
+        this.prependPathPrefix = prependPathPrefix;
     }
 
     /**
@@ -83,7 +92,6 @@ public class HybridPropertyIndexLookup {
             return Collections.emptyList();
         }
 
-        //TODO Check for non root indexes
         String indexName = indexPath + "(" + propertyName + ")";
         Iterable<String> result;
         if (pd.unique) {
@@ -101,7 +109,7 @@ public class HybridPropertyIndexLookup {
         return s.query(filter, indexName, propIndexRootNode, values);
     }
 
-    private static Iterable<String> querySimple(Filter filter, String indexName, NodeState propIndexNode,
+    private Iterable<String> querySimple(Filter filter, String indexName, NodeState propIndexNode,
                                                 Set<String> values) {
         return Iterables.concat(
                 queryBucket(filter, indexName, propIndexNode, PROP_HEAD_BUCKET, values),
@@ -109,13 +117,13 @@ public class HybridPropertyIndexLookup {
         );
     }
 
-    private static Iterable<String> queryBucket(Filter filter, String indexName, NodeState propIndexNode,
+    private Iterable<String> queryBucket(Filter filter, String indexName, NodeState propIndexNode,
                                          String bucketPropName, Set<String> values) {
         String bucketName = propIndexNode.getString(bucketPropName);
         if (bucketName == null) {
             return Collections.emptyList();
         }
-        ContentMirrorStoreStrategy s = new ContentMirrorStoreStrategy(bucketName);
+        ContentMirrorStoreStrategy s = new ContentMirrorStoreStrategy(bucketName, pathPrefix, prependPathPrefix);
         return s.query(filter, indexName, propIndexNode, bucketName, values);
     }
 }
