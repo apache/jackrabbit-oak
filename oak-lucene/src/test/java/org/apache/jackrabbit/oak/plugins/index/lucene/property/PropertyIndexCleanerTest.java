@@ -241,8 +241,7 @@ public class PropertyIndexCleanerTest {
         FilterImpl filter = FilterImpl.newTestInstance();
         Iterable<String> paths = lookup.query(filter, pd(indexPath, propertyName), propertyName,
                 PropertyValues.newString(value));
-        Cursor c = Cursors.newPathCursor(paths, new QueryEngineSettings());
-        return ImmutableList.copyOf(Iterators.transform(c, r -> r.getPath()));
+        return ImmutableList.copyOf(paths);
     }
 
     private static class SimpleAsyncInfoService implements AsyncIndexInfoService {

@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStor
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
@@ -46,6 +48,16 @@ public class HybridPropertyIndexLookup {
         this.indexState = indexState;
     }
 
+    /**
+     * Performs query based on provided property restriction
+     *
+     * @param filter filter from the query being performed
+     * @param pd property definition as per index definition
+     * @param propertyName actual property name which may or may not be same as
+     *                     property name in property restriction
+     * @param restriction property restriction matching given property
+     * @return iterable consisting of absolute paths as per index content
+     */
     public Iterable<String> query(Filter filter, PropertyDefinition pd,
                                   String propertyName, Filter.PropertyRestriction restriction) {
         //The propertyName may differ from name in restriction. For e.g. for relative properties
@@ -73,11 +85,14 @@ public class HybridPropertyIndexLookup {
 
         //TODO Check for non root indexes
         String indexName = indexPath + "(" + propertyName + ")";
+        Iterable<String> result;
         if (pd.unique) {
-            return queryUnique(filter, indexName, propIndexRootNode, propIdxNodeName, encodedValues);
+            result = queryUnique(filter, indexName, propIndexRootNode, propIdxNodeName, encodedValues);
         } else {
-            return querySimple(filter, indexName, propIndexNode, encodedValues);
+            result = querySimple(filter, indexName, propIndexNode, encodedValues);
         }
+
+        return transform(result, path -> isAbsolute(path) ? path : "/" + path);
     }
 
     private static Iterable<String> queryUnique(Filter filter, String indexName, NodeState propIndexRootNode,
