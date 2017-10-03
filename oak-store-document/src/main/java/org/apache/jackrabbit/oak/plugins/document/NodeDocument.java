@@ -1816,6 +1816,11 @@ public final class NodeDocument extends Document {
         checkNotNull(op).removeMapEntry(COMMIT_ROOT, revision);
     }
 
+    public static void unsetCommitRoot(@Nonnull UpdateOp op,
+                                       @Nonnull Revision revision) {
+        checkNotNull(op).unsetMapEntry(COMMIT_ROOT, revision);
+    }
+
     public static void setDeleted(@Nonnull UpdateOp op,
                                   @Nonnull Revision revision,
                                   boolean deleted) {

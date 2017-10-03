@@ -90,7 +90,8 @@ class Collision {
         if (!markCommitRoot(newDoc, ourRev, theirRev, store, context)) {
             throw new IllegalStateException("Unable to annotate our revision "
                     + "with collision marker. Our revision: " + ourRev
-                    + ", document:\n" + newDoc.format());
+                    + ", their revision: " + theirRev + ", document:\n"
+                    + newDoc.format());
         }
         return ourRev;
     }

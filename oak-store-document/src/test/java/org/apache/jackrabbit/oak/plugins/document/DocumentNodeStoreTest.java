@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -77,6 +78,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.InvalidItemStateException;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
@@ -2904,10 +2906,9 @@ public class DocumentNodeStoreTest {
         assertTrue("Two added paths should have forced flush", numChangedPaths == 0);
     }
 
-    @Ignore("OAK-5788")
     @Test
     public void commitRootSameAsModifiedPath() throws Exception{
-        WriteCountingStore ws = new WriteCountingStore();
+        WriteCountingStore ws = new WriteCountingStore(true);
 
         DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(ws).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
@@ -2921,6 +2922,80 @@ public class DocumentNodeStoreTest {
         merge(ns, builder);
 
         assertEquals(1, ws.count);
+    }
+
+    @Test
+    public void commitRootSameAsModifiedPathWithConflicts() throws Exception{
+        MemoryDocumentStore store = new MemoryDocumentStore(true);
+        final DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a").child("b").setProperty("p", 0L);
+        merge(ns, builder);
+
+        final List<Throwable> exceptions = synchronizedList(Lists.newArrayList());
+
+        Runnable task = new Runnable() {
+
+            CommitHook hook = new CompositeHook(
+                    new ConflictHook(new AnnotatingConflictHandler()),
+                    new EditorHook(new ConflictValidatorProvider())
+            );
+
+            @Override
+            public void run() {
+                try {
+                    for (int i = 0; i < 100; i++) {
+                        NodeBuilder builder = ns.getRoot().builder();
+                        NodeBuilder b = builder.child("a").child("b");
+                        PropertyState p = b.getProperty("p");
+                        assertNotNull(p);
+                        long value = p.getValue(Type.LONG) + 1;
+                        b.setProperty(p.getName(), value);
+                        try {
+                            ns.merge(builder, hook, CommitInfo.EMPTY);
+                        } catch (CommitFailedException e) {
+                            if (e.asRepositoryException() instanceof InvalidItemStateException) {
+                                // this is fine and may happen from time to
+                                // time because the test updates the same
+                                // property concurrently
+                            } else {
+                                // anything else is unexpected
+                                exceptions.add(e);
+                            }
+                        }
+                    }
+                } catch (AssertionError e) {
+                    exceptions.add(e);
+                }
+            }
+        };
+
+        List<Thread> threads = Lists.newArrayList();
+        for (int i = 0; i < 4; i++) {
+            threads.add(new Thread(task));
+        }
+        for (Thread t : threads) {
+            t.start();
+        }
+        for (Thread t : threads) {
+            t.join();
+        }
+
+        // check updates are consecutive
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/a/b"));
+        assertNotNull(doc);
+        long previousValue = -1;
+        List<String> values = Lists.newArrayList(doc.getLocalMap("p").values());
+        for (String v : Lists.reverse(values)) {
+            long currentValue = Long.parseLong(v);
+            assertEquals(previousValue + 1, currentValue);
+            previousValue = currentValue;
+        }
+
+        for (Throwable e : exceptions) {
+            fail(e.toString());
+        }
     }
 
     @Ignore("OAK-5791")
@@ -3476,6 +3551,13 @@ public class DocumentNodeStoreTest {
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;
+
+        WriteCountingStore() {
+        }
+
+        WriteCountingStore(boolean maintainModCount) {
+            super(maintainModCount);
+        }
 
         @Override
         public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
