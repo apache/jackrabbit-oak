@@ -980,17 +980,28 @@ public class IndexDefinitionTest {
     @Test
     public void uniqueIsSync() throws Exception{
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
-        defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+        defnb.indexRule("nt:base").property("foo").unique();
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
         assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").sync);
         assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").unique);
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").propertyIndex);
+    }
+
+    @Test
+    public void syncIsProperty() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").sync();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").sync);
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").propertyIndex);
     }
 
     @Test
     public void syncPropertyDefinitions() throws Exception{
         IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
-        defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+        defnb.indexRule("nt:base").property("foo").sync();
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
         assertTrue(defn.hasSyncPropertyDefinitions());

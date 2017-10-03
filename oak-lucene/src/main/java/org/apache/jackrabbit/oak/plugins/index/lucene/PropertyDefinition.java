@@ -139,8 +139,6 @@ public class PropertyDefinition {
             this.analyzed = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ANALYZED, false);
         }
 
-        //If node is not set for full text then a property definition indicates that definition is for property index
-        this.propertyIndex = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
         this.ordered = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ORDERED, false);
         this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, LuceneIndexConstants.PROP_INCLUDED_TYPE,
                 IndexDefinition.TYPES_ALLOW_ALL);
@@ -162,6 +160,9 @@ public class PropertyDefinition {
         this.valuePattern = new ValuePattern(defn);
         this.unique = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_UNIQUE, false);
         this.sync = unique || getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_SYNC, false);
+
+        //If some property is set to sync then propertyIndex mode is always enabled
+        this.propertyIndex = sync || getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
         validate();
     }
 
