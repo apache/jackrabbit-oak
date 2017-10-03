@@ -343,6 +343,8 @@ public class LuceneIndexProviderService {
 
     private LuceneIndexEditorProvider editorProvider;
 
+    private IndexTracker tracker;
+
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
@@ -369,7 +371,7 @@ public class LuceneIndexProviderService {
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config);
-        IndexTracker tracker = createTracker(bundleContext, config);
+        tracker = createTracker(bundleContext, config);
         indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
         initializeActiveBlobCollector(whiteboard, config);
         initializeLogging(config);
@@ -512,16 +514,20 @@ public class LuceneIndexProviderService {
 
     private IndexTracker createTracker(BundleContext bundleContext, Map<String, ?> config) throws IOException {
         boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_READ), true);
+        IndexTracker tracker;
         if (enableCopyOnRead){
             initializeIndexCopier(bundleContext, config);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
             if (hybridIndex) {
                 nrtIndexFactory = new NRTIndexFactory(indexCopier, statisticsProvider);
             }
-            return new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier), nrtIndexFactory);
+            tracker = new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier), nrtIndexFactory);
+        } else {
+            tracker = new IndexTracker();
         }
 
-        return new IndexTracker();
+        tracker.setAsyncIndexInfoService(asyncIndexInfoService);
+        return tracker;
     }
 
     private void initializeIndexCopier(BundleContext bundleContext, Map<String, ?> config) throws IOException {

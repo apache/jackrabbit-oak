@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -47,6 +48,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("UnusedAssignment")
 public class IndexTrackerTest {
@@ -202,6 +206,50 @@ public class IndexTrackerTest {
         }
 
         assertTrue(corruptIndexHandler.getFailingIndexData("async").containsKey("/oak:index/foo"));
+    }
+    
+    @Test
+    public void avoidRedundantDiff() throws Exception{
+        IndexTracker tracker2 = new IndexTracker();
+
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        tracker.update(indexed);
+        tracker2.update(indexed);
+
+        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        assertEquals(1, indexNode.getSearcher().getIndexReader().numDocs());
+        indexNode.release();
+
+        before = indexed;
+        builder = before.builder();
+        builder.child("a").setProperty("foo", "bar");
+        after = builder.getNodeState();
+
+        AsyncIndexInfoService service = mock(AsyncIndexInfoService.class);
+        when(service.hasIndexerUpdatedForAnyLane(any(NodeState.class), any(NodeState.class))).thenReturn(false);
+        tracker.setAsyncIndexInfoService(service);
+
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+        tracker2.update(indexed);
+
+        //As we falsely said no change has happened index state would remain same
+        indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        assertEquals(1, indexNode.getSearcher().getIndexReader().numDocs());
+        indexNode.release();
+
+        //While tracker2 does not use async service it sees the index change
+        indexNode = tracker2.acquireIndexNode("/oak:index/lucene");
+        assertEquals(2, indexNode.getSearcher().getIndexReader().numDocs());
+        indexNode.release();
     }
 
     private NodeState corruptIndex(String indexPath) {
