@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
