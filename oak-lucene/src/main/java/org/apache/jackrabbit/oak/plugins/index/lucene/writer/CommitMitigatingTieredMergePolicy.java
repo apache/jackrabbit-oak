@@ -80,7 +80,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     /** Maximum number of segments to be merged at a time
      *  during "normal" merging.  For explicit merging (eg,
      *  forceMerge or forceMergeDeletes was called), see {@link
-     *  #setMaxMergeAtOnceExplicit}.  Default is 10. */
+     *  #setMaxMergeAtOnceExplicit}.  Default is 10.
+     *
+     * @param v the max no. of merges
+     * @return this merge policy instance
+     *
+     **/
     public CommitMitigatingTieredMergePolicy setMaxMergeAtOnce(int v) {
         if (v < 2) {
             throw new IllegalArgumentException("maxMergeAtOnce must be > 1 (got " + v + ")");
@@ -89,6 +94,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         return this;
     }
 
+    /**
+     * set the maximum no. of docs per sec accepted for a merge to happen
+     *
+     * @param maxCommitRate maxCommitRate maximum commit rate (docs/sec)
+     * @return this merge policy instance
+     */
     public CommitMitigatingTieredMergePolicy setMaxCommitRateDocs(double maxCommitRate) {
         this.maxCommitRateDocs = maxCommitRate;
         return this;
@@ -96,6 +107,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     /** Returns the current maxMergeAtOnce setting.
      *
+     * @return the max merge at once that can be performed
      * @see #setMaxMergeAtOnce */
     public int getMaxMergeAtOnce() {
         return maxMergeAtOnce;
@@ -105,7 +117,11 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     // if user calls IW.maybeMerge "explicitly"
 
     /** Maximum number of segments to be merged at a time,
-     *  during forceMerge or forceMergeDeletes. Default is 30. */
+     *  during forceMerge or forceMergeDeletes. Default is 30.
+     *
+     * @param v the no. of max merges
+     * @return this merge policy instance
+     **/
     public CommitMitigatingTieredMergePolicy setMaxMergeAtOnceExplicit(int v) {
         if (v < 2) {
             throw new IllegalArgumentException("maxMergeAtOnceExplicit must be > 1 (got " + v + ")");
@@ -115,6 +131,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     /** Returns the current maxMergeAtOnceExplicit setting.
+     * @return the maxMergeAtOnceExplicit value
      *
      * @see #setMaxMergeAtOnceExplicit */
     public int getMaxMergeAtOnceExplicit() {
@@ -125,7 +142,11 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
      *  normal merging.  This setting is approximate: the
      *  estimate of the merged segment size is made by summing
      *  sizes of to-be-merged segments (compensating for
-     *  percent deleted docs).  Default is 5 GB. */
+     *  percent deleted docs).  Default is 5 GB.
+     *
+     * @param v the maximum segment size in MB
+     * @return this merge policy instance
+     **/
     public CommitMitigatingTieredMergePolicy setMaxMergedSegmentMB(double v) {
         if (v < 0.0) {
             throw new IllegalArgumentException("maxMergedSegmentMB must be >=0 (got " + v + ")");
@@ -136,6 +157,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     /** Returns the current maxMergedSegmentMB setting.
+     *
+     * @return the max merged segment size in MB
      *
      * @see #getMaxMergedSegmentMB */
     public double getMaxMergedSegmentMB() {
@@ -148,7 +171,11 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
      *  be careful not to go so high that way too much merging
      *  takes place; a value of 3.0 is probably nearly too
      *  high.  A value of 0.0 means deletions don't impact
-     *  merge selection. */
+     *  merge selection.
+     *
+     *  @param v the reclaim deletes weight
+     *  @return this merge policy instance
+     **/
     public CommitMitigatingTieredMergePolicy setReclaimDeletesWeight(double v) {
         if (v < 0.0) {
             throw new IllegalArgumentException("reclaimDeletesWeight must be >= 0.0 (got " + v + ")");
@@ -157,7 +184,10 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         return this;
     }
 
-    /** See {@link #setReclaimDeletesWeight}. */
+    /** See {@link #setReclaimDeletesWeight}.
+     * @return the reclaim deletes weight
+     *
+     **/
     public double getReclaimDeletesWeight() {
         return reclaimDeletesWeight;
     }
@@ -166,7 +196,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
      *  size, ie treated as equal (floor) size for merge
      *  selection.  This is to prevent frequent flushing of
      *  tiny segments from allowing a long tail in the index.
-     *  Default is 2 MB. */
+     *  Default is 2 MB.
+     *
+     * @param v floor segment size in MB
+     * @return this merge policy instance
+     *
+     **/
     public CommitMitigatingTieredMergePolicy setFloorSegmentMB(double v) {
         if (v <= 0.0) {
             throw new IllegalArgumentException("floorSegmentMB must be >= 0.0 (got " + v + ")");
@@ -177,6 +212,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     /** Returns the current floorSegmentMB.
+     * @return the floor segment size in MB
      *
      *  @see #setFloorSegmentMB */
     public double getFloorSegmentMB() {
@@ -185,7 +221,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     /** When forceMergeDeletes is called, we only merge away a
      *  segment if its delete percentage is over this
-     *  threshold.  Default is 10%. */
+     *  threshold.  Default is 10%.
+     *
+     * @param v the force merge deletes allowed percentage
+     * @return this merge policy instance
+     *
+     **/
     public CommitMitigatingTieredMergePolicy setForceMergeDeletesPctAllowed(double v) {
         if (v < 0.0 || v > 100.0) {
             throw new IllegalArgumentException("forceMergeDeletesPctAllowed must be between 0.0 and 100.0 inclusive (got " + v + ")");
@@ -195,6 +236,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     /** Returns the current forceMergeDeletesPctAllowed setting.
+     * @return the forceMergeDeletesPctAllowed
      *
      * @see #setForceMergeDeletesPctAllowed */
     public double getForceMergeDeletesPctAllowed() {
@@ -208,7 +250,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
      *  #setMaxMergeAtOnce} otherwise you'll force too much
      *  merging to occur.</p>
      *
-     *  <p>Default is 10.0.</p> */
+     *  <p>Default is 10.0.</p>
+     *
+     * @param v segments per tier
+     * @return this merge policy instance
+     *
+     **/
     public CommitMitigatingTieredMergePolicy setSegmentsPerTier(double v) {
         if (v < 2.0) {
             throw new IllegalArgumentException("segmentsPerTier must be >= 2.0 (got " + v + ")");
@@ -218,12 +265,18 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     /** Returns the current segmentsPerTier setting.
+     * @return segments per tier
      *
      * @see #setSegmentsPerTier */
     public double getSegmentsPerTier() {
         return segsPerTier;
     }
 
+    /**
+     * set the max no. of committed MBs for a merge to happen
+     * @param maxCommitRateMB max commit rate in MB (mb/sec)
+     * @return this merge policy instance
+     */
     public CommitMitigatingTieredMergePolicy setMaxCommitRateMB(int maxCommitRateMB) {
         this.maxCommitRateMB = maxCommitRateMB;
         return this;
@@ -278,6 +331,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         double timeDelta = (now / 1000d) - (time / 1000d);
         double commitRate = Math.abs(docCount - infos.totalDocCount()) / timeDelta;
         log.debug("committing {} docs/sec", commitRate);
+        System.out.printf("committing %s docs/sec\n", commitRate);
 
         docCount = infos.totalDocCount();
         time = now;
@@ -378,6 +432,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             double bytes = idxBytes - this.mb;
             double mbRate = bytes / timeDelta;
             log.debug("committing {} MBs/sec", mbRate);
+            System.out.printf("committing %s MBs/sec\n", mbRate);
 
             if (verbose()) {
                 message(mbRate + "mb/s (max: " + maxCommitRateMB + "mb/s)");
@@ -458,7 +513,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         }
     }
 
-    /** Expert: scores one merge; subclasses can override. */
+    /** Expert: scores one merge; subclasses can override.
+     * @param candidate a list of candidate segments
+     * @param hitTooLarge hit too large setting
+     * @param mergingBytes the bytes to merge
+     * @return a merge score
+     **/
     protected MergeScore score(List<SegmentCommitInfo> candidate, boolean hitTooLarge, long mergingBytes) throws IOException {
         long totBeforeMergeBytes = 0;
         long totAfterMergeBytes = 0;
