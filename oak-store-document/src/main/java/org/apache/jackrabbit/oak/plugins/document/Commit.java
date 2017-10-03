@@ -50,6 +50,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Document.MOD_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
 
@@ -337,60 +338,64 @@ public class Commit {
         boolean success = false;
         try {
             opLog.addAll(changedNodes);
-            List<NodeDocument> oldDocs = store.createOrUpdate(NODES, changedNodes);
-            checkConflicts(oldDocs, changedNodes);
-            checkSplitCandidate(oldDocs);
 
-            // finally write the commit root (the commit root might be written
-            // twice, first to check if there was a conflict, and only then to
-            // commit the revision, with the revision property set)
-            NodeDocument.setRevision(commitRoot, revision, commitValue);
-            if (commitRootHasChanges) {
-                // remove previously added commit root
-                NodeDocument.removeCommitRoot(commitRoot, revision);
-            }
-            opLog.add(commitRoot);
-            if (baseBranchRevision == null) {
-                // create a clone of the commitRoot in order
-                // to set isNew to false. If we get here the
-                // commitRoot document already exists and
-                // only needs an update
-                UpdateOp commit = commitRoot.copy();
-                commit.setNew(false);
-                // only set revision on commit root when there is
-                // no collision for this commit revision
-                commit.containsMapEntry(COLLISIONS, revision, false);
-                NodeDocument before = nodeStore.updateCommitRoot(commit, revision);
-                if (before == null) {
-                    String msg = "Conflicting concurrent change. " +
-                            "Update operation failed: " + commitRoot;
-                    NodeDocument commitRootDoc = store.find(NODES, commitRoot.getId());
-                    DocumentStoreException dse;
-                    if (commitRootDoc == null) {
-                        dse = new DocumentStoreException(msg);
-                    } else {
-                        dse = new ConflictException(msg,
-                                commitRootDoc.getConflictsFor(
-                                        Collections.singleton(revision)));
-                    }
-                    throw dse;
-                } else {
-                    success = true;
-                    // if we get here the commit was successful and
-                    // the commit revision is set on the commitRoot
-                    // document for this commit.
-                    // now check for conflicts/collisions by other commits.
-                    // use original commitRoot operation with
-                    // correct isNew flag.
-                    checkConflicts(commitRoot, before);
-                    checkSplitCandidate(before);
-                }
+            if (conditionalCommit(changedNodes, commitValue)) {
+                success = true;
             } else {
-                // this is a branch commit, do not fail on collisions now
-                // trying to merge the branch will fail later
-                createOrUpdateNode(store, commitRoot);
+                List<NodeDocument> oldDocs = store.createOrUpdate(NODES, changedNodes);
+                checkConflicts(oldDocs, changedNodes);
+                checkSplitCandidate(oldDocs);
+
+                // finally write the commit root (the commit root might be written
+                // twice, first to check if there was a conflict, and only then to
+                // commit the revision, with the revision property set)
+                NodeDocument.setRevision(commitRoot, revision, commitValue);
+                if (commitRootHasChanges) {
+                    // remove previously added commit root
+                    NodeDocument.removeCommitRoot(commitRoot, revision);
+                }
+                opLog.add(commitRoot);
+                if (baseBranchRevision == null) {
+                    // create a clone of the commitRoot in order
+                    // to set isNew to false. If we get here the
+                    // commitRoot document already exists and
+                    // only needs an update
+                    UpdateOp commit = commitRoot.copy();
+                    commit.setNew(false);
+                    // only set revision on commit root when there is
+                    // no collision for this commit revision
+                    commit.containsMapEntry(COLLISIONS, revision, false);
+                    NodeDocument before = nodeStore.updateCommitRoot(commit, revision);
+                    if (before == null) {
+                        String msg = "Conflicting concurrent change. " +
+                                "Update operation failed: " + commitRoot;
+                        NodeDocument commitRootDoc = store.find(NODES, commitRoot.getId());
+                        DocumentStoreException dse;
+                        if (commitRootDoc == null) {
+                            dse = new DocumentStoreException(msg);
+                        } else {
+                            dse = new ConflictException(msg,
+                                    commitRootDoc.getConflictsFor(
+                                            Collections.singleton(revision)));
+                        }
+                        throw dse;
+                    } else {
+                        success = true;
+                        // if we get here the commit was successful and
+                        // the commit revision is set on the commitRoot
+                        // document for this commit.
+                        // now check for conflicts/collisions by other commits.
+                        // use original commitRoot operation with
+                        // correct isNew flag.
+                        checkConflicts(commitRoot, before);
+                        checkSplitCandidate(before);
+                    }
+                } else {
+                    // this is a branch commit, do not fail on collisions now
+                    // trying to merge the branch will fail later
+                    createOrUpdateNode(store, commitRoot);
+                }
             }
-            operations.put(commitRootPath, commitRoot);
         } catch (DocumentStoreException e) {
             // OAK-3084 do not roll back if already committed
             if (success) {
@@ -411,6 +416,49 @@ public class Commit {
                 rollbackFailed = false;
             }
         }
+    }
+
+    private boolean conditionalCommit(List<UpdateOp> changedNodes,
+                                      String commitValue)
+            throws DocumentStoreException {
+        // conditional commit is only possible when not on a branch
+        // and commit root is on the same document as the changes
+        if (!Utils.isCommitted(commitValue) || changedNodes.size() != 1) {
+            return false;
+        }
+        UpdateOp op = changedNodes.get(0);
+        DocumentStore store = nodeStore.getDocumentStore();
+        NodeDocument doc = store.getIfCached(NODES, op.getId());
+        if (doc == null || doc.getModCount() == null) {
+            // document not in cache or store does not maintain modCount
+            return false;
+        }
+        try {
+            checkConflicts(op, doc);
+        } catch (ConflictException e) {
+            // remove collision marker again
+            removeCollisionMarker(op.getId());
+            return false;
+        }
+        // if we get here, update based on current doc does not conflict
+        // create a new commit update operation, setting the revisions
+        // commit entry together with the other changes
+        UpdateOp commit = op.copy();
+        NodeDocument.unsetCommitRoot(commit, revision);
+        NodeDocument.setRevision(commit, revision, commitValue);
+        // make the update conditional on the modCount
+        commit.equals(MOD_COUNT, doc.getModCount());
+        NodeDocument before = store.findAndUpdate(NODES, commit);
+        if (before != null) {
+            checkSplitCandidate(before);
+        }
+        return before != null;
+    }
+
+    private void removeCollisionMarker(String id) {
+        UpdateOp removeCollision = new UpdateOp(id, false);
+        NodeDocument.removeCollision(removeCollision, revision);
+        nodeStore.getDocumentStore().findAndUpdate(NODES, removeCollision);
     }
 
     private void updateParentChildStatus() {
@@ -447,9 +495,7 @@ public class Commit {
             }
             store.findAndUpdate(NODES, reverse);
         }
-        UpdateOp removeCollision = new UpdateOp(commitRoot.getId(), false);
-        NodeDocument.removeCollision(removeCollision, revision);
-        store.findAndUpdate(NODES, removeCollision);
+        removeCollisionMarker(commitRoot.getId());
     }
 
     /**
