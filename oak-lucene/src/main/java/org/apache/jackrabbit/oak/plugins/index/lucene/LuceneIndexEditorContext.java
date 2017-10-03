@@ -184,7 +184,7 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
         return indexedNodes;
     }
 
-    private boolean isAsyncIndexing() {
+    boolean isAsyncIndexing() {
         return asyncIndexing;
     }
 
