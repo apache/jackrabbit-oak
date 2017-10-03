@@ -291,10 +291,12 @@ class IndexPlanner {
                 result.enableNodeNameRestriction();
             }
 
-            boolean uniqueIndexFound = planForSyncIndexes();
-            if (uniqueIndexFound) {
-                //For unique index there would be at max 1 entry
-                plan.setEstimatedEntryCount(1);
+            if (sortOrder.isEmpty()) {
+                boolean uniqueIndexFound = planForSyncIndexes();
+                if (uniqueIndexFound) {
+                    //For unique index there would be at max 1 entry
+                    plan.setEstimatedEntryCount(1);
+                }
             }
 
             return plan.setCostPerEntry(definition.getCostPerEntry() / costPerEntryFactor);
