@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner.CleanupStats;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -115,7 +116,7 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 1
         asyncService.addInfo("async", 1000);
-        assertTrue(cleaner.performCleanup());
+        assertCleanUpPerformed(cleaner.performCleanup(), true);
 
         assertThat(query(indexPath, "foo", "bar"), containsInAnyOrder("/a"));
 
@@ -128,14 +129,14 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 2
         asyncService.addInfo("async", 2000);
-        assertTrue(cleaner.performCleanup());
+        assertCleanUpPerformed(cleaner.performCleanup(), true);
 
         //Now /a would be part of removed bucket
         assertThat(query(indexPath, "foo", "bar"), containsInAnyOrder("/b"));
 
         //------------------------ Run 3
         asyncService.addInfo("async", 3000);
-        assertTrue(cleaner.performCleanup());
+        assertCleanUpPerformed(cleaner.performCleanup(), true);
 
         //With another run /b would also be removed
         assertThat(query(indexPath, "foo", "bar"), empty());
@@ -173,7 +174,7 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 1
         asyncService.addInfo("async", 1200);
-        assertTrue(cleaner.performCleanup());
+        assertCleanUpPerformed(cleaner.performCleanup(), true);
 
         // /a would be purged, /b would be retained as its created time 1150 is not older than 100 wrt
         // indexer time of 1200
@@ -193,7 +194,7 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 2
         asyncService.addInfo("async", 1400);
-        assertTrue(cleaner.performCleanup());
+        assertCleanUpPerformed(cleaner.performCleanup(), true);
 
         //Both entries would have been purged
         assertThat(query(indexPath, "foo", "bar"), empty());
@@ -219,10 +220,14 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 1
         asyncService.addInfo("async", 1000);
-        assertTrue(cleaner.performCleanup());
+        assertCleanUpPerformed(cleaner.performCleanup(), true);
 
         //Second run should not run
-        assertFalse(cleaner.performCleanup());
+        assertCleanUpPerformed(cleaner.performCleanup(), false);
+    }
+
+    private void assertCleanUpPerformed(CleanupStats stats, boolean expected) {
+        assertEquals(expected, stats.cleanupPerformed);
     }
 
     private void addIndex(String indexPath, IndexDefinitionBuilder defnb) throws CommitFailedException {
