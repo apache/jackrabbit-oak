@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import org.apache.jackrabbit.JcrConstants;
+
 class HybridPropertyIndexUtil {
     /**
      * Node name under which all property indexes are created
@@ -34,6 +36,19 @@ class HybridPropertyIndexUtil {
      * Property name referring to 'previous' bucket
      */
     static final String PROP_PREVIOUS_BUCKET = "previous";
+
+    /**
+     * Property set on each bucket to record that it entries after
+     * given async indexer state i.e. lastIndexTo time for the associated
+     * asyn indexer
+     */
+    static final String PROP_ASYNC_INDEXED_TO_TIME_AT_SWITCH = "asyncIndexedToTimeAtSwitch";
+
+    /**
+     * Creation time used for entries in unique property index. Instead of
+     * storing the data as calendar it stores it as epoch time
+     */
+    static final String PROP_CREATED = JcrConstants.JCR_CREATED;
 
     static final String PROP_STORAGE_TYPE = "storageType";
 
