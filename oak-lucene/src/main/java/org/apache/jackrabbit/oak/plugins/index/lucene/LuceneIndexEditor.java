@@ -168,6 +168,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     public void propertyAdded(PropertyState after) {
         markPropertyChanged(after.getName());
         checkAggregates(after.getName());
+        propertyUpdated(null, after);
     }
 
     @Override
@@ -175,6 +176,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         markPropertyChanged(before.getName());
         propertiesModified.add(before);
         checkAggregates(before.getName());
+        propertyUpdated(before, after);
     }
 
     @Override
@@ -182,6 +184,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         markPropertyChanged(before.getName());
         propertiesModified.add(before);
         checkAggregates(before.getName());
+        propertyUpdated(before, null);
     }
 
     @Override
@@ -344,6 +347,26 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 && indexingRule.isIndexed(name)) {
             propertiesChanged = true;
         }
+    }
+
+    private void propertyUpdated(PropertyState before, PropertyState after) {
+        PropertyUpdateCallback callback = context.getPropertyUpdateCallback();
+
+        //Avoid further work if no callback is present
+        if (callback == null) {
+            return;
+        }
+
+        String propertyName = before != null ? before.getName() : after.getName();
+
+        if (isIndexable()) {
+            PropertyDefinition pd = indexingRule.getConfig(propertyName);
+            if (pd != null) {
+                callback.propertyUpdated(getPath(), propertyName, pd, before, after);
+            }
+        }
+
+        //TODO Support for relative props
     }
 
     private IndexDefinition getDefinition() {
