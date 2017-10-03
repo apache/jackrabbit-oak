@@ -73,7 +73,7 @@ public class PropertyIndexCleaner implements Runnable{
     @Override
     public void run() {
         try{
-            performCleanup();
+            performCleanup(false);
         } catch (Exception e) {
             log.warn("Cleanup run failed with error", e);
         }
@@ -82,13 +82,14 @@ public class PropertyIndexCleaner implements Runnable{
     /**
      * Performs the cleanup run
      *
-     * @return true if the cleanup was attempted
+     * @param forceCleanup if true then clean up would attempted even if no change
+     *                     is found in async indexer state
      */
-    public CleanupStats performCleanup() throws CommitFailedException {
+    public CleanupStats performCleanup(boolean forceCleanup) throws CommitFailedException {
         CleanupStats stats = new CleanupStats();
         Stopwatch w = Stopwatch.createStarted();
         Map<String, Long> asyncInfo = asyncIndexInfoService.getIndexedUptoPerLane();
-        if (lastAsyncInfo.equals(asyncInfo)) {
+        if (lastAsyncInfo.equals(asyncInfo) && !forceCleanup) {
             log.debug("No change found in async state from last run {}. Skipping the run", asyncInfo);
             return stats;
         }

@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -41,6 +42,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -49,6 +51,7 @@ import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
@@ -92,13 +95,15 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     private final NodeStore nodeStore;
     private final IndexPathService indexPathService;
     private final File workDir;
+    private final PropertyIndexCleaner propertyIndexCleaner;
 
-    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir) {
+    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir, @Nullable PropertyIndexCleaner cleaner) {
         super(LuceneIndexMBean.class);
         this.indexTracker = checkNotNull(indexTracker);
         this.nodeStore = checkNotNull(nodeStore);
         this.indexPathService = indexPathService;
         this.workDir = checkNotNull(workDir);
+        this.propertyIndexCleaner = cleaner;
     }
 
     @Override
@@ -329,6 +334,16 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         log.info("Checked index consistency in {}. Check result {}", watch, clean);
         return clean;
+    }
+
+    @Override
+    public String performPropertyIndexCleanup() throws CommitFailedException {
+        String result = "PropertyIndexCleaner not enabled";
+        if (propertyIndexCleaner != null) {
+            result = propertyIndexCleaner.performCleanup(true).toString();
+        }
+        log.info("Explicit cleanup run done with result {}", result);
+        return result;
     }
 
     private Result getConsistencyCheckResult(String indexPath, boolean fullCheck) throws IOException {
