@@ -1099,6 +1099,30 @@ public class IndexPlannerTest {
         assertNull(hr);
     }
 
+    @Test
+    public void syncIndex_NotUsedWithFulltext() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+        defnb.indexRule("nt:base").property("bar").analyzed();
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.build(), "/foo");
+        IndexNode node = createIndexNode(defn, 100);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.setFullTextConstraint(FullTextParser.parse("bar", "mountain"));
+
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter,
+                ImmutableList.of(new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+
+        assertEquals(100, plan.getEstimatedEntryCount());
+        PropertyIndexResult hr = pr(plan).getPropertyIndexResult();
+
+        assertNull(hr);
+    }
+
 
     private IndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp) throws IOException {
         IndexNode node = createIndexNode(new IndexDefinition(root, defn, "/foo"));

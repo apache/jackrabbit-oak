@@ -291,7 +291,7 @@ class IndexPlanner {
                 result.enableNodeNameRestriction();
             }
 
-            if (sortOrder.isEmpty()) {
+            if (sortOrder.isEmpty() && ft == null) {
                 boolean uniqueIndexFound = planForSyncIndexes();
                 if (uniqueIndexFound) {
                     //For unique index there would be at max 1 entry
@@ -628,7 +628,8 @@ class IndexPlanner {
 
     private boolean planForSyncIndexes() {
         //If no sync index involved then return right away
-        if (!definition.hasSyncPropertyDefinitions() || result.propDefns.isEmpty()) {
+        if (!definition.hasSyncPropertyDefinitions()
+                || result.propDefns.isEmpty()) {
             return false;
         }
 
