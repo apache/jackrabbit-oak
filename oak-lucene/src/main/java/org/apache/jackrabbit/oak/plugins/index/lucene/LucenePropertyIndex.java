@@ -286,9 +286,26 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             if (ft != null) {
                 sb.append(" ft:(").append(ft).append(")");
             }
+            addSyncIndexPlan(plan, sb);
             return sb.toString();
         } finally {
             index.release();
+        }
+    }
+
+    private static void addSyncIndexPlan(IndexPlan plan, StringBuilder sb) {
+        PlanResult pr = getPlanResult(plan);
+        if (pr.hasPropertyIndexResult()) {
+            PropertyIndexResult pres = pr.getPropertyIndexResult();
+            sb.append(" sync:(")
+              .append(pres.propertyName);
+
+            if (!pres.propertyName.equals(pres.pr.propertyName)) {
+               sb.append("[").append(pres.pr.propertyName).append("]");
+            }
+
+            sb.append(" ").append(pres.pr);
+            sb.append(")");
         }
     }
 
