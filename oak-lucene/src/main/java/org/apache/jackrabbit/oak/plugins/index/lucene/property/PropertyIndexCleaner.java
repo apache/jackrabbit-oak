@@ -20,11 +20,13 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
@@ -55,6 +57,7 @@ public class PropertyIndexCleaner {
     private final IndexPathService indexPathService;
     private final AsyncIndexInfoService asyncIndexInfoService;
     private UniqueIndexCleaner uniqueIndexCleaner = new UniqueIndexCleaner(TimeUnit.HOURS, 1);
+    private Map<String, Long> lastAsyncInfo = Collections.emptyMap();
 
     public PropertyIndexCleaner(NodeStore nodeStore, IndexPathService indexPathService,
                                 AsyncIndexInfoService asyncIndexInfoService) {
@@ -63,13 +66,32 @@ public class PropertyIndexCleaner {
         this.asyncIndexInfoService = asyncIndexInfoService;
     }
 
-    public void run() throws CommitFailedException {
+    /**
+     * Performs the cleanup run
+     *
+     * @return true if the cleanup was attempted
+     */
+    public boolean run() throws CommitFailedException {
+        Stopwatch w = Stopwatch.createStarted();
         Map<String, Long> asyncInfo = getAsyncInfo();
+        if (lastAsyncInfo.equals(asyncInfo)) {
+            log.debug("No change found in async state from last run [{}]. Skipping the run", asyncInfo);
+            return false;
+        }
         List<String> syncIndexes = getSyncIndexPaths();
         IndexInfo indexInfo = switchBucketsAndCollectIndexData(syncIndexes, asyncInfo);
 
         purgeOldBuckets(indexInfo.oldBucketPaths);
         purgeOldUniqueIndexEntries(indexInfo.uniqueIndexPaths);
+        lastAsyncInfo = asyncInfo;
+
+        if (w.elapsed(TimeUnit.MINUTES) > 5) {
+            log.info("Property index cleanup done in {}", w);
+        } else {
+            log.debug("Property index cleanup done in {}", w);
+        }
+
+        return true;
     }
 
     /**
