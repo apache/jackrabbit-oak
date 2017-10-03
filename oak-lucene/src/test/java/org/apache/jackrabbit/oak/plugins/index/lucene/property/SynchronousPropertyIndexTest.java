@@ -72,8 +72,10 @@ import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
@@ -256,6 +258,20 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         }
     }
 
+    @Test
+    public void queryPlan() throws Exception{
+        defnb.async("async", "nrt");
+        defnb.indexRule("nt:base").property("foo").sync();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        assertThat(explain("select * from [nt:base] where [jcr:content/foo] = 'bar'"),
+                containsString("sync:(foo[jcr:content/foo] bar)"));
+        assertThat(explain("select * from [nt:base] where [foo] = 'bar'"),
+                containsString("sync:(foo bar)"));
+    }
+
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb,
                 Runnable.class, input -> input instanceof AsyncIndexUpdate);
@@ -265,6 +281,11 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
             fail("AsyncIndexUpdate failed");
         }
         root.refresh();
+    }
+
+    private String explain(String query){
+        String explain = "explain " + query;
+        return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
     private void addIndex(String indexPath, IndexDefinitionBuilder defnb){
