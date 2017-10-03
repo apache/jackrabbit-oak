@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStor
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Suppliers.ofInstance;
@@ -50,6 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridProp
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
 public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
+    private static final Logger log = LoggerFactory.getLogger(PropertyIndexUpdateCallback.class);
     private static final String DEFAULT_HEAD_BUCKET = String.valueOf(1);
 
     private final NodeBuilder builder;
@@ -105,6 +108,11 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
                         null,
                         emptySet(), //Disable pruning with empty before keys
                         afterKeys);
+            }
+
+            if (log.isTraceEnabled()) {
+                log.trace("[{}] Property index updated for [{}/@{}] with values [{}]", indexPath, nodePath,
+                        propertyRelativePath, afterKeys);
             }
         }
     }
