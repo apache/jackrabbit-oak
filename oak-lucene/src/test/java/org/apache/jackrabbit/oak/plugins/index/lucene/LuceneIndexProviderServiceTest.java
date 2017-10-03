@@ -144,6 +144,9 @@ public class LuceneIndexProviderServiceTest {
         assertNotNull(WhiteboardUtils.getServices(wb, Runnable.class, r -> r instanceof PropertyIndexCleaner));
 
         MockOsgi.deactivate(service, context.bundleContext());
+
+        IndexTracker tracker = (IndexTracker) FieldUtils.readDeclaredField(service, "tracker", true);
+        assertNotNull(tracker.getAsyncIndexInfoService());
     }
 
     @Test

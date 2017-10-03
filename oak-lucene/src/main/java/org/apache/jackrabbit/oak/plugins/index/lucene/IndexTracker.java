@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
@@ -68,6 +69,8 @@ public class IndexTracker {
     private final BadIndexTracker badIndexTracker = new BadIndexTracker();
 
     private NodeState root = EMPTY_NODE;
+
+    private AsyncIndexInfoService asyncIndexInfoService;
 
     private volatile Map<String, IndexNodeManager> indices = emptyMap();
 
@@ -114,7 +117,21 @@ public class IndexTracker {
         }
     }
 
+    public void setAsyncIndexInfoService(AsyncIndexInfoService asyncIndexInfoService) {
+        this.asyncIndexInfoService = asyncIndexInfoService;
+    }
+
+    AsyncIndexInfoService getAsyncIndexInfoService() {
+        return asyncIndexInfoService;
+    }
+
     private synchronized void diffAndUpdate(final NodeState root) {
+        if (asyncIndexInfoService != null && !asyncIndexInfoService.hasIndexerUpdatedForAnyLane(this.root, root)) {
+            log.trace("No changed detected in async indexer state. Skipping further diff");
+            this.root = root;
+            return;
+        }
+
         Map<String, IndexNodeManager> original = indices;
         final Map<String, IndexNodeManager> updates = newHashMap();
 
