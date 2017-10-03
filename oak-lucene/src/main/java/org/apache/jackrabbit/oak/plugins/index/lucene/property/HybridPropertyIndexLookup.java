@@ -25,6 +25,8 @@ import java.util.Set;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil;
+import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -45,8 +47,23 @@ public class HybridPropertyIndexLookup {
     }
 
     public Iterable<String> query(Filter filter, PropertyDefinition pd,
-                                  String propertyName, PropertyValue value) {
+                                  String propertyName, Filter.PropertyRestriction restriction) {
+        //The propertyName may differ from name in restriction. For e.g. for relative properties
+        //the restriction property name can be 'jcr:content/status' while the index has indexed
+        //for 'status'
 
+        Set<String> values = ValuePatternUtil.getAllValues(restriction);
+        Set<String> encodedValues = PropertyIndexUtil.encode(values);
+        return query(filter, pd, propertyName, encodedValues);
+    }
+
+    public Iterable<String> query(Filter filter, PropertyDefinition pd,
+                                  String propertyName, PropertyValue value) {
+        return query(filter, pd, propertyName, encode(value, pd.valuePattern));
+    }
+
+    private Iterable<String> query(Filter filter, PropertyDefinition pd,
+                                  String propertyName, Set<String> encodedValues) {
         String propIdxNodeName = HybridPropertyIndexUtil.getNodeName(propertyName);
         NodeState propIndexRootNode = indexState.getChildNode(PROPERTY_INDEX);
         NodeState propIndexNode = propIndexRootNode.getChildNode(propIdxNodeName);
@@ -55,13 +72,11 @@ public class HybridPropertyIndexLookup {
         }
 
         //TODO Check for non root indexes
-
         String indexName = indexPath + "(" + propertyName + ")";
-        Set<String> values = encode(value, pd.valuePattern);
         if (pd.unique) {
-            return queryUnique(filter, indexName, propIndexRootNode, propIdxNodeName, values);
+            return queryUnique(filter, indexName, propIndexRootNode, propIdxNodeName, encodedValues);
         } else {
-            return querySimple(filter, indexName, propIndexNode, values);
+            return querySimple(filter, indexName, propIndexNode, encodedValues);
         }
     }
 
