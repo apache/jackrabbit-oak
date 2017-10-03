@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static com.google.common.base.Suppliers.memoize;
+import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
@@ -26,6 +27,8 @@ import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.
 import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.DEFAULT_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter.COUNT_PROPERTY_PREFIX;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.Set;
@@ -282,6 +285,42 @@ public class ContentMirrorStoreStrategyTest {
                 entryCount > filteredNodeFactor *
                         store.count(filter, root, indexMeta.getNodeState(),
                                 KEY, maxTraversal));
+    }
+
+    @Test
+    public void nonRootStorage() throws Exception{
+        IndexStoreStrategy store = new ContentMirrorStoreStrategy(INDEX_CONTENT_NODE_NAME, "/content", false);
+
+        NodeState root = EMPTY_NODE;
+        NodeBuilder builder = root.builder();
+        Supplier<NodeBuilder> index = () -> builder;
+
+        for (String path : asList("a", "a/c", "b")) {
+            store.update(index, path, null, null, EMPTY, KEY);
+        }
+
+        FilterImpl filter = FilterImpl.newTestInstance();
+        filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
+
+        NodeBuilder indexMeta = EMPTY_NODE.builder();
+        indexMeta.setChildNode(INDEX_CONTENT_NODE_NAME, builder.getNodeState());
+
+        Iterable<String> paths = store.query(filter, null, indexMeta.getNodeState(), KEY);
+        assertThat(copyOf(paths), containsInAnyOrder("a", "a/c", "b"));
+
+        FilterImpl filter2 = FilterImpl.newTestInstance();
+        filter2.restrictPath("/content/a", Filter.PathRestriction.ALL_CHILDREN);
+
+        paths = store.query(filter2, null, indexMeta.getNodeState(), KEY);
+        assertThat(copyOf(paths), containsInAnyOrder("a", "a/c"));
+
+        store = new ContentMirrorStoreStrategy(INDEX_CONTENT_NODE_NAME, "/content", true);
+
+        paths = store.query(filter, null, indexMeta.getNodeState(), KEY);
+        assertThat(copyOf(paths), containsInAnyOrder("/content/a", "/content/a/c", "/content/b"));
+
+        paths = store.query(filter2, null, indexMeta.getNodeState(), KEY);
+        assertThat(copyOf(paths), containsInAnyOrder("/content/a", "/content/a/c"));
     }
 
     private static void assertInRange(String msg, double expected, double actual) {
