@@ -87,7 +87,7 @@ public class PropertyIndexCleaner implements Runnable{
      */
     public boolean performCleanup() throws CommitFailedException {
         Stopwatch w = Stopwatch.createStarted();
-        Map<String, Long> asyncInfo = getAsyncInfo();
+        Map<String, Long> asyncInfo = asyncIndexInfoService.getIndexedUptoPerLane();
         if (lastAsyncInfo.equals(asyncInfo)) {
             log.debug("No change found in async state from last run {}. Skipping the run", asyncInfo);
             return false;
@@ -229,19 +229,6 @@ public class PropertyIndexCleaner implements Runnable{
         //TODO Configure conflict hooks
         //TODO Configure validator
         nodeStore.merge(builder, EmptyHook.INSTANCE, createCommitInfo());
-    }
-
-    private Map<String, Long> getAsyncInfo() {
-        Map<String, Long> infos = new HashMap<>();
-        for (String asyncLane : asyncIndexInfoService.getAsyncLanes()) {
-            AsyncIndexInfo info = asyncIndexInfoService.getInfo(asyncLane);
-            if (info != null) {
-                infos.put(asyncLane, info.getLastIndexedTo());
-            } else {
-                log.warn("No AsyncIndexInfo found for lane name [{}]", asyncLane);
-            }
-        }
-        return infos;
     }
 
     private static CommitInfo createCommitInfo() {
