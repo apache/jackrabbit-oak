@@ -366,7 +366,17 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
         }
 
-        //TODO Support for relative props
+        for (Matcher m : matcherState.matched) {
+            if (m.aggregatesProperty(propertyName)) {
+                Aggregate.Include i = m.getCurrentInclude();
+                if (i instanceof Aggregate.PropertyInclude) {
+                    PropertyDefinition pd = ((Aggregate.PropertyInclude) i).getPropertyDefinition();
+                    String propertyRelativePath = PathUtils.concat(m.getMatchedPath(), propertyName);
+
+                    callback.propertyUpdated(m.getRootPath(), propertyRelativePath, pd, before, after);
+                }
+            }
+        }
     }
 
     private IndexDefinition getDefinition() {

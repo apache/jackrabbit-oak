@@ -133,6 +133,53 @@ public class LuceneIndexEditor2Test {
         propCallback.reset();
     }
 
+    @Test
+    public void relativeProperties() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/metadata/foo").propertyIndex();
+        defnb.aggregateRule("nt:base").include("*");
+
+        NodeState defnState = defnb.build();
+        IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+        LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+        ctx.setPropertyUpdateCallback(propCallback);
+
+        EditorHook hook = createHook(ctx);
+
+        updateBefore(defnb);
+
+        //Property added
+        NodeBuilder builder = before.builder();
+        builder.child("a").child("jcr:content").child("metadata").setProperty("foo", "bar");
+        builder.child("a").setProperty("foo2", "bar");
+
+        before = hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+        propCallback.state.assertState("/a", "jcr:content/metadata/foo", UpdateState.ADDED);
+        assertEquals(1, propCallback.invocationCount);
+        propCallback.reset();
+
+        //Property updated
+        builder = before.builder();
+        builder.child("a").child("jcr:content").child("metadata").setProperty("foo", "bar2");
+        builder.child("a").setProperty("foo2", "bar2");
+        before = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+
+        propCallback.state.assertState("/a", "jcr:content/metadata/foo", UpdateState.UPDATED);
+
+        assertEquals(1, propCallback.invocationCount);
+        propCallback.reset();
+
+        //Property deleted
+        builder = before.builder();
+        builder.child("a").child("jcr:content").child("metadata").removeProperty("foo");
+        builder.child("a").removeProperty("foo2");
+        before = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+
+        propCallback.state.assertState("/a", "jcr:content/metadata/foo", UpdateState.DELETED);
+        assertEquals(1, propCallback.invocationCount);
+        propCallback.reset();
+    }
+
     private void updateBefore(IndexDefinitionBuilder defnb) {
         NodeBuilder builder = before.builder();
         NodeBuilder cb = TestUtil.child(builder, PathUtils.getParentPath(indexPath));

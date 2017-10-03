@@ -411,6 +411,10 @@ class Aggregate {
         public String toString() {
             return propertyDefinition.toString();
         }
+
+        public PropertyDefinition getPropertyDefinition() {
+            return propertyDefinition;
+        }
     }
 
     public static interface ResultCollector {
@@ -464,6 +468,8 @@ class Aggregate {
 
     public interface AggregateRoot {
         void markDirty();
+
+        String getPath();
     }
 
     public static class Matcher {
@@ -607,6 +613,19 @@ class Aggregate {
         public void markRootDirty() {
             checkArgument(status == Status.MATCH_FOUND);
             rootState.root.markDirty();
+        }
+
+        public String getRootPath() {
+            return rootState.root.getPath();
+        }
+
+        public String getMatchedPath(){
+            checkArgument(status == Status.MATCH_FOUND);
+            return currentPath;
+        }
+
+        public Include getCurrentInclude(){
+            return currentInclude;
         }
 
         public Status getStatus() {
