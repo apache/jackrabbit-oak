@@ -34,12 +34,15 @@ import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorSt
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.Clock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Suppliers.ofInstance;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_CREATED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_STORAGE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.STORAGE_TYPE_CONTENT_MIRROR;
@@ -52,10 +55,16 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
     private final NodeBuilder builder;
     private final String indexPath;
     private final UniquenessConstraintValidator uniquenessConstraintValidator;
+    private final long updateTime;
 
     public PropertyIndexUpdateCallback(String indexPath, NodeBuilder builder) {
+        this(indexPath, builder, Clock.SIMPLE);
+    }
+
+    public PropertyIndexUpdateCallback(String indexPath, NodeBuilder builder, Clock clock) {
         this.builder = builder;
         this.indexPath = indexPath;
+        this.updateTime = clock.getTime();
         this.uniquenessConstraintValidator = new UniquenessConstraintValidator(indexPath, builder);
     }
 
@@ -79,7 +88,8 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
             NodeBuilder indexNode = getIndexNode(propertyRelativePath, pd.unique);
 
             if (pd.unique) {
-                UniqueEntryStoreStrategy s = new UniqueEntryStoreStrategy();
+                UniqueEntryStoreStrategy s = new UniqueEntryStoreStrategy(INDEX_CONTENT_NODE_NAME,
+                        (nb) -> nb.setProperty(PROP_CREATED, updateTime));
                 s.update(ofInstance(indexNode),
                         nodePath,
                         null,
