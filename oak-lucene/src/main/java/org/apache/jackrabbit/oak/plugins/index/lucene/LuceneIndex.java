@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -1203,32 +1204,4 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             return estimatedSize = sizeEstimator.getSize();
         }
     }
-
-    private static class PathStoredFieldVisitor extends StoredFieldVisitor {
-
-        private String path;
-        private boolean pathVisited;
-
-        @Override
-        public Status needsField(FieldInfo fieldInfo) throws IOException {
-            if (PATH.equals(fieldInfo.name)) {
-                return Status.YES;
-            }
-            return pathVisited ? Status.STOP : Status.NO;
-        }
-
-        @Override
-        public void stringField(FieldInfo fieldInfo, String value)
-                throws IOException {
-            if (PATH.equals(fieldInfo.name)) {
-                path = value;
-                pathVisited = true;
-            }
-        }
-
-        public String getPath() {
-            return path;
-        }
-    }
-
 }

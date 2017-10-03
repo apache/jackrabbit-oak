@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactor
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -78,12 +79,10 @@ import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.LabelAndValue;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -130,7 +129,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.ANALYZED_FIELD_PREFIX;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.NATIVE_SORT_ORDER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
@@ -1694,33 +1692,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return estimatedSize;
             }
             return estimatedSize = sizeEstimator.getSize();
-        }
-    }
-
-    static class PathStoredFieldVisitor extends StoredFieldVisitor {
-
-        private String path;
-        private boolean pathVisited;
-
-        @Override
-        public Status needsField(FieldInfo fieldInfo) throws IOException {
-            if (PATH.equals(fieldInfo.name)) {
-                return Status.YES;
-            }
-            return pathVisited ? Status.STOP : Status.NO;
-        }
-
-        @Override
-        public void stringField(FieldInfo fieldInfo, String value)
-                throws IOException {
-            if (PATH.equals(fieldInfo.name)) {
-                path = value;
-                pathVisited = true;
-            }
-        }
-
-        public String getPath() {
-            return path;
         }
     }
 
