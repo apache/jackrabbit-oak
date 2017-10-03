@@ -272,6 +272,22 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
                 containsString("sync:(foo bar)"));
     }
 
+
+    @Test
+    public void relativePropertyTransform() throws Exception{
+        defnb.async("async", "nrt");
+        defnb.indexRule("nt:base").property("foo").sync();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a/jcr:content").setProperty("foo", "bar");
+        createPath("/b").setProperty("foo", "bar");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where [jcr:content/foo] = 'bar'", singletonList("/a"));
+    }
+
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb,
                 Runnable.class, input -> input instanceof AsyncIndexUpdate);
