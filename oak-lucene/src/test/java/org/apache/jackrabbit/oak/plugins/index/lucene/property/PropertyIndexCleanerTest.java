@@ -116,7 +116,7 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 1
         asyncService.addInfo("async", 1000);
-        assertCleanUpPerformed(cleaner.performCleanup(), true);
+        assertCleanUpPerformed(cleaner.performCleanup(false), true);
 
         assertThat(query(indexPath, "foo", "bar"), containsInAnyOrder("/a"));
 
@@ -129,14 +129,14 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 2
         asyncService.addInfo("async", 2000);
-        assertCleanUpPerformed(cleaner.performCleanup(), true);
+        assertCleanUpPerformed(cleaner.performCleanup(false), true);
 
         //Now /a would be part of removed bucket
         assertThat(query(indexPath, "foo", "bar"), containsInAnyOrder("/b"));
 
         //------------------------ Run 3
         asyncService.addInfo("async", 3000);
-        assertCleanUpPerformed(cleaner.performCleanup(), true);
+        assertCleanUpPerformed(cleaner.performCleanup(false), true);
 
         //With another run /b would also be removed
         assertThat(query(indexPath, "foo", "bar"), empty());
@@ -174,7 +174,7 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 1
         asyncService.addInfo("async", 1200);
-        assertCleanUpPerformed(cleaner.performCleanup(), true);
+        assertCleanUpPerformed(cleaner.performCleanup(false), true);
 
         // /a would be purged, /b would be retained as its created time 1150 is not older than 100 wrt
         // indexer time of 1200
@@ -194,7 +194,7 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 2
         asyncService.addInfo("async", 1400);
-        assertCleanUpPerformed(cleaner.performCleanup(), true);
+        assertCleanUpPerformed(cleaner.performCleanup(false), true);
 
         //Both entries would have been purged
         assertThat(query(indexPath, "foo", "bar"), empty());
@@ -220,10 +220,10 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 1
         asyncService.addInfo("async", 1000);
-        assertCleanUpPerformed(cleaner.performCleanup(), true);
+        assertCleanUpPerformed(cleaner.performCleanup(false), true);
 
         //Second run should not run
-        assertCleanUpPerformed(cleaner.performCleanup(), false);
+        assertCleanUpPerformed(cleaner.performCleanup(false), false);
     }
 
     private void assertCleanUpPerformed(CleanupStats stats, boolean expected) {

@@ -345,6 +345,8 @@ public class LuceneIndexProviderService {
 
     private IndexTracker tracker;
 
+    private PropertyIndexCleaner cleaner;
+
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
@@ -387,7 +389,7 @@ public class LuceneIndexProviderService {
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
-                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, indexPathService, getIndexCheckDir()),
+                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, indexPathService, getIndexCheckDir(), cleaner),
                 LuceneIndexMBean.TYPE,
                 "Lucene Index statistics"));
         registerGCMonitor(whiteboard, indexProvider.getTracker());
@@ -792,7 +794,7 @@ public class LuceneIndexProviderService {
             return;
         }
 
-        PropertyIndexCleaner cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService);
+        cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService);
         oakRegs.add(scheduleWithFixedDelay(whiteboard, cleaner,
                 ImmutableMap.of("scheduler.name", PropertyIndexCleaner.class.getName()),
                 cleanerInterval, true, true));
