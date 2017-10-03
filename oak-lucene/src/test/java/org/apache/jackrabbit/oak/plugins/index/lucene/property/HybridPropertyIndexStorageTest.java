@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -132,10 +133,14 @@ public class HybridPropertyIndexStorageTest {
     public void uniqueProperty() throws Exception{
         defnb.indexRule("nt:base").property("foo").unique();
 
-        newCallback().propertyUpdated("/a", "foo", pd("foo"),
+        PropertyUpdateCallback callback = newCallback();
+
+        callback.propertyUpdated("/a", "foo", pd("foo"),
                 null, createProperty("foo", "bar"));
-        newCallback().propertyUpdated("/b", "foo", pd("foo"),
+        callback.propertyUpdated("/b", "foo", pd("foo"),
                 null, createProperty("foo", "bar2"));
+
+        callback.done();
 
         assertThat(query("foo", newString("bar")), containsInAnyOrder("/a"));
     }
@@ -153,7 +158,7 @@ public class HybridPropertyIndexStorageTest {
         newCallback().propertyUpdated("/a", "foo", pd("foo"),
                 createProperty("foo", "bar"), null);
 
-        // /b should not come as pruning is disabled
+        // /b should not come as pruning is enabled
         assertThat(query("foo", newString("bar")), empty());
     }
 

@@ -105,10 +105,12 @@ public class LuceneIndexEditor2Test {
         NodeBuilder builder = before.builder();
         builder.child("a").setProperty("foo", "bar");
         builder.child("a").setProperty("foo2", "bar");
+        builder.child("a").child("b");
 
         before = hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
         propCallback.state.assertState("/a", "foo", UpdateState.ADDED);
         assertEquals(1, propCallback.invocationCount);
+        assertEquals(1, propCallback.doneInvocationCount);
         propCallback.reset();
 
         //Property updated
@@ -215,6 +217,7 @@ public class LuceneIndexEditor2Test {
     private static class TestPropertyUpdateCallback implements PropertyUpdateCallback {
         int invocationCount;
         CallbackState state;
+        int doneInvocationCount;
 
         @Override
         public void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd,
@@ -231,9 +234,15 @@ public class LuceneIndexEditor2Test {
             invocationCount++;
         }
 
+        @Override
+        public void done() throws CommitFailedException {
+            doneInvocationCount++;
+        }
+
         void reset(){
             state = null;
             invocationCount = 0;
+            doneInvocationCount = 0;
         }
     }
 

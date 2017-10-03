@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
@@ -41,5 +42,12 @@ public interface PropertyUpdateCallback {
      */
     void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd,
                          @Nullable  PropertyState before, @Nullable PropertyState after);
+
+    /**
+     * Invoked after editor has traversed all the changes
+     *
+     * @throws CommitFailedException in case some validation fails
+     */
+    void done() throws CommitFailedException;
 
 }
