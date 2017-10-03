@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.Map;
+
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -52,4 +54,33 @@ public interface AsyncIndexInfoService {
      */
     @CheckForNull
     AsyncIndexInfo getInfo(String name, NodeState root);
+
+    /**
+     * Returns the lastIndexUpto time in millis for each indexing lane
+     * for current root state
+     *
+     * @return map with lane name as key and lastIndexUpto in millis as value
+     */
+    Map<String, Long> getIndexedUptoPerLane();
+
+    /**
+     * Returns the lastIndexUpto time in millis for each indexing lane
+     * for given root state
+     *
+     * @return map with lane name as key and lastIndexUpto in millis as value
+     */
+    Map<String, Long> getIndexedUptoPerLane(NodeState root);
+
+    /**
+     * Determines if any index lane has completed any indexing cycle between given
+     * two repository states
+     *
+     * @param before before state of root node
+     * @param after after state of root node
+     * @return true if any indexing lane has completed any indexing cycle i.e. its
+     * lastIndexTo time has changed
+     */
+    default boolean hasIndexerUpdatedForAnyLane(NodeState before, NodeState after) {
+        return !getIndexedUptoPerLane(before).equals(getIndexedUptoPerLane(after));
+    }
 }

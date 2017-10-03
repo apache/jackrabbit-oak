@@ -285,6 +285,20 @@ public class PropertyIndexCleanerTest {
             return null;
         }
 
+        @Override
+        public Map<String, Long> getIndexedUptoPerLane() {
+            Map<String, Long> result = new HashMap<>();
+            for (AsyncIndexInfo info : infos.values()) {
+                result.put(info.getName(), info.getLastIndexedTo());
+            }
+            return result;
+        }
+
+        @Override
+        public Map<String, Long> getIndexedUptoPerLane(NodeState root) {
+            throw new UnsupportedOperationException();
+        }
+
         public void addInfo(String name, long lastIndexedTo) {
             infos.put(name, new AsyncIndexInfo(name, lastIndexedTo, 0, false, null));
         }

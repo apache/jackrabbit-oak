@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
@@ -80,7 +81,7 @@ public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
     public AsyncIndexInfo getInfo(String name, NodeState root) {
         NodeState async = getAsyncState(root);
         if (async.hasProperty(name)) {
-            long lastIndexedTo = getDateAsMillis(async.getProperty(AsyncIndexUpdate.lastIndexedTo(name)));
+            long lastIndexedTo = getLastIndexedTo(name, async);
             long leaseEnd = -1;
             boolean running = false;
             if (async.hasProperty(AsyncIndexUpdate.leasify(name))) {
@@ -91,6 +92,25 @@ public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
             return new AsyncIndexInfo(name, lastIndexedTo, leaseEnd, running, mbean);
         }
         return null;
+    }
+
+    @Override
+    public Map<String, Long> getIndexedUptoPerLane() {
+        return getIndexedUptoPerLane(nodeStore.getRoot());
+    }
+
+    @Override
+    public Map<String, Long> getIndexedUptoPerLane(NodeState root) {
+        ImmutableMap.Builder<String, Long> builder = new ImmutableMap.Builder<String, Long>();
+        NodeState async = getAsyncState(root);
+        for (PropertyState ps : async.getProperties()) {
+            String name = ps.getName();
+            if (AsyncIndexUpdate.isAsyncLaneName(name)) {
+                long lastIndexedTo = getLastIndexedTo(name, async);
+                builder.put(name, lastIndexedTo);
+            }
+        }
+        return builder.build();
     }
 
     private NodeState getAsyncState(NodeState root) {
@@ -109,6 +129,10 @@ public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
 
     protected void unbindStatsMBeans(IndexStatsMBean mBean) {
         statsMBeans.remove(mBean.getName());
+    }
+
+    private static long getLastIndexedTo(String name, NodeState async) {
+        return getDateAsMillis(async.getProperty(AsyncIndexUpdate.lastIndexedTo(name)));
     }
 
     private static long getDateAsMillis(PropertyState ps) {
