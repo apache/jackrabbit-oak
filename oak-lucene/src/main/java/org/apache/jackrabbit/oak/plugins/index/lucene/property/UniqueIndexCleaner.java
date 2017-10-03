@@ -34,15 +34,17 @@ class UniqueIndexCleaner {
         this.createTimeMarginMillis = timeUnit.toMillis(createTimeMargin);
     }
 
-    public boolean clean(NodeBuilder builder, long lastIndexedTo) {
+    public int clean(NodeBuilder builder, long lastIndexedTo) {
+        int removalCount = 0;
         NodeState baseState = builder.getBaseState();
         for (ChildNodeEntry e : baseState.getChildNodeEntries()) {
             long entryCreationTime = e.getNodeState().getLong(PROP_CREATED);
             if (entryCovered(entryCreationTime, lastIndexedTo)) {
                 builder.child(e.getName()).remove();
+                removalCount++;
             }
         }
-        return builder.isModified();
+        return removalCount;
     }
 
     private boolean entryCovered(long entryCreationTime, long lastIndexedTo) {

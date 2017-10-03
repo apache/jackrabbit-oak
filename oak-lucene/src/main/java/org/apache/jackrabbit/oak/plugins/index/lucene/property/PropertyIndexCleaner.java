@@ -22,8 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
@@ -75,20 +77,21 @@ public class PropertyIndexCleaner {
         Stopwatch w = Stopwatch.createStarted();
         Map<String, Long> asyncInfo = getAsyncInfo();
         if (lastAsyncInfo.equals(asyncInfo)) {
-            log.debug("No change found in async state from last run [{}]. Skipping the run", asyncInfo);
+            log.debug("No change found in async state from last run {}. Skipping the run", asyncInfo);
             return false;
         }
+        CleanupStats stats = new CleanupStats();
         List<String> syncIndexes = getSyncIndexPaths();
-        IndexInfo indexInfo = switchBucketsAndCollectIndexData(syncIndexes, asyncInfo);
+        IndexInfo indexInfo = switchBucketsAndCollectIndexData(syncIndexes, asyncInfo, stats);
 
-        purgeOldBuckets(indexInfo.oldBucketPaths);
-        purgeOldUniqueIndexEntries(indexInfo.uniqueIndexPaths);
+        purgeOldBuckets(indexInfo.oldBucketPaths, stats);
+        purgeOldUniqueIndexEntries(indexInfo.uniqueIndexPaths, stats);
         lastAsyncInfo = asyncInfo;
 
         if (w.elapsed(TimeUnit.MINUTES) > 5) {
-            log.info("Property index cleanup done in {}", w);
+            log.info("Property index cleanup done in {}. {}", w, stats);
         } else {
-            log.debug("Property index cleanup done in {}", w);
+            log.debug("Property index cleanup done in {}. {}", w, stats);
         }
 
         return true;
@@ -121,7 +124,7 @@ public class PropertyIndexCleaner {
     }
 
     private IndexInfo switchBucketsAndCollectIndexData(List<String> indexPaths,
-                                                       Map<String, Long> asyncInfo)
+                                                       Map<String, Long> asyncInfo, CleanupStats stats)
             throws CommitFailedException {
         IndexInfo indexInfo = new IndexInfo();
         NodeState root = nodeStore.getRoot();
@@ -156,6 +159,7 @@ public class PropertyIndexCleaner {
                     for (String bucketName : bs.getOldBuckets()) {
                         String bucketPath = PathUtils.concat(indexPath, PROPERTY_INDEX, propName, bucketName);
                         indexInfo.oldBucketPaths.add(bucketPath);
+                        stats.purgedIndexPaths.add(indexPath);
                     }
                 } else if (uniquePropertyIndex(propIdxState)) {
                     String indexNodePath = PathUtils.concat(indexPath, PROPERTY_INDEX, propName);
@@ -171,7 +175,7 @@ public class PropertyIndexCleaner {
         return indexInfo;
     }
 
-    private void purgeOldBuckets(List<String> bucketPaths) throws CommitFailedException {
+    private void purgeOldBuckets(List<String> bucketPaths, CleanupStats stats) throws CommitFailedException {
         if (bucketPaths.isEmpty()) {
             return;
         }
@@ -185,20 +189,26 @@ public class PropertyIndexCleaner {
             bucket.remove();
         }
 
+        stats.bucketCount = bucketPaths.size();
         merge(builder);
     }
 
-    private void purgeOldUniqueIndexEntries(Map<String, Long> asyncInfo) throws CommitFailedException {
+    private void purgeOldUniqueIndexEntries(Map<String, Long> asyncInfo, CleanupStats stats) throws CommitFailedException {
         NodeState root = nodeStore.getRoot();
         NodeBuilder builder = root.builder();
 
-        boolean modified = false;
         for (Map.Entry<String, Long> e : asyncInfo.entrySet()) {
-            NodeBuilder idxb = child(builder, e.getKey());
-            modified |= uniqueIndexCleaner.clean(idxb, e.getValue());
+            String indexNodePath = e.getKey();
+            NodeBuilder idxb = child(builder, indexNodePath);
+            int removalCount = uniqueIndexCleaner.clean(idxb, e.getValue());
+            if (removalCount > 0) {
+                stats.purgedIndexPaths.add(PathUtils.getAncestorPath(indexNodePath, 2));
+                log.debug("Removed [{}] entries from [{}]", removalCount, indexNodePath);
+            }
+            stats.uniqueIndexEntryRemovalCount += removalCount;
         }
 
-        if (modified) {
+        if (stats.uniqueIndexEntryRemovalCount > 0) {
             merge(builder);
         }
     }
@@ -244,5 +254,17 @@ public class PropertyIndexCleaner {
 
         /* indexPath, lastIndexedTo */
         final Map<String, Long> uniqueIndexPaths = new HashMap<>();
+    }
+
+    private static class CleanupStats {
+        int uniqueIndexEntryRemovalCount;
+        int bucketCount;
+        Set<String> purgedIndexPaths = new HashSet<>();
+
+        @Override
+        public String toString() {
+            return String.format("Removed %d index buckets, %d unique index entries " +
+                    "from indexes %s", bucketCount, uniqueIndexEntryRemovalCount, purgedIndexPaths);
+        }
     }
 }
