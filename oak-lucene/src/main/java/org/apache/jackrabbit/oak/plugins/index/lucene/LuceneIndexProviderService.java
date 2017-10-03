@@ -36,6 +36,7 @@ import javax.annotation.Nonnull;
 import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
@@ -66,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBui
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneJournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
@@ -249,6 +251,16 @@ public class LuceneIndexProviderService {
                     "Cleanup implies purging index blobs marked as deleted earlier during some indexing cycle."
     )
     private static final String PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL = "deletedBlobsCollectionInterval";
+
+    private static final int PROP_INDEX_CLEANER_INTERVAL_DEFAULT = 10*60;
+    @Property(
+            intValue = PROP_INDEX_CLEANER_INTERVAL_DEFAULT,
+            label = "Property Index Cleaner Interval (seconds)",
+            description = "Cleaner interval time (in seconds) for synchronous property indexes configured as " +
+                    "part of lucene indexes"
+    )
+    private static final String PROP_INDEX_CLEANER_INTERVAL = "propIndexCleanerIntervalInSecs";
+
     /**
      * Actively deleted blob must be deleted for at least this long (in seconds)
      */
@@ -369,6 +381,7 @@ public class LuceneIndexProviderService {
         registerIndexEditor(bundleContext, tracker, config);
         registerIndexInfoProvider(bundleContext);
         registerIndexImporterProvider(bundleContext);
+        registerPropertyIndexCleaner(config, bundleContext);
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
@@ -762,6 +775,24 @@ public class LuceneIndexProviderService {
 
         return timestamp;
     }
+
+
+    private void registerPropertyIndexCleaner(Map<String, ?> config, BundleContext bundleContext) {
+        int cleanerInterval = PropertiesUtil.toInteger(config.get(PROP_INDEX_CLEANER_INTERVAL),
+                PROP_INDEX_CLEANER_INTERVAL_DEFAULT);
+
+        if (cleanerInterval <= 0) {
+            log.info("Property index cleaner would not be registered");
+            return;
+        }
+
+        PropertyIndexCleaner cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService);
+        oakRegs.add(scheduleWithFixedDelay(whiteboard, cleaner,
+                ImmutableMap.of("scheduler.name", PropertyIndexCleaner.class.getName()),
+                cleanerInterval, true, true));
+        log.info("Property index cleaner configured to run every [{}] seconds", cleanerInterval);
+    }
+
 
     protected void bindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;

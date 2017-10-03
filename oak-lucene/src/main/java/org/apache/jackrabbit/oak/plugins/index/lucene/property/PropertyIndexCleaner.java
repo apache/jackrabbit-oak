@@ -53,7 +53,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridProp
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.STORAGE_TYPE_UNIQUE;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
-public class PropertyIndexCleaner {
+public class PropertyIndexCleaner implements Runnable{
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeStore nodeStore;
     private final IndexPathService indexPathService;
@@ -63,9 +63,18 @@ public class PropertyIndexCleaner {
 
     public PropertyIndexCleaner(NodeStore nodeStore, IndexPathService indexPathService,
                                 AsyncIndexInfoService asyncIndexInfoService) {
-        this.nodeStore = nodeStore;
-        this.indexPathService = indexPathService;
-        this.asyncIndexInfoService = asyncIndexInfoService;
+        this.nodeStore = checkNotNull(nodeStore);
+        this.indexPathService = checkNotNull(indexPathService);
+        this.asyncIndexInfoService = checkNotNull(asyncIndexInfoService);
+    }
+
+    @Override
+    public void run() {
+        try{
+            performCleanup();
+        } catch (Exception e) {
+            log.warn("Cleanup run failed with error", e);
+        }
     }
 
     /**
@@ -73,7 +82,7 @@ public class PropertyIndexCleaner {
      *
      * @return true if the cleanup was attempted
      */
-    public boolean run() throws CommitFailedException {
+    public boolean performCleanup() throws CommitFailedException {
         Stopwatch w = Stopwatch.createStarted();
         Map<String, Long> asyncInfo = getAsyncInfo();
         if (lastAsyncInfo.equals(asyncInfo)) {
