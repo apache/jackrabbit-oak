@@ -29,14 +29,17 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -225,8 +228,7 @@ public class PropertyIndexCleaner implements Runnable{
     private void merge(NodeBuilder builder) throws CommitFailedException {
         //TODO Configure conflict hooks
         //TODO Configure validator
-        //Configure CommitContext
-        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        nodeStore.merge(builder, EmptyHook.INSTANCE, createCommitInfo());
     }
 
     private Map<String, Long> getAsyncInfo() {
@@ -240,6 +242,11 @@ public class PropertyIndexCleaner implements Runnable{
             }
         }
         return infos;
+    }
+
+    private static CommitInfo createCommitInfo() {
+        Map<String, Object> info = ImmutableMap.of(CommitContext.NAME, new SimpleCommitContext());
+        return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
     private static NodeBuilder child(NodeBuilder nb, String path) {
