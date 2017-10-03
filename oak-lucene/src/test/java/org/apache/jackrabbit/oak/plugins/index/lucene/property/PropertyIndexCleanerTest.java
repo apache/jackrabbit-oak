@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,36 +27,27 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.CheckForNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
-import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -68,7 +57,9 @@ import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class PropertyIndexCleanerTest {
@@ -124,7 +115,7 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 1
         asyncService.addInfo("async", 1000);
-        cleaner.run();
+        assertTrue(cleaner.run());
 
         assertThat(query(indexPath, "foo", "bar"), containsInAnyOrder("/a"));
 
@@ -137,14 +128,14 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 2
         asyncService.addInfo("async", 2000);
-        cleaner.run();
+        assertTrue(cleaner.run());
 
         //Now /a would be part of removed bucket
         assertThat(query(indexPath, "foo", "bar"), containsInAnyOrder("/b"));
 
         //------------------------ Run 3
         asyncService.addInfo("async", 3000);
-        cleaner.run();
+        assertTrue(cleaner.run());
 
         //With another run /b would also be removed
         assertThat(query(indexPath, "foo", "bar"), empty());
@@ -182,7 +173,7 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 1
         asyncService.addInfo("async", 1200);
-        cleaner.run();
+        assertTrue(cleaner.run());
 
         // /a would be purged, /b would be retained as its created time 1150 is not older than 100 wrt
         // indexer time of 1200
@@ -202,11 +193,36 @@ public class PropertyIndexCleanerTest {
 
         //------------------------ Run 2
         asyncService.addInfo("async", 1400);
-        cleaner.run();
+        assertTrue(cleaner.run());
 
         //Both entries would have been purged
         assertThat(query(indexPath, "foo", "bar"), empty());
         assertThat(query(indexPath, "foo", "bar2"), empty());
+    }
+
+    @Test
+    public void noRunPerformedIfNoChangeInAsync() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+        String indexPath = "/oak:index/foo";
+        addIndex(indexPath, defnb);
+
+        PropertyIndexCleaner cleaner =
+                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService);
+
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        PropertyIndexUpdateCallback cb = newCallback(builder, indexPath);
+        propertyUpdated(cb, indexPath, "/a", "foo", "bar");
+        merge(builder);
+
+        assertThat(query(indexPath, "foo", "bar"), containsInAnyOrder("/a"));
+
+        //------------------------ Run 1
+        asyncService.addInfo("async", 1000);
+        assertTrue(cleaner.run());
+
+        //Second run should not run
+        assertFalse(cleaner.run());
     }
 
     private void addIndex(String indexPath, IndexDefinitionBuilder defnb) throws CommitFailedException {
