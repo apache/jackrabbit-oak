@@ -97,6 +97,23 @@ public class HybridPropertyIndexLookupTest {
         assertThat(query(f, "foo", "jcr:content/foo"), containsInAnyOrder("/a"));
     }
 
+    @Test
+    public void pathResultAbsolutePath() throws Exception{
+        defnb.indexRule("nt:base").property("foo").sync();
+
+        propertyUpdated("/a", "foo", "bar");
+
+        String propertyName = "foo";
+        FilterImpl filter = createFilter();
+        filter.restrictProperty("foo", Operator.EQUAL, newString("bar"));
+
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
+        Iterable<String> paths = lookup.query(filter, pd(propertyName), propertyName,
+                filter.getPropertyRestriction(propertyName));
+
+        assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
+    }
+
     private void propertyUpdated(String nodePath, String propertyRelativeName, String value){
         callback.propertyUpdated(nodePath, propertyRelativeName, pd(propertyRelativeName),
                 null, createProperty(PathUtils.getName(propertyRelativeName), value));
@@ -116,8 +133,7 @@ public class HybridPropertyIndexLookupTest {
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
         Iterable<String> paths = lookup.query(filter, pd(propertyName), propertyName,
                 filter.getPropertyRestriction(propertyRestrictionName));
-        Cursor c = Cursors.newPathCursor(paths, new QueryEngineSettings());
-        return ImmutableList.copyOf(Iterators.transform(c, r -> r.getPath()));
+        return ImmutableList.copyOf(paths);
     }
 
     private PropertyDefinition pd(String propName){
