@@ -25,6 +25,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyUpdateCallback;
@@ -47,10 +48,12 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
 
     private final NodeBuilder builder;
     private final String indexPath;
+    private final UniquenessConstraintValidator uniquenessConstraintValidator;
 
     public PropertyIndexUpdateCallback(String indexPath, NodeBuilder builder) {
         this.builder = builder;
         this.indexPath = indexPath;
+        this.uniquenessConstraintValidator = new UniquenessConstraintValidator(indexPath, builder);
     }
 
     @Override
@@ -80,7 +83,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
                         null,
                         beforeKeys,
                         afterKeys);
-                //TODO Query to check if unique
+                uniquenessConstraintValidator.add(propertyRelativePath, afterKeys);
             } else {
                 ContentMirrorStoreStrategy s = new ContentMirrorStoreStrategy();
                 s.update(ofInstance(indexNode),
@@ -91,7 +94,15 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
                         afterKeys);
             }
         }
+    }
 
+    @Override
+    public void done() throws CommitFailedException {
+        uniquenessConstraintValidator.validate();
+    }
+
+    public UniquenessConstraintValidator getUniquenessConstraintValidator() {
+        return uniquenessConstraintValidator;
     }
 
     private NodeBuilder getIndexNode(String propertyRelativePath, boolean unique) {

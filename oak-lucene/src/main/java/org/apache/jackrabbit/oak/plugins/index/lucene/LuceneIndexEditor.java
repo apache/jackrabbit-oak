@@ -150,6 +150,11 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         }
 
         if (parent == null) {
+            PropertyUpdateCallback callback = context.getPropertyUpdateCallback();
+            if (callback != null) {
+                callback.done();
+            }
+
             try {
                 context.closeWriter();
             } catch (IOException e) {
