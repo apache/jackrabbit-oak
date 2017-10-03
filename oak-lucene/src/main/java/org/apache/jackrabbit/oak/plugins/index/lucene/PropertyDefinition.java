@@ -42,7 +42,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 
-class PropertyDefinition {
+public class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
     /**
      * The default boost: 1.0f.
@@ -106,7 +106,7 @@ class PropertyDefinition {
 
     /**
      * For function-based indexes: the function name, in Polish notation.
-     */    
+     */
     final String function;
     
     /**
@@ -114,11 +114,11 @@ class PropertyDefinition {
      */    
     final String[] functionCode;
 
-    final ValuePattern valuePattern;
+    public final ValuePattern valuePattern;
 
-    final boolean sync;
+    public final boolean sync;
 
-    final boolean unique;
+    public final boolean unique;
 
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
