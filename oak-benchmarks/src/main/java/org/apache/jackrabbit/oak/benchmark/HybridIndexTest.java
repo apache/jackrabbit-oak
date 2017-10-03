@@ -94,6 +94,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
@@ -263,6 +264,11 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
         if (backgroundObserver != null){
             backgroundObserver.close();
+        }
+
+        int sleepCount = 0;
+        while (backgroundObserver.getMBean().getQueueSize()> 0 && ++sleepCount < 100) {
+            TimeUnit.MILLISECONDS.sleep(100);
         }
 
         for (Registration r : regs) {
@@ -445,8 +451,11 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
         private void addPropIndexDefn(NodeBuilder parent, String propName){
             try {
-                IndexUtils.createIndexDefinition(parent, propName, false,
+                NodeBuilder idx = IndexUtils.createIndexDefinition(parent, propName, false,
                         singleton(propName), null, "property", null);
+                if ( propName.equals(indexedPropName)) {
+                    idx.setProperty("tags", singletonList("fooIndex"), Type.STRINGS);
+                }
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -475,6 +484,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             }
 
             oakIndex.setChildNode(indexedPropName, defnBuilder.build());
+            oakIndex.child(indexedPropName).setProperty("tags", singletonList("fooIndex"), Type.STRINGS);
         }
     }
 
@@ -513,6 +523,12 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                     nodetype.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
                 }
             }
+
+            //Disable counter index to disable traversal
+            NodeBuilder counter = builder.getChildNode("oak:index").getChildNode("counter");
+            if (counter.exists()) {
+                counter.setProperty("type", "disabled");
+            }
         }
     }
 
@@ -531,7 +547,8 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         private void run0() throws RepositoryException {
             session.refresh(false);
             QueryManager qm = session.getWorkspace().getQueryManager();
-            Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $status", Query.JCR_SQL2);
+            Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $status " +
+                    "option(index tag fooIndex)", Query.JCR_SQL2);
             q.bindValue("status", session.getValueFactory().createValue(randomStatus()));
             QueryResult result = q.execute();
 
