@@ -64,6 +64,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     private final MeterStats added;
     private final MeterStats dropped;
     private final Striped<Lock> locks = Striped.lock(64);
+    private UncaughtExceptionHandler delegate = (t, e) -> {};
 
     /**
      * Time in millis for which add call to queue
@@ -124,6 +125,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
                     PERF_LOGGER.end(start, 1, "Processed {} docs from queue", count);
                 } catch (Throwable t) {
                     exceptionHandler.uncaughtException(Thread.currentThread(), t);
+                    delegate.uncaughtException(Thread.currentThread(), t);
                 }
                 return null;
             }
@@ -196,6 +198,14 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     @Override
     public void addAllSynchronously(Map<String, Collection<LuceneDoc>> docsPerIndex) {
         addDocsToIndex(docsPerIndex, false);
+    }
+
+    /**
+     * Delegate handled which can be used by test to check for
+     * any exception occurring in queue processing
+     */
+    public void setExceptionHandler(UncaughtExceptionHandler delegate) {
+        this.delegate = delegate;
     }
 
     private void addDocsToIndex(Map<String, Collection<LuceneDoc>> docsPerIndex, boolean docsFromQueue) {
@@ -271,6 +281,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
             //For now we just log it. Later we need to see if frequent error then to
             //temporarily disable indexing for this index
             log.warn("Error occurred while indexing index [{}]",indexPath, e);
+            delegate.uncaughtException(Thread.currentThread(), e);
         } finally {
             indexNode.release();
         }
