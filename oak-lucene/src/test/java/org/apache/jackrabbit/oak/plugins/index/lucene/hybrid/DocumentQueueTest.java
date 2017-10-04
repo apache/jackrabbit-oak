@@ -153,7 +153,7 @@ public class DocumentQueueTest {
 
         List<NRTIndex> indexes = indexFactory.getIndexes("/oak:index/fooIndex");
         NRTIndex index = indexes.get(indexes.size() - 1);
-        assertEquals(1, index.getPrimaryReader().getReader().numDocs());
+        assertEquals(1, index.getPrimaryReaderForTest().numDocs());
     }
 
     @Test
