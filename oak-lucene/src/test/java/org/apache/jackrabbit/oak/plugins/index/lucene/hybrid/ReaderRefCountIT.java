@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -61,7 +63,7 @@ public class ReaderRefCountIT {
 
     private NodeState root = INITIAL_CONTENT;
     private IndexCopier indexCopier;
-    private int runTimeInSecs = 50;
+    private int runTimeInSecs = 25;
     private int noOfThread = 5;
 
     @Before
@@ -76,7 +78,7 @@ public class ReaderRefCountIT {
         idx.async("async", "sync");
 
         NRTIndexFactory nrtFactory = new NRTIndexFactory(indexCopier, StatisticsProvider.NOOP);
-        runMultiReaderScenario(idx, nrtFactory);
+        runMultiReaderScenario(idx, nrtFactory, false);
     }
 
     @Test
@@ -87,13 +89,31 @@ public class ReaderRefCountIT {
 
         NRTIndexFactory nrtFactory = new NRTIndexFactory(indexCopier, Clock.SIMPLE,
                 0 , StatisticsProvider.NOOP);
-        runMultiReaderScenario(idx, nrtFactory);
+        runMultiReaderScenario(idx, nrtFactory, false);
+    }
+
+    /**
+     * This test enables 1 more thread which updates the IndexTracker
+     * This causes the IndexNodeManager to switch to newer indexes
+     * and hence lead to creation and closing of older NRTIndexes
+     */
+    @Ignore("OAK-6777")
+    @Test
+    public void indexTrackerUpdatesAndNRT() throws Exception{
+        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        idx.indexRule("nt:base").property("foo").propertyIndex();
+        idx.async("async", "nrt");
+
+        NRTIndexFactory nrtFactory = new NRTIndexFactory(indexCopier, Clock.SIMPLE,
+                0 , StatisticsProvider.NOOP);
+        runMultiReaderScenario(idx, nrtFactory, true);
     }
 
     private void runMultiReaderScenario(IndexDefinitionBuilder defnb,
-                                       NRTIndexFactory nrtFactory) throws Exception{
+                                       NRTIndexFactory nrtFactory, boolean updateIndex) throws Exception{
         NodeBuilder builder = root.builder();
         builder.child("oak:index").setChildNode("fooIndex", defnb.build());
+        LuceneIndexEditorContext.configureUniqueId(builder.child("oak:index").child("fooIndex"));
         NodeState repoState = builder.getNodeState();
 
         String indexPath = "/oak:index/fooIndex";
@@ -104,9 +124,20 @@ public class ReaderRefCountIT {
         IndexTracker tracker = new IndexTracker(new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier), nrtFactory);
         tracker.update(repoState);
 
-        DocumentQueue queue = new DocumentQueue(100, tracker, sameThreadExecutor());
-
         CountDownLatch errorLatch = new CountDownLatch(1);
+        UncaughtExceptionHandler uh = new UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                e.printStackTrace();
+                exceptionList.add(e);
+                errorLatch.countDown();
+            }
+        };
+
+        DocumentQueue queue = new DocumentQueue(100, tracker, sameThreadExecutor());
+        queue.setExceptionHandler(uh);
+
+
         //Writer should try to refresh same IndexNode within same lock
         //i.e. simulate a scenario where DocumentQueue pushes multiple
         //sync index docs in same commit
@@ -141,12 +172,15 @@ public class ReaderRefCountIT {
             }
         };
 
-        UncaughtExceptionHandler uh = new UncaughtExceptionHandler() {
+        Runnable indexUpdater = new Runnable() {
             @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace();
-                exceptionList.add(e);
-                errorLatch.countDown();
+            public void run() {
+                int count = 0;
+                while(!stop.get()) {
+                    NodeBuilder b = repoState.builder();
+                    b.getChildNode("oak:index").getChildNode("fooIndex").setProperty("count", count++);
+                    tracker.update(b.getNodeState());
+                }
             }
         };
 
@@ -157,6 +191,10 @@ public class ReaderRefCountIT {
             Thread t = new Thread(reader);
             threads.add(t);
             t.setUncaughtExceptionHandler(uh);
+        }
+
+        if (updateIndex) {
+            threads.add(new Thread(indexUpdater));
         }
 
         for (Thread t : threads) {

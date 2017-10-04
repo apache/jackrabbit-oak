@@ -25,10 +25,12 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.lucene.document.Document;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,6 +38,7 @@ import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -120,6 +123,28 @@ public class NRTIndexFactoryTest {
     }
 
     @Test
+    public void indexCreationAndCloserWithUpdate() throws Exception{
+        IndexDefinition idxDefn = getNRTIndexDefinition("/foo");
+
+        Document d = new Document();
+        d.add(newPathField("/a/b"));
+
+        NRTIndex idx1 = indexFactory.createIndex(idxDefn);
+        idx1.getWriter().updateDocument("/a/b", d);
+        assertEquals(1, idx1.getReaders().size());
+
+        NRTIndex idx2 = indexFactory.createIndex(idxDefn);
+        idx2.getWriter().updateDocument("/a/b", d);
+        idx1.getWriter().updateDocument("/a/b", d);
+        assertEquals(2, idx2.getReaders().size());
+
+        NRTIndex idx3 = indexFactory.createIndex(idxDefn);
+        NRTIndex idx4 = indexFactory.createIndex(idxDefn);
+        assertTrue(idx1.isClosed());
+    }
+
+
+    @Test
     public void closeIndexOnClose() throws Exception{
         IndexDefinition idxDefn = getNRTIndexDefinition("/foo");
 
@@ -139,7 +164,7 @@ public class NRTIndexFactoryTest {
 
     private IndexDefinition getIndexDefinition(String indexPath, IndexingMode indexingMode) {
         TestUtil.enableIndexingMode(builder, indexingMode);
-
+        LuceneIndexEditorContext.configureUniqueId(builder);
         return new IndexDefinition(root, builder.getNodeState(), indexPath);
     }
 }
