@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
@@ -344,6 +345,12 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         log.info("Explicit cleanup run done with result {}", result);
         return result;
+    }
+
+    @Override
+    public String getHybridIndexInfo(String indexPath) {
+        NodeState idx = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
+        return new HybridPropertyIndexInfo(idx).getInfoAsJson();
     }
 
     private Result getConsistencyCheckResult(String indexPath, boolean fullCheck) throws IOException {

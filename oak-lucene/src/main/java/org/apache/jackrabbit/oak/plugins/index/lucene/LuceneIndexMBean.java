@@ -111,4 +111,8 @@ public interface LuceneIndexMBean {
     @Description("Performs any possible cleanup of the hybrid property indexes")
     String performPropertyIndexCleanup() throws CommitFailedException;
 
+
+    @Description("Fetches hybrid property index info as json for index at given path")
+    String getHybridIndexInfo(@Name("indexPath") String indexPath);
+
 }
