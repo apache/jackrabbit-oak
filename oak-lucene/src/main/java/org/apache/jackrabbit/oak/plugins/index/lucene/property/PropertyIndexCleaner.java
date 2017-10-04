@@ -50,9 +50,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_STORAGE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.STORAGE_TYPE_CONTENT_MIRROR;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.STORAGE_TYPE_UNIQUE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.simplePropertyIndex;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.uniquePropertyIndex;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 public class PropertyIndexCleaner implements Runnable{
@@ -244,14 +243,6 @@ public class PropertyIndexCleaner implements Runnable{
             nb = nb.getChildNode(name);
         }
         return nb;
-    }
-
-    private static boolean simplePropertyIndex(NodeState propIdxState) {
-        return STORAGE_TYPE_CONTENT_MIRROR.equals(propIdxState.getString(PROP_STORAGE_TYPE));
-    }
-
-    private static boolean uniquePropertyIndex(NodeState propIdxState) {
-        return STORAGE_TYPE_UNIQUE.equals(propIdxState.getString(PROP_STORAGE_TYPE));
     }
 
     private static final class IndexInfo {

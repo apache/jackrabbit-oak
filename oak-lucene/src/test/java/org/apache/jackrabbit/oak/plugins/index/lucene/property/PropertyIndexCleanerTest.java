@@ -27,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.CheckForNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
@@ -43,8 +45,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,9 +62,7 @@ import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class PropertyIndexCleanerTest {
@@ -175,6 +177,12 @@ public class PropertyIndexCleanerTest {
         //------------------------ Run 1
         asyncService.addInfo("async", 1200);
         assertCleanUpPerformed(cleaner.performCleanup(false), true);
+        assertJsonInfo(indexPath, "{\n" +
+                "  \"foo\": {\n" +
+                "    \"entryCount\": 1,\n" +
+                "    \"unique\": true\n" +
+                "  }\n" +
+                "}");
 
         // /a would be purged, /b would be retained as its created time 1150 is not older than 100 wrt
         // indexer time of 1200
@@ -221,6 +229,22 @@ public class PropertyIndexCleanerTest {
         //------------------------ Run 1
         asyncService.addInfo("async", 1000);
         assertCleanUpPerformed(cleaner.performCleanup(false), true);
+        assertJsonInfo(indexPath, "{\n" +
+                "  \"foo\": {\n" +
+                "    \"1\": {\n" +
+                "      \"type\": \"previous\",\n" +
+                "      \"keyCount\": 1,\n" +
+                "      \"entryCount\": 1,\n" +
+                "      \"totalCount\": 3\n" +
+                "    },\n" +
+                "    \"2\": {\n" +
+                "      \"type\": \"head\",\n" +
+                "      \"keyCount\": 0,\n" +
+                "      \"entryCount\": 0,\n" +
+                "      \"totalCount\": 1\n" +
+                "    }\n" +
+                "  }\n" +
+                "}");
 
         //Second run should not run
         assertCleanUpPerformed(cleaner.performCleanup(false), false);
@@ -228,6 +252,17 @@ public class PropertyIndexCleanerTest {
 
     private void assertCleanUpPerformed(CleanupStats stats, boolean expected) {
         assertEquals(expected, stats.cleanupPerformed);
+    }
+
+    private void assertJsonInfo(String indexPath, String expectedJson) throws ParseException {
+        NodeState idx = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
+        String json = new HybridPropertyIndexInfo(idx).getInfoAsJson();
+        JsonObject j1 = (JsonObject) new JsonParser().parse(json);
+        JsonObject j2 = (JsonObject) new JsonParser().parse(expectedJson);
+
+        if (!j1.equals(j2)){
+            assertEquals(j1, j2);
+        }
     }
 
     private void addIndex(String indexPath, IndexDefinitionBuilder defnb) throws CommitFailedException {

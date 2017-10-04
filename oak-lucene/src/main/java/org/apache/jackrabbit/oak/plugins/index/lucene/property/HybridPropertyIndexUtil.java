@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class HybridPropertyIndexUtil {
     /**
@@ -58,5 +59,13 @@ class HybridPropertyIndexUtil {
 
     static String getNodeName(String propertyRelativePath) {
         return propertyRelativePath.replace('/', '_');
+    }
+
+    static boolean simplePropertyIndex(NodeState propIdxState) {
+        return STORAGE_TYPE_CONTENT_MIRROR.equals(propIdxState.getString(PROP_STORAGE_TYPE));
+    }
+
+    static boolean uniquePropertyIndex(NodeState propIdxState) {
+        return STORAGE_TYPE_UNIQUE.equals(propIdxState.getString(PROP_STORAGE_TYPE));
     }
 }
