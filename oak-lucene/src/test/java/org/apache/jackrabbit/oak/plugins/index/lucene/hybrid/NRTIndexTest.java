@@ -144,13 +144,13 @@ public class NRTIndexTest {
         document.add(newPathField("/a/b"));
 
         writer.updateDocument("/a/b", document);
-        assertEquals(1, idx.getPrimaryReader().getReader().numDocs());
+        assertEquals(1, idx.getPrimaryReaderForTest().numDocs());
 
         writer.updateDocument("/a/b", document);
 
         //Update for same path should not lead to deletion
-        assertEquals(2, idx.getPrimaryReader().getReader().numDocs());
-        assertEquals(0, idx.getPrimaryReader().getReader().numDeletedDocs());
+        assertEquals(2, idx.getPrimaryReaderForTest().numDocs());
+        assertEquals(0, idx.getPrimaryReaderForTest().numDeletedDocs());
     }
 
     @Test
