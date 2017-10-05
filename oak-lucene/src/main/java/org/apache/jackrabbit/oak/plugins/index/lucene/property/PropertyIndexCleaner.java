@@ -114,7 +114,7 @@ public class PropertyIndexCleaner implements Runnable{
      * Specifies the threshold for created time such that only those entries
      * in unique indexes are purged which have
      *
-     *     async indexer time - creation time > threshold
+     *     async indexer time - creation time &gt; threshold
      *
      * @param unit time unit
      * @param time time value in given unit
