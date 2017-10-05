@@ -25,6 +25,9 @@ import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.STATUS_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.isLuceneIndexNode;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -49,8 +52,10 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,10 +150,12 @@ public class IndexTracker {
                 @Override
                 public void leave(NodeState before, NodeState after) {
                     try {
-                        long start = PERF_LOGGER.start();
-                        IndexNodeManager index = IndexNodeManager.open(path, root, after, readerFactory, nrtFactory);
-                        PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
-                        updates.put(path, index); // index can be null
+                        if (isStatusChanged(before, after) || isIndexDefinitionChanged(before, after)) {
+                            long start = PERF_LOGGER.start();
+                            IndexNodeManager index = IndexNodeManager.open(path, root, after, readerFactory, nrtFactory);
+                            PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
+                            updates.put(path, index); // index can be null
+                        }
                     } catch (IOException e) {
                         badIndexTracker.markBadPersistedIndex(path, e);
                     }
@@ -263,5 +270,11 @@ public class IndexTracker {
         return null;
     }
 
+    private static boolean isStatusChanged(NodeState before, NodeState after) {
+        return !EqualsDiff.equals(before.getChildNode(STATUS_NODE), after.getChildNode(STATUS_NODE));
+    }
 
+    private static boolean isIndexDefinitionChanged(NodeState before, NodeState after) {
+        return !EqualsDiff.equals(before.getChildNode(INDEX_DEFINITION_NODE), after.getChildNode(INDEX_DEFINITION_NODE));
+    }
 }
