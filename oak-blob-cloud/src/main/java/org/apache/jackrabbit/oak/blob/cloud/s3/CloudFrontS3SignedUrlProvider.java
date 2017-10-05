@@ -18,7 +18,7 @@
  */
 
 
-package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
+package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
 import com.google.common.io.Closeables;
