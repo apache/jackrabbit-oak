@@ -18,7 +18,7 @@
  */
 
 
-package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
+package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
