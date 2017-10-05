@@ -164,6 +164,8 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Integer.class).defaultsTo(2);
         OptionSpec<Integer> pathsPerMount = parser.accepts("pathsPerMount", "Number of paths per one mount.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1000);
+        OptionSpec<Integer> vgcMaxAge = parser.accepts("vgcMaxAge", "Continuous DocumentNodeStore VersionGC max age in sec (RDB only)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(-1);
         OptionSpec<?> verbose = parser.accepts("verbose", "Enable verbose output");
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
@@ -203,11 +205,11 @@ public class BenchmarkRunner {
                         mmap.value(options), fdsCache.value(options)),
                 OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), 
-                        dropDBAfterTest.value(options), cacheSize * MB),
+                        dropDBAfterTest.value(options), cacheSize * MB, vgcMaxAge.value(options)),
                 OakRepositoryFixture.getRDBWithDS(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
                         dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
-                        fdsCache.value(options)),
+                        fdsCache.value(options), vgcMaxAge.value(options)),
                 OakRepositoryFixture.getCompositeStore(base.value(options), 256, cacheSize,
                         mmap.value(options), mounts.value(options), pathsPerMount.value(options)),
                 OakRepositoryFixture.getCompositeMemoryStore(mounts.value(options), pathsPerMount.value(options))

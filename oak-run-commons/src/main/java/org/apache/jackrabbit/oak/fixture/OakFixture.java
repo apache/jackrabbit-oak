@@ -19,11 +19,15 @@ package org.apache.jackrabbit.oak.fixture;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
@@ -33,6 +37,8 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class OakFixture {
 
@@ -157,15 +163,16 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
-        final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize) {
-        return getRDB(name, jdbcuri, jdbcuser, jdbcpasswd, tablePrefix, dropDBAfterTest, cacheSize, false, null, 0);
+        final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize, final int vgcMaxAge) {
+        return getRDB(name, jdbcuri, jdbcuser, jdbcpasswd, tablePrefix, dropDBAfterTest, cacheSize, false, null, 0, vgcMaxAge);
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
                                     final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize,
-                                    final boolean useDataStore, final File base, final int dsCacheInMB) {
+                                    final boolean useDataStore, final File base, final int dsCacheInMB, final int vgcMaxAge) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
+            private VersionGarbageCollectionJob versionGarbageCollectionJob = null;
             private BlobStoreFixture blobStoreFixture;
 
             private RDBOptions getOptions(boolean dropDBAFterTest, String tablePrefix) {
@@ -219,12 +226,21 @@ public abstract class OakFixture {
                     kernels[i] = mkBuilder.open();
                     cluster[i] = newOak(kernels[i].getNodeStore());
                 }
+                if (vgcMaxAge > 0 && kernels.length >= 1) {
+                    versionGarbageCollectionJob = new VersionGarbageCollectionJob(kernels[0].getNodeStore(), vgcMaxAge);
+                    Thread t = new Thread(versionGarbageCollectionJob);
+                    t.setDaemon(true);
+                    t.start();
+                }
                 return cluster;
             }
 
             @Override
             public void tearDownCluster() {
                 String dropped = "";
+                if (versionGarbageCollectionJob != null) {
+                    versionGarbageCollectionJob.stop();
+                }
                 for (DocumentMK kernel : kernels) {
                     kernel.dispose();
                     if (kernel.getDocumentStore() instanceof RDBDocumentStore) {
@@ -232,7 +248,7 @@ public abstract class OakFixture {
                     }
                 }
                 if (dropDBAfterTest) {
-                    if(blobStoreFixture != null){
+                    if (blobStoreFixture != null) {
                         blobStoreFixture.tearDown();
                     }
 
@@ -248,6 +264,39 @@ public abstract class OakFixture {
                 }
             }
         };
+    }
+
+    private static class VersionGarbageCollectionJob implements Runnable {
+
+        private static final Logger LOG = LoggerFactory.getLogger(OakFixture.class);
+        private boolean stopped = false;
+        final VersionGarbageCollector vgc;
+        final long maxAge;
+
+        public VersionGarbageCollectionJob(DocumentNodeStore dns, long maxAge) {
+            this.vgc = dns.getVersionGarbageCollector();
+            this.maxAge = maxAge;
+        }
+
+        @Override
+        public void run() {
+            while(!stopped) {
+                try {
+                    VersionGCStats stats = this.vgc.gc(maxAge, TimeUnit.SECONDS);
+                    LOG.debug("vgc: " + stats);
+                    // org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION
+                    Thread.sleep(5 * 1000);
+                }
+                catch (Throwable ex) {
+                    LOG.warn("While running GC", ex);
+                }
+            }
+        }
+
+        public void stop() {
+            this.vgc.cancel();
+            this.stopped = true;
+        }
     }
 
     public static OakFixture getSegmentTar(final String name, final File base,
@@ -382,6 +431,6 @@ public abstract class OakFixture {
 
     static Oak newOak(NodeStore nodeStore) {
         return new Oak(nodeStore).with(ManagementFactory.getPlatformMBeanServer());
-    }    
+    }
 
 }

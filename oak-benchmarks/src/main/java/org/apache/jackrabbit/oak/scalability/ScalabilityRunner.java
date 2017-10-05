@@ -147,11 +147,11 @@ public class ScalabilityRunner {
                     mmap.value(options), fdsCache.value(options)),
                 OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                     rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
-                    dropDBAfterTest.value(options), cacheSize * MB),
+                    dropDBAfterTest.value(options), cacheSize * MB, -1),
                 OakRepositoryFixture.getRDBWithDS(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                     rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
                     dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
-                    fdsCache.value(options))
+                    fdsCache.value(options), -1)
         };
         ScalabilitySuite[] allSuites =
                 new ScalabilitySuite[] {

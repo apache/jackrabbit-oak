@@ -125,7 +125,7 @@ class ServerCommand implements Command {
             oakFixture = OakFixture.getSegmentTar(OakFixture.OAK_SEGMENT_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
         } else if (fix.equals(OakFixture.OAK_RDB)) {
             oakFixture = OakFixture.getRDB(OakFixture.OAK_RDB, rdbjdbcuri.value(options), rdbjdbcuser.value(options),
-                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize);
+                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize, -1);
         } else {
             throw new IllegalArgumentException("Unsupported repository setup " + fix);
         }
