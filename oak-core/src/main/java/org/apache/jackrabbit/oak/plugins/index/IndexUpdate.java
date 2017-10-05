@@ -234,6 +234,10 @@ public class IndexUpdate implements Editor, PathSource {
     private static boolean hasAnyHiddenNodes(NodeBuilder builder){
         for (String name : builder.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(name)){
+                NodeBuilder childNode = builder.getChildNode(name);
+                if (childNode.getBoolean(IndexConstants.REINDEX_RETAIN)) {
+                    continue;
+                }
                 return true;
             }
         }
@@ -272,19 +276,26 @@ public class IndexUpdate implements Editor, PathSource {
                     } else {
                         definition.setProperty(REINDEX_PROPERTY_NAME, false);
                         incrementReIndexCount(definition);
-                        // as we don't know the index content node name
-                        // beforehand, we'll remove all child nodes
-                        for (String rm : definition.getChildNodeNames()) {
-                            if (NodeStateUtils.isHidden(rm)) {
-                                definition.getChildNode(rm).remove();
-                            }
-                        }
+                        removeIndexState(definition);
 
                         clearCorruptFlag(definition, indexPath);
                         reindex.put(concat(getPath(), INDEX_DEFINITIONS_NAME, name), editor);
                     }
                 } else {
                     editors.add(editor);
+                }
+            }
+        }
+    }
+
+    private void removeIndexState(NodeBuilder definition) {
+        // as we don't know the index content node name
+        // beforehand, we'll remove all child nodes
+        for (String rm : definition.getChildNodeNames()) {
+            if (NodeStateUtils.isHidden(rm)) {
+                NodeBuilder childNode = definition.getChildNode(rm);
+                if (!childNode.getBoolean(IndexConstants.REINDEX_RETAIN)) {
+                    definition.getChildNode(rm).remove();
                 }
             }
         }

@@ -119,4 +119,10 @@ public interface IndexConstants {
      */
     String INDEX_NAME_OPTION = ":indexName";
 
+    /**
+     * Boolean property on any index node indicating that such a node should not be
+     * removed during reindex
+     */
+    String REINDEX_RETAIN = "retainNodeInReindex";
+
 }
