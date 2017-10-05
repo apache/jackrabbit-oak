@@ -492,7 +492,7 @@ public final class TreeUtil {
      *
      * @param tree The tree object to be tested.
      * @return {@code true} if the specified tree is an immutable read-only tree.
-     * @see {@link ReadOnly}
+     * @see ReadOnly
      */
     public static boolean isReadOnlyTree(@Nonnull Tree tree) {
         return tree instanceof ReadOnly;
