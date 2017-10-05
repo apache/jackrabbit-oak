@@ -97,7 +97,6 @@ public class ReaderRefCountIT {
      * This causes the IndexNodeManager to switch to newer indexes
      * and hence lead to creation and closing of older NRTIndexes
      */
-    @Ignore("OAK-6777")
     @Test
     public void indexTrackerUpdatesAndNRT() throws Exception{
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
