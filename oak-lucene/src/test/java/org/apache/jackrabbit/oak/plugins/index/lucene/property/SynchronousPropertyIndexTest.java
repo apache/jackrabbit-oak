@@ -23,7 +23,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -33,6 +38,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -49,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -56,6 +65,7 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
@@ -63,6 +73,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -94,6 +105,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
     private IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
     private String indexPath  = "/oak:index/foo";
+    private DelayingIndexEditor delayingEditorProvider = new DelayingIndexEditor();
 
     @Before
     public void setUp(){
@@ -138,6 +150,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider())
                 .with(new NodeCounterEditorProvider())
+                .with(delayingEditorProvider)
                 //Effectively disable async indexing auto run
                 //such that we can control run timing as per test requirement
                 .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
@@ -313,6 +326,42 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
     }
 
+    @Ignore("OAK-6781")
+    @Test
+    public void asyncIndexerReindexAndPropertyIndexes() throws Exception{
+        defnb.async("async", "nrt");
+        defnb.indexRule("nt:base").property("foo").sync();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+
+        Semaphore s = new Semaphore(0);
+        delayingEditorProvider.semaphore = s;
+
+        AtomicReference<Throwable> th = new AtomicReference<>();
+
+        Thread t = new Thread(this::runAsyncIndex);
+        t.setUncaughtExceptionHandler((t1, e) -> th.set(e));
+        t.start();
+
+        while (!s.hasQueuedThreads()) {
+            Thread.yield();
+        }
+
+        createPath("/b").setProperty("foo", "bar");
+        root.commit();
+
+        s.release(2);
+        t.join();
+
+        if (th.get() != null) {
+            throw new AssertionError(th.get());
+        }
+    }
+
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb,
                 Runnable.class, input -> input instanceof AsyncIndexUpdate);
@@ -339,5 +388,22 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
             base = base.hasChild(e) ? base.getChild(e) : base.addChild(e);
         }
         return base;
+    }
+
+    private static class DelayingIndexEditor implements IndexEditorProvider {
+        private Semaphore semaphore;
+        @CheckForNull
+        @Override
+        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
+                                     @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+                throws CommitFailedException {
+            ContextAwareCallback ccb = (ContextAwareCallback) callback;
+            if (semaphore != null && ccb.getIndexingContext().isAsync()) {
+                semaphore.acquireUninterruptibly();
+            }
+            return null;
+        }
+
+
     }
 }
