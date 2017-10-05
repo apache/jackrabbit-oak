@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
@@ -334,6 +335,59 @@ public class IndexUpdateTest {
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
 
+    }
+
+    /**
+     * Tests that with explicit reindex i.e. reindex=true those hidden nodes
+     * which have IndexConstants.REINDEX_RETAIN set to true are not removed
+     */
+    @Test
+    public void reindexSkipRemovalOfRetainedNodes() throws Exception{
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        nb.child(":hidden-node-1").setProperty("foo", "bar");
+        nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
+        nb.child("visible-node");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex");
+        checkPathExists(ns, "visible-node");
+        checkPathExists(ns, ":hidden-node-2");
+        assertFalse(ns.getChildNode(":hidden-node-1").exists());
+        assertEquals(1, ns.getLong(REINDEX_COUNT));
+    }
+
+    /**
+     * Test that an index is still reindexed if it has hidden nodes but with all such
+     * hidden nodes having IndexConstants.REINDEX_RETAIN set to true i.e. this index
+     * does not yet have any hidden nodes corresponding to persisted index like lucene
+     */
+    @Test
+    public void reindexSkipRemovalOfRetainedNodes_FreshIndex() throws Exception{
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+        nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
+        nb.child("visible-node");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex");
+        checkPathExists(ns, "visible-node");
+        checkPathExists(ns, ":hidden-node-2");
+        assertEquals(1, ns.getLong(REINDEX_COUNT));
     }
 
 

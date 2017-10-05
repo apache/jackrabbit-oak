@@ -27,6 +27,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
@@ -128,6 +129,10 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
 
     private NodeBuilder getIndexNode(String propertyRelativePath, boolean unique) {
         NodeBuilder propertyIndex = builder.child(PROPERTY_INDEX);
+
+        if (propertyIndex.isNew()) {
+            propertyIndex.setProperty(IndexConstants.REINDEX_RETAIN, true);
+        }
 
         String nodeName = HybridPropertyIndexUtil.getNodeName(propertyRelativePath);
         if (unique) {

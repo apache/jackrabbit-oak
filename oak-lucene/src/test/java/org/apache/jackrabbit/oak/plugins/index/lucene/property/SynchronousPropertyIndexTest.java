@@ -326,7 +326,6 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
     }
 
-    @Ignore("OAK-6781")
     @Test
     public void asyncIndexerReindexAndPropertyIndexes() throws Exception{
         defnb.async("async", "nrt");
