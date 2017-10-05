@@ -1148,6 +1148,8 @@ public class XPathToSQL2Converter {
         }
         result.orderList = orderList;
         result.queryOptions = queryOptions;
+        result.setExplain(statement.explain);
+        result.setMeasure(statement.measure);
         return result;
     }
 
