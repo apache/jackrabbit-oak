@@ -76,6 +76,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterOld;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -694,8 +695,13 @@ public class Oak {
                     PropertyIndexAsyncReindexMBean.TYPE, "async"));
         }
 
-        regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
-                new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        if (NodeCounter.USE_OLD_COUNTER) {
+            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
+                    new NodeCounterOld(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        } else {
+            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
+                    new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        }
 
         regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
                 queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings"));

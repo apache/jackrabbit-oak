@@ -165,7 +165,7 @@ public class Multiplexers {
         return "-" + stripStartingColon(name);
     }
 
-    private static String stripStartingColon(String name) {
+    public static String stripStartingColon(String name) {
         if (name.startsWith(":")) {
             return name.substring(1);
         }
