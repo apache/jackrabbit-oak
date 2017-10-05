@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.tree;
 
 /**
- * Marker interface to indicate if a {@link Tree} or {@link org.apache.jackrabbit.oak.api.Root}
+ * Marker interface to indicate if a {@link org.apache.jackrabbit.oak.api.Tree} or {@link org.apache.jackrabbit.oak.api.Root}
  * can only be read (write operations not implemented).
  */
 public interface ReadOnly {
