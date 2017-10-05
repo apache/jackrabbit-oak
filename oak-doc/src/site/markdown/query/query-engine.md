@@ -200,25 +200,29 @@ Limitations:
 #### Result Size
 
 For NodeIterator.getSize(), some versions of Jackrabbit 2.x returned the estimated (raw)
-Lucene result set size, including nodes that are not accessible. 
+Lucene result set size, including nodes that are not accessible.
+
 By default, Oak does not do this; it either returns the correct result size, or -1.
-
 Oak 1.2.x and newer supports a compatibility flag so that it works in the same way
-as Jackrabbit 2.x, by returning an estimate. See also OAK-2926.
-This is best configured as described in OAK-2977:
-When using Apache Sling, since Oak 1.3.x, 
-add the following line to the file `conf/sling.properties`,
-and then restart the application:
+as Jackrabbit 2.x, by returning an estimate (see OAK-2926).
+The estimate will be larger or equal the actual result size, 
+as it includes unindexed properties and nodes that are not accessible. 
 
-    oak.query.fastResultSize=true
-
-Please note this only works with the Lucene `compatVersion=2` right now.
+This only works with the Lucene `compatVersion=2` right now,
+so even if enabled, getSize may still return -1 if the index used does not support the feature.
 Example code to show how this work (where `test` is a common word in the index):
 
     String query = "//element(*, cq:Page)[jcr:contains(., 'test')]";
     Query query = queryManager.createQuery(qs, "xpath");
     QueryResult result = query.execute();
     long size = result.getRows().getSize();
+
+This is best configured via OSGi configuration (since Oak 1.6.x),
+or as described in OAK-2977, since Oak 1.3.x:
+When using Apache Sling, add the following line to the file `conf/sling.properties`,
+and then restart the application:
+
+    oak.query.fastResultSize=true
 
 #### Quoting
 
