@@ -84,7 +84,9 @@ public class NRTIndex implements Closeable {
     private File indexDir;
     private Directory directory;
     private DirectoryReader dirReader;
+    private DirectoryReader dirReaderUsedForPrevious;
     private boolean closed;
+    private boolean previousModeEnabled;
     private List<LuceneIndexReader> readers;
     private final List<IndexReader> openedReaders;
     private final boolean assertAllReadersClosed;
@@ -108,12 +110,19 @@ public class NRTIndex implements Closeable {
         this.openTime = statisticsProvider.getTimer(metricName("OPEN_TIME"), StatsOptions.METRICS_ONLY).time();
     }
 
+    /**
+     * Note that this method is called from a different NRTIndex instance getReaders
+     * call. So "dirReader" instance changed here is different
+     */
     @CheckForNull
     private LuceneIndexReader getPrimaryReader() {
-        DirectoryReader latestReader = createReader();
-        if (latestReader != dirReader) {
-            decrementReaderUseCount(dirReader);
-            dirReader = latestReader;
+        DirectoryReader latestReader = createReader(dirReaderUsedForPrevious);
+        while (latestReader != null && !latestReader.tryIncRef()) {
+            latestReader = createReader(dirReaderUsedForPrevious);
+        }
+        if (latestReader != dirReaderUsedForPrevious) {
+            decrementReaderUseCount(dirReaderUsedForPrevious);
+            dirReaderUsedForPrevious = latestReader;
         }
         return latestReader != null ? new NRTReader(latestReader, directory) : null;
     }
@@ -133,12 +142,14 @@ public class NRTIndex implements Closeable {
      */
     public synchronized List<LuceneIndexReader> getReaders() {
         checkState(!closed);
-        DirectoryReader latestReader = createReader();
+        checkState(!previousModeEnabled);
+        DirectoryReader latestReader = createReader(dirReader);
         //reader not changed i.e. no change in index
         //reuse old readers
         if (latestReader == dirReader && readers != null){
             return readers;
         }
+
         List<LuceneIndexReader> newReaders = Lists.newArrayListWithCapacity(2);
         if (latestReader != null) {
             newReaders.add(new NRTReader(latestReader, directory));
@@ -150,7 +161,7 @@ public class NRTIndex implements Closeable {
             newReaders.add(previousReader);
         }
 
-        decrementReaderUseCount(dirReader);
+        decrementReaderUseCount(readers);
 
         dirReader = latestReader;
         readers = ImmutableList.copyOf(newReaders);
@@ -161,6 +172,20 @@ public class NRTIndex implements Closeable {
         return refreshPolicy;
     }
 
+    /**
+     * Disconnects the previous reader used by this NRTIndex. Note that this would be
+     * different from 'dirReaderUsedForPrevious' which is meant to be used by newer NRTIndex
+     * which refers to this NRTIndex as previous
+     */
+    public void disconnectPrevious(){
+        decrementReaderUseCount(readers);
+        readers = Collections.emptyList();
+
+        //From now onwards no caller should be invoked getReaders
+        //only call for getPrimaryReader would be allowed
+        previousModeEnabled = true;
+    }
+
     public void close() throws IOException {
         if (closed) {
             return;
@@ -168,9 +193,9 @@ public class NRTIndex implements Closeable {
 
         log.debug("[{}] Closing NRTIndex [{}]", definition.getIndexPath(), getName());
 
-        if (dirReader != null){
-            dirReader.close();
-        }
+        decrementReaderUseCount(dirReaderUsedForPrevious);
+        //'readers' already has dirReader so no need to close it explicitly
+        decrementReaderUseCount(readers);
 
         assertAllReadersAreClosed();
 
@@ -223,6 +248,14 @@ public class NRTIndex implements Closeable {
         }
     }
 
+    private void decrementReaderUseCount(@Nullable List<LuceneIndexReader> readers) {
+        if (readers != null) {
+            for (LuceneIndexReader r : readers) {
+                decrementReaderUseCount(r.getReader());
+            }
+        }
+    }
+
     private void decrementReaderUseCount(IndexReader reader) {
         try {
             if (reader != null) {
@@ -239,7 +272,7 @@ public class NRTIndex implements Closeable {
      * existing reader would be returned
      */
     @CheckForNull
-    private synchronized DirectoryReader createReader() {
+    private synchronized DirectoryReader createReader(DirectoryReader dirReader) {
         checkState(!closed);
         //Its possible that readers are obtained
         //before anything gets indexed
@@ -251,7 +284,7 @@ public class NRTIndex implements Closeable {
             TimerStats.Context ctx = refreshTimer.time();
             //applyDeletes is false as layers above would take care of
             //stale result
-            if (dirReader == null) {
+            if (dirReader == null || dirReader.getRefCount() == 0) {
                 result = DirectoryReader.open(indexWriter, false);
             } else {
                 DirectoryReader newReader = DirectoryReader.openIfChanged(dirReader, indexWriter, false);
