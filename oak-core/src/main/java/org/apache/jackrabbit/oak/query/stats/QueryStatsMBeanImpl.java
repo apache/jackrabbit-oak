@@ -69,7 +69,7 @@ public class QueryStatsMBeanImpl extends AnnotatedStandardMBean
         Collections.sort(list, new Comparator<QueryStatsData>() {
             @Override
             public int compare(QueryStatsData o1, QueryStatsData o2) {
-                return -Long.compare(o1.getMaxTimeNanos(), o2.getMaxTimeNanos());
+                return -Long.compare(o1.getMaxRowsScanned(), o2.getMaxRowsScanned());
             }
         });
         return asTabularData(list);
