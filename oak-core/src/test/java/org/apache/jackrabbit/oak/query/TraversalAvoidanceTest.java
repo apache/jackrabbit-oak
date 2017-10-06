@@ -13,12 +13,22 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -26,26 +36,80 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
-import java.util.List;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 public class TraversalAvoidanceTest extends AbstractQueryTest {
+    
+    Whiteboard wb;
+    NodeStore nodeStore;
+
     private static final String QUERY = "SELECT * FROM [nt:base]";
-    private static final String PATH_RESTRICTED_QUERY = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/content')";
-    private static final String PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/jcr:system')";
+    
+    private static final String PATH_RESTRICTED_QUERY = 
+            "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/content/test0')";
+    
+    private static final String PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY = 
+            "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/content')";
 
     private TestQueryIndexProvider testIndexProvider = new TestQueryIndexProvider();
     @Override
     protected ContentRepository createRepository() {
-        return new Oak()
+        nodeStore = new MemoryNodeStore();
+        Oak oak = new Oak(nodeStore)
                 .with(new OpenSecurityProvider())
                 .with(new InitialContent())
+                .with(new NodeCounterEditorProvider())
                 .with(testIndexProvider)
-                .createContentRepository();
+                //Effectively disable async indexing auto run
+                //such that we can control run timing as per test requirement
+                .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
+                
+            wb = oak.getWhiteboard();
+            return oak.createContentRepository();      
     }
+    
+    @Before
+    public void before() throws Exception {
+        session = createRepository().login(null, null);
+        root = session.getLatestRoot();
+        qe = root.getQueryEngine();
+        
+        root.getTree("/oak:index/counter").setProperty("resolution", 100);
+        root.getTree("/oak:index/counter").setProperty("seed", 1);
+        
+        Tree content = root.getTree("/").addChild("content");
+        // add 200'000 nodes under /content
+        for (int i = 0; i < 2000; i++) {
+            Tree t = content.addChild("test" + i);
+            for (int j = 0; j < 100; j++) {
+                t.addChild("n" + j);
+            }
+        }
+        root.commit();
+        
+        runAsyncIndex();
+    }
+
+    private void runAsyncIndex() {
+        Runnable async = WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
+            @Override
+            public boolean apply(@Nullable Runnable input) {
+                return input instanceof AsyncIndexUpdate;
+            }
+        });
+        assertNotNull(async);
+        async.run();
+        root.refresh();
+    }    
 
     @Test
     public void noPlansLetTraversalWin() {
@@ -58,20 +122,20 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
 
     @Test
     public void singlePlanWithoutPathRestrictionWins() {
-        testIndexProvider.addPlan("plan1", 1000000, false);
+        testIndexProvider.addPlan("plan1", 10000, false);
 
         assertPlanSelection(QUERY, "plan1", "Valid plan without path restriction must win");
     }
 
     @Test
     public void singlePlanWithPathRestriction() {
-        testIndexProvider.addPlan("plan1", 1000000, true);
+        testIndexProvider.addPlan("plan1", 10000, true);
 
         assertPlanSelection(PATH_RESTRICTED_QUERY, "plan1", "Valid plan which evaluate path" +
                 " restrictions wins with query having path restriction");
 
         testIndexProvider.restPlans();
-        testIndexProvider.addPlan("plan1", 1000000, false);
+        testIndexProvider.addPlan("plan1", 10000, false);
 
         assertPlanSelection(PATH_RESTRICTED_QUERY, "traverse", "Valid plan which evaluate path" +
                 " restrictions wins with query having path restriction");
@@ -83,7 +147,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
 
     @Test
     public void competingPlans() {
-        testIndexProvider.addPlan("plan1", 1000000, true);
+        testIndexProvider.addPlan("plan1", 100000, true);
         testIndexProvider.addPlan("plan2", 100, true);
 
         assertPlanSelection(QUERY, "plan2", "Low cost must win");
@@ -91,7 +155,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         assertPlanSelection(PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY, "plan2", "Low cost must win");
 
         testIndexProvider.restPlans();
-        testIndexProvider.addPlan("plan1", 1000000, false);
+        testIndexProvider.addPlan("plan1", 100000, false);
         testIndexProvider.addPlan("plan2", 100, true);
 
         assertPlanSelection(QUERY, "plan2", "Low cost must win");
@@ -99,16 +163,16 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
         assertPlanSelection(PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY, "plan2", "Low cost must win");
 
         testIndexProvider.restPlans();
-        testIndexProvider.addPlan("plan1", 1000000, true);
-        testIndexProvider.addPlan("plan2", 100, false);
+        testIndexProvider.addPlan("plan1", 200000, true);
+        testIndexProvider.addPlan("plan2", 10000, false);
 
         assertPlanSelection(QUERY, "plan2", "Low cost must win");
         assertPlanSelection(PATH_RESTRICTED_QUERY, "traverse", "Low cost must win");
         assertPlanSelection(PATH_RESTRICTED_SLOW_TRAVERSAL_QUERY, "plan2", "Low cost must win");
 
         testIndexProvider.restPlans();
-        testIndexProvider.addPlan("plan1", 1000000, false);
-        testIndexProvider.addPlan("plan2", 100, false);
+        testIndexProvider.addPlan("plan1", 200000, false);
+        testIndexProvider.addPlan("plan2", 1000, false);
 
         assertPlanSelection(QUERY, "plan2", "Low cost must win");
         assertPlanSelection(PATH_RESTRICTED_QUERY, "traverse", "Low cost must win");
@@ -190,7 +254,7 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
 
         @Override
         public String getPlanDescription(IndexPlan plan, NodeState root) {
-            return "unimportant plan description (" + plan.getPlanName() + ")";
+            return "plan=" + plan.getPlanName();
         }
 
         void addPlan(String name, long cost, boolean supportsPathRestriction) {
@@ -233,6 +297,6 @@ public class TraversalAvoidanceTest extends AbstractQueryTest {
 
     private void assertPlanSelection(String query, String expectedPlan, String message) {
         String explain = explain(query);
-        Assert.assertTrue(message, explain.contains(expectedPlan));
+        Assert.assertTrue(message + ", but got: " + explain, explain.contains(expectedPlan));
     }
 }

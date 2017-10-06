@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
@@ -82,6 +83,7 @@ import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
@@ -997,8 +999,13 @@ public class QueryImpl implements Query {
                         filter, sortOrder, rootState);
                 cost = Double.POSITIVE_INFINITY;
                 for (IndexPlan p : ipList) {
-                    // TODO limit is after all conditions
-                    long entryCount = Math.min(maxEntryCount, p.getEstimatedEntryCount());
+                    
+                    long entryCount = p.getEstimatedEntryCount();
+                    if (p.getSupportsPathRestriction()) {
+                        entryCount = scaleEntryCount(rootState, filter, entryCount);
+                    }
+                    
+                    entryCount = Math.min(maxEntryCount, entryCount);
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
 
                     if (LOG.isDebugEnabled()) {
@@ -1032,33 +1039,57 @@ public class QueryImpl implements Query {
             }
         }
         potentiallySlowTraversalQuery = bestIndex == null;
-        if (bestPlan != null &&
-                (filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION ||
-                        bestPlan.getSupportsPathRestriction())) {
+        if (traversalEnabled) {
+            TraversingIndex traversal = new TraversingIndex();
+            double cost = traversal.getCost(filter, rootState);
             if (LOG.isDebugEnabled()) {
-                logDebug("Ignoring traversal. Params:: best index:" + bestIndex + ";" +
-                        " property restriction: " + filter.getPathRestriction() + ";" +
-                        " best plans supports path restriction: " + bestPlan.getSupportsPathRestriction());
+                logDebug("cost for " + traversal.getIndexName() + " is " + cost);
             }
-        } else {
-            if (traversalEnabled) {
-                TraversingIndex traversal = new TraversingIndex();
-                double cost = traversal.getCost(filter, rootState);
-                if (LOG.isDebugEnabled()) {
-                    logDebug("cost for " + traversal.getIndexName() + " is " + cost);
-                }
-                if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
-                    bestCost = cost;
-                    bestPlan = null;
-                    bestIndex = traversal;
-                    if (potentiallySlowTraversalQuery) {
-                        potentiallySlowTraversalQuery = traversal.isPotentiallySlow(filter, rootState);
-                    }
+            if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
+                bestCost = cost;
+                bestPlan = null;
+                bestIndex = traversal;
+                if (potentiallySlowTraversalQuery) {
+                    potentiallySlowTraversalQuery = traversal.isPotentiallySlow(filter, rootState);
                 }
             }
         }
         return new SelectorExecutionPlan(filter.getSelector(), bestIndex, 
                 bestPlan, bestCost);
+    }
+    
+    private long scaleEntryCount(NodeState rootState, FilterImpl filter, long count) {
+        PathRestriction r = filter.getPathRestriction();
+        if (r != PathRestriction.ALL_CHILDREN) {
+            return count;
+        }
+        String path = filter.getPath();
+        if (path.startsWith(JoinConditionImpl.SPECIAL_PATH_PREFIX)) {
+            // don't know the path currently, could be root
+            return count;
+        }
+        long filterPathCount = NodeCounter.getEstimatedNodeCount(rootState, path, true);
+        if (filterPathCount < 0) {
+            // don't know
+            return count;
+        }
+        long totalNodesCount = NodeCounter.getEstimatedNodeCount(rootState, "/", true);
+        if (totalNodesCount <= 0) {
+            totalNodesCount = 1;
+        }
+        // same logic as for the property index (see ContentMirrorStoreStrategy):
+        
+        // assume nodes in the index are evenly distributed in the repository (old idea)
+        long countScaledDown = (long) ((double) count / totalNodesCount * filterPathCount);
+        // assume 80% of the indexed nodes are in this subtree
+        long mostNodesFromThisSubtree = (long) (filterPathCount * 0.8);
+        // count can at most be the assumed subtree size
+        count = Math.min(count, mostNodesFromThisSubtree);
+        // this in theory should not have any effect, 
+        // except if the above estimates are incorrect,
+        // so this is just for safety feature
+        count = Math.max(count, countScaledDown);
+        return count;
     }
 
     @Override
