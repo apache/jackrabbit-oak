@@ -29,14 +29,17 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -470,6 +473,18 @@ public class RepositorySidegrade {
                 createIndexEditorProvider()
         )));
         target.merge(targetRoot, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
+        removeVersions();
+    }
+
+    private void removeVersions() throws CommitFailedException {
+        NodeState root = target.getRoot();
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, fragmentPaths, excludeFragments);
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        if (!versionablesToStrip.isEmpty()) {
+            LOG.info("Removing version histories for included paths");
+            NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);
+            target.merge(newRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
     }
 
     private boolean isCompleteMigration() {
