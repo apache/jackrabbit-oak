@@ -158,10 +158,13 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     }
 
     private CredentialsSupport newCredentialsSupport() {
-        if (!credentialsSupport.isEmpty()) {
-            return CompositeCredentialsSupport.newInstance(() -> ImmutableSet.copyOf(credentialsSupport.values()));
-        } else {
+        int size = credentialsSupport.size();
+        if (size == 0) {
             return SimpleCredentialsSupport.getInstance();
+        } else if (size == 1) {
+            return credentialsSupport.values().iterator().next();
+        } else {
+            return CompositeCredentialsSupport.newInstance(() -> ImmutableSet.copyOf(credentialsSupport.values()));
         }
     }
 }
