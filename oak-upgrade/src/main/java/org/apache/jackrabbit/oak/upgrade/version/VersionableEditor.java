@@ -34,19 +34,14 @@ import java.util.Collections;
 import java.util.Set;
 
 import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState.nameProperty;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.addMixin;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryBuilder;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.removeVersionProperties;
 
 /**
  * The VersionableEditor provides two possible ways to handle
@@ -56,7 +51,7 @@ import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVe
  *     <li>
  *         it can skip copying version histories and remove the
  *         {@code mix:versionable} mixin together with any related
- *         properties (see {@link #removeVersionProperties(NodeBuilder)}).
+ *         properties (see {@link VersionHistoryUtil#removeVersionProperties(NodeBuilder, TypePredicate)}).
  *     </li>
  * </ul>
  */
@@ -143,7 +138,7 @@ public class VersionableEditor extends DefaultEditor {
                 setVersionablePath(versionableUuid);
             } else {
                 NodeBuilder versionableBuilder = getNodeBuilder(rootBuilder, this.path);
-                removeVersionProperties(versionableBuilder);
+                removeVersionProperties(versionableBuilder, isReferenceable);
                 if (isVersionable.apply(versionableBuilder.getNodeState())) {
                     logger.warn("Node {} is still versionable. Creating empty version history.", path);
                     createEmptyHistory(versionableBuilder);
@@ -171,23 +166,6 @@ public class VersionableEditor extends DefaultEditor {
 
     private boolean isVersionHistoryExists(String versionableUuid) {
         return getVersionHistoryBuilder(versionStorage, versionableUuid).exists();
-    }
-
-    private void removeVersionProperties(final NodeBuilder versionableBuilder) {
-        assert versionableBuilder.exists();
-
-        removeMixin(versionableBuilder, MIX_VERSIONABLE);
-
-        // we don't know if the UUID is otherwise referenced,
-        // so make sure the node remains referencable
-        if (!isReferenceable.apply(versionableBuilder.getNodeState())) {
-            addMixin(versionableBuilder, MIX_REFERENCEABLE);
-        }
-
-        versionableBuilder.removeProperty(JCR_VERSIONHISTORY);
-        versionableBuilder.removeProperty(JCR_PREDECESSORS);
-        versionableBuilder.removeProperty(JCR_BASEVERSION);
-        versionableBuilder.removeProperty(JCR_ISCHECKEDOUT);
     }
 
     private void createEmptyHistory(NodeBuilder versionable) throws CommitFailedException {
@@ -224,27 +202,5 @@ public class VersionableEditor extends DefaultEditor {
         return builder;
     }
 
-    private static void addMixin(NodeBuilder builder, String name) {
-        if (builder.hasProperty(JCR_MIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
-            if (mixins.add(name)) {
-                builder.setProperty(nameProperty(JCR_MIXINTYPES, mixins));
-            }
-        } else {
-            builder.setProperty(nameProperty(JCR_MIXINTYPES, of(name)));
-        }
-    }
 
-    private static void removeMixin(NodeBuilder builder, String name) {
-        if (builder.hasProperty(JCR_MIXINTYPES)) {
-            final Set<String> mixins = newHashSet(builder.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES));
-            if (mixins.remove(name)) {
-                if (mixins.isEmpty()) {
-                    builder.removeProperty(JCR_MIXINTYPES);
-                } else {
-                    builder.setProperty(nameProperty(JCR_MIXINTYPES, mixins));
-                }
-            }
-        }
-    }
 }

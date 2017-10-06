@@ -69,8 +69,6 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
 
     private final TypePredicate isVersionable;
 
-    private final TypePredicate isSimpleVersionable;
-
     private final TypePredicate isNtVersion;
 
     private final TypePredicate isFrozenNode;
@@ -80,7 +78,6 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
         this.rootBuilder = rootBuilder;
         this.versionStorage = getVersionStorage(rootBuilder);
         this.isVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
-        this.isSimpleVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_SIMPLE_VERSIONABLE);
         this.isNtVersion = new TypePredicate(rootBuilder.getNodeState(), NT_VERSION);
         this.isFrozenNode = new TypePredicate(rootBuilder.getNodeState(), NT_FROZENNODE);
     }
@@ -90,7 +87,6 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
         this.rootBuilder = parent.rootBuilder;
         this.versionStorage = parent.versionStorage;
         this.isVersionable = parent.isVersionable;
-        this.isSimpleVersionable = parent.isSimpleVersionable;
         this.isNtVersion = parent.isNtVersion;
         this.isFrozenNode = parent.isFrozenNode;
     }
