@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,7 +86,7 @@ public class PropertyIndexCleanerTest {
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService);
+                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
 
         //As index is yet not update it would not show up in sync index paths
         assertThat(cleaner.getSyncIndexPaths(), empty());
@@ -107,7 +108,7 @@ public class PropertyIndexCleanerTest {
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService);
+                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
 
         NodeBuilder builder = nodeStore.getRoot().builder();
         PropertyIndexUpdateCallback cb = newCallback(builder, indexPath);
@@ -152,7 +153,7 @@ public class PropertyIndexCleanerTest {
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService);
+                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
         cleaner.setCreatedTimeThreshold(TimeUnit.MILLISECONDS, 100);
 
         clock.waitUntil(1000);
@@ -217,7 +218,7 @@ public class PropertyIndexCleanerTest {
         addIndex(indexPath, defnb);
 
         PropertyIndexCleaner cleaner =
-                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService);
+                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
 
         NodeBuilder builder = nodeStore.getRoot().builder();
         PropertyIndexUpdateCallback cb = newCallback(builder, indexPath);

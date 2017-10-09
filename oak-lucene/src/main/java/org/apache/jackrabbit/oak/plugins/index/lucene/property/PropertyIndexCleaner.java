@@ -49,6 +49,10 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,11 +73,18 @@ public class PropertyIndexCleaner implements Runnable{
     private UniqueIndexCleaner uniqueIndexCleaner = new UniqueIndexCleaner(TimeUnit.HOURS, 1);
     private Map<String, Long> lastAsyncInfo = Collections.emptyMap();
 
+    private final TimerStats cleanupTime;
+    private final MeterStats noopMeter;
+
     public PropertyIndexCleaner(NodeStore nodeStore, IndexPathService indexPathService,
-                                AsyncIndexInfoService asyncIndexInfoService) {
+                                AsyncIndexInfoService asyncIndexInfoService,
+                                StatisticsProvider statsProvider) {
         this.nodeStore = checkNotNull(nodeStore);
         this.indexPathService = checkNotNull(indexPathService);
         this.asyncIndexInfoService = checkNotNull(asyncIndexInfoService);
+
+        this.cleanupTime = statsProvider.getTimer("HYBRID_PROPERTY_CLEANER", StatsOptions.METRICS_ONLY);
+        this.noopMeter = statsProvider.getMeter("HYBRID_PROPERTY_NOOP", StatsOptions.METRICS_ONLY);
     }
 
     @Override
@@ -97,6 +108,7 @@ public class PropertyIndexCleaner implements Runnable{
         Map<String, Long> asyncInfo = asyncIndexInfoService.getIndexedUptoPerLane();
         if (lastAsyncInfo.equals(asyncInfo) && !forceCleanup) {
             log.debug("No change found in async state from last run {}. Skipping the run", asyncInfo);
+            noopMeter.mark();
             return stats;
         }
 
@@ -113,6 +125,8 @@ public class PropertyIndexCleaner implements Runnable{
         } else {
             log.debug("Property index cleanup done in {}. {}", w, stats);
         }
+
+        cleanupTime.update(w.elapsed(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
 
         return stats;
     }

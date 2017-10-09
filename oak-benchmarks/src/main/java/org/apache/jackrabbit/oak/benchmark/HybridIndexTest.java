@@ -390,7 +390,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         luceneEditorProvider.setIndexingQueue(queue);
 
         if (syncIndexing) {
-            PropertyIndexCleaner cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService);
+            PropertyIndexCleaner cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService, statsProvider);
             regs.add(scheduleWithFixedDelay(whiteboard, cleaner,
                     cleanerIntervalInSecs, true, true));
         }
