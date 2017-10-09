@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorSt
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
@@ -40,6 +42,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridProp
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
 public class HybridPropertyIndexLookup {
+    private static final Logger log = LoggerFactory.getLogger(HybridPropertyIndexLookup.class);
     private final String indexPath;
     private final NodeState indexState;
     private final String pathPrefix;
@@ -100,7 +103,15 @@ public class HybridPropertyIndexLookup {
             result = querySimple(filter, indexName, propIndexNode, encodedValues);
         }
 
-        return transform(result, path -> isAbsolute(path) ? path : "/" + path);
+        Iterable<String> paths = transform(result, path -> isAbsolute(path) ? path : "/" + path);
+
+        if (log.isTraceEnabled()) {
+            paths = transform(paths, path -> {
+                log.trace("[{}] {} = {} -> {}", indexPath, propertyName, encodedValues, path);
+                return path;
+            });
+        }
+        return paths;
     }
 
     private static Iterable<String> queryUnique(Filter filter, String indexName, NodeState propIndexRootNode,
