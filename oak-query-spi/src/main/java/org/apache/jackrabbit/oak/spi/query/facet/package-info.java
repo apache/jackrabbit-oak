@@ -15,6 +15,6 @@
  * limitations under the License.
  */
 @Version("1.0")
-package org.apache.jackrabbit.oak.query.facet;
+package org.apache.jackrabbit.oak.spi.query.facet;
 
 import org.osgi.annotation.versioning.Version;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.query.facet;
+package org.apache.jackrabbit.oak.spi.query.facet;
 
 import javax.jcr.Value;
 import javax.jcr.query.QueryResult;

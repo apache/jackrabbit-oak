@@ -40,6 +40,7 @@
             <instructions>
               <Export-Package>
                 org.apache.jackrabbit.oak.spi.query,
+                org.apache.jackrabbit.oak.spi.query.facet,
                 org.apache.jackrabbit.oak.spi.query.fulltext
               </Export-Package>
             </instructions>
@@ -114,6 +115,19 @@
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
+    </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>1.10.19</version>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>
