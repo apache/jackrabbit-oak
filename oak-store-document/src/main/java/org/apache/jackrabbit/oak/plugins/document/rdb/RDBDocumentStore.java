@@ -279,26 +279,33 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, String id) {
-        delete(collection, id);
-        invalidateCache(collection, id, true);
+        try {
+            delete(collection, id);
+        } finally {
+            invalidateCache(collection, id, true);
+        }
     }
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> ids) {
-        for (String id : ids) {
-            invalidateCache(collection, id, true);
+        try {
+            delete(collection, ids);
+        } finally {
+            for (String id : ids) {
+                invalidateCache(collection, id, true);
+            }
         }
-        delete(collection, ids);
     }
 
     @Override
-    public <T extends Document> int remove(Collection<T> collection,
-                                            Map<String, Map<Key, Condition>> toRemove) {
-        int num = delete(collection, toRemove);
-        for (String id : toRemove.keySet()) {
-            invalidateCache(collection, id, true);
+    public <T extends Document> int remove(Collection<T> collection, Map<String, Map<Key, Condition>> toRemove) {
+        try {
+            return delete(collection, toRemove);
+        } finally {
+            for (String id : toRemove.keySet()) {
+                invalidateCache(collection, id, true);
+            }
         }
-        return num;
     }
 
     @Override
