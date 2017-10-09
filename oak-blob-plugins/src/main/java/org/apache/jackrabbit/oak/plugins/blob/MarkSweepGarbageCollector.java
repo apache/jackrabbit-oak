@@ -53,12 +53,15 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,6 +117,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     private final String root;
 
+    private final Whiteboard whiteboard;
+
+    private CheckpointMBean checkpointMbean;
+
     /**
      * Creates an instance of MarkSweepGarbageCollector
      *
@@ -135,7 +142,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             String root,
             int batchCount,
             long maxLastModifiedInterval,
-            @Nullable String repositoryId)
+            @Nullable String repositoryId,
+            @Nullable Whiteboard whiteboard)
             throws IOException {
         this.executor = executor;
         this.blobStore = blobStore;
@@ -144,6 +152,22 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         this.maxLastModifiedInterval = maxLastModifiedInterval;
         this.repoId = repositoryId;
         this.root = root;
+        this.whiteboard = whiteboard;
+        if (whiteboard != null) {
+            this.checkpointMbean = WhiteboardUtils.getService(whiteboard, CheckpointMBean.class);
+        }
+    }
+
+    public MarkSweepGarbageCollector(
+            BlobReferenceRetriever marker,
+            GarbageCollectableBlobStore blobStore,
+            Executor executor,
+            String root,
+            int batchCount,
+            long maxLastModifiedInterval,
+            @Nullable String repositoryId)
+            throws IOException {
+        this(marker, blobStore, executor, root, batchCount, maxLastModifiedInterval, repositoryId, null);
     }
 
     /**
@@ -153,19 +177,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             BlobReferenceRetriever marker,
             GarbageCollectableBlobStore blobStore,
             Executor executor,
-            @Nullable String repositoryId)
+            long maxLastModifiedInterval,
+            @Nullable String repositoryId,
+            @Nullable Whiteboard whiteboard)
             throws IOException {
         this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, TimeUnit.HOURS
-                .toMillis(24), repositoryId);
-    }
-
-    public MarkSweepGarbageCollector(
-            BlobReferenceRetriever marker,
-            GarbageCollectableBlobStore blobStore,
-            Executor executor,
-            long maxLastModifiedInterval,
-            @Nullable String repositoryId) throws IOException {
-        this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, maxLastModifiedInterval, repositoryId);
+                .toMillis(24), repositoryId, whiteboard);
     }
 
     @Override
@@ -266,7 +283,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 long deleteCount = sweep(fs, markStart, forceBlobRetrieve);
                 threw = false;
 
-                long maxTime = getLastMaxModifiedTime(markStart) > 0 ? getLastMaxModifiedTime(markStart) : markStart;
+                long maxTime = getMaxModifiedTime(markStart) > 0 ? getMaxModifiedTime(markStart) : markStart;
                 sw.stop();
 
                 LOG.info("Blob garbage collection completed in {} ({} ms). Number of blobs deleted [{}] with max modification time of [{}]",
@@ -379,10 +396,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         long count = 0;
         long deleted = 0;
         
-        long lastMaxModifiedTime = getLastMaxModifiedTime(earliestRefAvailTime); 
+        long maxModifiedTime = getMaxModifiedTime(earliestRefAvailTime);
         LOG.debug("Starting sweep phase of the garbage collector");
         LOG.debug("Sweeping blobs with modified time > than the configured max deleted time ({}). ",
-                timestampToString(lastMaxModifiedTime));
+                timestampToString(maxModifiedTime));
 
         BufferedWriter removesWriter = null;
         LineIterator iterator = null;
@@ -397,7 +414,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 List<String> ids = partitions.next();
                 count += ids.size();
                 deleted += BlobCollectionType.get(blobStore)
-                    .sweepInternal(blobStore, ids, removesQueue, lastMaxModifiedTime);
+                    .sweepInternal(blobStore, ids, removesQueue, maxModifiedTime);
                 saveBatchToFile(newArrayList(removesQueue), removesWriter);
                 removesQueue.clear();
             }
@@ -412,7 +429,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.warn("Deleted only [{}] blobs entries from the [{}] candidates identified. This may happen if blob " 
                          + "modified time is > "
                          + "than the max deleted time ({})", deleted, count,
-                        timestampToString(lastMaxModifiedTime));
+                        timestampToString(maxModifiedTime));
         }
 
         // Remove all the merged marked references
@@ -425,10 +442,36 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         return batchCount;
     }
 
-    private long getLastMaxModifiedTime(long maxModified) {
-        return maxLastModifiedInterval > 0 ?
-            ((maxModified <= 0 ? System.currentTimeMillis() : maxModified) - maxLastModifiedInterval) :
-            0;
+    /**
+     * 3 possibilities
+     *  - If maxLastModifiedInterval <= 0 then return 0 which is interpreted as current by delete call
+     *      (For testing purposes only)
+     *  - If oldest checkpoint creation date > 0 then reference time is the earliest of that and the parameter
+     *      maxModificationReferenceTime
+     *  - Else the parameter maxModificationReferenceTime is used as the reference time
+     *
+     * @param maxModificationReferenceTime typically the mark phase start time (could be 0 for tests)
+     * @return max modified time of blobs to be considered for deletion
+     */
+    private long getMaxModifiedTime(long maxModificationReferenceTime) {
+        if (maxLastModifiedInterval <= 0) {
+            return 0;
+        }
+
+        long oldestCheckopoint = -1;
+        if (checkpointMbean != null) {
+            oldestCheckopoint = checkpointMbean.getOldestCheckpointCreationDate().getTime();
+            LOG.debug("Oldest checkpoint data retrieved {} ", oldestCheckopoint);
+        }
+        LOG.debug("maxModificationReferenceTime {} ", maxModificationReferenceTime);
+
+        maxModificationReferenceTime = maxModificationReferenceTime <= 0 ?
+                                            System.currentTimeMillis() : maxModificationReferenceTime;
+        long calculatedReferenceTime = (oldestCheckopoint <= 0 ? maxModificationReferenceTime :
+                Math.min(maxModificationReferenceTime, oldestCheckopoint));
+        LOG.debug("Calculated reference time {} ", calculatedReferenceTime);
+
+        return (calculatedReferenceTime - maxLastModifiedInterval);
     }
 
     /**

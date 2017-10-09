@@ -646,7 +646,8 @@ public class SegmentNodeStoreService {
                     (GarbageCollectableBlobStore) blobStore,
                     executor,
                     TimeUnit.SECONDS.toMillis(configuration.getBlobGcMaxAge()),
-                    getOrCreateId(segmentNodeStore)
+                    getOrCreateId(segmentNodeStore),
+                    whiteboard
             );
             closeables.add(registrations.registerMBean(
                     BlobGCMBean.class,
