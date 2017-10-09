@@ -20,19 +20,15 @@ package org.apache.jackrabbit.oak.jcr.query;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.Value;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
 
 import java.util.List;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.query.facet.FacetResult;
+import org.apache.jackrabbit.oak.spi.query.facet.FacetResult;
 
 /**
  * Test for faceting capabilities via JCR API

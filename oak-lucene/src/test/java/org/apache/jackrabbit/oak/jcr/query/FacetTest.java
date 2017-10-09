@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.query.facet.FacetResult;
+import org.apache.jackrabbit.oak.spi.query.facet.FacetResult;
 import org.junit.After;
 import org.junit.Before;
 
