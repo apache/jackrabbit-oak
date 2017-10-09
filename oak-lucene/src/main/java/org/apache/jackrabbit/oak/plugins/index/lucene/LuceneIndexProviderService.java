@@ -794,7 +794,7 @@ public class LuceneIndexProviderService {
             return;
         }
 
-        cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService);
+        cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService, statisticsProvider);
         oakRegs.add(scheduleWithFixedDelay(whiteboard, cleaner,
                 ImmutableMap.of("scheduler.name", PropertyIndexCleaner.class.getName()),
                 cleanerInterval, true, true));
