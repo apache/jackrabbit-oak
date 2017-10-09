@@ -123,6 +123,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.slf4j.Logger;
@@ -2954,11 +2955,12 @@ public final class DocumentNodeStore
      *
      * @param blobGcMaxAgeInSecs
      * @param repositoryId
+     * @param whiteboard
      * @return garbage collector of the BlobStore supports GC otherwise null
      */
     @CheckForNull
-    public MarkSweepGarbageCollector createBlobGarbageCollector(long blobGcMaxAgeInSecs,
-            String repositoryId) {
+    public MarkSweepGarbageCollector createBlobGarbageCollector(long blobGcMaxAgeInSecs, String repositoryId,
+        Whiteboard whiteboard) {
         MarkSweepGarbageCollector blobGC = null;
         if(blobStore instanceof GarbageCollectableBlobStore){
             try {
@@ -2967,7 +2969,8 @@ public final class DocumentNodeStore
                             (GarbageCollectableBlobStore) blobStore,
                         executor,
                         SECONDS.toMillis(blobGcMaxAgeInSecs),
-                        repositoryId);
+                        repositoryId,
+                        whiteboard);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while initializing " +
                         "the MarkSweepGarbageCollector",e);

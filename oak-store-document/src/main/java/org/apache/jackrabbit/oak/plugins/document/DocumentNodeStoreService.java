@@ -949,7 +949,8 @@ public class DocumentNodeStoreService {
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = store.createBlobGarbageCollector(blobGcMaxAgeInSecs, 
-                                                        ClusterRepositoryInfo.getOrCreateId(nodeStore));
+                                                        ClusterRepositoryInfo.getOrCreateId(nodeStore),
+                                                        whiteboard);
             addRegistration(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
