@@ -123,6 +123,12 @@ public class HybridPropertyIndexLookup {
         if (bucketName == null) {
             return Collections.emptyList();
         }
+
+        NodeState bucket = propIndexNode.getChildNode(bucketName);
+        if (bucket.getChildNodeCount(1) == 0) {
+            return Collections.emptyList();
+        }
+
         ContentMirrorStoreStrategy s = new ContentMirrorStoreStrategy(bucketName, pathPrefix, prependPathPrefix);
         return s.query(filter, indexName, propIndexNode, bucketName, values);
     }
