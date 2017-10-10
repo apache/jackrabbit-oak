@@ -39,8 +39,8 @@
           <configuration>
             <instructions>
               <Export-Package>
+                org.apache.jackrabbit.oak.query.facet,
                 org.apache.jackrabbit.oak.spi.query,
-                org.apache.jackrabbit.oak.spi.query.facet,
                 org.apache.jackrabbit.oak.spi.query.fulltext
               </Export-Package>
             </instructions>
