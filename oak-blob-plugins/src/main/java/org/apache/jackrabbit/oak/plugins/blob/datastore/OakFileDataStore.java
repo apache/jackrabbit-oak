@@ -58,6 +58,8 @@ import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
  */
 public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     public static final Logger LOG = LoggerFactory.getLogger(OakFileDataStore.class);
+    private static final int DEFAULT_MIN_RECORD_LENGTH = 4096;
+
     private byte[] referenceKey;
 
     public OakFileDataStore() {
@@ -65,6 +67,8 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
         //synchronized map with a Noop. This should be removed when fix
         //for JCR-3764 is part of release.
         inUse = new NoOpMap<DataIdentifier, WeakReference<DataIdentifier>>();
+        // Set default min record length overiding the 100 set for FileDataStore
+        setMinRecordLength(DEFAULT_MIN_RECORD_LENGTH);
     }
 
     @Override
