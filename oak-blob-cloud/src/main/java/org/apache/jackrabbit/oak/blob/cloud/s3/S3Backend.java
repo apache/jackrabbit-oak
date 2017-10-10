@@ -17,9 +17,10 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -56,6 +57,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -82,11 +84,13 @@ public class S3Backend extends AbstractSharedBackend {
 
     private static final String META_KEY_PREFIX = "META/";
 
+    private static final String REF_KEY = "reference.key";
+
     private AmazonS3Client s3service;
 
     private String bucket;
 
-    private String secret;
+    private byte[] secret;
 
     private TransferManager tmx;
 
@@ -114,7 +118,6 @@ public class S3Backend extends AbstractSharedBackend {
                     bucket = properties.getProperty(S3Constants.S3_CONTAINER);
                 }
             }
-            secret = properties.getProperty("secret");
             String region = properties.getProperty(S3Constants.S3_REGION);
             Region s3Region;
             if (StringUtils.isNullOrEmpty(region)) {
@@ -527,13 +530,36 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public byte[] getOrCreateReferenceKey() throws DataStoreException {
         try {
-            if (!Strings.isNullOrEmpty(secret)) {
-                return secret.getBytes("UTF-8");
+            if (secret != null && secret.length != 0) {
+                return secret;
+            } else {
+                byte[] key;
+                // Try reading from the metadata folder if it exists
+                if (metadataExists(REF_KEY)) {
+                    DataRecord rec = getMetadataRecord(REF_KEY);
+                    key = IOUtils.toByteArray(rec.getStream());
+                } else {
+                    key = super.getOrCreateReferenceKey();
+                    addMetadataRecord(new ByteArrayInputStream(key), REF_KEY);
+                }
+                secret = key;
+                return secret;
             }
-            LOG.warn("secret not defined");
-            return super.getOrCreateReferenceKey();
-        } catch (UnsupportedEncodingException e) {
-            throw new DataStoreException(e);
+        } catch (IOException e) {
+            throw new DataStoreException("Unable to get or create key " + e);
+        }
+    }
+
+    public boolean metadataExists(String name) {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(
+                getClass().getClassLoader());
+            return s3service.doesObjectExist(bucket, addMetaKeyPrefix(name));
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
         }
     }
 
