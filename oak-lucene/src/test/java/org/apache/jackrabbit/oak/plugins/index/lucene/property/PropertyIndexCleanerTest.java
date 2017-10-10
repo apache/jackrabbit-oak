@@ -251,6 +251,39 @@ public class PropertyIndexCleanerTest {
         assertCleanUpPerformed(cleaner.performCleanup(false), false);
     }
 
+    @Test
+    public void recursiveDelete() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+        String indexPath = "/oak:index/foo";
+        addIndex(indexPath, defnb);
+
+        PropertyIndexCleaner cleaner =
+                new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
+        cleaner.setRecursiveDelete(true);
+
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        PropertyIndexUpdateCallback cb = newCallback(builder, indexPath);
+        propertyUpdated(cb, indexPath, "/a", "foo", "bar");
+        merge(builder);
+
+        assertThat(query(indexPath, "foo", "bar"), containsInAnyOrder("/a"));
+
+        //------------------------ Run 1
+        asyncService.addInfo("async", 1000);
+        CleanupStats stats = cleaner.performCleanup(false);
+        assertCleanUpPerformed(stats, true);
+
+        asyncService.addInfo("async", 2000);
+        stats = cleaner.performCleanup(false);
+
+        //1 - for bucket
+        //1 - for indexed value 'bar'
+        //1 - for indexed path 'a'
+        assertEquals(3, stats.numOfNodesDeleted);
+
+    }
+
     private void assertCleanUpPerformed(CleanupStats stats, boolean expected) {
         assertEquals(expected, stats.cleanupPerformed);
     }

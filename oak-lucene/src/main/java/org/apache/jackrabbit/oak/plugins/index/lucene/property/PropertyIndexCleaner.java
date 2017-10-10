@@ -75,6 +75,7 @@ public class PropertyIndexCleaner implements Runnable{
 
     private final TimerStats cleanupTime;
     private final MeterStats noopMeter;
+    private boolean recursiveDelete;
 
     public PropertyIndexCleaner(NodeStore nodeStore, IndexPathService indexPathService,
                                 AsyncIndexInfoService asyncIndexInfoService,
@@ -142,6 +143,15 @@ public class PropertyIndexCleaner implements Runnable{
      */
     public void setCreatedTimeThreshold(TimeUnit unit, long time) {
         uniqueIndexCleaner = new UniqueIndexCleaner(unit, time);
+    }
+
+
+    public boolean isRecursiveDelete() {
+        return recursiveDelete;
+    }
+
+    public void setRecursiveDelete(boolean recursiveDelete) {
+        this.recursiveDelete = recursiveDelete;
     }
 
     List<String> getSyncIndexPaths() {
@@ -214,17 +224,25 @@ public class PropertyIndexCleaner implements Runnable{
             return;
         }
 
-        NodeState root = nodeStore.getRoot();
-        NodeBuilder builder = root.builder();
+        if (recursiveDelete) {
+            for (String path : bucketPaths) {
+                RecursiveDelete rd = new RecursiveDelete(nodeStore, createCommitHook(),
+                        PropertyIndexCleaner::createCommitInfo, path);
+                rd.run();
+                stats.numOfNodesDeleted += rd.getNumRemoved();
+            }
+        } else {
+            NodeState root = nodeStore.getRoot();
+            NodeBuilder builder = root.builder();
 
-        for (String path : bucketPaths) {
-            NodeBuilder bucket = child(builder, path);
-            //TODO Recursive delete to avoid large transaction
-            bucket.remove();
+            for (String path : bucketPaths) {
+                NodeBuilder bucket = child(builder, path);
+                bucket.remove();
+            }
+
+            merge(builder);
         }
-
         stats.purgedBucketCount = bucketPaths.size();
-        merge(builder);
     }
 
     private void purgeOldUniqueIndexEntries(Map<String, Long> asyncInfo, CleanupStats stats) throws CommitFailedException {
@@ -249,12 +267,16 @@ public class PropertyIndexCleaner implements Runnable{
 
     private void merge(NodeBuilder builder) throws CommitFailedException {
         //TODO Configure validator
-        CompositeHook hooks = new CompositeHook(
-                ResetCommitAttributeHook.INSTANCE,
-                new ConflictHook(new AnnotatingConflictHandler()),
-                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
-        );
+        CompositeHook hooks = createCommitHook();
         nodeStore.merge(builder, hooks, createCommitInfo());
+    }
+
+    private CompositeHook createCommitHook() {
+        return new CompositeHook(
+                    ResetCommitAttributeHook.INSTANCE,
+                    new ConflictHook(new AnnotatingConflictHandler()),
+                    new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+            );
     }
 
     private static CommitInfo createCommitInfo() {
@@ -282,6 +304,7 @@ public class PropertyIndexCleaner implements Runnable{
         public int purgedBucketCount;
         public Set<String> purgedIndexPaths = new HashSet<>();
         public boolean cleanupPerformed;
+        public int numOfNodesDeleted;
 
         @Override
         public String toString() {
