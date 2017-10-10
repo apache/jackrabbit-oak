@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import com.google.common.collect.Lists;
+
 /**
  * <code>DocumentStoreException</code> is a runtime exception for
  * {@code DocumentStore} implementations to signal unexpected problems like
@@ -47,5 +49,11 @@ public class DocumentStoreException extends RuntimeException {
         } else {
             return new DocumentStoreException(msg, t);
         }
+    }
+
+    public static DocumentStoreException convert(Throwable t,
+                                                 Iterable<String> ids) {
+        String msg = t.getMessage() + " " + Lists.newArrayList(ids);
+        return convert(t, msg);
     }
 }
