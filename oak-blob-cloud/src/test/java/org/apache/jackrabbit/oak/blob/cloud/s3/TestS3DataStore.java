@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
@@ -26,9 +28,10 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.junit.Assert;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,7 +48,7 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Data
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -53,7 +56,7 @@ import static org.junit.Assume.assumeTrue;
  */
 @RunWith(Parameterized.class)
 public class TestS3DataStore {
-    protected static final Logger LOG = LoggerFactory.getLogger(TestS3Ds.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(TestS3DataStore.class);
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
@@ -69,14 +72,18 @@ public class TestS3DataStore {
     private File dataStoreDir;
 
     private DataStore ds;
+    private Date startTime;
 
     @Parameterized.Parameters(name = "{index}: ({0})")
     public static List<String> fixtures() {
         return getFixtures();
     }
 
+    private String bucket;
     @Before
     public void setUp() throws Exception {
+        startTime = new Date();
+
         dataStoreDir = folder.newFolder();
         props = new Properties();
     }
@@ -94,42 +101,40 @@ public class TestS3DataStore {
     }
 
     @Test
-    public void testNoSecretDefinedUseDefault() throws Exception {
-        assumeTrue(isS3Configured());
-        assumeTrue(s3Class.equals(S3DataStoreUtils.S3.getName()));
-
-        Random randomGen = new Random();
-        props = S3DataStoreUtils.getS3Config();
-        ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
-        byte[] data = new byte[4096];
-        randomGen.nextBytes(data);
-        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
-        assertEquals(data.length, rec.getLength());
-        assertNotNull(rec.getReference());
-    }
-
-    @Test
-    public void testSecretDefined() throws Exception {
+    public void testSecret() throws Exception {
         assumeTrue(isS3Configured());
 
         Random randomGen = new Random();
         props = S3DataStoreUtils.getS3Config();
-        props.setProperty("secret", "123456");
         ds = getS3DataStore(s3Class, props, dataStoreDir.getAbsolutePath());
+        bucket = props.getProperty(S3Constants.S3_BUCKET);
+
         byte[] data = new byte[4096];
         randomGen.nextBytes(data);
         DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
         assertEquals(data.length, rec.getLength());
         String ref = rec.getReference();
-        assertNotNull(ref);
 
         String id = rec.getIdentifier().toString();
-        Mac mac = Mac.getInstance("HmacSHA1");
-        mac.init(new SecretKeySpec("123456".getBytes("UTF-8"), "HmacSHA1"));
-        byte[] hash = mac.doFinal(id.getBytes("UTF-8"));
-        id = id + ':' + encodeHexString(hash);
+        assertNotNull(ref);
 
-        assertEquals(id, ref);
+        S3DataStore s3 = ((S3DataStore) ds);
+        byte[] refKey = ((S3Backend) s3.getBackend()).getOrCreateReferenceKey();
+
+        Mac mac = Mac.getInstance("HmacSHA1");
+        mac.init(new SecretKeySpec(refKey, "HmacSHA1"));
+        byte[] hash = mac.doFinal(id.getBytes("UTF-8"));
+        String calcRef = id + ':' + encodeHexString(hash);
+
+        assertEquals("getReference() not equal", calcRef, ref);
+
+        DataRecord refRec = s3.getMetadataRecord("reference.key");
+        assertNotNull("Reference data record null", refRec);
+
+        byte[] refDirectFromBackend = IOUtils.toByteArray(refRec.getStream());
+        LOG.warn("Ref direct from backend {}", refDirectFromBackend);
+        assertTrue("refKey in memory not equal to the metadata record",
+            Arrays.equals(refKey, refDirectFromBackend));
     }
 
     @Test
@@ -139,7 +144,7 @@ public class TestS3DataStore {
         Random randomGen = new Random();
         props = S3DataStoreUtils.getS3Config();
         //Replace bucket in props with container
-        String bucket = props.getProperty(S3Constants.S3_BUCKET);
+        bucket = props.getProperty(S3Constants.S3_BUCKET);
         props.remove(S3Constants.S3_BUCKET);
         props.put(S3Constants.S3_CONTAINER, bucket);
 
@@ -148,5 +153,15 @@ public class TestS3DataStore {
         randomGen.nextBytes(data);
         DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
         assertEquals(data.length, rec.getLength());
+    }
+
+    @After
+    public void tearDown() {
+        try {
+            if (bucket != null) {
+                S3DataStoreUtils.deleteBucket(bucket, startTime);
+            }
+        } catch (Exception ignore) {
+        }
     }
 }
