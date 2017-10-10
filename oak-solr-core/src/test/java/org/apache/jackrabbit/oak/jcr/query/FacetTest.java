@@ -28,7 +28,7 @@ import javax.jcr.query.QueryResult;
 import java.util.List;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.spi.query.facet.FacetResult;
+import org.apache.jackrabbit.oak.query.facet.FacetResult;
 
 /**
  * Test for faceting capabilities via JCR API
