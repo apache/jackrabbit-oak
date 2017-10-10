@@ -83,12 +83,6 @@
       <optional>true</optional>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
     <!-- For colored console logging -->
     <dependency>
       <groupId>org.fusesource.jansi</groupId>
