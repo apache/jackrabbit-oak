@@ -20,6 +20,7 @@ import static org.apache.commons.codec.binary.Hex.encodeHexString;
 import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -31,7 +32,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
@@ -61,6 +61,7 @@ import java.security.DigestOutputStream;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +69,8 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
 
 /**
@@ -78,6 +81,8 @@ import javax.jcr.RepositoryException;
  * src/test/resources/azure.properties
  */
 public class AzureDataStoreTest {
+    protected static final Logger LOG = LoggerFactory.getLogger(AzureDataStoreTest.class);
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -687,5 +692,34 @@ public class AzureDataStoreTest {
         catch (NullPointerException e) {
             assertTrue("prefix".equals(e.getMessage()));
         }
+    }
+
+    @Test
+    public void testSecret() throws Exception {
+        byte[] data = new byte[4096];
+        randomGen.nextBytes(data);
+        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+        assertEquals(data.length, rec.getLength());
+        String ref = rec.getReference();
+
+        String id = rec.getIdentifier().toString();
+        assertNotNull(ref);
+
+        byte[] refKey = backend.getOrCreateReferenceKey();
+
+        Mac mac = Mac.getInstance("HmacSHA1");
+        mac.init(new SecretKeySpec(refKey, "HmacSHA1"));
+        byte[] hash = mac.doFinal(id.getBytes("UTF-8"));
+        String calcRef = id + ':' + encodeHexString(hash);
+
+        assertEquals("getReference() not equal", calcRef, ref);
+
+        DataRecord refRec = ds.getMetadataRecord("reference.key");
+        assertNotNull("Reference data record null", refRec);
+
+        byte[] refDirectFromBackend = IOUtils.toByteArray(refRec.getStream());
+        LOG.warn("Ref direct from backend {}", refDirectFromBackend);
+        assertTrue("refKey in memory not equal to the metadata record",
+            Arrays.equals(refKey, refDirectFromBackend));
     }
 }
