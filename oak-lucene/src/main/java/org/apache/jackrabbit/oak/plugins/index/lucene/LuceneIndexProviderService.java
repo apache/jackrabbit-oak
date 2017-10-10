@@ -78,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -795,6 +796,12 @@ public class LuceneIndexProviderService {
         }
 
         cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService, statisticsProvider);
+
+        //Proxy check for DocumentNodeStore
+        if (nodeStore instanceof Clusterable) {
+            cleaner.setRecursiveDelete(true);
+            log.info("PropertyIndexCleaner configured to perform recursive delete");
+        }
         oakRegs.add(scheduleWithFixedDelay(whiteboard, cleaner,
                 ImmutableMap.of("scheduler.name", PropertyIndexCleaner.class.getName()),
                 cleanerInterval, true, true));
