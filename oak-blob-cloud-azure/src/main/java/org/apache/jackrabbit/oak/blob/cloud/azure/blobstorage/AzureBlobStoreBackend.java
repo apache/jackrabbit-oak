@@ -36,6 +36,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.CopyStatus;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -46,12 +47,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -68,6 +69,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final String META_DIR_NAME = "META";
     private static final String META_KEY_PREFIX = META_DIR_NAME + "/";
 
+    private static final String REF_KEY = "reference.key";
+
     private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
 
     private Properties properties;
@@ -77,7 +80,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private RetryPolicy retryPolicy;
     private Integer requestTimeout;
 
-    private String secret;
+    private byte[] secret;
 
     public void setProperties(final Properties properties) {
         this.properties = properties;
@@ -111,7 +114,6 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     throw new DataStoreException("Unable to initialize Azure Data Store from " + Utils.DEFAULT_CONFIG_FILE, e);
                 }
             }
-            secret = properties.getProperty("secret");
 
             try {
                 Utils.setProxyIfNeeded(properties);
@@ -260,13 +262,23 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     @Override
     public byte[] getOrCreateReferenceKey() throws DataStoreException {
         try {
-            if (!Strings.isNullOrEmpty(secret)) {
-                return secret.getBytes("UTF-8");
+            if (secret != null && secret.length != 0) {
+                return secret;
+            } else {
+                byte[] key;
+                // Try reading from the metadata folder if it exists
+                DataRecord rec = getMetadataRecord(REF_KEY);
+                if (rec != null) {
+                    key = IOUtils.toByteArray(rec.getStream());
+                } else {
+                    key = super.getOrCreateReferenceKey();
+                    addMetadataRecord(new ByteArrayInputStream(key), REF_KEY);
+                }
+                secret = key;
+                return secret;
             }
-            LOG.warn("secret not defined");
-            return super.getOrCreateReferenceKey();
-        } catch (UnsupportedEncodingException e) {
-            throw new DataStoreException(e);
+        } catch (IOException e) {
+            throw new DataStoreException("Unable to get or create key " + e);
         }
     }
 
