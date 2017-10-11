@@ -50,7 +50,7 @@ public class MissingBlobStore implements BlobStore {
     @Override
     public long getBlobLength(String blobId) throws IOException {
         // best effort length extraction
-        int indexOfSep = blobId.lastIndexOf("#");
+        int indexOfSep = blobId.lastIndexOf('#');
         if (indexOfSep != -1) {
             return Long.valueOf(blobId.substring(indexOfSep + 1));
         }

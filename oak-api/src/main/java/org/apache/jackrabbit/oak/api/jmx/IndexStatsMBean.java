@@ -152,6 +152,7 @@ public interface IndexStatsMBean {
     /**
      * Returns the execution time as a {@code org.apache.jackrabbit.api.stats.TimeSeries}.
      *
+     * @deprecated
      * @return the execution times time series
      */
     @Deprecated
@@ -172,6 +173,8 @@ public interface IndexStatsMBean {
 
     /**
      * Resets the consolidated stats.
+     *
+     * @deprecated
      */
     @Deprecated
     void resetConsolidatedExecutionStats();

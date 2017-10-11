@@ -275,11 +275,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
         checkNotNull(delegateClass, "No delegate DataStore class defined via 'delegateClass' property");
         try {
             delegate = (DataStore) getClass().getClassLoader().loadClass(delegateClass).newInstance();
-        } catch (InstantiationException e) {
-            throw new RepositoryException("Cannot load delegate class " + delegateClass, e);
-        } catch (IllegalAccessException e) {
-            throw new RepositoryException("Cannot load delegate class " + delegateClass, e);
-        } catch (ClassNotFoundException e) {
+        } catch (InstantiationException | ClassNotFoundException | IllegalAccessException e) {
             throw new RepositoryException("Cannot load delegate class " + delegateClass, e);
         }
 

@@ -71,8 +71,7 @@ public class MigrationFactory {
 
     protected NodeStore createTarget(Closer closer, BlobStore srcBlobStore) throws IOException {
         BlobStore dstBlobStore = datastores.getDstBlobStore(srcBlobStore).create(closer);
-        NodeStore dstStore = stores.getDstStore().create(dstBlobStore, closer);
-        return dstStore;
+        return stores.getDstStore().create(dstBlobStore, closer);
     }
 
     protected RepositoryUpgrade createUpgrade(RepositoryContext source, NodeStore dstStore) {

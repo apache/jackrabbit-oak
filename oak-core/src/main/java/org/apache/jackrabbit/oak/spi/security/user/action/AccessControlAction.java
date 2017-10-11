@@ -114,7 +114,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         userPrivilegeNames = privilegeNames(config, USER_PRIVILEGE_NAMES);
         groupPrivilegeNames = privilegeNames(config, GROUP_PRIVILEGE_NAMES);
 
-        administrativePrincipals = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.EMPTY_SET);
+        administrativePrincipals = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.emptySet());
     }
 
     @Override

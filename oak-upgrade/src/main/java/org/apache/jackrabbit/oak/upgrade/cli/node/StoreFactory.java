@@ -42,7 +42,7 @@ public class StoreFactory {
         this.nodeStoreFactory = nodeStoreFactory;
     }
 
-    public RepositoryContext create(Closer closer) throws IOException, RepositoryException {
+    public RepositoryContext create(Closer closer) throws RepositoryException {
         if (jcr2Factory == null) {
             throw new UnsupportedOperationException();
         }
