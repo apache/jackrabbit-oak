@@ -1138,10 +1138,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void removeInvalidatesCache() throws Exception {
         String id = Utils.getIdFromPath("/foo");
+        long modified = 1;
         removeMe.add(id);
-        ds.create(Collection.NODES, Collections.singletonList(newDocument("/foo", 1)));
+        ds.create(Collection.NODES, Collections.singletonList(newDocument(id, modified)));
 
-        Map<Key, Condition> conditions = Collections.emptyMap();
+        Map<Key, Condition> conditions = Collections.singletonMap(new Key(NodeDocument.MODIFIED_IN_SECS, null),
+                Condition.newEqualsCondition(modified));
         ds.remove(Collection.NODES, Collections.singletonMap(id, conditions));
         assertNull(ds.getIfCached(Collection.NODES, id));
     }
