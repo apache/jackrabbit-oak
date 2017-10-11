@@ -205,17 +205,18 @@ public class RDBDocumentStoreJDBC {
             whereClause.append(or);
             or = " or ";
             whereClause.append("ID=?");
-            for (Entry<Key, Condition> c : entry.getValue().entrySet()) {
+            if (entry.getValue().entrySet().size() != 1) {
+                throw new DocumentStoreException("Unsupported number of conditions in : " + entry.getValue().entrySet());
+            } else {
+                Entry<Key, Condition> c = entry.getValue().entrySet().iterator().next();
                 if (!c.getKey().getName().equals(MODIFIED)) {
                     throw new DocumentStoreException("Unsupported condition: " + c);
-                }
-                whereClause.append(" and MODIFIED");
-                if (c.getValue().type == Condition.Type.EQUALS && c.getValue().value instanceof Long) {
-                    whereClause.append("=?");
-                } else if (c.getValue().type == Condition.Type.EXISTS) {
-                    whereClause.append(" is not null");
                 } else {
-                    throw new DocumentStoreException("Unsupported condition: " + c);
+                    if (c.getValue().type == Condition.Type.EQUALS && c.getValue().value instanceof Long) {
+                        whereClause.append(" and MODIFIED=?");
+                    } else {
+                        throw new DocumentStoreException("Unsupported condition: " + c);
+                    }
                 }
             }
         }
