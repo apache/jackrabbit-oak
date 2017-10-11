@@ -1332,7 +1332,7 @@ public class MongoDocumentStore implements DocumentStore {
                 invalidateCache(collection, id);
             }
         }
-        return DocumentStoreException.convert(ex);
+        return DocumentStoreException.convert(ex, ids);
     }
 
     private <T extends Document> DocumentStoreException handleException(Exception ex,
