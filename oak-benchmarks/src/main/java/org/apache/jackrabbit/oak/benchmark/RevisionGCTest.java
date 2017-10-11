@@ -88,8 +88,17 @@ public class RevisionGCTest extends Benchmark {
         Random rand = new Random();
         try {
             System.out.print("Creating garbage ");
+            String longPathName = "0123456789";
+            int depth = Integer.getInteger("RevisionGCTest.PATHDEPTH", 0);
+            Node p = s.getRootNode();
+            while (depth > 0) {
+                depth -= 1;
+                p = p.addNode(longPathName);
+            }
+            s.save();
+            System.out.println("Creating garbage in " + p.getPath() + " (" + p.getPath().length() + " chars)");
             for (int i = 0; i < SCALE; i++) {
-                Node n = s.getRootNode().addNode("node-" + i);
+                Node n = p.addNode("node-" + i);
                 for (int j = 0; j < 1000; j++) {
                     n.addNode("child-" + j, NODE_TYPE);
                 }
