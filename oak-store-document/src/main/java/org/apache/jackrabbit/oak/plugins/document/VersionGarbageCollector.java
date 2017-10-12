@@ -261,30 +261,43 @@ public class VersionGarbageCollector {
         final Stopwatch checkDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
+        final Stopwatch deleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch sortDocIds = Stopwatch.createUnstarted();
         final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
         long collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed, collectAndDeleteSplitDocsElapsed,
-                sortDocIdsElapsed, updateResurrectedDocumentsElapsed;
+                deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed;
 
         @Override
         public String toString() {
             String timings;
-            String fmt = "timeToCollectDeletedDocs=%s, timeToCheckDeletedDocs=%s, timeToSortDocIds=%s, timeTakenToUpdateResurrectedDocs=%s, timeTakenToDeleteDeletedDocs=%s, timeTakenToCollectAndDeleteSplitDocs=%s";
+            String fmt = "timeToCollectDeletedDocs=%s, timeToCheckDeletedDocs=%s, timeToSortDocIds=%s, timeTakenToUpdateResurrectedDocs=%s, timeTakenToDeleteDeletedDocs=%s, timeTakenToCollectAndDeleteSplitDocs=%s%s";
 
             // aggregated timings?
             if (iterationCount > 0) {
+                String timeDeletingSplitDocs = "";
+                if (deleteSplitDocsElapsed > 0) {
+                    timeDeletingSplitDocs = String.format(" (of which %s deleting)",
+                            df.format(deleteSplitDocsElapsed, MICROSECONDS));
+                }
                 timings = String.format(fmt, df.format(collectDeletedDocsElapsed, MICROSECONDS),
                         df.format(checkDeletedDocsElapsed, MICROSECONDS), df.format(sortDocIdsElapsed, MICROSECONDS),
                         df.format(updateResurrectedDocumentsElapsed, MICROSECONDS),
                         df.format(deleteDeletedDocsElapsed, MICROSECONDS),
-                        df.format(collectAndDeleteSplitDocsElapsed, MICROSECONDS));
+                        df.format(collectAndDeleteSplitDocsElapsed, MICROSECONDS),
+                        timeDeletingSplitDocs);
             } else {
+                String timeDeletingSplitDocs = "";
+                if (deleteSplitDocs.elapsed(MICROSECONDS) > 0) {
+                    timeDeletingSplitDocs = String.format(" (of which %s deleting)",
+                            df.format(deleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS));
+                }
                 timings = String.format(fmt, df.format(collectDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(checkDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(sortDocIds.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(updateResurrectedDocuments.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(deleteDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(collectAndDeleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS));
+                        df.format(collectAndDeleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                        timeDeletingSplitDocs);
             }
 
             return "VersionGCStats{" +
@@ -316,6 +329,7 @@ public class VersionGarbageCollector {
                 this.checkDeletedDocsElapsed += run.checkDeletedDocsElapsed;
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocsElapsed;
                 this.collectAndDeleteSplitDocsElapsed += run.collectAndDeleteSplitDocsElapsed;
+                this.deleteSplitDocsElapsed += run.deleteSplitDocsElapsed;
                 this.sortDocIdsElapsed += run.sortDocIdsElapsed;
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocumentsElapsed;
             } else {
@@ -324,6 +338,7 @@ public class VersionGarbageCollector {
                 this.checkDeletedDocsElapsed += run.checkDeletedDocs.elapsed(MICROSECONDS);
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocs.elapsed(MICROSECONDS);
                 this.collectAndDeleteSplitDocsElapsed += run.collectAndDeleteSplitDocs.elapsed(MICROSECONDS);
+                this.deleteSplitDocsElapsed += run.deleteSplitDocs.elapsed(MICROSECONDS);
                 this.sortDocIdsElapsed += run.sortDocIds.elapsed(MICROSECONDS);
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(MICROSECONDS);
             }

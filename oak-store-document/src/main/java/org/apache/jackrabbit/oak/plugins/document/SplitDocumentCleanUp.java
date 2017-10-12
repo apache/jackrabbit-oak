@@ -75,15 +75,33 @@ public class SplitDocumentCleanUp implements Closeable {
         idsToBeDeleted.add(id);
         // proceed to delete early if we reach DELETE_BATCH_SIZE
         if (idsToBeDeleted.size() >= DELETE_BATCH_SIZE) {
-            store.remove(NODES, idsToBeDeleted);
+            removeFromDocumentStore(idsToBeDeleted);
             deleteCount += idsToBeDeleted.size();
             idsToBeDeleted.clear();
         }
     }
 
     protected int deleteSplitDocuments() {
-        store.remove(NODES, idsToBeDeleted);
+        removeFromDocumentStore(idsToBeDeleted);
         return idsToBeDeleted.size() + deleteCount;
+    }
+
+    private void removeFromDocumentStore(List<String> ids) {
+        try {
+            stats.deleteSplitDocs.start();
+            store.remove(Collection.NODES, ids);
+        } finally {
+            stats.deleteSplitDocs.stop();
+        }
+    }
+
+    private void removeFromDocumentStore(String id) {
+        try {
+            stats.deleteSplitDocs.start();
+            store.remove(Collection.NODES, id);
+        } finally {
+            stats.deleteSplitDocs.stop();
+        }
     }
 
     private void disconnect(NodeDocument splitDoc) {
@@ -128,7 +146,7 @@ public class SplitDocumentCleanUp implements Closeable {
                 && old.getPreviousRanges().containsKey(rev)) {
             // this was the last reference on an intermediate split doc
             disconnect(old);
-            store.remove(NODES, old.getId());
+            removeFromDocumentStore(old.getId());
             stats.intermediateSplitDocGCCount++;
         }
     }
