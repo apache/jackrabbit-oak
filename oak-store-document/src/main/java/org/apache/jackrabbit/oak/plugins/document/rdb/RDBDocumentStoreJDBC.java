@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHAR2OCTETRATIO;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.asBytes;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
@@ -52,6 +53,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
@@ -199,40 +201,33 @@ public class RDBDocumentStoreJDBC {
 
     public int delete(Connection connection, RDBTableMetaData tmd, Map<String, Map<Key, Condition>> toDelete)
             throws SQLException, DocumentStoreException {
-        String or = "";
-        StringBuilder whereClause = new StringBuilder();
+        // sanity check on parameters; see OAK-6789
         for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
-            whereClause.append(or);
-            or = " or ";
-            whereClause.append("ID=?");
             if (entry.getValue().entrySet().size() != 1) {
                 throw new DocumentStoreException("Unsupported number of conditions in : " + entry.getValue().entrySet());
-            } else {
-                Entry<Key, Condition> c = entry.getValue().entrySet().iterator().next();
-                if (!c.getKey().getName().equals(MODIFIED)) {
-                    throw new DocumentStoreException("Unsupported condition: " + c);
-                } else {
-                    if (c.getValue().type == Condition.Type.EQUALS && c.getValue().value instanceof Long) {
-                        whereClause.append(" and MODIFIED=?");
-                    } else {
-                        throw new DocumentStoreException("Unsupported condition: " + c);
-                    }
-                }
+            }
+            Entry<Key, Condition> c = entry.getValue().entrySet().iterator().next();
+            if (!c.getKey().getName().equals(MODIFIED)) {
+                throw new DocumentStoreException("Unsupported condition: " + c);
             }
         }
 
-        PreparedStatement stmt = connection.prepareStatement("delete from " + tmd.getName() + " where " + whereClause);
+        PreparedStatement stmt = connection.prepareStatement("delete from " + tmd.getName() + " where ID=? and MODIFIED=?");
+        UpdateOp.Key MODIFIEDKEY = new UpdateOp.Key(MODIFIED_IN_SECS, null);
         try {
-            int i = 1;
             for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
-                setIdInStatement(tmd, stmt, i++, entry.getKey());
-                for (Entry<Key, Condition> c : entry.getValue().entrySet()) {
-                    if (c.getValue().type == Condition.Type.EQUALS) {
-                        stmt.setLong(i++, (Long) c.getValue().value);
-                    }
+                setIdInStatement(tmd, stmt, 1, entry.getKey());
+                stmt.setLong(2, (Long) entry.getValue().get(MODIFIEDKEY).value);
+                stmt.addBatch();
+            }
+            int[] rets = stmt.executeBatch();
+            int updatedRows = 0;
+            for (int ret : rets) {
+                if (ret >= 0) {
+                    updatedRows += ret;
                 }
             }
-            return stmt.executeUpdate();
+            return updatedRows;
         } finally {
             stmt.close();
         }
