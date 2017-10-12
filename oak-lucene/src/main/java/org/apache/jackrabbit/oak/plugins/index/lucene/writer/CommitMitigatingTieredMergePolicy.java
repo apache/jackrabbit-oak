@@ -54,6 +54,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     private static final double DEFAULT_MAX_COMMIT_RATE_DOCS = 1000;
     private static final double DEFAULT_MAX_COMMIT_RATE_MB = 5;
+    private static final int DEFAULT_MAX_NO_OF_SEGS = 30;
 
     private int maxMergeAtOnce = 10;
     private long maxMergedSegmentBytes = 5 * 1024 * 1024 * 1024L;
@@ -66,6 +67,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     private double maxCommitRateDocs = DEFAULT_MAX_COMMIT_RATE_DOCS;
     private double maxCommitRateMB = DEFAULT_MAX_COMMIT_RATE_MB;
+    private int maxNoOfSegs = DEFAULT_MAX_NO_OF_SEGS;
 
     private double docCount = 0d;
     private double mb = 0d;
@@ -330,8 +332,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         long now = System.currentTimeMillis();
         double timeDelta = (now / 1000d) - (time / 1000d);
         double commitRate = Math.abs(docCount - infos.totalDocCount()) / timeDelta;
-        log.debug("committing {} docs/sec", commitRate);
-        System.out.printf("committing %s docs/sec\n", commitRate);
+        log.debug("committing {} docs/sec ({} segs)", commitRate);
 
         docCount = infos.totalDocCount();
         time = now;
@@ -340,7 +341,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             message(commitRate + "doc/s (max: " + maxCommitRateDocs + "doc/s)");
         }
 
-        if (commitRate > maxCommitRateDocs) {
+        // set a maxSegmentsBarrier
+        if (commitRate > maxCommitRateDocs && infos.size() < maxNoOfSegs) {
             return null;
         }
 
@@ -431,15 +433,14 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             double bytes = idxBytes - this.mb;
             double mbRate = bytes / timeDelta;
-            log.debug("committing {} MBs/sec", mbRate);
-            System.out.printf("committing %s MBs/sec\n", mbRate);
+            log.debug("committing {} MBs/sec ({} segs)", mbRate, infos.size());
 
             if (verbose()) {
                 message(mbRate + "mb/s (max: " + maxCommitRateMB + "mb/s)");
             }
 
             this.mb = idxBytes;
-            if (mbRate > maxCommitRateMB) {
+            if (mbRate > maxCommitRateMB && infos.size() < maxNoOfSegs) {
                 return null;
             }
 
