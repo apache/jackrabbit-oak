@@ -36,7 +36,7 @@ import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(metatype = true, label = "Apache Jackrabbit Oak MountInfoProvider")
+@Component(metatype = false, label = "Apache Jackrabbit Oak MountInfoProvider")
 public class MountInfoProviderService {
 
     @Property(label = "Mounted paths",
