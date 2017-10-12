@@ -168,7 +168,7 @@ public class FacetTest extends AbstractQueryTest {
 
         QueryManager qm = session.getWorkspace().getQueryManager();
         String xpath = "//*[jcr:contains(@text, 'hello OR hallo')]/(rep:facet(text)) order by jcr:path";
-        Query q = qm.createQuery(xpath, Query.JCR_SQL2);
+        Query q = qm.createQuery(xpath, Query.XPATH);
         QueryResult result = q.execute();
         FacetResult facetResult = new FacetResult(result);
         assertNotNull(facetResult);
