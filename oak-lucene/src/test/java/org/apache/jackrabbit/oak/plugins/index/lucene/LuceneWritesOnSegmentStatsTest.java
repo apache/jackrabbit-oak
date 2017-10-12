@@ -75,7 +75,7 @@ import org.junit.runners.Parameterized;
  * Tests for checking impacts of Lucene writes wrt storage / configuration adjustments on the
  * {@link org.apache.jackrabbit.oak.segment.SegmentNodeStore}.
  */
-//@Ignore("this is meant to be a benchmark, it shouldn't be part of everyday builds")
+@Ignore("this is meant to be a benchmark, it shouldn't be part of everyday builds")
 @RunWith(Parameterized.class)
 public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
 
@@ -119,16 +119,16 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
         return Arrays.asList(new Object[][]{
                 {false, "oakCodec", false, 4000, "tiered"},
                 {false, "oakCodec", false, 4000, "mitigated"},
-//                {false, "oakCodec", false, 4000, "no"},
-//                {false, "Lucene46", false, 4000, "tiered"},
-//                {false, "Lucene46", false, 4000, "mitigated"},
-//                {false, "Lucene46", false, 4000, "no"},
-//                {false, "oakCodec", false, -1, "tiered"},
-//                {false, "oakCodec", false, -1, "mitigated"},
-//                {false, "oakCodec", false, -1, "no"},
-//                {false, "Lucene46", false, -1, "tiered"},
-//                {false, "Lucene46", false, -1, "mitigated"},
-//                {false, "Lucene46", false, -1, "no"},
+                {false, "oakCodec", false, 4000, "no"},
+                {false, "Lucene46", false, 4000, "tiered"},
+                {false, "Lucene46", false, 4000, "mitigated"},
+                {false, "Lucene46", false, 4000, "no"},
+                {false, "oakCodec", false, -1, "tiered"},
+                {false, "oakCodec", false, -1, "mitigated"},
+                {false, "oakCodec", false, -1, "no"},
+                {false, "Lucene46", false, -1, "tiered"},
+                {false, "Lucene46", false, -1, "mitigated"},
+                {false, "Lucene46", false, -1, "no"},
         });
     }
 
