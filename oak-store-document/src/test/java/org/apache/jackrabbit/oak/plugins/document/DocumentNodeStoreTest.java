@@ -3548,6 +3548,31 @@ public class DocumentNodeStoreTest {
         after.compareAgainstBaseState(before, new DefaultNodeStateDiff());
     }
 
+    // OAK-2621
+    @Ignore("OAK-2621")
+    @Test
+    public void getChildNodeCount() throws Exception {
+        CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        for (int i = 0; i < 100; i++) {
+            builder.child("test").child("node-" + i);
+        }
+        merge(ns, builder);
+
+        ns.getNodeChildrenCache().invalidateAll();
+        store.resetCounters();
+        builder = ns.getRoot().builder();
+        for (int i = 0; i < 100; i++) {
+            NodeBuilder test = builder.child("test");
+            test.child("node-" + i).remove();
+            test.getChildNodeCount(1);
+        }
+        // must read the children of /test only once
+        assertEquals(1, store.getNumQueryCalls(NODES));
+    }
+
     private static class WriteCountingStore extends MemoryDocumentStore {
         private final ThreadLocal<Boolean> createMulti = new ThreadLocal<>();
         int count;
