@@ -47,21 +47,27 @@ public class FacetTest extends AbstractQueryTest {
     @Before
     protected void setUp() throws Exception {
         super.setUp();
-        if (!superuser.itemExists(FACET_CONFING_PROP_PATH)) {
-            Node props = superuser.getNode("/oak:index/luceneGlobal/indexRules/nt:base/properties");
-            Node node = props.addNode("relative");
-            node.setProperty("name", "jc/text");
-            node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
-            node.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
-            node = props.getNode("allProps");
-            node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
-            markIndexForReindex();
-            superuser.save();
-            superuser.refresh(true);
+        if (superuser.itemExists(FACET_CONFING_PROP_PATH)) {
+            superuser.getItem(FACET_CONFING_PROP_PATH).remove();
         }
 
+        Node props = superuser.getNode("/oak:index/luceneGlobal/indexRules/nt:base/properties");
+        if (props.hasNode("relative")) {
+            props.getNode("relative").remove();
+        }
+
+        Node node = props.addNode("relative");
+        node.setProperty("name", "jc/text");
+        node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
+        node.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        node = props.getNode("allProps");
+        node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
+        markIndexForReindex();
+        superuser.save();
+        superuser.refresh(true);
+
         if (!superuser.nodeExists(FACET_CONFING_NODE_PATH)) {
-            Node node = superuser.getNode(INDEX_CONFING_NODE_PATH);
+            node = superuser.getNode(INDEX_CONFING_NODE_PATH);
             node.addNode(LuceneIndexConstants.FACETS);
             markIndexForReindex();
             superuser.save();
