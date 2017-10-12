@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -71,6 +72,9 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Tests for checking impacts of Lucene writes wrt storage / configuration adjustments on the
  * {@link org.apache.jackrabbit.oak.segment.SegmentNodeStore}.
@@ -80,6 +84,7 @@ import org.junit.runners.Parameterized;
 public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
 
     private static final File DIRECTORY = new File("target/fs");
+    private static final String FOO_QUERY = "select [jcr:path] from [nt:base] where contains('foo', '*')";
 
     private final boolean copyOnRW;
     private final String codec;
@@ -273,22 +278,24 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
             idxDef.setProperty("path", indexPath);
         }
 
+
         Random r = new Random();
 
         System.out.println("***");
         System.out.println(codec + "," + copyOnRW + "," + indexOnFS + "," + minRecordLength + "," + mergePolicy);
 
         long start = System.currentTimeMillis();
-        int multiplier = 3;
+        int multiplier = 5;
         for (int n = 0; n < multiplier; n++) {
             System.err.println("iteration " + (n + 1));
 
             Tree rootTree = root.getTree("/").addChild("content");
             byte[] bytes = new byte[10240];
             Charset charset = Charset.defaultCharset();
+            String text = "";
             for (int i = 0; i < 1000; i++) {
                 r.nextBytes(bytes);
-                String text = new String(bytes, charset);
+                text = new String(bytes, charset);
                 Tree tree = rootTree.addChild(String.valueOf(n + i));
                 tree.setProperty("foo", text);
                 tree.setProperty("bin", bytes);
@@ -311,7 +318,7 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
             // add and delete some content and measure
             for (int i = 0; i < 1000; i++) {
                 r.nextBytes(bytes);
-                String text = new String(bytes, charset);
+                text = new String(bytes, charset);
                 Tree tree = rootTree.addChild(String.valueOf(n + 100 + i));
                 tree.setProperty("foo", text);
                 tree.setProperty("bin", bytes);
@@ -328,6 +335,16 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
         System.out.println("***");
     }
 
+    private double evaluateQuery(String fooQuery) {
+        long q1Start = System.currentTimeMillis();
+        List<String> res1 = executeQuery(fooQuery, SQL2);
+        long q1End = System.currentTimeMillis();
+        double time =  (q1End - q1Start) / 1000d;
+        assertNotNull(res1);
+        assertTrue(res1.size() > 0);
+        return time;
+    }
+
     private void printStats() throws IOException {
         fileStore.flush();
 
@@ -336,8 +353,11 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
         long sizeOfDirectory = FileUtils.sizeOfDirectory(new File(fdsDir));
         String fdsSize = (sizeOfDirectory / (1024 * 1000)) + " MB";
 
-        System.err.println("||codec||min record length||merge policy||segment size||FDS size||");
-        System.err.println("|"+codec+"|"+minRecordLength+"|"+mergePolicy+"|"+ IOUtils.humanReadableByteCount(stats.getApproximateSize())+"|"+fdsSize+"|");
+        double time = evaluateQuery(FOO_QUERY);
+
+        System.err.println("||codec||min record length||merge policy||segment size||FDS size||query time||");
+        System.err.println("|" + codec + "|" + minRecordLength + "|" + mergePolicy + "|" + IOUtils.humanReadableByteCount(
+                stats.getApproximateSize()) + "|" + fdsSize + "|" + time + " s|");
 
         if (indexOnFS) {
             long sizeOfFSIndex = FileUtils.sizeOfDirectory(new File(indexPath));
