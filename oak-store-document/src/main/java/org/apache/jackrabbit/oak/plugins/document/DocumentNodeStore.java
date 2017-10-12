@@ -510,7 +510,10 @@ public final class DocumentNodeStore
      */
     private final Set<Revision> inDoubtTrunkCommits = Sets.newConcurrentHashSet();
 
+    private final Predicate<String> nodeCachePredicate;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
+        this.nodeCachePredicate = builder.getNodeCachePredicate();
         this.updateLimit = builder.getUpdateLimit();
         this.commitValueResolver = new CommitValueResolver(builder.getCommitValueCacheSize(),
                 new Supplier<RevisionVector>() {
@@ -1046,6 +1049,10 @@ public final class DocumentNodeStore
 
     public Cache<PathRev, DocumentNodeState.Children> getNodeChildrenCache() {
         return nodeChildrenCache;
+    }
+
+    public Predicate<String> getNodeCachePredicate() {
+        return nodeCachePredicate;
     }
 
     /**
