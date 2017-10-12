@@ -685,6 +685,14 @@ MongoDB backend can be initiated with:
     
 This will collect changes identified as garbage, which is older than 24 hours.
 
+Starting with Oak 1.8 there is a new mode called `Continuous Revision Garbage
+Collection` available for OSGi deployments using a `DocumentNodeStoreService`.
+The new option `versionGCContinuous` is described in more detail on the [OSGi
+configuration][osgi-config] page. When enabled, the Revision GC is triggered
+automatically by a background thread every five seconds. In this mode, the
+Revision GC will not log every run but only write an INFO message every hour
+summarizing the GC cycles for the past hour.
+
 [1]: http://docs.mongodb.org/manual/core/read-preference/
 [2]: http://docs.mongodb.org/manual/core/write-concern/
 [3]: http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
