@@ -19,10 +19,15 @@ package org.apache.jackrabbit.oak.fixture;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -35,10 +40,13 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.Collections.emptyList;
 
 public abstract class OakFixture {
 
@@ -356,10 +364,10 @@ public abstract class OakFixture {
             DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                     setMongoDB(mongo.getDB()).
                     memoryCacheSize(cacheSize).
-                    //TODO Persistent cache should be removed in teardown
-                            setPersistentCache("target/persistentCache,time").
                             setClusterId(clusterId).
                             setLogging(false);
+
+            configurePersistentCache(mkBuilder);
             setupBlobStore(mkBuilder, StatisticsProvider.NOOP);
             return mkBuilder;
         }
@@ -424,6 +432,28 @@ public abstract class OakFixture {
             if (useDataStore) {
                 blobStoreFixture =
                         BlobStoreFixture.create(base, true, dsCacheInMB, statsProvider);
+            }
+        }
+
+        private void configurePersistentCache(DocumentMK.Builder mkBuilder) {
+            //TODO Persistent cache should be removed in teardown
+            mkBuilder.setPersistentCache("target/persistentCache,time");
+
+            String persistentCacheIncludes = System.getProperty("persistentCacheIncludes");
+
+            Set<String> paths = new HashSet<>();
+            if (persistentCacheIncludes != null) {
+                for (String p : Splitter.on(',').split(persistentCacheIncludes)) {
+                    p = p != null ? Strings.emptyToNull(p.trim()) : null;
+                    if (p != null) {
+                        paths.add(p);
+                    }
+                }
+
+                PathFilter pf = new PathFilter(paths, emptyList());
+                System.out.println("Configuring persistent cache to only cache nodes under paths " + paths);
+                Predicate<String> cachePredicate = path -> path != null && pf.filter(path) == PathFilter.Result.INCLUDE;
+                mkBuilder.setNodeCachePredicate(cachePredicate);
             }
         }
 
