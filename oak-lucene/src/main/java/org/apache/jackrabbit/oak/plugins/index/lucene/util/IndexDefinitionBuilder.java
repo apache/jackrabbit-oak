@@ -95,6 +95,11 @@ public final class IndexDefinitionBuilder {
         return this;
     }
 
+    public IndexDefinitionBuilder queryPaths(String ... paths){
+        tree.setProperty(IndexConstants.QUERY_PATHS, asList(paths), STRINGS);
+        return this;
+    }
+
     public IndexDefinitionBuilder codec(String codecName){
         tree.setProperty(LuceneIndexConstants.CODEC_NAME, checkNotNull(codecName));
         return this;
