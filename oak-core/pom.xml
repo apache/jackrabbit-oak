@@ -45,6 +45,7 @@
             <Export-Package>
               org.apache.jackrabbit.oak,
               org.apache.jackrabbit.oak.api,
+              org.apache.jackrabbit.oak.api.conversion,
               org.apache.jackrabbit.oak.api.jmx,
               org.apache.jackrabbit.oak.cache,
               org.apache.jackrabbit.oak.stats,
