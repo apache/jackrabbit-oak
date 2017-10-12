@@ -41,8 +41,10 @@ import javax.annotation.Nullable;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -57,6 +59,7 @@ import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -403,6 +406,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         BufferedWriter removesWriter = null;
         LineIterator iterator = null;
+        long deletedSize = 0;
+        int numDeletedSizeAvailable = 0;
         try {
             removesWriter = Files.newWriter(fs.getGarbage(), Charsets.UTF_8);
             ArrayDeque<String> removesQueue = new ArrayDeque<String>();
@@ -416,6 +421,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 deleted += BlobCollectionType.get(blobStore)
                     .sweepInternal(blobStore, ids, removesQueue, maxModifiedTime);
                 saveBatchToFile(newArrayList(removesQueue), removesWriter);
+
+                for(String deletedIdRow : removesQueue) {
+                    String strLength = Splitter.on(DELIM).trimResults().splitToList(deletedIdRow).get(1);
+                    if (!Strings.isNullOrEmpty(strLength)) {
+                        long length = Long.valueOf(strLength);
+                        if (length != -1) {
+                            deletedSize += length;
+                            numDeletedSizeAvailable += 1;
+                        }
+                    }
+                }
                 removesQueue.clear();
             }
         } finally {
@@ -430,6 +446,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                          + "modified time is > "
                          + "than the max deleted time ({})", deleted, count,
                         timestampToString(maxModifiedTime));
+        }
+
+        if (deletedSize > 0) {
+            LOG.info("Estimated size recovered for {} deleted blobs is {} ({} bytes)",
+                numDeletedSizeAvailable,
+                org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(deletedSize), deletedSize);
         }
 
         // Remove all the merged marked references
@@ -766,30 +788,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     private enum BlobCollectionType {
         TRACKER {
-            /**
-             * Deletes the given batch by deleting individually to exactly know the actual deletes.
-             */
-            @Override
-            long sweepInternal(GarbageCollectableBlobStore blobStore, List<String> ids,
-                ArrayDeque<String> exceptionQueue, long maxModified) {
-                long totalDeleted = 0;
-                LOG.trace("Blob ids to be deleted {}", ids);
-                for (String id : ids) {
-                    try {
-                        long deleted = blobStore.countDeleteChunks(newArrayList(id), maxModified);
-                        if (deleted != 1) {
-                            LOG.debug("Blob [{}] not deleted", id);
-                        } else {
-                            exceptionQueue.add(id);
-                        }
-                        totalDeleted += deleted;
-                    } catch (Exception e) {
-                        LOG.warn("Error occurred while deleting blob with id [{}]", id, e);
-                    }
-                }
-                return totalDeleted;
-            }
-
             @Override
             void retrieve(GarbageCollectableBlobStore blobStore,
                     GarbageCollectorFileState fs, int batchCount) throws Exception {
@@ -818,29 +816,28 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         DEFAULT;
 
         /**
-         * Deletes a batch of blobs from blob store.
-         *
-         * @param blobStore blobStore
-         * @param ids ids to sweep
-         * @param exceptionQueue add removes to the queue
-         * @param maxModified maxModified time of blobs to be deleted
-         * @return
+         * Deletes the given batch by deleting individually to exactly know the actual deletes.
          */
-        long sweepInternal(GarbageCollectableBlobStore blobStore,
-            List<String> ids, ArrayDeque<String> exceptionQueue, long maxModified) {
-            long deleted = 0;
-            try {
-                LOG.trace("Blob ids to be deleted {}", ids);
-                deleted = blobStore.countDeleteChunks(ids, maxModified);
-                if (deleted != ids.size()) {
-                    LOG.debug("Some [{}] blobs were not deleted from the batch : [{}]",
-                        ids.size() - deleted, ids);
+        long sweepInternal(GarbageCollectableBlobStore blobStore, List<String> ids,
+            ArrayDeque<String> exceptionQueue, long maxModified) {
+            long totalDeleted = 0;
+            LOG.trace("Blob ids to be deleted {}", ids);
+            for (String id : ids) {
+                try {
+                    // Estimate the size of the blob
+                    long length = DataStoreBlobStore.BlobId.of(id).getLength();
+                    long deleted = blobStore.countDeleteChunks(newArrayList(id), maxModified);
+                    if (deleted != 1) {
+                        LOG.debug("Blob [{}] not deleted", id);
+                    } else {
+                        exceptionQueue.add(Joiner.on(DELIM).join(id, length));
+                        totalDeleted += 1;
+                    }
+                } catch (Exception e) {
+                    LOG.warn("Error occurred while deleting blob with id [{}]", id, e);
                 }
-                exceptionQueue.addAll(ids);
-            } catch (Exception e) {
-                LOG.warn("Error occurred while deleting blob with ids [{}]", ids, e);
             }
-            return deleted;
+            return totalDeleted;
         }
 
         /**
