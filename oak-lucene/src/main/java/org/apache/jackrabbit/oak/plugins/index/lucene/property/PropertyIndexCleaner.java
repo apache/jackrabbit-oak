@@ -225,12 +225,10 @@ public class PropertyIndexCleaner implements Runnable{
         }
 
         if (recursiveDelete) {
-            for (String path : bucketPaths) {
-                RecursiveDelete rd = new RecursiveDelete(nodeStore, createCommitHook(),
-                        PropertyIndexCleaner::createCommitInfo, path);
-                rd.run();
-                stats.numOfNodesDeleted += rd.getNumRemoved();
-            }
+            RecursiveDelete rd = new RecursiveDelete(nodeStore, createCommitHook(),
+                    PropertyIndexCleaner::createCommitInfo);
+            rd.run(bucketPaths);
+            stats.numOfNodesDeleted += rd.getNumRemoved();
         } else {
             NodeState root = nodeStore.getRoot();
             NodeBuilder builder = root.builder();
@@ -308,8 +306,9 @@ public class PropertyIndexCleaner implements Runnable{
 
         @Override
         public String toString() {
-            return String.format("Removed %d index buckets, %d unique index entries " +
-                    "from indexes %s", purgedBucketCount, uniqueIndexEntryRemovalCount, purgedIndexPaths);
+            String nodeCountMsg = numOfNodesDeleted > 0 ? String.format("(%d nodes)", numOfNodesDeleted) : "";
+            return String.format("Removed %d index buckets %s, %d unique index entries " +
+                    "from indexes %s", purgedBucketCount, nodeCountMsg, uniqueIndexEntryRemovalCount, purgedIndexPaths);
         }
     }
 }
