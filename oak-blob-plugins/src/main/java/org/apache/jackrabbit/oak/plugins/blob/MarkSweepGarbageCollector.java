@@ -458,17 +458,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             return 0;
         }
 
-        long oldestCheckopoint = -1;
+        long oldestCheckpoint = -1;
         if (checkpointMbean != null) {
-            oldestCheckopoint = checkpointMbean.getOldestCheckpointCreationDate().getTime();
-            LOG.debug("Oldest checkpoint data retrieved {} ", oldestCheckopoint);
+            oldestCheckpoint = checkpointMbean.getOldestCheckpointCreationDate().getTime();
+            LOG.debug("Oldest checkpoint data retrieved {} ", oldestCheckpoint);
         }
         LOG.debug("maxModificationReferenceTime {} ", maxModificationReferenceTime);
 
         maxModificationReferenceTime = maxModificationReferenceTime <= 0 ?
                                             System.currentTimeMillis() : maxModificationReferenceTime;
-        long calculatedReferenceTime = (oldestCheckopoint <= 0 ? maxModificationReferenceTime :
-                Math.min(maxModificationReferenceTime, oldestCheckopoint));
+        long calculatedReferenceTime = (oldestCheckpoint <= 0 ? maxModificationReferenceTime :
+                Math.min(maxModificationReferenceTime, oldestCheckpoint));
         LOG.debug("Calculated reference time {} ", calculatedReferenceTime);
 
         return (calculatedReferenceTime - maxLastModifiedInterval);
