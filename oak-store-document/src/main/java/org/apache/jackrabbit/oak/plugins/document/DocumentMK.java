@@ -40,6 +40,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -606,6 +608,7 @@ public class DocumentMK {
         private long maxRevisionAgeMillis = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
         private GCMonitor gcMonitor = new LoggingGCMonitor(
                 LoggerFactory.getLogger(VersionGarbageCollector.class));
+        private Predicate<String> nodeCachePredicate = Predicates.alwaysTrue();
 
         public Builder() {
         }
@@ -1250,6 +1253,15 @@ public class DocumentMK {
             CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
 
             return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
+        }
+
+        public Builder setNodeCachePredicate(Predicate<String> p){
+            this.nodeCachePredicate = p;
+            return this;
+        }
+
+        public Predicate<String> getNodeCachePredicate() {
+            return nodeCachePredicate;
         }
 
         @SuppressWarnings("unchecked")

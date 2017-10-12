@@ -53,7 +53,11 @@ public enum CacheType {
         }
         @Override
         public <K> boolean shouldCache(DocumentNodeStore store, K key) {
-            return !store.getNodeStateCache().isCached(((PathRev)key).getPath());
+            String path = ((PathRev) key).getPath();
+            if (!store.getNodeCachePredicate().apply(path)){
+                return false;
+            }
+            return !store.getNodeStateCache().isCached(path);
         }
     },
     
@@ -84,7 +88,11 @@ public enum CacheType {
 
         @Override
         public <K> boolean shouldCache(DocumentNodeStore store, K key) {
-            return !store.getNodeStateCache().isCached(((PathRev)key).getPath());
+            String path = ((PathRev) key).getPath();
+            if (!store.getNodeCachePredicate().apply(path)){
+                return false;
+            }
+            return !store.getNodeStateCache().isCached(path);
         }
     }, 
     

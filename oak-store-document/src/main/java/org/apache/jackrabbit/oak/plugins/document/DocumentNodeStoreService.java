@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
@@ -39,17 +40,22 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableMap;
@@ -86,6 +92,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
@@ -361,6 +368,11 @@ public class DocumentNodeStoreService {
                 description = "Number of content updates that need to happen before " +
                         "the updates are automatically purged to the private branch.")
         int updateLimit();
+
+        @AttributeDefinition(
+                name = "Persistent Cache Includes",
+                description = "Paths which should be cached in persistent cache")
+        String[] persistentCacheIncludes() default {"/"};
     }
     
     // property name constants - values can come from framework properties or OSGi config
@@ -435,9 +447,12 @@ public class DocumentNodeStoreService {
 
     private BlobStore defaultBlobStore;
 
+    private volatile Configuration config;
+
     @Activate
     protected void activate(ComponentContext context, Configuration config) throws Exception {
         closer = Closer.create();
+        this.config = config;
         this.context = context;
         whiteboard = new OsgiWhiteboard(context.getBundleContext());
         executor = new WhiteboardExecutor();
@@ -522,7 +537,8 @@ public class DocumentNodeStoreService {
                 }).
                 setPrefetchExternalChanges(prefetchExternalChanges).
                 setUpdateLimit(updateLimit).
-                setJournalGCMaxAge(journalGCMaxAge);
+                setJournalGCMaxAge(journalGCMaxAge).
+                setNodeCachePredicate(createCachePredicate());
 
         if (!Strings.isNullOrEmpty(persistentCache)) {
             mkBuilder.setPersistentCache(persistentCache);
@@ -694,6 +710,26 @@ public class DocumentNodeStoreService {
         nodeStoreReg = context.getBundleContext().registerService(
             serviceClasses,
             nodeStore, props);
+    }
+
+    private Predicate<String> createCachePredicate() {
+        if (config.persistentCacheIncludes().length == 0) {
+            return Predicates.alwaysTrue();
+        }
+        if (Arrays.equals(config.persistentCacheIncludes(), new String[]{"/"})) {
+            return Predicates.alwaysTrue();
+        }
+
+        Set<String> paths = new HashSet<>();
+        for (String p : config.persistentCacheIncludes()) {
+            p = p != null ? Strings.emptyToNull(p.trim()) : null;
+            if (p != null) {
+                paths.add(p);
+            }
+        }
+        PathFilter pf = new PathFilter(paths, emptyList());
+        log.info("Configuring persistent cache to only cache nodes under paths {}", paths);
+        return path -> path != null && pf.filter(path) == PathFilter.Result.INCLUDE;
     }
 
     private boolean isNodeStoreProvider() {

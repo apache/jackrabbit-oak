@@ -23,7 +23,9 @@ import java.io.File;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 
+import com.google.common.base.Predicate;
 import com.google.common.cache.RemovalCause;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -37,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Counting;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -46,6 +49,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -118,7 +123,32 @@ public class NodeCacheTest {
         assertNotContains(nodeChildren, "/c");
     }
 
+    @Test
+    public void cachePredicateSync() throws Exception{
+        PathFilter pf = new PathFilter(asList("/a"), emptyList());
+        Predicate<String> p = path -> pf.filter(path) == PathFilter.Result.INCLUDE;
+        initializeNodeStore(false, b -> b.setNodeCachePredicate(p));
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a").child("c1");
+        builder.child("b").child("c2");
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //Do a read again
+        ns.getRoot().getChildNode("a").getChildNode("c1");
+        ns.getRoot().getChildNode("b").getChildNode("c2");
+
+        assertNotContains(nodeCache, "/b");
+        assertNotContains(nodeCache, "/b/c2");
+        assertContains(nodeCache, "/a");
+        assertContains(nodeCache, "/a/c1");
+    }
+
     private void initializeNodeStore(boolean asyncCache) {
+        initializeNodeStore(asyncCache, b -> {});
+    }
+
+    private void initializeNodeStore(boolean asyncCache, Consumer<DocumentMK.Builder> processor) {
         DocumentMK.Builder builder = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setStatisticsProvider(statsProvider);
@@ -128,6 +158,9 @@ public class NodeCacheTest {
         }else {
             builder.setPersistentCache("target/persistentCache,time,-async");
         }
+
+        processor.accept(builder);
+
         ns = builder.getNodeStore();
         nodeCache = (NodeCache<PathRev, DocumentNodeState>) ns.getNodeCache();
         nodeChildren = (NodeCache<PathRev, DocumentNodeState.Children>) ns.getNodeChildrenCache();

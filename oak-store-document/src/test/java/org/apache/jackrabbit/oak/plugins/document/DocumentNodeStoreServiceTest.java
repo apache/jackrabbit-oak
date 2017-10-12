@@ -189,6 +189,19 @@ public class DocumentNodeStoreServiceTest {
         assertNotNull(((Supplier) rgcJob).get());
     }
 
+    @Test
+    public void persistentCacheExclude() throws Exception{
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("persistentCacheIncludes", new String[] {"/a/b", "/c/d ", null});
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertTrue(dns.getNodeCachePredicate().apply("/a/b/c"));
+        assertTrue(dns.getNodeCachePredicate().apply("/c/d/e"));
+
+        assertFalse(dns.getNodeCachePredicate().apply("/x"));
+    }
+
     private static MongoDocumentStore getMongoDocumentStore(DocumentNodeStore s) {
         try {
             Field f = s.getClass().getDeclaredField("nonLeaseCheckingStore");
