@@ -54,7 +54,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     private static final double DEFAULT_MAX_COMMIT_RATE_DOCS = 1000;
     private static final double DEFAULT_MAX_COMMIT_RATE_MB = 5;
-    private static final int DEFAULT_MAX_NO_OF_SEGS = 30;
+    private static final int DEFAULT_MAX_NO_OF_SEGS_FOR_MITIGATION = 20;
 
     private int maxMergeAtOnce = 10;
     private long maxMergedSegmentBytes = 5 * 1024 * 1024 * 1024L;
@@ -67,7 +67,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     private double maxCommitRateDocs = DEFAULT_MAX_COMMIT_RATE_DOCS;
     private double maxCommitRateMB = DEFAULT_MAX_COMMIT_RATE_MB;
-    private int maxNoOfSegs = DEFAULT_MAX_NO_OF_SEGS;
+    private int maxNoOfSegsForMitigation = DEFAULT_MAX_NO_OF_SEGS_FOR_MITIGATION;
 
     private double docCount = 0d;
     private double mb = 0d;
@@ -93,6 +93,17 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             throw new IllegalArgumentException("maxMergeAtOnce must be > 1 (got " + v + ")");
         }
         maxMergeAtOnce = v;
+        return this;
+    }
+
+    /**
+     * Maximum number of segments allowed for mitigation to happen.
+     * This is supposed to avoid having too few merges due to high commit rates
+     * @param maxNoOfSegsForMitigation max no. of segments per mitigation
+     * @return this merge policy instance
+     */
+    public CommitMitigatingTieredMergePolicy setMaxNoOfSegsForMitigation(int maxNoOfSegsForMitigation) {
+        this.maxNoOfSegsForMitigation = maxNoOfSegsForMitigation;
         return this;
     }
 
@@ -322,10 +333,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     @Override
     public MergeSpecification findMerges(MergeTrigger mergeTrigger, SegmentInfos infos) throws IOException {
+        int segmentSize = infos.size();
+
         if (verbose()) {
-            message("findMerges: " + infos.size() + " segments");
+            message("findMerges: " + segmentSize + " segments");
         }
-        if (infos.size() == 0) {
+        if (segmentSize == 0) {
             return null;
         }
 
@@ -341,8 +354,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             message(commitRate + "doc/s (max: " + maxCommitRateDocs + "doc/s)");
         }
 
-        // set a maxSegmentsBarrier
-        if (commitRate > maxCommitRateDocs && infos.size() < maxNoOfSegs) {
+        // do not mitigate if there're too many segments to avoid affecting performance
+        if (commitRate > maxCommitRateDocs && segmentSize < maxNoOfSegsForMitigation) {
             return null;
         }
 
@@ -433,14 +446,16 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             double bytes = idxBytes - this.mb;
             double mbRate = bytes / timeDelta;
-            log.debug("committing {} MBs/sec ({} segs)", mbRate, infos.size());
+            log.debug("committing {} MBs/sec ({} segs)", mbRate, segmentSize);
 
             if (verbose()) {
                 message(mbRate + "mb/s (max: " + maxCommitRateMB + "mb/s)");
             }
 
             this.mb = idxBytes;
-            if (mbRate > maxCommitRateMB && infos.size() < maxNoOfSegs) {
+
+            // do not mitigate if there're too many segments to avoid affecting performance
+            if (mbRate > maxCommitRateMB && segmentSize < maxNoOfSegsForMitigation) {
                 return null;
             }
 
