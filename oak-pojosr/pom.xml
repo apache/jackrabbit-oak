@@ -32,35 +32,29 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <groovy.version>2.3.1</groovy.version>
+    <groovy.version>2.4.12</groovy.version>
   </properties>
 
   <build>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.gmaven</groupId>
-        <artifactId>gmaven-plugin</artifactId>
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
         <version>1.5</version>
-        <!--suppress MavenModelInspection -->
-        <configuration>
-          <providerSelection>2.0</providerSelection>
-          <sourceEncoding>UTF-8</sourceEncoding>
-        </configuration>
         <executions>
           <execution>
             <goals>
-              <goal>generateTestStubs</goal>
+              <goal>addSources</goal>
+              <goal>addTestSources</goal>
+              <goal>generateStubs</goal>
+              <goal>compile</goal>
+              <goal>testGenerateStubs</goal>
               <goal>testCompile</goal>
+              <goal>removeStubs</goal>
+              <goal>removeTestStubs</goal>
             </goals>
           </execution>
         </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
-            <version>${groovy.version}</version>
-          </dependency>
-        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.apache.rat</groupId>
