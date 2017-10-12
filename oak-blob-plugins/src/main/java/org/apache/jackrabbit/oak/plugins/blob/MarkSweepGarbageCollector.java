@@ -422,14 +422,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     .sweepInternal(blobStore, ids, removesQueue, maxModifiedTime);
                 saveBatchToFile(newArrayList(removesQueue), removesWriter);
 
-                for(String deletedIdRow : removesQueue) {
-                    String strLength = Splitter.on(DELIM).trimResults().splitToList(deletedIdRow).get(1);
-                    if (!Strings.isNullOrEmpty(strLength)) {
-                        long length = Long.valueOf(strLength);
-                        if (length != -1) {
-                            deletedSize += length;
-                            numDeletedSizeAvailable += 1;
-                        }
+                for(String deletedId : removesQueue) {
+                    // Estimate the size of the blob
+                    long length = DataStoreBlobStore.BlobId.of(deletedId).getLength();
+                    if (length != -1) {
+                        deletedSize += length;
+                        numDeletedSizeAvailable += 1;
                     }
                 }
                 removesQueue.clear();
@@ -824,13 +822,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.trace("Blob ids to be deleted {}", ids);
             for (String id : ids) {
                 try {
-                    // Estimate the size of the blob
-                    long length = DataStoreBlobStore.BlobId.of(id).getLength();
                     long deleted = blobStore.countDeleteChunks(newArrayList(id), maxModified);
                     if (deleted != 1) {
                         LOG.debug("Blob [{}] not deleted", id);
                     } else {
-                        exceptionQueue.add(Joiner.on(DELIM).join(id, length));
+                        exceptionQueue.add(id);
                         totalDeleted += 1;
                     }
                 } catch (Exception e) {
