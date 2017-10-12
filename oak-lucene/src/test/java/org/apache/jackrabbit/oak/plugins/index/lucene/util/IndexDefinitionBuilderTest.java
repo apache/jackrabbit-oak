@@ -62,6 +62,7 @@ public class IndexDefinitionBuilderTest {
     @Test
     public void indexRule() throws Exception{
         builder.includedPaths("/a", "/b");
+        builder.queryPaths("/c", "/d");
         builder.indexRule("nt:base")
                     .property("foo")
                         .ordered()
@@ -77,6 +78,7 @@ public class IndexDefinitionBuilderTest {
         assertTrue(state.getChildNode("indexRules").exists());
         assertTrue(state.getChildNode("indexRules").getChildNode("nt:base").exists());
         assertEquals(asList("/a", "/b"), state.getProperty(PathFilter.PROP_INCLUDED_PATHS).getValue(Type.STRINGS));
+        assertEquals(asList("/c", "/d"), state.getProperty(IndexConstants.QUERY_PATHS).getValue(Type.STRINGS));
     }
 
     @Test
