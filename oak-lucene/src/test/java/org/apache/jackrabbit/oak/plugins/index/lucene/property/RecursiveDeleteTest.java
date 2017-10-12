@@ -45,6 +45,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.junit.Assert.*;
 
@@ -80,15 +81,37 @@ public class RecursiveDeleteTest {
         int actualCount = createSubtree(10000);
         assertEquals(actualCount, getSubtreeCount(getNode(nodeStore.getRoot(), testNodePath)));
 
-        RecursiveDelete rd = new RecursiveDelete(nodeStore, EmptyHook.INSTANCE, () -> CommitInfo.EMPTY, testNodePath);
+        RecursiveDelete rd = new RecursiveDelete(nodeStore, EmptyHook.INSTANCE, () -> CommitInfo.EMPTY);
         rd.setBatchSize(100);
-        rd.run();
+        rd.run(testNodePath);
 
         assertEquals(actualCount, rd.getNumRemoved());
         assertFalse(getNode(nodeStore.getRoot(), testNodePath).exists());
 
         System.out.println(rd.getMergeCount());
         System.out.println(actualCount);
+    }
+
+    @Test
+    public void multiplePaths() throws Exception{
+        int count  = 121;
+        NodeBuilder nb = nodeStore.getRoot().builder();
+        nb.child("c");
+        for (int i = 0; i < count; i++) {
+            nb.child("a").child("c"+i);
+            nb.child("b").child("c"+i);
+        }
+        nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        RecursiveDelete rd = new RecursiveDelete(nodeStore, EmptyHook.INSTANCE, () -> CommitInfo.EMPTY);
+        rd.setBatchSize(50);
+        rd.run(asList("/a", "/b"));
+
+        assertEquals(5, rd.getMergeCount());
+        assertEquals(2 * count + 2, rd.getNumRemoved());
+        assertFalse(getNode(nodeStore.getRoot(), "/a").exists());
+        assertFalse(getNode(nodeStore.getRoot(), "/b").exists());
+        assertTrue(getNode(nodeStore.getRoot(), "/c").exists());
     }
 
     private int createSubtree(int maxNodesCount) throws CommitFailedException {

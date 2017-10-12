@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.util.function.Supplier;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -39,21 +40,36 @@ public class RecursiveDelete {
     private final NodeStore nodeStore;
     private final CommitHook commitHook;
     private final Supplier<CommitInfo> commitInfo;
-    private final String path;
     private int batchSize = 1024;
     private int numRemoved = 0;
     private int mergeCount;
     private NodeBuilder builder;
 
     public RecursiveDelete(NodeStore nodeStore, CommitHook commitHook,
-                           Supplier<CommitInfo> commitInfo, String path) {
+                           Supplier<CommitInfo> commitInfo) {
         this.nodeStore = nodeStore;
         this.commitHook = commitHook;
         this.commitInfo = commitInfo;
-        this.path = path;
     }
 
-    public void run() throws CommitFailedException {
+    public void run(Iterable<String> paths) throws CommitFailedException {
+        Stopwatch w = Stopwatch.createStarted();
+        NodeState root = nodeStore.getRoot();
+        builder = root.builder();
+        int currentSize = 0;
+        for (String path : paths) {
+            NodeState node = NodeStateUtils.getNode(root, path);
+            currentSize = delete(node, path);
+            save(path, currentSize, false);
+        }
+
+        String pathDetails = Iterables.toString(paths);
+        save(pathDetails, currentSize, true);
+        log.debug("Removed subtree under [{}] with {} child nodes " +
+                "in {} ({} saves)", pathDetails, numRemoved, w, mergeCount);
+    }
+
+    public void run(String path) throws CommitFailedException {
         NodeState root = nodeStore.getRoot();
         builder = root.builder();
         NodeState node = NodeStateUtils.getNode(root, path);
@@ -99,9 +115,9 @@ public class RecursiveDelete {
         return currentSize;
     }
 
-    private boolean save(String path, int currentSize, boolean force) throws CommitFailedException {
+    private boolean save(String pathDetails, int currentSize, boolean force) throws CommitFailedException {
         if (currentSize >= batchSize || force) {
-            log.debug("Deleting {} nodes on {} ({} removed so far)", currentSize, path, numRemoved);
+            log.debug("Deleting {} nodes under {} ({} removed so far)", currentSize, pathDetails, numRemoved);
             nodeStore.merge(builder, commitHook, commitInfo.get());
             builder = nodeStore.getRoot().builder();
             mergeCount++;
