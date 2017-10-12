@@ -24,6 +24,21 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# OAK-6792
+
+xpath2sql /jcr:root//*/(rep:facet(jcr:data/jcr:createdBy))
+select [jcr:path], [jcr:score], [rep:facet(jcr:data/jcr:createdBy)]
+  from [nt:base] as a
+  where isdescendantnode(a, '/')
+  /* xpath ... */
+
+
+xpath2sql /jcr:root//*/(rep:facet(jcr:createdBy))
+select [jcr:path], [jcr:score], [rep:facet(jcr:createdBy)]
+  from [nt:base] as a
+  where isdescendantnode(a, '/')
+  /* xpath ... */
+
 # OAK-6778
 
 xpath2sql explain /jcr:root/content/(activities|people)//element(*, acme:Asset)
@@ -31,7 +46,7 @@ explain select [jcr:path], [jcr:score], *
   from [acme:Asset] as a
   where isdescendantnode(a, '/content/activities')
   /* xpath ... */
-  
+ 
 xpath2sql explain measure /jcr:root/content/(activities|people)//element(*, acme:Asset)
 explain measure select [jcr:path], [jcr:score], *
   from [acme:Asset] as a
