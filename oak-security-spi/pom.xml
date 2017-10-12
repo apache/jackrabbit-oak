@@ -31,6 +31,12 @@
   <name>Oak Security SPI</name>
   <packaging>bundle</packaging>
 
+  <properties>
+    <!-- enable execution of jacoco and set minimal line coverage -->
+    <skip.coverage>false</skip.coverage>
+    <minimum.coverage>0.8</minimum.coverage>
+  </properties>
+
   <build>
       <plugins>
         <plugin>
