@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -36,14 +35,12 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.management.openmbean.TabularData;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -54,6 +51,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
@@ -70,7 +68,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.Rule;
@@ -151,6 +148,33 @@ public class BlobGCTest {
 
         Set<String> existingAfterGC = gcInternal(afterSetupTime - startReferenceTime + 2);
         assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+    }
+
+    @Test
+    public void gcCheckDeletedSize() throws Exception {
+        log.info("Staring gcCheckDeletedSize()");
+
+        BlobStoreState state = setUp(10, 5, 100);
+
+        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
+        log.info("{} blobs remaining : {}", state.blobsPresent.size(), state.blobsPresent);
+
+        // Capture logs for the second round of gc
+        LogCustomizer customLogs = LogCustomizer
+            .forLogger(MarkSweepGarbageCollector.class.getName())
+            .enable(Level.INFO)
+            .filter(Level.INFO)
+            .contains("Estimated size recovered for")
+            .create();
+        customLogs.starting();
+
+        Set<String> existingAfterGC = gcInternal(0);
+        assertEquals(1, customLogs.getLogs().size());
+        long deletedSize = (state.blobsAdded.size() - state.blobsPresent.size()) * 100;
+        assertTrue(customLogs.getLogs().get(0).contains(String.valueOf(deletedSize)));
+
+        customLogs.finished();
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
     protected Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
@@ -411,6 +435,7 @@ public class BlobGCTest {
             try {
                 byte[] data = IOUtils.toByteArray(in);
                 String id = getIdForInputStream(new ByteArrayInputStream(data));
+                id += "#" + data.length;
                 TestRecord rec = new TestRecord(id, data, clock.getTime());
                 store.put(id, rec);
                 log.info("Blob created {} with timestamp {}", rec.id, rec.lastModified);
