@@ -536,11 +536,12 @@ public class S3Backend extends AbstractSharedBackend {
                 byte[] key;
                 // Try reading from the metadata folder if it exists
                 if (metadataExists(REF_KEY)) {
-                    DataRecord rec = getMetadataRecord(REF_KEY);
-                    key = IOUtils.toByteArray(rec.getStream());
+                    key = readMetadataBytes(REF_KEY);
                 } else {
+                    // Create a new key and then retrieve it to use it
                     key = super.getOrCreateReferenceKey();
                     addMetadataRecord(new ByteArrayInputStream(key), REF_KEY);
+                    key = readMetadataBytes(REF_KEY);
                 }
                 secret = key;
                 return secret;
@@ -550,7 +551,18 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public boolean metadataExists(String name) {
+    private byte[] readMetadataBytes(String name) throws IOException, DataStoreException {
+        DataRecord rec = getMetadataRecord(name);
+        InputStream stream = null;
+        try {
+            stream = rec.getStream();
+            return IOUtils.toByteArray(stream);
+        } finally {
+            IOUtils.closeQuietly(stream);
+        }
+    }
+
+    private boolean metadataExists(String name) {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(
