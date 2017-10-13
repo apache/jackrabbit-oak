@@ -35,10 +35,12 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,17 +93,21 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     private static final String datastoreMeta = "blobids";
     private static final String fileNamePrefix = "blob";
     private static final String mergedFileSuffix = ".refs";
+    private static final String snapshotMarkerSuffix = ".snapshot";
 
     /* Local instance identifier */
     private final String instanceId = randomUUID().toString();
 
     private final SharedDataStore datastore;
+    private final long snapshotInterval;
 
     protected BlobIdStore store;
 
     private final ScheduledExecutorService scheduler;
 
     private String prefix;
+
+    private File rootDir;
 
     public BlobIdTracker(String path, String repositoryId,
         long snapshotIntervalSecs, SharedDataStore datastore) throws IOException {
@@ -113,10 +119,10 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             long snapshotDelaySecs, long snapshotIntervalSecs, SharedDataStore datastore)
         throws IOException {
         String root = concat(path, datastoreMeta);
-        File rootDir = new File(root);
+        this.rootDir = new File(root);
         this.datastore = datastore;
         this.scheduler = scheduler;
-
+        this.snapshotInterval = SECONDS.toMillis(snapshotIntervalSecs);
         try {
             forceMkdir(rootDir);
             prefix = fileNamePrefix + "-" + repositoryId;
@@ -134,11 +140,13 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     @Override
     public void remove(File recs) throws IOException {
         store.removeRecords(recs);
+        snapshot(true);
     }
 
     @Override
     public void remove(Iterator<String> recs) throws IOException {
         store.removeRecords(recs);
+        snapshot(true);
     }
 
     @Override
@@ -250,21 +258,27 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
     }
 
+    private void snapshot() throws IOException {
+        snapshot(false);
+    }
+
     /**
      * Takes a snapshot on the tracker.
      * to other cluster nodes/repositories connected to the DataStore.
      *
      * @throws IOException
      */
-    private void snapshot() throws IOException {
+    private void snapshot(boolean skipStoreSnapshot) throws IOException {
         try {
             if (!SKIP_TRACKER) {
                 Stopwatch watch = Stopwatch.createStarted();
-                store.snapshot();
-                LOG.debug("Completed snapshot in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
+
+                if (!skipStoreSnapshot) {
+                    store.snapshot();
+                    LOG.debug("Completed snapshot in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
+                }
 
                 watch = Stopwatch.createStarted();
-
                 File recs = store.getBlobRecordsFile();
                 datastore.addMetadataRecord(recs,
                     (prefix + instanceId + System.currentTimeMillis() + mergedFileSuffix));
@@ -274,14 +288,23 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 try {
                     forceDelete(recs);
                     LOG.info("Deleted blob record file after snapshot and upload {}", recs);
+
+                    // Update the timestamp for the snapshot marker
+                    FileUtils.touch(getSnapshotMarkerFile());
+                    LOG.info("Updated snapshot marker");
                 } catch (IOException e) {
-                    LOG.debug("Failed to delete file {}", recs, e);
+                    LOG.debug("Failed to in cleaning up {}", recs, e);
                 }
             }
         } catch (Exception e) {
             LOG.error("Error taking snapshot", e);
             throw new IOException("Snapshot error", e);
         }
+    }
+
+    private File getSnapshotMarkerFile() {
+        File snapshotMarker = new File(rootDir, prefix + snapshotMarkerSuffix);
+        return snapshotMarker;
     }
 
     /**
@@ -646,15 +669,38 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      * Job which calls the snapshot on the tracker.
      */
     class SnapshotJob implements Runnable {
+        private long interval;
+        private Clock clock;
+
+        public SnapshotJob() {
+            this.interval = snapshotInterval;
+            this.clock = Clock.SIMPLE;
+        }
+
+        public SnapshotJob(long millis, Clock clock) {
+            this.interval = millis;
+            this.clock = clock;
+        }
+
         @Override
         public void run() {
-            try {
-                snapshot();
-                LOG.info("Finished taking snapshot");
-            } catch (Exception e) {
-                LOG.warn("Failure in taking snapshot", e);
+            if (!skip()) {
+                try {
+                    snapshot();
+                    LOG.info("Finished taking snapshot");
+                } catch(Exception e){
+                    LOG.warn("Failure in taking snapshot", e);
+                }
             }
         }
-    }
 
+        private boolean skip() {
+            File snapshotMarker = getSnapshotMarkerFile();
+            if (snapshotMarker.exists() &&
+                (snapshotMarker.lastModified() > (clock.getTime() - interval))) {
+                return true;
+            }
+            return false;
+        }
+    }
 }
