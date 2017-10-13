@@ -267,12 +267,11 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             } else {
                 byte[] key;
                 // Try reading from the metadata folder if it exists
-                DataRecord rec = getMetadataRecord(REF_KEY);
-                if (rec != null) {
-                    key = IOUtils.toByteArray(rec.getStream());
-                } else {
+                key = readMetadataBytes(REF_KEY);
+                if (key == null) {
                     key = super.getOrCreateReferenceKey();
                     addMetadataRecord(new ByteArrayInputStream(key), REF_KEY);
+                    key = readMetadataBytes(REF_KEY);
                 }
                 secret = key;
                 return secret;
@@ -280,6 +279,21 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         } catch (IOException e) {
             throw new DataStoreException("Unable to get or create key " + e);
         }
+    }
+
+    private byte[] readMetadataBytes(String name) throws IOException, DataStoreException {
+        DataRecord rec = getMetadataRecord(name);
+        byte[] key = null;
+        if (rec != null) {
+            InputStream stream = null;
+            try {
+                stream = rec.getStream();
+                return IOUtils.toByteArray(stream);
+            } finally {
+                IOUtils.closeQuietly(stream);
+            }
+        }
+        return key;
     }
 
     @Override
