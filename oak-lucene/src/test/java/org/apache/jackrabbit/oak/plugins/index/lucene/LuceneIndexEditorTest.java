@@ -305,6 +305,9 @@ public class LuceneIndexEditorTest {
 
     @Test
     public void testLuceneWithRelativeProperty() throws Exception {
+        // OAK-6833
+        assumeFalse(CIHelper.windows());
+
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
