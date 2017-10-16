@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -89,6 +90,33 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             RDBTableMetaData meta = rdb.getTable(Collection.NODES);
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertTrue(meta.hasVersion());
+            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size(),
+                    logCustomizer.getLogs().size());
+        } finally {
+            logCustomizer.finished();
+            if (rdb != null) {
+                rdb.dispose();
+            }
+        }
+    }
+
+    @Test
+    public void init01fail() {
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
+                .contains("Attempted to upgrade").create();
+        logCustomizer.starting();
+
+        Assume.assumeTrue(ds instanceof RDBDataSourceWrapper);
+        RDBDataSourceWrapper wds = (RDBDataSourceWrapper)ds;
+        wds.setFailAlterTableAddColumnStatements(true);
+
+        RDBOptions op = new RDBOptions().tablePrefix("T01F").initialSchema(0).upgradeToSchema(1).dropTablesOnClose(true);
+        RDBDocumentStore rdb = null;
+        try {
+            rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
+            RDBTableMetaData meta = rdb.getTable(Collection.NODES);
+            assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
+            assertFalse(meta.hasVersion());
             assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size(),
                     logCustomizer.getLogs().size());
         } finally {

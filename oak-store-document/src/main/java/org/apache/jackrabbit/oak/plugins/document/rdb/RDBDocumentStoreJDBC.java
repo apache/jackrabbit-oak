@@ -78,7 +78,7 @@ public class RDBDocumentStoreJDBC {
     private static final String MODCOUNT = NodeDocument.MOD_COUNT;
     private static final String MODIFIED = NodeDocument.MODIFIED_IN_SECS;
 
-    private static final int SCHEMAVERSION = 1;
+    private static final int SCHEMAVERSION = RDBDocumentStore.SCHEMA;
 
     private final RDBDocumentStoreDB dbInfo;
     private final RDBDocumentSerializer ser;

@@ -520,9 +520,9 @@ public enum RDBDocumentStoreDB {
      *
      * @return the table modification string
      */
-    public String getTableUpgradeStatement(String tableName, int level) {
+    public List<String> getTableUpgradeStatements(String tableName, int level) {
         Preconditions.checkArgument(level == 1, "level must be 1");
-        return "alter table " + tableName + " add VERSION smallint";
+        return Collections.singletonList("alter table " + tableName + " add VERSION smallint");
     }
 
     protected String description;
