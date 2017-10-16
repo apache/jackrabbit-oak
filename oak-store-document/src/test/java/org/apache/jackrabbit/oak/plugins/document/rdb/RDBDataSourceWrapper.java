@@ -54,6 +54,7 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
 
     private final DataSource ds;
     private boolean batchResultPrecise = true;
+    private boolean failAlterTableAddColumnStatements = false; 
     private String temporaryUpdateException = null;
 
     // Logging
@@ -95,6 +96,17 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
 
     public boolean isBatchResultPrecise() {
         return this.batchResultPrecise;
+    }
+
+    /**
+     * For the simulation of setups where we can't modify the DB.
+     */
+    public void setFailAlterTableAddColumnStatements(boolean failAlterTableAddColumnStatements) {
+        this.failAlterTableAddColumnStatements = failAlterTableAddColumnStatements;
+    }
+
+    public boolean doFailAlterTableAddColumnStatements() {
+        return this.failAlterTableAddColumnStatements;
     }
 
     public void setTemporaryUpdateException(String exmsg) {

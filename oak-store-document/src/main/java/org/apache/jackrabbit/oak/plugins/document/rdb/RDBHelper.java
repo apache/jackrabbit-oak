@@ -19,6 +19,11 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 /**
  * Convenience class that dumps the table creation statements for various
  * database types.
+ * <p>
+ * Run with:
+ * <pre>
+ * java -cp oak-run-<i>version</i>.jar org.apache.jackrabbit.oak.plugins.document.rdb.RDBHelper
+ * </pre>
  */
 public class RDBHelper {
 
@@ -26,6 +31,13 @@ public class RDBHelper {
             "default" };
 
     public static void main(String[] args) {
+
+        RDBOptions defaultOpts = new RDBOptions();
+        int initial = defaultOpts.getInitialSchema();
+        int upgradeTo = defaultOpts.getUpgradeToSchema();
+        System.out.println("Table Creation Statements for RDBBlobStore and RDBDocumentStore");
+        System.out.println("RDBDocumentStore initial version: " + initial + ", with modifications up to version: " + upgradeTo);
+
         for (String database : databases) {
             System.out.println(database);
             System.out.println();
@@ -34,9 +46,14 @@ public class RDBHelper {
             RDBBlobStoreDB bdb = RDBBlobStoreDB.getValue(database);
 
             for (String table : RDBDocumentStore.getTableNames()) {
-                System.out.println("  " + ddb.getTableCreationStatement(table, new RDBOptions().getInitialSchema()));
+                System.out.println("  " + ddb.getTableCreationStatement(table, defaultOpts.getInitialSchema()));
                 for (String s : ddb.getIndexCreationStatements(table)) {
                     System.out.println("    " + s);
+                }
+                for (int level = initial + 1; level <= upgradeTo; level++) {
+                    for (String statement : ddb.getTableUpgradeStatements(table, level)) {
+                        System.out.println("  " + statement);
+                    }
                 }
             }
             System.out.println();

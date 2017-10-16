@@ -211,6 +211,15 @@ import com.google.common.collect.Sets;
  * <em>For MySQL, the database parameter "max_allowed_packet" needs to be
  * increased to support ~16M blobs.</em>
  * 
+ * <h3>Table Creation</h3>
+ * <p>
+ * The code tries to create the tables when they are not present. Likewise, it
+ * tries to upgrade to a newer schema when needed.
+ * <p>
+ * Users/Administrators who prefer to stay in control over table generation can
+ * create them "manually". {@link RDBHelper} can be used to print out the DDL
+ * statements that would have been used for auto-creation.
+ * 
  * <h3>Caching</h3>
  * <p>
  * The cache borrows heavily from the {@link MongoDocumentStore} implementation.
@@ -780,6 +789,9 @@ public class RDBDocumentStore implements DocumentStore {
     // see OAK-2044
     protected static final boolean USECMODCOUNT = true;
 
+    // Database schema supported by this version
+    protected static final int SCHEMA = 1;
+
     private static final Key MODIFIEDKEY = new Key(MODIFIED, null);
 
     // DB-specific information
@@ -1102,17 +1114,18 @@ public class RDBDocumentStore implements DocumentStore {
             }
 
             if (!hasVersionColumn && upgradeToSchema >= 1) {
-                String upStatement1 = this.dbInfo.getTableUpgradeStatement(tableName, 1);
-                try {
-                    upgradeStatement = con.createStatement();
-                    upgradeStatement.execute(upStatement1);
-                    upgradeStatement.close();
-                    con.commit();
-                    LOG.info("Upgraded " + tableName + " to DB level 1 using '" + upStatement1 + "'");
-                } catch (SQLException exup) {
-                    con.rollback();
-                    LOG.info("Attempted to upgrade " + tableName + " to DB level 1 using '" + upStatement1
-                            + "', but failed - will continue without.", exup);
+                for (String upStatement1 : this.dbInfo.getTableUpgradeStatements(tableName, 1)) {
+                    try {
+                        upgradeStatement = con.createStatement();
+                        upgradeStatement.execute(upStatement1);
+                        upgradeStatement.close();
+                        con.commit();
+                        LOG.info("Upgraded " + tableName + " to DB level 1 using '" + upStatement1 + "'");
+                    } catch (SQLException exup) {
+                        con.rollback();
+                        LOG.info("Attempted to upgrade " + tableName + " to DB level 1 using '" + upStatement1
+                                + "', but failed - will continue without.", exup);
+                    }
                 }
             }
 
@@ -1138,17 +1151,18 @@ public class RDBDocumentStore implements DocumentStore {
                 con.commit();
 
                 if (initialSchema < 1 && upgradeToSchema >= 1) {
-                    String upStatement1 = this.dbInfo.getTableUpgradeStatement(tableName, 1);
-                    try {
-                        upgradeStatement = con.createStatement();
-                        upgradeStatement.execute(upStatement1);
-                        upgradeStatement.close();
-                        con.commit();
-                        LOG.info("Upgraded " + tableName + " to DB level 1 using '" + upStatement1 + "'");
-                    } catch (SQLException exup) {
-                        con.rollback();
-                        LOG.info("Attempted to upgrade " + tableName + " to DB level 1 using '" + upStatement1
-                                + "', but failed - will continue without.", exup);
+                    for (String upStatement1 : this.dbInfo.getTableUpgradeStatements(tableName, 1)) {
+                        try {
+                            upgradeStatement = con.createStatement();
+                            upgradeStatement.execute(upStatement1);
+                            upgradeStatement.close();
+                            con.commit();
+                            LOG.info("Upgraded " + tableName + " to DB level 1 using '" + upStatement1 + "'");
+                        } catch (SQLException exup) {
+                            con.rollback();
+                            LOG.info("Attempted to upgrade " + tableName + " to DB level 1 using '" + upStatement1
+                                    + "', but failed - will continue without.", exup);
+                        }
                     }
                 }
 

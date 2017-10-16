@@ -125,7 +125,8 @@ public class RDBConnectionWrapper implements Connection {
     }
 
     public Statement createStatement() throws SQLException {
-        return connection.createStatement();
+        Statement statement = connection.createStatement();
+        return new RDBStatementWrapper(statement, datasource.doFailAlterTableAddColumnStatements());
     }
 
     public Statement createStatement(int arg0, int arg1, int arg2) throws SQLException {
