@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -30,11 +32,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
@@ -55,6 +60,8 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -73,7 +80,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -106,6 +112,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     private IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
     private String indexPath  = "/oak:index/foo";
     private DelayingIndexEditor delayingEditorProvider = new DelayingIndexEditor();
+    private TestUtil.OptionalEditorProvider optionalEditorProvider = new TestUtil.OptionalEditorProvider();
 
     @Before
     public void setUp(){
@@ -151,6 +158,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
                 .with(new NodeTypeIndexProvider())
                 .with(new NodeCounterEditorProvider())
                 .with(delayingEditorProvider)
+                .with(optionalEditorProvider)
                 //Effectively disable async indexing auto run
                 //such that we can control run timing as per test requirement
                 .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
@@ -361,6 +369,70 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         }
     }
 
+    String testNodeTypes =
+            "[oak:TestMixA]\n" +
+                    "  mixin\n" +
+                    "\n" +
+                    "[oak:TestSuperType] \n" +
+                    " - * (UNDEFINED) multiple\n" +
+                    "\n" +
+                    "[oak:TestTypeA] > oak:TestSuperType\n" +
+                    " - * (UNDEFINED) multiple\n" +
+                    "\n" +
+                    " [oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
+                    " - * (UNDEFINED) multiple\n" +
+                    "\n" +
+                    "  [oak:TestTypeC] > oak:TestMixA\n" +
+                    " - * (UNDEFINED) multiple";
+
+    @Test
+    public void nodeTypeIndexing() throws Exception{
+        registerTestNodTypes();
+
+        defnb.async("async", "nrt");
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType").sync();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a", "oak:TestSuperType");
+        createPath("/b", "oak:TestTypeB");
+        root.commit();
+
+        assertQuery("select * from [oak:TestSuperType]", asList("/a", "/b"));
+
+        assertThat(explain("select * from [oak:TestSuperType]"),
+                containsString(indexPath));
+    }
+
+    @Test
+    public void nodeType_mixins() throws Exception{
+        registerTestNodTypes();
+
+        defnb.async("async", "nrt");
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestMixA").sync();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a", "oak:Unstructured", singletonList("oak:TestMixA"));
+        createPath("/b", "oak:TestTypeB");
+        createPath("/c", "oak:TestTypeA");
+        root.commit();
+
+        assertThat(explain("select * from [oak:TestMixA]"),  containsString(indexPath));
+        assertQuery("select * from [oak:TestMixA]", asList("/a", "/b"));
+    }
+
+    private void registerTestNodTypes() throws IOException, CommitFailedException {
+        optionalEditorProvider.delegate = new TypeEditorProvider();
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(testNodeTypes, "utf-8"), "test nodeType");
+        //Flush the changes to nodetypes
+        root.commit();
+    }
+
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb,
                 Runnable.class, input -> input instanceof AsyncIndexUpdate);
@@ -387,6 +459,19 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
             base = base.hasChild(e) ? base.getChild(e) : base.addChild(e);
         }
         return base;
+    }
+
+    private Tree createPath(String path, String primaryType){
+        return createPath(path, primaryType, Collections.emptyList());
+    }
+
+    private Tree createPath(String path, String primaryType, List<String> mixins){
+        Tree t = createPath(path);
+        t.setProperty(JcrConstants.JCR_PRIMARYTYPE, primaryType, Type.NAME);
+        if (!mixins.isEmpty()) {
+            t.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, Type.NAMES);
+        }
+        return t;
     }
 
     private static class DelayingIndexEditor implements IndexEditorProvider {
