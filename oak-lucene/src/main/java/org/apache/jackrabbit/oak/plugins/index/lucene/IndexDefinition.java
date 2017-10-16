@@ -346,7 +346,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
         this.testMode = getOptionalValue(defn, LuceneIndexConstants.TEST_MODE, false);
 
-        this.aggregates = collectAggregates(defn);
+        this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
 
         NodeState rulesState = defn.getChildNode(LuceneIndexConstants.INDEX_RULES);
         if (!rulesState.exists()){
