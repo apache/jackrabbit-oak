@@ -1007,6 +1007,113 @@ public class IndexDefinitionTest {
         assertTrue(defn.hasSyncPropertyDefinitions());
     }
 
+    //~----------------------------------< nodetype >
+
+
+    String testNodeTypeDefn = "[oak:TestMixA]\n" +
+            "  mixin\n" +
+            "\n" +
+            "[oak:TestSuperType]\n" +
+            "- * (UNDEFINED) multiple\n" +
+            "\n" +
+            "[oak:TestTypeA] > oak:TestSuperType\n" +
+            "- * (UNDEFINED) multiple\n" +
+            "\n" +
+            "[oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
+            "- * (UNDEFINED) multiple";
+
+    @Test
+    public void nodeTypeIndexed() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertFalse(defn.hasSyncPropertyDefinitions());
+
+        IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+        assertNotNull(ruleSuper);
+        assertTrue(defn.isPureNodeTypeIndex());
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).propertyIndex);
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).propertyIndex);
+        assertTrue(ruleSuper.indexesAllNodesOfMatchingType());
+
+        assertNotNull(getRule(defn, "oak:TestTypeA"));
+        assertTrue(getRule(defn, "oak:TestTypeA").indexesAllNodesOfMatchingType());
+        assertNotNull(getRule(defn, "oak:TestTypeB"));
+        assertNull(getRule(defn, "oak:TestMixA"));
+    }
+
+    @Test
+    public void nodeTypeIndexedSync() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType").sync();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.hasSyncPropertyDefinitions());
+
+        IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+        assertNotNull(ruleSuper);
+        assertTrue(defn.isPureNodeTypeIndex());
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).propertyIndex);
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).sync);
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).propertyIndex);
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
+        assertTrue(ruleSuper.indexesAllNodesOfMatchingType());
+    }
+
+    @Test
+    public void nodeTypeIndexed_IgnoreOtherProps() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType").sync();
+        defnb.indexRule("oak:TestSuperType").property("foo").propertyIndex();
+
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+
+        IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+        assertNotNull(ruleSuper);
+
+        assertNull(ruleSuper.getConfig("foo"));
+        assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES));
+    }
+
+    @Test
+    public void nodeTypeIndex_mixin() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestMixA");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertFalse(defn.hasSyncPropertyDefinitions());
+
+
+        assertNotNull(getRule(defn, "oak:TestTypeB"));
+        assertTrue(getRule(defn, "oak:TestTypeB").indexesAllNodesOfMatchingType());
+        assertNotNull(getRule(defn, "oak:TestMixA"));
+        assertTrue(getRule(defn, "oak:TestMixA").indexesAllNodesOfMatchingType());
+
+        assertNull(getRule(defn, "oak:TestTypeA"));
+        assertNull(getRule(defn, "oak:TestSuperType"));
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){

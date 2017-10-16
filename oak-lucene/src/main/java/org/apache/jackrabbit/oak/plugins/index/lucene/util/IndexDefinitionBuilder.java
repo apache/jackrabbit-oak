@@ -126,6 +126,11 @@ public final class IndexDefinitionBuilder {
         return this;
     }
 
+    public IndexDefinitionBuilder nodeTypeIndex() {
+        tree.setProperty(LuceneIndexConstants.PROP_INDEX_NODE_TYPE, true);
+        return this;
+    }
+
     public Tree getBuilderTree(){
         return tree;
     }
@@ -202,6 +207,11 @@ public final class IndexDefinitionBuilder {
 
         public IndexRule includePropertyTypes(String ... types){
             indexRule.setProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES, asList(types), STRINGS);
+            return this;
+        }
+
+        public IndexRule sync() {
+            indexRule.setProperty(LuceneIndexConstants.PROP_SYNC, true);
             return this;
         }
 
