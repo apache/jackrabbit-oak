@@ -260,6 +260,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     private final boolean nrtIndexMode;
     private final boolean syncIndexMode;
 
+    private final boolean nodeTypeIndex;
+
     @Nullable
     private final String uid;
 
@@ -339,6 +341,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.indexPath = checkNotNull(indexPath);
         this.indexName = indexPath;
         this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
+        this.nodeTypeIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX_NODE_TYPE, false);
 
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
         this.testMode = getOptionalValue(defn, LuceneIndexConstants.TEST_MODE, false);
@@ -560,6 +563,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public boolean hasSyncPropertyDefinitions() {
         return syncPropertyIndexes;
+    }
+
+    public boolean isPureNodeTypeIndex() {
+        return nodeTypeIndex;
     }
 
     /**
@@ -1134,6 +1141,29 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                 "children in [{}]", this, IndexDefinition.this);
             }
 
+            //In case of a pure nodetype index we just index primaryType and mixins
+            //and ignore any other property definition
+            if (nodeTypeIndex) {
+                boolean sync = getOptionalValue(config, LuceneIndexConstants.PROP_SYNC, false);
+                PropertyDefinition pdpt =  createNodeTypeDefinition(this, JcrConstants.JCR_PRIMARYTYPE, sync);
+                PropertyDefinition pdmixin =  createNodeTypeDefinition(this, JcrConstants.JCR_MIXINTYPES, sync);
+
+                propDefns.put(pdpt.name.toLowerCase(Locale.ENGLISH), pdpt);
+                propDefns.put(pdmixin.name.toLowerCase(Locale.ENGLISH), pdmixin);
+
+                if (sync) {
+                    syncProps.add(pdpt);
+                    syncProps.add(pdmixin);
+                }
+
+                if (propNode.getChildNodeCount(1) > 0) {
+                    log.warn("Index at [{}] has {} enabled and cannot support other property " +
+                            "definitions", indexPath, LuceneIndexConstants.PROP_INDEX_NODE_TYPE);
+                }
+
+                return ImmutableMap.copyOf(propDefns);
+            }
+
             //Include all immediate child nodes to 'properties' node by default
             Tree propTree = TreeFactory.createReadOnlyTree(propNode);
             for (Tree prop : propTree.getChildren()) {
@@ -1235,6 +1265,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         }
 
         private boolean areAlMatchingNodeByTypeIndexed(){
+            if (nodeTypeIndex) {
+                return true;
+            }
+
             if (nodeFullTextIndexed){
                 return true;
             }
@@ -1789,6 +1823,17 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         return map.build();
+    }
+
+    private static PropertyDefinition createNodeTypeDefinition(IndexingRule rule, String name, boolean sync) {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        //A nodetype index just required propertyIndex and sync flags to be set
+        builder.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        if (sync) {
+            builder.setProperty(LuceneIndexConstants.PROP_SYNC, sync);
+        }
+        builder.setProperty(LuceneIndexConstants.PROP_NAME, name);
+        return new PropertyDefinition(rule, name, builder.getNodeState());
     }
 
 }

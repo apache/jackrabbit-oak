@@ -388,4 +388,10 @@ public interface LuceneIndexConstants {
      * Boolean property which signal LuceneIndexEditor to refresh the stored index definition
      */
     String PROP_REFRESH_DEFN = "refresh";
+
+    /**
+     * Boolean property to indicate that nodes nodetype matching indexRule name
+     * should be indexed
+     */
+    String PROP_INDEX_NODE_TYPE = "nodeTypeIndex";
 }

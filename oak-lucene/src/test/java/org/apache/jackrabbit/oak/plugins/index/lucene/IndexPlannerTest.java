@@ -1123,6 +1123,73 @@ public class IndexPlannerTest {
         assertNull(hr);
     }
 
+    //~----------------------------------------< nodetype >
+
+    String testNodeTypeDefn = "[oak:TestMixA]\n" +
+            "  mixin\n" +
+            "\n" +
+            "[oak:TestSuperType]\n" +
+            "- * (UNDEFINED) multiple\n" +
+            "\n" +
+            "[oak:TestTypeA] > oak:TestSuperType\n" +
+            "- * (UNDEFINED) multiple\n" +
+            "\n" +
+            "[oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
+            "- * (UNDEFINED) multiple";
+
+    @Test
+    public void nodetype_primaryType() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType");
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.build(), "/foo");
+        IndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("oak:TestSuperType");
+
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+
+        IndexPlanner.PlanResult r = pr(plan);
+        assertTrue(r.evaluateNodeTypeRestriction());
+
+        //As oak:TestSuperType is parent of oak:TestTypeA the child nodetypes should
+        //also be indexed
+        filter = createFilter("oak:TestTypeA");
+        planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        plan = planner.getPlan();
+
+        assertNotNull(plan);
+        r = pr(plan);
+        assertTrue(r.evaluateNodeTypeRestriction());
+    }
+
+    @Test
+    public void nodetype_mixin() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestMixA");
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.build(), "/foo");
+        IndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("oak:TestMixA");
+
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+
+        IndexPlanner.PlanResult r = pr(plan);
+        assertTrue(r.evaluateNodeTypeRestriction());
+    }
 
     private IndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp) throws IOException {
         IndexNode node = createIndexNode(new IndexDefinition(root, defn, "/foo"));

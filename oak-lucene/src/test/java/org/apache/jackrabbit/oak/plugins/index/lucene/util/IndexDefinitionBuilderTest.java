@@ -278,4 +278,30 @@ public class IndexDefinitionBuilderTest {
         updated.setProperty("type", "foo");
         assertEquals("lucene", new IndexDefinitionBuilder(updated).build().getString("type"));
     }
+
+    @Test
+    public void nodeTypeIndex() throws Exception{
+        builder.nodeTypeIndex();
+        builder.indexRule("nt:file");
+
+        NodeState state = builder.build();
+        assertTrue(state.getChildNode("indexRules").exists());
+        NodeState ntFileRule = state.getChildNode("indexRules").getChildNode("nt:file");
+        assertTrue(ntFileRule.exists());
+        assertTrue(state.getBoolean(LuceneIndexConstants.PROP_INDEX_NODE_TYPE));
+        assertFalse(ntFileRule.getBoolean(LuceneIndexConstants.PROP_SYNC));
+    }
+
+    @Test
+    public void nodeTypeIndexSync() throws Exception{
+        builder.nodeTypeIndex();
+        builder.indexRule("nt:file").sync();
+
+        NodeState state = builder.build();
+        assertTrue(state.getChildNode("indexRules").exists());
+        NodeState ntFileRule = state.getChildNode("indexRules").getChildNode("nt:file");
+        assertTrue(ntFileRule.exists());
+        assertTrue(state.getBoolean(LuceneIndexConstants.PROP_INDEX_NODE_TYPE));
+        assertTrue(ntFileRule.getBoolean(LuceneIndexConstants.PROP_SYNC));
+    }
 }

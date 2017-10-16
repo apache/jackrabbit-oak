@@ -2506,6 +2506,51 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void subNodeTypes_nodeTypeIndex() throws Exception{
+        optionalEditorProvider.delegate = new TypeEditorProvider();
+        String testNodeTypes =
+                "[oak:TestMixA]\n" +
+                        "  mixin\n" +
+                        "\n" +
+                        "[oak:TestSuperType] \n" +
+                        " - * (UNDEFINED) multiple\n" +
+                        "\n" +
+                        "[oak:TestTypeA] > oak:TestSuperType\n" +
+                        " - * (UNDEFINED) multiple\n" +
+                        "\n" +
+                        " [oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
+                        " - * (UNDEFINED) multiple\n" +
+                        "\n" +
+                        "  [oak:TestTypeC] > oak:TestMixA\n" +
+                        " - * (UNDEFINED) multiple";
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(testNodeTypes, "utf-8"), "test nodeType");
+        //Flush the changes to nodetypes
+        root.commit();
+
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.nodeTypeIndex();
+        idxb.indexRule("oak:TestSuperType");
+        idxb.indexRule("oak:TestMixA");
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.getTree("/oak:index/nodetype").remove();
+
+        Tree rootTree = root.getTree("/");
+        createNodeWithType(rootTree, "a", "oak:TestTypeA");
+        createNodeWithType(rootTree, "b", "oak:TestTypeB");
+        createNodeWithMixinType(rootTree, "c", "oak:TestMixA")
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE,  "oak:Unstructured", Type.NAME);
+
+        root.commit();
+
+        assertPlanAndQuery("select * from [oak:TestSuperType]", "lucene:test1(/oak:index/test1)", asList("/a", "/b"));
+        assertPlanAndQuery("select * from [oak:TestMixA]", "lucene:test1(/oak:index/test1)", asList("/b", "/c"));
+    }
+
+
+    @Test
     public void indexDefinitionModifiedPostReindex() throws Exception{
         IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("foo").propertyIndex();
