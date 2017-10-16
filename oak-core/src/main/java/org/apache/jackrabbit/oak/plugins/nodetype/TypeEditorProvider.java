@@ -30,6 +30,7 @@ import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditor.ConstraintViolationCallback;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -90,11 +91,14 @@ public class TypeEditorProvider implements EditorProvider {
                     LOG.info("Node type changes: " + modifiedTypes + " appear to be trivial, repository will not be scanned");
                 }
                 else {
+                    
+                    ConstraintViolationCallback callback = strict ? TypeEditor.THROW_ON_CONSTRAINT_VIOLATION : TypeEditor.WARN_ON_CONSTRAINT_VIOLATION;
+                    
                     long start = System.currentTimeMillis();
                     // Some node types were modified, so scan the repository
                     // to make sure that the modified definitions still apply.
                     Editor editor = new VisibleEditor(new TypeEditor(
-                            strict, modifiedTypes, afterTypes,
+                            callback, modifiedTypes, afterTypes,
                             primary, mixins, builder));
                     LOG.info("Node type changes: " + modifiedTypes + " appear not to be trivial, starting repository scan");
                     CommitFailedException exception =
@@ -107,9 +111,11 @@ public class TypeEditorProvider implements EditorProvider {
                 }
             }
         }
+        
+        ConstraintViolationCallback callback = strict ? TypeEditor.THROW_ON_CONSTRAINT_VIOLATION : TypeEditor.WARN_ON_CONSTRAINT_VIOLATION;
 
         return new VisibleEditor(new TypeEditor(
-                strict, null, afterTypes, primary, mixins, builder));
+                callback, null, afterTypes, primary, mixins, builder));
     }
 
     private boolean isTrivialChange(ReadOnlyNodeTypeManager ntBefore, ReadOnlyNodeTypeManager ntAfter, String nodeType) {

@@ -267,16 +267,20 @@ class EffectiveType {
         }
         return names;
     }
+    
+    List<String> getDirectTypeNames() {
+        List<String> names = newArrayListWithCapacity(types.size());
+        for (NodeState type : types) {
+            names.add(type.getName(JCR_NODETYPENAME));
+        }
+        return names;
+    }
 
     //------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {
-        List<String> names = newArrayListWithCapacity(types.size());
-        for (NodeState type : types) {
-            names.add(type.getName(JCR_NODETYPENAME));
-        }
-        return names.toString();
+        return getDirectTypeNames().toString();
     }
 
     //-----------------------------------------------------------< private >--

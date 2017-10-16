@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.osgi.annotation.versioning.ConsumerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,16 +72,86 @@ import org.slf4j.LoggerFactory;
  *       cannot and should not check whether the value of the protected jcr:uuid
  *       is unique.
  */
-class TypeEditor extends DefaultEditor {
+public class TypeEditor extends DefaultEditor {
+    
+    /**
+     * Extension point that allows pluggable handling of constraint violations
+     */
+    @ConsumerType
+    public static interface ConstraintViolationCallback {
+        /**
+         * Invoked whenever a constraint violation is detected.
+         * 
+         * <p>Implementors may choose to throw a {@link #CommitFailedException} or to handle the error
+         * internally, for instance by logging.</p>
+         * 
+         * <p>Implementors may <b>not</b> throw other exception types from this method.</p>
+         * 
+         * @param path the path where the constraint violation was detected
+         * @param nodeTypeNames the node type names of the node
+         * @param code the error code
+         * @param message the descriptive error mesage
+         * @throws CommitFailedException thrown when the implementation decides to stop futher processing
+         * 
+         * @see TypeEditor#THROW_ON_CONSTRAINT_VIOLATION
+         * @see TypeEditor#WARN_ON_CONSTRAINT_VIOLATION
+         */
+        void onConstraintViolation(String path, List<String> nodeTypeNames, int code, String message) throws CommitFailedException;
+    }
+
+    public static final ConstraintViolationCallback THROW_ON_CONSTRAINT_VIOLATION = new ConstraintViolationCallback() {
+        
+        @Override
+        public void onConstraintViolation(String path, List<String> nodeTypeNames, int code, String message) throws CommitFailedException {
+            
+            String fullPath =  path + '[' + nodeTypeNames.toString() + ']';
+
+            throw new CommitFailedException(CONSTRAINT, code, fullPath + ": " + message);
+        }
+    };
+    
+    public static final ConstraintViolationCallback WARN_ON_CONSTRAINT_VIOLATION = new ConstraintViolationCallback() {
+        
+        @Override
+        public void onConstraintViolation(String path, List<String> nodeTypeNames, int code, String message ) {
+            
+            String fullPath =  path + '[' + nodeTypeNames.toString() + ']';
+
+            log.warn(new CommitFailedException(CONSTRAINT, code, fullPath + ": " + message).getMessage());
+
+        }
+    };
+    
+    /**
+     * Creates a new <tt>TypeEditor</instance>
+     * 
+     * @param callback the callback to use when a constraint violation is found. The client must
+     *   check the results of the callback invocations if the specified callback does not
+     *   immediately propagate constraint violations as checked exceptions.
+     * @param typesToCheck the types to check for. If <tt>null</tt>, this node is checked. Otherwise
+     *  it is checked if its primary type or one of it's mixin types is containd in this parameters 
+     * @param types the <tt>/jcr:system/jcr:nodeTypes</tt> node
+     * @param primary the node's primary type
+     * @param mixins the node's mixins
+     * @param builder a builder containing the current state of the node to check. May be used to set
+     *  a default primary type if none is set
+     * @return a new TypeEditor instance
+     * @throws CommitFailedException when the primary type of mixin definition is incorrect
+     */
+    public static TypeEditor create(@Nonnull ConstraintViolationCallback callback, Set<String> typesToCheck,
+            @Nonnull NodeState types, String primary, Iterable<String> mixins, 
+            @Nonnull NodeBuilder builder) throws CommitFailedException {
+        return new TypeEditor(callback, typesToCheck, types, primary, mixins, builder);
+    }
 
     private static final Logger log = LoggerFactory.getLogger(TypeEditor.class);
-
-    private final boolean strict;
 
     private final Set<String> typesToCheck;
 
     private boolean checkThisNode;
 
+    private final ConstraintViolationCallback callback;
+    
     private final TypeEditor parent;
 
     private final String nodeName;
@@ -92,12 +163,12 @@ class TypeEditor extends DefaultEditor {
     private final NodeBuilder builder;
 
     private final boolean validate;
-
+    
     TypeEditor(
-            boolean strict, Set<String> typesToCheck, NodeState types,
+            ConstraintViolationCallback callback, Set<String> typesToCheck, NodeState types,
             String primary, Iterable<String> mixins, NodeBuilder builder)
             throws CommitFailedException {
-        this.strict = strict;
+        this.callback = checkNotNull(callback);
         this.typesToCheck = typesToCheck;
         this.checkThisNode =
                 typesToCheck == null
@@ -116,7 +187,7 @@ class TypeEditor extends DefaultEditor {
             @CheckForNull String primary, @Nonnull Iterable<String> mixins, @Nonnull NodeBuilder builder,
             boolean validate)
             throws CommitFailedException {
-        this.strict = parent.strict;
+        this.callback= parent.callback;
         this.typesToCheck = parent.typesToCheck;
         this.checkThisNode =
                 typesToCheck == null
@@ -134,7 +205,7 @@ class TypeEditor extends DefaultEditor {
      * Test constructor.
      */
     TypeEditor(EffectiveType effective) {
-        this.strict = true;
+        this.callback = TypeEditor.THROW_ON_CONSTRAINT_VIOLATION;
         this.typesToCheck = null;
         this.checkThisNode = true;
         this.parent = null;
@@ -153,15 +224,9 @@ class TypeEditor extends DefaultEditor {
      * @throws CommitFailedException the constraint violation
      */
     private void constraintViolation(int code, String message) throws CommitFailedException {
-        String path = getPath();
-        path = path + '[' + effective + ']';
-
-        CommitFailedException exception = new CommitFailedException(CONSTRAINT, code, path + ": " + message);
-        if (strict) {
-            throw exception;
-        } else {
-            log.warn(exception.getMessage());
-        }
+        List<String> nodeTypeNames = effective != null ? effective.getDirectTypeNames() : Collections.emptyList();
+        
+        callback.onConstraintViolation(getPath(), nodeTypeNames, code, message);
     }
 
     private String getPath() {
