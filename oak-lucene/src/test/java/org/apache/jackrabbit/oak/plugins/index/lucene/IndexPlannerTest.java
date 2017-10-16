@@ -1191,6 +1191,29 @@ public class IndexPlannerTest {
         assertTrue(r.evaluateNodeTypeRestriction());
     }
 
+    @Test
+    public void syncNodeTypeIndex() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType").sync();
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.build(), "/foo");
+        IndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("oak:TestSuperType");
+
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+
+        IndexPlanner.PlanResult r = pr(plan);
+        assertTrue(r.evaluateNodeTypeRestriction());
+        assertTrue(r.evaluateSyncNodeTypeRestriction());
+    }
+
     private IndexPlanner createPlannerForFulltext(NodeState defn, FullTextExpression exp) throws IOException {
         IndexNode node = createIndexNode(new IndexDefinition(root, defn, "/foo"));
         FilterImpl filter = createFilter("nt:base");

@@ -34,9 +34,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
@@ -140,6 +140,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.NAT
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
@@ -308,6 +309,13 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
 
             sb.append(" ").append(pres.pr);
+            sb.append(")");
+        }
+
+        if (pr.evaluateSyncNodeTypeRestriction()) {
+            sb.append(" sync:(nodeType");
+            sb.append(" primaryTypes : ").append(plan.getFilter().getPrimaryTypes());
+            sb.append(" mixinTypes : ").append(plan.getFilter().getMixinTypes());
             sb.append(")");
         }
     }
@@ -601,7 +609,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
         };
 
-        if (pr.hasPropertyIndexResult()) {
+        if (pr.hasPropertyIndexResult() || pr.evaluateSyncNodeTypeRestriction()) {
             itr = mergePropertyIndexResult(plan, rootState, itr);
         }
 
@@ -1563,13 +1571,24 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(pr.indexPath,
                 NodeStateUtils.getNode(rootState, pr.indexPath), plan.getPathPrefix(), false);
         PropertyIndexResult pir = pr.getPropertyIndexResult();
-        Iterable<String> paths = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
+
+        FluentIterable<String> paths = null;
+        if (pir != null) {
+            Iterable<String> queryResult = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
+            paths = FluentIterable.from(queryResult)
+                    .transform(path -> pr.isPathTransformed() ? pr.transformPath(path) : path)
+                    .filter(notNull());
+        } else {
+            checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
+            Filter filter = plan.getFilter();
+            paths = FluentIterable.from(Iterables.concat(
+                    lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
+                    lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()))));
+        }
 
         //No need for path restriction evaluation as thats taken care by PropertyIndex impl itself
         //via content mirror strategy
-        FluentIterable<LuceneResultRow> propIndex = FluentIterable.from(paths)
-                .transform(path -> pr.isPathTransformed() ? pr.transformPath(path) : path)
-                .filter(notNull())
+        FluentIterable<LuceneResultRow> propIndex = paths
                 .transform(path -> new LuceneResultRow(path, 0, null, null, null));
 
         //Property index itr should come first

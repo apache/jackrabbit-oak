@@ -292,7 +292,7 @@ class IndexPlanner {
             }
 
             if (sortOrder.isEmpty() && ft == null) {
-                boolean uniqueIndexFound = planForSyncIndexes();
+                boolean uniqueIndexFound = planForSyncIndexes(indexingRule);
                 if (uniqueIndexFound) {
                     //For unique index there would be at max 1 entry
                     plan.setEstimatedEntryCount(1);
@@ -626,10 +626,13 @@ class IndexPlanner {
         return indexingRule.getConfig(name);
     }
 
-    private boolean planForSyncIndexes() {
+    private boolean planForSyncIndexes(IndexingRule indexingRule) {
         //If no sync index involved then return right away
-        if (!definition.hasSyncPropertyDefinitions()
-                || result.propDefns.isEmpty()) {
+        if (!definition.hasSyncPropertyDefinitions()) {
+            return false;
+        }
+
+        if (result.propDefns.isEmpty() && !result.evaluateNodeTypeRestriction()) {
             return false;
         }
 
@@ -650,7 +653,6 @@ class IndexPlanner {
             }
         }
 
-        //TODO NodeType restrictions
         //Pick the first index (if multiple). For unique its fine
         //For non unique we can probably later add support for cost
         //based selection
@@ -660,6 +662,13 @@ class IndexPlanner {
             uniqueIndexFound = true;
         } else if (!nonUnique.isEmpty()) {
             result.propertyIndexResult = nonUnique.get(0);
+        }
+
+        if (result.propertyIndexResult == null && result.evaluateNodeTypeRestriction()) {
+            PropertyDefinition pd = indexingRule.getConfig(JcrConstants.JCR_PRIMARYTYPE);
+            if (pd != null && pd.sync) {
+                result.syncNodeTypeRestrictions = true;
+            }
         }
 
         return uniqueIndexFound;
@@ -868,6 +877,7 @@ class IndexPlanner {
         private boolean nodeNameRestriction;
         private boolean uniquePathsRequired = true;
         private PropertyIndexResult propertyIndexResult;
+        private boolean syncNodeTypeRestrictions;
 
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
@@ -931,6 +941,10 @@ class IndexPlanner {
 
         public boolean evaluateNodeTypeRestriction() {
             return nodeTypeRestrictions;
+        }
+
+        public boolean evaluateSyncNodeTypeRestriction() {
+            return syncNodeTypeRestrictions;
         }
 
         public boolean evaluateNodeNameRestriction() {return nodeNameRestriction;}
