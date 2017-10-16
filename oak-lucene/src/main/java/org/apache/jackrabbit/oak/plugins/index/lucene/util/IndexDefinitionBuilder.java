@@ -100,6 +100,11 @@ public final class IndexDefinitionBuilder {
         return this;
     }
 
+    public IndexDefinitionBuilder supersedes(String ... paths){
+        tree.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList(paths), STRINGS);
+        return this;
+    }
+
     public IndexDefinitionBuilder codec(String codecName){
         tree.setProperty(LuceneIndexConstants.CODEC_NAME, checkNotNull(codecName));
         return this;

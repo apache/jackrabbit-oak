@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCountEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.TraversalRateEstimator;
+import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -143,7 +144,7 @@ public class IndexUpdate implements Editor, PathSource {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.rootState = new IndexUpdateRootState(provider, async, root, updateCallback, traversalCallback, commitInfo, corruptIndexHandler);
+        this.rootState = new IndexUpdateRootState(provider, async, root, builder, updateCallback, traversalCallback, commitInfo, corruptIndexHandler);
         this.builder = checkNotNull(builder);
     }
 
@@ -281,7 +282,10 @@ public class IndexUpdate implements Editor, PathSource {
                         clearCorruptFlag(definition, indexPath);
                         reindex.put(concat(getPath(), INDEX_DEFINITIONS_NAME, name), editor);
                     }
+
+                    rootState.indexDisabler.markDisableFlagIfRequired(indexPath, definition);
                 } else {
+                    rootState.indexDisabler.disableOldIndexes(indexPath, definition);
                     editors.add(editor);
                 }
             }
@@ -529,6 +533,7 @@ public class IndexUpdate implements Editor, PathSource {
         final String async;
         final NodeState root;
         final CommitInfo commitInfo;
+        final IndexDisabler indexDisabler;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
         final Set<IndexCommitCallback> indexCommitCallbacks = newIdentityHashSet();
         final CorruptIndexHandler corruptIndexHandler;
@@ -538,13 +543,15 @@ public class IndexUpdate implements Editor, PathSource {
         private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
-                                     IndexUpdateCallback updateCallback, NodeTraversalCallback traversalCallback,
+                                     NodeBuilder builder, IndexUpdateCallback updateCallback,
+                                     NodeTraversalCallback traversalCallback,
                                      CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
             this.provider = checkNotNull(provider);
             this.async = async;
             this.root = checkNotNull(root);
             this.commitInfo = commitInfo;
             this.corruptIndexHandler = corruptIndexHandler;
+            this.indexDisabler = new IndexDisabler(builder);
             this.progressReporter = new IndexingProgressReporter(updateCallback, traversalCallback);
         }
 

@@ -72,6 +72,8 @@ import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.NOOP_LOCK;
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
@@ -329,6 +331,53 @@ public class IndexImporterTest {
 
         NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
         assertEquals(2, idx.getLong("reindexCount"));
+    }
+
+    @Test
+    public void importData_DisabledIndexes() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder idxa = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+        idxa.setProperty(ASYNC_PROPERTY_NAME, "async");
+        idxa.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/barIndex"), Type.STRINGS);
+
+        builder.child("a").setProperty("foo", "abc");
+        builder.child("b").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        new AsyncIndexUpdate("async", store, provider).run();
+
+        String checkpoint = createIndexDirs("/oak:index/fooIndex");
+
+        builder = store.getRoot().builder();
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "barIndex", true, false, ImmutableSet.of("foo"), null);
+
+        builder.child("c").setProperty("foo", "abc");
+        builder.child("d").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        new AsyncIndexUpdate("async", store, provider).run();
+
+        IndexImporterProvider importerProvider = new IndexImporterProvider() {
+            @Override
+            public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+            }
+
+            @Override
+            public String getType() {
+                return "property";
+            }
+        };
+
+        IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+        importer.addImporterProvider(importerProvider);
+
+        importer.importIndex();
+
+        NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("barIndex");
+        assertEquals(TYPE_DISABLED, idx.getString(TYPE_PROPERTY_NAME));
     }
 
     private NodeState getFooIndexNodeState() throws CommitFailedException {

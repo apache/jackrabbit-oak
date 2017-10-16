@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.LockToken;
+import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -127,6 +128,7 @@ public class IndexImporter {
     void importIndexData() throws CommitFailedException, IOException {
         NodeState root = nodeStore.getRoot();
         NodeBuilder rootBuilder = root.builder();
+        IndexDisabler indexDisabler = new IndexDisabler(rootBuilder);
         for (IndexInfo indexInfo : asyncLaneToIndexMapping.values()) {
             log.info("Importing index data for {}", indexInfo.indexPath);
             NodeBuilder idxBuilder = indexDefinitionUpdater.apply(rootBuilder, indexInfo.indexPath);
@@ -141,6 +143,8 @@ public class IndexImporter {
             //TODO How to support CompositeNodeStore where some of the child nodes would be hidden
             incrementReIndexCount(idxBuilder);
             getImporter(indexInfo.type).importIndex(root, idxBuilder, indexInfo.indexDir);
+
+            indexDisabler.markDisableFlagIfRequired(indexInfo.indexPath, idxBuilder);
         }
         mergeWithConcurrentCheck(nodeStore, rootBuilder, indexEditorProvider);
     }

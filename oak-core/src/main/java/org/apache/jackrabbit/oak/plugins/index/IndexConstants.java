@@ -125,4 +125,19 @@ public interface IndexConstants {
      */
     String REINDEX_RETAIN = "retainNodeInReindex";
 
+    /**
+     * Index type for disabled indexes
+     */
+    String TYPE_DISABLED = "disabled";
+
+    /**
+     * Multi value property referring to index paths which current index supersedes
+     */
+    String SUPERSEDED_INDEX_PATHS = "supersedes";
+
+    /**
+     * Boolean flag indicating that old indexes need to be disabled
+     */
+    String DISABLE_INDEXES_ON_NEXT_CYCLE = ":disableIndexesOnNextCycle";
+
 }
