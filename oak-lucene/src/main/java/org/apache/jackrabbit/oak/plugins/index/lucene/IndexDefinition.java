@@ -1213,7 +1213,24 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                     }
                 }
             }
+            ensureNodeTypeIndexingIsConsistent(propDefns, syncProps);
             return ImmutableMap.copyOf(propDefns);
+        }
+
+        /**
+         * If jcr:primaryType is indexed but jcr:mixinTypes is not indexed
+         * then ensure that jcr:mixinTypes is also indexed
+         */
+        private void ensureNodeTypeIndexingIsConsistent(Map<String, PropertyDefinition> propDefns,
+                                                        List<PropertyDefinition> syncProps) {
+            PropertyDefinition pd_pr = propDefns.get(JcrConstants.JCR_PRIMARYTYPE.toLowerCase(Locale.ENGLISH));
+            PropertyDefinition pd_mixin = propDefns.get(JcrConstants.JCR_MIXINTYPES.toLowerCase(Locale.ENGLISH));
+
+            if (pd_pr != null && pd_pr.propertyIndex && pd_mixin == null) {
+                pd_mixin =  createNodeTypeDefinition(this, JcrConstants.JCR_MIXINTYPES, pd_pr.sync);
+                syncProps.add(pd_mixin);
+                propDefns.put(JcrConstants.JCR_MIXINTYPES.toLowerCase(Locale.ENGLISH), pd_mixin);
+            }
         }
 
         private boolean hasAnyFullTextEnabledProperty() {
