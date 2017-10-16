@@ -1563,7 +1563,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(pr.indexPath,
                 NodeStateUtils.getNode(rootState, pr.indexPath), plan.getPathPrefix(), false);
         PropertyIndexResult pir = pr.getPropertyIndexResult();
-        Iterable<String> paths = lookup.query(plan.getFilter(), pir.pd, pir.propertyName, pir.pr);
+        Iterable<String> paths = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
 
         //No need for path restriction evaluation as thats taken care by PropertyIndex impl itself
         //via content mirror strategy

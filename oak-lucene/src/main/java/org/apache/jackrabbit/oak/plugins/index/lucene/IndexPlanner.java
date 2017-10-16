@@ -641,7 +641,7 @@ class IndexPlanner {
             PropertyDefinition pd = result.propDefns.get(pr.propertyName);
 
             if (pd != null) {
-                PropertyIndexResult e = new PropertyIndexResult(pd, propertyName, pr);
+                PropertyIndexResult e = new PropertyIndexResult(propertyName, pr);
                 if (pd.unique) {
                     unique.add(e);
                 } else {
@@ -974,12 +974,10 @@ class IndexPlanner {
     }
 
     public static class PropertyIndexResult {
-        final PropertyDefinition pd;
         final String propertyName;
         final PropertyRestriction pr;
 
-        public PropertyIndexResult(PropertyDefinition pd, String propertyName, PropertyRestriction pr) {
-            this.pd = pd;
+        public PropertyIndexResult(String propertyName, PropertyRestriction pr) {
             this.propertyName = propertyName;
             this.pr = pr;
         }

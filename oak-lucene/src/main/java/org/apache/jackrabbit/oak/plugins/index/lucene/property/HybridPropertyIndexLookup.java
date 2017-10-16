@@ -23,8 +23,9 @@ import java.util.Collections;
 import java.util.Set;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
@@ -39,6 +40,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_PREVIOUS_BUCKET;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.uniquePropertyIndex;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
 public class HybridPropertyIndexLookup {
@@ -64,30 +66,27 @@ public class HybridPropertyIndexLookup {
      * Performs query based on provided property restriction
      *
      * @param filter filter from the query being performed
-     * @param pd property definition as per index definition
      * @param propertyName actual property name which may or may not be same as
      *                     property name in property restriction
      * @param restriction property restriction matching given property
      * @return iterable consisting of absolute paths as per index content
      */
-    public Iterable<String> query(Filter filter, PropertyDefinition pd,
-                                  String propertyName, Filter.PropertyRestriction restriction) {
+    public Iterable<String> query(Filter filter, String propertyName, Filter.PropertyRestriction restriction) {
         //The propertyName may differ from name in restriction. For e.g. for relative properties
         //the restriction property name can be 'jcr:content/status' while the index has indexed
         //for 'status'
 
         Set<String> values = ValuePatternUtil.getAllValues(restriction);
         Set<String> encodedValues = PropertyIndexUtil.encode(values);
-        return query(filter, pd, propertyName, encodedValues);
+        return query(filter, propertyName, encodedValues);
     }
 
-    public Iterable<String> query(Filter filter, PropertyDefinition pd,
-                                  String propertyName, PropertyValue value) {
-        return query(filter, pd, propertyName, encode(value, pd.valuePattern));
+    public Iterable<String> query(Filter filter, String propertyName, PropertyValue value) {
+        Set<String> values = Sets.newHashSet(value.getValue(Type.STRINGS));
+        return query(filter, propertyName, encode(values));
     }
 
-    private Iterable<String> query(Filter filter, PropertyDefinition pd,
-                                  String propertyName, Set<String> encodedValues) {
+    private Iterable<String> query(Filter filter, String propertyName, Set<String> encodedValues) {
         String propIdxNodeName = HybridPropertyIndexUtil.getNodeName(propertyName);
         NodeState propIndexRootNode = indexState.getChildNode(PROPERTY_INDEX);
         NodeState propIndexNode = propIndexRootNode.getChildNode(propIdxNodeName);
@@ -97,7 +96,7 @@ public class HybridPropertyIndexLookup {
 
         String indexName = indexPath + "(" + propertyName + ")";
         Iterable<String> result;
-        if (pd.unique) {
+        if (uniquePropertyIndex(propIndexNode)) {
             result = queryUnique(filter, indexName, propIndexRootNode, propIdxNodeName, encodedValues);
         } else {
             result = querySimple(filter, indexName, propIndexNode, encodedValues);
