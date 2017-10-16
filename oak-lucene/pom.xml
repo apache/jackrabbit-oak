@@ -113,9 +113,6 @@
                 org.apache.jackrabbit.oak.plugins.index.lucene.score,
                 org.apache.jackrabbit.oak.plugins.index.lucene.spi,
             </Export-Package>
-            <_exportcontents>
-                org.apache.lucene.*;version=${lucene.version}
-            </_exportcontents>
             <Import-Package>
                 org.apache.lucene.sandbox.*;resolution:=optional,
                 !org.apache.lucene.*,
