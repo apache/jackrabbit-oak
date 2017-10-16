@@ -207,7 +207,7 @@ public class HybridPropertyIndexStorageTest {
     private List<String> query(String propertyName, PropertyValue value) {
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
         FilterImpl filter = createFilter(root, "nt:base");
-        Iterable<String> paths = lookup.query(filter, pd(propertyName), propertyName, value);
+        Iterable<String> paths = lookup.query(filter, propertyName, value);
         return ImmutableList.copyOf(paths);
     }
 

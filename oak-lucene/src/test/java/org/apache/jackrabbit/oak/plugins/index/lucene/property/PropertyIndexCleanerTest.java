@@ -329,8 +329,7 @@ public class PropertyIndexCleanerTest {
         NodeState root = nodeStore.getRoot();
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, getNode(root, indexPath));
         FilterImpl filter = FilterImpl.newTestInstance();
-        Iterable<String> paths = lookup.query(filter, pd(indexPath, propertyName), propertyName,
-                PropertyValues.newString(value));
+        Iterable<String> paths = lookup.query(filter, propertyName,   PropertyValues.newString(value));
         return ImmutableList.copyOf(paths);
     }
 

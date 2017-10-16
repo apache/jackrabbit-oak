@@ -108,7 +108,7 @@ public class HybridPropertyIndexLookupTest {
         filter.restrictProperty("foo", Operator.EQUAL, newString("bar"));
 
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
-        Iterable<String> paths = lookup.query(filter, pd(propertyName), propertyName,
+        Iterable<String> paths = lookup.query(filter, propertyName,
                 filter.getPropertyRestriction(propertyName));
 
         assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
@@ -128,14 +128,14 @@ public class HybridPropertyIndexLookupTest {
 
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState(),
                 "/content", false);
-        Iterable<String> paths = lookup.query(filter, pd(propertyName), propertyName,
+        Iterable<String> paths = lookup.query(filter, propertyName,
                 filter.getPropertyRestriction(propertyName));
 
         assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
 
         lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState(),
                 "/content", true);
-        paths = lookup.query(filter, pd(propertyName), propertyName,
+        paths = lookup.query(filter, propertyName,
                 filter.getPropertyRestriction(propertyName));
 
         assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/content/a"));
@@ -158,7 +158,7 @@ public class HybridPropertyIndexLookupTest {
 
     private List<String> query(Filter filter, String propertyName, String propertyRestrictionName) {
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
-        Iterable<String> paths = lookup.query(filter, pd(propertyName), propertyName,
+        Iterable<String> paths = lookup.query(filter, propertyName,
                 filter.getPropertyRestriction(propertyRestrictionName));
         return ImmutableList.copyOf(paths);
     }
