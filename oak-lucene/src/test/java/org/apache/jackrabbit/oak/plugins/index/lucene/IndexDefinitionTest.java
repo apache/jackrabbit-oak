@@ -1092,6 +1092,28 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void nodeTypeIndexed_IgnoreAggregates() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType").sync();
+        defnb.aggregateRule("oak:TestSuperType").include("*");
+
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+
+        IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+        assertNotNull(ruleSuper);
+
+        assertNull(ruleSuper.getConfig("foo"));
+        assertTrue(ruleSuper.getAggregate().getIncludes().isEmpty());
+        assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES));
+    }
+
+    @Test
     public void nodeTypeIndex_mixin() throws Exception{
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
