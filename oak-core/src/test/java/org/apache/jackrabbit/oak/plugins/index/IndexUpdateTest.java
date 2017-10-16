@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -873,6 +874,42 @@ public class IndexUpdateTest {
             assertEquals("Either not all callbacks are called OR same callback got called twice for " + progress,
                     2, numCallbacks.get());
         }
+    }
+
+    @Test
+    public void indexesDisabled() throws Exception{
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "barIndex", true, false, ImmutableSet.of("bar"), null);
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        before = indexed;
+        builder = indexed.builder();
+        NodeBuilder newIndex = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "newIndex", true, false, ImmutableSet.of("bar"), null);
+        newIndex.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/fooIndex"), Type.STRINGS);
+
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        //Post reindex also index should not be disabled
+        assertEquals("property", indexed.getChildNode("oak:index").getChildNode("fooIndex").getString(TYPE_PROPERTY_NAME));
+        assertTrue(indexed.getChildNode("oak:index").getChildNode("newIndex").getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
+
+        before = indexed;
+        builder = indexed.builder();
+        builder.child("testRoot2").setProperty("foo", "abc");
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        //Index only disabled after next cycle
+        assertEquals(IndexConstants.TYPE_DISABLED, indexed.getChildNode("oak:index").getChildNode("fooIndex").getString(TYPE_PROPERTY_NAME));
+        assertFalse(indexed.getChildNode("oak:index").getChildNode("newIndex").getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
     }
 
     private static void markCorrupt(NodeBuilder builder, String indexName) {
