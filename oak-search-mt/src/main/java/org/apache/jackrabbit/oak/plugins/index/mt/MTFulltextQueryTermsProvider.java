@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.mt;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
 import java.util.Set;
@@ -63,30 +62,38 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
     @Override
     public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
         BooleanQuery query = new BooleanQuery();
-        Sentence sentence = new Sentence(text, 0, decoder.getJoshuaConfiguration());
-        Translation translation = decoder.decode(sentence);
-        log.debug("{} decoded into {}", text, translation);
-        // try phrase translation first
-        List<StructuredTranslation> structuredTranslations = translation.getStructuredTranslations();
-        if (!structuredTranslations.isEmpty()) {
-            addTranslations(query, structuredTranslations);
-        } else {
-            // if phrase cannot be translated, perform token by token translation
-            try {
+        try {
+            Sentence sentence = new Sentence(text, text.hashCode(), decoder.getJoshuaConfiguration());
+            Translation translation = decoder.decode(sentence);
+            log.debug("{} decoded into {}", text, translation);
+            query.add(new BooleanClause(new TermQuery(new Term(FieldNames.FULLTEXT, translation.toString())), BooleanClause.Occur.SHOULD));
+
+
+            // try phrase translation first
+            List<StructuredTranslation> structuredTranslations = translation.getStructuredTranslations();
+            log.debug("found {} structured translations", structuredTranslations.size());
+            if (!structuredTranslations.isEmpty()) {
+                log.debug("phrase translation");
+                addTranslations(query, structuredTranslations);
+            } else {
+                // if phrase cannot be translated, perform token by token translation
+                log.debug("per token translation");
+
                 TokenStream tokenStream = analyzer.tokenStream(null, new StringReader(text));
                 tokenStream.addAttribute(CharTermAttribute.class);
                 tokenStream.reset();
                 while (tokenStream.incrementToken()) {
                     CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
-                    Translation translatedToken = decoder.decode(new Sentence(attribute.toString(), 0,
+                    String source = attribute.toString();
+                    Translation translatedToken = decoder.decode(new Sentence(source, source.hashCode(),
                             decoder.getJoshuaConfiguration()));
                     addTranslations(query, translatedToken.getStructuredTranslations());
                 }
                 tokenStream.end();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
 
+        } catch (Exception e) {
+            log.error("could not translate query", e);
         }
         return query.clauses().size() > 0 ? query : null;
     }
@@ -94,7 +101,10 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
     private void addTranslations(BooleanQuery query, List<StructuredTranslation> structuredTranslations) {
         for (StructuredTranslation st : structuredTranslations) {
             String translationString = st.getTranslationString();
-            if (st.getTranslationScore() > minScore) {
+            float translationScore = st.getTranslationScore();
+            log.debug("translation {} has score {}", translationString, translationScore);
+            if (translationScore > minScore) {
+                log.debug("translation score for {} is {}", translationString, translationScore);
                 query.add(new BooleanClause(new TermQuery(new Term(FieldNames.FULLTEXT, translationString)),
                         BooleanClause.Occur.SHOULD));
                 log.debug("added query for translated phrase {}", translationString);
@@ -104,9 +114,9 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
                 for (List<Integer> wa : st.getTranslationWordAlignments()) {
                     if (!wa.isEmpty()) {
                         String translatedTerm = translationTokens.get(i);
-                        log.debug("added query for translated token {}", translatedTerm);
                         query.add(new BooleanClause(new TermQuery(new Term(FieldNames.FULLTEXT, translatedTerm)),
                                 BooleanClause.Occur.SHOULD));
+                        log.debug("added query for translated token {}", translatedTerm);
                     }
                     i++;
                 }
