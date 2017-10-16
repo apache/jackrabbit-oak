@@ -1136,6 +1136,30 @@ public class IndexDefinitionTest {
         assertNull(getRule(defn, "oak:TestSuperType"));
     }
 
+    @Test
+    public void mixinAndPrimaryType() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("oak:TestMixA").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex();
+        defnb.indexRule("oak:TestSuperType").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex().sync();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+
+        IndexingRule a = getRule(defn, "oak:TestMixA");
+        assertNotNull(a.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(a.getConfig(JcrConstants.JCR_MIXINTYPES));
+        assertFalse(a.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
+
+        IndexingRule b = getRule(defn, "oak:TestSuperType");
+        assertNotNull(b.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(b.getConfig(JcrConstants.JCR_MIXINTYPES));
+        assertTrue(b.getConfig(JcrConstants.JCR_PRIMARYTYPE).sync);
+        assertTrue(b.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
