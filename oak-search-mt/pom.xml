@@ -17,116 +17,172 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.apache.jackrabbit</groupId>
-    <artifactId>oak-parent</artifactId>
-    <version>1.8-SNAPSHOT</version>
-    <relativePath>../oak-parent/pom.xml</relativePath>
-  </parent>
+    <parent>
+        <groupId>org.apache.jackrabbit</groupId>
+        <artifactId>oak-parent</artifactId>
+        <version>1.8-SNAPSHOT</version>
+        <relativePath>../oak-parent/pom.xml</relativePath>
+    </parent>
 
-  <artifactId>oak-search-mt</artifactId>
-  <name>Oak Search Machine Translation</name>
-  <packaging>bundle</packaging>
-  <description>Machine Translation extension for Oak search</description>
+    <artifactId>oak-search-mt</artifactId>
+    <name>Oak Search Machine Translation</name>
+    <packaging>bundle</packaging>
+    <description>Machine Translation extension for Oak search</description>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <configuration>
-          <instructions>
-            <Export-Package>
-              !*
-            </Export-Package>
-          </instructions>
-        </configuration>
-        <executions>
-          <execution>
-            <id>baseline</id>
-            <goals>
-              <goal>baseline</goal>
-            </goals>
-            <phase>pre-integration-test</phase>
-            <configuration>
-              <!--
-                This is required because there's no prior (stable) version of oak-search-mt.
-                This should be removed post 1.8 release
-                Anyway nothing is exported therefore it shouldn't be a problem
-              -->
-              <skip>true</skip>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.rat</groupId>
-        <artifactId>apache-rat-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Export-Package>
+                            !*
+                        </Export-Package>
+                        <Embed-Dependency>*;scope=compile</Embed-Dependency>
+                        <Import-Package>
+                            com.ibm.uvm.tools.*;resolution:=optional,
+                            com.sun.jdmk.comm.*;resolution:=optional,
+                            com.sun.net.httpserver.*;resolution:=optional,
+                            edu.uci.ics.*;resolution:=optional,
+                            javax.jms.*;resolution:=optional,
+                            javax.jmdns.*;resolution:=optional,
+                            junit.framework.*;resolution:=optional,
+                            org.apache.commons.collections15.*;resolution:=optional,
+                            org.apache.tools.ant.*;resolution:=optional,
+                            org.apache.tools.ant.types.*;resolution:=optional,
+                            org.easymock.*;resolution:=optional,
+                            org.jmock.core.*;resolution:=optional,
+                            sun.misc.*;resolution:=optional,
+                            EDU.oswego.cs.dl.util.concurrent.*;resolution:=optional,
+                            org.kohsuke.args4j.*;resolution:=optional,
+                            *
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>baseline</id>
+                        <goals>
+                            <goal>baseline</goal>
+                        </goals>
+                        <phase>pre-integration-test</phase>
+                        <configuration>
+                            <!--
+                              This is required because there's no prior (stable) version of oak-search-mt.
+                              This should be removed post 1.8 release
+                              Anyway nothing is exported therefore it shouldn't be a problem
+                            -->
+                            <skip>true</skip>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
-  <dependencies>
-    <!-- Optional OSGi dependencies, used only when running within OSGi -->
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.annotation</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
+    <dependencies>
+        <!-- Optional OSGi dependencies, used only when running within OSGi -->
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.compendium</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.annotation</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.scr.annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-lucene</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.joshua</groupId>
-      <artifactId>joshua-incubating</artifactId>
-      <version>6.1</version>
-    </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-lucene</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.joshua</groupId>
+            <artifactId>joshua-incubating</artifactId>
+            <version>6.1</version>
+        </dependency>
 
-    <!-- Logging -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
-    <!-- Findbugs annotations -->
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-    </dependency>
+        <!-- Findbugs annotations -->
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
-    <!-- Test Dependencies -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
-      <scope>test</scope>
-    </dependency>
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>1.10.19</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>colt</groupId>
+            <artifactId>colt</artifactId>
+            <version>1.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.berkeley.nlp</groupId>
+            <artifactId>berkeleylm</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-cli</groupId>
+            <artifactId>commons-cli</artifactId>
+            <version>1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>18.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.5</version>
+        </dependency>
 
-  </dependencies>
+    </dependencies>
 </project>
+

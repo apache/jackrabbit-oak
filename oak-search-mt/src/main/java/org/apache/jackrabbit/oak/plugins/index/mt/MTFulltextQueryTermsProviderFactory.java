@@ -19,7 +19,9 @@
 package org.apache.jackrabbit.oak.plugins.index.mt;
 
 import javax.annotation.Nonnull;
+import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +36,7 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.joshua.decoder.Decoder;
+import org.apache.joshua.decoder.JoshuaConfiguration;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.Query;
 import org.slf4j.Logger;
@@ -74,34 +77,50 @@ public class MTFulltextQueryTermsProviderFactory implements FulltextQueryTermsPr
         String[] nts = PropertiesUtil.toStringArray(config.get(NODE_TYPES), new String[]{"Oak:unstructured"});
         float minScore = (float) PropertiesUtil.toDouble(config.get(MIN_SCORE), DEFAULT_MIN_SCORE);
         log.info("activating MT FulltextQueryTermProvider from Joshua config at {} on {} nodetypes, minScore {}", pathToJoshuaConfig, nts, minScore);
+        Decoder decoder = null;
         try {
-            log.debug("parsing joshua config file");
-            Decoder decoder = Decoder.createDecoder(pathToJoshuaConfig);
-            decoder.getJoshuaConfiguration().use_structured_output = true;
-            decoder.getJoshuaConfiguration().sanityCheck();
+            log.debug("reading joshua config");
+            JoshuaConfiguration configuration = new JoshuaConfiguration();
+            configuration.readConfigFile(pathToJoshuaConfig);
+            configuration.setConfigFilePath(new File(pathToJoshuaConfig).getCanonicalFile().getParent());
+            configuration.use_structured_output = true;
+            decoder = new Decoder(configuration, pathToJoshuaConfig);
             log.debug("decoder initialized");
             Set<String> nodeTypes = new HashSet<>();
             nodeTypes.addAll(Arrays.asList(nts));
             queryTermsProvider = new MTFulltextQueryTermsProvider(decoder, nodeTypes, minScore);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("could not initialize MTFulltextQueryTermProvider", e);
+            if (decoder != null) {
+                decoder.cleanUp();
+            }
         }
     }
 
     @Deactivate
     public void deactivate() throws Exception {
-        log.info("clearing resources");
-        queryTermsProvider.clearResources();
+        if (queryTermsProvider != null) {
+            log.debug("clearing resources");
+            queryTermsProvider.clearResources();
+        }
     }
 
     @Override
     public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
-        return queryTermsProvider.getQueryTerm(text, analyzer, indexDefinition);
+        if (queryTermsProvider != null) {
+            return queryTermsProvider.getQueryTerm(text, analyzer, indexDefinition);
+        } else {
+            return null;
+        }
     }
 
     @Nonnull
     @Override
     public Set<String> getSupportedTypes() {
-        return queryTermsProvider.getSupportedTypes();
+        if (queryTermsProvider != null) {
+            return queryTermsProvider.getSupportedTypes();
+        } else {
+            return Collections.emptySet();
+        }
     }
 }
