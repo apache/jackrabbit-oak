@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -29,21 +28,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.INTERMEDIATE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.NONE;
 
 /**
-* Implements a split document cleanup.
-*/
+ * Implements a split document cleanup.
+ */
 public class SplitDocumentCleanUp implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SplitDocumentCleanUp.class);
 
+    // number of document IDs to collect before removing them in a single call
+    private static final int DELETE_BATCH_SIZE = 100;
+
     protected final DocumentStore store;
     protected final Iterable<NodeDocument> splitDocGarbage;
     protected final VersionGCStats stats;
+    protected final List<String> idsToBeDeleted = Lists.newArrayList();
+    protected int deleteCount;
 
     protected SplitDocumentCleanUp(DocumentStore store,
                                    VersionGCStats stats,
@@ -56,20 +59,31 @@ public class SplitDocumentCleanUp implements Closeable {
     protected SplitDocumentCleanUp disconnect() {
         for (NodeDocument splitDoc : splitDocGarbage) {
             disconnect(splitDoc);
+            collectIdToBeDeleted(splitDoc.getId());
         }
         return this;
     }
 
+    /**
+     * Collects document IDs for subsequent deletion.
+     * <p>
+     * Implementations that override
+     * {@link SplitDocumentCleanUp#deleteSplitDocuments()} should override this
+     * method as well.
+     */
+    protected void collectIdToBeDeleted(String id) {
+        idsToBeDeleted.add(id);
+        // proceed to delete early if we reach DELETE_BATCH_SIZE
+        if (idsToBeDeleted.size() >= DELETE_BATCH_SIZE) {
+            store.remove(NODES, idsToBeDeleted);
+            deleteCount += idsToBeDeleted.size();
+            idsToBeDeleted.clear();
+        }
+    }
+
     protected int deleteSplitDocuments() {
-        List<String> docsToDelete = Lists.newArrayList(transform(splitDocGarbage,
-                new Function<NodeDocument, String>() {
-                    @Override
-                    public String apply(NodeDocument input) {
-                        return input.getId();
-                    }
-                }));
-        store.remove(NODES, docsToDelete);
-        return docsToDelete.size();
+        store.remove(NODES, idsToBeDeleted);
+        return idsToBeDeleted.size() + deleteCount;
     }
 
     private void disconnect(NodeDocument splitDoc) {
