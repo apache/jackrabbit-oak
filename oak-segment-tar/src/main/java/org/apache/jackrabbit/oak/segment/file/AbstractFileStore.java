@@ -209,7 +209,9 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        GCGeneration generation = Segment.getGcGeneration(newSegmentData(buffer), id);
+        GCGeneration generation = SegmentId.isDataSegmentId(lsb)
+                ? Segment.getGcGeneration(newSegmentData(buffer), id)
+                : GCGeneration.NULL;
         w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
             Segment segment = new Segment(tracker, segmentReader, tracker.newSegmentId(msb, lsb), buffer);
