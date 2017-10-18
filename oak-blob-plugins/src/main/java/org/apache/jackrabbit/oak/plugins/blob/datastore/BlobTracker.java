@@ -66,6 +66,13 @@ public interface BlobTracker extends Closeable {
     void remove(File recs) throws IOException;
 
     /**
+     * Remove the ids in the given file and deletes the file.
+     *
+     * @param recs
+     * @throws IOException
+     */
+    void remove(File recs, Options options) throws IOException;
+    /**
      * Fetches an iterator of records available.
      *
      * @return
@@ -81,4 +88,6 @@ public interface BlobTracker extends Closeable {
      * @throws IOException
      */
     File get(String path) throws IOException;
+
+    enum Options {DEFAULT, ACTIVE_DELETION}
 }
