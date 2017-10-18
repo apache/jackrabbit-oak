@@ -104,6 +104,14 @@ public class ActiveDeletionTrackerStoreTest {
     }
 
     @Test
+    public void filterWithNoActiveDeletion() throws Exception {
+        File toFilter = create(range(7, 10), folder);
+        Iterator<String> filtered = tracker.filter(toFilter);
+
+        assertEquals("incorrect elements after filtering", Sets.newHashSet(range(7, 10)), Sets.newHashSet(filtered));
+    }
+
+    @Test
     public void filter() throws Exception {
         add(tracker, range(0, 20), folder);
         File toFilter = create(range(7, 10), folder);
@@ -124,17 +132,17 @@ public class ActiveDeletionTrackerStoreTest {
 
     @Test
     public void filterWithExtraElements() throws Exception {
-        add(tracker, range(5, 20), folder);
-        List<String> toFilter = combine(combine(range(7, 10), range(0, 4)), range(21, 25));
+        add(tracker, range(5, 25), folder);
+        List<String> toFilter = combine(range(7, 10), range(0, 4));
         File toFilterFile = create(toFilter, folder);
         Iterator<String> filtered = tracker.filter(toFilterFile);
 
         assertEquals("Incorrect elements after filtering",
-            combine(range(0, 4), range(21, 25)), Lists.newArrayList(filtered));
+            range(0, 4), Lists.newArrayList(filtered));
     }
 
     @Test
-    public void reconcileNone() throws Exception {
+    public void reconcileAll() throws Exception {
         Set<String> initAdd = add(tracker, range(0, 20), folder);
         List toReconcile = Lists.newArrayList();
 
@@ -143,7 +151,20 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements with after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+    }
+
+    @Test
+    public void reconcileNone() throws Exception {
+        Set<String> initAdd = add(tracker, range(0, 20), folder);
+        List<String> toReconcile = range(0, 20);
+
+        File toFilter = create(toReconcile, folder);
+
+        tracker.reconcile(toFilter);
+        Set<String> retrieved = retrieve(tracker, folder);
+
+        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
     }
 
     @Test
@@ -156,7 +177,20 @@ public class ActiveDeletionTrackerStoreTest {
         tracker.reconcile(toFilter);
         Set<String> retrieved = retrieve(tracker, folder);
 
-        assertEquals("Incorrect elements with after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
+    }
+
+    @Test
+    public void reconcileExtraElements() throws Exception {
+        Set<String> initAdd = add(tracker, range(0, 25), folder);
+        List<String> toReconcile = combine(range(7, 10), range(1, 4));
+
+        File toFilter = create(toReconcile, folder);
+
+        tracker.reconcile(toFilter);
+        Set<String> retrieved = retrieve(tracker, folder);
+
+        assertEquals("Incorrect elements after reconciliation", Sets.newHashSet(toReconcile), retrieved);
     }
 
     @Test
