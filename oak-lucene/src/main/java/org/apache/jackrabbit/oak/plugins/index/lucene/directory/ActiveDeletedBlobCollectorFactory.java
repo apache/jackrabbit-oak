@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker.Options;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -267,7 +268,7 @@ public class ActiveDeletedBlobCollectorFactory {
                 if (blobIdsTracked && numBlobsDeleted > 0) {
                     BlobTracker tracker = ((BlobTrackingStore) blobStore).getTracker();
                     if (tracker != null) {
-                        tracker.remove(idTempDeleteFile);
+                        tracker.remove(idTempDeleteFile, Options.ACTIVE_DELETION);
                     }
                 }
             } catch(Exception e) {
