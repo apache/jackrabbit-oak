@@ -201,6 +201,17 @@ public class DataStoreTrackerGCTest {
     }
 
     @Test
+    public void consistencyCheckNoActiveDeletion() throws Exception {
+        Cluster cluster = new Cluster("cluster1");
+        BlobStore s = cluster.blobStore;
+        BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+        DataStoreState state = init(cluster.nodeStore, 0);
+
+        // Since datastore in consistent state and only active deletions the missing list should be empty
+        assertEquals(0, cluster.gc.checkConsistency());
+    }
+
+    @Test
     public void consistencyCheckOnlyActiveDeletion() throws Exception {
         Cluster cluster = new Cluster("cluster1");
         BlobStore s = cluster.blobStore;
