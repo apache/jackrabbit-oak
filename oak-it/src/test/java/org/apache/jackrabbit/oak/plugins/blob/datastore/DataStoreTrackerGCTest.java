@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -57,14 +59,19 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.union;
+import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.createFDS;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils
     .SharedStoreRecordType.REPOSITORY;
@@ -122,6 +129,7 @@ public class DataStoreTrackerGCTest {
         Cluster cluster = new Cluster("cluster1");
         BlobStore s = cluster.blobStore;
         BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+
         DataStoreState state = init(cluster.nodeStore, 0);
         ScheduledFuture<?> scheduledFuture = newSingleThreadScheduledExecutor()
             .schedule(tracker.new SnapshotJob(), 0, MILLISECONDS);
@@ -135,6 +143,134 @@ public class DataStoreTrackerGCTest {
         assertEquals(state.blobsPresent, existingAfterGC);
         // Tracked blobs should reflect deletions after gc
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
+    }
+
+    @Test
+    public void gcReconcileActiveDeletion() throws Exception {
+        Cluster cluster = new Cluster("cluster1");
+        BlobStore s = cluster.blobStore;
+        BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+        DataStoreState state = init(cluster.nodeStore, 0);
+
+        // Simulate creation and active deletion after init without version gc to enable references to hang around
+        List<String> addlAdded = doActiveDelete(cluster.nodeStore,
+            (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
+        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        state.blobsPresent.addAll(addlPresent);
+        state.blobsAdded.addAll(addlPresent);
+
+        cluster.gc.collectGarbage(false);
+
+        Set<String> existingAfterGC = iterate(s);
+        // Check the state of the blob store after gc
+        assertEquals(state.blobsPresent, existingAfterGC);
+        // Tracked blobs should reflect deletions after gc
+        assertEquals(state.blobsPresent, retrieveTracked(tracker));
+        // Check that the delete tracker is refreshed
+        assertEquals(Sets.newHashSet(activeDeleted), retrieveActiveDeleteTracked(tracker, folder));
+    }
+
+    @Test
+    public void gcReconcileActiveDeletionMarkCleared() throws Exception {
+        Cluster cluster = new Cluster("cluster1");
+        BlobStore s = cluster.blobStore;
+        BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+        // Simulate active deletion before the init to ensure that the references also cleared
+        List<String> addlAdded = doActiveDelete(cluster.nodeStore,
+            (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
+        DataStoreState state = init(cluster.nodeStore, 0);
+
+        // Force a snapshot of the tracker to refresh
+        File f = folder.newFile();
+        tracker.remove(f, BlobTracker.Options.ACTIVE_DELETION);
+
+        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        state.blobsPresent.addAll(addlPresent);
+        state.blobsAdded.addAll(addlPresent);
+
+        cluster.gc.collectGarbage(false);
+        Set<String> existingAfterGC = iterate(s);
+        // Check the state of the blob store after gc
+        assertEquals(state.blobsPresent, existingAfterGC);
+        // Tracked blobs should reflect deletions after gc
+        assertEquals(state.blobsPresent, retrieveTracked(tracker));
+        // Check that the delete tracker is refreshed
+        assertEquals(Sets.newHashSet(), retrieveActiveDeleteTracked(tracker, folder));
+    }
+
+    @Test
+    public void consistencyCheckOnlyActiveDeletion() throws Exception {
+        Cluster cluster = new Cluster("cluster1");
+        BlobStore s = cluster.blobStore;
+        BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+        DataStoreState state = init(cluster.nodeStore, 0);
+
+        List<String> addlAdded = doActiveDelete(cluster.nodeStore,
+            (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
+        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
+        List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+        state.blobsPresent.addAll(addlPresent);
+        state.blobsAdded.addAll(addlPresent);
+
+        // Since datastore in consistent state and only active deletions the missing list should be empty
+        assertEquals(0, cluster.gc.checkConsistency());
+    }
+
+    @Test
+    public void consistencyCheckDeletedWithActiveDeletion() throws Exception {
+        Cluster cluster = new Cluster("cluster1");
+        BlobStore s = cluster.blobStore;
+        BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+        DataStoreState state = init(cluster.nodeStore, 0);
+
+        // Directly delete from blobstore
+        ArrayList<String> blobs = Lists.newArrayList(state.blobsPresent);
+        String removedId = blobs.remove(0);
+        ((DataStoreBlobStore) s).deleteChunks(Lists.newArrayList(removedId), 0);
+        state.blobsPresent = Sets.newHashSet(blobs);
+        File f = folder.newFile();
+        writeStrings(Lists.newArrayList(removedId).iterator(), f, false);
+        tracker.remove(f);
+
+        List<String> addlAdded = doActiveDelete(cluster.nodeStore,
+            (DataStoreBlobStore) cluster.blobStore, tracker, folder,0, 2);
+        List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
+        state.blobsPresent.addAll(addlPresent);
+        state.blobsAdded.addAll(addlPresent);
+
+        // Only the missing blob should be reported and not the active deletions
+        assertEquals(1, cluster.gc.checkConsistency());
+    }
+
+    private List<String> doActiveDelete(NodeStore nodeStore, DataStoreBlobStore blobStore, BlobIdTracker tracker,
+        TemporaryFolder folder, int delIdx, int num) throws Exception {
+        List<String> set = Lists.newArrayList();
+        NodeBuilder a = nodeStore.getRoot().builder();
+        int number = 4;
+        for (int i = 0; i < number; i++) {
+            Blob b = nodeStore.createBlob(randomStream(i, 90));
+            a.child("cactive" + i).setProperty("x", b);
+            set.add(b.getContentIdentity());
+        }
+        nodeStore.merge(a, INSTANCE, EMPTY);
+
+        List<String> deleted = Lists.newArrayList();
+
+        //a = nodeStore.getRoot().builder();
+        for(int idx = delIdx; idx < delIdx + num; idx++) {
+            blobStore.deleteChunks(Lists.newArrayList(set.get(idx)), 0);
+            deleted.add(set.get(idx));
+            a.child("cactive" + idx).remove();
+        }
+        nodeStore.merge(a, INSTANCE, EMPTY);
+
+        File f = folder.newFile();
+        writeStrings(deleted.iterator(), f, false);
+
+        tracker.remove(f, BlobTracker.Options.ACTIVE_DELETION);
+        return set;
     }
 
     @Test
@@ -160,6 +296,21 @@ public class DataStoreTrackerGCTest {
         scheduledFuture.get();
         // Tracked blobs should reflect deletions after gc and the deleted should not get resurrected
         assertEquals(state.blobsPresent, retrieveTracked(tracker));
+    }
+
+    private static Set<String> retrieveActiveDeleteTracked(BlobIdTracker tracker, TemporaryFolder folder) throws IOException {
+        File f = folder.newFile();
+        Set<String> retrieved = readStringsAsSet(
+            new FileInputStream(tracker.getDeleteTracker().retrieve(f.getAbsolutePath())), false);
+        return retrieved;
+    }
+
+    private static List<String> range(int min, int max) {
+        List<String> list = newArrayList();
+        for (int i = min; i <= max; i++) {
+            list.add(valueOf(i));
+        }
+        return list;
     }
 
     private HashSet<String> addNodeSpecialChars(DocumentNodeStore ds) throws Exception {
@@ -258,7 +409,7 @@ public class DataStoreTrackerGCTest {
         NodeBuilder a = nodeStore.getRoot().builder();
         int number = 4;
         for (int i = 0; i < number; i++) {
-            Blob b = nodeStore.createBlob(randomStream(i, 90));
+            Blob b = nodeStore.createBlob(randomStream(i, 40));
             a.child("cinline" + i).setProperty("x", b);
         }
         nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -416,7 +567,6 @@ public class DataStoreTrackerGCTest {
         }
         s.merge(a, INSTANCE, EMPTY);
 
-
         a = s.getRoot().builder();
         for (int id : processed) {
             a.child("c" + id).remove();
@@ -444,7 +594,7 @@ public class DataStoreTrackerGCTest {
         }
 
         public Cluster(String clusterName, int clusterId, MemoryDocumentStore store) throws Exception {
-            blobStore = getBlobStore(blobStoreRoot);
+            blobStore = new DataStoreBlobStore(createFDS(blobStoreRoot, 50));
             nodeStore = builderProvider.newBuilder()
                 .setClusterId(clusterId)
                 .clock(clock)
