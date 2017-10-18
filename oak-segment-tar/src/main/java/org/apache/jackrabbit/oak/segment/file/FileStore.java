@@ -129,6 +129,7 @@ public class FileStore extends AbstractFileStore {
 
     private final RandomAccessFile lockFile;
 
+    @Nonnull
     private final FileLock lock;
 
     private TarRevisions revisions;
@@ -451,16 +452,11 @@ public class FileStore extends AbstractFileStore {
             }
 
             Closer closer = Closer.create();
-            closer.register(revisions);
-            if (lock != null) {
-                try {
-                    lock.release();
-                } catch (IOException e) {
-                    log.warn("Unable to release the file lock", e);
-                }
-            }
             closer.register(lockFile);
-            closer.register(tarFiles);
+            closer.register(lock::release);
+            closer.register(tarFiles) ;
+            closer.register(revisions);
+
             closeAndLogOnFail(closer);
         }
 
