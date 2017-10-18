@@ -95,17 +95,21 @@ public class OakRepositoryFixture implements RepositoryFixture {
     }
 
     public static RepositoryFixture getSegmentTar(File base, int maxFileSizeMB, int cacheSizeMB,
-        boolean memoryMapping) {
-        return new OakRepositoryFixture(OakFixture
-            .getSegmentTar(OakFixture.OAK_SEGMENT_TAR, base, maxFileSizeMB, cacheSizeMB,
-                memoryMapping, false));
+            boolean memoryMapping) {
+        return new OakRepositoryFixture(
+                OakFixture.getVanillaSegmentTar(base, maxFileSizeMB, cacheSizeMB, memoryMapping));
     }
 
-    public static RepositoryFixture getSegmentTarWithBlobStore(File base, int maxFileSizeMB,
-        int cacheSizeMB, boolean memoryMapping, int dsCacheInMB) {
-        return new OakRepositoryFixture(OakFixture
-            .getSegmentTar(OakFixture.OAK_SEGMENT_TAR_DS, base, maxFileSizeMB, cacheSizeMB,
-                memoryMapping, true, dsCacheInMB));
+    public static RepositoryFixture getSegmentTarWithDataStore(File base, int maxFileSizeMB, int cacheSizeMB,
+            boolean memoryMapping, int dsCacheInMB) {
+        return new OakRepositoryFixture(
+                OakFixture.getSegmentTarWithDataStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping, dsCacheInMB));
+    }
+    
+    public static RepositoryFixture getSegmentTarWithColdStandby(File base, int maxFileSizeMB, int cacheSizeMB,
+            boolean memoryMapping, boolean useBlobStore, int dsCacheInMB, int syncInterval, boolean shareBlobStore) {
+        return new OakRepositoryFixture(OakFixture.getSegmentTarWithColdStandby(base, maxFileSizeMB, cacheSizeMB,
+                memoryMapping, useBlobStore, dsCacheInMB, syncInterval, shareBlobStore));
     }
 
     public static RepositoryFixture getCompositeStore(File base, int maxFileSizeMB, int cacheSizeMB,
