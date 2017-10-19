@@ -82,7 +82,7 @@ public class TypeEditor extends DefaultEditor {
         /**
          * Invoked whenever a constraint violation is detected.
          * 
-         * <p>Implementors may choose to throw a {@link #CommitFailedException} or to handle the error
+         * <p>Implementors may choose to throw a {@link org.apache.jackrabbit.oak.api.CommitFailedException} or to handle the error
          * internally, for instance by logging.</p>
          * 
          * <p>Implementors may <b>not</b> throw other exception types from this method.</p>
@@ -90,8 +90,8 @@ public class TypeEditor extends DefaultEditor {
          * @param path the path where the constraint violation was detected
          * @param nodeTypeNames the node type names of the node
          * @param code the error code
-         * @param message the descriptive error mesage
-         * @throws CommitFailedException thrown when the implementation decides to stop futher processing
+         * @param message the descriptive error message
+         * @throws CommitFailedException thrown when the implementation decides to stop further processing
          * 
          * @see TypeEditor#THROW_ON_CONSTRAINT_VIOLATION
          * @see TypeEditor#WARN_ON_CONSTRAINT_VIOLATION
@@ -123,13 +123,13 @@ public class TypeEditor extends DefaultEditor {
     };
     
     /**
-     * Creates a new <tt>TypeEditor</instance>
+     * Creates a new <tt>TypeEditor</tt> instance
      * 
      * @param callback the callback to use when a constraint violation is found. The client must
      *   check the results of the callback invocations if the specified callback does not
      *   immediately propagate constraint violations as checked exceptions.
      * @param typesToCheck the types to check for. If <tt>null</tt>, this node is checked. Otherwise
-     *  it is checked if its primary type or one of it's mixin types is containd in this parameters 
+     *  it is checked if its primary type or one of it's mixin types is contained in this parameters
      * @param types the <tt>/jcr:system/jcr:nodeTypes</tt> node
      * @param primary the node's primary type
      * @param mixins the node's mixins
