@@ -42,6 +42,11 @@ import org.slf4j.LoggerFactory;
  *  So the bottom line is that with this {@link MergePolicy} we should have less but bigger merges, only after commit rate
  *  is under a certain threshold (in terms of added docs per sec and MBs per sec).
  *
+ *  Auto tuning params:
+ *  In this merge policy we would like to avoid having to adjust parameters by hand, but rather have them "auto tune".
+ *  This means that the no. of merges should be mitigated with respect to a max commit rate (docs, mb), but also adapt to
+ *  the average commit rate and anyway do not let the no. of segments explode.
+ *
  */
 public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
@@ -72,6 +77,31 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     private double docCount = 0d;
     private double mb = 0d;
     private double time = System.currentTimeMillis();
+
+    /**
+     * initial values for time series
+     */
+    private double avgCommitRateDocs = 0d;
+    private double avgCommitRateMB = 0d;
+    private double avgSegs = 0;
+
+    /**
+     * length of time series analysis for commit rate and no. of segments
+     */
+    private double timeSeriesLength = 50d;
+
+    /**
+     * current step in current time series batch
+     */
+    private double timeSeriesCount = 0d;
+
+    /**
+     * single exponential smoothing ratio (0 < alpha < 1)
+     *
+     * values towards 0 tend to give more weight to past inputs
+     * values close to 1 weigh recent values more
+     */
+    private double alpha = 0.7;
 
     /** Sole constructor, setting all settings to their
      *  defaults. */
@@ -334,24 +364,48 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     @Override
     public MergeSpecification findMerges(MergeTrigger mergeTrigger, SegmentInfos infos) throws IOException {
         int segmentSize = infos.size();
+        timeSeriesCount++;
+
+        if (timeSeriesCount % timeSeriesLength == 0) {
+            // reset averages
+            avgCommitRateDocs = 0d;
+            avgCommitRateMB = 0d;
+            avgSegs = 0d;
+        }
+        avgSegs = singleExpSmoothing(segmentSize, avgSegs);
+
+        log.debug("segments: current {}, average {}", segmentSize, avgSegs);
 
         if (verbose()) {
-            message("findMerges: " + segmentSize + " segments");
+            message("findMerges: " + segmentSize + " segments, " + avgSegs + " average");
         }
         if (segmentSize == 0) {
             return null;
         }
 
+        // if no. of segments exceeds the maximum, adjust the maximum rates to allow more merges (less commit/rate mitigation)
+        if (segmentSize > maxNoOfSegsForMitigation) {
+            if (avgCommitRateDocs > maxCommitRateDocs) {
+                maxCommitRateDocs = singleExpSmoothing(avgCommitRateDocs, maxCommitRateDocs);
+            }
+            if (avgCommitRateMB > maxCommitRateMB) {
+                maxCommitRateMB = singleExpSmoothing(avgCommitRateMB, maxCommitRateMB);
+            }
+        }
+
         long now = System.currentTimeMillis();
         double timeDelta = (now / 1000d) - (time / 1000d);
         double commitRate = Math.abs(docCount - infos.totalDocCount()) / timeDelta;
-        log.debug("committing {} docs/sec ({} segs)", commitRate);
-
-        docCount = infos.totalDocCount();
         time = now;
 
+        avgCommitRateDocs = singleExpSmoothing(commitRate, avgCommitRateDocs);
+
+        log.debug("commit rate: current {}, average {} docs/sec", commitRate, avgCommitRateDocs);
+
+        docCount = infos.totalDocCount();
+
         if (verbose()) {
-            message(commitRate + "doc/s (max: " + maxCommitRateDocs + "doc/s)");
+            message(commitRate + "doc/s (max: " + maxCommitRateDocs + ", avg: " + avgCommitRateDocs + " doc/s)");
         }
 
         // do not mitigate if there're too many segments to avoid affecting performance
@@ -446,10 +500,13 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             double bytes = idxBytes - this.mb;
             double mbRate = bytes / timeDelta;
-            log.debug("committing {} MBs/sec ({} segs)", mbRate, segmentSize);
+
+            avgCommitRateMB = singleExpSmoothing(mbRate, avgCommitRateMB);
+
+            log.debug("commit rate: current {}, average {} MB/sec", mbRate, avgCommitRateMB);
 
             if (verbose()) {
-                message(mbRate + "mb/s (max: " + maxCommitRateMB + "mb/s)");
+                message(mbRate + "mb/s (max: " + maxCommitRateMB + ", avg: " + avgCommitRateMB + " MB/s)");
             }
 
             this.mb = idxBytes;
@@ -527,6 +584,16 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                 return spec;
             }
         }
+    }
+
+    /**
+     * single exponential smoothing
+     * @param input current time series value
+     * @param smoothedValue previous smoothed value
+     * @return the new smoothed value
+     */
+    private double singleExpSmoothing(double input, double smoothedValue) {
+        return alpha * input + (1 - alpha) * smoothedValue;
     }
 
     /** Expert: scores one merge; subclasses can override.
