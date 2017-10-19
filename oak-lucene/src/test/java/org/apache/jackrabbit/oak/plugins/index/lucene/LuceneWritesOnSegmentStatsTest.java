@@ -122,18 +122,18 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                {false, "oakCodec", false, 4000, "tiered"},
-                {false, "oakCodec", false, 4000, "mitigated"},
-                {false, "oakCodec", false, 4000, "no"},
-                {false, "Lucene46", false, 4000, "tiered"},
-                {false, "Lucene46", false, 4000, "mitigated"},
-                {false, "Lucene46", false, 4000, "no"},
-                {false, "oakCodec", false, -1, "tiered"},
-                {false, "oakCodec", false, -1, "mitigated"},
-                {false, "oakCodec", false, -1, "no"},
-                {false, "Lucene46", false, -1, "tiered"},
-                {false, "Lucene46", false, -1, "mitigated"},
-                {false, "Lucene46", false, -1, "no"},
+                {false, "oakCodec", false, 4096, "tiered"},
+                {false, "oakCodec", false, 4096, "mitigated"},
+                {false, "oakCodec", false, 4096, "no"},
+                {false, "Lucene46", false, 4096, "tiered"},
+                {false, "Lucene46", false, 4096, "mitigated"},
+                {false, "Lucene46", false, 4096, "no"},
+                {false, "oakCodec", false, 100, "tiered"},
+                {false, "oakCodec", false, 100, "mitigated"},
+                {false, "oakCodec", false, 100, "no"},
+                {false, "Lucene46", false, 100, "tiered"},
+                {false, "Lucene46", false, 100, "mitigated"},
+                {false, "Lucene46", false, 100, "no"},
         });
     }
 
