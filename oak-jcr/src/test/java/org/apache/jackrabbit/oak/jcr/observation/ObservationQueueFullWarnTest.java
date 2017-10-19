@@ -299,7 +299,7 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         // in *that* case the queue overfills unexpectedly.
         // To avoid this, give the BackgroundObserver 2sec here to process the
         // init-token, so that the test can actually start with an empty BackgroundObserver queue
-        Thread.sleep(2000);
+        Thread.sleep(5000);
 
         int propCounter = 0;
         // send out 6 events (or in general: queue length + 1):
