@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -256,21 +257,33 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         final Semaphore semaphore = new Semaphore(0);
         final AtomicLong counter = new AtomicLong(0);
         final AtomicLong localCounter = new AtomicLong(0);
+        final AtomicBoolean hasRecievedInit = new AtomicBoolean();
         EventListener listeners = new EventListener() {
 
             @Override
             public void onEvent(EventIterator events) {
                 try {
                     semaphore.acquire();
-                    long numEvents = events.getSize();
-                    counter.addAndGet(numEvents);
-                    System.out.println("GOT: "+numEvents + " - COUNTER: "+counter.get());
-                    while(events.hasNext()) {
-                        Event e = events.nextEvent();
-                        System.out.println(" - " + e);
-                        if (PathUtils.getName(e.getPath()).startsWith("local")) {
-                            if (e instanceof JackrabbitEvent && !((JackrabbitEvent)e).isExternal()) {
-                                localCounter.incrementAndGet();
+                    if (hasRecievedInit.get()) {
+                        long numEvents = events.getSize();
+                        counter.addAndGet(numEvents);
+                        System.out.println("GOT: " + numEvents + " - COUNTER: " + counter.get());
+                        while (events.hasNext()) {
+                            Event e = events.nextEvent();
+                            System.out.println(" - " + e);
+                            if (PathUtils.getName(e.getPath()).startsWith("local")) {
+                                if (e instanceof JackrabbitEvent && !((JackrabbitEvent) e).isExternal()) {
+                                    localCounter.incrementAndGet();
+                                }
+                            }
+                        }
+                    } else {
+                        // we should get only "init" as the relevant message we're waiting for
+                        // as other would be dispatched once we've got init
+                        while (events.hasNext()) {
+                            Event e = events.nextEvent();
+                            if (PathUtils.getName(e.getPath()).equals("init")) {
+                                hasRecievedInit.set(true);
                             }
                         }
                     }
@@ -297,9 +310,18 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         // this (main) thread gets priority and is able to do the 6 session.save
         // calls before the BackgroundObserver is able to dequeue the 'init-token'.
         // in *that* case the queue overfills unexpectedly.
-        // To avoid this, give the BackgroundObserver 2sec here to process the
-        // init-token, so that the test can actually start with an empty BackgroundObserver queue
-        Thread.sleep(5000);
+        // To avoid this, we would put our own "init" and wait for it to show up before continuing the test
+        session.getNode("/testNode").setProperty("init", 1);
+        session.save();
+        semaphore.release(1);
+        boolean initNotTimeOut = waitFor(5000, new Condition() {
+            @Override
+            public boolean evaluate() {
+                return hasRecievedInit.get();
+            }
+        });
+        assertTrue("Listener didn't receive 'init' even within time-out", initNotTimeOut);
+
 
         int propCounter = 0;
         // send out 6 events (or in general: queue length + 1):
