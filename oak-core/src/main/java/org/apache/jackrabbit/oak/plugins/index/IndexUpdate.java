@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
@@ -212,6 +213,12 @@ public class IndexUpdate implements Editor, PathSource {
             String name) {
         //Async indexes are not considered for reindexing for sync indexing
         if (!isMatchingIndexMode(definition)){
+            return false;
+        }
+
+        //Do not attempt reindex of disabled indexes
+        PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
+        if (type != null && TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
             return false;
         }
 

@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
@@ -47,14 +48,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -910,6 +914,42 @@ public class IndexUpdateTest {
         //Index only disabled after next cycle
         assertEquals(IndexConstants.TYPE_DISABLED, indexed.getChildNode("oak:index").getChildNode("fooIndex").getString(TYPE_PROPERTY_NAME));
         assertFalse(indexed.getChildNode("oak:index").getChildNode("newIndex").getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
+    }
+
+    @Test
+    public void reindexForDisabledIndexes() throws Exception{
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(new CompositeIndexEditorProvider(
+                        new PropertyIndexEditorProvider(),
+                        new ReferenceEditorProvider()
+                )));
+
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        before = indexed;
+        builder = before.builder();
+        builder.getChildNode("oak:index").getChildNode("fooIndex").setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED);
+        builder.getChildNode("oak:index").getChildNode("fooIndex").setProperty(REINDEX_PROPERTY_NAME, true);
+        after = builder.getNodeState();
+
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).filter(Level.INFO).create();
+        customLogs.starting();
+
+        before = after;
+        builder = before.builder();
+        builder.child("testRoot2").setProperty("foo", "abc");
+        after = builder.getNodeState();
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        assertTrue(customLogs.getLogs().isEmpty());
+        customLogs.finished();
+
     }
 
     private static void markCorrupt(NodeBuilder builder, String indexName) {
