@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheChangesTracker;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.apache.jackrabbit.oak.plugins.document.cache.ModificationStamp;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
@@ -1532,6 +1533,11 @@ public class RDBDocumentStore implements DocumentStore {
             connection = this.ch.getROConnection();
             String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
             String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
+
+            // OAK-6839: only populate the cache with *new* entries if the query
+            // isn't open-ended (something done by GC processes)
+            boolean populateCache = to != null;
+
             List<RDBRow> dbresult = db.query(connection, tmd, from, to, excludeKeyPatterns, conditions, limit);
             connection.commit();
 
@@ -1568,7 +1574,15 @@ public class RDBDocumentStore implements DocumentStore {
                 result.add(doc);
             }
             if (collection == Collection.NODES) {
-                nodesCache.putNonConflictingDocs(tracker, castAsNodeDocumentList(result));
+                if (populateCache) {
+                    nodesCache.putNonConflictingDocs(tracker, castAsNodeDocumentList(result));
+                } else {
+                    Map<String, ModificationStamp> invMap = Maps.newHashMap();
+                    for (Document doc : result) {
+                        invMap.put(doc.getId(), new ModificationStamp(modcountOf(doc), modifiedOf(doc)));
+                    }
+                    nodesCache.invalidateOutdated(invMap);
+                }
             }
             resultSize = result.size();
             return result;
