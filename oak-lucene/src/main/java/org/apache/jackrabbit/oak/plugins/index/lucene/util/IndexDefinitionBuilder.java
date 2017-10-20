@@ -188,14 +188,12 @@ public final class IndexDefinitionBuilder {
 
     public static class IndexRule {
         private final Tree indexRule;
-        private final Tree propsTree;
         private final String ruleName;
         private final Map<String, PropertyRule> props = Maps.newHashMap();
         private final Set<String> propNodeNames = Sets.newHashSet();
 
         private IndexRule(Tree indexRule, String type) {
             this.indexRule = indexRule;
-            this.propsTree = getOrCreateChild(indexRule, LuceneIndexConstants.PROP_NODE);
             this.ruleName = type;
             loadExisting();
         }
@@ -235,7 +233,7 @@ public final class IndexDefinitionBuilder {
                     if (propDefnNodeName == null){
                         propDefnNodeName = createPropNodeName(name, regex);
                     }
-                    propTree = getOrCreateChild(propsTree, propDefnNodeName);
+                    propTree = getOrCreateChild(getPropsTree(), propDefnNodeName);
                 }
                 propRule = new PropertyRule(this, propTree, name, regex);
                 props.put(name, propRule);
@@ -244,7 +242,11 @@ public final class IndexDefinitionBuilder {
         }
 
         private void loadExisting() {
-            for (Tree tree : propsTree.getChildren()){
+            if (!indexRule.hasChild(LuceneIndexConstants.PROP_NAME)) {
+                return;
+            }
+
+            for (Tree tree : getPropsTree().getChildren()){
                 if (!tree.hasProperty(LuceneIndexConstants.PROP_NAME)){
                     continue;
                 }
@@ -259,7 +261,7 @@ public final class IndexDefinitionBuilder {
         }
 
         private Tree findExisting(String name) {
-            for (Tree tree : propsTree.getChildren()){
+            for (Tree tree : getPropsTree().getChildren()){
                 if (name.equals(tree.getProperty(LuceneIndexConstants.PROP_NAME).getValue(Type.STRING))){
                     return tree;
                 }
@@ -285,6 +287,10 @@ public final class IndexDefinitionBuilder {
 
         public boolean hasPropertyRule(String propName){
             return findExisting(propName) != null;
+        }
+
+        private Tree getPropsTree() {
+            return getOrCreateChild(indexRule, LuceneIndexConstants.PROP_NODE);
         }
     }
 
