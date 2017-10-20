@@ -479,29 +479,6 @@ stagingRetryInterval
 : Default - 600
 : Interval in seconds for the background retry job for retrying previously failed asynchronous uploads.
 
-#### Oak - CloudFrontS3SignedUrlProvider
-Configuration to get a redirect URI to serve binary content direct from Oak via CloudFront, 
-where the content is hosted in S3
-
-_PID `org.apache.jackrabbit.oak.blob.cloud.s3.CloudFrontS3SignedUrlProvider`_
-
-cloudFrontUrl
-: Url from AWS must have a trailing /, the S3Object Key and signed url will be appended
-
-ttl
-: Default - 60
-: The time singed urls are valid for in seconds.
-
-minSize
-: Default - 100
-: The minimum size of a binary that will be served via CloudFront in KB.
-
-privateKeyFile
-: Location of the pkcs8 private key file, relative or absolute.
-
-keyPairId
-: The key ID from AWS after uploading the public key.
-
 ### System properties and Framework properties
 
 Following properties are supported by Oak. They are grouped in two parts _Stable_ and
