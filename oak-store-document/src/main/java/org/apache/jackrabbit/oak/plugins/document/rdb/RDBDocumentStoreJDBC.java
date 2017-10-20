@@ -207,7 +207,7 @@ public class RDBDocumentStoreJDBC {
                 throw new DocumentStoreException("Unsupported number of conditions in : " + entry.getValue().entrySet());
             }
             Entry<Key, Condition> c = entry.getValue().entrySet().iterator().next();
-            if (!c.getKey().getName().equals(MODIFIED)) {
+            if (!c.getKey().getName().equals(MODIFIED) || c.getValue().type != Condition.Type.EQUALS) {
                 throw new DocumentStoreException("Unsupported condition: " + c);
             }
         }
