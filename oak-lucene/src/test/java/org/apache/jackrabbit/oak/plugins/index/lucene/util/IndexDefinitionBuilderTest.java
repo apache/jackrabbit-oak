@@ -304,4 +304,13 @@ public class IndexDefinitionBuilderTest {
         assertTrue(state.getBoolean(LuceneIndexConstants.PROP_INDEX_NODE_TYPE));
         assertTrue(ntFileRule.getBoolean(LuceneIndexConstants.PROP_SYNC));
     }
+
+    @Test
+    public void noPropertiesNodeForEmptyRule() throws Exception{
+        builder.nodeTypeIndex();
+        builder.indexRule("nt:file").sync();
+
+        NodeState state = builder.build();
+        assertFalse(NodeStateUtils.getNode(state, "/indexRules/nt:file/properties").exists());
+    }
 }
