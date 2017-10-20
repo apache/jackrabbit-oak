@@ -1132,11 +1132,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
-            if (!propNode.exists()){
-                return Collections.emptyMap();
-            }
-
-            if (!hasOrderableChildren(propNode)){
+            if (propNode.exists() && !hasOrderableChildren(propNode)){
                 log.warn("Properties node for [{}] does not have orderable " +
                 "children in [{}]", this, IndexDefinition.this);
             }
