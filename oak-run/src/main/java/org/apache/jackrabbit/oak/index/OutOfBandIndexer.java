@@ -147,9 +147,17 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
 
     private IndexEditorProvider createIndexEditorProvider() throws IOException {
         IndexEditorProvider lucene = createLuceneEditorProvider();
-        IndexEditorProvider property = new PropertyIndexEditorProvider().with(indexHelper.getMountInfoProvider());
+        IndexEditorProvider property = createPropertyEditorProvider();
 
         return CompositeIndexEditorProvider.compose(asList(lucene, property));
+    }
+
+    private IndexEditorProvider createPropertyEditorProvider() throws IOException {
+        SegmentPropertyIndexEditorProvider provider =
+                new SegmentPropertyIndexEditorProvider(new File(getLocalIndexDir(), "propertyIndexStore"));
+        provider.with(indexHelper.getMountInfoProvider());
+        closer.register(provider);
+        return provider;
     }
 
     private IndexEditorProvider createLuceneEditorProvider() throws IOException {
