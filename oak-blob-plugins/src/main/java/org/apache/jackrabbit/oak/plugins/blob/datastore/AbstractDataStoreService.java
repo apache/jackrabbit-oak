@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
@@ -54,7 +55,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 @Component(componentAbstract = true)
 public abstract class AbstractDataStoreService {
     private static final String PROP_HOME = "repository.home";
-
+    private static final String PATH = "path";
     public static final String PROP_ENCODE_LENGTH = "encodeLengthInId";
     public static final String PROP_CACHE_SIZE = "cacheSizeInMB";
     private static final String DESCRIPTION = "oak.blobstore.description";
@@ -76,12 +77,17 @@ public abstract class AbstractDataStoreService {
         DataStore ds = createDataStore(context, config);
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
+
         String homeDir = lookup(context, PROP_HOME);
-        if (homeDir != null) {
+        if (config.containsKey(PATH) && !Strings.isNullOrEmpty((String) config.get(PATH))) {
+            log.info("Initializing the DataStore with path [{}]", config.get(PATH));
+        }
+        else if (homeDir != null) {
             log.info("Initializing the DataStore with homeDir [{}]", homeDir);
         }
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
+
         BlobStoreStats stats = new BlobStoreStats(getStatisticsProvider());
         this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
         this.dataStore.setBlobStatsCollector(stats);
