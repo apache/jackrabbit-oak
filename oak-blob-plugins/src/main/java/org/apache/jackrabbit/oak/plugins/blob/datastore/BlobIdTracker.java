@@ -800,6 +800,9 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 } catch(Exception e){
                     LOG.warn("Failure in taking snapshot", e);
                 }
+            } else {
+                LOG.info("Skipping scheduled snapshot as it last executed within {} seconds",
+                    MILLISECONDS.toSeconds(interval));
             }
         }
 
