@@ -42,10 +42,13 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * Editor implementation which stores the property index NodeState data in a different
@@ -102,7 +105,8 @@ public class SegmentPropertyIndexEditorProvider implements IndexEditorProvider, 
         String idxNodeName = PathUtils.getName(indexPath);
         String idxParentPath = PathUtils.getParentPath(indexPath);
         NodeBuilder newIdxBuilder = child(getRootBuilder(), idxParentPath);
-        newIdxBuilder.setChildNode(idxNodeName, definition.getNodeState());
+        NodeState nodeState = cloneVisibleState(definition.getNodeState());
+        newIdxBuilder.setChildNode(idxNodeName, nodeState);
         return newIdxBuilder.child(idxNodeName);
     }
 
@@ -140,5 +144,26 @@ public class SegmentPropertyIndexEditorProvider implements IndexEditorProvider, 
     public SegmentPropertyIndexEditorProvider with(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
         return this;
+    }
+
+    private static NodeState cloneVisibleState(NodeState state){
+        NodeBuilder builder = EMPTY_NODE.builder();
+        new ApplyVisibleDiff(builder).apply(state);
+        return builder.getNodeState();
+    }
+
+    private static class ApplyVisibleDiff extends ApplyDiff {
+        public ApplyVisibleDiff(NodeBuilder builder) {
+            super(builder);
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            if (NodeStateUtils.isHidden(name)){
+                return true;
+            }
+            return after.compareAgainstBaseState(
+                    EMPTY_NODE, new ApplyVisibleDiff(builder.child(name)));
+        }
     }
 }
