@@ -62,10 +62,6 @@
               </configuration>
             </execution>
           </executions>
-       </plugin>
-        <plugin>
-          <groupId>org.apache.felix</groupId>
-          <artifactId>maven-scr-plugin</artifactId>
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
