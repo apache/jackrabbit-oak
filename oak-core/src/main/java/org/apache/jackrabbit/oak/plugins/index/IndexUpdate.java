@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COU
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
 import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
@@ -292,7 +293,10 @@ public class IndexUpdate implements Editor, PathSource {
 
                     rootState.indexDisabler.markDisableFlagIfRequired(indexPath, definition);
                 } else {
-                    rootState.indexDisabler.disableOldIndexes(indexPath, definition);
+                    // not async index OR we're indexing in async mode
+                    if (getAsyncLaneName(definition.getNodeState(), indexPath) == null || rootState.async != null) {
+                        rootState.indexDisabler.disableOldIndexes(indexPath, definition);
+                    }
                     editors.add(editor);
                 }
             }
