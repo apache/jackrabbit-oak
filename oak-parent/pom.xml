@@ -950,17 +950,18 @@
       </dependencies>
     </profile>
     <profile>
-      <!-- requires local copy of Oracle JDBC driver deployed to Maven repo-->
+      <!-- requires local copy of Oracle JDBC driver deployed to Maven repo -->
       <!-- for instance:
-        mvn install:install-file -Dfile=ojdbc6.jar -Dpackaging=jar\
-          -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=12.1.0.2.0
-       -->
+        mvn install:install-file -Dfile=ojdbc8.jar -Dpackaging=jar\
+          -DgroupId=com.oracle.jdbc -DartifactId=ojdbc8 -Dversion=12.2.0.1
+      -->
+      <!-- or see https://blogs.oracle.com/dev2dev/get-oracle-jdbc-drivers-and-ucp-from-oracle-maven-repository-without-ides -->
       <id>rdb-oracle</id>
       <dependencies>
         <dependency>
-          <groupId>com.oracle</groupId>
-          <artifactId>ojdbc6</artifactId>
-          <version>12.1.0.2.0</version>
+          <groupId>com.oracle.jdbc</groupId>
+          <artifactId>ojdbc8</artifactId>
+          <version>12.2.0.1</version>
         </dependency>
       </dependencies>
     </profile>
