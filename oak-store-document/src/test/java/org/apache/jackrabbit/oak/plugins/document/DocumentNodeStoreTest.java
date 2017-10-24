@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.collect.ImmutableList.of;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -52,6 +53,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -3549,7 +3551,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-2621
-    @Ignore("OAK-2621")
     @Test
     public void getChildNodeCount() throws Exception {
         CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
@@ -3571,6 +3572,56 @@ public class DocumentNodeStoreTest {
         }
         // must read the children of /test only once
         assertEquals(1, store.getNumQueryCalls(NODES));
+    }
+
+    @Test
+    public void getChildNodeCountTest() throws Exception {
+        final long UL = Long.MAX_VALUE; // unknown
+        // childNodeCount = none
+        getChildNodeCountTest(0,
+                of(0L, 1L),
+                of(0L, 0L)
+        );
+        // childNodeCount = less than initial fetch size 42
+        getChildNodeCountTest(42,
+                of( 0L,  1L, 41L, 42L, 43L, 100L),
+                of(42L, 42L, 42L, 42L, 42L, 42L)
+        );
+        // childNodeCount = initial fetch size (100)
+        getChildNodeCountTest(100,
+                of(  0L,   1L,  99L, 100L, 101L, 200L),
+                of(100L, 100L, 100L, 100L, 100L, 100L)
+        );
+        // childNodeCount = initial fetch size + 1 (100 + 1)
+        getChildNodeCountTest(101,
+                of(0L, 1L, 99L, 100L, 101L, 200L),
+                of(UL, UL,  UL,   UL, 101L, 101L)
+        );
+        // childNodeCount = first two fetches (100 + 200)
+        getChildNodeCountTest(300,
+                of(0L, 1L, 99L, 100L, 101L, 200L, 299L, 300L, 301L, 400L),
+                of(UL, UL,  UL,   UL, 300L, 300L, 300L, 300L, 300L, 300L)
+        );
+    }
+
+    private void getChildNodeCountTest(int numChildren,
+                                       Iterable<Long> maxValues,
+                                       Iterable<Long> expectedValues)
+            throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(0).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        for (int i = 0; i < numChildren; i++) {
+            builder.child("test").child("node-" + i);
+        }
+        merge(ns, builder);
+        ns.getNodeChildrenCache().invalidateAll();
+
+        NodeState test = ns.getRoot().getChildNode("test");
+        Iterator<Long> expected = expectedValues.iterator();
+        for (long max : maxValues) {
+            assertEquals(expected.next().longValue(), test.getChildNodeCount(max));
+        }
     }
 
     private static class WriteCountingStore extends MemoryDocumentStore {

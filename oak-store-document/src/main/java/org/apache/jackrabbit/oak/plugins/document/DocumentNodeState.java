@@ -268,16 +268,27 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             return bundledChildCount;
         }
 
-        if (max > DocumentNodeStore.NUM_CHILDREN_CACHE_LIMIT) {
-            // count all
-            return Iterables.size(getChildNodeEntries());
+        String name = null;
+        long count = 0;
+        int fetchSize = INITIAL_FETCH_SIZE;
+        long remaining = Math.max(max, 1); // fetch at least once
+        Children c = NO_CHILDREN;
+        while (remaining > 0) {
+            c = store.getChildren(this, name, fetchSize);
+            count += c.children.size();
+            remaining -= c.children.size();
+            if (!c.hasMore) {
+                break;
+            }
+            name = c.children.get(c.children.size() - 1);
+            fetchSize = Math.min(fetchSize << 1, MAX_FETCH_SIZE);
         }
-        Children c = store.getChildren(this, null, (int) max);
-        if (c.hasMore) {
-            return Long.MAX_VALUE;
-        } else {
+        if (!c.hasMore) {
             // we know the exact value
-            return c.children.size() + bundledChildCount;
+            return count + bundledChildCount;
+        } else {
+            // there are more than max
+            return Long.MAX_VALUE;
         }
     }
 
