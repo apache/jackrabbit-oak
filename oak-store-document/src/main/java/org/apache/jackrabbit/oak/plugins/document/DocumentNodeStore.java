@@ -148,11 +148,6 @@ public final class DocumentNodeStore
     public static final FormatVersion VERSION = FormatVersion.V1_8;
 
     /**
-     * Do not cache more than this number of children for a document.
-     */
-    static final int NUM_CHILDREN_CACHE_LIMIT = Integer.getInteger("oak.documentMK.childrenCacheLimit", 16 * 1024);
-
-    /**
      * List of meta properties which are created by DocumentNodeStore and which needs to be
      * retained in any cloned copy of DocumentNodeState.
      */
