@@ -1577,6 +1577,11 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private MergePolicy createMergePolicy() {
+        String mmp = System.getProperty("cmmp");
+        if (mmp != null) {
+            return new CommitMitigatingTieredMergePolicy();
+        }
+
         String mergePolicyName = getOptionalValue(definition, LuceneIndexConstants.MERGE_POLICY_NAME, null);
         MergePolicy mergePolicy = null;
         if (mergePolicyName != null) {
