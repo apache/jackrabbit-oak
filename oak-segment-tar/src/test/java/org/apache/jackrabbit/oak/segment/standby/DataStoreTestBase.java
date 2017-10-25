@@ -63,8 +63,6 @@ public abstract class DataStoreTestBase extends TestBase {
 
     static final long GB = 1024 * 1024 * 1024;
 
-    private NetworkErrorProxy proxy;
-
     @Rule
     public TemporaryPort serverPort = new TemporaryPort();
 
@@ -129,12 +127,10 @@ public abstract class DataStoreTestBase extends TestBase {
     @Before
     public void before() {
         logger.info("Test begin: {}", testName.getMethodName());
-        proxy = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort());
     }
 
     @After
     public void after() {
-        proxy.close();
         logger.info("Test end: {}", testName.getMethodName());
     }
     
@@ -342,32 +338,30 @@ public abstract class DataStoreTestBase extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
-        try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
-                StandbyClientSync clientSync = newStandbyClientSync(secondary, proxyPort.getPort())
-        ) {
-            proxy.skipBytes(skipPosition, skipBytes);
-            proxy.flipByte(flipPosition);
-            proxy.connect();
-
+        try (StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB)) {
             serverSync.start();
-            primary.flush();
-
-            clientSync.run();
-
-            if (skipBytes > 0 || flipPosition >= 0) {
-                if (!storesShouldBeEqual()) {
-                    assertFalse("stores are not expected to be equal", primary.getHead().equals(secondary.getHead()));
-                }
-                proxy.reset();
-                if (intermediateChange) {
-                    blobSize = 2 * MB;
-                    data = addTestContent(store, "server", blobSize);
+            try (NetworkErrorProxy proxy = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort())) {
+                proxy.skipBytes(skipPosition, skipBytes);
+                proxy.flipByte(flipPosition);
+                proxy.connect();
+                try (StandbyClientSync clientSync = newStandbyClientSync(secondary, proxyPort.getPort())) {
                     primary.flush();
+                    clientSync.run();
+                    if (skipBytes > 0 || flipPosition >= 0) {
+                        if (!storesShouldBeEqual()) {
+                            assertFalse("stores are not expected to be equal", primary.getHead().equals(secondary.getHead()));
+                        }
+                        proxy.reset();
+                        if (intermediateChange) {
+                            blobSize = 2 * MB;
+                            data = addTestContent(store, "server", blobSize);
+                            primary.flush();
+                        }
+                        clientSync.run();
+                    }
+                    assertEquals(primary.getHead(), secondary.getHead());
                 }
-                clientSync.run();
             }
-            assertEquals(primary.getHead(), secondary.getHead());
         }
 
         assertTrue(primary.getStats().getApproximateSize() < MB);
