@@ -818,7 +818,7 @@ public class FileStore extends AbstractFileStore {
                                         GC_COUNT, forceWatch, forceWatch.elapsed(MILLISECONDS), cancel);
                             } else {
                                 gcListener.warn("TarMK GC #{}: compaction failed to force compact remaining commits. " +
-                                        "after {} ({} ms). Most likely compaction didn't get exclusive access to the store.",
+                                        "after {} ({} ms). Could not acquire exclusive access to the node store.",
                                         GC_COUNT, forceWatch, forceWatch.elapsed(MILLISECONDS));
                             }
                         }
@@ -1105,6 +1105,7 @@ public class FileStore extends AbstractFileStore {
             private final FileStore store;
 
             private String reason;
+            private volatile long baseLine;
             private volatile long deadline;
 
             public CancelCompactionSupplier(@Nonnull FileStore store) {
@@ -1118,7 +1119,8 @@ public class FileStore extends AbstractFileStore {
              * cancellation took place has no effect.
              */
             public void timeOutAfter(final long duration, @Nonnull final TimeUnit unit) {
-                deadline = currentTimeMillis() + MILLISECONDS.convert(duration, unit);
+                baseLine = currentTimeMillis();
+                deadline = baseLine + MILLISECONDS.convert(duration, unit);
             }
 
             @Override
@@ -1143,7 +1145,8 @@ public class FileStore extends AbstractFileStore {
                     return true;
                 }
                 if (deadline > 0 && currentTimeMillis() > deadline) {
-                    reason = "Timeout after " + deadline/1000 + " seconds";
+                    long dt = SECONDS.convert(currentTimeMillis() - baseLine, MILLISECONDS);
+                    reason = "Timeout after " + dt + " seconds";
                     return true;
                 }
                 return false;
