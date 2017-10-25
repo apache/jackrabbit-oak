@@ -20,7 +20,9 @@
 package org.apache.jackrabbit.oak.segment.test.proxy;
 
 import java.io.Closeable;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -36,6 +38,10 @@ import org.slf4j.LoggerFactory;
 public class NetworkErrorProxy implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(NetworkErrorProxy.class);
+
+    private static final AtomicInteger bossThreadNumber = new AtomicInteger(1);
+
+    private static final AtomicInteger workerThreadNumber = new AtomicInteger(1);
 
     private static final int DEFAULT_FLIP_POSITION = -1;
 
@@ -57,9 +63,13 @@ public class NetworkErrorProxy implements Closeable {
 
     private Channel server;
 
-    private EventLoopGroup boss = new NioEventLoopGroup();
+    private EventLoopGroup boss = new NioEventLoopGroup(0, r -> {
+        return new Thread(r, String.format("proxy-boss-%d", bossThreadNumber.getAndIncrement()));
+    });
 
-    private EventLoopGroup worker = new NioEventLoopGroup();
+    private EventLoopGroup worker = new NioEventLoopGroup(0, r -> {
+        return new Thread(r, String.format("proxy-worker-%d", workerThreadNumber.getAndIncrement()));
+    });
 
     public NetworkErrorProxy(int inboundPort, String outboundHost, int outboundPort) {
         this.inboundPort = inboundPort;
