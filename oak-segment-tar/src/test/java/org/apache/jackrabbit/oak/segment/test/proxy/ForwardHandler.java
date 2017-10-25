@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment.test.proxy;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -35,6 +36,8 @@ import org.slf4j.LoggerFactory;
 class ForwardHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(ForwardHandler.class);
+
+    private static final AtomicInteger threadNumber = new AtomicInteger(1);
 
     private final String targetHost;
 
@@ -60,7 +63,9 @@ class ForwardHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRegistered(final ChannelHandlerContext ctx) throws Exception {
-        group = new NioEventLoopGroup();
+        group = new NioEventLoopGroup(0, r -> {
+            return new Thread(r, String.format("forward-handler-%d", threadNumber.getAndIncrement()));
+        });
         Bootstrap b = new Bootstrap()
                 .group(group)
                 .channel(NioSocketChannel.class)
