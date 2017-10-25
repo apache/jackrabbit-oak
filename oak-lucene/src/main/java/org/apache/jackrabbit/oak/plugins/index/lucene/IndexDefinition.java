@@ -1577,7 +1577,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private MergePolicy createMergePolicy() {
-        String mmp = System.getProperty("cmmp");
+        String mmp = System.getProperty("oak.lucene.cmmp");
         if (mmp != null) {
             return new CommitMitigatingTieredMergePolicy();
         }
