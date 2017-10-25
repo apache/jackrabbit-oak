@@ -92,7 +92,6 @@ import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,8 +185,8 @@ public class FileStore extends AbstractFileStore {
                 builder.getGcOptions(),
                 builder.getGcListener(),
                 new GCJournal(directory),
-                builder.getCacheManager(),
-                builder.getStatsProvider());
+                builder.getCacheManager()
+                        .withAccessTracking("COMPACT", builder.getStatsProvider()));
 
         newManifestChecker(directory, builder.getStrictVersionCheck()).checkAndUpdateManifest();
 
@@ -569,9 +568,6 @@ public class FileStore extends AbstractFileStore {
         private final WriterCacheManager cacheManager;
 
         @Nonnull
-        private final StatisticsProvider statisticsProvider;
-
-        @Nonnull
         private GCNodeWriteMonitor compactionMonitor = GCNodeWriteMonitor.EMPTY;
 
         private volatile boolean cancelled;
@@ -586,13 +582,11 @@ public class FileStore extends AbstractFileStore {
                 @Nonnull SegmentGCOptions gcOptions,
                 @Nonnull GCListener gcListener,
                 @Nonnull GCJournal gcJournal,
-                @Nonnull WriterCacheManager cacheManager,
-                @Nonnull StatisticsProvider statisticsProvider) {
+                @Nonnull WriterCacheManager cacheManager) {
             this.gcOptions = gcOptions;
             this.gcListener = gcListener;
             this.gcJournal = gcJournal;
             this.cacheManager = cacheManager;
-            this.statisticsProvider = statisticsProvider;
         }
 
         GCNodeWriteMonitor getGCNodeWriteMonitor() {
@@ -748,8 +742,7 @@ public class FileStore extends AbstractFileStore {
                 SegmentNodeState before = getHead();
                 CancelCompactionSupplier cancel = new CancelCompactionSupplier(FileStore.this);
                 SegmentWriter writer = defaultSegmentWriterBuilder("c")
-                        .with(cacheManager
-                                .withAccessTracking("COMPACT", statisticsProvider))
+                        .with(cacheManager)
                         .withGeneration(newGeneration)
                         .withoutWriterPool()
                         .build(FileStore.this);
