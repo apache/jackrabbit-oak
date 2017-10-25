@@ -53,8 +53,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class DataStoreTestBase extends TestBase {
+
+    private static final Logger logger = LoggerFactory.getLogger(DataStoreTestBase.class);
+
     static final long GB = 1024 * 1024 * 1024;
 
     private NetworkErrorProxy proxy;
@@ -64,6 +70,9 @@ public abstract class DataStoreTestBase extends TestBase {
 
     @Rule
     public TemporaryPort proxyPort = new TemporaryPort();
+
+    @Rule
+    public TestName testName = new TestName();
 
     abstract FileStore getPrimary();
 
@@ -119,12 +128,14 @@ public abstract class DataStoreTestBase extends TestBase {
 
     @Before
     public void before() {
+        logger.info("Test begin: {}", testName.getMethodName());
         proxy = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort());
     }
 
     @After
     public void after() {
         proxy.close();
+        logger.info("Test end: {}", testName.getMethodName());
     }
     
     @Test
