@@ -778,6 +778,9 @@ Points to note
 7. When defining synonyms:
     * in the synonym file, lines like _plane, airplane, aircraft_ refer to tokens that are mutual synoyms whereas lines 
     like _plane => airplane_ refer to _one way_ synonyms, so that plane will be expanded to airplane but not vice versa
+    * continuing with the point above, since oak would use the same
+    analyzer for indexing as well as querying, using one-way synonyms in
+    any practical way is not supported at the moment.
     * special characters have to be escaped
     * multi word synonyms need particular attention (see https://lucidworks.com/2014/07/12/solution-for-multi-term-synonyms-in-lucenesolr-using-the-auto-phrasing-tokenfilter)
     
