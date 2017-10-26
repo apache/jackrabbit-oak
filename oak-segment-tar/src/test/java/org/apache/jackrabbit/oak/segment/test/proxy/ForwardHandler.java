@@ -87,7 +87,7 @@ class ForwardHandler extends ChannelInboundHandlerAdapter {
         if (f.awaitUninterruptibly(1, TimeUnit.SECONDS)) {
             log.debug("Connected to remote host");
         } else {
-            log.debug("Connection to remote host timed out");
+            throw new Exception("Connection to remote host timed out");
         }
         remote = f.channel();
     }

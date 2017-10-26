@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment.test.proxy;
 
 import java.io.Closeable;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -103,7 +102,7 @@ public class NetworkErrorProxy implements Closeable {
         if (f.awaitUninterruptibly(1, TimeUnit.SECONDS)) {
             log.debug("Bound on port {}", inboundPort);
         } else {
-            log.debug("Binding on port {} timed out", inboundPort);
+            throw new Exception(String.format("Binding on port %d timed out", inboundPort));
         }
         server = f.channel();
     }
@@ -116,7 +115,7 @@ public class NetworkErrorProxy implements Closeable {
             if (server.disconnect().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
                 log.debug("Channel disconnected");
             } else {
-                log.debug("Channel disconnect timed out");
+                throw new Exception("Channel disconnect timed out");
             }
         }
         connect();
