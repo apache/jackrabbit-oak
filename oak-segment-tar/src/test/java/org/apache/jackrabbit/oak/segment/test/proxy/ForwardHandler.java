@@ -62,7 +62,7 @@ class ForwardHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRegistered(final ChannelHandlerContext ctx) throws Exception {
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
         group = new NioEventLoopGroup(0, r -> {
             return new Thread(r, String.format("forward-handler-%d", threadNumber.getAndIncrement()));
         });
@@ -93,7 +93,7 @@ class ForwardHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         if (remote.close().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
             log.debug("Connection to remote host closed");
         } else {
