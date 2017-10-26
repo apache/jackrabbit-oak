@@ -212,7 +212,7 @@ public class HybridPropertyIndexStorageTest {
     }
 
     private PropertyIndexUpdateCallback newCallback(){
-        return new PropertyIndexUpdateCallback(indexPath, builder);
+        return new PropertyIndexUpdateCallback(indexPath, builder, root);
     }
 
     private PropertyDefinition pd(String propName){

@@ -312,7 +312,7 @@ public class PropertyIndexCleanerTest {
     }
 
     private PropertyIndexUpdateCallback newCallback(NodeBuilder builder, String indexPath) {
-        return new PropertyIndexUpdateCallback(indexPath, child(builder, indexPath), clock);
+        return new PropertyIndexUpdateCallback(indexPath, child(builder, indexPath), nodeStore.getRoot(), clock);
     }
 
     private PropertyDefinition pd(String indexPath, String propName){

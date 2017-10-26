@@ -183,7 +183,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 }
 
                 if (indexDefinition.hasSyncPropertyDefinitions()) {
-                    propertyUpdateCallback = new PropertyIndexUpdateCallback(indexPath, definition);
+                    propertyUpdateCallback = new PropertyIndexUpdateCallback(indexPath, definition, root);
                     if (indexTracker != null) {
                         PropertyQuery query = new LuceneIndexPropertyQuery(indexTracker, indexPath);
                         propertyUpdateCallback.getUniquenessConstraintValidator().setSecondStore(query);
