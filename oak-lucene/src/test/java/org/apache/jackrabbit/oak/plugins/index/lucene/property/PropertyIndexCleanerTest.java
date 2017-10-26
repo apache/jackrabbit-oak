@@ -159,6 +159,7 @@ public class PropertyIndexCleanerTest {
         clock.waitUntil(1000);
 
         NodeBuilder builder = nodeStore.getRoot().builder();
+        builder.child("a").setProperty("foo", "bar");
         PropertyIndexUpdateCallback cb = newCallback(builder, indexPath);
         propertyUpdated(cb, indexPath, "/a", "foo", "bar");
         cb.done();
@@ -167,6 +168,7 @@ public class PropertyIndexCleanerTest {
         clock.waitUntil(1150);
 
         builder = nodeStore.getRoot().builder();
+        builder.child("b").setProperty("foo", "bar2");
         cb = newCallback(builder, indexPath);
         propertyUpdated(cb, indexPath, "/b", "foo", "bar2");
         cb.done();
@@ -191,6 +193,7 @@ public class PropertyIndexCleanerTest {
         assertThat(query(indexPath, "foo", "bar2"), containsInAnyOrder("/b"));
 
         builder = nodeStore.getRoot().builder();
+        builder.child("c").setProperty("foo", "bar2");
         cb = newCallback(builder, indexPath);
         propertyUpdated(cb, indexPath, "/c", "foo", "bar2");
 
@@ -312,7 +315,7 @@ public class PropertyIndexCleanerTest {
     }
 
     private PropertyIndexUpdateCallback newCallback(NodeBuilder builder, String indexPath) {
-        return new PropertyIndexUpdateCallback(indexPath, child(builder, indexPath), nodeStore.getRoot(), clock);
+        return new PropertyIndexUpdateCallback(indexPath, child(builder, indexPath), builder.getNodeState(), clock);
     }
 
     private PropertyDefinition pd(String indexPath, String propName){
