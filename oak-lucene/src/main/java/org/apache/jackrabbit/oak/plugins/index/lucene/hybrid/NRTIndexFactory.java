@@ -89,8 +89,13 @@ public class NRTIndexFactory implements Closeable{
 
     @Override
     public void close() throws IOException {
-        for (NRTIndex index : indexes.values()){
-            index.close();
+        for (String indexPath : indexes.keySet()) {
+            //Close backwards i.e. newest NRTIndex first and then older
+            //as newer refers to previous NRTIndex readers
+            List<NRTIndex> nrtIndexes = indexes.get(indexPath);
+            for (int i = nrtIndexes.size() -1 ; i >= 0 ; i--) {
+                nrtIndexes.get(i).close();
+            }
         }
         indexes.clear();
     }
@@ -117,6 +122,10 @@ public class NRTIndexFactory implements Closeable{
             return;
         }
         NRTIndex oldest = existing.remove(0);
+
+        //Disconnect the 'oldest' from NRTIndex which refers to that
+        //i.e. the next entry in existing
+        existing.get(0).disconnectPrevious();
         try {
             oldest.close();
         } catch (IOException e) {
