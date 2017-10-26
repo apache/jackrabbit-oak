@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 /**
@@ -66,11 +66,18 @@ public class UniquenessConstraintValidator {
     public void validate() throws CommitFailedException {
         for (Map.Entry<String, String> e : uniqueKeys.entries()) {
             String propertyRelativePath = e.getKey();
-            Iterable<String> indexedPaths = getIndexedPaths(propertyRelativePath, e.getValue());
+            String value = e.getValue();
+            Iterable<String> indexedPaths = getIndexedPaths(propertyRelativePath, value);
             Set<String> allPaths = ImmutableSet.copyOf(indexedPaths);
+
+            //If more than one match found then filter out stale paths
             if (allPaths.size() > 1) {
-                String msg = String.format("Uniqueness constraint violated for property [%s] for " +
-                        "index [%s]. IndexedPaths %s", propertyRelativePath, indexPath, allPaths);
+                allPaths = getValidPaths(allPaths, propertyRelativePath, value);
+            }
+
+            if (allPaths.size() > 1) {
+                String msg = String.format("Uniqueness constraint violated for property [%s] with value [%s] for " +
+                        "index [%s]. Indexed paths %s", propertyRelativePath, value, indexPath, allPaths);
                 throw new CommitFailedException(CONSTRAINT, 30, msg);
             }
         }
@@ -83,23 +90,36 @@ public class UniquenessConstraintValidator {
     private Iterable<String> getIndexedPaths(String propertyRelativePath, String value) {
         return Iterables.concat(
                 firstStore.getIndexedPaths(propertyRelativePath, value),
-                getValidPathsFromSecondStore(propertyRelativePath, value)
+                secondStore.getIndexedPaths(propertyRelativePath, value)
         );
     }
 
-    private Iterable<String> getValidPathsFromSecondStore(String propertyRelativePath, String value) {
-        return filter(secondStore.getIndexedPaths(propertyRelativePath, value),
-                path -> {
-                    NodeState node = NodeStateUtils.getNode(rootState, path);
-                    if (!node.exists()) {
-                        return false;
-                    }
-                    PropertyState uniqueProp = getValue(node, propertyRelativePath);
-                    if (uniqueProp == null) {
-                        return false;
-                    }
-                    return uniqueProp.getValue(Type.STRING).equals(value);
-                });
+    /**
+     * Paths reported by indexes may be based on stale data. So revalidate by checking reported paths are
+     * valid and refers to indexed value or not
+     */
+    private Set<String> getValidPaths(Set<String> allPaths, String propertyRelativePath, String value) {
+        Set<String> validPaths = new HashSet<>();
+        for (String path : allPaths) {
+            NodeState node = NodeStateUtils.getNode(rootState, path);
+            if (!node.exists()) {
+                continue;
+            }
+
+            PropertyState uniqueProp = getValue(node, propertyRelativePath);
+            if (uniqueProp == null) {
+                continue;
+            }
+
+            //Property can be MVP. So check if any of them matches
+            for (String v : uniqueProp.getValue(Type.STRINGS)) {
+                if (v.equals(value)) {
+                    validPaths.add(path);
+                    break;
+                }
+            }
+        }
+        return validPaths;
     }
 
     private static PropertyState getValue(NodeState node, String propertyRelativePath) {

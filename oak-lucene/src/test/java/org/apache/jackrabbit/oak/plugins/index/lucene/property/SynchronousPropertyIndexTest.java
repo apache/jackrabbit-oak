@@ -242,6 +242,23 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void uniqueProperty_RemoveAndAddInSameCommit() throws Exception{
+        defnb.async("async", "nrt");
+        defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+        runAsyncIndex();
+
+        createPath("/a").remove();
+        createPath("/b").setProperty("foo", "bar");
+        root.commit();
+    }
+
+    @Test
     public void nonUniqueIndex() throws Exception{
         defnb.async("async", "nrt");
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
