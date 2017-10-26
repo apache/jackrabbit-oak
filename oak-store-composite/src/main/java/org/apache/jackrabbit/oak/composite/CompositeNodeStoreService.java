@@ -63,9 +63,9 @@ public class CompositeNodeStoreService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CompositeNodeStoreService.class);
 
-    private static final String GLOBAL_ROLE = "composite:global";
+    private static final String GLOBAL_ROLE = "composite-global";
 
-    private static final String MOUNT_ROLE_PREFIX = "composite:mount:";
+    private static final String MOUNT_ROLE_PREFIX = "composite-mount-";
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private MountInfoProvider mountInfoProvider;
