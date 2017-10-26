@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -64,7 +63,7 @@ public class ReaderRefCountIT {
 
     private NodeState root = INITIAL_CONTENT;
     private IndexCopier indexCopier;
-    private int runTimeInSecs = 60;
+    private int runTimeInSecs = 50;
     private int noOfThread = 5;
 
     @Before
@@ -72,7 +71,6 @@ public class ReaderRefCountIT {
         indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
     }
 
-    @Ignore("OAK-6635")
     @Test
     public void syncIndex() throws Exception{
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
@@ -83,7 +81,6 @@ public class ReaderRefCountIT {
         runMultiReaderScenario(idx, nrtFactory);
     }
 
-    @Ignore("OAK-6635")
     @Test
     public void nrtIndex() throws Exception{
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
@@ -175,6 +172,8 @@ public class ReaderRefCountIT {
         for (Thread t : threads) {
             t.join();
         }
+
+        nrtFactory.close();
 
         if (!exceptionList.isEmpty()) {
             StringWriter sw = new StringWriter();
