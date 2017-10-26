@@ -230,7 +230,7 @@ class SegmentTarFixture extends OakFixture {
                 builder.withBlobStore(blobStore);
             } else {
                 blobStoreFixtures[n + i] = BlobStoreFixture.create(parentPath, true, dsCacheSize, statsProvider);
-                blobStore = blobStoreFixtures[n + i].setUp();
+                builder.withBlobStore(blobStoreFixtures[n + i].setUp());
             }
         }
         
