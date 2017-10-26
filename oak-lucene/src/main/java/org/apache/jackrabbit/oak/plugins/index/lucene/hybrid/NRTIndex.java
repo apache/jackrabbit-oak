@@ -109,7 +109,7 @@ public class NRTIndex implements Closeable {
     }
 
     @CheckForNull
-    LuceneIndexReader getPrimaryReader() {
+    private LuceneIndexReader getPrimaryReader() {
         DirectoryReader latestReader = createReader();
         if (latestReader != dirReader) {
             decrementReaderUseCount(dirReader);
@@ -285,6 +285,10 @@ public class NRTIndex implements Closeable {
         indexWriter = new IndexWriter(directory, config);
         log.debug("[{}] Created NRTIndex [{}]", definition.getIndexPath(), getName());
         return new NRTIndexWriter(indexWriter);
+    }
+
+    IndexReader getPrimaryReaderForTest(){
+        return getReaders().get(0).getReader();
     }
 
     public static String generateDirName() {
