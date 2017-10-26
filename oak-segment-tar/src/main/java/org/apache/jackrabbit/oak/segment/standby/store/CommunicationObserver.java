@@ -20,45 +20,67 @@
 package org.apache.jackrabbit.oak.segment.standby.store;
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
+import io.netty.handler.codec.marshalling.DefaultMarshallerProvider;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ObservablePartnerMBean;
+import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CommunicationObserver {
 
-    static final int MAX_CLIENT_STATISTICS = 10;
+    private static final int DEFAULT_MAX_CLIENT_MBEANS = 10;
 
     private static final Logger log = LoggerFactory.getLogger(CommunicationObserver.class);
 
-    private final Map<String, CommunicationPartnerMBean> partnerDetails = new HashMap<>();
+    private static ObjectName getMBeanName(CommunicationPartnerMBean bean) throws MalformedObjectNameException {
+        return new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=\"Client " + bean.getName() + "\"");
+    }
+
+    private static String oldest(Map<String, CommunicationPartnerMBean> beans) {
+        CommunicationPartnerMBean oldest = null;
+
+        for (CommunicationPartnerMBean bean : beans.values()) {
+            if (oldest == null || oldest.getLastSeen().after(bean.getLastSeen())) {
+                oldest = bean;
+            }
+        }
+
+        if (oldest == null) {
+            throw new IllegalArgumentException("no clients available");
+        }
+
+        return oldest.getName();
+    }
+
+    private final Map<String, CommunicationPartnerMBean> beans = new HashMap<>();
+
+    private final int maxClientMBeans;
 
     private final String id;
 
     public CommunicationObserver(String id) {
-        this.id = id;
+        this(id, DEFAULT_MAX_CLIENT_MBEANS);
     }
 
-    void unregisterCommunicationPartner(CommunicationPartnerMBean m) throws Exception {
-        ManagementFactory.getPlatformMBeanServer().unregisterMBean(m.getMBeanName());
+    CommunicationObserver(String id, int maxClientMBeans) {
+        this.id = id;
+        this.maxClientMBeans = maxClientMBeans;
     }
 
     void registerCommunicationPartner(CommunicationPartnerMBean m) throws Exception {
-        ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(m, ObservablePartnerMBean.class), m.getMBeanName());
-    }
-
-    private void safeUnregisterCommunicationPartner(CommunicationPartnerMBean m) {
-        try {
-            unregisterCommunicationPartner(m);
-        } catch (Exception e) {
-            log.error(String.format("Unable to unregister MBean for client %s", m.getName()), e);
-        }
+        ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(m, ObservablePartnerMBean.class), getMBeanName(m));
     }
 
     private void safeRegisterCommunicationPartner(CommunicationPartnerMBean m) {
@@ -69,66 +91,99 @@ public class CommunicationObserver {
         }
     }
 
+    void unregisterCommunicationPartner(CommunicationPartnerMBean m) throws Exception {
+        ManagementFactory.getPlatformMBeanServer().unregisterMBean(getMBeanName(m));
+    }
+
+    private void safeUnregisterCommunicationPartner(CommunicationPartnerMBean m) {
+        try {
+            unregisterCommunicationPartner(m);
+        } catch (Exception e) {
+            log.error(String.format("Unable to unregister MBean for client %s", m.getName()), e);
+        }
+    }
+
     public void unregister() {
-        for (CommunicationPartnerMBean m : partnerDetails.values()) {
-            safeUnregisterCommunicationPartner(m);
+        Collection<CommunicationPartnerMBean> unregister;
+
+        synchronized (beans) {
+            unregister = new ArrayList<>(beans.values());
+            beans.clear();
+        }
+
+        for (CommunicationPartnerMBean bean : unregister) {
+            safeUnregisterCommunicationPartner(bean);
         }
     }
 
     public void gotMessageFrom(String client, String request, String address, int port) throws MalformedObjectNameException {
         log.debug("Message '{}' received from client {}", request, client);
-        CommunicationPartnerMBean m = partnerDetails.get(client);
-        boolean register = false;
-        if (m == null) {
-            cleanUp();
-            m = new CommunicationPartnerMBean(client);
-            m.setRemoteAddress(address);
-            m.setRemotePort(port);
-            register = true;
-        }
-        m.setLastSeen(new Date());
-        m.setLastRequest(request);
-        partnerDetails.put(client, m);
-        if (register) {
-            safeRegisterCommunicationPartner(m);
-        }
+        createOrUpdateClientMBean(client, address, port, m -> m.onMessageReceived(new Date(), request));
     }
 
     public void didSendSegmentBytes(String client, int size) {
         log.debug("Segment with size {} sent to client {}", size, client);
-        CommunicationPartnerMBean m = partnerDetails.get(client);
-        m.onSegmentSent(size);
-        partnerDetails.put(client, m);
+        updateClientMBean(client, m -> m.onSegmentSent(size));
     }
 
     public void didSendBinariesBytes(String client, long size) {
         log.debug("Binary with size {} sent to client {}", size, client);
-        CommunicationPartnerMBean m = partnerDetails.get(client);
-        m.onBinarySent(size);
-        partnerDetails.put(client, m);
+        updateClientMBean(client, m -> m.onBinarySent(size));
     }
 
     public String getID() {
         return id;
     }
 
-    private void cleanUp() {
-        while (partnerDetails.size() >= MAX_CLIENT_STATISTICS) {
-            CommunicationPartnerMBean oldestEntry = oldestEntry();
-            log.info("Housekeeping: Removing statistics for client " + oldestEntry.getName());
-            safeUnregisterCommunicationPartner(oldestEntry);
-            partnerDetails.remove(oldestEntry.getName());
+    private void createOrUpdateClientMBean(String clientName, String remoteAddress, int remotePort, Consumer<CommunicationPartnerMBean> update) throws MalformedObjectNameException {
+        List<CommunicationPartnerMBean> unregister = null;
+        boolean register = false;
+        CommunicationPartnerMBean bean;
+
+        synchronized (beans) {
+            bean = beans.get(clientName);
+
+            if (bean == null) {
+                bean = new CommunicationPartnerMBean(clientName, remoteAddress, remotePort);
+
+                while (beans.size() >= maxClientMBeans) {
+                    if (unregister == null) {
+                        unregister = new ArrayList<>();
+                    }
+                    unregister.add(beans.remove(oldest(beans)));
+                }
+
+                beans.put(clientName, bean);
+
+                register = true;
+            }
+        }
+
+        update.accept(bean);
+
+        if (register) {
+            safeRegisterCommunicationPartner(bean);
+        }
+
+        if (unregister != null) {
+            for (CommunicationPartnerMBean c : unregister) {
+                safeUnregisterCommunicationPartner(c);
+            }
         }
     }
 
-    private CommunicationPartnerMBean oldestEntry() {
-        CommunicationPartnerMBean ret = null;
-        for (CommunicationPartnerMBean m : partnerDetails.values()) {
-            if (ret == null || ret.getLastSeen().after(m.getLastSeen())) {
-                ret = m;
-            }
+    private void updateClientMBean(String id, Consumer<CommunicationPartnerMBean> update) {
+        CommunicationPartnerMBean c;
+
+        synchronized (beans) {
+            c = beans.get(id);
         }
-        return ret;
+
+        if (c == null) {
+            throw new IllegalStateException("no client found with id " + id);
+        }
+
+        update.accept(c);
     }
 
 }
