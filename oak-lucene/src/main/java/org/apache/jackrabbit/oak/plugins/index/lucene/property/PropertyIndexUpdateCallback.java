@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorSt
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,15 +62,15 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
     private final UniquenessConstraintValidator uniquenessConstraintValidator;
     private final long updateTime;
 
-    public PropertyIndexUpdateCallback(String indexPath, NodeBuilder builder) {
-        this(indexPath, builder, Clock.SIMPLE);
+    public PropertyIndexUpdateCallback(String indexPath, NodeBuilder builder, NodeState rootState) {
+        this(indexPath, builder, rootState, Clock.SIMPLE);
     }
 
-    public PropertyIndexUpdateCallback(String indexPath, NodeBuilder builder, Clock clock) {
+    public PropertyIndexUpdateCallback(String indexPath, NodeBuilder builder, NodeState rootState, Clock clock) {
         this.builder = builder;
         this.indexPath = indexPath;
         this.updateTime = clock.getTime();
-        this.uniquenessConstraintValidator = new UniquenessConstraintValidator(indexPath, builder);
+        this.uniquenessConstraintValidator = new UniquenessConstraintValidator(indexPath, builder, rootState);
     }
 
     @Override

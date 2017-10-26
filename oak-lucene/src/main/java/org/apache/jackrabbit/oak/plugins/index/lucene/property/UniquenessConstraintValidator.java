@@ -27,9 +27,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 /**
@@ -41,13 +47,15 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
  *   - Lucene storage - Stores the long term index in lucene
  */
 public class UniquenessConstraintValidator {
+    private final NodeState rootState;
     private final String indexPath;
     private final Multimap<String, String> uniqueKeys = HashMultimap.create();
     private final PropertyQuery firstStore;
     private PropertyQuery secondStore = PropertyQuery.DEFAULT;
 
-    public UniquenessConstraintValidator(String indexPath, NodeBuilder builder) {
+    public UniquenessConstraintValidator(String indexPath, NodeBuilder builder, NodeState rootState) {
         this.indexPath = indexPath;
+        this.rootState = rootState;
         this.firstStore = new PropertyIndexQuery(builder);
     }
 
@@ -75,7 +83,34 @@ public class UniquenessConstraintValidator {
     private Iterable<String> getIndexedPaths(String propertyRelativePath, String value) {
         return Iterables.concat(
                 firstStore.getIndexedPaths(propertyRelativePath, value),
-                secondStore.getIndexedPaths(propertyRelativePath, value)
+                getValidPathsFromSecondStore(propertyRelativePath, value)
         );
+    }
+
+    private Iterable<String> getValidPathsFromSecondStore(String propertyRelativePath, String value) {
+        return filter(secondStore.getIndexedPaths(propertyRelativePath, value),
+                path -> {
+                    NodeState node = NodeStateUtils.getNode(rootState, path);
+                    if (!node.exists()) {
+                        return false;
+                    }
+                    PropertyState uniqueProp = getValue(node, propertyRelativePath);
+                    if (uniqueProp == null) {
+                        return false;
+                    }
+                    return uniqueProp.getValue(Type.STRING).equals(value);
+                });
+    }
+
+    private static PropertyState getValue(NodeState node, String propertyRelativePath) {
+        int depth = PathUtils.getDepth(propertyRelativePath);
+        NodeState propNode = node;
+        String propName = propertyRelativePath;
+        if (depth > 1) {
+            propName = PathUtils.getName(propertyRelativePath);
+            String parentPath = PathUtils.getParentPath(propertyRelativePath);
+            propNode = NodeStateUtils.getNode(node, parentPath);
+        }
+        return propNode.getProperty(propName);
     }
 }

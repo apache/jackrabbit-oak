@@ -217,6 +217,30 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         }
     }
 
+    /**
+     * Test the scenario where a unique property is removed and then another one
+     * with same value is added again
+     */
+    @Test
+    public void uniqueProperty_RemovedAndAsync() throws Exception{
+        defnb.async("async", "nrt");
+        defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+
+        addIndex(indexPath, defnb);
+        root.commit();
+
+        createPath("/a").setProperty("foo", "bar");
+        createPath("/a").setProperty("foo2", "bar2");
+        root.commit();
+        runAsyncIndex();
+
+        createPath("/a").removeProperty("foo");
+        root.commit();
+
+        createPath("/b").setProperty("foo", "bar");
+        root.commit();
+    }
+
     @Test
     public void nonUniqueIndex() throws Exception{
         defnb.async("async", "nrt");

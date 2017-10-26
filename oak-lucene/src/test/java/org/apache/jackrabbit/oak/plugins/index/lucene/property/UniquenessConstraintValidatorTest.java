@@ -115,8 +115,76 @@ public class UniquenessConstraintValidatorTest {
     public void secondStore_DiffPath() throws Exception{
         defnb.indexRule("nt:base").property("foo").unique();
 
+        NodeBuilder rootBuilder = root.builder();
+        rootBuilder.child("b").setProperty("foo", "bar");
+        root = rootBuilder.getNodeState();
+
         PropertyIndexUpdateCallback callback = newCallback();
         propertyUpdated(callback, "/a", "foo", "bar");
+
+        callback.getUniquenessConstraintValidator()
+                .setSecondStore((propertyRelativePath, value) -> singletonList("/b"));
+
+        callback.done();
+    }
+
+    @Test
+    public void secondStore_NodeNotExist() throws Exception{
+        defnb.indexRule("nt:base").property("foo").unique();
+
+        PropertyIndexUpdateCallback callback = newCallback();
+        propertyUpdated(callback, "/a", "foo", "bar");
+
+        callback.getUniquenessConstraintValidator()
+                .setSecondStore((propertyRelativePath, value) -> singletonList("/b"));
+
+        callback.done();
+    }
+
+    @Test
+    public void secondStore_NodeExist_PropertyNotExist() throws Exception{
+        defnb.indexRule("nt:base").property("foo").unique();
+
+        NodeBuilder rootBuilder = root.builder();
+        rootBuilder.child("b");
+        root = rootBuilder.getNodeState();
+
+        PropertyIndexUpdateCallback callback = newCallback();
+        propertyUpdated(callback, "/a", "foo", "bar");
+
+        callback.getUniquenessConstraintValidator()
+                .setSecondStore((propertyRelativePath, value) -> singletonList("/b"));
+
+        callback.done();
+    }
+
+    @Test
+    public void secondStore_NodeExist_PropertyExist_DifferentValue() throws Exception{
+        defnb.indexRule("nt:base").property("foo").unique();
+
+        NodeBuilder rootBuilder = root.builder();
+        rootBuilder.child("b").setProperty("foo", "bar2");
+        root = rootBuilder.getNodeState();
+
+        PropertyIndexUpdateCallback callback = newCallback();
+        propertyUpdated(callback, "/a", "foo", "bar");
+
+        callback.getUniquenessConstraintValidator()
+                .setSecondStore((propertyRelativePath, value) -> singletonList("/b"));
+
+        callback.done();
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void secondStore_RelativeProperty() throws Exception{
+        defnb.indexRule("nt:base").property("jcr:content/foo").unique();
+
+        NodeBuilder rootBuilder = root.builder();
+        rootBuilder.child("b").child("jcr:content").setProperty("foo", "bar");
+        root = rootBuilder.getNodeState();
+
+        PropertyIndexUpdateCallback callback = newCallback();
+        propertyUpdated(callback, "/a", "jcr:content/foo", "bar");
 
         callback.getUniquenessConstraintValidator()
                 .setSecondStore((propertyRelativePath, value) -> singletonList("/b"));
@@ -130,7 +198,7 @@ public class UniquenessConstraintValidatorTest {
     }
 
     private PropertyIndexUpdateCallback newCallback(){
-        return new PropertyIndexUpdateCallback(indexPath, builder);
+        return new PropertyIndexUpdateCallback(indexPath, builder, root);
     }
 
     private PropertyDefinition pd(String propName){

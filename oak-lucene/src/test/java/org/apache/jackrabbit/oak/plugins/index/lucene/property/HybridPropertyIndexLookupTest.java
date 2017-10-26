@@ -54,7 +54,7 @@ public class HybridPropertyIndexLookupTest {
     private NodeBuilder builder = EMPTY_NODE.builder();
     private IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
     private String indexPath  = "/oak:index/foo";
-    private PropertyIndexUpdateCallback callback = new PropertyIndexUpdateCallback(indexPath, builder);
+    private PropertyIndexUpdateCallback callback = new PropertyIndexUpdateCallback(indexPath, builder, root);
 
     @Test
     public void simplePropertyRestriction() throws Exception{
