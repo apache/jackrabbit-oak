@@ -227,9 +227,6 @@ public abstract class DataStoreTestBase extends TestBase {
      */
     @Test
     public void testSyncBigBlob() throws Exception {
-        // OAK-6829
-        assumeFalse(CIHelper.windows());
-        
         final long blobSize = (long) (1 * GB);
         final int seed = 13;
 
