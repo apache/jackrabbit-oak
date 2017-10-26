@@ -18,45 +18,37 @@
 package org.apache.jackrabbit.oak.segment.standby.store;
 
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 
 import org.apache.jackrabbit.oak.segment.standby.jmx.ObservablePartnerMBean;
-import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 
 class CommunicationPartnerMBean implements ObservablePartnerMBean {
 
-    private final ObjectName mbeanName;
-
     private final String clientName;
 
-    private String lastRequest;
+    private final String remoteAddress;
 
-    private Date lastSeen;
+    private final int remotePort;
 
-    private String lastSeenTimestamp;
+    private final AtomicLong segmentsSent = new AtomicLong();
 
-    private String remoteAddress;
+    private final AtomicLong segmentBytesSent = new AtomicLong();
 
-    private int remotePort;
+    private final AtomicLong binariesSent = new AtomicLong();
 
-    private long segmentsSent;
+    private final AtomicLong binariesBytesSent = new AtomicLong();
 
-    private long segmentBytesSent;
+    private volatile String lastRequest;
 
-    private long binariesSent;
+    private volatile Date lastSeen;
 
-    private long binariesBytesSent;
-
-    CommunicationPartnerMBean(String clientName) throws MalformedObjectNameException {
+    CommunicationPartnerMBean(String clientName, String remoteAddress, int remotePort) throws MalformedObjectNameException {
         this.clientName = clientName;
-        this.mbeanName = new ObjectName(StandbyStatusMBean.JMX_NAME + ",id=\"Client " + clientName + "\"");
-    }
-
-    ObjectName getMBeanName() {
-        return this.mbeanName;
+        this.remoteAddress = remoteAddress;
+        this.remotePort = remotePort;
     }
 
     @Nonnull
@@ -82,58 +74,48 @@ class CommunicationPartnerMBean implements ObservablePartnerMBean {
 
     @Override
     public String getLastSeenTimestamp() {
-        return this.lastSeenTimestamp;
+        return this.lastSeen.toString();
     }
 
     @Override
     public long getTransferredSegments() {
-        return this.segmentsSent;
+        return this.segmentsSent.get();
     }
 
     @Override
     public long getTransferredSegmentBytes() {
-        return this.segmentBytesSent;
+        return this.segmentBytesSent.get();
     }
 
     @Override
     public long getTransferredBinaries() {
-        return this.binariesSent;
+        return this.binariesSent.get();
     }
 
     @Override
     public long getTransferredBinariesBytes() {
-        return this.binariesBytesSent;
+        return this.binariesBytesSent.get();
     }
 
-    void setRemoteAddress(String remoteAddress) {
-        this.remoteAddress = remoteAddress;
-    }
-
-    void setRemotePort(int remotePort) {
-        this.remotePort = remotePort;
-    }
-
-    Date getLastSeen() {
-        return lastSeen;
-    }
-
-    void setLastSeen(Date lastSeen) {
-        this.lastSeen = lastSeen;
-        this.lastSeenTimestamp = lastSeen.toString();
-    }
-
-    void setLastRequest(String lastRequest) {
-        this.lastRequest = lastRequest;
+    void onMessageReceived(Date lastSeen, String lastRequest) {
+        synchronized (this) {
+            this.lastSeen = lastSeen;
+            this.lastRequest = lastRequest;
+        }
     }
 
     void onSegmentSent(long bytes) {
-        segmentsSent++;
-        segmentBytesSent += bytes;
+        this.segmentsSent.incrementAndGet();
+        this.segmentBytesSent.addAndGet(bytes);
     }
 
     void onBinarySent(long bytes) {
-        binariesSent++;
-        binariesBytesSent += bytes;
+        this.binariesSent.incrementAndGet();
+        this.binariesBytesSent.addAndGet(bytes);
+    }
+
+    Date getLastSeen() {
+        return this.lastSeen;
     }
 
 }
