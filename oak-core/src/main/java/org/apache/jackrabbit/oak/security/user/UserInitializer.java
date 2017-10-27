@@ -28,14 +28,13 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -46,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
@@ -73,7 +73,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze
  * <li>{@link UserConstants#REP_MEMBERS}</li>
  * </ul>
  */
-class UserInitializer implements WorkspaceInitializer, UserConstants {
+class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndexProviderAware {
 
     /**
      * logger instance
@@ -81,6 +81,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     private static final Logger log = LoggerFactory.getLogger(UserInitializer.class);
 
     private final SecurityProvider securityProvider;
+
+    private QueryIndexProvider queryIndexProvider;
 
     UserInitializer(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
@@ -95,8 +97,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
-                securityProvider,
-                new CompositeQueryIndexProvider(new PropertyIndexProvider(), new NodeTypeIndexProvider()));
+                securityProvider,  getIndexProvider());
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
@@ -152,5 +153,14 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
 
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
+    }
+
+    private QueryIndexProvider getIndexProvider() {
+        return checkNotNull(queryIndexProvider, "QueryIndexProvider yet not initialized");
+    }
+
+    @Override
+    public void setQueryIndexProvider(QueryIndexProvider provider) {
+        this.queryIndexProvider = provider;
     }
 }

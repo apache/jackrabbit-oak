@@ -100,6 +100,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -716,7 +717,11 @@ public class Oak {
                         new Function<SecurityConfiguration, WorkspaceInitializer>() {
                             @Override
                             public WorkspaceInitializer apply(SecurityConfiguration sc) {
-                                return sc.getWorkspaceInitializer();
+                                WorkspaceInitializer wi = sc.getWorkspaceInitializer();
+                                if (wi instanceof QueryIndexProviderAware){
+                                    ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
+                                }
+                                return wi;
                             }
                         });
         OakInitializer.initialize(
