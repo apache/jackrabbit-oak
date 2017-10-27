@@ -28,11 +28,14 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -82,7 +85,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
 
     private final SecurityProvider securityProvider;
 
-    private QueryIndexProvider queryIndexProvider;
+    private QueryIndexProvider queryIndexProvider = new CompositeQueryIndexProvider(new PropertyIndexProvider(),
+            new NodeTypeIndexProvider());
 
     UserInitializer(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
@@ -97,7 +101,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
-                securityProvider,  getIndexProvider());
+                securityProvider,  queryIndexProvider);
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
@@ -153,10 +157,6 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
 
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
-    }
-
-    private QueryIndexProvider getIndexProvider() {
-        return checkNotNull(queryIndexProvider, "QueryIndexProvider yet not initialized");
     }
 
     @Override
