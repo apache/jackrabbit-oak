@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -1640,6 +1641,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      */
     static class LucenePathCursor implements Cursor {
 
+        private static final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
+
         private final Cursor pathCursor;
         private final String pathPrefix;
         LuceneResultRow currentRow;
@@ -1652,6 +1655,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
 
+                private int readCount;
+
                 @Override
                 public boolean hasNext() {
                     return it.hasNext();
@@ -1660,6 +1665,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 @Override
                 public String next() {
                     currentRow = it.next();
+                    readCount++;
+                    if (readCount % TRAVERSING_WARNING == 0) {
+                        Cursors.checkReadLimit(readCount, settings);
+                        LOG.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
+                    }
                     return currentRow.path;
                 }
 

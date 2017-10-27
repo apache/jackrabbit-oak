@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -62,11 +63,9 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -101,7 +100,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.*;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
@@ -499,7 +497,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 return -1;
             }
         };
-        return new LucenePathCursor(itr, settings, sizeEstimator);
+        return new LucenePathCursor(itr, settings, sizeEstimator, filter);
     }
 
     private String getExcerpt(Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc) throws IOException {
@@ -1123,14 +1121,19 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
      */
     static class LucenePathCursor implements Cursor {
 
+        private static final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
+
         private final Cursor pathCursor;
         LuceneResultRow currentRow;
         private final SizeEstimator sizeEstimator;
         private long estimatedSize;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryLimits settings, SizeEstimator sizeEstimator) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryLimits settings, SizeEstimator sizeEstimator, Filter filter) {
             this.sizeEstimator = sizeEstimator;
+
             Iterator<String> pathIterator = new Iterator<String>() {
+
+                private int readCount;
 
                 @Override
                 public boolean hasNext() {
@@ -1140,6 +1143,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 @Override
                 public String next() {
                     currentRow = it.next();
+                    readCount++;
+                    if (readCount % TRAVERSING_WARNING == 0) {
+                        Cursors.checkReadLimit(readCount, settings);
+                        LOG.warn("Index-Traversed {} nodes with filter {}", readCount, filter);
+                    }
                     return currentRow.path;
                 }
 
