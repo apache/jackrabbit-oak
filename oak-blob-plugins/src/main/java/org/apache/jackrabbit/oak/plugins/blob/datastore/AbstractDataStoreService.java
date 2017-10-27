@@ -70,14 +70,13 @@ public abstract class AbstractDataStoreService {
     @Reference
     private StatisticsProvider statisticsProvider;
 
-    protected Closer closer;
+    protected Closer closer = Closer.create();
 
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
         // change to mutable map. may be modified in createDS call
         config = Maps.newHashMap(config);
 
         DataStore ds = createDataStore(context, config);
-        closer = Closer.create();
         registerDataStore(context, config, ds, getStatisticsProvider(), getDescription(), closer);
     }
 
