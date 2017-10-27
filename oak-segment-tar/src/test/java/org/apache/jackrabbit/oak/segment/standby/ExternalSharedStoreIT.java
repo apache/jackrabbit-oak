@@ -54,8 +54,8 @@ public class ExternalSharedStoreIT extends DataStoreTestBase {
     }
 
     @Override
-    boolean storesShouldBeEqual() {
-        return true;
+    boolean storesShouldBeDifferent() {
+        return false;
     }
 
 }
