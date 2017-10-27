@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -68,10 +70,10 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         TestUtil.enableFunctionIndex(props, "length([name])");
         TestUtil.enableFunctionIndex(props, "lower([name])");
         TestUtil.enableFunctionIndex(props, "upper([name])");
-        
-        root.commit();                
+
+        root.commit();
     }
-    
+
     @Override
     protected ContentRepository createRepository() {
         return getOakRepo().createContentRepository();
@@ -85,7 +87,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
             .with((Observer) provider)
             .with(new LuceneIndexEditorProvider());
     }
-    
+
     @Test
     public void sql1() throws Exception {
         test("sql1.txt");
@@ -95,7 +97,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     public void sql2() throws Exception {
         test("sql2.txt");
     }
-    
+
     @Test
     public void sql2FullText() throws Exception {
         test("sql2-fulltext.txt");
@@ -182,6 +184,52 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     }
 
+    @Test
+    public void containsNot() throws Exception {
+
+        // see also OAK-3371
+        // "if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
+        // query to work"
+
+        executeQuery("/jcr:root//*[jcr:contains(@a,'-test*')]", "xpath", false);
+
+        String planPrefix = "[nt:base] as [a] /* lucene:test-index(/oak:index/test-index) ";
+
+        assertXPathPlan("/jcr:root//*[@a]",
+                planPrefix + "a:[* TO *]");
+
+        assertXPathPlan("/jcr:root//*[jcr:contains(., '*')]",
+                planPrefix + ":fulltext:* ft:(\"*\")");
+
+        assertXPathPlan("/jcr:root//*[jcr:contains(@a,'*')]",
+                planPrefix + "full:a:* ft:(a:\"*\")");
+
+        assertXPathPlan("/jcr:root//*[jcr:contains(@a,'hello -world')]",
+                planPrefix + "+full:a:hello -full:a:world ft:(a:\"hello\" -a:\"world\")");
+
+        assertXPathPlan("/jcr:root//*[jcr:contains(@a,'test*')]",
+                planPrefix + "full:a:test* ft:(a:\"test*\")");
+
+        assertXPathPlan("/jcr:root//*[jcr:contains(@a,'-test')]",
+                planPrefix + "-full:a:test *:* ft:(-a:\"test\")");
+
+        assertXPathPlan("/jcr:root//*[jcr:contains(@a,'-test*')]",
+                planPrefix + "-full:a:test* *:* ft:(-a:\"test*\")");
+
+        assertXPathPlan("/jcr:root//*[jcr:contains(., '-*')]",
+                planPrefix + "-:fulltext:* *:* ft:(-\"*\")");
+
+    }
+
+    private void assertXPathPlan(String xpathQuery, String expectedPlan) {
+        List<String> result = executeQuery("explain " + xpathQuery, "xpath", false);
+        String plan = result.get(0);
+        int newline = plan.indexOf('\n');
+        if (newline >= 0) {
+            plan = plan.substring(0, newline);
+        }
+        Assert.assertEquals(expectedPlan, plan);
+    }
     @Ignore("OAK-2424")
     @Test
     public void containsDash() throws Exception {
@@ -312,7 +360,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void testRepSimilarAsNativeQuery() throws Exception {
-        String nativeQueryString = "select [jcr:path] from [nt:base] where " + 
+        String nativeQueryString = "select [jcr:path] from [nt:base] where " +
                 "native('lucene', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "Hello World");
@@ -326,7 +374,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         assertEquals("/test/b", result.next());
         assertFalse(result.hasNext());
     }
-    
+
     @Test
     public void testRepSimilarQuery() throws Exception {
         String query = "select [jcr:path] from [nt:base] where similar(., '/test/a')";
@@ -415,7 +463,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
             walktree(t1);
         }
     }
-    
+
     private static Tree child(Tree t, String n, String type) {
         Tree t1 = t.addChild(n);
         t1.setProperty(JCR_PRIMARYTYPE, type, Type.NAME);
@@ -426,7 +474,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     public void oak3371() throws Exception {
         setTraversalEnabled(false);
         Tree t, t1;
-        
+
         t = root.getTree("/");
         t = child(t, "test", NT_UNSTRUCTURED);
         t1 = child(t, "a", NT_UNSTRUCTURED);
