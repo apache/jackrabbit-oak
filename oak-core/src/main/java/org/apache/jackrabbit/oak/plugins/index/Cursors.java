@@ -59,6 +59,14 @@ public class Cursors {
     private Cursors() {
     }
     
+    public static void checkMemoryLimit(long count, QueryLimits settings) {
+        FilterIterators.checkMemoryLimit(count, settings);
+    }    
+
+    public static void checkReadLimit(long count, QueryLimits settings) {
+        FilterIterators.checkReadLimit(count, settings);
+    }    
+
     public static Cursor newIntersectionCursor(Cursor a, Cursor b, QueryLimits settings) {
         return new IntersectionCursor(a, b, settings);
     }
