@@ -70,7 +70,7 @@ public abstract class AbstractDataStoreService {
     @Reference
     private StatisticsProvider statisticsProvider;
 
-    private Closer closer;
+    protected Closer closer;
 
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
         // change to mutable map. may be modified in createDS call
