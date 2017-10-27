@@ -29,6 +29,7 @@ class ExceptionHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.warn("Exception caught on the server", cause);
+        ctx.close();
     }
 
 }
