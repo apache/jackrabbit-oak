@@ -79,7 +79,7 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
 
     @Override
     public synchronized <T extends Document> int remove(Collection<T> collection,
-                                                        Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                                        Map<String, Long> toRemove) {
         return store.remove(collection, toRemove);
     }
 

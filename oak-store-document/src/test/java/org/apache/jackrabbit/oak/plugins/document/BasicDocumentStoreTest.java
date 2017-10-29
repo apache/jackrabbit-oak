@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -1118,11 +1116,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             assertNotNull(ds.find(Collection.NODES, op.getId()));
         }
 
-        Map<String, Map<Key, Condition>> toRemove = Maps.newHashMap();
-        removeDocument(toRemove, "/foo", 100); // matches
-        removeDocument(toRemove, "/bar", 300); // modified differs
-        removeDocument(toRemove, "/qux", 100); // does not exist
-        removeDocument(toRemove, "/baz", 300); // matches
+        Map<String, Long> toRemove = Maps.newHashMap();
+        toRemove.put(Utils.getIdFromPath("/foo"), 100L); // matches
+        toRemove.put(Utils.getIdFromPath("/bar"), 300L); // modified differs
+        toRemove.put(Utils.getIdFromPath("/qux"), 100L); // does not exist
+        toRemove.put(Utils.getIdFromPath("/baz"), 300L); // matches
 
         int removed = ds.remove(Collection.NODES, toRemove);
 
@@ -1141,10 +1139,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         long modified = 1;
         removeMe.add(id);
         ds.create(Collection.NODES, Collections.singletonList(newDocument(id, modified)));
-
-        Map<Key, Condition> conditions = Collections.singletonMap(new Key(NodeDocument.MODIFIED_IN_SECS, null),
-                Condition.newEqualsCondition(modified));
-        ds.remove(Collection.NODES, Collections.singletonMap(id, conditions));
+        ds.remove(Collection.NODES, Collections.singletonMap(id, modified));
         assertNull(ds.getIfCached(Collection.NODES, id));
     }
 
@@ -1161,14 +1156,5 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         UpdateOp op = new UpdateOp(id, true);
         op.set(NodeDocument.MODIFIED_IN_SECS, modified);
         return op;
-    }
-
-    private void removeDocument(Map<String, Map<Key, Condition>> toRemove,
-                                String path,
-                                long modified) {
-        toRemove.put(Utils.getIdFromPath(path),
-                Collections.singletonMap(
-                        new Key(NodeDocument.MODIFIED_IN_SECS, null),
-                        Condition.newEqualsCondition(modified)));
     }
 }

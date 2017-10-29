@@ -44,8 +44,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
@@ -61,7 +59,6 @@ import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static com.google.common.collect.Iterables.all;
 import static com.google.common.collect.Iterators.partition;
 import static com.google.common.util.concurrent.Atomics.newReference;
-import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -69,7 +66,6 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 public class VersionGarbageCollector {
@@ -78,7 +74,6 @@ public class VersionGarbageCollector {
     private static final int DELETE_BATCH_SIZE = 450;
     private static final int UPDATE_BATCH_SIZE = 450;
     private static final int PROGRESS_BATCH_SIZE = 10000;
-    private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
     private static final Logger log = LoggerFactory.getLogger(VersionGarbageCollector.class);
@@ -853,7 +848,7 @@ public class VersionGarbageCollector {
             int lastLoggedCount = 0;
             int recreatedCount = 0;
             while (idListItr.hasNext() && !cancel.get()) {
-                Map<String, Map<Key, Condition>> deletionBatch = Maps.newLinkedHashMap();
+                Map<String, Long> deletionBatch = Maps.newLinkedHashMap();
                 for (String s : idListItr.next()) {
                     Map.Entry<String, Long> parsed;
                     try {
@@ -862,7 +857,7 @@ public class VersionGarbageCollector {
                         monitor.warn("Invalid _modified suffix for {}", s);
                         continue;
                     }
-                    deletionBatch.put(parsed.getKey(), singletonMap(KEY_MODIFIED, newEqualsCondition(parsed.getValue())));
+                    deletionBatch.put(parsed.getKey(), parsed.getValue());
                 }
 
                 if (log.isTraceEnabled()) {

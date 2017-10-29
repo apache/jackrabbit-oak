@@ -83,7 +83,7 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                           Map<String, Long> toRemove) {
         return store.remove(collection, toRemove);
     }
 

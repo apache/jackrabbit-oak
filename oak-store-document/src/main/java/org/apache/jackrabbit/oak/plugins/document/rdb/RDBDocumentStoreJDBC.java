@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHAR2OCTETRATIO;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.asBytes;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
@@ -53,9 +52,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
@@ -199,26 +195,13 @@ public class RDBDocumentStoreJDBC {
         return count;
     }
 
-    public int delete(Connection connection, RDBTableMetaData tmd, Map<String, Map<Key, Condition>> toDelete)
+    public int delete(Connection connection, RDBTableMetaData tmd, Map<String, Long> toDelete)
             throws SQLException, DocumentStoreException {
-        // sanity check on parameters; see OAK-6789
-        for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
-            if (entry.getValue().entrySet().size() != 1) {
-                throw new DocumentStoreException("Unsupported number of conditions in : " + entry.getValue().entrySet());
-            }
-            Entry<Key, Condition> c = entry.getValue().entrySet().iterator().next();
-            if (!c.getKey().getName().equals(MODIFIED) || c.getKey().getRevision() != null
-                    || c.getValue().type != Condition.Type.EQUALS) {
-                throw new DocumentStoreException("Unsupported condition: " + c);
-            }
-        }
-
         PreparedStatement stmt = connection.prepareStatement("delete from " + tmd.getName() + " where ID=? and MODIFIED=?");
-        UpdateOp.Key MODIFIEDKEY = new UpdateOp.Key(MODIFIED_IN_SECS, null);
         try {
-            for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
+            for (Entry<String, Long> entry : toDelete.entrySet()) {
                 setIdInStatement(tmd, stmt, 1, entry.getKey());
-                stmt.setLong(2, (Long) entry.getValue().get(MODIFIEDKEY).value);
+                stmt.setLong(2, entry.getValue());
                 stmt.addBatch();
             }
             int[] rets = stmt.executeBatch();

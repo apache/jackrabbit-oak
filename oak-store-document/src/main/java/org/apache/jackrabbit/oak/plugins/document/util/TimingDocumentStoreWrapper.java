@@ -197,7 +197,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                           Map<String, Long> toRemove) {
         try {
             long start = now();
             int result = base.remove(collection, toRemove);

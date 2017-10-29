@@ -38,7 +38,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -103,7 +102,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
             uoeThrown = false;
             try {
-                readOnlyStore.remove(collection, Maps.<String, Map<UpdateOp.Key, UpdateOp.Condition>>newHashMap());
+                readOnlyStore.remove(collection, Maps.<String, Long>newHashMap());
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;

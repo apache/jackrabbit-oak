@@ -72,9 +72,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheChangesTracker;
@@ -308,7 +306,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> int remove(Collection<T> collection, Map<String, Map<Key, Condition>> toRemove) {
+    public <T extends Document> int remove(Collection<T> collection, Map<String, Long> toRemove) {
         try {
             return delete(collection, toRemove);
         } finally {
@@ -1774,14 +1772,13 @@ public class RDBDocumentStore implements DocumentStore {
         return numDeleted;
     }
 
-    private <T extends Document> int delete(Collection<T> collection,
-                                            Map<String, Map<Key, Condition>> toRemove) {
+    private <T extends Document> int delete(Collection<T> collection, Map<String, Long> toRemove) {
         int numDeleted = 0;
         RDBTableMetaData tmd = getTable(collection);
-        Map<String, Map<Key, Condition>> subMap = Maps.newHashMap();
-        Iterator<Entry<String, Map<Key, Condition>>> it = toRemove.entrySet().iterator();
+        Map<String, Long> subMap = Maps.newHashMap();
+        Iterator<Entry<String, Long>> it = toRemove.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, Map<Key, Condition>> entry = it.next();
+            Entry<String, Long> entry = it.next();
             subMap.put(entry.getKey(), entry.getValue());
             if (subMap.size() == 64 || !it.hasNext()) {
                 Connection connection = null;
