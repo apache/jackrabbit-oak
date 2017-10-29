@@ -157,7 +157,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
 
     @Override
     public <T extends Document> int remove(final Collection<T> collection,
-                                           final Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                           final Map<String, Long> toRemove) {
         try {
             logMethod("remove", collection, toRemove);
             return logResult(new Callable<Integer>() {

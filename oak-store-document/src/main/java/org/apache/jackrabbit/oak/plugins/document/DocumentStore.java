@@ -178,9 +178,10 @@ public interface DocumentStore {
             throws DocumentStoreException;
 
     /**
-     * Batch remove documents with given keys and corresponding conditions. Keys
-     * for documents that do not exist are simply ignored. A document is only
-     * removed if the corresponding conditions are met.
+     * Batch remove documents with given keys and corresponding equal conditions
+     * on {@link NodeDocument#MODIFIED_IN_SECS} values. Keys for documents that
+     * do not exist are simply ignored. A document is only removed if the
+     * corresponding condition is met.
      * <p>
      * In case of a {@code DocumentStoreException}, the documents with the given
      * keys may or may not have been removed from the store. It may also be
@@ -190,16 +191,18 @@ public interface DocumentStore {
      * properly reflected in the document cache. That is, an implementation
      * could simply evict documents with the given keys from the cache.
      *
-     * @param <T> the document type
-     * @param collection the collection.
-     * @param toRemove the keys of the documents to remove with the
-     *                 corresponding conditions.
+     * @param <T>
+     *            the document type
+     * @param collection
+     *            the collection.
+     * @param toRemove
+     *            the keys of the documents to remove with the corresponding
+     *            timestamps.
      * @return the number of removed documents.
-     * @throws DocumentStoreException if the operation failed. E.g. because of
-     *          an I/O error.
+     * @throws DocumentStoreException
+     *             if the operation failed. E.g. because of an I/O error.
      */
-    <T extends Document> int remove(Collection<T> collection,
-                                    Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove)
+    <T extends Document> int remove(Collection<T> collection, Map<String, Long> toRemove)
             throws DocumentStoreException;
 
 

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.memory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 
 import com.google.common.base.Splitter;
@@ -49,6 +51,8 @@ import com.mongodb.WriteConcern;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUnconditional;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
@@ -93,6 +97,8 @@ public class MemoryDocumentStore implements DocumentStore {
     private final Map<String, String> metadata;
 
     private final boolean maintainModCount;
+
+    private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
     public MemoryDocumentStore() {
         this(false);
@@ -192,16 +198,16 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Map<UpdateOp.Key, Condition>> toRemove) {
+    public <T extends Document> int remove(Collection<T> collection, Map<String, Long> toRemove) {
         int num = 0;
         ConcurrentSkipListMap<String, T> map = getMap(collection);
-        for (Map.Entry<String, Map<UpdateOp.Key, Condition>> entry : toRemove.entrySet()) {
+        for (Map.Entry<String, Long> entry : toRemove.entrySet()) {
             Lock lock = rwLock.writeLock();
             lock.lock();
             try {
                 T doc = map.get(entry.getKey());
-                if (doc != null && checkConditions(doc, entry.getValue())) {
+                Condition c = newEqualsCondition(entry.getValue());
+                if (doc != null && checkConditions(doc, Collections.singletonMap(KEY_MODIFIED, c))) {
                     if (map.remove(entry.getKey()) != null) {
                         num++;
                     }

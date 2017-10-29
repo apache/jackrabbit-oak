@@ -23,8 +23,6 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 public class CountingDocumentStore implements DocumentStore, RevisionListener {
@@ -143,7 +141,7 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Map<Key, Condition>> toRemove) {
+                                           Map<String, Long> toRemove) {
         getStats(collection).numRemoveCalls++;
         return delegate.remove(collection, toRemove);
     }

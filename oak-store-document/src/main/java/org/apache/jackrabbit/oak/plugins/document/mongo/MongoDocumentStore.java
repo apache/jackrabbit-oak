@@ -112,6 +112,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ON
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
@@ -228,6 +229,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     private DocumentStoreStatsCollector stats;
 
     private boolean hasModifiedIdCompoundIndex = true;
+
+    private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
         MongoStatus mongoStatus = builder.getMongoStatus();
@@ -721,8 +724,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     @Override
-    public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Map<Key, Condition>> toRemove) {
+    public <T extends Document> int remove(Collection<T> collection, Map<String, Long> toRemove) {
         log("remove", toRemove);
         int num = 0;
         DBCollection dbCollection = getDBCollection(collection);
@@ -730,11 +732,12 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         try {
             List<String> batchIds = Lists.newArrayList();
             List<DBObject> batch = Lists.newArrayList();
-            Iterator<Entry<String, Map<Key, Condition>>> it = toRemove.entrySet().iterator();
+            Iterator<Entry<String, Long>> it = toRemove.entrySet().iterator();
             while (it.hasNext()) {
-                Entry<String, Map<Key, Condition>> entry = it.next();
+                Entry<String, Long> entry = it.next();
+                Condition c = newEqualsCondition(entry.getValue());
                 QueryBuilder query = createQueryForUpdate(
-                        entry.getKey(), entry.getValue());
+                        entry.getKey(),  Collections.singletonMap(KEY_MODIFIED, c));
                 batchIds.add(entry.getKey());
                 batch.add(query.get());
                 if (!it.hasNext() || batch.size() == IN_CLAUSE_BATCH_SIZE) {

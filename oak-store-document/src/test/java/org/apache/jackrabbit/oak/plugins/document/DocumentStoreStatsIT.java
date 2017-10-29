@@ -28,8 +28,6 @@ import java.util.UUID;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
@@ -39,10 +37,8 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.mockito.Matchers.anyInt;
@@ -191,12 +187,11 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
     @Test
     public void removeConditional() throws Exception {
         Revision r = Revision.newRevision(1);
-        Key modified = new Key(MODIFIED_IN_SECS, null);
-        Condition c = newEqualsCondition(getModifiedInSecs(r.getTimestamp()));
-        Map<String, Map<Key, Condition>> ids = Maps.newHashMap();
+        long modified = getModifiedInSecs(r.getTimestamp());
+        Map<String, Long> ids = Maps.newHashMap();
         for (int i = 0; i < 10; i++) {
             String id = testName.getMethodName() + "-" + i;
-            ids.put(id, singletonMap(modified, c));
+            ids.put(id, modified);
             UpdateOp up = new UpdateOp(id, true);
             NodeDocument.setModified(up, r);
             ds.create(Collection.NODES, singletonList(up));
