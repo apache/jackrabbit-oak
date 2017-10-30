@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import javax.annotation.CheckForNull;
 
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -108,6 +107,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         } else {
             throw new IOException("the found HTTP Solr server is not alive");
         }
+
     }
 
     private SolrServer initializeWithCloudSolrServer() throws IOException {
@@ -115,7 +115,6 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         CloudSolrServer cloudSolrServer = new CloudSolrServer(remoteSolrServerConfiguration.getSolrZkHost());
         cloudSolrServer.setZkConnectTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
         cloudSolrServer.setZkClientTimeout(remoteSolrServerConfiguration.getSocketTimeout());
-        cloudSolrServer.setIdField(OakSolrConfigurationDefaults.PATH_FIELD_NAME);
 
         if (connectToZK(cloudSolrServer)) {
             cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
@@ -158,6 +157,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         } else {
             throw new IOException("could not connect to Zookeeper hosted at " + remoteSolrServerConfiguration.getSolrZkHost());
         }
+
     }
 
     private boolean connectToZK(CloudSolrServer cloudSolrServer) {
