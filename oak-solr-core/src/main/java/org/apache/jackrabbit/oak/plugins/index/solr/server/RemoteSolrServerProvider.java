@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import javax.annotation.CheckForNull;
 
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -115,6 +116,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         CloudSolrServer cloudSolrServer = new CloudSolrServer(remoteSolrServerConfiguration.getSolrZkHost());
         cloudSolrServer.setZkConnectTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
         cloudSolrServer.setZkClientTimeout(remoteSolrServerConfiguration.getSocketTimeout());
+        cloudSolrServer.setIdField(OakSolrConfigurationDefaults.PATH_FIELD_NAME);
 
         if (connectToZK(cloudSolrServer)) {
             cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
