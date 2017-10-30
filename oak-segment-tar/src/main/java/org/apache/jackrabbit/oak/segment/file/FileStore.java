@@ -131,7 +131,7 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final FileLock lock;
 
-    private TarRevisions revisions;
+    private volatile TarRevisions revisions;
 
     /**
      * Scheduler for running <em>short</em> background operations
