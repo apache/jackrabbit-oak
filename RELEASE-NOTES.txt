@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.6
 
 Introduction
 ------------
@@ -7,25 +7,70 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.5 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.6 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.5
+Changes in Oak 1.6.6
 ---------------------
+
+Technical task
+
+    [OAK-5650] - RDBDocumentStore on Oracle:
+    ArrayIndexOutOfBoundsException in Oracle JDBC driver
+    [OAK-5855] - RDBDocumentStore: improve query support for VersionGC
+    [OAK-6140] - Create RDB-specific BlobReferenceIterator
+    [OAK-6237] - Tomcat JDBC pool's StatementCache interceptor may
+    cache borked PreparedStatements with DB2
+    [OAK-6652] - RDB*Store: update postgresql JDBC driver reference to
+    42.1.4
+    [OAK-6660] - RDB*Store: update mysql JDBC driver reference to
+    5.1.44 (2017-08-30)
+    [OAK-6696] - RDB*Store: update Tomcat JDBC pool dependency to
+    7.0.81
+    [OAK-6782] - RDBDocumentStore: inconsistent handling of cache
+    invalidation on remove()
+    [OAK-6863] - RDB*Store: update Oracle JDBC dependency to 12.2.0.1
 
 Bug
 
-    [OAK-6572] - IndexReaderClosed exception seen after some run
-    [OAK-6596] - Blob store consistency check can show bogus errors
-    about missing blobs
+    [OAK-5772] - Test failure:
+    segment.standby.MBeanIT.testClientAndServerEmptyConfig
+    [OAK-6604] - Oak Blob Cloud is not used by oak-upgrade
+    [OAK-6611] - [upgrade][oak-blob-cloud] Many S3DataStore errors
+    during migration with oak-upgrade
+    [OAK-6635] - IndexReader closed exception in DocumentQueue
+    [OAK-6656] - OrderedPropertyIndexEditorProvider does not return
+    Editor to IndexUpdate leading to "ordered" being marked as missing
+    type
+    [OAK-6685] - Background operation may fail when document is
+    malformed
+    [OAK-6777] - IndexReader closed exception in previous reader
 
 Improvement
 
-    [OAK-6336] - Use the oak-blob-cloud for s3 support in oak-upgrade
+    [OAK-5985] - add CloseableIterator similar to CloseableIterable
+    [OAK-6218] - Including id in DocumentStoreException which wrap
+    MongoException
+    [OAK-6637] - Release IndexNode lock in finally clause
+    [OAK-6650] - new release checksum requirements
+    [OAK-6693] - Ensure that IndexNodeManager releases lock in case of
+    error in acquiring it
+    [OAK-6878] - Populate S3DataStore fields with the passed
+    properties in oak-upgrade
+
+Task
+
+    [OAK-6162] - BlobReferenceIterator refactoring
+    [OAK-6171] - Refactor MongoBlobReferenceIterator
+    [OAK-6631] - Update Oak 1.6 to Jackrabbit 2.14.3
+    [OAK-6642] - Backport OAK-6110 to 1.6 (Offline compaction uses too
+    much memory)
+    [OAK-6655] - Update travis build configuration
+    [OAK-6657] - Remove travis webhook configuration
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
