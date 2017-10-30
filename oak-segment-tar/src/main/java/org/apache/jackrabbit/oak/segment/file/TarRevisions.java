@@ -82,7 +82,7 @@ public class TarRevisions implements Revisions, Closeable {
      * The journal file. It is protected by {@link #journalFileLock}. It becomes
      * {@code null} after it's closed.
      */
-    private RandomAccessFile journalFile;
+    private volatile RandomAccessFile journalFile;
 
     /**
      * The persisted head of the root journal, used to determine whether the
