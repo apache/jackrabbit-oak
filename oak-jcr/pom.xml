@@ -58,9 +58,7 @@
 
       org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2 <!-- OAK-3262 -->
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3 <!-- OAK-2149 -->
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddLockTokenToAnotherSession <!-- OAK-3262 -->
 
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock2
