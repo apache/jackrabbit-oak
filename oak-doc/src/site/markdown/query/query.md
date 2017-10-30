@@ -45,5 +45,6 @@ For more details on how indexing works (for all index types):
 ### Customisations
 
 * [Change Out-Of-The-Box Index Definitions](./ootb-index-change.html)
+* [Machine Translation for Search](./search-mt.html)
 
 
