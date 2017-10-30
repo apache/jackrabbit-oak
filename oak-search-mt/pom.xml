@@ -89,6 +89,10 @@
         </plugins>
     </build>
 
+    <properties>
+        <dl4j.version>0.9.1</dl4j.version>
+    </properties>
+
     <dependencies>
         <!-- Optional OSGi dependencies, used only when running within OSGi -->
         <dependency>
@@ -122,6 +126,28 @@
             <groupId>org.apache.joshua</groupId>
             <artifactId>joshua-incubating</artifactId>
             <version>6.1</version>
+        </dependency>
+
+        <!-- DL -->
+        <dependency>
+            <groupId>org.deeplearning4j</groupId>
+            <artifactId>deeplearning4j-core</artifactId>
+            <version>${dl4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.deeplearning4j</groupId>
+            <artifactId>deeplearning4j-nlp</artifactId>
+            <version>${dl4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.nd4j</groupId>
+            <artifactId>nd4j-native-platform</artifactId>
+            <version>${dl4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tteofili</groupId>
+            <artifactId>par2hier</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <!-- Logging -->
