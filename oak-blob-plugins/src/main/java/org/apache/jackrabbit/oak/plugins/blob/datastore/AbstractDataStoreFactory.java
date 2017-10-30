@@ -23,9 +23,10 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
+import org.apache.commons.io.IOUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
@@ -51,9 +52,6 @@ public abstract class AbstractDataStoreFactory {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractDataStoreFactory.class.getName());
 
-    @Reference
-    private StatisticsProvider statisticsProvider;
-
     protected Closer closer = Closer.create();
 
     @Activate
@@ -68,6 +66,7 @@ public abstract class AbstractDataStoreFactory {
 
             List<String> desc = Lists.newArrayList(getDescription());
             desc.add(String.format("%s=%s", ROLE, role));
+            String[] description = desc.toArray(new String[0]);
             OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
 
             try {
@@ -75,8 +74,8 @@ public abstract class AbstractDataStoreFactory {
                         context,
                         config,
                         createDataStore(context, config),
-                        statisticsProvider,
-                        (String[])desc.toArray(),
+                        getStatisticsProvider(),
+                        description,
                         closer
                 );
                 if (null != dataStore) {
@@ -90,12 +89,21 @@ public abstract class AbstractDataStoreFactory {
                             },
                             props
                     )));
+
                     log.info("Registered DataStoreProvider of type %s with role %s", dataStore.getClass().getSimpleName(), role);
                 }
             }
             catch (RepositoryException e) {
                 throw new IOException(e);
             }
+        }
+    }
+
+    @Deactivate
+    public void deactivate() {
+        if (closer != null) {
+            IOUtils.closeQuietly(closer);
+            closer = null;
         }
     }
 
@@ -106,6 +114,8 @@ public abstract class AbstractDataStoreFactory {
     }
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
+
+    protected abstract StatisticsProvider getStatisticsProvider();
 
     protected String[] getDescription() {
         return new String[] { "type=unknown" };
