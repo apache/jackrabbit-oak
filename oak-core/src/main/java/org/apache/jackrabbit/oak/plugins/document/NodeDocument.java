@@ -79,7 +79,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommi
 /**
  * A document storing data about a node.
  */
-public final class NodeDocument extends Document implements CachedNodeDocument{
+public final class NodeDocument extends Document {
 
     /**
      * Marker document, which indicates the document does not exist.
@@ -374,7 +374,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * @return the system time this object was created.
      */
-    @Override
     public long getCreated() {
         return creationTime;
     }
@@ -459,21 +458,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      *
      * @param checkTime time at which the check was performed
      */
-    @Override
     public void markUpToDate(long checkTime) {
         lastCheckTime.set(checkTime);
-    }
-
-    /**
-     * Returns true if the document has already been checked for consistency
-     * in current cycle.
-     *
-     * @param lastCheckTime time at which current cycle started
-     * @return if the document was checked
-     */
-    @Override
-    public boolean isUpToDate(long lastCheckTime) {
-        return lastCheckTime <= this.lastCheckTime.get();
     }
 
     /**
@@ -481,7 +467,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      *
      * @return the last check time
      */
-    @Override
     public long getLastCheckTime() {
         return lastCheckTime.get();
     }
@@ -2189,7 +2174,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         return null;
     }
 
-    @Override
     public String getPath() {
         String p = (String) get(PATH);
         if (p != null) {
