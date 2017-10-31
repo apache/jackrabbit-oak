@@ -56,7 +56,7 @@ public abstract class AbstractDataStoreFactory {
 
     @Activate
     public void activate(ComponentContext context) throws IOException {
-        String role = lookupConfigurationThenFramework(context, ROLE);
+        final String role = lookupConfigurationThenFramework(context, ROLE);
 
         // Data stores being created via the factory MUST have a role configured
         if (null != role) {
@@ -85,6 +85,7 @@ public abstract class AbstractDataStoreFactory {
                     closer.register(asCloseable(whiteboard.register(
                             DataStoreProvider.class,
                             new DataStoreProvider() {
+                                @Override public String getRole() { return role; }
                                 @Override public DataStore getDataStore() { return dataStore; }
                             },
                             props

@@ -32,4 +32,5 @@ public interface DataStoreProvider {
     String ROLE = "role";
 
     DataStore getDataStore();
+    String getRole();
 }
