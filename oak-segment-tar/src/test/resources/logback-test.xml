@@ -21,6 +21,7 @@
         </encoder>
     </appender>
 
+    <logger name="org.apache.jackrabbit.oak.segment.file" level="DEBUG" />
     <logger name="org.apache.jackrabbit.oak.segment.standby" level="DEBUG" />
     <logger name="org.apache.jackrabbit.oak.segment.test.proxy" level="DEBUG" />
 
