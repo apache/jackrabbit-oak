@@ -64,7 +64,7 @@ public abstract class AbstractDataStoreFactory {
 
         // Data stores being created via the factory MUST have a role configured
         if (null != role) {
-            log.info("activate: %s with role %s starting via factory", getClass().getSimpleName(), role);
+            log.info("activate: {} with role {} starting via factory", getClass().getSimpleName(), role);
 
             Map<String, Object> config = getConfigFromContext(context);
 
@@ -95,7 +95,7 @@ public abstract class AbstractDataStoreFactory {
                             props
                     )));
 
-                    log.info("Registered DataStoreProvider of type %s with role %s", dataStore.getClass().getSimpleName(), role);
+                    log.info("Registered DataStoreProvider of type {} with role {}", dataStore.getClass().getSimpleName(), role);
                 }
             }
             catch (RepositoryException e) {
