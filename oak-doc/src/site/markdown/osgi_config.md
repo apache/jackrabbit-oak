@@ -281,11 +281,21 @@ versionGcMaxAgeInSecs
   content would only be marked deleted at revision for T1 but its content would not be removed. Only when a Revision
   GC is run then its content would removed and that too only after (currentTime -T1 > versionGcMaxAgeInSecs)
 
-versionGCContinuous
-: Default false
-: Run Revision GC continuously as a scheduled task. By default this is disabled
-  and Revision GC must be triggered by the application when appropriate.
-: Since 1.7.4
+versionGCExpression
+: Default ""
+: A cron expression that defines when the Revision GC is scheduled. If this
+  configuration entry is left empty, the default value depends on the
+  `documentStoreType`. For `MONGO` the default is to schedule a run every five
+  seconds (also known as Continuous Revision Garbage Collection). For `RDB` the
+  default is to schedule a run once a day starting at 2 AM. The corresponding
+  cron expression is `0 0 2 * * ?`.
+: Since 1.7.11
+
+versionGCTimeLimitInSecs
+: Default 10800
+: A Revision GC run is canceled after this number of seconds. The default is
+  three hours.
+: Since 1.7.11
 
 journalGCMaxAge
 : Default 86400000 (24 hrs, was 6 hrs until 1.7.4)
