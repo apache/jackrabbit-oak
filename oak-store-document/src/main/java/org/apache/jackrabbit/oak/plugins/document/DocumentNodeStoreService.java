@@ -35,10 +35,12 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Dictionary;
@@ -57,7 +59,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -105,7 +106,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
 import org.osgi.framework.Bundle;
@@ -121,6 +121,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.metatype.annotations.Designate;
+import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -141,7 +142,9 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_SO_KEEP_ALIVE = false;
     static final String DEFAULT_PERSISTENT_CACHE = "cache,binary=0";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
-    static final boolean DEFAULT_CONTINUOUS_RGC = false;
+    public static final String CONTINUOUS_RGC_EXPR = "*/5 * * * * ?";
+    public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
+    public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
     private static final String PREFIX = "oak.documentstore.";
     private static final String DESCRIPTION = "oak.nodestore.description";
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
@@ -201,7 +204,8 @@ public class DocumentNodeStoreService {
     private static final String PROP_JOURNAL_GC_MAX_AGE_MILLIS = "journalGCMaxAge";
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
     public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
-    public static final String PROP_VER_GC_CONTINUOUS = "versionGCContinuous";
+    public static final String PROP_VER_GC_EXPRESSION = "versionGCExpression";
+    public static final String PROP_VER_GC_TIME_LIMIT = "versionGCTimeLimitInSecs";
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
     public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
@@ -545,7 +549,28 @@ public class DocumentNodeStoreService {
     }
 
     private boolean isContinuousRevisionGC() {
-        return toBoolean(prop(PROP_VER_GC_CONTINUOUS), DEFAULT_CONTINUOUS_RGC);
+        String expr = getVersionGCExpression();
+        String[] elements = expr.split("\\s");
+        // simple heuristic to determine if revision GC runs 'frequently'
+        return elements.length >= 6 && elements[1].equals("*");
+    }
+
+    private String getVersionGCExpression() {
+        String defaultExpr;
+        if (DocumentStoreType.fromString(config.documentStoreType()) == DocumentStoreType.MONGO) {
+            defaultExpr = CONTINUOUS_RGC_EXPR;
+        } else {
+            defaultExpr = CLASSIC_RGC_EXPR;
+        }
+        String expr = PropertiesUtil.toString(prop(PROP_VER_GC_EXPRESSION), defaultExpr);
+        // validate expression
+        try {
+            new CronExpression(expr);
+        } catch (ParseException e) {
+            log.warn("Invalid cron expression, falling back to default '" + defaultExpr + "'", e);
+            expr = defaultExpr;
+        }
+        return expr;
     }
 
     private void registerNodeStoreProvider(final NodeStore ns) {
@@ -799,19 +824,9 @@ public class DocumentNodeStoreService {
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs);
-        Runnable cancelGC = new Runnable() {
-            @Override
-            public void run() {
-                store.getVersionGarbageCollector().cancel();
-            }
-        };
-        Supplier<String> status = new Supplier<String>() {
-            @Override
-            public String get() {
-                return store.getVersionGarbageCollector().getStatus();
-            }
-        };
+        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0);
+        Runnable cancelGC = () -> store.getVersionGarbageCollector().cancel();
+        Supplier<String> status = () -> store.getVersionGarbageCollector().getStatus();
         RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, status, executor);
         addRegistration(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
@@ -842,7 +857,7 @@ public class DocumentNodeStoreService {
     private void registerLastRevRecoveryJob(final DocumentNodeStore nodeStore) {
         long leaseTime = toLong(context.getProperties().get(PROP_REV_RECOVERY_INTERVAL),
                 ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
-        addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
+        addRegistration(scheduleWithFixedDelay(whiteboard,
                 new LastRevRecoveryJob(nodeStore), TimeUnit.MILLISECONDS.toSeconds(leaseTime),
                 false/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
@@ -850,7 +865,7 @@ public class DocumentNodeStoreService {
     private void registerJournalGC(final DocumentNodeStore nodeStore) {
         long journalGCInterval = toLong(context.getProperties().get(PROP_JOURNAL_GC_INTERVAL_MILLIS),
                 DEFAULT_JOURNAL_GC_INTERVAL_MILLIS);
-        addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
+        addRegistration(scheduleWithFixedDelay(whiteboard,
                 new JournalGCJob(nodeStore),
                 jobPropertiesFor(JournalGCJob.class),
                 TimeUnit.MILLISECONDS.toSeconds(journalGCInterval),
@@ -858,13 +873,15 @@ public class DocumentNodeStoreService {
     }
 
     private void registerVersionGCJob(final DocumentNodeStore nodeStore) {
-        if (isContinuousRevisionGC()) {
-            long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
-            addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
-                    new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs),
-                    jobPropertiesFor(RevisionGCJob.class),
-                    MODIFIED_IN_SECS_RESOLUTION, true, true));
-        }
+        String expr = getVersionGCExpression();
+        Map<String, Object> props = jobPropertiesFor(RevisionGCJob.class);
+        props.put("scheduler.expression", expr);
+        long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
+        long versionGCTimeLimitInSecs = toLong(prop(PROP_VER_GC_TIME_LIMIT), DEFAULT_RGC_TIME_LIMIT_SECS);
+        addRegistration(scheduleWithFixedDelay(whiteboard,
+                new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs,
+                        versionGCTimeLimitInSecs),
+                props, MODIFIED_IN_SECS_RESOLUTION, true, true));
     }
 
     private String prop(String propName) {
@@ -940,23 +957,27 @@ public class DocumentNodeStoreService {
         private static final long LOG_INTERVAL = TimeUnit.HOURS.toMillis(1);
 
         private final DocumentNodeStore nodeStore;
-        private final long versionGcMaxAgeInSecs;
+        private final long versionGCMaxAgeInSecs;
+        private final long versionGCTimeLimitInSecs;
         private volatile Object lastResult = "";
         private long lastLogTime;
         private VersionGCStats stats;
 
         RevisionGCJob(DocumentNodeStore ns,
-                      long versionGcMaxAgeInSecs) {
+                      long versionGcMaxAgeInSecs,
+                      long versionGCTimeLimitInSecs) {
             this.nodeStore = ns;
-            this.versionGcMaxAgeInSecs = versionGcMaxAgeInSecs;
+            this.versionGCMaxAgeInSecs = versionGcMaxAgeInSecs;
+            this.versionGCTimeLimitInSecs = versionGCTimeLimitInSecs;
             resetStats();
         }
 
         @Override
         public void run() {
             VersionGarbageCollector gc = nodeStore.getVersionGarbageCollector();
+            gc.setOptions(gc.getOptions().withMaxDuration(TimeUnit.SECONDS, versionGCTimeLimitInSecs));
             try {
-                VersionGCStats s = gc.gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
+                VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);
                 lastResult = s.toString();
             } catch (Exception e) {
@@ -1025,6 +1046,8 @@ public class DocumentNodeStoreService {
     }
 
     private static Map<String, Object> jobPropertiesFor(Class clazz) {
-        return ImmutableMap.of("scheduler.name", clazz.getName());
+        Map<String, Object> props = new HashMap<>();
+        props.put("scheduler.name", clazz.getName());
+        return props;
     }
 }

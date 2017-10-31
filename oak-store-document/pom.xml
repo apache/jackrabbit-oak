@@ -45,6 +45,7 @@
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.document.spi,
             </Export-Package>
+            <Embed-Dependency>quartz;inline=org/quartz/CronExpression*|org/quartz/ValueSet*</Embed-Dependency>
           </instructions>
         </configuration>
         <executions>
@@ -150,6 +151,12 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.quartz-scheduler</groupId>
+      <artifactId>quartz</artifactId>
+      <version>2.2.3</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Optional dependencies for different persistence backends -->

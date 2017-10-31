@@ -158,9 +158,22 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
     long versionGcMaxAgeInSecs() default DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
     @AttributeDefinition(
-            name = "Continuous Version GC Mode",
-            description = "Run Version GC continuously as a background task.")
-    boolean versionGCContinuous() default DocumentNodeStoreService.DEFAULT_CONTINUOUS_RGC;
+            name = "Version GC scheduler expression",
+            description = "A cron expression that defines when the Version GC is scheduled. " +
+                    "If this configuration entry is left empty, the default value depends on " +
+                    "the 'documentStoreType'. For 'MONGO' the default is to schedule a " +
+                    "run every five seconds (also known as Continuous Revision Garbage " +
+                    "collection). For 'RDB' the default is to schedule a run once a day " +
+                    "starting at 2 AM. The corresponding cron expression is '" +
+                    DocumentNodeStoreService.CLASSIC_RGC_EXPR + "'.")
+    String versionGCExpression() default "";
+
+    @AttributeDefinition(
+            name = "Time limit for a Version GC run (in sec)",
+            description = "A Version GC run is canceled after this number of seconds. " +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_RGC_TIME_LIMIT_SECS +
+                    " seconds.")
+    long versionGCTimeLimitInSecs() default DocumentNodeStoreService.DEFAULT_RGC_TIME_LIMIT_SECS;
 
     @AttributeDefinition(
             name = "Blob GC Max Age (in secs)",

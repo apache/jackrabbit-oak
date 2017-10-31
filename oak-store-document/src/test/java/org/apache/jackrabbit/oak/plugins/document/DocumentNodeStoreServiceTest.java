@@ -40,7 +40,6 @@ import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -153,21 +152,11 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
-    public void nonContinuousRGCDefault() throws Exception {
+    public void continuousRGCDefault() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
-        MockOsgi.activate(service, context.bundleContext(), config);
-        for (Runnable r : context.getServices(Runnable.class, null)) {
-            assertNotEquals(r.getClass(), DocumentNodeStoreService.RevisionGCJob.class);
-        }
-    }
-
-    @Test
-    public void continuousRGC() throws Exception {
-        Map<String, Object> config = newConfig(repoHome);
-        config.put(DocumentNodeStoreService.PROP_VER_GC_CONTINUOUS, true);
         MockOsgi.activate(service, context.bundleContext(), config);
         boolean jobScheduled = false;
-        for (Runnable r : context.getServices(Runnable.class, null)) {
+        for (Runnable r : context.getServices(Runnable.class, "(scheduler.expression=\\*/5 \\* \\* \\* \\* ?)")) {
             jobScheduled |= r.getClass().equals(DocumentNodeStoreService.RevisionGCJob.class);
         }
         assertTrue(jobScheduled);
@@ -176,7 +165,6 @@ public class DocumentNodeStoreServiceTest {
     @Test
     public void continuousRGCJobAsSupplier() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
-        config.put(DocumentNodeStoreService.PROP_VER_GC_CONTINUOUS, true);
         MockOsgi.activate(service, context.bundleContext(), config);
         Runnable rgcJob = null;
         for (Runnable r : context.getServices(Runnable.class, null)) {
