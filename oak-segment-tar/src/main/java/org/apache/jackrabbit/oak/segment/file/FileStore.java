@@ -316,6 +316,7 @@ public class FileStore extends AbstractFileStore {
 
     private void doFlush() throws IOException {
         if (revisions == null) {
+            log.debug("No TarRevisions available, skipping flush");
             return;
         }
         revisions.flush(() -> {
