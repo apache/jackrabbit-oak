@@ -52,10 +52,10 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
                 description = "The set of actions that is supported by this provider implementation.",
                 cardinality = 4,
                 options = {
-                        @Option(label = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction", value = "AccessControlAction"),
-                        @Option(label = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction", value = "PasswordValidationAction"),
-                        @Option(label = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction", value = "PasswordChangeAction"),
-                        @Option(label = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction", value = "ClearMembershipAction")
+                        @Option(label = "AccessControlAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction"),
+                        @Option(label = "PasswordValidationAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction"),
+                        @Option(label = "PasswordChangeAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction"),
+                        @Option(label = "ClearMembershipAction", value = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction")
                 })
         String[] enabledActions();
 

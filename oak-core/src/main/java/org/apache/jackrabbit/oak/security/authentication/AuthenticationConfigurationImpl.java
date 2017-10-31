@@ -82,7 +82,8 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
 
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    private void activate(Map<String, Object> properties) {
+    // reference to @Configuration class needed for correct DS xml generation
+    private void activate(Configuration configuration, Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
 
