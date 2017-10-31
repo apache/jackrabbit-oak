@@ -23,6 +23,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
+import jdk.nashorn.internal.ir.annotations.Reference;
 import org.apache.commons.io.IOUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -53,6 +54,9 @@ public abstract class AbstractDataStoreFactory {
     private static final Logger log = LoggerFactory.getLogger(AbstractDataStoreFactory.class.getName());
 
     protected Closer closer = Closer.create();
+
+    @Reference
+    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
     @Activate
     public void activate(ComponentContext context) throws IOException {
@@ -116,7 +120,7 @@ public abstract class AbstractDataStoreFactory {
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
 
-    protected abstract StatisticsProvider getStatisticsProvider();
+    protected StatisticsProvider getStatisticsProvider() { return statisticsProvider; }
 
     protected String[] getDescription() {
         return new String[] { "type=unknown" };

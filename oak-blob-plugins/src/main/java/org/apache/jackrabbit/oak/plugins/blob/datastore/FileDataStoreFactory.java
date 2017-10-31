@@ -19,11 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import jdk.nashorn.internal.ir.annotations.Reference;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.service.component.ComponentContext;
 
 import java.util.Map;
@@ -35,9 +33,6 @@ import java.util.Map;
         description = "Factory allowing configuration of multiple instances of FileDataStores, " +
                 "for use with CompositeDataStore.")
 public class FileDataStoreFactory extends AbstractDataStoreFactory {
-    @Reference
-    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
-
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
         return FileDataStoreService.createFileDataStore(context, config, getDescription(), closer);
@@ -46,10 +41,5 @@ public class FileDataStoreFactory extends AbstractDataStoreFactory {
     @Override
     protected String[] getDescription() {
         return new String[] { "type=filesystem" };
-    }
-
-    @Override
-    protected StatisticsProvider getStatisticsProvider() {
-        return statisticsProvider;
     }
 }
