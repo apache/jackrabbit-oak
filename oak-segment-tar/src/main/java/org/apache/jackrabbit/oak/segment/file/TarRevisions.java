@@ -191,17 +191,21 @@ public class TarRevisions implements Revisions, Closeable {
      */
     public void flush(@Nonnull Callable<Void> persisted) throws IOException {
         if (head.get() == null) {
+            LOG.debug("No head available, skipping flush");
             return;
         }
         if (journalFileLock.tryLock()) {
             try {
                 if (journalFile == null) {
+                    LOG.debug("No journal file available, skipping flush");
                     return;
                 }
                 doFlush(persisted);
             } finally {
                 journalFileLock.unlock();
             }
+        } else {
+            LOG.debug("Unable to lock the journal, skipping flush");
         }
     }
 
@@ -209,7 +213,9 @@ public class TarRevisions implements Revisions, Closeable {
         try {
             RecordId before = persistedHead.get();
             RecordId after = getHead();
-            if (!after.equals(before)) {
+            if (after.equals(before)) {
+                LOG.debug("Head state did not change, skipping flush");
+            } else {
                 persisted.call();
                 LOG.debug("TarMK journal update {} -> {}", before, after);
                 journalFile.writeBytes(after.toString10() + " root " + System.currentTimeMillis() + "\n");
