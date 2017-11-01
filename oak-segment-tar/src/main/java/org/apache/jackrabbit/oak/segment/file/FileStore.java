@@ -212,10 +212,9 @@ public class FileStore extends AbstractFileStore {
                             return;
                         }
                         try {
-                            flush();
+                            maybeFlush();
                         } catch (IOException e) {
-                            log.warn("Failed to flush the TarMK at {}",
-                                    directory, e);
+                            log.warn("Failed to flush the TarMK at {}", directory, e);
                         }
                     }
                 });
@@ -314,6 +313,24 @@ public class FileStore extends AbstractFileStore {
         return stats;
     }
 
+    private void doMaybeFlush() throws IOException {
+        if (revisions == null) {
+            log.debug("No TarRevisions available, skipping flush");
+            return;
+        }
+        revisions.maybeFlush(() -> {
+            segmentWriter.flush();
+            tarFiles.flush();
+            stats.flushed();
+        });
+    }
+
+    private void maybeFlush() throws IOException {
+        try (ShutDownCloser ignored = shutDown.keepAlive()) {
+            doMaybeFlush();
+        }
+    }
+
     private void doFlush() throws IOException {
         if (revisions == null) {
             log.debug("No TarRevisions available, skipping flush");
@@ -323,7 +340,6 @@ public class FileStore extends AbstractFileStore {
             segmentWriter.flush();
             tarFiles.flush();
             stats.flushed();
-            return null;
         });
     }
 
