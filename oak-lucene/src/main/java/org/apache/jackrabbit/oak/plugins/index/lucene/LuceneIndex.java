@@ -211,7 +211,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             if (node != null){
                 IndexDefinition defn = node.getDefinition();
                 return Collections.singletonList(planBuilder(filter)
-                        .setEstimatedEntryCount(defn.getFulltextEntryCount(node.getSearcher().getIndexReader().numDocs()))
+                        .setEstimatedEntryCount(defn.getFulltextEntryCount(node.getIndexStatistics().numDocs()))
                         .setCostPerExecution(defn.getCostPerExecution())
                         .setCostPerEntry(defn.getCostPerEntry())
                         .setAttribute(ATTR_INDEX_PATH, indexPath)
