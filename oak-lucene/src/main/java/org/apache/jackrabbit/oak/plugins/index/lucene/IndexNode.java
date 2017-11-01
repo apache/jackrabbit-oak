@@ -36,6 +36,8 @@ public interface IndexNode {
 
     IndexSearcher getSearcher();
 
+    IndexStatistics getIndexStatistics();
+
     IndexDefinition getDefinition();
 
     List<LuceneIndexReader> getPrimaryReaders();

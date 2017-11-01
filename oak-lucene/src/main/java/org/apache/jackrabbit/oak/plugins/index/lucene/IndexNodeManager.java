@@ -275,10 +275,16 @@ public class IndexNodeManager {
         final IndexSearcher searcher;
         final List<LuceneIndexReader> nrtReaders;
         final int searcherId = SEARCHER_ID_COUNTER.incrementAndGet();
+        final IndexStatistics indexStatistics;
 
         public SearcherHolder(IndexSearcher searcher, List<LuceneIndexReader> nrtReaders) {
             this.searcher = searcher;
             this.nrtReaders = nrtReaders;
+            this.indexStatistics = new IndexStatistics(searcher.getIndexReader());
+        }
+
+        public IndexStatistics getIndexStatistics() {
+            return indexStatistics;
         }
     }
 
@@ -305,6 +311,11 @@ public class IndexNodeManager {
         @Override
         public IndexSearcher getSearcher() {
             return holder.searcher;
+        }
+
+        @Override
+        public IndexStatistics getIndexStatistics() {
+            return holder.getIndexStatistics();
         }
 
         @Override

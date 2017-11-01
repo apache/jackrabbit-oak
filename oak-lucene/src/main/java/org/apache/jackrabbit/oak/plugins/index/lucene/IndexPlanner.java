@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.lucene.index.IndexReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -255,24 +254,12 @@ class IndexPlanner {
         boolean canSort = canSortByProperty(sortOrder);
         if (!indexedProps.isEmpty() || canSort || ft != null
                 || evalPathRestrictions || evalNodeTypeRestrictions || canEvalNodeNameRestriction) {
-            //TODO Need a way to have better cost estimate to indicate that
-            //this index can evaluate more propertyRestrictions natively (if more props are indexed)
-            //For now we reduce cost per entry
-
-            //Use propDefns instead of indexedProps as it determines true count of property restrictions
-            //which are evaluated by this index
-            int costPerEntryFactor = result.propDefns.size();
+            int costPerEntryFactor = 1;
             costPerEntryFactor += sortOrder.size();
 
-            //this index can evaluate more propertyRestrictions natively (if more props are indexed)
-            //For now we reduce cost per entry
             IndexPlan.Builder plan = defaultPlan();
             if (!sortOrder.isEmpty()) {
                 plan.setSortOrder(sortOrder);
-            }
-
-            if (costPerEntryFactor == 0){
-                costPerEntryFactor = 1;
             }
 
             if (facetFields.size() > 0) {
@@ -289,6 +276,11 @@ class IndexPlanner {
 
             if (canEvalNodeNameRestriction){
                 result.enableNodeNameRestriction();
+            }
+
+            // Set a index based guess here. Unique would set its own value below
+            if (useActualEntryCount && !definition.isEntryCountDefined()) {
+                plan.setEstimatedEntryCount(getMaxPossibleNumDocs(result.propDefns));
             }
 
             if (sortOrder.isEmpty() && ft == null) {
@@ -717,7 +709,7 @@ class IndexPlanner {
     }
 
     private long estimatedEntryCount() {
-        int numOfDocs = getReader().numDocs();
+        int numOfDocs = getNumDocs();
         if (useActualEntryCount) {
             return definition.isEntryCountDefined() ? definition.getEntryCount() : numOfDocs;
         } else {
@@ -742,8 +734,37 @@ class IndexPlanner {
         return PathUtils.denotesRoot(parentPath) ? "" : parentPath;
     }
 
-    private IndexReader getReader() {
-        return indexNode.getSearcher().getIndexReader();
+    private int getNumDocs() {
+        return indexNode.getIndexStatistics().numDocs();
+    }
+
+    private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns) {
+        IndexStatistics indexStatistics = indexNode.getIndexStatistics();
+        int minNumDocs = indexStatistics.numDocs();
+        for (Map.Entry<String, PropertyDefinition> propDef : propDefns.entrySet()) {
+            int docCntForField = indexStatistics.getDocCountFor(propDef.getKey());
+            if (docCntForField == -1) {
+                continue;
+            }
+
+            int weight = propDef.getValue().weight;
+
+            if (weight > 1) {
+                // use it to scale down the doc count - in broad strokes, we can think of weight
+                // as number of terms for the field with all terms getting equal share of
+                // the documents in this field
+                double scaledDocCnt = Math.ceil((double) docCntForField / weight);
+                if (minNumDocs < scaledDocCnt) {
+                    continue;
+                }
+                // since, we've already taken care that scaled cost is lower than minCost,
+                // we can safely cast without risking overflow
+                minNumDocs = (int)scaledDocCnt;
+            } else if (docCntForField < minNumDocs) {
+                minNumDocs = docCntForField;
+            }
+        }
+        return minNumDocs;
     }
 
     private List<OrderEntry> createSortOrder(IndexingRule rule) {
