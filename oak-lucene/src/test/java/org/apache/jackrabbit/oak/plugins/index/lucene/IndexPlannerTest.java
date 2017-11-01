@@ -1292,28 +1292,28 @@ public class IndexPlannerTest {
     @Test
     public void useNumDocsOnFieldForCost() throws Exception {
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "foo1", "foo2"), "async");
-        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
+        long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
         IndexDefinition idxDefn = new IndexDefinition(root, defn.getNodeState(), "/test");
         Document doc = new Document();
         doc.add(new StringField("foo1", "bar1", Field.Store.NO));
-        Directory sampleDirectory = createSampleDirectory(numofDocs, doc);
+        Directory sampleDirectory = createSampleDirectory(numOfDocs, doc);
         IndexNode node = createIndexNode(idxDefn, sampleDirectory);
 
         // Query on "foo"
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        IndexPlanner planner = new IndexPlanner(node, "/test", filter, Collections.<OrderEntry>emptyList());
+        IndexPlanner planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
-        assertEquals(numofDocs, plan.getEstimatedEntryCount());
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
         // Query on "foo1"
         filter = createFilter("nt:base");
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
-        planner = new IndexPlanner(node, "/test", filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
         plan = planner.getPlan();
 
         assertEquals(1, plan.getEstimatedEntryCount());
@@ -1324,7 +1324,7 @@ public class IndexPlannerTest {
         filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
-        planner = new IndexPlanner(node, "/test", filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
         plan = planner.getPlan();
 
         assertEquals(1, plan.getEstimatedEntryCount());
@@ -1334,7 +1334,7 @@ public class IndexPlannerTest {
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
         filter.restrictProperty("foo2", Operator.EQUAL, PropertyValues.newString("bar2"));
-        planner = new IndexPlanner(node, "/test", filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
         plan = planner.getPlan();
 
         assertEquals(0, plan.getEstimatedEntryCount());
@@ -1368,7 +1368,7 @@ public class IndexPlannerTest {
         // Query on "foo"
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //scale down 1000 by 500 = 2
@@ -1377,7 +1377,7 @@ public class IndexPlannerTest {
         // Query on "foo1"
         filter = createFilter("nt:base");
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
-        planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
         //scale down 60 by 20 = 2
@@ -1387,7 +1387,7 @@ public class IndexPlannerTest {
         filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
-        planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
         //min(2, 3)
@@ -1397,7 +1397,7 @@ public class IndexPlannerTest {
         filter = createFilter("nt:base");
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictProperty("foo2", Operator.EQUAL, PropertyValues.newString("bar"));
-        planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
         //don't scale down 1 by 0 (foo1 would estimate 3)
@@ -1407,7 +1407,7 @@ public class IndexPlannerTest {
         filter = createFilter("nt:base");
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictProperty("foo3", Operator.EQUAL, PropertyValues.newString("bar"));
-        planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
         //min(0, 3)
@@ -1442,7 +1442,7 @@ public class IndexPlannerTest {
         // Query on and "bar1"
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("bar1", Operator.EQUAL, PropertyValues.newString("foo1"));
-        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //scale down 60 by 20 = 3
@@ -1452,7 +1452,7 @@ public class IndexPlannerTest {
         filter = createFilter("nt:base");
         filter.restrictProperty("bar1", Operator.EQUAL, PropertyValues.newString("foo1"));
         filter.restrictProperty("bar2", Operator.EQUAL, PropertyValues.newString("foo2"));
-        planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
         //min(3, 2)
@@ -1482,7 +1482,7 @@ public class IndexPlannerTest {
         // Query on and "foo"
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("foo1"));
-        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //scale down 1000 by INT_MAX/2 and ceil ~= 1.
@@ -1492,7 +1492,7 @@ public class IndexPlannerTest {
         filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
-        planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
         //min(1, 60)
@@ -1519,7 +1519,7 @@ public class IndexPlannerTest {
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty(convertToPolishNotation("lower([foo])"), Operator.EQUAL,
                 PropertyValues.newString("foo1"));
-        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         assertEquals(1, plan.getEstimatedEntryCount());
@@ -1534,22 +1534,22 @@ public class IndexPlannerTest {
                 .enclosingRule().property("foo2").analyzed();
         NodeState defn = idxBuilder.build();
 
-        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
+        long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
         IndexDefinition idxDefn = new IndexDefinition(root, defn, indexPath);
         Document doc = new Document();
         doc.add(new StringField("foo1", "bar1", Field.Store.NO));
-        Directory sampleDirectory = createSampleDirectory(numofDocs, doc);
+        Directory sampleDirectory = createSampleDirectory(numOfDocs, doc);
         IndexNode node = createIndexNode(idxDefn, sampleDirectory);
 
         // contains(., 'mountain') AND contains('foo2', 'hill')
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
         filter.setFullTextConstraint(FullTextParser.parse("foo2", "hill"));
-        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
-        assertEquals(numofDocs + 1, plan.getEstimatedEntryCount());
+        assertEquals(numOfDocs + 1, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
@@ -1558,12 +1558,111 @@ public class IndexPlannerTest {
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
         filter.setFullTextConstraint(FullTextParser.parse("foo2", "hill"));
-        planner = new IndexPlanner(node, indexPath, filter, Collections.<OrderEntry>emptyList());
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
         assertEquals(1, plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
+    }
+
+    @Test
+    public void unableToIterateFields() throws Exception {
+        try {
+            IndexStatistics.failReadingFields = true;
+            String indexPath = "/test";
+            IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+            idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+            idxBuilder.indexRule("nt:base").property("bar").propertyIndex();
+            NodeState defn = idxBuilder.build();
+
+            long numOfDocs = 100;
+
+            IndexDefinition idxDefn = new IndexDefinition(root, defn, indexPath);
+            IndexNode node = createIndexNode(idxDefn, numOfDocs);
+
+            FilterImpl filter = createFilter("nt:base");
+            filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+            IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+            QueryIndex.IndexPlan plan = planner.getPlan();
+
+            assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+            filter = createFilter("nt:base");
+            filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
+            planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+            plan = planner.getPlan();
+
+            assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+            filter = createFilter("nt:base");
+            filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
+            planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+            plan = planner.getPlan();
+
+            assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+        } finally {
+            IndexStatistics.failReadingFields = false;
+        }
+    }
+
+    @Test
+    public void unableToReadCountForJcrTitle() throws Exception {
+        try {
+            IndexStatistics.failReadingFieldJcrTitle = true;
+            String indexPath = "/test";
+            IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+            idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+            idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
+            idxBuilder.indexRule("nt:base").property("jcr:title").propertyIndex();
+            idxBuilder.indexRule("nt:base").property("bar").propertyIndex();
+            NodeState defn = idxBuilder.build();
+
+            long numOfDocs = 100;
+
+            IndexDefinition idxDefn = new IndexDefinition(root, defn, indexPath);
+            Document doc = new Document();
+            doc.add(new StringField("foo1", "bar1", Field.Store.NO));
+            doc.add(new StringField("jcr:title", "title", Field.Store.NO));
+            Directory sampleDirectory = createSampleDirectory(numOfDocs, doc);
+            IndexNode node = createIndexNode(idxDefn, sampleDirectory);
+
+            FilterImpl filter = createFilter("nt:base");
+            filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+            IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+            QueryIndex.IndexPlan plan = planner.getPlan();
+
+            assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+            filter = createFilter("nt:base");
+            filter.restrictProperty("jcr:title", Operator.EQUAL, PropertyValues.newString("bar"));
+            planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+            plan = planner.getPlan();
+
+            // jcr:title's count couldn't be read - so, fallback to numDocs
+            assertEquals(numOfDocs + 1, plan.getEstimatedEntryCount());
+
+            filter = createFilter("nt:base");
+            filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty("jcr:title", Operator.EQUAL, PropertyValues.newString("bar"));
+            planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+            plan = planner.getPlan();
+
+            // min() still comes into play even when one field's count couldn't be read
+            assertEquals(1, plan.getEstimatedEntryCount());
+
+            filter = createFilter("nt:base");
+            filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty("jcr:title", Operator.EQUAL, PropertyValues.newString("bar"));
+            planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+            plan = planner.getPlan();
+
+            // min() still comes into play even when one field's count couldn't be read
+            assertEquals(0, plan.getEstimatedEntryCount());
+        } finally {
+            IndexStatistics.failReadingFieldJcrTitle = false;
+        }
     }
     //------ END - Cost via doc count per field plan tests
 

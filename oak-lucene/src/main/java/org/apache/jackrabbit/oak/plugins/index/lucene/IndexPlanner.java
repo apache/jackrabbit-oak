@@ -280,7 +280,10 @@ class IndexPlanner {
 
             // Set a index based guess here. Unique would set its own value below
             if (useActualEntryCount && !definition.isEntryCountDefined()) {
-                plan.setEstimatedEntryCount(getMaxPossibleNumDocs(result.propDefns));
+                int maxPossibleNumDocs = getMaxPossibleNumDocs(result.propDefns);
+                if (maxPossibleNumDocs >= 0) {
+                    plan.setEstimatedEntryCount(maxPossibleNumDocs);
+                }
             }
 
             if (sortOrder.isEmpty() && ft == null) {

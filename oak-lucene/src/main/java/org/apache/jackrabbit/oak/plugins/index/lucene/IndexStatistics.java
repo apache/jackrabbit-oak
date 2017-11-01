@@ -27,40 +27,55 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.isPropertyField;
+
 /**
  * This class would populate some statistics from a reader. We want to be careful here such that
  * we only collect statistics which don't incur reads from the index i.e. we would only collect
  * stats that lucene would already have read into memory when the reader was opened.
  */
 public class IndexStatistics {
-    static final Logger LOG = LoggerFactory.getLogger(IndexStatistics.class);
+    private static final Logger LOG = LoggerFactory.getLogger(IndexStatistics.class);
     private final int numDocs;
     private final Map<String, Integer> numDocsForField;
+    private final boolean safelyInitialized;
+
+    // For ease of tests as there didn't seem an easy way to make an IndexReader delegator
+    // that would fail calls to reader on-demand.
+    static boolean failReadingFields = false;
+    static boolean failReadingFieldJcrTitle = false;
 
     /**
      * @param reader {@link IndexReader} for which statistics need to be collected.
      */
-    public IndexStatistics(IndexReader reader) {
+    IndexStatistics(IndexReader reader) {
         numDocs = reader.numDocs();
 
         Map<String, Integer> numDocsForField = Maps.newHashMap();
 
         Fields fields = null;
         try {
+            if (failReadingFields) {
+                throw new IOException("Synthetically fail to read fields");
+            }
             fields = MultiFields.getFields(reader);
         } catch (IOException e) {
             LOG.warn("Couldn't open fields for reader ({}). Won't extract doc count per field", reader);
             numDocsForField = null;
         }
 
+
         if (fields != null) {
             for(String f : fields) {
                 if (isPropertyField(f)) {
-                    int docCntForField = numDocs;
+                    int docCntForField = -1;
                     try {
+                        if (failReadingFieldJcrTitle && "jcr:title".equals(f)) {
+                            throw new IOException("Synthetically fail to read count for field jcr:title");
+                        }
                         docCntForField = reader.getDocCount(f);
                     } catch (IOException e) {
-                        LOG.warn("Couldn't read doc count for field {} via reader ({}). Would use numDocs for this field");
+                        LOG.warn("Couldn't read doc count for field {} via reader ({}).");
                     }
                     numDocsForField.put(f, docCntForField);
                 }
@@ -69,8 +84,10 @@ public class IndexStatistics {
 
         if (numDocsForField != null) {
             this.numDocsForField = Collections.unmodifiableMap(numDocsForField);
+            this.safelyInitialized = true;
         } else {
-            this.numDocsForField = null;
+            this.numDocsForField = Collections.emptyMap();
+            this.safelyInitialized = false;
         }
     }
 
@@ -84,9 +101,17 @@ public class IndexStatistics {
     /**
      * @param field Index field for which number of indexed documents are to be return
      * @return number of indexed documents (without subtracting potentially deleted ones)
-     *         for the given {@code field}.
+     *         for the given {@code field}.<br/>
+     *         -1: if index codec doesn't store doc-count-for-field statistics, OR <br/>
+     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reader threw an exception while reading fields, OR <br/>
+     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception thrown while reading count for the field, OR <br/>
+     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc-count is asked for a non-property field.
      */
     public int getDocCountFor(String field) {
+        if (!safelyInitialized) {
+            return -1;
+        }
+
         int docCntForField = isPropertyField(field) ? 0 : -1;
         if (numDocsForField.containsKey(field)) {
             docCntForField = numDocsForField.get(field);
@@ -95,10 +120,4 @@ public class IndexStatistics {
         return docCntForField;
     }
 
-    private boolean isPropertyField(String field) {
-        return !field.startsWith(FieldNames.ANALYZED_FIELD_PREFIX)
-                && !field.startsWith(FieldNames.FULLTEXT_RELATIVE_NODE)
-                && !field.startsWith(":")
-                && !field.endsWith("_facet");
-    }
 }

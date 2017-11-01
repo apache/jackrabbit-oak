@@ -27,7 +27,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.junit.Assert;
+import org.junit.After;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -35,15 +35,21 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.junit.Assert.assertEquals;
 
 public class IndexStatisticsTest {
+    @After
+    public void resetFailFlags() {
+        IndexStatistics.failReadingFields = false;
+        IndexStatistics.failReadingFieldJcrTitle = false;
+    }
 
     @Test
     public void numDocs() throws Exception {
         Directory d = createSampleDirectory(2);
         IndexStatistics stats = getStats(d);
 
-        Assert.assertEquals(2, stats.numDocs());
+        assertEquals(2, stats.numDocs());
     }
 
     @Test
@@ -56,7 +62,7 @@ public class IndexStatisticsTest {
         }
 
         IndexStatistics stats = getStats(d);
-        Assert.assertEquals(1, stats.numDocs());
+        assertEquals(1, stats.numDocs());
     }
 
     @Test
@@ -64,7 +70,7 @@ public class IndexStatisticsTest {
         Directory d = createSampleDirectory(2);
         IndexStatistics stats = getStats(d);
 
-        Assert.assertEquals(2, stats.getDocCountFor("foo"));
+        assertEquals(2, stats.getDocCountFor("foo"));
     }
 
     @Test
@@ -77,7 +83,7 @@ public class IndexStatisticsTest {
         }
 
         IndexStatistics stats = getStats(d);
-        Assert.assertEquals("Stats don't need to get accurate result which might require reading more",
+        assertEquals("Stats don't need to get accurate result which might require reading more",
                 2, stats.getDocCountFor("foo"));
     }
 
@@ -86,12 +92,12 @@ public class IndexStatisticsTest {
         Directory d = createSampleDirectory(1);
         IndexStatistics stats = getStats(d);
 
-        Assert.assertEquals(1, stats.getDocCountFor("foo"));
-        Assert.assertEquals(0, stats.getDocCountFor("absent"));
-        Assert.assertEquals(-1, stats.getDocCountFor(":someHiddenField"));
-        Assert.assertEquals(-1, stats.getDocCountFor(FieldNames.ANALYZED_FIELD_PREFIX + "foo"));
-        Assert.assertEquals(-1, stats.getDocCountFor(FieldNames.FULLTEXT_RELATIVE_NODE + "foo"));
-        Assert.assertEquals(-1, stats.getDocCountFor("foo_facet"));
+        assertEquals(1, stats.getDocCountFor("foo"));
+        assertEquals(0, stats.getDocCountFor("absent"));
+        assertEquals(-1, stats.getDocCountFor(":someHiddenField"));
+        assertEquals(-1, stats.getDocCountFor(FieldNames.ANALYZED_FIELD_PREFIX + "foo"));
+        assertEquals(-1, stats.getDocCountFor(FieldNames.FULLTEXT_RELATIVE_NODE + "foo"));
+        assertEquals(-1, stats.getDocCountFor("foo_facet"));
     }
 
     @Test
@@ -105,12 +111,39 @@ public class IndexStatisticsTest {
         Directory d = createSampleDirectory(document);
         IndexStatistics stats = getStats(d);
 
-        Assert.assertEquals(3, stats.getDocCountFor("foo"));
-        Assert.assertEquals(0, stats.getDocCountFor("absent"));
-        Assert.assertEquals(-1, stats.getDocCountFor(":someHiddenField"));
-        Assert.assertEquals(-1, stats.getDocCountFor(FieldNames.ANALYZED_FIELD_PREFIX + "foo"));
-        Assert.assertEquals(-1, stats.getDocCountFor(FieldNames.FULLTEXT_RELATIVE_NODE + "foo"));
-        Assert.assertEquals(-1, stats.getDocCountFor("foo_facet"));
+        assertEquals(3, stats.getDocCountFor("foo"));
+        assertEquals(0, stats.getDocCountFor("absent"));
+        assertEquals(-1, stats.getDocCountFor(":someHiddenField"));
+        assertEquals(-1, stats.getDocCountFor(FieldNames.ANALYZED_FIELD_PREFIX + "foo"));
+        assertEquals(-1, stats.getDocCountFor(FieldNames.FULLTEXT_RELATIVE_NODE + "foo"));
+        assertEquals(-1, stats.getDocCountFor("foo_facet"));
+    }
+
+    @Test
+    public void unableToIterateFields() throws Exception {
+        IndexStatistics.failReadingFields = true;
+
+        IndexStatistics stats = getStats(createSampleDirectory(100));
+
+        assertEquals(100, stats.numDocs());
+        assertEquals(-1, stats.getDocCountFor("foo"));
+        assertEquals(-1, stats.getDocCountFor("bar"));
+    }
+
+    @Test
+    public void unableToReadCountForJcrTitle() throws Exception {
+        IndexStatistics.failReadingFieldJcrTitle = true;
+
+        Document doc = new Document();
+        doc.add(new StringField("foo1", "bar1", Field.Store.NO));
+        doc.add(new StringField("jcr:title", "title", Field.Store.NO));
+        IndexStatistics stats = getStats(createSampleDirectory(doc));
+
+        assertEquals(3, stats.numDocs());
+        assertEquals(2, stats.getDocCountFor("foo"));
+        assertEquals(1, stats.getDocCountFor("foo1"));
+        assertEquals(-1, stats.getDocCountFor("jcr:title"));
+        assertEquals(0, stats.getDocCountFor("bar"));
     }
 
     private static Directory createSampleDirectory(long numOfDocs) throws IOException {
