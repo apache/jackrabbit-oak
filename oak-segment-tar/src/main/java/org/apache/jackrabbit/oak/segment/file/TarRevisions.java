@@ -29,7 +29,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -52,7 +51,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This implementation of {@code Revisions} is backed by a
  * {@link #JOURNAL_FILE_NAME journal} file where the current head is persisted
- * by calling {@link #maybeFlush(Callable)}.
+ * by calling {@link #maybeFlush(Flusher)}.
  * <p>
  * The {@link #setHead(Function, Option...)} method supports a timeout
  * {@link Option}, which can be retrieved through factory methods of this class.
