@@ -19,14 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Map;
-
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -34,10 +29,10 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -49,6 +44,16 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Map;
+
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.PROP_SPLIT_BLOBSTORE;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
@@ -60,21 +65,47 @@ public abstract class AbstractDataStoreService {
     public static final String PROP_CACHE_SIZE = "cacheSizeInMB";
     private static final String DESCRIPTION = "oak.blobstore.description";
 
-    private ServiceRegistration reg;
-
-    private Registration mbeanReg;
-
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(AbstractDataStoreService.class);
 
     @Reference
     private StatisticsProvider statisticsProvider;
 
-    private DataStoreBlobStore dataStore;
+    protected Closer closer = Closer.create();
 
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
         // change to mutable map. may be modified in createDS call
         config = Maps.newHashMap(config);
+
         DataStore ds = createDataStore(context, config);
+        registerDataStore(context, config, ds, getStatisticsProvider(), getDescription(), closer);
+    }
+
+    protected void deactivate() throws DataStoreException {
+        closeQuietly(closer);
+        closer = null;
+    }
+
+    protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
+
+    protected StatisticsProvider getStatisticsProvider(){
+        return statisticsProvider;
+    }
+
+    public static DataStore registerDataStore(
+            @Nonnull ComponentContext context,
+            @Nonnull Map<String, Object> config,
+            @Nullable DataStore ds,
+            @Nonnull StatisticsProvider statisticsProvider,
+            @Nonnull String[] description,
+            @Nonnull Closer closer
+    ) throws RepositoryException {
+        if (null == ds) {
+            // Deferred registration - child class should call registerDataStore later
+            return ds;
+        }
+
+        Closeables closeables = new Closeables(closer);
+
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
 
@@ -88,42 +119,28 @@ public abstract class AbstractDataStoreService {
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
 
-        BlobStoreStats stats = new BlobStoreStats(getStatisticsProvider());
-        this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
-        this.dataStore.setBlobStatsCollector(stats);
+        DataStoreBlobStore dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
+        closeables.add(dataStore);
+        BlobStoreStats stats = new BlobStoreStats(statisticsProvider);
+        dataStore.setBlobStatsCollector(stats);
+
         PropertiesUtil.populate(dataStore, config, false);
 
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, ds.getClass().getName());
-        props.put(DESCRIPTION, getDescription());
+        props.put(DESCRIPTION, description);
         if (context.getProperties().get(PROP_SPLIT_BLOBSTORE) != null) {
             props.put(PROP_SPLIT_BLOBSTORE, context.getProperties().get(PROP_SPLIT_BLOBSTORE));
         }
 
-        reg = context.getBundleContext().registerService(new String[]{
+        closeables.add(context.getBundleContext().registerService(new String[]{
                 BlobStore.class.getName(),
                 GarbageCollectableBlobStore.class.getName()
-        }, dataStore , props);
+        }, dataStore, props));
 
-        mbeanReg = registerMBeans(context.getBundleContext(), dataStore, stats);
-    }
+        closeables.add(registerMBeans(context.getBundleContext(), dataStore, stats));
 
-    protected void deactivate() throws DataStoreException {
-        if (reg != null) {
-            reg.unregister();
-        }
-
-        if (mbeanReg != null){
-            mbeanReg.unregister();
-        }
-
-        dataStore.close();
-    }
-
-    protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
-
-    protected StatisticsProvider getStatisticsProvider(){
-        return statisticsProvider;
+        return ds;
     }
 
     protected String[] getDescription(){
@@ -160,5 +177,51 @@ public abstract class AbstractDataStoreService {
                         CacheStatsMBean.TYPE,
                         ds.getCacheStats().getName())
         );
+    }
+}
+
+class Closeables implements Closeable {
+    private final Closer closer;
+
+    Closeables(final Closer closer) {
+        this.closer = closer;
+    }
+
+    void add(Closeable c) {
+        closer.register(c);
+    }
+
+    void add(DataStore ds) {
+        add(new Closeable() {
+            @Override public void close() throws IOException {
+                try {
+                    ds.close();
+                }
+                catch (DataStoreException e) {
+                    throw new IOException(e);
+                }
+            }
+        });
+    }
+
+    void add(ServiceRegistration sr) {
+        add(new Closeable() {
+            @Override public void close() throws IOException {
+                sr.unregister();
+            }
+        });
+    }
+
+    void add(Registration r) {
+        add(new Closeable() {
+            @Override public void close() throws IOException {
+                r.unregister();
+            }
+        });
+    }
+
+    @Override
+    public void close() throws IOException {
+        closer.close();
     }
 }

@@ -20,17 +20,18 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import com.google.common.base.Preconditions;
+import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.osgi.framework.Constants;
-import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
@@ -47,13 +48,19 @@ public class FileDataStoreService extends AbstractDataStoreService {
     public static final String FS_BACKEND_PATH = "fsBackendPath";
     public static final String PATH = "path";
 
-    private ServiceRegistration delegateReg;
-
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private static Logger log = LoggerFactory.getLogger(FileDataStoreService.class);
 
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
+        return createFileDataStore(context, config, getDescription(), closer);
+    }
 
+    static DataStore createFileDataStore(
+            @Nonnull ComponentContext context,
+            @Nonnull Map<String, Object> config,
+            @Nonnull String[] description,
+            @Nonnull Closer closer
+    ) {
         long cacheSize = PropertiesUtil.toLong(config.get(CACHE_SIZE), 0L);
         // return CachingFDS when cacheSize > 0
         if (cacheSize > 0) {
@@ -74,26 +81,35 @@ public class FileDataStoreService extends AbstractDataStoreService {
             properties.putAll(config);
             log.info("Initializing with properties " + properties);
 
-            return getCachingDataStore(properties, context);
+            return getCachingDataStore(properties, context, description, closer);
         } else {
             log.info("OakFileDataStore initialized");
             return new OakFileDataStore();
         }
     }
 
-    private DataStore getCachingDataStore(Properties props, ComponentContext context) {
+    private static DataStore getCachingDataStore(
+            Properties props,
+            ComponentContext context,
+            String[] description,
+            Closer closer
+    ) {
         CachingFileDataStore dataStore = new CachingFileDataStore();
         dataStore.setStagingSplitPercentage(
             PropertiesUtil.toInteger(props.get("stagingSplitPercentage"), 0));
         dataStore.setProperties(props);
         Dictionary<String, Object> config = new Hashtable<String, Object>();
         config.put(Constants.SERVICE_PID, dataStore.getClass().getName());
-        config.put(DESCRIPTION, getDescription());
+        config.put(DESCRIPTION, description);
 
-        delegateReg = context.getBundleContext().registerService(new String[] {
-            AbstractSharedCachingDataStore.class.getName(),
-            AbstractSharedCachingDataStore.class.getName()
-        }, dataStore , config);
+        closer.register(AbstractDataStoreFactory.asCloseable(
+                context.getBundleContext().registerService(
+                        new String[] {
+                                AbstractSharedCachingDataStore.class.getName(),
+                                AbstractSharedCachingDataStore.class.getName()
+                        }, dataStore , config)
+                )
+        );
         return dataStore;
     }
 
