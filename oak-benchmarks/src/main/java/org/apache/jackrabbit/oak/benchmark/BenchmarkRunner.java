@@ -455,7 +455,8 @@ public class BenchmarkRunner {
 
             new HybridIndexTest(base.value(options), statsProvider),
             new BundlingNodeTest(),
-            new PersistentCacheTest(statsProvider)
+            new PersistentCacheTest(statsProvider),
+            new BasicWriteTest()
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
