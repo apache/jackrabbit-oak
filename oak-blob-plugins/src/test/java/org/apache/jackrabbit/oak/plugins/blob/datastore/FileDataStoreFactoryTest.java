@@ -31,10 +31,7 @@ public class FileDataStoreFactoryTest {
 
     @Before
     public void setup() {
-        //Map<String, Object> properties = Maps.newConcurrentMap();
-        //properties.put (DataStoreProvider.ROLE, "local");
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-        //context.registerInjectActivateService(AbstractDataStoreFactory.class, properties);
     }
 
     private void activateService() {
