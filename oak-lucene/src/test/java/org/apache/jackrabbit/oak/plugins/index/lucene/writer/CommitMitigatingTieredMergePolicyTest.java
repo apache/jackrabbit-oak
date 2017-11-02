@@ -16,16 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import org.apache.lucene.index.BaseMergePolicyTestCase;
 import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.MergePolicy.MergeTrigger;
+import org.apache.lucene.index.SegmentCommitInfo;
+import org.apache.lucene.index.SegmentInfos;
+import org.junit.Test;
+
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link CommitMitigatingTieredMergePolicy}
  */
-public class CommitMitigatingTieredMergePolicyTest extends BaseMergePolicyTestCase {
+public class CommitMitigatingTieredMergePolicyTest {
 
-    @Override
-    protected MergePolicy mergePolicy() {
-        return new CommitMitigatingTieredMergePolicy();
+    @Test
+    public void testMergeWithNoSegments() throws Exception {
+        CommitMitigatingTieredMergePolicy mergePolicy = new CommitMitigatingTieredMergePolicy();
+
+        SegmentInfos infos = new SegmentInfos();
+        MergePolicy.MergeSpecification merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH, infos);
+        assertNull(merges);
     }
+
 }
