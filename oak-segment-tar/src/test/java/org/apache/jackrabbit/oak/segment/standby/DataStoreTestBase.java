@@ -240,7 +240,7 @@ public abstract class DataStoreTestBase extends TestBase {
 
         try (
             StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 8 * MB);
-            StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 60_000)
+            StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 2 * 60 * 1000)
         ) {
             serverSync.start();
             primary.flush();
