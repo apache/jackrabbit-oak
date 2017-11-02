@@ -399,11 +399,6 @@
       <version>2.8.0</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-test-framework</artifactId>
-      <version>${lucene.version}</version>
-      <scope>test</scope>
-    </dependency>
+
   </dependencies>
 </project>
