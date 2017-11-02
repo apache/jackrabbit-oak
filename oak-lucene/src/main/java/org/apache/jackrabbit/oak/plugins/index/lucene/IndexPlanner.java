@@ -58,6 +58,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
@@ -745,7 +746,11 @@ class IndexPlanner {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         int minNumDocs = indexStatistics.numDocs();
         for (Map.Entry<String, PropertyDefinition> propDef : propDefns.entrySet()) {
-            int docCntForField = indexStatistics.getDocCountFor(propDef.getKey());
+            String key = propDef.getKey();
+            if (result.relPropMapping.containsKey(key)) {
+                key = getName(key);
+            }
+            int docCntForField = indexStatistics.getDocCountFor(key);
             if (docCntForField == -1) {
                 continue;
             }
