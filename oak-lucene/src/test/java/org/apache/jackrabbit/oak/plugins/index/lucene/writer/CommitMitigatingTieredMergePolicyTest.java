@@ -18,12 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.MergePolicy.MergeTrigger;
-import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link CommitMitigatingTieredMergePolicy}
