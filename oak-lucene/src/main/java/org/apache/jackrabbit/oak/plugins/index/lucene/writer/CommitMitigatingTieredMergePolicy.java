@@ -386,10 +386,14 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         // if no. of segments exceeds the maximum, adjust the maximum rates to allow more merges (less commit/rate mitigation)
         if (segmentSize > maxNoOfSegsForMitigation) {
             if (avgCommitRateDocs > maxCommitRateDocs) {
-                maxCommitRateDocs = singleExpSmoothing(avgCommitRateDocs, maxCommitRateDocs);
+                double v = singleExpSmoothing(avgCommitRateDocs, maxCommitRateDocs);
+                log.debug("adjusted maxCommitRateDocs from {} to {}", maxCommitRateDocs, v);
+                maxCommitRateDocs = v;
             }
             if (avgCommitRateMB > maxCommitRateMB) {
-                maxCommitRateMB = singleExpSmoothing(avgCommitRateMB, maxCommitRateMB);
+                double v = singleExpSmoothing(avgCommitRateMB, maxCommitRateMB);
+                log.debug("adjusted maxCommitRateMB from {} to {}", maxCommitRateMB, v);
+                maxCommitRateMB = v;
             }
         }
 
