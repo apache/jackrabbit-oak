@@ -27,6 +27,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -39,12 +40,21 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.PROP_UID;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.STATUS_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class CopyOnWriteDirectoryTest {
 
@@ -95,6 +105,42 @@ public class CopyOnWriteDirectoryTest {
         writeTree(builder);
         dir.close();
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    // OAK-6775
+    @Test
+    public void suggestDirUseCOWOnlyWhenItGetUniqueFSFolder() throws Exception {
+        Closer closer = Closer.create();
+        try {
+            NodeBuilder builder = ns.getRoot().builder().child("foo");
+
+            IndexDefinition def = new IndexDefinition(ns.getRoot(), builder.getNodeState(), "/foo");
+            Directory dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+            Directory suggestDir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), SUGGEST_DATA_CHILD_NAME, false);
+
+            closer.register(dir);
+            closer.register(suggestDir);
+
+            assertTrue("Data directory not COW-wrapped", dir instanceof CopyOnWriteDirectory);
+            assertFalse("Suggester directory COW-wrapped", suggestDir instanceof CopyOnWriteDirectory);
+
+            builder.child(STATUS_NODE).setProperty(PROP_UID, "some_random_string");
+            def = new IndexDefinition(ns.getRoot(), builder.getNodeState(), "/foo");
+
+            assertNotNull("Synthetic UID not read by definition", def.getUniqueId());
+
+            dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+            Directory dir1 = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+            suggestDir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), SUGGEST_DATA_CHILD_NAME, false);
+
+            closer.register(dir);
+            closer.register(suggestDir);
+
+            assertTrue("Data directory not COW-wrapped", dir instanceof CopyOnWriteDirectory);
+            assertTrue("Suggester directory not COW-wrapped", suggestDir instanceof CopyOnWriteDirectory);
+        } finally {
+            closer.close();
+        }
     }
 
     private void writeTree(NodeBuilder builder) {
