@@ -387,12 +387,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         if (segmentSize > maxNoOfSegsForMitigation) {
             if (avgCommitRateDocs > maxCommitRateDocs) {
                 double v = singleExpSmoothing(avgCommitRateDocs, maxCommitRateDocs);
-                log.debug("adjusted maxCommitRateDocs from {} to {}", maxCommitRateDocs, v);
+                log.debug("adjusting maxCommitRateDocs from {} to {}", maxCommitRateDocs, v);
                 maxCommitRateDocs = v;
             }
             if (avgCommitRateMB > maxCommitRateMB) {
                 double v = singleExpSmoothing(avgCommitRateMB, maxCommitRateMB);
-                log.debug("adjusted maxCommitRateMB from {} to {}", maxCommitRateMB, v);
+                log.debug("adjusting maxCommitRateMB from {} to {}", maxCommitRateMB, v);
                 maxCommitRateMB = v;
             }
         }
