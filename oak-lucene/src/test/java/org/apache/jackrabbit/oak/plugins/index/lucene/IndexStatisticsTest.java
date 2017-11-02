@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.junit.Assert.assertEquals;
 
@@ -41,7 +42,7 @@ public class IndexStatisticsTest {
     @After
     public void resetFailFlags() {
         IndexStatistics.failReadingFields = false;
-        IndexStatistics.failReadingFieldJcrTitle = false;
+        IndexStatistics.failReadingSyntheticallyFalliableField = false;
     }
 
     @Test
@@ -132,17 +133,17 @@ public class IndexStatisticsTest {
 
     @Test
     public void unableToReadCountForJcrTitle() throws Exception {
-        IndexStatistics.failReadingFieldJcrTitle = true;
+        IndexStatistics.failReadingSyntheticallyFalliableField = true;
 
         Document doc = new Document();
         doc.add(new StringField("foo1", "bar1", Field.Store.NO));
-        doc.add(new StringField("jcr:title", "title", Field.Store.NO));
+        doc.add(new StringField(SYNTHETICALLY_FALLIABLE_FIELD, "title", Field.Store.NO));
         IndexStatistics stats = getStats(createSampleDirectory(doc));
 
         assertEquals(3, stats.numDocs());
         assertEquals(2, stats.getDocCountFor("foo"));
         assertEquals(1, stats.getDocCountFor("foo1"));
-        assertEquals(-1, stats.getDocCountFor("jcr:title"));
+        assertEquals(-1, stats.getDocCountFor(SYNTHETICALLY_FALLIABLE_FIELD));
         assertEquals(0, stats.getDocCountFor("bar"));
     }
 
