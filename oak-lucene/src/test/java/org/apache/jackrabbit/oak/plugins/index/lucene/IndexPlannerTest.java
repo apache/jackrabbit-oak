@@ -1664,6 +1664,61 @@ public class IndexPlannerTest {
             IndexStatistics.failReadingFieldJcrTitle = false;
         }
     }
+
+    @Test
+    public void costForPathTransformation() throws Exception {
+        IndexStatistics.failReadingFieldJcrTitle = true;
+        String indexPath = "/test";
+        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
+        idxBuilder.indexRule("nt:base").property("foo2").propertyIndex();
+        Tree fooPD = idxBuilder.getBuilderTree().getChild("indexRules").getChild("nt:base")
+                .getChild("properties").getChild("foo2");
+        fooPD.setProperty(PROP_FUNCTION, "lower([foo])");
+        NodeState defn = idxBuilder.build();
+
+        long numOfDocs = 100;
+
+        IndexDefinition idxDefn = new IndexDefinition(root, defn, indexPath);
+        IndexNode node = createIndexNode(idxDefn, 100);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+        filter = createFilter("nt:base");
+        filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        // there is no doc with foo1
+        assertEquals(0, plan.getEstimatedEntryCount());
+
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty("a/foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        //Because path transormation comes into play only when direct prop defs don't match
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+        filter = createFilter("nt:base");
+        filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty(convertToPolishNotation("lower([foo])"), Operator.EQUAL,
+                PropertyValues.newString("foo1"));
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        // there is no doc with lower([foo])
+        assertEquals(0, plan.getEstimatedEntryCount());
+
+    }
     //------ END - Cost via doc count per field plan tests
 
 
