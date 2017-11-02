@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This implementation of {@code Revisions} is backed by a
  * {@link #JOURNAL_FILE_NAME journal} file where the current head is persisted
- * by calling {@link #maybeFlush(Flusher)}.
+ * by calling {@link #tryFlush(Flusher)}.
  * <p>
  * The {@link #setHead(Function, Option...)} method supports a timeout
  * {@link Option}, which can be retrieved through factory methods of this class.
@@ -179,7 +179,7 @@ public class TarRevisions implements Revisions, Closeable {
 
     /**
      * Flush the id of the current head to the journal after a call to {@code
-     * persisted}. Differently from {@link #maybeFlush(Flusher)}, this method
+     * persisted}. Differently from {@link #tryFlush(Flusher)}, this method
      * does not return early if a concurrent call is in progress. Instead, it
      * blocks the caller until the requested flush operation is performed.
      *
@@ -209,7 +209,7 @@ public class TarRevisions implements Revisions, Closeable {
      *                head state is actually persisted before its id is written
      *                to the head state.
      */
-    void maybeFlush(Flusher flusher) throws IOException {
+    void tryFlush(Flusher flusher) throws IOException {
         if (head.get() == null) {
             LOG.debug("No head available, skipping flush");
             return;
