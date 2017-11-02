@@ -1,0 +1,181 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.jackrabbit.oak.blob.composite;
+
+import com.google.common.collect.Maps;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.InMemoryDataStore;
+import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.util.Map;
+
+import static junit.framework.TestCase.assertNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+public class CompositeDataStoreServiceTest {
+    private static final String DEFAULT_ROLE = "defaultRole";
+
+    @Rule
+    public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    @Rule
+    public final OsgiContext context = new OsgiContext();
+
+    @Before
+    public void setup() {
+        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+    }
+
+    private DataStoreProvider createDelegateDataStore(final String role) {
+        return new DataStoreProvider() {
+            InMemoryDataStore ds = new InMemoryDataStore();
+            @Override
+            public String getRole() {
+                return role;
+            }
+            @Override
+            public DataStore getDataStore() {
+                return ds;
+            }
+        };
+    }
+
+    private Map<String, Object> createConfig(String role) {
+        Map<String, Object> config = Maps.newHashMap();
+        config.put(DataStoreProvider.ROLE, role);
+        return config;
+    }
+
+    private DataStoreProvider registerDataStoreProvider(final String role) {
+        Map<String, Object> dsConfig = Maps.newHashMap();
+        dsConfig.put(DataStoreProvider.ROLE, role);
+        DataStoreProvider dsp = createDelegateDataStore(role);
+        context.registerService(DataStoreProvider.class, dsp, dsConfig);
+        return dsp;
+    }
+
+    private CompositeDataStoreService registerService(final String role) {
+        return registerService(role, "");
+    }
+
+    private CompositeDataStoreService registerService(final String role, final String cfgString) {
+        Map<String, Object> serviceConfig = Maps.newHashMap();
+        serviceConfig.put(role, cfgString);
+        CompositeDataStoreService service = new CompositeDataStoreService();
+        context.registerInjectActivateService(service, serviceConfig);
+        return service;
+    }
+
+    private void verifyServiceRegistrationState(OsgiContext context, boolean shouldBeActive) {
+        CompositeDataStore ds = context.getService(CompositeDataStore.class);
+        if (shouldBeActive) {
+            assertNotNull(ds);
+        }
+        else {
+            assertNull(ds);
+        }
+    }
+
+
+    @Test
+    public void testCreateCompositeDataStoreService() {
+        registerDataStoreProvider(DEFAULT_ROLE);
+        registerService(DEFAULT_ROLE);
+
+        verifyServiceRegistrationState(context, true);
+    }
+
+    @Test
+    public void testCreateCompositeDataStoreServiceWithoutDataStoreProvider() {
+        registerService(DEFAULT_ROLE);
+
+        verifyServiceRegistrationState(context, false);
+    }
+
+    @Test
+    public void testCreateCompositeDataStoreServiceThenAddDataStoreProvider() {
+        registerService(DEFAULT_ROLE);
+        verifyServiceRegistrationState(context, false);
+
+        registerDataStoreProvider(DEFAULT_ROLE);
+        verifyServiceRegistrationState(context, true);
+    }
+
+    @Test
+    public void testCreateCompositeDataStoreServiceDeferredDataStoreCreationIsAdditive() {
+        Map<String, Object> serviceConfig = Maps.newHashMap();
+        serviceConfig.put(DEFAULT_ROLE, "");
+        serviceConfig.put("local2", "");
+        CompositeDataStoreService service = new CompositeDataStoreService();
+        context.registerInjectActivateService(service, serviceConfig);
+
+        DataStoreProvider dsp1 = registerDataStoreProvider(DEFAULT_ROLE);
+        verifyServiceRegistrationState(context, true);
+
+        DataStoreProvider[] providers = context.getServices(DataStoreProvider.class, null);
+        assertEquals(1, providers.length);
+
+        DataStoreProvider dsp2 = registerDataStoreProvider("local2");
+        verifyServiceRegistrationState(context, true);
+
+        providers = context.getServices(DataStoreProvider.class, null);
+        assertEquals(2, providers.length);
+
+        providers = context.getServices(DataStoreProvider.class, String.format("(role=%s)", DEFAULT_ROLE));
+        assertEquals(1, providers.length);
+        assertEquals(dsp1, providers[0]);
+
+        providers = context.getServices(DataStoreProvider.class, "(role=local2)");
+        assertEquals(1, providers.length);
+        assertEquals(dsp2, providers[0]);
+    }
+
+    @Test
+    public void testRemoveDataStoreProviderDeregistersService() {
+        DataStoreProvider dsp = registerDataStoreProvider(DEFAULT_ROLE);
+        CompositeDataStoreService service = registerService(DEFAULT_ROLE);
+
+        verifyServiceRegistrationState(context, true);
+
+        service.removeDelegateDataStore(dsp);
+
+        verifyServiceRegistrationState(context, false);
+    }
+
+
+    @Test
+    public void testCreateDataStoreWithoutActiveDelegatesReturnsNull() {
+        CompositeDataStoreService service = new CompositeDataStoreService();
+
+        Map<String, Object> config = Maps.newHashMap();
+        DataStore ds = service.createDataStore(context.componentContext(), config);
+        assertNull(ds);
+
+        assertNull(context.getService(CompositeDataStore.class));
+    }
+}
