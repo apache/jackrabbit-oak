@@ -43,7 +43,9 @@ public class IndexStatistics {
     // For ease of tests as there didn't seem an easy way to make an IndexReader delegator
     // that would fail calls to reader on-demand.
     static boolean failReadingFields = false;
-    static boolean failReadingFieldJcrTitle = false;
+    static boolean failReadingSyntheticallyFalliableField = false;
+
+    static final String SYNTHETICALLY_FALLIABLE_FIELD = "synthetically-falliable-field";
 
     /**
      * @param reader {@link IndexReader} for which statistics need to be collected.
@@ -70,7 +72,7 @@ public class IndexStatistics {
                 if (isPropertyField(f)) {
                     int docCntForField = -1;
                     try {
-                        if (failReadingFieldJcrTitle && "jcr:title".equals(f)) {
+                        if (failReadingSyntheticallyFalliableField && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {
                             throw new IOException("Synthetically fail to read count for field jcr:title");
                         }
                         docCntForField = reader.getDocCount(f);
