@@ -581,7 +581,7 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>7.0.81</version>
+        <version>7.0.82</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
