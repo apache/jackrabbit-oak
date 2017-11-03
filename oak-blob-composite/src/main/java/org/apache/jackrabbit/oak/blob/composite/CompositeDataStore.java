@@ -42,7 +42,6 @@ import java.util.Properties;
 public class CompositeDataStore implements DataStore, SharedDataStore, TypedDataStore, MultiDataStoreAware {
 
     private static Logger LOG = LoggerFactory.getLogger(CompositeDataStore.class);
-    private static final String DATASTORE = "datastore";
 
     private Properties properties = new Properties();
     private List<DataStoreProvider> delegates = Lists.newArrayList();
@@ -51,18 +50,18 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         this.properties = properties;
     }
 
-    void addDelegate(final CompositeDataStoreDelegate delegate) {
+    boolean addDelegate(final CompositeDataStoreDelegate delegate) {
         String delegateRole = delegate.getRole();
         if (null != delegateRole && properties.containsKey(delegate.getRole())) {
             DataStoreProvider ds = delegate.getDataStore();
             delegates.add(ds);
+            return true;
         }
+        return false;
     }
 
-    void removeDelegate(final DataStoreProvider ds) {
-        if (ds instanceof DataStore) {
-            delegates.remove(ds);
-        }
+    boolean removeDelegate(final DataStoreProvider ds) {
+        return delegates.remove(ds);
     }
 
     Iterator<DataStoreProvider> getDelegateIterator() {
