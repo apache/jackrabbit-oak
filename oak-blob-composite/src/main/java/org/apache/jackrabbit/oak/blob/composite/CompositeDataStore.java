@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.blob.composite;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -38,13 +38,14 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 public class CompositeDataStore implements DataStore, SharedDataStore, TypedDataStore, MultiDataStoreAware {
 
     private static Logger LOG = LoggerFactory.getLogger(CompositeDataStore.class);
 
     private Properties properties = new Properties();
-    private List<DataStoreProvider> delegates = Lists.newArrayList();
+    private Set<DataStoreProvider> delegates = Sets.newConcurrentHashSet();
 
     CompositeDataStore(final Properties properties) {
         this.properties = properties;

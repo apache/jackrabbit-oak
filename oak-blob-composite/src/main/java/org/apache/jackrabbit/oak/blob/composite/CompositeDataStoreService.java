@@ -89,26 +89,24 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
     }
 
     private void registerCompositeDataStore() {
-        if (isRegistered) {
-            // Already registered
-            return;
-        }
         if (delegateDataStores.isEmpty()) {
             log.info("Composite Data Store registration is deferred until there is an active delegate data store");
             return;
         }
 
-//        boolean needToRegisterDataStore = false;
         if (null == dataStore) {
             Properties properties = new Properties();
             if (null != config) {
                 properties.putAll(config);
             }
             dataStore = new CompositeDataStore(properties);
-//            needToRegisterDataStore = true;
         }
         for (CompositeDataStoreDelegate delegate : delegateDataStores) {
             dataStore.addDelegate(delegate);
+        }
+
+        if (isRegistered) {
+            return;
         }
 
         BundleContext bundleContext = context.getBundleContext();
@@ -126,21 +124,6 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
                 props
         )));
         isRegistered = true;
-
-//        if (needToRegisterDataStore) {
-//            try {
-//                registerDataStore(context,
-//                        config,
-//                        dataStore,
-//                        getStatisticsProvider(),
-//                        getDescription(),
-//                        closer);
-//            }
-//            catch (RepositoryException e) {
-//                log.error("Failed to complete CompositeDataStore registration", e);
-//                dataStore = null;
-//            }
-//        }
     }
 
     protected void deactivate() throws DataStoreException {
@@ -159,14 +142,11 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
                 .build();
         if (null != delegate) {
             delegateDataStores.add(delegate);
-            // Should we be able to add delegates even after this service is registered?
             if (context == null) {
                 log.info("addDelegateDataStore: context is null, delaying reconfiguration");
                 return;
             }
-            if (! isRegistered) {
-                registerCompositeDataStore();
-            }
+            registerCompositeDataStore();
         }
     }
 
@@ -184,14 +164,6 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
             unregisterCompositeDataStore();
         }
     }
-
-//    Iterator<CompositeDataStoreDelegate> getDelegateIterator() {
-//        return delegateDataStores.iterator();
-//    }
-
-//    DataStore getDataStore() {
-//        return dataStore;
-//    }
 
     @Override
     protected String[] getDescription() {
