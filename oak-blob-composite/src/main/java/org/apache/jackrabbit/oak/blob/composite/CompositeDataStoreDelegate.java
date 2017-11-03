@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.blob.composite;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 
@@ -29,7 +28,7 @@ public class CompositeDataStoreDelegate {
     private final DataStoreProvider ds;
     private final Map<String, Object> config;
 
-    CompositeDataStoreDelegate(final DataStoreProvider ds, final String role, final Map<String, Object> config) {
+    CompositeDataStoreDelegate(final DataStoreProvider ds, final Map<String, Object> config) {
         this.ds = ds;
         if (null != config) {
             this.config = config;
@@ -37,7 +36,7 @@ public class CompositeDataStoreDelegate {
         else {
             this.config = Maps.newConcurrentMap();
         }
-        this.config.put(DataStoreProvider.ROLE, role);
+        this.config.putIfAbsent(DataStoreProvider.ROLE, ds.getRole());
     }
 
     public DataStoreProvider getDataStore() {
@@ -45,7 +44,7 @@ public class CompositeDataStoreDelegate {
     }
 
     public String getRole() {
-        return (String) config.get(DataStoreProvider.ROLE);
+        return ds.getRole();
     }
 
     public Map<String, ?> getConfig() {
@@ -58,16 +57,10 @@ public class CompositeDataStoreDelegate {
 
     static class CompositeDataStoreDelegateBuilder {
         DataStoreProvider ds = null;
-        String role = null;
         Map<String, Object> config = Maps.newConcurrentMap();
 
         public CompositeDataStoreDelegateBuilder(final DataStoreProvider ds) {
             this.ds = ds;
-        }
-
-        public CompositeDataStoreDelegateBuilder withRole(final String role) {
-            this.role = role;
-            return this;
         }
 
         public CompositeDataStoreDelegateBuilder withConfig(final Map<String, Object> config) {
@@ -76,11 +69,8 @@ public class CompositeDataStoreDelegate {
         }
 
         public CompositeDataStoreDelegate build() {
-            if (Strings.isNullOrEmpty(role) && null != config) {
-                role = (String) config.get(DataStoreProvider.ROLE);
-            }
-            if (null != ds && ! Strings.isNullOrEmpty(role)) {
-                return new CompositeDataStoreDelegate(ds, role, config);
+            if (null != ds) {
+                return new CompositeDataStoreDelegate(ds, config);
             }
             return null;
         }

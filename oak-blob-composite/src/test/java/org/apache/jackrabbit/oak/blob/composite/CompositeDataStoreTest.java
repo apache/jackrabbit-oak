@@ -72,7 +72,9 @@ public class CompositeDataStoreTest {
     }
 
     private CompositeDataStoreDelegate createDelegate(DataStoreProvider dsp, String role, Map<String, Object> cfg) {
-        return new CompositeDataStoreDelegate(dsp, role, cfg);
+        return CompositeDataStoreDelegate.builder(dsp)
+                .withConfig(cfg)
+                .build();
     }
 
     private CompositeDataStore createCompositeDataStore(List<String> roles) {
@@ -144,12 +146,10 @@ public class CompositeDataStoreTest {
         List<CompositeDataStoreDelegate> delegates = Lists.newArrayList(
                 new MissingRoleCompositeDataStoreDelegate(
                         createDataStoreProvider("local1"),
-                        "local1",
                         Maps.newHashMap()
                 ),
                 new EmptyRoleCompositeDataStoreDelegate(
                         createDataStoreProvider("local2"),
-                        "local2",
                         Maps.newHashMap()
                 )
         );
@@ -173,11 +173,10 @@ public class CompositeDataStoreTest {
 
     @Test
     public void testAddDelegateWithNonMatchingRole() {
-        CompositeDataStoreDelegate delegate = new CompositeDataStoreDelegate(
-                createDataStoreProvider("otherRole"),
-                "otherRole",
-                Maps.newHashMap()
-        );
+        CompositeDataStoreDelegate delegate =
+                CompositeDataStoreDelegate.builder(createDataStoreProvider("otherRole"))
+                .withConfig(Maps.newHashMap())
+                .build();
 
         Map<String, Object> config = Maps.newHashMap();
         config.put("thisRole", "");
@@ -269,8 +268,8 @@ public class CompositeDataStoreTest {
     }
 
     static class MissingRoleCompositeDataStoreDelegate extends CompositeDataStoreDelegate {
-        MissingRoleCompositeDataStoreDelegate(DataStoreProvider dsp, String role, Map<String, Object> config) {
-            super(dsp, role, config);
+        MissingRoleCompositeDataStoreDelegate(DataStoreProvider dsp, Map<String, Object> config) {
+            super(dsp, config);
         }
 
         @Override
@@ -280,8 +279,8 @@ public class CompositeDataStoreTest {
     }
 
     static class EmptyRoleCompositeDataStoreDelegate extends CompositeDataStoreDelegate {
-        EmptyRoleCompositeDataStoreDelegate(DataStoreProvider dsp, String role, Map<String, Object> config) {
-            super(dsp, role, config);
+        EmptyRoleCompositeDataStoreDelegate(DataStoreProvider dsp, Map<String, Object> config) {
+            super(dsp, config);
         }
 
         @Override
