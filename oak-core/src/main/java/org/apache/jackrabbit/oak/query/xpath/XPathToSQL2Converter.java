@@ -234,20 +234,6 @@ public class XPathToSQL2Converter {
                         rewindSelector();
                         Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
                         statement.addSelectColumn(p);
-                    } else if ("rep:facet".equals(identifier)) {
-                        // this will also deal with relative properties
-                        // (functions and so on are also working, but this is probably not needed)
-                        Expression e = parseExpression();
-                        if (!(e instanceof Expression.Property)) {
-                            throw getSyntaxError();
-                        }
-                        Expression.Property prop = (Expression.Property) e;
-                        String property = prop.getColumnAliasName();
-                        read(")");
-                        rewindSelector();
-                        Expression.Property p = new Expression.Property(currentSelector,
-                                        "rep:facet(" + property + ")", false);
-                        statement.addSelectColumn(p);
                     } else {
                         throw getSyntaxError();
                     }
@@ -279,6 +265,21 @@ public class XPathToSQL2Converter {
                     } else if (readIf("rep:suggest")) {
                         readOpenDotClose(true);
                         Expression.Property p = new Expression.Property(currentSelector, "rep:suggest()", false);
+                        statement.addSelectColumn(p);
+                    } else if (readIf("rep:facet")) {
+                        // this will also deal with relative properties
+                        // (functions and so on are also working, but this is probably not needed)
+                        read("(");
+                        Expression e = parseExpression();
+                        if (!(e instanceof Expression.Property)) {
+                            throw getSyntaxError();
+                        }
+                        Expression.Property prop = (Expression.Property) e;
+                        String property = prop.getColumnAliasName();
+                        read(")");
+                        rewindSelector();
+                        Expression.Property p = new Expression.Property(currentSelector,
+                                "rep:facet(" + property + ")", false);
                         statement.addSelectColumn(p);
                     }
                 } while (readIf("|"));
