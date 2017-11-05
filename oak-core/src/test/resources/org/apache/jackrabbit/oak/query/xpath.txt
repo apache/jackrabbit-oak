@@ -24,6 +24,21 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# OAK-6792
+
+xpath2sql /jcr:root//*/(rep:facet(jcr:data/jcr:createdBy))
+select [jcr:path], [jcr:score], [rep:facet(jcr:data/jcr:createdBy)]
+  from [nt:base] as a
+  where isdescendantnode(a, '/')
+  /* xpath ... */
+
+
+xpath2sql /jcr:root//*/(rep:facet(jcr:createdBy))
+select [jcr:path], [jcr:score], [rep:facet(jcr:createdBy)]
+  from [nt:base] as a
+  where isdescendantnode(a, '/')
+  /* xpath ... */
+
 # OAK-5949
 
 xpath2sql /jcr:root/home//element(*,rep:Authorizable)[jcr:like(@rep:authorizableId,'@')]
