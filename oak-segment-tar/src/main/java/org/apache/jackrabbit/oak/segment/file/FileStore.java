@@ -368,16 +368,6 @@ public class FileStore extends AbstractFileStore {
     }
 
     /**
-     * Run the compaction gain estimation process.
-     * @return
-     */
-    public GCEstimation estimateCompactionGain() {
-        try (ShutDownCloser ignored = shutDown.keepAlive()) {
-            return garbageCollector.estimateCompactionGain();
-        }
-    }
-
-    /**
      * Copy every referenced record in data (non-bulk) segments. Bulk segments
      * are fully kept (they are only removed in cleanup, if there is no
      * reference to them).
@@ -624,14 +614,14 @@ public class FileStore extends AbstractFileStore {
         }
 
         synchronized void runFull() throws IOException {
-            run(this::compactFull);
+            run(true, this::compactFull);
         }
 
         synchronized void runTail() throws IOException {
-            run(this::compactTail);
+            run(false, this::compactTail);
         }
 
-        private void run(Supplier<CompactionResult> compact) throws IOException {
+        private void run(boolean full, Supplier<CompactionResult> compact) throws IOException {
             try {
                 gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
 
@@ -652,9 +642,9 @@ public class FileStore extends AbstractFileStore {
                     gcListener.updateStatus(ESTIMATION.message());
                     
                     Stopwatch watch = Stopwatch.createStarted();
-                    GCEstimation estimate = estimateCompactionGain();
-                    sufficientEstimatedGain = estimate.gcNeeded();
-                    String gcLog = estimate.gcLog();
+                    GCEstimationResult estimation = estimateCompactionGain(full);
+                    sufficientEstimatedGain = estimation.isGcNeeded();
+                    String gcLog = estimation.getGcLog();
                     if (sufficientEstimatedGain) {
                         gcListener.info(
                                 "TarMK GC #{}: estimation completed in {} ({} ms). {}",
@@ -696,9 +686,8 @@ public class FileStore extends AbstractFileStore {
          * the passed {@code stop} signal.
          * @return compaction gain estimate
          */
-        synchronized GCEstimation estimateCompactionGain() {
-            return new SizeDeltaGcEstimation(gcOptions, gcJournal,
-                    stats.getApproximateSize());
+        GCEstimationResult estimateCompactionGain(boolean full) {
+            return new SizeDeltaGcEstimation(gcOptions.getGcSizeDeltaEstimation(), gcJournal, stats.getApproximateSize(), full).estimate();
         }
 
         @Nonnull
