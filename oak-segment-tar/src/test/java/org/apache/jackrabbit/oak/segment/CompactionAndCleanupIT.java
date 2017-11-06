@@ -110,6 +110,34 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
+    public void compactPersistsHead() throws Exception {
+        FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(defaultGCOptions().setRetainedGenerations(2))
+                .withMaxFileSize(1)
+                .build();
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+        try {
+            // Create ~2MB of data
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+            for (int i = 0; i < 10000; i++) {
+                NodeBuilder c = content.child("c" + i);
+                for (int j = 0; j < 1000; j++) {
+                    c.setProperty("p" + i, "v" + i);
+                }
+            }
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+
+            fileStore.compactFull();
+            assertEquals(fileStore.getRevisions().getHead(), fileStore.getRevisions().getPersistedHead());
+        } finally {
+            fileStore.close();
+        }
+    }
+
+    @Test
     public void compactionNoBinaryClone() throws Exception {
         ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
         FileStore fileStore = fileStoreBuilder(getFileStoreFolder())

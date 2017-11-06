@@ -826,6 +826,7 @@ public class FileStore extends AbstractFileStore {
 
                 if (success) {
                     writer.flush();
+                    flush();
                     gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
                             GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
                     return compactionSucceeded(newGeneration, after.getRecordId());
