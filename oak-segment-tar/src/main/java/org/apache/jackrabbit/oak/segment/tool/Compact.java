@@ -134,8 +134,10 @@ public class Compact implements Runnable {
     private void compact() throws IOException, InvalidFileStoreVersionException {
         try (FileStore store = newFileStore()) {
             store.compactFull();
+        }
 
-            System.out.println("    -> cleaning up");
+        System.out.println("    -> cleaning up");
+        try (FileStore store = newFileStore()) {
             store.cleanup();
             File journal = new File(path, "journal.log");
             String head;
