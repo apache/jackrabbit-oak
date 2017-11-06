@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -92,6 +93,7 @@ public class UpgradeIT {
     }
 
     @Test
+    @Ignore("OAK-6894")
     public void offRCUpgradesSegments() throws IOException, InvalidFileStoreVersionException {
         checkSegmentVersion(V_12);
         checkStoreVersion(1);
