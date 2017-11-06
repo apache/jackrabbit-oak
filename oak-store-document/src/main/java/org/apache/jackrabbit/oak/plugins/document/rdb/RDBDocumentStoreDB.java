@@ -218,7 +218,7 @@ public enum RDBDocumentStoreDB {
     ORACLE("Oracle") {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
-            return RDBJDBCTools.versionCheck(md, 12, 1, 12, 1, description);
+            return RDBJDBCTools.versionCheck(md, 12, 1, 12, 2, description);
         }
 
         @Override
