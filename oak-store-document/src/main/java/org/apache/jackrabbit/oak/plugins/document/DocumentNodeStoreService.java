@@ -560,12 +560,17 @@ public class DocumentNodeStoreService {
         if (DocumentStoreType.fromString(config.documentStoreType()) == DocumentStoreType.MONGO) {
             defaultExpr = CONTINUOUS_RGC_EXPR;
         } else {
-            defaultExpr = CLASSIC_RGC_EXPR;
+            defaultExpr = "";
         }
-        String expr = PropertiesUtil.toString(prop(PROP_VER_GC_EXPRESSION), defaultExpr);
+        String expr = PropertiesUtil.toString(prop(PROP_VER_GC_EXPRESSION), "");
+        if (expr.isEmpty()) {
+            expr = defaultExpr;
+        }
         // validate expression
         try {
-            new CronExpression(expr);
+            if (!expr.isEmpty()) {
+                new CronExpression(expr);
+            }
         } catch (ParseException e) {
             log.warn("Invalid cron expression, falling back to default '" + defaultExpr + "'", e);
             expr = defaultExpr;
@@ -874,6 +879,9 @@ public class DocumentNodeStoreService {
 
     private void registerVersionGCJob(final DocumentNodeStore nodeStore) {
         String expr = getVersionGCExpression();
+        if (expr.isEmpty()) {
+            return;
+        }
         Map<String, Object> props = jobPropertiesFor(RevisionGCJob.class);
         props.put("scheduler.expression", expr);
         long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
