@@ -103,10 +103,10 @@ public class IndexStatistics {
     /**
      * @param field Index field for which number of indexed documents are to be return
      * @return number of indexed documents (without subtracting potentially deleted ones)
-     *         for the given {@code field}.<br/>
-     *         -1: if index codec doesn't store doc-count-for-field statistics, OR <br/>
-     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reader threw an exception while reading fields, OR <br/>
-     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception thrown while reading count for the field, OR <br/>
+     *         for the given {@code field}.<br>
+     *         -1: if index codec doesn't store doc-count-for-field statistics, OR <br>
+     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reader threw an exception while reading fields, OR <br>
+     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception thrown while reading count for the field, OR <br>
      *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc-count is asked for a non-property field.
      */
     public int getDocCountFor(String field) {
