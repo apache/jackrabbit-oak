@@ -284,11 +284,12 @@ versionGcMaxAgeInSecs
 versionGCExpression
 : Default ""
 : A cron expression that defines when the Revision GC is scheduled. If this
-  configuration entry is left empty, the default value depends on the
+  configuration entry is left empty, the default behaviour depends on the
   `documentStoreType`. For `MONGO` the default is to schedule a run every five
   seconds (also known as Continuous Revision Garbage Collection). For `RDB` the
-  default is to schedule a run once a day starting at 2 AM. The corresponding
-  cron expression is `0 0 2 * * ?`.
+  default is no scheduled GC. It must be enabled explicitly with a cron 
+  expression. E.g. the following expression triggers a GC run every night at
+  2 AM: `0 0 2 * * ?`.
 : Since 1.7.11
 
 versionGCTimeLimitInSecs
