@@ -199,7 +199,8 @@ public class FileStore extends AbstractFileStore {
                 .withFileStoreMonitor(stats)
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
                 .build();
-        this.stats.init(this.tarFiles.size());
+        long size = this.tarFiles.size();
+        this.stats.init(size);
 
         this.snfeListener = builder.getSnfeListener();
 
@@ -236,7 +237,12 @@ public class FileStore extends AbstractFileStore {
                         checkDiskSpace(gcOptions);
                     }
                 });
-        log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
+        log.info("TarMK opened at {}, mmap={}, size={} ({} bytes)",
+            directory,
+            memoryMapping,
+            humanReadableByteCount(size),
+            size
+        );
         log.debug("TAR files: {}", tarFiles);
     }
 
