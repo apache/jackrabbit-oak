@@ -203,10 +203,13 @@ For NodeIterator.getSize(), some versions of Jackrabbit 2.x returned the estimat
 Lucene result set size, including nodes that are not accessible.
 
 By default, Oak does not do this; it either returns the correct result size, or -1.
-Oak 1.2.x and newer supports a compatibility flag so that it works in the same way
+Oak 1.2.x and newer supports a compatibility flag so that it works in a similar way
 as Jackrabbit 2.x, by returning an estimate (see OAK-2926).
-The estimate will be larger or equal the actual result size, 
-as it includes unindexed properties and nodes that are not accessible. 
+Specially, only query restrictions that are part of the used index are considered when calculating the size. 
+Additionally, ACLs are not applied to the results, 
+so nodes which are not visible to the current session will still be included in the count returned. 
+As such,  the count returned can be higher than the actual number of results 
+and the accurate count can only be determined by iterating through the results.
 
 This only works with the Lucene `compatVersion=2` right now,
 so even if enabled, getSize may still return -1 if the index used does not support the feature.
