@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Collections;
-
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -29,7 +26,6 @@ import org.junit.After;
 import org.junit.Test;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
@@ -118,18 +114,5 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
 
         ns1.dispose();
         ns2.dispose();
-    }
-
-    // OAK-2297
-    @Test
-    public void updateAbsentDocument() throws Exception {
-        String id = Utils.getIdFromPath("/test");
-        // trigger cache entry for /test
-        ds.find(NODES, id);
-
-        UpdateOp updateOp = new UpdateOp(id, false);
-        updateOp.setMapEntry("foo", Revision.newRevision(1), "bar");
-
-        ds.update(NODES, Collections.singletonList(id), updateOp);
     }
 }

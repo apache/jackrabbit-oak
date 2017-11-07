@@ -371,26 +371,6 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        assertUnconditional(updateOp);
-        Lock lock = rwLock.writeLock();
-        lock.lock();
-        try {
-            ConcurrentSkipListMap<String, T> map = getMap(collection);
-            for (String key : keys) {
-                if (!map.containsKey(key)) {
-                    continue;
-                }
-                internalCreateOrUpdate(collection, updateOp.shallowCopy(key), true);
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("Nodes:\n");

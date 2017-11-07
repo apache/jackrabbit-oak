@@ -103,10 +103,8 @@ import com.mongodb.WriteResult;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
-import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
-import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Sets.difference;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -1230,63 +1228,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             }
         } finally {
             stats.doneCreate(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids, insertSuccess);
-        }
-    }
-
-    @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        log("update", keys, updateOp);
-        UpdateUtils.assertUnconditional(updateOp);
-        DBCollection dbCollection = getDBCollection(collection);
-        QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
-        // make sure we don't modify the original updateOp
-        updateOp = updateOp.copy();
-        DBObject update = createUpdate(updateOp, false);
-        final Stopwatch watch = startWatch();
-        try {
-            Map<String, NodeDocument> cachedDocs = Collections.emptyMap();
-            if (collection == Collection.NODES) {
-                cachedDocs = Maps.newHashMap();
-                for (String key : keys) {
-                    cachedDocs.put(key, nodesCache.getIfPresent(key));
-                }
-            }
-            try {
-                dbCollection.update(query.get(), update, false, true);
-                if (collection == Collection.NODES) {
-                    Map<String, ModificationStamp> modCounts = getModStamps(filterValues(cachedDocs, notNull()).keySet());
-                    // update cache
-                    for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
-                        // the cachedDocs is not empty, so the collection = NODES
-                        Lock lock = nodeLocks.acquire(entry.getKey());
-                        try {
-                            ModificationStamp postUpdateModStamp = modCounts.get(entry.getKey());
-                            if (postUpdateModStamp != null
-                                    && entry.getValue() != null
-                                    && entry.getValue() != NodeDocument.NULL
-                                    && Long.valueOf(postUpdateModStamp.modCount - 1).equals(entry.getValue().getModCount())) {
-                                // post update modCount is one higher than
-                                // what we currently see in the cache. we can
-                                // replace the cached document
-                                NodeDocument newDoc = applyChanges(Collection.NODES, entry.getValue(), updateOp.shallowCopy(entry.getKey()));
-                                nodesCache.replaceCachedDocument(entry.getValue(), newDoc);
-                            } else {
-                                // make sure concurrently loaded document is
-                                // invalidated
-                                nodesCache.invalidate(entry.getKey());
-                            }
-                        } finally {
-                            lock.unlock();
-                        }
-                    }
-                }
-            } catch (MongoException e) {
-                throw handleException(e, collection, keys);
-            }
-        } finally {
-            stats.doneUpdate(watch.elapsed(TimeUnit.NANOSECONDS), collection, keys.size());
         }
     }
 

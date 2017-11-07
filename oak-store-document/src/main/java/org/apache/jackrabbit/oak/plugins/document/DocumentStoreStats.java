@@ -247,12 +247,6 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
-    public void doneUpdate(long timeTakenNanos, Collection<? extends Document> collection, int updateCount) {
-        //NODES - Update is called for lastRev update
-        perfLog(timeTakenNanos, "update");
-    }
-
-    @Override
     public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, String key, boolean newEntry,
                                   boolean success, int retryCount) {
         if (collection == Collection.NODES){

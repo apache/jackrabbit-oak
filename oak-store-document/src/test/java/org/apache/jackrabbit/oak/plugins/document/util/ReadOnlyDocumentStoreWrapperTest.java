@@ -120,15 +120,6 @@ public class ReadOnlyDocumentStoreWrapperTest {
             uoeThrown = false;
 
             try {
-                readOnlyStore.update(collection, null, null);
-            } catch (UnsupportedOperationException uoe) {
-                //catch uoe thrown by read only wrapper
-                uoeThrown = true;
-            }
-            assertTrue("update must throw UnsupportedOperationException", uoeThrown);
-            uoeThrown = false;
-
-            try {
                 readOnlyStore.createOrUpdate(collection, (UpdateOp) null);
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper

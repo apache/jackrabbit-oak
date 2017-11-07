@@ -343,12 +343,6 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> void update(Collection<T> collection, List<String> keys, UpdateOp updateOp) {
-        UpdateUtils.assertUnconditional(updateOp);
-        internalUpdate(collection, keys, updateOp);
-    }
-
-    @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
         UpdateUtils.assertUnconditional(update);
         return internalCreateOrUpdate(collection, update, true, false);
@@ -1448,65 +1442,6 @@ public class RDBDocumentStore implements DocumentStore {
         update.increment(MODCOUNT, 1);
     }
 
-    @CheckForNull
-    private <T extends Document> void internalUpdate(Collection<T> collection, List<String> ids, UpdateOp update) {
-
-        if (isAppendableUpdate(update, true) && !requiresPreviousState(update)) {
-            Operation modOperation = update.getChanges().get(MODIFIEDKEY);
-            long modified = getModifiedFromOperation(modOperation);
-            boolean modifiedIsConditional = modOperation == null || modOperation.type != UpdateOp.Operation.Type.SET;
-            String appendData = ser.asString(update);
-
-            for (List<String> chunkedIds : Lists.partition(ids, CHUNKSIZE)) {
-
-                if (collection == Collection.NODES) {
-                    for (String key : chunkedIds) {
-                        nodesCache.invalidate(key);
-                    }
-                }
-
-                Connection connection = null;
-                RDBTableMetaData tmd = getTable(collection);
-                boolean success = false;
-                try {
-                    Stopwatch watch = startWatch();
-                    connection = this.ch.getRWConnection();
-                    success = db.batchedAppendingUpdate(connection, tmd, chunkedIds, modified, modifiedIsConditional, appendData);
-                    connection.commit();
-                    //Internally 'db' would make multiple calls and number of those
-                    //remote calls would not be captured
-                    stats.doneUpdate(watch.elapsed(TimeUnit.NANOSECONDS), collection, chunkedIds.size());
-                } catch (SQLException ex) {
-                    success = false;
-                    this.ch.rollbackConnection(connection);
-                } finally {
-                    this.ch.closeConnection(connection);
-                }
-                if (success) {
-                    if (collection == Collection.NODES) {
-                        for (String id : chunkedIds) {
-                            nodesCache.invalidate(id);
-                        }
-                    }
-                } else {
-                    for (String id : chunkedIds) {
-                        UpdateOp up = update.copy();
-                        up = up.shallowCopy(id);
-                        internalCreateOrUpdate(collection, up, false, true);
-                    }
-                }
-            }
-        } else {
-            Stopwatch watch = startWatch();
-            for (String id : ids) {
-                UpdateOp up = update.copy();
-                up = up.shallowCopy(id);
-                internalCreateOrUpdate(collection, up, false, true);
-            }
-            stats.doneUpdate(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids.size());
-        }
-    }
-
     private <T extends Document> List<T> internalQuery(Collection<T> collection, String fromKey, String toKey,
             List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) {
         Connection connection = null;
@@ -1908,14 +1843,6 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         return true;
-    }
-
-    /*
-     * check whether this update operation requires knowledge about the previous
-     * state
-     */
-    private static boolean requiresPreviousState(UpdateOp update) {
-        return !update.getConditions().isEmpty();
     }
 
     private static long getModifiedFromOperation(Operation op) {
