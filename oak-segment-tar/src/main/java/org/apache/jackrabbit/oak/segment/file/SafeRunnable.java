@@ -28,17 +28,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@code Runnable} implementation that is safe to submit to an executor
- * or {@link Scheduler}.
+ * A {@code Runnable} implementation that is safe to submit to an executor or
+ * {@link Scheduler}.
  * <p>
- * When this implementation's {@link #run()} method is invoked, it will set
- * the name of the current thread to the name passed to {@link SafeRunnable},
- * run the wrapped runnable and finally restore the initial thread name.
- * When the wrapped runnable throws any unhandled exception, this exception
- * is logged at error level and the exception is re-thrown.
+ * When this implementation's {@link #run()} method is invoked, it will set the
+ * name of the current thread to the name passed to {@link SafeRunnable}, run
+ * the wrapped runnable and finally restore the initial thread name. When the
+ * wrapped runnable throws any unhandled exception, this exception is logged at
+ * error level and the exception is re-thrown.
  */
-public class SafeRunnable implements Runnable {
-    private static final Logger LOG = LoggerFactory.getLogger(SafeRunnable.class);
+class SafeRunnable implements Runnable {
+
+    private static final Logger log = LoggerFactory.getLogger(SafeRunnable.class);
 
     @Nonnull
     private final String name;
@@ -47,29 +48,30 @@ public class SafeRunnable implements Runnable {
     private final Runnable runnable;
 
     /**
-     * New instance with the given {@code name} wrapping the passed {@code runnable}.
-     * @param name
-     * @param runnable
+     * New instance with the given {@code name} wrapping the passed {@code
+     * runnable}.
+     *
+     * @param name     The name of the background operation.
+     * @param runnable The background operation.
      */
-    public SafeRunnable(@Nonnull String name, @Nonnull Runnable runnable) {
+    SafeRunnable(@Nonnull String name, @Nonnull Runnable runnable) {
         this.name = checkNotNull(name);
         this.runnable = checkNotNull(runnable);
     }
 
-    /**
-     * See class comment
-     */
     @Override
     public void run() {
-        String n = currentThread().getName();
-        currentThread().setName(name);
         try {
-            runnable.run();
+            String n = currentThread().getName();
+            currentThread().setName(name);
+            try {
+                runnable.run();
+            } finally {
+                currentThread().setName(n);
+            }
         } catch (Throwable e) {
-            LOG.error("Uncaught exception in {}", name, e);
-            throw e;
-        } finally {
-            currentThread().setName(n);
+            log.error(String.format("Uncaught exception in %s", name), e);
         }
     }
+
 }
