@@ -122,13 +122,6 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
     }
 
     @Override
-    public final <T extends Document> void update(Collection<T> collection,
-            List<String> keys, UpdateOp updateOp) {
-        performLeaseCheck();
-        delegate.update(collection, keys, updateOp);
-    }
-
-    @Override
     public final <T extends Document> T createOrUpdate(Collection<T> collection,
             UpdateOp update) {
         performLeaseCheck();

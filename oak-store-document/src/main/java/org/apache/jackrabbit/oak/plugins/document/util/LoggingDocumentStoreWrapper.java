@@ -207,25 +207,6 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
         }
     }
 
-    @Override
-    public <T extends Document> void update(final Collection<T> collection,
-                                            final List<String> keys,
-                                            final UpdateOp updateOp) {
-        try {
-            logMethod("update", collection, keys, updateOp);
-            logResult(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    store.update(collection, keys, updateOp);
-                    return null;
-                }
-            });
-        } catch (Exception e) {
-            logException(e);
-            throw convert(e);
-        }
-    }
-
     @Nonnull
     @Override
     public <T extends Document> T createOrUpdate(final Collection<T> collection,

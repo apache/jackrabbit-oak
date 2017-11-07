@@ -124,15 +124,5 @@ public class MongoDBExceptionTest {
             assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
                     e.getMessage().contains(id));
         }
-
-        exceptionMsg = "update failed";
-        try {
-            store.update(Collection.NODES, singletonList(id), op);
-            fail("DocumentStoreException expected");
-        } catch (DocumentStoreException e) {
-            assertTrue(e.getMessage().contains(exceptionMsg));
-            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
-                    e.getMessage().contains(id));
-        }
     }
 }
