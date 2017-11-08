@@ -404,7 +404,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
         avgCommitRateDocs = singleExpSmoothing(commitRate, avgCommitRateDocs);
 
-        log.debug("commit rate: current {}, average {} docs/sec", commitRate, avgCommitRateDocs);
+        log.debug("commit rate: current {}, average {}, max {} docs/sec", commitRate, avgCommitRateDocs, maxCommitRateDocs);
 
         docCount = infos.totalDocCount();
 
@@ -414,6 +414,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
         // do not mitigate if there're too many segments to avoid affecting performance
         if (commitRate > maxCommitRateDocs && segmentSize < maxNoOfSegsForMitigation) {
+            log.debug("mitigation due to {} > {} docs/sec and segments {} < {})", commitRate, maxCommitRateDocs,
+                    segmentSize, maxNoOfSegsForMitigation);
             return null;
         }
 
@@ -490,7 +492,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                 }
                 idxBytes += info.sizeInBytes();
             }
-            idxBytes /= 1024 * 1000;
+            idxBytes /= 1024d * 1024d;
 
             final boolean maxMergeIsRunning = mergingBytes >= maxMergedSegmentBytes;
 
@@ -507,7 +509,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             avgCommitRateMB = singleExpSmoothing(mbRate, avgCommitRateMB);
 
-            log.debug("commit rate: current {}, average {} MB/sec", mbRate, avgCommitRateMB);
+            log.debug("commit rate: current {}, average {}, max {} MB/sec", mbRate, avgCommitRateMB, maxCommitRateMB);
 
             if (verbose()) {
                 message(mbRate + "mb/s (max: " + maxCommitRateMB + ", avg: " + avgCommitRateMB + " MB/s)");
@@ -517,6 +519,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             // do not mitigate if there're too many segments to avoid affecting performance
             if (mbRate > maxCommitRateMB && segmentSize < maxNoOfSegsForMitigation) {
+                log.debug("mitigation due to {} > {} MB/sec and segments {} < {})", mbRate, maxCommitRateMB,
+                        segmentSize, maxNoOfSegsForMitigation);
                 return null;
             }
 
