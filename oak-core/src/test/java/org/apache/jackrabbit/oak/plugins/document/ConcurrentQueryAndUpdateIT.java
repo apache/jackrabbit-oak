@@ -91,13 +91,13 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
     }
 
     private void updateDocuments() {
-        List<String> ids = Lists.newArrayList();
-        for (int i = 0; i < NUM_NODES; i++) {
-            ids.add(getIdFromPath("/node-" + i));
-        }
         UpdateOp op = new UpdateOp("foo", false);
         NodeDocument.setLastRev(op, newRevision());
-        ds.update(NODES, ids, op);
+        List<UpdateOp> ops = Lists.newArrayList();
+        for (int i = 0; i < NUM_NODES; i++) {
+            ops.add(op.shallowCopy(getIdFromPath("/node-" + i)));
+        }
+        ds.createOrUpdate(NODES, ops);
     }
 }
 

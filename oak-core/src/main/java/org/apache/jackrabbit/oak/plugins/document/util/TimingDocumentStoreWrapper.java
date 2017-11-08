@@ -246,22 +246,6 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        try {
-            long start = now();
-            base.update(collection, keys, updateOp);
-            updateAndLogTimes("update", start, 0, 0);
-            if (logCommonCall()) {
-                logCommonCall(start, "update " + collection);
-            }
-        } catch (Exception e) {
-            throw convert(e);
-        }
-    }
-
-    @Override
     @CheckForNull
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
         try {

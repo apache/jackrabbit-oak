@@ -126,13 +126,16 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
     }
 
     private Iterable<String> updateDocuments() {
-        List<String> ids = Lists.newArrayList();
-        for (int i = 0; i < NUM_NODES; i++) {
-            ids.add(getIdFromPath("/node-" + i));
-        }
         UpdateOp op = new UpdateOp("foo", false);
         NodeDocument.setLastRev(op, newRevision());
-        ds2.update(NODES, ids, op);
+        List<UpdateOp> ops = Lists.newArrayList();
+        List<String> ids = Lists.newArrayList();
+        for (int i = 0; i < NUM_NODES; i++) {
+            String id = getIdFromPath("/node-" + i);
+            ids.add(id);
+            ops.add(op.shallowCopy(id));
+        }
+        ds2.createOrUpdate(NODES, ops);
         return ids;
     }
 

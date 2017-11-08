@@ -101,13 +101,6 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
     }
 
     @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        store.update(collection, keys, updateOp);
-    }
-
-    @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
                                                  UpdateOp update) {
         return store.createOrUpdate(collection, update);
