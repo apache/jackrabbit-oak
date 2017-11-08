@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -199,7 +198,11 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
             UpdateOp up = new UpdateOp(bid, true);
             up.setMapEntry("_lastRev", cr, "iteration-" + cnt);
             up.max("_modified", NodeDocument.getModifiedInSecs(System.currentTimeMillis()));
-            super.ds.update(Collection.NODES, ids, up);
+            List<UpdateOp> ops = new ArrayList<UpdateOp>();
+            for (String id : ids) {
+                ops.add(up.shallowCopy(id));
+            }
+            super.ds.createOrUpdate(Collection.NODES, ops);
             cnt += 1;
         }
 
@@ -307,108 +310,5 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
         }
 
         LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
-    }
-
-    @Test
-    public void testConcurrentUpdatePerf1DS() throws InterruptedException {
-        String id = this.getClass().getName() + ".testConcurrentUpdatePerf1DS";
-        concurrentUpdatePerf(id, 1);
-    }
-
-    @Test
-    public void testConcurrentUpdatePerf2DS() throws InterruptedException {
-        String id = this.getClass().getName() + ".testConcurrentUpdatePerf1DS";
-        concurrentUpdatePerf(id, 2);
-    }
-
-    private void concurrentUpdatePerf(String testName, int stores) throws InterruptedException {
-        final String id = testName;
-        final long duration = 1000;
-
-        ds1.remove(Collection.NODES, id);
-        UpdateOp up = new UpdateOp(id, true);
-        up.set(Document.MOD_COUNT, 1L);
-        up.set("c", 0L);
-        up.set("u", 0L);
-        super.ds1.create(Collection.NODES, Collections.singletonList(up));
-        removeMe.add(id);
-
-        final DocumentStore ts1 = ds1;
-        final DocumentStore ts2 = stores == 2 ? ds2 : ds1;
-
-        final AtomicBoolean threadTwoIsActive = new AtomicBoolean(false);
-        final AtomicBoolean threadOneIsDone = new AtomicBoolean(false);
-
-        Thread one = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int failures = 0;
-                while (!threadTwoIsActive.get()) {
-                }
-                // operation that requires fetching the previous state
-                UpdateOp up = new UpdateOp(id, false);
-                up.increment("c", 1);
-                up.notEquals("qux", "qux");
-                long end = System.currentTimeMillis() + duration;
-                while (System.currentTimeMillis() < end) {
-                    try {
-                        ts1.update(Collection.NODES, Collections.singletonList(id), up);
-                    } catch (RuntimeException ex) {
-                        failures += 1;
-                    }
-                }
-                try {
-                    UpdateOp up2 = new UpdateOp(id, false);
-                    up2.set("cfailures", failures);
-                    ts1.update(Collection.NODES, Collections.singletonList(id), up2);
-                } catch (RuntimeException ex) {
-                }
-                threadOneIsDone.set(true);
-            }
-        }, "cond");
-
-        Thread two = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int failures = 0;
-                // operation that does not require fetching the previous state
-                UpdateOp up = new UpdateOp(id, false);
-                up.increment("u", 1);
-                while (!threadOneIsDone.get()) {
-                    try {
-                        ts2.update(Collection.NODES, Collections.singletonList(id), up);
-                        threadTwoIsActive.set(true);
-                    } catch (RuntimeException ex) {
-                        failures += 1;
-                    }
-                }
-                threadTwoIsActive.set(true);
-                try {
-                    UpdateOp up2 = new UpdateOp(id, false);
-                    up2.set("ufailures", failures);
-                    ts1.update(Collection.NODES, Collections.singletonList(id), up2);
-                } catch (RuntimeException ex) {
-                }
-            }
-        }, "uncond");
-
-        two.start();
-        one.start();
-
-        two.join();
-        one.join();
-
-        // reading uncached because for some reason MongoDS doesn't see the
-        // changes made in ds2
-        NodeDocument nd = ds1.find(Collection.NODES, id, 0);
-        assertNotNull(nd);
-        int cc = nd.get("c") == null ? 0 : Integer.valueOf(nd.get("c").toString());
-        int uc = nd.get("u") == null ? 0 : Integer.valueOf(nd.get("u").toString());
-        long mc = nd.getModCount();
-        String msg = String.format(
-                "Concurrent updates %s on %s cond. updates: %d (failures: %s), uncond. updates: %d (failures: %s), _modCount: %d, ops/sec: %d, %% of cond. updates: %d",
-                stores == 1 ? "(one ds)" : "(two ds)", super.dsname, cc, nd.get("cfailures"), uc, nd.get("ufailures"), mc,
-                mc * 1000 / duration, cc * 100 / mc);
-        LOG.info(msg);
     }
 }

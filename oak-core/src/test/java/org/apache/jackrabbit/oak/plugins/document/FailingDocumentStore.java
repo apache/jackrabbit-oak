@@ -140,17 +140,6 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     }
 
     @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        // update individually
-        for (String k : keys) {
-            maybeFail();
-            super.update(collection, singletonList(k), updateOp);
-        }
-    }
-
-    @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
                                                  UpdateOp update) {
         maybeFail();

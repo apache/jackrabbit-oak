@@ -19,10 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -105,25 +103,6 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         );
     }
 
-    @Test
-    public void update() throws Exception{
-        String id = testName.getMethodName();
-
-        UpdateOp up = new UpdateOp(id, true);
-        ds.create(Collection.NODES, singletonList(up));
-        removeMe.add(id);
-
-        List<String> toupdate = new ArrayList<String>();
-        toupdate.add(id + "-" + UUID.randomUUID());
-        toupdate.add(id);
-
-        UpdateOp up2 = new UpdateOp(id, false);
-        up2.set("foo", "bar");
-        ds.update(Collection.NODES, toupdate, up2);
-
-        verify(stats).doneUpdate(anyLong(), eq(Collection.NODES), eq(2));
-    }
-    
     @Test
     public void findAndModify() throws Exception{
         String id = testName.getMethodName();

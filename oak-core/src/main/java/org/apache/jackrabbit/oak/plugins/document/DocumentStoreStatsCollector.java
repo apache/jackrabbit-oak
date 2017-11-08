@@ -73,14 +73,6 @@ public interface DocumentStoreStatsCollector {
     void doneCreateOrUpdate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids);
 
     /**
-     * Called when a given updated has modified multiple documents
-     * @param timeTakenNanos time taken
-     * @param collection the collection
-     * @param updateCount number of updates performed
-     */
-    void doneUpdate(long timeTakenNanos, Collection<? extends Document> collection, int updateCount);
-
-    /**
      * Called when a update operation was completed which affected single
      * document.
      * @param timeTakenNanos time taken
