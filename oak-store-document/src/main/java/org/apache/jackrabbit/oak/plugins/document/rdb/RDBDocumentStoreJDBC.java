@@ -132,45 +132,6 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    public boolean batchedAppendingUpdate(Connection connection, RDBTableMetaData tmd, List<String> allIds, Long modified,
-            boolean setModifiedConditionally, String appendData) throws SQLException {
-        boolean result = true;
-        for (List<String> ids : Lists.partition(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
-            String appendDataWithComma = "," + appendData;
-            PreparedStatementComponent stringAppend = this.dbInfo.getConcatQuery(appendDataWithComma, tmd.getDataLimitInOctets());
-            PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
-            StringBuilder t = new StringBuilder();
-            t.append("update " + tmd.getName() + " set ");
-            t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
-            t.append("MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
-            if (tmd.hasVersion()) {
-                t.append("VERSION = " + SCHEMAVERSION + ", ");
-            }
-            t.append("DATA = " + stringAppend.getStatementComponent() + " ");
-            t.append("where ").append(inClause.getStatementComponent());
-            PreparedStatement stmt = connection.prepareStatement(t.toString());
-            try {
-                int si = 1;
-                stmt.setObject(si++, modified, Types.BIGINT);
-                if (setModifiedConditionally) {
-                    stmt.setObject(si++, modified, Types.BIGINT);
-                }
-                stmt.setObject(si++, appendDataWithComma.length(), Types.BIGINT);
-                si = stringAppend.setParameters(stmt, si);
-                si = inClause.setParameters(stmt,  si);
-                int count = stmt.executeUpdate();
-                if (count != ids.size()) {
-                    LOG.debug("DB update failed: only " + result + " of " + ids.size() + " updated. Table: " + tmd.getName() + ", IDs:"
-                            + ids);
-                    result = false;
-                }
-            } finally {
-                stmt.close();
-            }
-        }
-        return result;
-    }
-
     public int delete(Connection connection, RDBTableMetaData tmd, List<String> allIds) throws SQLException {
         int count = 0;
 
