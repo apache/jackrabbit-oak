@@ -19,14 +19,17 @@ package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 
 public abstract class AbstractCredentials implements Credentials {
 
-    protected final Map attributes = new HashMap();
+    protected final Map<String,Object> attributes = new HashMap();
     protected final String userId;
 
-    public AbstractCredentials(String userId) {
+    public AbstractCredentials(@Nonnull String userId) {
         this.userId = userId;
     }
 
@@ -35,19 +38,21 @@ public abstract class AbstractCredentials implements Credentials {
      *
      * @return the userId.
      */
+    @Nonnull
     public String getUserId() {
         return userId;
     }
 
     /**
-     * Stores an attribute in this credentials instance.
+     * Stores an attribute in this credentials instance. If the specified
+     * {@code value} is {@code null} the attribute will be removed.
      *
      * @param name
-     *            a <code>String</code> specifying the name of the attribute
+     *            a {@code String} specifying the name of the attribute
      * @param value
-     *            the <code>Object</code> to be stored
+     *            the {@code Object} to be stored
      */
-    public void setAttribute(String name, Object value) {
+    public void setAttribute(@Nonnull String name, @Nullable Object value) {
         // name cannot be null
         if (name == null) {
             throw new IllegalArgumentException("name cannot be null");
@@ -73,7 +78,8 @@ public abstract class AbstractCredentials implements Credentials {
      * @return an <code>Object</code> containing the value of the attribute, or
      *         <code>null</code> if the attribute does not exist
      */
-    public Object getAttribute(String name) {
+    @CheckForNull
+    public Object getAttribute(@Nonnull String name) {
         synchronized (attributes) {
             return (attributes.get(name));
         }
@@ -86,16 +92,17 @@ public abstract class AbstractCredentials implements Credentials {
      *            a <code>String</code> specifying the name of the attribute to
      *            remove
      */
-    public void removeAttribute(String name) {
+    public void removeAttribute(@Nonnull String name) {
         synchronized (attributes) {
             attributes.remove(name);
         }
     }
  
     /**
-     * @return the attributes available to this credentials instance
+     * @return an immutable map containing the attributes available to this credentials instance
      */
-    public Map getAttributes() {
+    @Nonnull
+    public Map<String,Object> getAttributes() {
         return Collections.unmodifiableMap(attributes);
     }
 
@@ -104,10 +111,9 @@ public abstract class AbstractCredentials implements Credentials {
      *
      * @param attributes The attributes to be stored
      */
-    public void setAttributes(Map attributes) {
+    public void setAttributes(@Nonnull Map<String,Object> attributes) {
         synchronized (attributes) {
             this.attributes.putAll(attributes);
         }
     }
-
 }
