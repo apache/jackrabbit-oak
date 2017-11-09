@@ -38,8 +38,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -285,6 +287,80 @@ public class ActiveDeletedBlobCollectorTest {
                 ActiveDeletedBlobCollectorFactory.NOOP, adbc);
     }
 
+    @Test
+    public void cancellablePurge() throws Exception {
+        BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+        for (int i = 0; i < 10; i++) {
+            String id = "Blob" + i;
+            bdc.deleted(id, Collections.singleton(id));
+        }
+        bdc.commitProgress(COMMIT_SUCCEDED);
+
+        Semaphore purgeBlocker = new Semaphore(0);
+        blobStore.callback = () -> purgeBlocker.acquireUninterruptibly();
+        Thread purgeThread = new Thread(() -> {
+            try {
+                adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        purgeThread.setDaemon(true);
+        purgeBlocker.release(10);//allow 5 deletes
+        purgeThread.start();
+
+        boolean deleted5 = waitFor(5000, () -> blobStore.deletedChunkIds.size() >= 10);
+        assertTrue("Deleted " + blobStore.deletedChunkIds.size() + " chunks", deleted5);
+
+        adbc.cancelBlobCollection();
+        purgeBlocker.release(20);//release all that's there... this is more than needed, btw.
+
+        boolean deleted6 = waitFor(5000, () -> blobStore.deletedChunkIds.size() >= 12);
+        assertTrue("Haven't deleted another blob which was locked earlier.", deleted6);
+
+        boolean cancelWorked = waitFor(5000, () -> !purgeThread.isAlive());
+        assertTrue("Cancel didn't let go of purge thread in 2 seconds", cancelWorked);
+
+        assertTrue("Cancelling purge must return asap", blobStore.deletedChunkIds.size() == 12);
+    }
+
+    @Test
+    public void resumeCancelledPurge() throws Exception {
+        BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+        for (int i = 0; i < 10; i++) {
+            String id = "Blob" + i;
+            bdc.deleted(id, Collections.singleton(id));
+        }
+        bdc.commitProgress(COMMIT_SUCCEDED);
+
+        Semaphore purgeBlocker = new Semaphore(0);
+        blobStore.callback = () -> purgeBlocker.acquireUninterruptibly();
+        Thread purgeThread = new Thread(() -> {
+            try {
+                adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        purgeThread.setDaemon(true);
+        purgeBlocker.release(10);//allow 5 deletes
+        purgeThread.start();
+
+        waitFor(5000, () -> blobStore.deletedChunkIds.size() >= 10);
+
+        adbc.cancelBlobCollection();
+        purgeBlocker.release(22);//release all that's there... this is more than needed, btw.
+
+        waitFor(5000, () -> blobStore.deletedChunkIds.size() >= 12);
+
+        waitFor(5000, () -> !purgeThread.isAlive());
+
+        adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+
+        // Resume can re-attempt to delete already deleted blobs. Hence, the need for for ">="
+        assertEquals("All blobs must get deleted", 20, blobStore.deletedChunkIds.size());
+    }
+
     private void verifyBlobsDeleted(String ... blobIds) throws IOException {
         List<String> chunkIds = new ArrayList<>();
         for (String blobId : blobIds) {
@@ -295,7 +371,8 @@ public class ActiveDeletedBlobCollectorTest {
     }
 
     class ChunkDeletionTrackingBlobStore implements GarbageCollectableBlobStore {
-        List<String> deletedChunkIds = Lists.newArrayList();
+        Set<String> deletedChunkIds = com.google.common.collect.Sets.newLinkedHashSet();
+        Runnable callback = null;
         volatile boolean markerChunkDeleted = false;
 
         @Override
@@ -375,15 +452,15 @@ public class ActiveDeletedBlobCollectorTest {
 
         @Override
         public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
-            deletedChunkIds.addAll(chunkIds);
             setMarkerChunkDeletedFlag(chunkIds);
+            deletedChunkIds.addAll(chunkIds);
             return true;
         }
 
         @Override
         public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
-            deletedChunkIds.addAll(chunkIds);
             setMarkerChunkDeletedFlag(chunkIds);
+            deletedChunkIds.addAll(chunkIds);
             return chunkIds.size();
         }
 
@@ -394,6 +471,10 @@ public class ActiveDeletedBlobCollectorTest {
                         markerChunkDeleted = true;
                         break;
                     }
+
+                    if (callback != null) {
+                        callback.run();
+                    }
                 }
             }
         }
@@ -402,5 +483,24 @@ public class ActiveDeletedBlobCollectorTest {
         public Iterator<String> resolveChunks(String blobId) throws IOException {
             return Iterators.forArray(blobId + "-1", blobId + "-2");
         }
+    }
+
+    private interface Condition {
+        boolean evaluate();
+    }
+
+    private boolean waitFor(long timeout, Condition c)
+            throws InterruptedException {
+        long end = System.currentTimeMillis() + timeout;
+        long remaining = end - System.currentTimeMillis();
+        while (remaining > 0) {
+            if (c.evaluate()) {
+                return true;
+            }
+
+            Thread.sleep(100);//The constant is exaggerated
+            remaining = end - System.currentTimeMillis();
+        }
+        return c.evaluate();
     }
 }
