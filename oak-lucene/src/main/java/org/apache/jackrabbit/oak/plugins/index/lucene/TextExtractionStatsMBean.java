@@ -38,4 +38,6 @@ public interface TextExtractionStatsMBean {
     String getExtractedTextSize();
 
     String getBytesRead();
+
+    int getTimeoutCount();
 }
