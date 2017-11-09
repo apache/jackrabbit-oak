@@ -434,6 +434,10 @@ public class LuceneIndexProviderService {
             executorService.awaitTermination(1, TimeUnit.MINUTES);
         }
 
+        if (extractedTextCache != null) {
+            extractedTextCache.close();
+        }
+
         InfoStream.setDefault(InfoStream.NO_OUTPUT);
     }
 
@@ -673,7 +677,11 @@ public class LuceneIndexProviderService {
         boolean alwaysUsePreExtractedCache = PropertiesUtil.toBoolean(config.get(PROP_PRE_EXTRACTED_TEXT_ALWAYS_USE),
                 PROP_PRE_EXTRACTED_TEXT_ALWAYS_USE_DEFAULT);
 
-        extractedTextCache = new ExtractedTextCache(cacheSizeInMB * ONE_MB, cacheExpiryInSecs, alwaysUsePreExtractedCache);
+        extractedTextCache = new ExtractedTextCache(
+                cacheSizeInMB * ONE_MB,
+                cacheExpiryInSecs,
+                alwaysUsePreExtractedCache,
+                indexDir);
         if (extractedTextProvider != null){
             registerExtractedTextProvider(extractedTextProvider);
         }

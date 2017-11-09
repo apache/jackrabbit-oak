@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 
@@ -140,16 +142,21 @@ public class BinaryTextExtractor {
         if (log.isDebugEnabled()) {
             log.debug("Extracting {}, {} bytes, id {}", path, length, v.getContentIdentity());
         }
-        String oldThreadName = null;
-        if (length > SMALL_BINARY) {
-            Thread t = Thread.currentThread();
-            oldThreadName = t.getName();
-            t.setName(oldThreadName + ": Extracting " + path + ", " + length + " bytes");
-        }
         try {
             CountingInputStream stream = new CountingInputStream(new LazyInputStream(new BlobByteSource(v)));
             try {
-                getParser().parse(stream, handler, metadata, new ParseContext());
+                if (length > SMALL_BINARY) {
+                    String name = "Extracting " + path + ", " + length + " bytes";
+                    extractedTextCache.process(name, new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            getParser().parse(stream, handler, metadata, new ParseContext());
+                            return null;
+                        }
+                    });
+                } else {
+                    getParser().parse(stream, handler, metadata, new ParseContext());
+                }
             } finally {
                 bytesRead = stream.getCount();
                 stream.close();
@@ -159,6 +166,13 @@ public class BinaryTextExtractor {
             // not being present. This is equivalent to disabling
             // selected media types in configuration, so we can simply
             // ignore these errors.
+        } catch (TimeoutException t) {
+            log.warn(
+                    "[{}] Failed to extract text from a binary property due to timeout: {}.",
+                    getIndexName(), path);
+            extractedTextCache.put(v, ExtractedText.ERROR);
+            extractedTextCache.putTimeout(v, ExtractedText.ERROR);
+            return TEXT_EXTRACTION_ERROR;
         } catch (Throwable t) {
             // Capture and report any other full text extraction problems.
             // The special STOP exception is used for normal termination.
@@ -171,10 +185,6 @@ public class BinaryTextExtractor {
                         getIndexName(), path, t);
                 extractedTextCache.put(v, ExtractedText.ERROR);
                 return TEXT_EXTRACTION_ERROR;
-            }
-        } finally {
-            if (oldThreadName != null) {
-                Thread.currentThread().setName(oldThreadName);
             }
         }
         String result = handler.toString();
