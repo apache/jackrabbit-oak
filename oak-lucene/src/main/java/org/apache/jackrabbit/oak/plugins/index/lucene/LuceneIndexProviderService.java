@@ -243,15 +243,15 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_DISABLE_STORED_INDEX_DEFINITION = "disableStoredIndexDefinition";
 
-    private static final int PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL = 12*60*60;
+    private static final boolean PROP_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED = true;
     @Property(
-            intValue = PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL,
-            label = "Time interval (in seconds) for actively removing deleted index blobs from blob store",
+            boolValue = PROP_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED,
+            label = "Enable actively removing deleted index blobs from blob store",
             description = "Index blobs are explicitly unique and don't require mark-sweep type collection." +
-                    "This is number of seconds for scheduling clean-up. -1 would disable the functionality." +
-                    "Cleanup implies purging index blobs marked as deleted earlier during some indexing cycle."
+                    "This is used to enable the feature. Cleanup implies purging index blobs marked as deleted " +
+                    "earlier during some indexing cycle."
     )
-    private static final String PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL = "deletedBlobsCollectionInterval";
+    private static final String PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED = "deletedBlobsCollectionEnabled";
 
     private static final int PROP_INDEX_CLEANER_INTERVAL_DEFAULT = 10*60;
     @Property(
@@ -261,13 +261,6 @@ public class LuceneIndexProviderService {
                     "part of lucene indexes"
     )
     private static final String PROP_INDEX_CLEANER_INTERVAL = "propIndexCleanerIntervalInSecs";
-
-    /**
-     * Actively deleted blob must be deleted for at least this long (in seconds)
-     */
-    final long MIN_BLOB_AGE_TO_ACTIVELY_DELETE = Long.getLong("oak.active.deletion.minAge",
-            TimeUnit.HOURS.toSeconds(24));
-
 
     private static final boolean PROP_ENABLE_SINGLE_BLOB_PER_INDEX_FILE_DEFAULT = true;
     @Property(
@@ -749,42 +742,24 @@ public class LuceneIndexProviderService {
     }
 
     private void initializeActiveBlobCollector(Whiteboard whiteboard, Map<String, ?> config) {
-        int activeDeletionInterval = PropertiesUtil.toInteger(
-                config.get(PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL),
-                PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL);
-        if (activeDeletionInterval > -1 && blobStore!= null) {
+        boolean activeDeletionEnabled = PropertiesUtil.toBoolean(
+                config.get(PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED),
+                PROP_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED);
+        if (activeDeletionEnabled && blobStore!= null) {
             File blobCollectorWorkingDir = new File(indexDir, "deleted-blobs");
             activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.newInstance(blobCollectorWorkingDir, executorService);
-            oakRegs.add(
-                    scheduleWithFixedDelay(whiteboard, () ->
-                                activeDeletedBlobCollector.purgeBlobsDeleted(
-                                        getSafeTimestampForDeletedBlobs(checkpointMBean),
-                                        blobStore),
-                            activeDeletionInterval));
+            ActiveDeletedBlobCollectorMBean bean =
+                    new ActiveDeletedBlobCollectorMBeanImpl(activeDeletedBlobCollector, whiteboard, blobStore, executorService);
 
-            log.info("Active blob collector initialized at working dir: {}; deletion interval {} seconds;" +
-                            "minAge: {}",
-                    blobCollectorWorkingDir, activeDeletionInterval, MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
+            oakRegs.add(registerMBean(whiteboard, ActiveDeletedBlobCollectorMBean.class, bean,
+                    ActiveDeletedBlobCollectorMBean.TYPE, "Active lucene files collection"));
+            log.info("Active blob collector initialized at working dir: {}", blobCollectorWorkingDir);
         } else {
             activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.NOOP;
-            log.info("Active blob collector set to NOOP. deletionInterval: {} seconds; blobStore: {}",
-                    activeDeletionInterval, blobStore);
+            log.info("Active blob collector set to NOOP. enabled: {} seconds; blobStore: {}",
+                    activeDeletionEnabled, blobStore);
         }
     }
-
-    private long getSafeTimestampForDeletedBlobs(CheckpointMBean checkpointMBean) {
-        long timestamp = clock.getTime() - TimeUnit.SECONDS.toMillis(MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
-
-        long minCheckpointTimestamp = checkpointMBean.getOldestCheckpointCreationTimestamp();
-        if (minCheckpointTimestamp < timestamp) {
-            log.info("Oldest checkpoint timestamp ({}) is older than buffer period ({}) for deleted blobs." +
-                    " Using that instead", minCheckpointTimestamp, timestamp);
-            timestamp = minCheckpointTimestamp;
-        }
-
-        return timestamp;
-    }
-
 
     private void registerPropertyIndexCleaner(Map<String, ?> config, BundleContext bundleContext) {
         int cleanerInterval = PropertiesUtil.toInteger(config.get(PROP_INDEX_CLEANER_INTERVAL),
