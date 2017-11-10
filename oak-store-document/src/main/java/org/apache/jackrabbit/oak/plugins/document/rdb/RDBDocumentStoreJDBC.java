@@ -407,26 +407,34 @@ public class RDBDocumentStoreJDBC {
         List<RDBRow> result = new ArrayList<RDBRow>();
         long dataTotal = 0, bdataTotal = 0;
         PreparedStatement stmt = null;
+        String fields;
+        if (tmd.hasVersion()) {
+            fields = "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, VERSION, DATA, BDATA";
+        } else {
+            fields = "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA";
+        }
         ResultSet rs = null;
         try {
-            stmt = prepareQuery(connection, tmd, "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA", minId,
+            stmt = prepareQuery(connection, tmd, fields, minId,
                     maxId, excludeKeyPatterns, conditions, limit, "ID");
             rs = stmt.executeQuery();
             while (rs.next() && result.size() < limit) {
-                String id = getIdFromRS(tmd, rs, 1);
+                int field = 1;
+                String id = getIdFromRS(tmd, rs, field++);
 
                 if ((minId != null && id.compareTo(minId) < 0) || (maxId != null && id.compareTo(maxId) > 0)) {
                     throw new DocumentStoreException(
                             "unexpected query result: '" + minId + "' < '" + id + "' < '" + maxId + "' - broken DB collation?");
                 }
-                long modified = readLongFromResultSet(rs, 2);
-                long modcount = readLongFromResultSet(rs, 3);
-                long cmodcount = readLongFromResultSet(rs, 4);
-                Long hasBinary = readLongOrNullFromResultSet(rs, 5);
-                Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, 6);
-                String data = rs.getString(7);
-                byte[] bdata = rs.getBytes(8);
-                result.add(new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, data, bdata));
+                long modified = readLongFromResultSet(rs, field++);
+                long modcount = readLongFromResultSet(rs, field++);
+                long cmodcount = readLongFromResultSet(rs, field++);
+                Long hasBinary = readLongOrNullFromResultSet(rs, field++);
+                Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, field++);
+                long schemaVersion = tmd.hasVersion() ? readLongFromResultSet(rs, field++) : 0;
+                String data = rs.getString(field++);
+                byte[] bdata = rs.getBytes(field++);
+                result.add(new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, data, bdata));
                 dataTotal += data.length();
                 bdataTotal += bdata == null ? 0 : bdata.length;
             }
@@ -523,8 +531,13 @@ public class RDBDocumentStoreJDBC {
                 this.ch = ch;
                 this.connection = ch.getROConnection();
                 this.tmd = tmd;
-                this.stmt = prepareQuery(connection, tmd, "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA",
-                        minId, maxId, excludeKeyPatterns, conditions, limit, sortBy);
+                String fields;
+                if (tmd.hasVersion()) {
+                    fields = "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, VERSION, DATA, BDATA";
+                } else {
+                    fields = "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA";
+                }
+                this.stmt = prepareQuery(connection, tmd, fields, minId, maxId, excludeKeyPatterns, conditions, limit, sortBy);
                 this.rs = stmt.executeQuery();
                 this.next = internalNext();
                 this.message = String.format("Query on %s with params minid '%s' maxid '%s' excludeKeyPatterns %s conditions %s.",
@@ -563,15 +576,17 @@ public class RDBDocumentStoreJDBC {
             long start = System.currentTimeMillis();
             try {
                 if (this.rs.next()) {
-                    String id = getIdFromRS(this.tmd, this.rs, 1);
-                    long modified = readLongFromResultSet(this.rs, 2);
-                    long modcount = readLongFromResultSet(this.rs, 3);
-                    long cmodcount = readLongFromResultSet(this.rs, 4);
-                    Long hasBinary = readLongOrNullFromResultSet(this.rs, 5);
-                    Boolean deletedOnce = readBooleanOrNullFromResultSet(this.rs, 6);
-                    String data = this.rs.getString(7);
-                    byte[] bdata = this.rs.getBytes(8);
-                    return new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, data, bdata);
+                    int field = 1;
+                    String id = getIdFromRS(this.tmd, this.rs, field++);
+                    long modified = readLongFromResultSet(this.rs, field++);
+                    long modcount = readLongFromResultSet(this.rs, field++);
+                    long cmodcount = readLongFromResultSet(this.rs, field++);
+                    Long hasBinary = readLongOrNullFromResultSet(this.rs, field++);
+                    Boolean deletedOnce = readBooleanOrNullFromResultSet(this.rs, field++);
+                    long schemaVersion = tmd.hasVersion() ? readLongFromResultSet(rs, field++) : 0;
+                    String data = this.rs.getString(field++);
+                    byte[] bdata = this.rs.getBytes(field++);
+                    return new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, data, bdata);
                 } else {
                     this.rs = closeResultSet(this.rs);
                     this.stmt = closeStatement(this.stmt);
@@ -684,7 +699,11 @@ public class RDBDocumentStoreJDBC {
         for (List<String> keys : Iterables.partition(allKeys, RDBJDBCTools.MAX_IN_CLAUSE)) {
             PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", keys, tmd.isIdBinary());
             StringBuilder query = new StringBuilder();
-            query.append("select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from ");
+            if (tmd.hasVersion()) {
+                query.append("select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, VERSION, DATA, BDATA from ");
+            } else {
+                query.append("select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from ");
+            }
             query.append(tmd.getName());
             query.append(" where ").append(inClause.getStatementComponent());
 
@@ -696,16 +715,17 @@ public class RDBDocumentStoreJDBC {
                 rs = stmt.executeQuery();
 
                 while (rs.next()) {
-                    int col = 1;
-                    String id = getIdFromRS(tmd, rs, col++);
-                    long modified = readLongFromResultSet(rs, col++);
-                    long modcount = readLongFromResultSet(rs, col++);
-                    long cmodcount = readLongFromResultSet(rs, col++);
-                    Long hasBinary = readLongOrNullFromResultSet(rs, col++);
-                    Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, col++);
-                    String data = rs.getString(col++);
-                    byte[] bdata = rs.getBytes(col++);
-                    RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, data, bdata);
+                    int field = 1;
+                    String id = getIdFromRS(tmd, rs, field++);
+                    long modified = readLongFromResultSet(rs, field++);
+                    long modcount = readLongFromResultSet(rs, field++);
+                    long cmodcount = readLongFromResultSet(rs, field++);
+                    Long hasBinary = readLongOrNullFromResultSet(rs, field++);
+                    Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, field++);
+                    long schemaVersion = tmd.hasVersion() ? readLongFromResultSet(rs, field++) : 0;
+                    String data = rs.getString(field++);
+                    byte[] bdata = rs.getBytes(field++);
+                    RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, data, bdata);
                     rows.add(row);
                 }
             } catch (SQLException ex) {
@@ -735,7 +755,14 @@ public class RDBDocumentStoreJDBC {
 
         boolean useCaseStatement = lastmodcount != -1 && lastmodified >= 1;
         StringBuffer sql = new StringBuffer();
-        sql.append("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, ");
+        String fields;
+        if (tmd.hasVersion()) {
+            fields = "MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, VERSION, ";
+        } else {
+            fields = "MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, ";
+        }
+
+        sql.append("select ").append(fields);
         if (useCaseStatement) {
             // the case statement causes the actual row data not to be
             // sent in case we already have it
@@ -762,14 +789,16 @@ public class RDBDocumentStoreJDBC {
 
             rs = stmt.executeQuery();
             if (rs.next()) {
-                long modified = readLongFromResultSet(rs, 1);
-                long modcount = readLongFromResultSet(rs, 2);
-                long cmodcount = readLongFromResultSet(rs, 3);
-                Long hasBinary = readLongOrNullFromResultSet(rs, 4);
-                Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, 5);
-                String data = rs.getString(6);
-                byte[] bdata = rs.getBytes(7);
-                return new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, data, bdata);
+                int field = 1;
+                long modified = readLongFromResultSet(rs, field++);
+                long modcount = readLongFromResultSet(rs, field++);
+                long cmodcount = readLongFromResultSet(rs, field++);
+                Long hasBinary = readLongOrNullFromResultSet(rs, field++);
+                Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, field++);
+                long schemaVersion = tmd.hasVersion() ? readLongFromResultSet(rs, field++) : 0;
+                String data = rs.getString(field++);
+                byte[] bdata = rs.getBytes(field++);
+                return new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, data, bdata);
             } else {
                 return null;
             }
