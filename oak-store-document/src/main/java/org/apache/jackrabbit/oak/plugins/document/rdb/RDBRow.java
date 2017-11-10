@@ -22,9 +22,8 @@ import javax.annotation.Nonnull;
 /**
  * Container for the information in a RDB database column.
  * <p>
- * Note that the String "data" and the byte[] "bdata" may be null
- * when the SQL SELECT request was conditional on "modcount" being
- * unchanged.
+ * Note that the String "data" and the byte[] "bdata" may be {@code null} when
+ * the SQL SELECT request was conditional on "modcount" being unchanged.
  */
 public class RDBRow {
 
@@ -34,16 +33,19 @@ public class RDBRow {
     private final Long hasBinaryProperties;
     private final Boolean deletedOnce;
     private final long modified, modcount, cmodcount;
+    private final long schemaVersion;
     private final String data;
     private final byte[] bdata;
 
-    public RDBRow(String id, Long hasBinaryProperties, Boolean deletedOnce, Long modified, Long modcount, Long cmodcount, String data, byte[] bdata) {
+    public RDBRow(String id, Long hasBinaryProperties, Boolean deletedOnce, Long modified, Long modcount, Long cmodcount,
+            Long schemaVersion, String data, byte[] bdata) {
         this.id = id;
         this.hasBinaryProperties = hasBinaryProperties;
         this.deletedOnce = deletedOnce;
         this.modified = modified != null ? modified.longValue() : LONG_UNSET;
         this.modcount = modcount != null ? modcount.longValue() : LONG_UNSET;
         this.cmodcount = cmodcount != null ? cmodcount.longValue() : LONG_UNSET;
+        this.schemaVersion = schemaVersion != null ? schemaVersion.longValue() : LONG_UNSET;
         this.data = data;
         this.bdata = bdata;
     }
@@ -87,6 +89,13 @@ public class RDBRow {
      */
     public long getCollisionsModcount() {
         return cmodcount;
+    }
+
+    /**
+     * @return {@link #LONG_UNSET} when not set in the database
+     */
+    public long getSchemaVersion() {
+        return schemaVersion;
     }
 
     @CheckForNull
