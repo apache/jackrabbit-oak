@@ -219,6 +219,12 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         assertXPathPlan("/jcr:root//*[jcr:contains(., '-*')]",
                 planPrefix + "-:fulltext:* *:* ft:(-\"*\")");
 
+        assertXPathPlan("/jcr:root//*[jcr:contains(., 'apple - pear')]",
+                planPrefix + "+:fulltext:apple -:fulltext:pear ft:(\"apple\" \"-\" \"pear\")");
+
+        assertXPathPlan("/jcr:root/content//*[jcr:contains(., 'apple - pear')]",
+                planPrefix + "-:fulltext:pear +:fulltext:apple +:ancestors:/content ft:(\"apple\" \"-\" \"pear\")");
+
     }
 
     private void assertXPathPlan(String xpathQuery, String expectedPlan) {
