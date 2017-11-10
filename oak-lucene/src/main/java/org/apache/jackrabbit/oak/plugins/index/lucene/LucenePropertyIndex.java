@@ -982,6 +982,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 unwrapped = true;
             }
         }
+        if (unwrapped) {
+            // if we have unwrapped "must not" conditions,
+            // then we need to unwrap "must" conditions as well
+            for (BooleanClause bc : input.getClauses()) {
+                if (bc.getOccur() == BooleanClause.Occur.MUST) {
+                    output.add(bc);
+                }
+            }
+        }
 
         return unwrapped;
     }
