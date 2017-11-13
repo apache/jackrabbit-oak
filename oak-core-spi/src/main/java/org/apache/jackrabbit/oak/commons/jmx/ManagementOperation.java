@@ -22,13 +22,6 @@ package org.apache.jackrabbit.oak.commons.jmx;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Thread.currentThread;
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MICROSECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.management.openmbean.SimpleType.INTEGER;
 import static javax.management.openmbean.SimpleType.STRING;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode;
@@ -61,6 +54,7 @@ import javax.management.openmbean.TabularType;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -322,52 +316,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
          * @return human readable string
          */
         public static String formatTime(long nanos) {
-            TimeUnit unit = chooseUnit(nanos);
-            double value = (double) nanos / NANOSECONDS.convert(1, unit);
-            return String.format("%.4g %s", value, abbreviate(unit));
-        }
-
-        private static TimeUnit chooseUnit(long nanos) {
-            if (DAYS.convert(nanos, NANOSECONDS) > 0) {
-                return DAYS;
-            }
-            if (HOURS.convert(nanos, NANOSECONDS) > 0) {
-                return HOURS;
-            }
-            if (MINUTES.convert(nanos, NANOSECONDS) > 0) {
-                return MINUTES;
-            }
-            if (SECONDS.convert(nanos, NANOSECONDS) > 0) {
-                return SECONDS;
-            }
-            if (MILLISECONDS.convert(nanos, NANOSECONDS) > 0) {
-                return MILLISECONDS;
-            }
-            if (MICROSECONDS.convert(nanos, NANOSECONDS) > 0) {
-                return MICROSECONDS;
-            }
-            return NANOSECONDS;
-        }
-
-        private static String abbreviate(TimeUnit unit) {
-            switch (unit) {
-                case NANOSECONDS:
-                    return "ns";
-                case MICROSECONDS:
-                    return "\u03bcs"; // μs
-                case MILLISECONDS:
-                    return "ms";
-                case SECONDS:
-                    return "s";
-                case MINUTES:
-                    return "min";
-                case HOURS:
-                    return "h";
-                case DAYS:
-                    return "d";
-                default:
-                    throw new IllegalArgumentException(String.valueOf(unit));
-            }
+            return TimeDurationFormatter.forLogging().format(nanos, TimeUnit.NANOSECONDS);
         }
 
         /**
