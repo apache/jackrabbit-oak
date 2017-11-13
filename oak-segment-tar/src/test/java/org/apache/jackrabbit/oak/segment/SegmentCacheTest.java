@@ -31,11 +31,11 @@ import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.junit.Test;
 
 public class SegmentCacheTest {
-    private final SegmentCache cache = new SegmentCache();
+    private final SegmentCache cache = new SegmentCache(SegmentCache.DEFAULT_SEGMENT_CACHE_MB);
 
-    private final SegmentId id1 = new SegmentId(EMPTY_STORE, -1, -1, cache::recordHit);
+    private final SegmentId id1 = new SegmentId(EMPTY_STORE, 0x0000000000000001L, 0xa000000000000001L, cache::recordHit);
     private final Segment segment1 = mock(Segment.class);
-    private final SegmentId id2 = new SegmentId(EMPTY_STORE, -1, -2, cache::recordHit);
+    private final SegmentId id2 = new SegmentId(EMPTY_STORE, 0x0000000000000002L, 0xa000000000000002L, cache::recordHit);
     private final Segment segment2 = mock(Segment.class);
 
     {

@@ -67,14 +67,15 @@ public final class CacheWeights {
         return (Weigher<K, V>) NOOP_WEIGHER;
     }
 
+    static int segmentWeight(Segment segment) {
+        return SEGMENT_CACHE_OVERHEAD + segment.estimateMemoryUsage();
+    }
+
     public static class SegmentCacheWeigher implements
             Weigher<SegmentId, Segment> {
         @Override
         public int weigh(@Nonnull SegmentId id, @Nonnull Segment segment) {
-            int size = SEGMENT_CACHE_OVERHEAD;
-            // segmentId weight estimation is included in segment
-            size += segment.estimateMemoryUsage();
-            return size;
+            return segmentWeight(segment);
         }
     }
 
