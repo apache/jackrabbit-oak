@@ -177,9 +177,7 @@ public final class PasswordUtil {
                 String hash = generateHash(password, algorithm, salt, iterations);
                 return compareSecure(hashedPassword, hash);
             } // hashedPassword is plaintext -> return false
-        } catch (NoSuchAlgorithmException e) {
-            log.warn(e.getMessage());
-        } catch (UnsupportedEncodingException e) {
+        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
             log.warn(e.getMessage());
         }
         return false;
@@ -195,10 +193,7 @@ public final class PasswordUtil {
      * @param b
      * @return true if both parameters contain the same data.
      */
-    private static boolean compareSecure(@Nullable String a, @Nullable String b) {
-        if ((a == null) || (b == null)) {
-            return (a == null) && (b == null);
-        }
+    private static boolean compareSecure(@Nonnull String a, @Nonnull String b) {
         int len = a.length();
         if (len != b.length()) {
             return false;
@@ -215,6 +210,7 @@ public final class PasswordUtil {
         return bits == 0;
     }
 
+    @Nonnull
     private static String generateHash(@Nonnull String pwd, @Nonnull String algorithm,
                                        @Nullable String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
