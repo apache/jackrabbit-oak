@@ -20,7 +20,6 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -31,7 +30,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -45,11 +43,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
-import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeTypeProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
