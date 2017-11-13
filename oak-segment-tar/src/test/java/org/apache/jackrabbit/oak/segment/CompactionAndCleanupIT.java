@@ -296,14 +296,14 @@ public class CompactionAndCleanupIT {
             fileStore.cleanup();
 
             long size6 = fileStore.getStats().getApproximateSize();
-            assertTrue("the blob should not be collected", Math.abs(size5 - size6) < blobSize);
+            assertTrue("the blob should not be collected", size6 > blobSize);
 
             // 3rd gc cycle -> no significant change
             fileStore.compactFull();
             fileStore.cleanup();
 
             long size7 = fileStore.getStats().getApproximateSize();
-            assertTrue("the blob should not be collected", Math.abs(size6 - size7) < blobSize);
+            assertTrue("the blob should not be collected", size7 > blobSize);
 
             // No data loss
             byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
