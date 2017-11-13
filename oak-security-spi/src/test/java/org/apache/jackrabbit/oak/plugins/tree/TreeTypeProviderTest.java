@@ -28,13 +28,11 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.mockito.Mockito.when;
 
-public class TreeTypeProviderTest {
+public class TreeTypeProviderTest extends AbstractTreeTest {
 
     private TreeTypeProvider typeProvider;
 
@@ -42,6 +40,7 @@ public class TreeTypeProviderTest {
 
     @Before
     public void before() throws Exception {
+        super.before();
         typeProvider = new TreeTypeProvider(new TreeContext(){
 
             @Override
@@ -51,7 +50,7 @@ public class TreeTypeProviderTest {
 
             @Override
             public boolean definesContextRoot(@Nonnull Tree tree) {
-                return false;
+                return tree.getName().equals("ctxRoot");
             }
 
             @Override
@@ -66,7 +65,7 @@ public class TreeTypeProviderTest {
 
             @Override
             public boolean definesInternal(@Nonnull Tree tree) {
-                return false;
+                return tree.getName().equals("internal");
             }
         });
 
@@ -91,39 +90,24 @@ public class TreeTypeProviderTest {
         }
     }
 
-    private static Tree mockTree(@Nonnull String path) {
-        Tree t = Mockito.mock(Tree.class);
-        when(t.getPath()).thenReturn(path);
-        when(t.getName()).thenReturn(PathUtils.getName(path));
-        if (PathUtils.denotesRoot(path)) {
-            when(t.getParent()).thenThrow(IllegalStateException.class);
-            when(t.isRoot()).thenReturn(true);
-        } else {
-            Tree parent = mockTree(PathUtils.getAncestorPath(path, 1));
-            when(t.getParent()).thenReturn(parent);
-            when(t.isRoot()).thenReturn(false);
-        }
-        return t;
-    }
-
     @Test
     public void testGetType() {
         for (TypeTest test : tests) {
-            assertEquals(test.path, test.type, typeProvider.getType(mockTree(test.path)));
+            assertEquals(test.path, test.type, typeProvider.getType(mockTree(test.path, true)));
         }
     }
 
     @Test
     public void testGetTypeWithParentType() {
         for (TypeTest test : tests) {
-            assertEquals(test.path, test.type, typeProvider.getType(mockTree(test.path), test.parentType));
+            assertEquals(test.path, test.type, typeProvider.getType(mockTree(test.path, true), test.parentType));
         }
     }
 
     @Test
     public void testGetTypeWithDefaultParentType() {
         for (TypeTest test : tests) {
-            TreeType typeIfParentDefault = typeProvider.getType(mockTree(test.path), TreeType.DEFAULT);
+            TreeType typeIfParentDefault = typeProvider.getType(mockTree(test.path, true), TreeType.DEFAULT);
 
             if (TreeType.DEFAULT == test.parentType) {
                 assertEquals(test.path, test.type, typeIfParentDefault);
@@ -135,13 +119,33 @@ public class TreeTypeProviderTest {
 
     @Test
     public void testGetTypeForRootTree() {
-        Tree t = mockTree(PathUtils.ROOT_PATH);
+        Tree t = mockTree(PathUtils.ROOT_PATH, true);
         assertEquals(TreeType.DEFAULT, typeProvider.getType(t));
 
         // the type of the root tree is always 'DEFAULT' irrespective of the passed parent type.
         assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.DEFAULT));
         assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.HIDDEN));
         assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.VERSION));
+    }
+
+    @Test
+    public void testInternal() {
+        Tree internal = mockTree("/internal", rootTree, true);
+        Tree internalChild = mockTree("/internal/child", internal, true);
+
+        assertEquals(TreeType.INTERNAL, typeProvider.getType(internal));
+        assertEquals(TreeType.INTERNAL, typeProvider.getType(internalChild));
+        assertEquals(TreeType.INTERNAL, typeProvider.getType(child, TreeType.INTERNAL));
+    }
+
+    @Test
+    public void testAc() {
+        Tree ctxRoot = mockTree("/ctxRoot", rootTree, true);
+        Tree ctxRootChild = mockTree("/ctxRoot/child", ctxRoot, true);
+
+        assertEquals(TreeType.ACCESS_CONTROL, typeProvider.getType(ctxRoot));
+        assertEquals(TreeType.ACCESS_CONTROL, typeProvider.getType(ctxRootChild));
+        assertEquals(TreeType.ACCESS_CONTROL, typeProvider.getType(child, TreeType.ACCESS_CONTROL));
     }
 
     private static final class TypeTest {

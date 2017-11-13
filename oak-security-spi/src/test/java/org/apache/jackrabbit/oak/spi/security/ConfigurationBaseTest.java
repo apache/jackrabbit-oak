@@ -51,4 +51,14 @@ public class ConfigurationBaseTest {
         base.setParameters(params);
         assertEquals(params, base.getParameters());
     }
+
+    @Test
+    public void testNonOsgiConstructor() {
+        SecurityProvider sp = new OpenSecurityProvider();
+        ConfigurationParameters config = ConfigurationParameters.of("a", "value");
+        ConfigurationBase base = new ConfigurationBase(sp, config){};
+
+        assertSame(sp, base.getSecurityProvider());
+        assertSame(config, base.getParameters());
+    }
 }
