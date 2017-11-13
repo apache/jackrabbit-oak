@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.SystemRoot;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -47,6 +48,25 @@ public final class RootFactory {
     @Nonnull
     public static Root createReadOnlyRoot(@Nonnull Root root) {
         return ImmutableRoot.getInstance(root);
+    }
+
+    /**
+     * @deprecated with Oak 1.7.2 due to the usage of deprecated {@link QueryEngineSettings}
+     */
+    @Nonnull
+    public static Root createSystemRoot(@Nonnull NodeStore store,
+                                        @Nullable CommitHook hook,
+                                        @Nullable String workspaceName,
+                                        @Nullable SecurityProvider securityProvider,
+                                        @Nullable QueryEngineSettings queryEngineSettings,
+                                        @Nullable QueryIndexProvider indexProvider) {
+        return SystemRoot.create(store,
+                (hook == null) ? EmptyHook.INSTANCE : hook,
+                (workspaceName == null) ? Oak.DEFAULT_WORKSPACE_NAME : workspaceName,
+                (securityProvider == null) ? new OpenSecurityProvider() : securityProvider,
+                queryEngineSettings,
+                (indexProvider == null) ? new CompositeQueryIndexProvider(): indexProvider);
+
     }
 
     @Nonnull
