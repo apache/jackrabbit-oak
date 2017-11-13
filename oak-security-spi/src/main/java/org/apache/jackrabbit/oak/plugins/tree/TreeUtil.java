@@ -104,7 +104,7 @@ public final class TreeUtil {
     }
 
     @CheckForNull
-    public String getString(@Nonnull Tree tree, @Nonnull String name, @Nullable String defaultValue) {
+    public static String getString(@Nonnull Tree tree, @Nonnull String name, @Nullable String defaultValue) {
         String str = getString(tree, name);
         return (str != null) ? str : defaultValue;
     }
