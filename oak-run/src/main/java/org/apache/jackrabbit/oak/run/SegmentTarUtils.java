@@ -179,6 +179,7 @@ final class SegmentTarUtils {
                 .withPath(directory)
                 .withMmap(mmap)
                 .withForce(force)
+                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .build()
                 .run();
     }
