@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TreeTypeProviderTest extends AbstractTreeTest {
 
@@ -146,6 +147,21 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
         assertEquals(TreeType.ACCESS_CONTROL, typeProvider.getType(ctxRoot));
         assertEquals(TreeType.ACCESS_CONTROL, typeProvider.getType(ctxRootChild));
         assertEquals(TreeType.ACCESS_CONTROL, typeProvider.getType(child, TreeType.ACCESS_CONTROL));
+    }
+
+    @Test
+    public void testTypeAware() {
+        Tree typeAware = mockTree("/typeAware", rootTree, true, TreeTypeAware.class);
+        Tree awareChild = mockTree("/typeAware/child", typeAware, true, TreeTypeAware.class);
+
+        assertTrue(typeAware instanceof TreeTypeAware);
+        assertTrue(awareChild instanceof TreeTypeAware);
+
+        assertEquals(TreeType.DEFAULT, typeProvider.getType(typeAware));
+        assertEquals(TreeType.DEFAULT, typeProvider.getType(awareChild));
+
+        assertEquals(TreeType.VERSION, typeProvider.getType(typeAware, TreeType.VERSION));
+        assertEquals(TreeType.VERSION, typeProvider.getType(awareChild, TreeType.VERSION));
     }
 
     private static final class TypeTest {
