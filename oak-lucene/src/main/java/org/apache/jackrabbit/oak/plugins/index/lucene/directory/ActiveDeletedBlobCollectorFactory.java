@@ -24,6 +24,7 @@ import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
@@ -263,6 +264,8 @@ public class ActiveDeletedBlobCollectorFactory {
                                     LOG.warn("Couldn't parse blobTimestamp(" + parsedDeletedBlobIdLine[1] +
                                             "). deletedBlobLine - " + deletedBlobLine +
                                             "; file - " + deletedBlobListFile.getName(), nfe);
+                                } catch (DataStoreException dse) {
+                                    LOG.debug("Exception occurred while attempting to delete blob " + deletedBlobId, dse);
                                 } catch (Exception e) {
                                     LOG.warn("Exception occurred while attempting to delete blob " + deletedBlobId, e);
                                 }
