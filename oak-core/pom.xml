@@ -51,7 +51,6 @@
             <Export-Package>
               org.apache.jackrabbit.oak,
               org.apache.jackrabbit.oak.management,
-              org.apache.jackrabbit.oak.util,
               org.apache.jackrabbit.oak.namepath.impl,
               org.apache.jackrabbit.oak.plugins.atomic,
               org.apache.jackrabbit.oak.plugins.commit,
@@ -78,7 +77,6 @@
               org.apache.jackrabbit.oak.plugins.tree.factories,
               org.apache.jackrabbit.oak.plugins.version,
               org.apache.jackrabbit.oak.security,
-              org.apache.jackrabbit.oak.util,
             </Export-Package>
             <Jaas-ModuleClass>
               org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule,
