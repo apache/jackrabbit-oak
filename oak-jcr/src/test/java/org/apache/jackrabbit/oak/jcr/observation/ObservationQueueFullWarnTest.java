@@ -263,8 +263,8 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
             @Override
             public void onEvent(EventIterator events) {
                 try {
-                    semaphore.acquire();
                     if (hasRecievedInit.get()) {
+                        semaphore.acquire();
                         long numEvents = events.getSize();
                         counter.addAndGet(numEvents);
                         System.out.println("GOT: " + numEvents + " - COUNTER: " + counter.get());
@@ -282,6 +282,7 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
                         // as other would be dispatched once we've got init
                         while (events.hasNext()) {
                             Event e = events.nextEvent();
+                            System.out.println(" - " + e);
                             if (PathUtils.getName(e.getPath()).equals("init")) {
                                 hasRecievedInit.set(true);
                             }
@@ -313,7 +314,7 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         // To avoid this, we would put our own "init" and wait for it to show up before continuing the test
         session.getNode("/testNode").setProperty("init", 1);
         session.save();
-        semaphore.release(1);
+
         boolean initNotTimeOut = waitFor(5000, new Condition() {
             @Override
             public boolean evaluate() {
