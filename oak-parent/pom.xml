@@ -244,7 +244,6 @@
                   <filter>!org.apache.jackrabbit.oak.spi.query.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.state</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.whiteboard</filter>
-                  <filter>!org.apache.jackrabbit.oak.spi.xml</filter>
                   <filter>!org.apache.jackrabbit.oak.stats</filter>
                   <filter>!org.apache.jackrabbit.oak.util</filter>
                   <filter>!org.apache.jackrabbit.oak.jcr</filter>
