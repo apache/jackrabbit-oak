@@ -34,7 +34,7 @@
   <properties>
     <!-- enable execution of jacoco and set minimal line coverage -->
     <skip.coverage>false</skip.coverage>
-    <minimum.coverage>0.87</minimum.coverage>
+    <minimum.coverage>0.89</minimum.coverage>
   </properties>
 
   <build>
@@ -182,7 +182,7 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
+      <version>2.11.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
