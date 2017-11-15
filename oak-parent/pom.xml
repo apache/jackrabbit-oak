@@ -189,13 +189,11 @@
                 <comparisonVersion>1.6.2</comparisonVersion>
                 <filters>
                   <!-- Disable baseline for explicitly NOT managed packages. See OAK-3842 -->
-                  <filter>!org.apache.jackrabbit.oak.cache</filter>
                   <filter>!org.apache.jackrabbit.oak.commons</filter>
                   <filter>!org.apache.jackrabbit.oak.commons.benchmark</filter>
                   <filter>!org.apache.jackrabbit.oak.commons.cache</filter>
                   <filter>!org.apache.jackrabbit.oak.commons.concurrent</filter>
                   <filter>!org.apache.jackrabbit.oak.commons.io</filter>
-                  <filter>!org.apache.jackrabbit.oak.commons.jmx</filter>
                   <filter>!org.apache.jackrabbit.oak.commons.json</filter>
                   <filter>!org.apache.jackrabbit.oak.commons.sort</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.blob</filter>
@@ -205,8 +203,6 @@
                   <filter>!org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage</filter>
                   <filter>!org.apache.jackrabbit.oak</filter>
                   <filter>!org.apache.jackrabbit.oak.json</filter>
-                  <filter>!org.apache.jackrabbit.oak.namepath</filter>
-                  <filter>!org.apache.jackrabbit.oak.osgi</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.atomic</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.blob</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.blob.datastore</filter>
@@ -236,14 +232,10 @@
                   <filter>!org.apache.jackrabbit.oak.security</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.commit</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.filter</filter>
-                  <filter>!org.apache.jackrabbit.oak.spi.gc</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.lifecycle</filter>
-                  <filter>!org.apache.jackrabbit.oak.spi.observation</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.query</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.query.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.state</filter>
-                  <filter>!org.apache.jackrabbit.oak.spi.whiteboard</filter>
-                  <filter>!org.apache.jackrabbit.oak.stats</filter>
                   <filter>!org.apache.jackrabbit.oak.util</filter>
                   <filter>!org.apache.jackrabbit.oak.jcr</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene</filter>
