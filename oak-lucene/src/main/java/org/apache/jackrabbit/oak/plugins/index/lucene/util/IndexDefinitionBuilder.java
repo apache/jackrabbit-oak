@@ -236,7 +236,7 @@ public final class IndexDefinitionBuilder {
                     propTree = getOrCreateChild(getPropsTree(), propDefnNodeName);
                 }
                 propRule = new PropertyRule(this, propTree, name, regex);
-                props.put(name, propRule);
+                props.put(name != null ? name : propDefnNodeName, propRule);
             }
             return propRule;
         }
@@ -301,7 +301,9 @@ public final class IndexDefinitionBuilder {
         private PropertyRule(IndexRule indexRule, Tree propTree, String name, boolean regex) {
             this.indexRule = indexRule;
             this.propTree = propTree;
-            propTree.setProperty(LuceneIndexConstants.PROP_NAME, name);
+            if (name != null) {
+                propTree.setProperty(LuceneIndexConstants.PROP_NAME, name);
+            }
             if (regex) {
                 propTree.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
             }
@@ -402,6 +404,11 @@ public final class IndexDefinitionBuilder {
 
         public PropertyRule unique(){
             propTree.setProperty(LuceneIndexConstants.PROP_UNIQUE, true);
+            return this;
+        }
+
+        public PropertyRule function(String fn) {
+            propTree.setProperty(LuceneIndexConstants.PROP_FUNCTION, fn);
             return this;
         }
 
