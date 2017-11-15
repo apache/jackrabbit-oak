@@ -68,9 +68,18 @@ public abstract class PeriodicReporter implements Reporter {
     protected abstract void reportPeriodicProperty(
             final long count, @Nonnull final ReportingNodeState parent, @Nonnull final String propertyName);
 
+
+    protected boolean skipNodeState(@Nonnull final ReportingNodeState nodeState) {
+        return false;
+    }
+
     @Override
     public final void reportNode(@Nonnull final ReportingNodeState nodeState) {
         if (nodeLogInterval == -1) {
+            return;
+        }
+
+        if (skipNodeState(nodeState)) {
             return;
         }
 
