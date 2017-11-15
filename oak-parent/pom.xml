@@ -205,7 +205,6 @@
                   <filter>!org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage</filter>
                   <filter>!org.apache.jackrabbit.oak</filter>
                   <filter>!org.apache.jackrabbit.oak.json</filter>
-                  <filter>!org.apache.jackrabbit.oak.management</filter>
                   <filter>!org.apache.jackrabbit.oak.namepath</filter>
                   <filter>!org.apache.jackrabbit.oak.osgi</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.atomic</filter>
