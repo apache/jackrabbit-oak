@@ -16,12 +16,22 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import java.security.Principal;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.CompositeWorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Before;
 import org.junit.Test;
@@ -212,7 +222,6 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertEquals(1, compositeConfiguration.getProtectedItemImporters().size());
     }
 
-
     @Test
     public void testGetConflictHandlers() {
         assertTrue(compositeConfiguration.getConflictHandlers().isEmpty());
@@ -230,5 +239,116 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         addConfiguration(withConflictHandler);
 
         assertEquals(1, compositeConfiguration.getConflictHandlers().size());
+    }
+
+    @Test
+    public void testGetCommitHooks() {
+        assertTrue(compositeConfiguration.getCommitHooks(null).isEmpty());
+
+        addConfiguration(new SecurityConfiguration.Default());
+        assertTrue(compositeConfiguration.getCommitHooks(null).isEmpty());
+
+        SecurityConfiguration withCommitHook = new SecurityConfiguration.Default() {
+            @Nonnull
+            @Override
+            public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+                return ImmutableList.of(Mockito.mock(CommitHook.class));
+            }
+        };
+        addConfiguration(withCommitHook);
+
+        assertEquals(1, compositeConfiguration.getCommitHooks(null).size());
+    }
+
+    @Test
+    public void testGetValidators() {
+        assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
+
+        addConfiguration(new SecurityConfiguration.Default());
+        assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
+
+        SecurityConfiguration withValidator = new SecurityConfiguration.Default() {
+            @Nonnull
+            @Override
+            public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+                return ImmutableList.of(Mockito.mock(ValidatorProvider.class));
+            }
+        };
+        addConfiguration(withValidator);
+
+        assertEquals(1, compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).size());
+    }
+
+    @Test
+    public void testGetWorkspaceInitializer() {
+        assertTrue(compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
+
+        addConfiguration(new SecurityConfiguration.Default());
+        assertTrue(compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
+
+        SecurityConfiguration withWorkspaceInitializer = new SecurityConfiguration.Default() {
+            @Nonnull
+            @Override
+            public WorkspaceInitializer getWorkspaceInitializer() {
+                return Mockito.mock(WorkspaceInitializer.class);
+            }
+        };
+        addConfiguration(withWorkspaceInitializer);
+
+        assertTrue(compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
+    }
+
+    @Test
+    public void testGetRepositoryInitializer() {
+        assertTrue(compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
+
+        addConfiguration(new SecurityConfiguration.Default());
+        assertTrue(compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
+
+        SecurityConfiguration withRepositoryInitializer = new SecurityConfiguration.Default() {
+            @Nonnull
+            @Override
+            public RepositoryInitializer getRepositoryInitializer() {
+                return Mockito.mock(RepositoryInitializer.class);
+            }
+        };
+        addConfiguration(withRepositoryInitializer);
+
+        assertTrue(compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
+    }
+
+    @Test
+    public void testGetParameters() {
+        assertSame(ConfigurationParameters.EMPTY, compositeConfiguration.getParameters());
+
+        addConfiguration(new SecurityConfiguration.Default());
+        assertSame(ConfigurationParameters.EMPTY, compositeConfiguration.getParameters());
+
+        ConfigurationParameters params = ConfigurationParameters.of("a","valueA", "b", "valueB");
+        SecurityConfiguration withParams = new SecurityConfiguration.Default() {
+            @Nonnull
+            @Override
+            public ConfigurationParameters getParameters() {
+                return params;
+            }
+        };
+        addConfiguration(withParams);
+
+        assertEquals(ImmutableSet.copyOf(params.keySet()), ImmutableSet.copyOf(compositeConfiguration.getParameters().keySet()));
+
+        ConfigurationParameters params2 = ConfigurationParameters.of("a","valueA2", "c", "valueC");
+        SecurityConfiguration withParams2 = new SecurityConfiguration.Default() {
+            @Nonnull
+            @Override
+            public ConfigurationParameters getParameters() {
+                return params2;
+            }
+        };
+        addConfiguration(withParams2);
+
+        ConfigurationParameters compositeParams = compositeConfiguration.getParameters();
+        assertEquals(3, compositeParams.size());
+        assertEquals(ImmutableSet.copyOf(ConfigurationParameters.of(params, params2).keySet()), ImmutableSet.copyOf(compositeParams.keySet()));
+        assertEquals("valueA2", compositeParams.getConfigValue("a", "def"));
     }
 }

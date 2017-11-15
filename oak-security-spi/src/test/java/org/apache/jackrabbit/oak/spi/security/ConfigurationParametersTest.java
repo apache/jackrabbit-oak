@@ -383,6 +383,79 @@ public class ConfigurationParametersTest {
         }
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidConversionToSet() {
+        ConfigurationParameters params = ConfigurationParameters.of("long", 23);
+        params.getConfigValue("long", null, Set.class);
+    }
+
+    @Test
+    public void testInvalidConversionToMilliseconds() {
+        ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
+        assertNull(params.getConfigValue("str", null, ConfigurationParameters.Milliseconds.class));
+    }
+
+    @Test
+    public void testConversionToLong() {
+        ConfigurationParameters params = ConfigurationParameters.of("l1", 1, "l2", Long.valueOf(2));
+        assertEquals(1, params.getConfigValue("l1", null, Long.class).longValue());
+        assertEquals(1, params.getConfigValue("l1", null, long.class).longValue());
+        assertEquals(2, params.getConfigValue("l2", null, Long.class).longValue());
+        assertEquals(2, params.getConfigValue("l2", null, long.class).longValue());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidConversionToLong() {
+        ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
+        params.getConfigValue("str", null, Long.class);
+    }
+
+    @Test
+    public void testConversionToFloat() {
+        ConfigurationParameters params = ConfigurationParameters.of("f1", 1.1, "f2", new Float(2.2));
+        assertEquals(1.1, params.getConfigValue("f1", null, Float.class).floatValue(), 0.01);
+        assertEquals(1.1, params.getConfigValue("f1", null, float.class).floatValue(), 0.01);
+        assertEquals(2.2, params.getConfigValue("f2", null, Float.class).floatValue(), 0.01);
+        assertEquals(2.2, params.getConfigValue("f2", null, float.class).floatValue(), 0.01);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidConversionToFloat() {
+        ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
+        params.getConfigValue("str", null, Float.class);
+    }
+
+    @Test
+    public void testConversionToDouble() {
+        ConfigurationParameters params = ConfigurationParameters.of("d1", 1.1, "d2", new Double(2.2));
+        assertEquals(1.1, params.getConfigValue("d1", null, Double.class).doubleValue(), 0.01);
+        assertEquals(1.1, params.getConfigValue("d1", null, double.class).doubleValue(), 0.01);
+        assertEquals(2.2, params.getConfigValue("d2", null, Double.class).doubleValue(), 0.01);
+        assertEquals(2.2, params.getConfigValue("d2", null, double.class).doubleValue(), 0.01);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidConversionToDouble() {
+        ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
+        params.getConfigValue("str", null, Double.class);
+    }
+
+    @Test
+    public void testConversionToBoolean() {
+        ConfigurationParameters params = ConfigurationParameters.of("b1", true, "b2", Boolean.FALSE);
+        assertTrue(params.getConfigValue("b1", null, Boolean.class));
+        assertTrue(params.getConfigValue("b1", null, boolean.class));
+
+        assertFalse(params.getConfigValue("b2", null, Boolean.class));
+        assertFalse(params.getConfigValue("b2", null, boolean.class));
+    }
+
+    @Test
+    public void testInvalidConversionToBoolean() {
+        ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
+        assertFalse(params.getConfigValue("str", null, Boolean.class));
+    }
+
     @Test
     public void testConversionToStringArray() {
         String[] stringArray = new String[] {"a", "b"};
@@ -456,6 +529,30 @@ public class ConfigurationParametersTest {
         assertNull(options.getConfigValue("test", "value", null));
         assertNull(options.getConfigValue("test", new TestObject("t"), null));
         assertNull(options.getConfigValue("test", false, null));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testPut() {
+        ConfigurationParameters options = ConfigurationParameters.of();
+        options.put("test", "val");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testPutAll() {
+        ConfigurationParameters options = ConfigurationParameters.of();
+        options.putAll(ImmutableMap.of("test", "val", "test2", "val2"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRemove() {
+        ConfigurationParameters options = ConfigurationParameters.of("test", "val");
+        options.remove("test");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testClear() {
+        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", "val"));
+        options.clear();
     }
 
     @Test
