@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import static org.junit.Assert.assertEquals;
 
+import java.text.ParseException;
 import java.util.Arrays;
 
 import org.junit.Test;
@@ -58,6 +59,14 @@ public class FunctionIndexProcessorTest {
         checkConvert(
                 "fn:lower-case(fn:upper-case(test/@data))", 
                 "function*lower*upper*@test/data");
+        checkConvert("fn:coalesce(jcr:content/@foo2, jcr:content/@foo)",
+                "function*coalesce*@jcr:content/foo2*@jcr:content/foo");
+        checkConvert("fn:coalesce(jcr:content/@foo2,fn:lower-case(jcr:content/@foo))",
+                "function*coalesce*@jcr:content/foo2*lower*@jcr:content/foo");
+        checkConvert("fn:coalesce(jcr:content/@foo2,fn:coalesce(jcr:content/@foo, fn:lower-case(fn:name())))",
+                "function*coalesce*@jcr:content/foo2*coalesce*@jcr:content/foo*lower*@:name");
+        checkConvert("fn:coalesce(fn:coalesce(jcr:content/@foo2,jcr:content/@foo), fn:coalesce(@a:b, @c:d))",
+                "function*coalesce*coalesce*@jcr:content/foo2*@jcr:content/foo*coalesce*@a:b*@c:d");
     }
 
     @Test
@@ -87,6 +96,14 @@ public class FunctionIndexProcessorTest {
         checkConvert(
                 "[strange[0]]]", 
                 "function*@strange[0]");
+        checkConvert("coalesce([jcr:content/foo2],[jcr:content/foo])",
+                "function*coalesce*@jcr:content/foo2*@jcr:content/foo");
+        checkConvert("coalesce([jcr:content/foo2], lower([jcr:content/foo]))",
+                "function*coalesce*@jcr:content/foo2*lower*@jcr:content/foo");
+        checkConvert("coalesce([jcr:content/foo2] , coalesce([jcr:content/foo],lower(name())))",
+                "function*coalesce*@jcr:content/foo2*coalesce*@jcr:content/foo*lower*@:name");
+        checkConvert("coalesce(coalesce([jcr:content/foo2],[jcr:content/foo]), coalesce([a:b], [c:d]))",
+                "function*coalesce*coalesce*@jcr:content/foo2*@jcr:content/foo*coalesce*@a:b*@c:d");
     }
 
     private static void checkConvert(String function, String expectedPolishNotation) {
