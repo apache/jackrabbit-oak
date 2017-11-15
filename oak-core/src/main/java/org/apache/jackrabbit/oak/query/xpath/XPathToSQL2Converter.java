@@ -683,6 +683,13 @@ public class XPathToSQL2Converter {
             Expression.Cast c = new Expression.Cast(expr, "date");
             read(")");
             return c;
+        } else if ("fn:coalesce".equals(functionName)) {
+            Expression.Function f = new Expression.Function("coalesce");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:lower-case".equals(functionName)) {
             Expression.Function f = new Expression.Function("lower");
             f.params.add(parseExpression());

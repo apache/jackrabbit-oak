@@ -51,6 +51,10 @@ public class AstElementFactory {
         return new ChildNodeJoinConditionImpl(childSelectorName, parentSelectorName);
     }
 
+    public CoalesceImpl coalesce(DynamicOperandImpl operand1, DynamicOperandImpl operand2) {
+        return new CoalesceImpl(operand1, operand2);
+    }
+
     public ColumnImpl column(String selectorName, String propertyName, String columnName) {
         if (propertyName.startsWith(QueryConstants.REP_FACET)) {
             return new FacetColumnImpl(selectorName, propertyName, columnName);
