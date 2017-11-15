@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeJoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.CoalesceImpl;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
@@ -224,6 +225,12 @@ public class QueryImpl implements Query {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return true;
+            }
+
+            @Override
+            public boolean visit(CoalesceImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
             }
 
             @Override
