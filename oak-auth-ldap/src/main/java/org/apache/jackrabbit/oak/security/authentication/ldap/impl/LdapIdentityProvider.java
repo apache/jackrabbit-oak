@@ -258,9 +258,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             } else {
                 return null;
             }
-        } catch (LdapException e) {
-            throw lookupFailedException(e, timer);
-        } catch (CursorException e) {
+        } catch (LdapException | CursorException e) {
             throw lookupFailedException(e, timer);
         } finally {
             disconnect(connection);
@@ -283,9 +281,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             } else {
                 return null;
             }
-        } catch (LdapException e) {
-            throw lookupFailedException(e, timer);
-        } catch (CursorException e) {
+        } catch (LdapException | CursorException e) {
             throw lookupFailedException(e, timer);
         } finally {
             disconnect(connection);
@@ -311,9 +307,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                     return null;
                 }
             };
-        } catch (LdapException e) {
-            throw lookupFailedException(e, null);
-        } catch (CursorException e) {
+        } catch (LdapException | CursorException e) {
             throw lookupFailedException(e, null);
         }
     }
@@ -337,9 +331,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                     return null;
                 }
             };
-        } catch (LdapException e) {
-            throw lookupFailedException(e, null);
-        } catch (CursorException e) {
+        } catch (LdapException | CursorException e) {
             throw lookupFailedException(e, null);
         }
     }
@@ -693,11 +685,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                     Entry entry = (Entry) page.get(pos);
                     findNextEntry();
                     return entry;
-                } catch (LdapException e) {
-                    log.error("Error while performing LDAP search", e);
-                } catch (CursorException e) {
-                    log.error("Error while performing LDAP search", e);
-                } catch (ExternalIdentityException e) {
+                } catch (LdapException | CursorException | ExternalIdentityException e) {
                     log.error("Error while performing LDAP search", e);
                 }
             }
@@ -851,7 +839,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                 final Object propValue;
                 // for multivalue properties, store as collection
                 if (attr.size() > 1) {
-                    List<String> values = new ArrayList<String>();
+                    List<String> values = new ArrayList();
                     for (Value<?> value : attr) {
                         values.add(value.getString());
                     }

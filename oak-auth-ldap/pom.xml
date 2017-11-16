@@ -35,7 +35,7 @@
         <apacheds.test.version>2.0.0-M24</apacheds.test.version>
         <!-- enable execution of jacoco and set minimal line coverage -->
         <skip.coverage>false</skip.coverage>
-        <minimum.coverage>0.73</minimum.coverage>
+        <minimum.coverage>0.86</minimum.coverage>
     </properties>
 
     <build>
@@ -403,6 +403,17 @@
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>2.11.0</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
