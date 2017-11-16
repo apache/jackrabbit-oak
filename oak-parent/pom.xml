@@ -63,7 +63,7 @@
     <h2.version>1.4.194</h2.version>
     <tika.version>1.15</tika.version>
     <findbugs.version>3.0.4</findbugs.version>
-    <derby.version>10.13.1.1</derby.version>
+    <derby.version>10.14.1.0</derby.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
