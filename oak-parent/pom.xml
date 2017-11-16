@@ -211,7 +211,6 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.index.property</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.property.jmx</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.reference</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.itemsave</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.lock</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.memory</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.name</filter>
