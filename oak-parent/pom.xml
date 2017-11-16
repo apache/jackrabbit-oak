@@ -228,8 +228,6 @@
                   <filter>!org.apache.jackrabbit.oak.spi.commit</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.filter</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.lifecycle</filter>
-                  <filter>!org.apache.jackrabbit.oak.spi.query</filter>
-                  <filter>!org.apache.jackrabbit.oak.spi.query.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.state</filter>
                   <filter>!org.apache.jackrabbit.oak.jcr</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene</filter>
