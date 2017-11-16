@@ -101,6 +101,7 @@
       <plugins>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.7.0</version>
           <configuration>
             <target>${java.version}</target>
             <source>${java.version}</source>
@@ -109,7 +110,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>animal-sniffer-maven-plugin</artifactId>
-          <version>1.15</version>
+          <version>1.16</version>
           <configuration>
             <signature>
               <groupId>org.codehaus.mojo.signature</groupId>
@@ -120,6 +121,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.0.0-M1</version>
           <configuration>
             <source>${java.version}</source>
             <aggregate>true</aggregate>
@@ -256,12 +258,14 @@
         </plugin>
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
+          <version>2.8.2</version>
           <configuration>
             <skip>${skip.deployment}</skip>
           </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
+          <version>2.5.3</version>
           <configuration>
             <autoVersionSubmodules>true</autoVersionSubmodules>
           </configuration>
@@ -1001,6 +1005,7 @@
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-resources-plugin</artifactId>
+              <version>3.0.2</version>
               <executions>
                 <execution>
                   <id>default</id>
