@@ -202,6 +202,11 @@
                         <include name="*.zip" />
                       </fileset>
                     </checksum>
+                    <checksum algorithm="SHA-512" fileext=".sha512">
+                      <fileset dir="${basedir}/target/${project.version}">
+                        <include name="*.zip" />
+                      </fileset>
+                    </checksum>
                     <checksum file="${basedir}/target/${project.version}/${project.artifactId}-${project.version}-src.zip" algorithm="SHA1" property="checksum" />
                     <echo file="${basedir}/target/vote.txt">
 From: ${apache.username}@apache.org
