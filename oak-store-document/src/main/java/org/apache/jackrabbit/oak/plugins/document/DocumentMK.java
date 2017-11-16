@@ -1336,7 +1336,8 @@ public class DocumentMK {
             if (LIRS_CACHE != null) {
                 useLirs = LIRS_CACHE;
             }
-            if (useLirs) {
+            // do not use LIRS cache when maxWeight is zero (OAK-6953)
+            if (useLirs && maxWeight > 0) {
                 return CacheLIRS.<K, V>newBuilder().
                         module(module).
                         weigher(new Weigher<K, V>() {
