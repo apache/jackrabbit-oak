@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.hasDynamicMembership;
 
 import java.security.Principal;
 import java.security.acl.Group;
@@ -34,12 +35,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ObjectArrays;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
+
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -49,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
@@ -64,6 +59,12 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,29 +79,28 @@ import org.slf4j.LoggerFactory;
  * @since Oak 1.5.3
  * @see <a href="https://issues.apache.org/jira/browse/OAK-4101">OAK-4101</a>
  */
-@Component(
-        metatype = true,
-        label = "Apache Jackrabbit Oak External PrincipalConfiguration",
-        immediate = true
-)
-@Service({PrincipalConfiguration.class, SecurityConfiguration.class})
-@Properties({
-        @Property(name = ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS,
-                label = "External Identity Protection",
-                description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!",
-                boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS),
-        @Property(name = OAK_SECURITY_NAME,
-                propertyPrivate= true, 
-                value = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration")
-})
+@Component(immediate = true)
+@Designate(ocd=ExternalPrincipalConfiguration.ExternalPrincipalConfig.class)
 public class ExternalPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak External PrincipalConfiguration"
+            )
+    @interface ExternalPrincipalConfig {
+        @AttributeDefinition(
+                name = "External Identity Protection",
+                description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!")
+        boolean protectExternalId() default true;
+        
+        @AttributeDefinition(name = OAK_SECURITY_NAME)
+        String oakSecuritName() default "org.apachprotectExternalIde.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration";
+    }
 
     private static final Logger log = LoggerFactory.getLogger(ExternalPrincipalConfiguration.class);
 
     private SyncConfigTracker syncConfigTracker;
     private SyncHandlerMappingTracker syncHandlerMappingTracker;
 
-    @SuppressWarnings("UnusedDeclaration")
     public ExternalPrincipalConfiguration() {
         super();
     }

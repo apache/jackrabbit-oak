@@ -98,6 +98,7 @@ public class SynMBeanImplOSGiTest extends ExternalLoginModuleTestBase {
     public void testContentRepositoryAndSecurityProviderServices() throws Exception {
         context.registerService(ContentRepository.class, getContentRepository());
         context.registerService(SecurityProvider.class, getSecurityProvider());
+        context.registerInjectActivateService(externalLoginModuleFactory);
         assertSyncBeanRegistration(externalLoginModuleFactory, true);
     }
 
