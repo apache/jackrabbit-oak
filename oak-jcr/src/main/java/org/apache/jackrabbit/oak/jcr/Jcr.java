@@ -29,26 +29,11 @@ import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
-import org.apache.jackrabbit.oak.plugins.itemsave.ItemSaveValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.plugins.version.VersionHook;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
@@ -113,29 +98,23 @@ public class Jcr {
         this.oak = oak;
 
         if (initialize) {
-            with(new InitialContent());
-
-            with(new VersionHook());
-
-            with(new SecurityProviderImpl());
-
-            with(new ItemSaveValidatorProvider());
-            with(new NameValidatorProvider());
-            with(new NamespaceEditorProvider());
-            with(new TypeEditorProvider());
-            with(new ConflictValidatorProvider());
-            with(new ChangeCollectorProvider());
-
-            with(new ReferenceEditorProvider());
-            with(new ReferenceIndexProvider());
-
-            with(new PropertyIndexEditorProvider());
-            with(new NodeCounterEditorProvider());
-
-            with(new PropertyIndexProvider());
-            with(new NodeTypeIndexProvider());
-
-            with(new OrderedPropertyIndexEditorProvider());
+            OakDefaultComponents defs = OakDefaultComponents.INSTANCE;
+            with(defs.securityProvider());
+            for (CommitHook ch : defs.commitHooks()) {
+                with(ch);
+            }
+            for (RepositoryInitializer ri : defs.repositoryInitializers()) {
+                with(ri);
+            }
+            for (EditorProvider ep : defs.editorProviders()) {
+                with(ep);
+            }
+            for (IndexEditorProvider iep : defs.indexEditorProviders()) {
+                with(iep);
+            }
+            for (QueryIndexProvider qip : defs.queryIndexProviders()) {
+                with(qip);
+            }
         }
     }
 
