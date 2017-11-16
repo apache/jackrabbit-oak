@@ -198,7 +198,6 @@
                   <filter>!org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage</filter>
                   <filter>!org.apache.jackrabbit.oak</filter>
                   <filter>!org.apache.jackrabbit.oak.json</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.atomic</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.blob</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.blob.datastore</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.commit</filter>
