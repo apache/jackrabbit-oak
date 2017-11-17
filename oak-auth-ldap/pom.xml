@@ -35,7 +35,7 @@
         <apacheds.test.version>2.0.0-M24</apacheds.test.version>
         <!-- enable execution of jacoco and set minimal line coverage -->
         <skip.coverage>false</skip.coverage>
-        <minimum.coverage>0.86</minimum.coverage>
+        <minimum.coverage>0.85</minimum.coverage>
     </properties>
 
     <build>
