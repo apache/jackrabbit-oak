@@ -202,6 +202,7 @@ final class SegmentTarUtils {
         Compact.builder()
                 .withPath(directory)
                 .withMmap(mmap)
+                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .build()
                 .run();
     }
