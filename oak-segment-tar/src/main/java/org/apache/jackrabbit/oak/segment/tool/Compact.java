@@ -17,7 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
@@ -28,6 +30,7 @@ import java.io.RandomAccessFile;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -57,6 +60,8 @@ public class Compact implements Runnable {
         @CheckForNull
         private Boolean mmap;
 
+        private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -85,6 +90,19 @@ public class Compact implements Runnable {
         }
 
         /**
+         * The size of the segment cache in MB. The default of {@link SegmentCache#DEFAULT_SEGMENT_CACHE_MB}
+         * when this method is not invoked.
+         * @param segmentCacheSize   cache size in MB
+         * @return this builder
+         * @throws IllegalArgumentException  if {@code segmentCacheSize} is not a positive integer.
+         */
+        public Builder withSegmentCacheSize(int segmentCacheSize) {
+            checkArgument(segmentCacheSize > 0, "segmentCacheSize must be positive");
+            this.segmentCacheSize = segmentCacheSize;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Compact} command.
          *
          * @return an instance of {@link Runnable}.
@@ -101,9 +119,12 @@ public class Compact implements Runnable {
     @CheckForNull
     private final Boolean mmap;
 
+    private final int segmentCacheSize;
+
     private Compact(Builder builder) {
         this.path = builder.path;
         this.mmap = builder.mmap;
+        this.segmentCacheSize = builder.segmentCacheSize;
     }
 
     @Override
@@ -140,6 +161,7 @@ public class Compact implements Runnable {
 
     private FileStore newFileStore() throws IOException, InvalidFileStoreVersionException {
         FileStoreBuilder fileStoreBuilder = fileStoreBuilder(path.getAbsoluteFile())
+                .withSegmentCacheSize(segmentCacheSize)
                 .withGCOptions(defaultGCOptions().setOffline());
 
         return mmap == null
