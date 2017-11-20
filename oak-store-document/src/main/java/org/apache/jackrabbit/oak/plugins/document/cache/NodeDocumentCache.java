@@ -444,11 +444,11 @@ public class NodeDocumentCache implements Closeable {
                 NodeDocument cachedDoc = getIfPresent(id);
                 // if an old document is present in the cache, we can simply update it
                 if (cachedDoc != null && isNewer(cachedDoc, d)) {
-                    putInternal(d);
+                    putInternal(d, tracker);
                 // if the document hasn't been invalidated or added during the tracker lifetime,
                 // we can put it as well
                 } else if (cachedDoc == null && !tracker.mightBeenAffected(id)) {
-                    putInternal(d);
+                    putInternal(d, tracker);
                 }
             } finally {
                 lock.unlock();
@@ -470,17 +470,33 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Puts a document into the cache without acquiring a lock.
+     * Puts a document into the cache without acquiring a lock. All trackers will
+     * be updated.
      *
      * @param doc the document to put into the cache.
      */
     protected final void putInternal(@Nonnull NodeDocument doc) {
+        putInternal(doc, null);
+    }
+
+    /**
+     * Puts a document into the cache without acquiring a lock. All trackers will
+     * be updated, apart from the {@code trackerToSkip}.
+     *
+     * @param doc the document to put into the cache.
+     * @param trackerToSkip this tracker won't be updated. pass {@code null} to update
+     *                      all trackers.
+     */
+    protected final void putInternal(@Nonnull NodeDocument doc, @Nullable CacheChangesTracker trackerToSkip) {
         if (isLeafPreviousDocId(doc.getId())) {
             prevDocumentsCache.put(new StringValue(doc.getId()), doc);
         } else {
             nodeDocumentsCache.put(new StringValue(doc.getId()), doc);
         }
         for (CacheChangesTracker tracker : changeTrackers) {
+            if (tracker == trackerToSkip) {
+                continue;
+            }
             tracker.putDocument(doc.getId());
         }
     }
