@@ -694,7 +694,7 @@ public class FileStore extends AbstractFileStore {
          * @return compaction gain estimate
          */
         GCEstimationResult estimateCompactionGain(boolean full) {
-            return new SizeDeltaGcEstimation(gcOptions.getGcSizeDeltaEstimation(), gcJournal, stats.getApproximateSize(), full).estimate();
+            return new SizeDeltaGcEstimation(gcOptions.getGcSizeDeltaEstimation(), gcJournal, tarFiles.size(), full).estimate();
         }
 
         @Nonnull
