@@ -70,6 +70,10 @@ public class OptionParserFactory {
 
     public static final String EXCLUDE_PATHS = "exclude-paths";
 
+    public static final String FRAGMENT_PATHS = "fragment-paths";
+
+    public static final String EXCLUDE_FRAGMENTS = "exclude-fragments";
+
     public static final String MERGE_PATHS = "merge-paths";
 
     public static final String SKIP_INIT = "skip-init";
@@ -83,6 +87,8 @@ public class OptionParserFactory {
     public static final String ONLY_VERIFY = "only-verify";
 
     public static final String SKIP_CHECKPOINTS = "skip-checkpoints";
+
+    public static final String FORCE_CHECKPOINTS = "force-checkpoints";
 
     public static OptionParser create() {
         OptionParser op = new OptionParser();
@@ -116,7 +122,8 @@ public class OptionParserFactory {
         op.accepts(DST_S3_CONFIG, "Configuration file for the target S3DataStore").withRequiredArg()
                 .ofType(String.class);
         op.accepts(IGNORE_MISSING_BINARIES, "Don't break the migration if some binaries are missing");
-        op.accepts(SRC_EXTERNAL_BLOBS, "Flag specifying if the source Store has external references or not");
+        op.accepts(SRC_EXTERNAL_BLOBS, "Flag specifying if the source Store has external references or not")
+                .withRequiredArg().ofType(Boolean.class);
     }
 
     private static void addRdbOptions(OptionParser op) {
@@ -130,6 +137,10 @@ public class OptionParserFactory {
         op.accepts(INCLUDE_PATHS, "Comma-separated list of paths to include during copy.").withRequiredArg()
                 .ofType(String.class);
         op.accepts(EXCLUDE_PATHS, "Comma-separated list of paths to exclude during copy.").withRequiredArg()
+                .ofType(String.class);
+        op.accepts(FRAGMENT_PATHS, "Comma-separated list of paths supporting fragments.").withRequiredArg()
+                .ofType(String.class);
+        op.accepts(EXCLUDE_FRAGMENTS, "Comma-separated list of fragments to exclude during copy.").withRequiredArg()
                 .ofType(String.class);
         op.accepts(MERGE_PATHS, "Comma-separated list of paths to merge during copy.").withRequiredArg()
                 .ofType(String.class);
@@ -156,5 +167,6 @@ public class OptionParserFactory {
         op.accepts(VERIFY, "After the sidegrade check whether the source repository is exactly the same as destination");
         op.accepts(ONLY_VERIFY, "Performs only --" + VERIFY + ", without copying content");
         op.accepts(SKIP_CHECKPOINTS, "Don't copy checkpoints on the full segment->segment migration");
+        op.accepts(FORCE_CHECKPOINTS, "Copy checkpoints even if the --include,exclude,merge-paths option is specified");
     }
 }

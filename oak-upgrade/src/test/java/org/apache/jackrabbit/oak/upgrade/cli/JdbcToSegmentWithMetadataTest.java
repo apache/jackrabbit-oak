@@ -14,36 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.blob;
+package org.apache.jackrabbit.oak.upgrade.cli;
+
+import org.apache.jackrabbit.oak.upgrade.cli.container.JdbcNodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
+import org.junit.BeforeClass;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
-import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.S3DataStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
-import org.junit.Assume;
-
-public class S3ToFbsTest extends AbstractOak2OakTest {
-
-    private static final String S3_PROPERTIES = System.getProperty("s3.properties");
-
-    private final BlobStoreContainer sourceBlob;
-
-    private final BlobStoreContainer destinationBlob;
+public class JdbcToSegmentWithMetadataTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer source;
 
     private final NodeStoreContainer destination;
 
-    public S3ToFbsTest() throws IOException {
-        Assume.assumeTrue(S3_PROPERTIES != null && !S3_PROPERTIES.isEmpty());
-        sourceBlob = new S3DataStoreContainer(S3_PROPERTIES);
-        destinationBlob = new FileBlobStoreContainer();
-        source = new SegmentTarNodeStoreContainer(sourceBlob);
-        destination = new SegmentTarNodeStoreContainer(destinationBlob);
+    @BeforeClass
+    public static void setMetadataProperty() throws IOException {
+        System.setProperty("oak.upgrade.addSecondaryMetadata", "true");
+    }
+
+    public JdbcToSegmentWithMetadataTest() throws IOException {
+        source = new JdbcNodeStoreContainer();
+        destination = new SegmentNodeStoreContainer();
     }
 
     @Override
@@ -58,8 +51,7 @@ public class S3ToFbsTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--copy-binaries", "--src-s3datastore", sourceBlob.getDescription(), "--src-s3config",
-                S3_PROPERTIES, "--fileblobstore", destinationBlob.getDescription(), source.getDescription(),
+        return new String[] { "--src-user", "sa", "--src-password", "sa", source.getDescription(),
                 destination.getDescription() };
     }
 

@@ -49,6 +49,7 @@ public class MongoFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
+        System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
         DocumentMK.Builder builder = getBuilder(cacheSize);
         builder.setMongoDB(getDB(closer));
         if (blobStore != null) {

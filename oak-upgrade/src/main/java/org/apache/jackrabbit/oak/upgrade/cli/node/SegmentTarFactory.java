@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.Closeable;
@@ -27,17 +26,15 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 
 public class SegmentTarFactory implements NodeStoreFactory {
 
@@ -81,12 +78,12 @@ public class SegmentTarFactory implements NodeStoreFactory {
                 final ReadOnlyFileStore fs;
                 fs = builder.buildReadOnly();
                 closer.register(asCloseable(fs));
-                return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new SegmentTarSuperRootProvider(fs));
+                return SegmentNodeStoreBuilders.builder(fs).build();
             } else {
                 final FileStore fs;
                 fs = builder.build();
                 closer.register(asCloseable(fs));
-                return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new SegmentTarSuperRootProvider(fs));
+                return new NodeStoreWithFileStore(SegmentNodeStoreBuilders.builder(fs).build(), fs);
             }
         } catch (InvalidFileStoreVersionException e) {
             throw new IllegalStateException(e);
@@ -158,40 +155,24 @@ public class SegmentTarFactory implements NodeStoreFactory {
     private static class ExternalBlobFound extends RuntimeException {
     }
 
-    private static class SegmentTarSuperRootProvider implements TarNodeStore.SuperRootProvider {
+    public static class NodeStoreWithFileStore extends ProxyNodeStore {
 
-        private final ReadOnlyFileStore readOnlyFileStore;
+        private final SegmentNodeStore segmentNodeStore;
 
         private final FileStore fileStore;
 
-        public SegmentTarSuperRootProvider(ReadOnlyFileStore readOnlyFileStore) {
-            this.readOnlyFileStore = readOnlyFileStore;
-            this.fileStore = null;
-        }
-
-        public SegmentTarSuperRootProvider(FileStore fileStore) {
-            this.readOnlyFileStore = null;
+        public NodeStoreWithFileStore(SegmentNodeStore segmentNodeStore, FileStore fileStore) {
+            this.segmentNodeStore = segmentNodeStore;
             this.fileStore = fileStore;
         }
 
-        @Override
-        public void setSuperRoot(NodeBuilder builder) {
-            if (fileStore == null) {
-                throw new IllegalStateException("setSuperRoot is not supported for read-only segment-tar");
-            }
-            checkArgument(builder instanceof SegmentNodeBuilder);
-            SegmentNodeBuilder segmentBuilder = (SegmentNodeBuilder) builder;
-            SegmentNodeState lastRoot = (SegmentNodeState) getSuperRoot();
-
-            if (!lastRoot.getRecordId().equals(((SegmentNodeState) segmentBuilder.getBaseState()).getRecordId())) {
-                throw new IllegalArgumentException("The new head is out of date");
-            }
-            fileStore.getRevisions().setHead(lastRoot.getRecordId(), segmentBuilder.getNodeState().getRecordId());
+        public FileStore getFileStore() {
+            return fileStore;
         }
 
         @Override
-        public NodeState getSuperRoot() {
-            return fileStore == null ? readOnlyFileStore.getHead() : fileStore.getHead();
+        public SegmentNodeStore getNodeStore() {
+            return segmentNodeStore;
         }
     }
 }

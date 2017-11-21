@@ -58,6 +58,7 @@ public class JdbcFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
+        System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
         DocumentMK.Builder builder = MongoFactory.getBuilder(cacheSize);
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
