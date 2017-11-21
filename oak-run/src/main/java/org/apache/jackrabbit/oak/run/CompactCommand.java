@@ -132,9 +132,8 @@ class CompactCommand implements Command {
         try {
             SegmentTarUtils.compact(directory, fileAccessMode.getMemoryMapped(), force);
             success = true;
-        } catch (Throwable e) {
-            System.out.println("Compaction failure stack trace:");
-            e.printStackTrace(System.out);
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
         } finally {
             watch.stop();
             if (success) {
