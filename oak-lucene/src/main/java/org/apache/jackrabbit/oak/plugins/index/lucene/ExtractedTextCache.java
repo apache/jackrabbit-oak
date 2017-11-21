@@ -373,8 +373,11 @@ public class ExtractedTextCache {
         if (indexDir == null || !indexDir.exists()) {
             return;
         }
-        try (FileInputStream in = new FileInputStream(
-                new File(indexDir, TIMEOUT_MAP))) {
+        File file = new File(indexDir, TIMEOUT_MAP);
+        if (!file.exists()) {
+            return;
+        }
+        try (FileInputStream in = new FileInputStream(file)) {
             Properties prop = new Properties();
             prop.load(in);
             for(Entry<Object, Object> e : prop.entrySet()) {
@@ -390,8 +393,8 @@ public class ExtractedTextCache {
         if (indexDir == null || !indexDir.exists()) {
             return;
         }
-        try (FileOutputStream out = new FileOutputStream(
-                    new File(indexDir, TIMEOUT_MAP))) {
+        File file = new File(indexDir, TIMEOUT_MAP);
+        try (FileOutputStream out = new FileOutputStream(file)) {
             Properties prop = new Properties();
             prop.putAll(timeoutMap);
             prop.store(out, "Text extraction timed out for the following binaries, and will not be retried");
