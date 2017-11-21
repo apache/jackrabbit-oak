@@ -147,10 +147,7 @@ public class Compact {
     public void run() throws IOException, InvalidFileStoreVersionException {
         try (FileStore store = newFileStore()) {
             store.compactFull();
-        }
-
-        System.out.println("    -> cleaning up");
-        try (FileStore store = newFileStore()) {
+            System.out.println("    -> cleaning up");
             store.cleanup();
             File journal = new File(path, "journal.log");
             String head;
