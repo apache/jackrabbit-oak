@@ -54,7 +54,10 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
         JcrUtils.getOrCreateByPath("/content/assets/foo/2011", "nt:folder", session);
         JcrUtils.getOrCreateByPath("/content/assets/foo/2010", "nt:folder", session);
         JcrUtils.getOrCreateByPath("/content/assets/foo/2010/12", "nt:folder", session);
-        JcrUtils.getOrCreateByPath("/content/assets/foo/2010/11", "nt:folder", session);
+        JcrUtils.getOrCreateByPath("/content/other/path/foo/oak-mount-libs-xyz/node1", "nt:folder", session);
+        JcrUtils.getOrCreateByPath("/content/other/path/foo/oak-mount-libs-xyz/node2", "nt:folder", session);
+        JcrUtils.getOrCreateByPath("/content/other/path/foo/oak-mount-apps-abc/node3", "nt:folder", session);
+        JcrUtils.getOrCreateByPath("/content/other/path/foo/oak-mount-apps-abc/node4", "nt:folder", session);
         session.save();
     }
 
@@ -66,13 +69,20 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
             final RepositoryUpgrade upgrade = new RepositoryUpgrade(context, target);
             upgrade.setIncludes(
                     "/content/foo/en",
-                    "/content/assets/foo"
+                    "/content/assets/foo",
+                    "/content/other"
             );
             upgrade.setExcludes(
                     "/content/assets/foo/2013",
                     "/content/assets/foo/2012",
                     "/content/assets/foo/2011",
                     "/content/assets/foo/2010"
+            );
+            upgrade.setExcludeFragments(
+                    "oak-mount-libs-xyz"
+            );
+            upgrade.setFragmentPaths(
+                    "/content/other/path"
             );
             upgrade.copy(null);
         } finally {
@@ -86,7 +96,9 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
                 "/content/foo/en",
                 "/content/assets/foo/2015/02",
                 "/content/assets/foo/2015/01",
-                "/content/assets/foo/2014"
+                "/content/assets/foo/2014",
+                "/content/other/path/foo/oak-mount-apps-abc/node3",
+                "/content/other/path/foo/oak-mount-apps-abc/node4"
         );
     }
 
@@ -105,7 +117,9 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
                 "/content/assets/foo/2013",
                 "/content/assets/foo/2012",
                 "/content/assets/foo/2011",
-                "/content/assets/foo/2010"
+                "/content/assets/foo/2010",
+                "/content/other/path/foo/oak-mount-libs-xyz/node1",
+                "/content/other/path/foo/oak-mount-libs-xyz/node2"
         );
     }
 }

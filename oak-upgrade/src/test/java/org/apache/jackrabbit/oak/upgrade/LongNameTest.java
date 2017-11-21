@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -140,7 +139,7 @@ public class LongNameTest {
 
     @Test
     public void longNameOnSegmentStoreWorksFine() throws RepositoryException, IOException {
-        NodeStore nodeStore = new SegmentNodeStore(new MemoryStore());
+        NodeStore nodeStore = new SegmentNodeStore();
         upgrade(nodeStore, false, false);
 
         NodeState parent = getParent(nodeStore.getRoot());
