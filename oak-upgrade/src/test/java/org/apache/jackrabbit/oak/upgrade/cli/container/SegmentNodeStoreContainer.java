@@ -22,9 +22,7 @@ import java.io.IOException;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.cli.node.TarNodeStore;
 
 public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
@@ -66,12 +64,7 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
             builder.withBlobStore(blob.open());
         }
         fs = builder.create();
-        return new TarNodeStore(new SegmentNodeStore(fs), new TarNodeStore.SuperRootProvider() {
-            @Override
-            public NodeState getSuperRoot() {
-                return fs.getHead();
-            }
-        });
+        return new SegmentNodeStore(fs);
     }
 
     @Override

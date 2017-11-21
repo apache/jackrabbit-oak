@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ServiceLoader;
 
 import javax.jcr.RepositoryException;
@@ -85,6 +86,12 @@ public class MigrationFactory {
         if (options.getExcludePaths() != null) {
             upgrade.setExcludes(options.getExcludePaths());
         }
+        if (options.getFragmentPaths() != null) {
+            upgrade.setFragmentPaths(options.getFragmentPaths());
+        }
+        if (options.getExcludeFragments() != null) {
+            upgrade.setExcludeFragments(options.getExcludeFragments());
+        }
         if (options.getMergePaths() != null) {
             upgrade.setMerges(options.getMergePaths());
         }
@@ -93,10 +100,7 @@ public class MigrationFactory {
         upgrade.setSkipOnError(!options.isFailOnError());
         upgrade.setEarlyShutdown(options.isEarlyShutdown());
         upgrade.setSkipInitialization(options.isSkipInitialization());
-        ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
-        Iterator<CommitHook> iterator = loader.iterator();
-        ImmutableList.Builder<CommitHook> builder = ImmutableList.<CommitHook> builder().addAll(iterator);
-        upgrade.setCustomCommitHooks(builder.build());
+        upgrade.setCustomCommitHooks(loacCommitHooks());
         return upgrade;
     }
 
@@ -110,14 +114,30 @@ public class MigrationFactory {
         if (options.getExcludePaths() != null) {
             sidegrade.setExcludes(options.getExcludePaths());
         }
+        if (options.getExcludeFragments() != null) {
+            sidegrade.setExcludeFragments(options.getExcludeFragments());
+        }
+        if (options.getFragmentPaths() != null) {
+            sidegrade.setFragmentPaths(options.getFragmentPaths());
+        }
         if (options.getMergePaths() != null) {
             sidegrade.setMerges(options.getMergePaths());
         }
         sidegrade.setFilterLongNames(stores.getSrcType().isSupportLongNames() && !stores.getDstType().isSupportLongNames());
+        sidegrade.setIncludeIndex(options.isIncludeIndex());
         sidegrade.setVerify(options.isVerify());
         sidegrade.setOnlyVerify(options.isOnlyVerify());
         sidegrade.setSkipCheckpoints(options.isSkipCheckpoints());
+        sidegrade.setForceCheckpoints(options.isForceCheckpoints());
+        sidegrade.setCustomCommitHooks(loacCommitHooks());
         return sidegrade;
+    }
+
+    private List<CommitHook> loacCommitHooks() {
+        ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
+        Iterator<CommitHook> iterator = loader.iterator();
+        ImmutableList.Builder<CommitHook> builder = ImmutableList.<CommitHook> builder().addAll(iterator);
+        return builder.build();
     }
 
 }

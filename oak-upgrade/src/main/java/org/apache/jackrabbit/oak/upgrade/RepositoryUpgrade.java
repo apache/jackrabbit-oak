@@ -30,9 +30,6 @@ import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SKIP_NAME_CHECK;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.ALL;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.NONE;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
 
 import java.io.File;
 import java.io.IOException;
@@ -66,6 +63,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.core.IndexAccessor;
 import org.apache.jackrabbit.core.RepositoryContext;
@@ -82,6 +80,7 @@ import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -90,11 +89,13 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -114,10 +115,11 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
+import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.security.AuthorizableFolderEditor;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
@@ -141,6 +143,9 @@ import org.apache.lucene.index.TermEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.ALL;
+import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.NONE;
+import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
 
@@ -153,6 +158,10 @@ public class RepositoryUpgrade {
     public static final Set<String> DEFAULT_INCLUDE_PATHS = ALL;
 
     public static final Set<String> DEFAULT_EXCLUDE_PATHS = NONE;
+
+    public static final Set<String> DEFAULT_FRAGMENT_PATHS = NONE;
+
+    public static final Set<String> DEFAULT_EXCLUDE_FRAGMENTS = NONE;
 
     public static final Set<String> DEFAULT_MERGE_PATHS = NONE;
 
@@ -175,6 +184,16 @@ public class RepositoryUpgrade {
      * Paths to exclude during the copy process. Empty by default.
      */
     private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
+
+    /**
+     * Paths supporting fragments during the copy process. Empty by default.
+     */
+    private Set<String> fragmentPaths = DEFAULT_FRAGMENT_PATHS;
+
+    /**
+     * Fragments to exclude during the copy process. Empty by default.
+     */
+    private Set<String> excludeFragments = DEFAULT_EXCLUDE_FRAGMENTS;
 
     /**
      * Paths to merge during the copy process. Empty by default.
@@ -330,6 +349,25 @@ public class RepositoryUpgrade {
      */
     public void setExcludes(@Nonnull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
+    }
+
+    /**
+     * Sets the paths that should support the fragments.
+     *
+     * @param fragmentPaths Paths that should support fragments.
+     */
+    public void setFragmentPaths(@Nonnull String... fragmentPaths) {
+        this.fragmentPaths = copyOf(checkNotNull(fragmentPaths));
+    }
+
+    /**
+     * Sets the name fragments that should be excluded when the source repository
+     * is copied to the target repository.
+     *
+     * @param excludes Name fragments to be excluded from the copy.
+     */
+    public void setExcludeFragments(@Nonnull String... excludes) {
+        this.excludeFragments = copyOf(checkNotNull(excludes));
     }
 
     /**
@@ -545,9 +583,23 @@ public class RepositoryUpgrade {
 
             target.merge(targetBuilder, new LoggingCompositeHook(hooks, source, overrideEarlyShutdown()), CommitInfo.EMPTY);
             logger.info("Processing commit hooks completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
+
+            removeVersions();
+
             logger.debug("Repository upgrade completed.");
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
+        }
+    }
+
+    private void removeVersions() throws CommitFailedException {
+        NodeState root = target.getRoot();
+        NodeState wrappedRoot = FilteringNodeState.wrap("/", root, includePaths, excludePaths, fragmentPaths, excludeFragments);
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        if (!versionablesToStrip.isEmpty()) {
+            logger.info("Removing version histories for included paths");
+            NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);
+            target.merge(newRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
     }
 
@@ -564,6 +616,10 @@ public class RepositoryUpgrade {
         if (c.isCopyVersions() && !c.skipOrphanedVersionsCopy()
                 && c.getOrphanedMinDate().after(c.getVersionsMinDate())) {
             logger.info("Overriding early shutdown to false because of the copy versions settings");
+            return false;
+        }
+        if (c.isCopyVersions() && target.getRoot().hasChildNode(JcrConstants.JCR_SYSTEM)) {
+            logger.info("Overriding early shutdown to false because the target exists");
             return false;
         }
         return true;
@@ -931,6 +987,8 @@ public class RepositoryUpgrade {
         NodeStateCopier.builder()
                 .include(includes)
                 .exclude(excludes)
+                .supportFragment(fragmentPaths)
+                .excludeFragments(excludeFragments)
                 .merge(merges)
                 .copy(sourceRoot, targetRoot);
 

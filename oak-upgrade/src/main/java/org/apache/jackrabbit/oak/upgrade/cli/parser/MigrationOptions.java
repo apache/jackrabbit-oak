@@ -46,7 +46,13 @@ public class MigrationOptions {
 
     private final String[] excludePaths;
 
+    private final String[] fragmentPaths;
+
+    private final String[] excludeFragments;
+
     private final String[] mergePaths;
+
+    private final boolean includeIndex;
 
     private final boolean failOnError;
 
@@ -63,6 +69,8 @@ public class MigrationOptions {
     private final boolean onlyVerify;
 
     private final boolean skipCheckpoints;
+
+    private final boolean forceCheckpoints;
 
     private final String srcUser;
 
@@ -113,7 +121,10 @@ public class MigrationOptions {
         }
         this.includePaths = checkPaths(args.getOptionList(OptionParserFactory.INCLUDE_PATHS));
         this.excludePaths = checkPaths(args.getOptionList(OptionParserFactory.EXCLUDE_PATHS));
+        this.fragmentPaths = checkPaths(args.getOptionList(OptionParserFactory.FRAGMENT_PATHS));
+        this.excludeFragments = args.getOptionList(OptionParserFactory.EXCLUDE_FRAGMENTS);
         this.mergePaths = checkPaths(args.getOptionList(OptionParserFactory.MERGE_PATHS));
+        this.includeIndex = args.hasOption(OptionParserFactory.INCLUDE_INDEX);
         this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
         this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
         this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
@@ -122,6 +133,7 @@ public class MigrationOptions {
         this.verify = args.hasOption(OptionParserFactory.VERIFY);
         this.onlyVerify = args.hasOption(OptionParserFactory.ONLY_VERIFY);
         this.skipCheckpoints = args.hasOption(OptionParserFactory.SKIP_CHECKPOINTS);
+        this.forceCheckpoints = args.hasOption(OptionParserFactory.FORCE_CHECKPOINTS);
 
         this.srcUser = args.getOption(OptionParserFactory.SRC_USER);
         this.srcPassword = args.getOption(OptionParserFactory.SRC_USER);
@@ -139,8 +151,7 @@ public class MigrationOptions {
         this.dstS3Config = args.getOption(OptionParserFactory.DST_S3_CONFIG);
 
         if (args.hasOption(OptionParserFactory.SRC_EXTERNAL_BLOBS)) {
-            this.srcExternalBlobs = Boolean
-                    .valueOf(OptionParserFactory.SRC_EXTERNAL_BLOBS);
+            this.srcExternalBlobs = args.getBooleanOption(OptionParserFactory.SRC_EXTERNAL_BLOBS);
         } else {
             this.srcExternalBlobs = null;
         }
@@ -174,6 +185,14 @@ public class MigrationOptions {
         return excludePaths;
     }
 
+    public String[] getFragmentPaths() {
+        return fragmentPaths;
+    }
+
+    public String[] getExcludeFragments() {
+        return excludeFragments;
+    }
+
     public String[] getMergePaths() {
         return mergePaths;
     }
@@ -194,6 +213,10 @@ public class MigrationOptions {
         return skipNameCheck;
     }
 
+    public boolean isIncludeIndex() {
+        return includeIndex;
+    }
+
     public boolean isIgnoreMissingBinaries() {
         return ignoreMissingBinaries;
     }
@@ -208,6 +231,10 @@ public class MigrationOptions {
 
     public boolean isSkipCheckpoints() {
         return skipCheckpoints;
+    }
+
+    public boolean isForceCheckpoints() {
+        return forceCheckpoints;
     }
 
     public String getSrcUser() {
@@ -315,6 +342,14 @@ public class MigrationOptions {
             log.info("paths to exclude: {}", (Object) excludePaths);
         }
 
+        if (fragmentPaths != null) {
+            log.info("paths supporting fragments: {}", (Object) fragmentPaths);
+        }
+
+        if (excludeFragments != null) {
+            log.info("fragments to exclude: {}", (Object) excludeFragments);
+        }
+
         if (failOnError) {
             log.info("Unreadable nodes will cause failure of the entire transaction");
         }
@@ -331,6 +366,10 @@ public class MigrationOptions {
             log.info("Test for long-named nodes will be disabled");
         }
 
+        if (includeIndex) {
+            log.info("Index data for the paths {} will be copied", (Object) includePaths);
+        }
+
         if (ignoreMissingBinaries) {
             log.info("Missing binaries won't break the migration");
         }
@@ -341,6 +380,10 @@ public class MigrationOptions {
 
         if (skipCheckpoints) {
             log.info("Checkpoints won't be migrated");
+        }
+
+        if (forceCheckpoints) {
+            log.info("Checkpoints will be migrated even with the custom paths specified");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);

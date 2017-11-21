@@ -255,23 +255,50 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
                 .getPrimaryNodeType());
     }
 
-    protected Session performCopy(VersionCopySetup setup) throws RepositoryException, IOException {
-        final RepositoryConfig sourceConfig = RepositoryConfig.create(source);
-        final RepositoryContext sourceContext = RepositoryContext.create(sourceConfig);
+    @Test
+    public void removeVersionHistory() throws RepositoryException, IOException {
         final NodeStore targetNodeStore = new SegmentNodeStore();
-        try {
-            final RepositoryUpgrade upgrade = new RepositoryUpgrade(sourceContext, targetNodeStore);
-            setup.setup(upgrade.versionCopyConfiguration);
-            upgrade.setEarlyShutdown(true);
-            upgrade.copy(null);
-        } finally {
-            sourceContext.getRepository().shutdown();
-        }
+        migrate(new VersionCopySetup() {
+            @Override
+            public void setup(VersionCopyConfiguration config) {
+            }
+        }, targetNodeStore, "/");
+        migrate(new VersionCopySetup() {
+            @Override
+            public void setup(VersionCopyConfiguration config) {
+                config.setCopyVersions(null);
+                config.setCopyOrphanedVersions(null);
+            }
+        }, targetNodeStore, "/versionables");
+        repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
+        Session s = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+        sessions.add(s);
+        assertMissingHistories(s, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
+        assertNonVersionablePaths(s, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
 
+    }
+
+    protected Session performCopy(VersionCopySetup setup) throws RepositoryException, IOException {
+        final NodeStore targetNodeStore = new SegmentNodeStore();
+        migrate(setup, targetNodeStore, "/");
         repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
         Session s = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
         sessions.add(s);
         return s;
+    }
+
+    protected void migrate(VersionCopySetup setup, NodeStore target, String includePath) throws RepositoryException, IOException {
+        final RepositoryConfig sourceConfig = RepositoryConfig.create(source);
+        final RepositoryContext sourceContext = RepositoryContext.create(sourceConfig);
+        try {
+            final RepositoryUpgrade upgrade = new RepositoryUpgrade(sourceContext, target);
+            upgrade.setIncludes(includePath);
+            setup.setup(upgrade.versionCopyConfiguration);
+            upgrade.setEarlyShutdown(false);
+            upgrade.copy(null);
+        } finally {
+            sourceContext.getRepository().shutdown();
+        }
     }
 
     @After
@@ -354,6 +381,18 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
                 assertTrue("Node " + path + " should have mix:versionable mixin", node.isNodeType(MIX_VERSIONABLE));
                 final VersionHistory history = getVersionHistoryForPath(session, path);
                 assertVersionablePath(history, path);
+            }
+        }
+    }
+
+    private static void assertNonVersionablePaths(final Session session, final String... names)
+            throws RepositoryException {
+        for (final String mixin : MIXINS) {
+            final String pathPrefix = VERSIONABLES_PATH_PREFIX + mixin + "/";
+            for (final String name : names) {
+                final String path = pathPrefix + name;
+                final Node node = session.getNode(path);
+                assertFalse("Node " + path + " shouldn't have mix:versionable mixin", node.isNodeType(MIX_VERSIONABLE));
             }
         }
     }
