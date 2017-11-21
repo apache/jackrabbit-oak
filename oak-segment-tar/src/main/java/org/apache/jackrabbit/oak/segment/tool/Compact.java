@@ -39,7 +39,8 @@ import org.apache.jackrabbit.oak.segment.file.JournalReader;
 /**
  * Perform an offline compaction of an existing segment store.
  */
-public class Compact implements Runnable {
+public class Compact {
+
 
     /**
      * Create a builder for the {@link Compact} command.
@@ -107,7 +108,7 @@ public class Compact implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public Compact build() {
             checkNotNull(path);
             return new Compact(this);
         }
@@ -127,16 +128,7 @@ public class Compact implements Runnable {
         this.segmentCacheSize = builder.segmentCacheSize;
     }
 
-    @Override
-    public void run() {
-        try {
-            compact();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void compact() throws IOException, InvalidFileStoreVersionException {
+    public void run() throws IOException, InvalidFileStoreVersionException {
         try (FileStore store = newFileStore()) {
             store.compact();
         }

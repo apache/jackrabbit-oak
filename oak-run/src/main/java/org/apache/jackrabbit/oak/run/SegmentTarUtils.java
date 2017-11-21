@@ -198,7 +198,7 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void compact(@Nonnull File directory, @Nullable Boolean mmap) {
+    static void compact(@Nonnull File directory, @Nullable Boolean mmap) throws IOException, InvalidFileStoreVersionException {
         Compact.builder()
                 .withPath(directory)
                 .withMmap(mmap)
