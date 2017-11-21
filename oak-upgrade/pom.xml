@@ -68,6 +68,11 @@
   <dependencies>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-cloud</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-core</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -88,15 +93,17 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-aws-ext</artifactId>
-      <version>${jackrabbit.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-spi</artifactId>
       <version>${jackrabbit.version}</version>
     </dependency>
 
+    <!-- it has to match the version used in jackrabbit-core -->
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>3.6.0</version>
+    </dependency>
+    
     <dependency>
       <groupId>commons-lang</groupId>
       <artifactId>commons-lang</artifactId>

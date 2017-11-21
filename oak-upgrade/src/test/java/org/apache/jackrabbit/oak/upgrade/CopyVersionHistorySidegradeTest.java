@@ -32,7 +32,6 @@ import java.io.IOException;
 public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
 
     private static NodeStore sourceNodeStore;
-
     @Before
     @Override
     public void upgradeRepository() throws Exception {
@@ -50,15 +49,10 @@ public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
     }
 
     @Override
-    protected Session performCopy(VersionCopySetup setup) throws RepositoryException, IOException {
-        final NodeStore targetNodeStore = new MemoryNodeStore();
-        final RepositorySidegrade sidegrade = new RepositorySidegrade(sourceNodeStore, targetNodeStore);
+    protected void migrate(VersionCopySetup setup, NodeStore target, String includePath) throws RepositoryException, IOException {
+        final RepositorySidegrade sidegrade = new RepositorySidegrade(sourceNodeStore, target);
+        sidegrade.setIncludes(includePath);
         setup.setup(sidegrade.versionCopyConfiguration);
         sidegrade.copy();
-
-        repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
-        Session s = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
-        sessions.add(s);
-        return s;
     }
 }

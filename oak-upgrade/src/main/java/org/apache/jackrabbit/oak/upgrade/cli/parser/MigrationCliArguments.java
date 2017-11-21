@@ -52,6 +52,10 @@ public final class MigrationCliArguments {
         return (Integer) options.valueOf(optionName);
     }
 
+    public Boolean getBooleanOption(String optionName) {
+        return (Boolean) options.valueOf(optionName);
+    }
+
     public String[] getOptionList(String optionName) {
         String option = getOption(optionName);
         if (option == null) {

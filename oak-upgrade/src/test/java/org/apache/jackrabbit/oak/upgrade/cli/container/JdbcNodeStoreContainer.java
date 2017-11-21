@@ -21,13 +21,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
+
+import static org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer.deleteRecursive;
 
 public class JdbcNodeStoreContainer implements NodeStoreContainer {
 
@@ -74,7 +75,7 @@ public class JdbcNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        FileUtils.deleteQuietly(h2Dir);
+        deleteRecursive(h2Dir);
         blob.clean();
     }
 

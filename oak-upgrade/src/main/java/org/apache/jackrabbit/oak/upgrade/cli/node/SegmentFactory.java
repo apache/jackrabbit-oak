@@ -25,10 +25,10 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 
 import javax.annotation.Nullable;
 
@@ -82,12 +82,7 @@ public class SegmentFactory implements NodeStoreFactory {
         }
         closer.register(asCloseable(fs));
 
-        return new TarNodeStore(SegmentNodeStore.newSegmentNodeStore(fs).create(), new TarNodeStore.SuperRootProvider() {
-            @Override
-            public NodeState getSuperRoot() {
-                return fs.getHead();
-            }
-        });
+        return new NodeStoreWithFileStore(SegmentNodeStore.newSegmentNodeStore(fs).create(), fs);
     }
 
     @Override
@@ -130,4 +125,26 @@ public class SegmentFactory implements NodeStoreFactory {
 
     private static class ExternalBlobFound extends RuntimeException {
     }
+
+    public static class NodeStoreWithFileStore extends ProxyNodeStore {
+
+        private final SegmentNodeStore segmentNodeStore;
+
+        private final FileStore fileStore;
+
+        public NodeStoreWithFileStore(SegmentNodeStore segmentNodeStore, FileStore fileStore) {
+            this.segmentNodeStore = segmentNodeStore;
+            this.fileStore = fileStore;
+        }
+
+        public FileStore getFileStore() {
+            return fileStore;
+        }
+
+        @Override
+        public SegmentNodeStore getNodeStore() {
+            return segmentNodeStore;
+        }
+    }
+
 }
