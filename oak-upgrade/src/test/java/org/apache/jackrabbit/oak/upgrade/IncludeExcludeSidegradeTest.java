@@ -73,13 +73,20 @@ public class IncludeExcludeSidegradeTest extends IncludeExcludeUpgradeTest {
             final RepositorySidegrade sidegrade = new RepositorySidegrade(segmentNodeStore, target);
             sidegrade.setIncludes(
                     "/content/foo/en",
-                    "/content/assets/foo"
+                    "/content/assets/foo",
+                    "/content/other"
             );
             sidegrade.setExcludes(
                     "/content/assets/foo/2013",
                     "/content/assets/foo/2012",
                     "/content/assets/foo/2011",
                     "/content/assets/foo/2010"
+            );
+            sidegrade.setExcludeFragments(
+                    "oak-mount-libs-xyz"
+            );
+            sidegrade.setFragmentPaths(
+                    "/content/other/path"
             );
             sidegrade.copy();
         } finally {

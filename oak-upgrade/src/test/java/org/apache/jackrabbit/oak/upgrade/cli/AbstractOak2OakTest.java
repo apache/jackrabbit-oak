@@ -40,15 +40,14 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -59,7 +58,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.junit.After;
 import org.junit.Before;
@@ -81,8 +79,6 @@ public abstract class AbstractOak2OakTest {
     protected Session session;
 
     private RepositoryImpl repository;
-
-    private String checkpointReference;
 
     protected abstract NodeStoreContainer getSourceContainer();
 
@@ -149,7 +145,7 @@ public abstract class AbstractOak2OakTest {
         builder.setProperty("binary-prop", getRandomBlob(target));
         builder.setProperty("checkpoint-state", "before");
         target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        checkpointReference = target.checkpoint(60000, singletonMap("key", "123"));
+        target.checkpoint(60000, singletonMap("key", "123"));
 
         builder.setProperty("checkpoint-state", "after");
         builder.setProperty("binary-prop", getRandomBlob(target));
@@ -219,6 +215,17 @@ public abstract class AbstractOak2OakTest {
     protected void verifyCheckpoint() {
         assertEquals("after", destination.getRoot().getString("checkpoint-state"));
 
+        String checkpointReference = null;
+
+        for (String c : destination.checkpoints()) {
+            if (destination.checkpointInfo(c).containsKey("key")) {
+                checkpointReference = c;
+                break;
+            }
+        }
+
+        assertNotNull(checkpointReference);
+
         Map<String, String> info = destination.checkpointInfo(checkpointReference);
         assertEquals("123", info.get("key"));
 
@@ -244,6 +251,8 @@ public abstract class AbstractOak2OakTest {
             return ((SegmentNodeState) node).getRecordId().toString();
         } else if (node instanceof org.apache.jackrabbit.oak.segment.SegmentNodeState) {
             return ((org.apache.jackrabbit.oak.segment.SegmentNodeState) node).getRecordId().toString();
+        } else if (node instanceof DocumentNodeState) {
+            return ((DocumentNodeState) node).getLastRevision().toString();
         } else {
             return null;
         }
