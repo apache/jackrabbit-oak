@@ -18,15 +18,22 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentNodeStoreContainer implements NodeStoreContainer {
+
+    private static final Logger log = LoggerFactory.getLogger(SegmentNodeStoreContainer.class);
 
     private final File directory;
 
@@ -72,7 +79,7 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        FileUtils.deleteQuietly(directory);
+        deleteRecursive(directory);
         if (blob != null) {
             blob.clean();
         }
@@ -86,4 +93,28 @@ public class SegmentNodeStoreContainer implements NodeStoreContainer {
     public File getDirectory() {
         return directory;
     }
+
+    public static void deleteRecursive(File directory) {
+        if (!directory.exists()) {
+            return;
+        }
+        try {
+            Files.walkFileTree(directory.toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch(IOException e) {
+            log.error("Can't remove directory " + directory, e);
+        }
+    }
+
 }

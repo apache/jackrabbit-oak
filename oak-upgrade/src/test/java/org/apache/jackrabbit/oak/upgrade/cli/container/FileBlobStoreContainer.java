@@ -21,9 +21,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
+
+import static org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer.deleteRecursive;
 
 public class FileBlobStoreContainer implements BlobStoreContainer {
 
@@ -44,7 +45,7 @@ public class FileBlobStoreContainer implements BlobStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        FileUtils.deleteQuietly(directory);
+        deleteRecursive(directory);
     }
 
     @Override
