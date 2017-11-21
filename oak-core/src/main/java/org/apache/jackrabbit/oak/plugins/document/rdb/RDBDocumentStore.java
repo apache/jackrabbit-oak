@@ -769,7 +769,6 @@ public class RDBDocumentStore implements DocumentStore {
             new String[] { "id", "dsize", "deletedonce", "bdata", "data", "cmodcount", "modcount", "hasbinary", "modified" })));
 
     // set of properties not serialized to JSON
-    // when adding new columns also update UNHANDLEDPROPS!
     private static final Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(
             new String[] { ID, NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, COLLISIONSMODCOUNT, MODIFIED, MODCOUNT }));
 
@@ -1632,7 +1631,7 @@ public class RDBDocumentStore implements DocumentStore {
             boolean shouldRetry = true;
 
             // every 16th update is a full rewrite
-            if (isAppendableUpdate(update, false) && modcount % 16 != 0) {
+            if (isAppendableUpdate(update) && modcount % 16 != 0) {
                 String appendData = ser.asString(update);
                 if (appendData.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
                     try {
@@ -1688,23 +1687,8 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    // set of properties not serialized and not handled specifically by update code
-    private static final Set<Key> UNHANDLEDPROPS = new HashSet<Key>(
-            Arrays.asList(new Key[] { new Key(NodeDocument.HAS_BINARY_FLAG, null), new Key(NodeDocument.DELETED_ONCE, null) }));
-
-    private static boolean isAppendableUpdate(UpdateOp update, boolean batched) {
-        if (NOAPPEND) {
-            return false;
-        }
-        if (batched) {
-            // Detect update operations not supported when doing batch updates
-            for (Key key : update.getChanges().keySet()) {
-                if (UNHANDLEDPROPS.contains(key)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+    private static boolean isAppendableUpdate(UpdateOp update) {
+        return NOAPPEND == false;
     }
 
     private static long getModifiedFromOperation(Operation op) {
