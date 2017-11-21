@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import javax.annotation.Nullable;
@@ -43,6 +44,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
@@ -145,11 +147,12 @@ public abstract class AbstractOak2OakTest {
         builder.setProperty("binary-prop", getRandomBlob(target));
         builder.setProperty("checkpoint-state", "before");
         target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        target.checkpoint(60000);
+        String cp = target.checkpoint(60000);
 
         builder.setProperty("checkpoint-state", "after");
         builder.setProperty("binary-prop", getRandomBlob(target));
-        builder.child(":async").setProperty("test", "123");
+        builder.child(":async").setProperty("test", cp);
+        builder.child(":async").setProperty("test2", Arrays.asList("123", cp, "321"), Type.STRINGS);
         target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -218,7 +221,11 @@ public abstract class AbstractOak2OakTest {
         String checkpointReference = null;
 
         for (CheckpointRetriever.Checkpoint c : CheckpointRetriever.getCheckpoints(destination)) {
-            checkpointReference = c.getName();
+            String name = c.getName();
+            if ("before".equals(destination.retrieve(name).getString("checkpoint-state"))) {
+                checkpointReference = name;
+                break;
+            }
         }
 
         assertNotNull(checkpointReference);
@@ -226,7 +233,8 @@ public abstract class AbstractOak2OakTest {
         NodeState checkpoint = destination.retrieve(checkpointReference);
         assertEquals("before", checkpoint.getString("checkpoint-state"));
 
-        assertEquals("123", destination.getRoot().getChildNode(":async").getString("test"));
+        assertEquals(checkpointReference, destination.getRoot().getChildNode(":async").getString("test"));
+        assertEquals(Arrays.asList("123", checkpointReference, "321"), destination.getRoot().getChildNode(":async").getStrings("test2"));
 
         for (String name : new String[] {"var", "etc", "sling.css", "apps", "libs", "sightly"}) {
             assertSameRecord(destination.getRoot().getChildNode(name), checkpoint.getChildNode(name));
