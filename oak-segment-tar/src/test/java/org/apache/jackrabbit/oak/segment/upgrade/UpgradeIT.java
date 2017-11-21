@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -111,12 +112,17 @@ public class UpgradeIT {
     public void offRCUpgradesRequiresForce() throws IOException, InvalidFileStoreVersionException {
         checkSegmentVersion(V_12);
         checkStoreVersion(1);
-        Compact.builder()
+
+        try {
+            Compact.builder()
                 .withPath(fileStoreHome.getRoot())
                 .withMmap(true)
                 .withForce(false)
                 .build()
                 .run();
+        } catch (Exception e) {
+            // The exception is not relevant to this test.
+        }
 
         // Not upgraded
         checkStoreVersion(1);
