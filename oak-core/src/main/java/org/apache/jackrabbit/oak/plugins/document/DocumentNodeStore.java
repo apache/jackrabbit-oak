@@ -777,6 +777,10 @@ public final class DocumentNodeStore
         return diffCache.getStats();
     }
 
+    public Cache<PathRev, DocumentNodeState> getNodeCache() {
+        return nodeCache;
+    }
+
     public Cache<PathRev, DocumentNodeState.Children> getNodeChildrenCache() {
         return nodeChildrenCache;
     }
