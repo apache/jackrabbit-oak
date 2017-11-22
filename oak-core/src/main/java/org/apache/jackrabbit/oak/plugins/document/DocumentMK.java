@@ -933,7 +933,8 @@ public class DocumentMK implements MicroKernel {
 
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
                 long maxWeight) {
-            if (LIRS_CACHE || persistentCacheURI != null) {
+            // do not use LIRS cache when maxWeight is zero (OAK-6953)
+            if ((LIRS_CACHE || persistentCacheURI != null) && maxWeight > 0) {
                 return CacheLIRS.newBuilder().
                         weigher(weigher).
                         averageWeight(2000).
