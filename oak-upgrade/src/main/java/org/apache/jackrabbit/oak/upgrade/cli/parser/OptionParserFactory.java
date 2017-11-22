@@ -70,17 +70,11 @@ public class OptionParserFactory {
 
     public static final String EXCLUDE_PATHS = "exclude-paths";
 
-    public static final String FRAGMENT_PATHS = "fragment-paths";
-
-    public static final String EXCLUDE_FRAGMENTS = "exclude-fragments";
-
     public static final String MERGE_PATHS = "merge-paths";
 
     public static final String SKIP_INIT = "skip-init";
 
     public static final String SKIP_NAME_CHECK = "skip-name-check";
-
-    public static final String INCLUDE_INDEX = "include-index";
 
     public static final String VERIFY = "verify";
 
@@ -138,13 +132,8 @@ public class OptionParserFactory {
                 .ofType(String.class);
         op.accepts(EXCLUDE_PATHS, "Comma-separated list of paths to exclude during copy.").withRequiredArg()
                 .ofType(String.class);
-        op.accepts(FRAGMENT_PATHS, "Comma-separated list of paths supporting fragments.").withRequiredArg()
-                .ofType(String.class);
-        op.accepts(EXCLUDE_FRAGMENTS, "Comma-separated list of fragments to exclude during copy.").withRequiredArg()
-                .ofType(String.class);
         op.accepts(MERGE_PATHS, "Comma-separated list of paths to merge during copy.").withRequiredArg()
                 .ofType(String.class);
-        op.accepts(INCLUDE_INDEX, "Copy index data for paths specified in the " + INCLUDE_PATHS + " option");
     }
 
     private static void addVersioningOptions(OptionParser op) {
