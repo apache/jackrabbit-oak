@@ -49,7 +49,7 @@ public class DefaultIndexReader implements LuceneIndexReader {
         closer.register(this.reader);
         this.suggestDirectory = suggestDirectory;
         if (suggestDirectory != null) {
-            closer.register(this.suggestDirectory);
+            //Directory is closed by AnalyzingInfixSuggester close call
             this.lookup = SuggestHelper.getLookup(suggestDirectory, analyzer);
             closer.register(this.lookup);
         } else {
