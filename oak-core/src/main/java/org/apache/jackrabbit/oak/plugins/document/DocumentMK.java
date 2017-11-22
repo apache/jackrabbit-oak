@@ -966,7 +966,8 @@ public class DocumentMK implements MicroKernel {
             if (LIRS_CACHE != null) {
                 useLirs = LIRS_CACHE;
             }
-            if (useLirs) {
+            // do not use LIRS cache when maxWeight is zero (OAK-6953)
+            if (useLirs && maxWeight > 0) {
                 return CacheLIRS.<K, V>newBuilder().
                         weigher(new Weigher<K, V>() {
                             @Override
