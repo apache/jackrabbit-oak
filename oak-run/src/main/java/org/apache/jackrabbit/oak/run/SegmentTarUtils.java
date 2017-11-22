@@ -174,16 +174,6 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void compact(@Nonnull File directory, @Nullable Boolean mmap, boolean force) throws IOException, InvalidFileStoreVersionException {
-        Compact.builder()
-                .withPath(directory)
-                .withMmap(mmap)
-                .withForce(force)
-                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
-                .build()
-                .run();
-    }
-
     static void diff(File store, File out, boolean listOnly, String interval, boolean incremental, String path, boolean ignoreSNFEs) throws IOException {
         if (listOnly) {
             revisions(store, out);
