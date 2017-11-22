@@ -113,16 +113,12 @@ public class UpgradeIT {
         checkSegmentVersion(V_12);
         checkStoreVersion(1);
 
-        try {
-            Compact.builder()
-                .withPath(fileStoreHome.getRoot())
-                .withMmap(true)
-                .withForce(false)
-                .build()
-                .run();
-        } catch (Exception e) {
-            // The exception is not relevant to this test.
-        }
+        Compact.builder()
+            .withPath(fileStoreHome.getRoot())
+            .withMmap(true)
+            .withForce(false)
+            .build()
+            .run();
 
         // Not upgraded
         checkStoreVersion(1);
