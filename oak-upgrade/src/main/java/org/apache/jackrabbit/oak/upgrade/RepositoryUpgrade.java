@@ -159,10 +159,6 @@ public class RepositoryUpgrade {
 
     public static final Set<String> DEFAULT_EXCLUDE_PATHS = NONE;
 
-    public static final Set<String> DEFAULT_FRAGMENT_PATHS = NONE;
-
-    public static final Set<String> DEFAULT_EXCLUDE_FRAGMENTS = NONE;
-
     public static final Set<String> DEFAULT_MERGE_PATHS = NONE;
 
     /**
@@ -184,16 +180,6 @@ public class RepositoryUpgrade {
      * Paths to exclude during the copy process. Empty by default.
      */
     private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
-
-    /**
-     * Paths supporting fragments during the copy process. Empty by default.
-     */
-    private Set<String> fragmentPaths = DEFAULT_FRAGMENT_PATHS;
-
-    /**
-     * Fragments to exclude during the copy process. Empty by default.
-     */
-    private Set<String> excludeFragments = DEFAULT_EXCLUDE_FRAGMENTS;
 
     /**
      * Paths to merge during the copy process. Empty by default.
@@ -349,25 +335,6 @@ public class RepositoryUpgrade {
      */
     public void setExcludes(@Nonnull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
-    }
-
-    /**
-     * Sets the paths that should support the fragments.
-     *
-     * @param fragmentPaths Paths that should support fragments.
-     */
-    public void setFragmentPaths(@Nonnull String... fragmentPaths) {
-        this.fragmentPaths = copyOf(checkNotNull(fragmentPaths));
-    }
-
-    /**
-     * Sets the name fragments that should be excluded when the source repository
-     * is copied to the target repository.
-     *
-     * @param excludes Name fragments to be excluded from the copy.
-     */
-    public void setExcludeFragments(@Nonnull String... excludes) {
-        this.excludeFragments = copyOf(checkNotNull(excludes));
     }
 
     /**
@@ -594,7 +561,7 @@ public class RepositoryUpgrade {
 
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
-        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, fragmentPaths, excludeFragments);
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
         List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {
             logger.info("Removing version histories for included paths");
@@ -987,8 +954,6 @@ public class RepositoryUpgrade {
         NodeStateCopier.builder()
                 .include(includes)
                 .exclude(excludes)
-                .supportFragment(fragmentPaths)
-                .excludeFragments(excludeFragments)
                 .merge(merges)
                 .copy(sourceRoot, targetRoot);
 
