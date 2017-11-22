@@ -156,7 +156,6 @@ public class VersionGarbageCollector {
 
             stats.deleteDeletedDocs.start();
             gc.removeDocuments(stats);
-            nodeStore.invalidateDocChildrenCache();
             stats.deleteDeletedDocs.stop();
         } finally {
             gc.close();

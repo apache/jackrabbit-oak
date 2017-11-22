@@ -272,14 +272,18 @@ public class VersionGCDeletionTest {
         final Semaphore queries = new Semaphore(0);
         final CountDownLatch ready = new CountDownLatch(1);
         MemoryDocumentStore ms = new MemoryDocumentStore() {
+            @Nonnull
             @Override
-            public <T extends Document> T find(Collection<T> collection,
-                                               String key) {
-                if (Thread.currentThread() != currentThread) {
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      int limit) {
+                if (collection == Collection.NODES
+                        && Thread.currentThread() != currentThread) {
                     ready.countDown();
                     queries.acquireUninterruptibly();
                 }
-                return super.find(collection, key);
+                return super.query(collection, fromKey, toKey, limit);
             }
         };
         store = new DocumentMK.Builder().clock(clock)
@@ -337,7 +341,7 @@ public class VersionGCDeletionTest {
         VersionGCStats stats = gc.gc(30, MINUTES);
         assertEquals(90, stats.deletedDocGCCount);
 
-        queries.release(200);
+        queries.release(2);
 
         List<String> names = f.get();
         assertEquals(expected, names);

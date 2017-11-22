@@ -60,10 +60,6 @@ public abstract class AbstractJournalTest {
         mks.clear();
     }
 
-    protected static void invalidateDocChildrenCache(DocumentNodeStore store) {
-        store.invalidateDocChildrenCache();
-    }
-
     protected static void renewClusterIdLease(DocumentNodeStore store) {
         store.renewClusterIdLease();
     }
