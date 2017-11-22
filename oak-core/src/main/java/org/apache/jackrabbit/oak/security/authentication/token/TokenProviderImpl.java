@@ -98,6 +98,18 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     private static final Logger log = LoggerFactory.getLogger(TokenProviderImpl.class);
 
     /**
+     * Optional configuration parameter to define the number of token nodes that
+     * when exceeded will trigger a cleanup of expired tokens upon creation.
+     */
+    static final String PARAM_TOKEN_CLEANUP_THRESHOLD = "tokenCleanupThreshold";
+
+    /**
+     * Default value indicating that tokens should never be cleaned up (i.e.
+     * backwards compatible behavior).
+     */
+    static final long NO_TOKEN_CLEANUP = 0;
+
+    /**
      * Default expiration time in ms for login tokens is 2 hours.
      */
     static final long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
@@ -112,6 +124,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     private final long tokenExpiration;
     private final UserManager userManager;
     private final IdentifierManager identifierManager;
+    private final long cleanupThreshold;
 
     TokenProviderImpl(@Nonnull Root root, @Nonnull ConfigurationParameters options, @Nonnull UserConfiguration userConfiguration) {
         this(root, options, userConfiguration, SimpleCredentialsSupport.getInstance());
@@ -125,6 +138,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         this.tokenExpiration = options.getConfigValue(PARAM_TOKEN_EXPIRATION, DEFAULT_TOKEN_EXPIRATION);
         this.userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
         this.identifierManager = new IdentifierManager(root);
+        this.cleanupThreshold = options.getConfigValue(PARAM_TOKEN_CLEANUP_THRESHOLD, NO_TOKEN_CLEANUP);
     }
 
     //------------------------------------------------------< TokenProvider >---
@@ -224,6 +238,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                     tokenInfo = createTokenNode(tokenParent, UUID.randomUUID().toString(), expTime, uuid, id, attributes);
                     root.commit(CommitMarker.asCommitAttributes());
                 }
+                cleanupExpired(userId, tokenParent, creationTime, tokenInfo.getToken());
                 return tokenInfo;
             } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
                 // error while generating login token
@@ -274,6 +289,10 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
 
     private static long getExpirationTime(@Nonnull Tree tokenTree, long defaultValue) {
         return TreeUtil.getLong(tokenTree, TOKEN_ATTRIBUTE_EXPIRY, defaultValue);
+    }
+
+    private static boolean isExpired(long expirationTime, long loginTime) {
+        return expirationTime < loginTime;
     }
 
     private static void setExpirationTime(@Nonnull Tree tree, long time) {
@@ -424,7 +443,64 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return new TokenInfoImpl(tokenNode, token, id, null);
     }
 
-    //--------------------------------------------------------------------------
+    /**
+     * Remove expired token nodes if the configured threshold (i.e. number of
+     * token nodes) is matched/exceeded. By default (i.e. unless configured with
+     * a value bigger than {@link #NO_TOKEN_CLEANUP}) no cleanup is performed
+     * and this method returns without looking at the token nodes; this makes
+     * this addition optional and will not affect existing configurations.
+     *
+     * @param parent
+     *            The token parent node.
+     * @param currentTime
+     *            The time to be used for analysing expiration of existing
+     *            tokens.
+     * @param token
+     *            The token info used as random data to skip cleanup.
+     */
+    private void cleanupExpired(@Nonnull String userId, @Nonnull Tree parent, long currentTime, @Nonnull String token) {
+        if (cleanupThreshold > NO_TOKEN_CLEANUP && shouldRunCleanup(token)) {
+            long start = System.currentTimeMillis();
+            long active = 0;
+            long expired = 0;
+            try {
+                if (parent.getChildrenCount(cleanupThreshold) >= cleanupThreshold) {
+                    for (Tree child : parent.getChildren()) {
+                        if (isExpired(getExpirationTime(child, Long.MIN_VALUE), currentTime)) {
+                            expired++;
+                            child.remove();
+                        } else {
+                            active++;
+                        }
+                    }
+                }
+                if (root.hasPendingChanges()) {
+                    root.commit(CommitMarker.asCommitAttributes());
+                }
+            } catch (CommitFailedException e) {
+                log.debug("Failed to cleanup expired token nodes", e);
+                root.refresh();
+            } finally {
+                if (log.isDebugEnabled() && active + expired > 0) {
+                    log.debug("Token cleanup completed in {} ms: removed {}/{} tokens for {}.",
+                            System.currentTimeMillis() - start, expired, active + expired, userId);
+                }
+            }
+        }
+    }
+
+    /**
+     * Method that determines if the cleanup should run or not based on the
+     * randomly generated token's first char, this decreases the chances to 1/8.
+     *
+     * @param tkn
+     * @return true if the cleanup should run
+     */
+    static boolean shouldRunCleanup(@Nonnull String token) {
+        return token.charAt(0) < '2';
+    }
+
+    // --------------------------------------------------------------------------
 
     /**
      * TokenInfo
@@ -489,7 +565,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
 
         @Override
         public boolean isExpired(long loginTime) {
-            return expirationTime < loginTime;
+            return TokenProviderImpl.isExpired(expirationTime, loginTime);
         }
 
         @Override

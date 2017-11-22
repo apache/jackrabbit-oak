@@ -250,6 +250,7 @@ public class BenchmarkRunner {
                     runAsUser.value(options),
                     runWithToken.value(options),
                     noIterations.value(options)),
+            new LoginWithTokensTest(numberOfUsers.value(options)),
             new LoginSystemTest(),
             new LoginImpersonateTest(),
             new LoginWithMembershipTest(
