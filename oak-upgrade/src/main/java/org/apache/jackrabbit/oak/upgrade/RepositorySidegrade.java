@@ -69,9 +69,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_FRAGMENTS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_FRAGMENT_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
@@ -109,16 +107,6 @@ public class RepositorySidegrade {
     private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
 
     /**
-     * Paths supporting fragments during the copy process. Empty by default.
-     */
-    private Set<String> fragmentPaths = DEFAULT_FRAGMENT_PATHS;
-
-    /**
-     * Fragments to exclude during the copy process. Empty by default.
-     */
-    private Set<String> excludeFragments = DEFAULT_EXCLUDE_FRAGMENTS;
-
-    /**
      * Paths to merge during the copy process. Empty by default.
      */
     private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
@@ -126,8 +114,6 @@ public class RepositorySidegrade {
     private boolean skipCheckpoints = false;
 
     private boolean forceCheckpoints = false;
-
-    private boolean includeIndex = false;
 
     private boolean filterLongNames = true;
 
@@ -231,29 +217,6 @@ public class RepositorySidegrade {
      */
     public void setExcludes(@Nonnull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
-    }
-
-    /**
-     * Sets the paths that should support the fragments.
-     *
-     * @param fragmentPaths Paths that should support fragments.
-     */
-    public void setFragmentPaths(@Nonnull String... fragmentPaths) {
-        this.fragmentPaths = copyOf(checkNotNull(fragmentPaths));
-    }
-
-    /**
-     * Sets the name fragments that should be excluded when the source repository
-     * is copied to the target repository.
-     *
-     * @param excludes Name fragments to be excluded from the copy.
-     */
-    public void setExcludeFragments(@Nonnull String... excludes) {
-        this.excludeFragments = copyOf(checkNotNull(excludes));
-    }
-
-    public void setIncludeIndex(boolean includeIndex) {
-        this.includeIndex = includeIndex;
     }
 
     /**
@@ -446,9 +409,6 @@ public class RepositorySidegrade {
         NodeBuilder targetRoot = target.getRoot().builder();
         copyWorkspace(sourceRoot, targetRoot);
         removeCheckpointReferences(targetRoot);
-        if (includeIndex) {
-            IndexCopier.copy(sourceRoot, targetRoot, includePaths);
-        }
         if (!versionCopyConfiguration.isCopyAll()) {
             NodeBuilder versionStorage = VersionHistoryUtil.getVersionStorage(targetRoot);
             if (!versionStorage.exists()) { // it's possible that this is a new repository and the version storage
@@ -471,7 +431,7 @@ public class RepositorySidegrade {
 
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
-        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, fragmentPaths, excludeFragments);
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
         List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {
             LOG.info("Removing version histories for included paths");
@@ -481,7 +441,7 @@ public class RepositorySidegrade {
     }
 
     private boolean isCompleteMigration() {
-        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && excludeFragments.equals(DEFAULT_EXCLUDE_FRAGMENTS) && mergePaths.equals(DEFAULT_MERGE_PATHS) && fragmentPaths.equals(DEFAULT_FRAGMENT_PATHS);
+        return includePaths.equals(DEFAULT_INCLUDE_PATHS) && excludePaths.equals(DEFAULT_EXCLUDE_PATHS) && mergePaths.equals(DEFAULT_MERGE_PATHS);
     }
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
@@ -497,8 +457,6 @@ public class RepositorySidegrade {
         NodeStateCopier.builder()
             .include(includes)
             .exclude(excludes)
-            .supportFragment(fragmentPaths)
-            .excludeFragments(excludeFragments)
             .merge(merges)
             .copy(sourceRoot, targetRoot);
 
@@ -559,7 +517,7 @@ public class RepositorySidegrade {
     private NodeState wrapNodeState(NodeState source, boolean tracePaths, boolean filterPaths) {
         NodeState wrapped = source;
         if (!isCompleteMigration() && filterPaths) {
-            wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, fragmentPaths, excludeFragments);
+            wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
         }
         if (tracePaths) {
             wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
