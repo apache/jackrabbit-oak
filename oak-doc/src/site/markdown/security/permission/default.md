@@ -61,6 +61,10 @@ on the Oak API) irrespective of the access control content:
 evaluation and is currently not reflected in other security models nor methods
 that deal with the administrator (i.e. `User#isAdmin`).
 
+#### Permission Evaluation in Multiplexed Stores
+
+See section [Multiplexing support in the PermissionStore](multiplexing.html).
+
 <a name="representation"/>
 ### Representation in the Repository
 

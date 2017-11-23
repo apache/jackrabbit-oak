@@ -27,9 +27,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -62,6 +62,8 @@ public class IndexDefinitionBuilderTest {
     @Test
     public void indexRule() throws Exception{
         builder.includedPaths("/a", "/b");
+        builder.queryPaths("/c", "/d");
+        builder.supersedes("/e", "/f");
         builder.indexRule("nt:base")
                     .property("foo")
                         .ordered()
@@ -77,6 +79,8 @@ public class IndexDefinitionBuilderTest {
         assertTrue(state.getChildNode("indexRules").exists());
         assertTrue(state.getChildNode("indexRules").getChildNode("nt:base").exists());
         assertEquals(asList("/a", "/b"), state.getProperty(PathFilter.PROP_INCLUDED_PATHS).getValue(Type.STRINGS));
+        assertEquals(asList("/c", "/d"), state.getProperty(IndexConstants.QUERY_PATHS).getValue(Type.STRINGS));
+        assertEquals(asList("/e", "/f"), state.getProperty(IndexConstants.SUPERSEDED_INDEX_PATHS).getValue(Type.STRINGS));
     }
 
     @Test
@@ -273,5 +277,40 @@ public class IndexDefinitionBuilderTest {
         //Type other than 'disabled' would be reset
         updated.setProperty("type", "foo");
         assertEquals("lucene", new IndexDefinitionBuilder(updated).build().getString("type"));
+    }
+
+    @Test
+    public void nodeTypeIndex() throws Exception{
+        builder.nodeTypeIndex();
+        builder.indexRule("nt:file");
+
+        NodeState state = builder.build();
+        assertTrue(state.getChildNode("indexRules").exists());
+        NodeState ntFileRule = state.getChildNode("indexRules").getChildNode("nt:file");
+        assertTrue(ntFileRule.exists());
+        assertTrue(state.getBoolean(LuceneIndexConstants.PROP_INDEX_NODE_TYPE));
+        assertFalse(ntFileRule.getBoolean(LuceneIndexConstants.PROP_SYNC));
+    }
+
+    @Test
+    public void nodeTypeIndexSync() throws Exception{
+        builder.nodeTypeIndex();
+        builder.indexRule("nt:file").sync();
+
+        NodeState state = builder.build();
+        assertTrue(state.getChildNode("indexRules").exists());
+        NodeState ntFileRule = state.getChildNode("indexRules").getChildNode("nt:file");
+        assertTrue(ntFileRule.exists());
+        assertTrue(state.getBoolean(LuceneIndexConstants.PROP_INDEX_NODE_TYPE));
+        assertTrue(ntFileRule.getBoolean(LuceneIndexConstants.PROP_SYNC));
+    }
+
+    @Test
+    public void noPropertiesNodeForEmptyRule() throws Exception{
+        builder.nodeTypeIndex();
+        builder.indexRule("nt:file").sync();
+
+        NodeState state = builder.build();
+        assertFalse(NodeStateUtils.getNode(state, "/indexRules/nt:file/properties").exists());
     }
 }

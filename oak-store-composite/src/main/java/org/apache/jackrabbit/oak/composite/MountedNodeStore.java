@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.composite;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-class MountedNodeStore {
+public class MountedNodeStore {
 
     private final Mount mount;
 
@@ -38,5 +38,18 @@ class MountedNodeStore {
 
     public NodeStore getNodeStore() {
         return nodeStore;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder result = new StringBuilder(super.toString());
+        result.append('[');
+        if (mount.isDefault()) {
+            result.append("default");
+        } else {
+            result.append(mount.getName());
+        }
+        result.append(']');
+        return result.toString();
     }
 }

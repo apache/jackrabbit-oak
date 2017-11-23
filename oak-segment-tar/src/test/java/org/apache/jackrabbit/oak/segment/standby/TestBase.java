@@ -28,8 +28,8 @@ import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.junit.BeforeClass;
 
 public class TestBase {
-
-    private static final int timeout = Integer.getInteger("standby.test.timeout", 500);
+    static final int MB = 1024 * 1024;
+    private static final int timeout = Integer.getInteger("standby.test.timeout", 5000);
 
     // Java 6 on Windows doesn't support dual IP stacks, so we will skip our
     // IPv6 tests.
@@ -49,11 +49,18 @@ public class TestBase {
     }
 
     public StandbyClientSync newStandbyClientSync(FileStore store, int port) throws Exception {
-        return newStandbyClientSync(store, port, false);
+        return newStandbyClientSync(store, port, false, getClientTimeout());
     }
 
     public StandbyClientSync newStandbyClientSync(FileStore store, int port, boolean secure) throws Exception {
-        return new StandbyClientSync(getServerHost(), port, store, secure, getClientTimeout(), false);
+        return newStandbyClientSync(store, port, secure, getClientTimeout());
     }
 
+    public StandbyClientSync newStandbyClientSync(FileStore store, int port, int timeout) throws Exception {
+        return newStandbyClientSync(store, port, false, timeout);
+    }
+
+    public StandbyClientSync newStandbyClientSync(FileStore store, int port, boolean secure, int timeout) throws Exception {
+        return new StandbyClientSync(getServerHost(), port, store, secure, timeout, false);
+    }
 }

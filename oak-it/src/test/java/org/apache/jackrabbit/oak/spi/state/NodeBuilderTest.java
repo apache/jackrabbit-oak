@@ -91,6 +91,18 @@ public class NodeBuilderTest extends OakBaseTest {
         assertEquals(store.getRoot(), root.getBaseState());
     }
 
+    @Test
+    public void isReplacedBehaviour() throws Exception{
+        NodeBuilder nb = store.getRoot().builder();
+        nb.child("a").setProperty("foo", "bar");
+
+        store.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        nb = store.getRoot().builder();
+        nb.child("a").child("b");
+        assertFalse(nb.getChildNode("a").isReplaced("foo"));
+    }
+
     private static void modify(NodeStore store) throws CommitFailedException {
         NodeBuilder root = store.getRoot().builder();
         root.setChildNode("added");

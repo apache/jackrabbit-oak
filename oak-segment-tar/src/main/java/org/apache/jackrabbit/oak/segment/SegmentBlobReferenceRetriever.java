@@ -39,7 +39,7 @@ public class SegmentBlobReferenceRetriever implements BlobReferenceRetriever {
 
     @Override
     public void collectReferences(final ReferenceCollector collector) throws IOException {
-        store.collectBlobReferences(collector);
+        store.collectBlobReferences(s -> collector.addReference(s, null));
     }
 }
 

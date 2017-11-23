@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.upgrade.nodestate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.migration.AbstractDecoratedNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import javax.annotation.Nonnull;
@@ -69,7 +70,7 @@ public class MetadataExposingNodeState extends AbstractDecoratedNodeState {
             NodeState unwrapped = wrapped;
             for (int i = 0; i < 10; i++) {
                 if (unwrapped instanceof AbstractDecoratedNodeState) {
-                    unwrapped = ((AbstractDecoratedNodeState) unwrapped).delegate;
+                    unwrapped = ((AbstractDecoratedNodeState) unwrapped).getDelegate();
                 } else {
                     break;
                 }

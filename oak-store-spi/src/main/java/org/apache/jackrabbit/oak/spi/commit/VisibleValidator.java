@@ -44,6 +44,8 @@ public class VisibleValidator implements Validator {
     private Validator getValidator(@Nullable Validator validator) {
         if (validator == null) {
             return null;
+        } else if (validator instanceof VisibleValidator) {
+            return validator;
         } else {
             return new VisibleValidator(validator, hideNodes, hideProperties);
         }

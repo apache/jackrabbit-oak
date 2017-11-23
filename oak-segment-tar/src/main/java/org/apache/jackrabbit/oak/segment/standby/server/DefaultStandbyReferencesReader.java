@@ -18,19 +18,15 @@
 package org.apache.jackrabbit.oak.segment.standby.server;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.readSegmentWithRetry;
 
 import java.util.List;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class DefaultStandbyReferencesReader implements StandbyReferencesReader {
-
-    private static final Logger log = LoggerFactory.getLogger(DefaultStandbyReferencesReader.class);
 
     private final FileStore store;
 
@@ -44,20 +40,21 @@ class DefaultStandbyReferencesReader implements StandbyReferencesReader {
 
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
+        SegmentId segmentId = store.getSegmentIdProvider().newSegmentId(msb, lsb);
 
-        Segment segment = readSegmentWithRetry(store, store.getSegmentIdProvider().newSegmentId(msb, lsb));
+        if (store.containsSegment(segmentId)) {
+            Segment segment = store.readSegment(segmentId);
 
-        if (segment == null) {
-            return null;
+            List<String> references = newArrayList();
+
+            for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+                references.add(segment.getReferencedSegmentId(i).toString());
+            }
+
+            return references;
         }
 
-        List<String> references = newArrayList();
-
-        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
-            references.add(segment.getReferencedSegmentId(i).toString());
-        }
-
-        return references;
+        return null;
     }
 
 }

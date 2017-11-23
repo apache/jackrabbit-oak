@@ -96,4 +96,29 @@ public class DepthFirstNodeIteratorTest {
         }
         assertTrue(nameToPath.isEmpty());
     }
+
+    @Test
+    public void testSwitchRoot() {
+        Map<String, String[]> subtrees = new HashMap<String, String[]>();
+        subtrees.put("uk", new String[] { "cities", "london", "districts", "frognal" });
+        subtrees.put("germany", new String[] {});
+        subtrees.put("france", new String[] { "cities", "paris" });
+
+        DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
+        assertTrue(iterator.hasNext());
+        assertEquals("countries", iterator.next().getName());
+
+        for (int i = 0; i < 3; i++) {
+            assertTrue(iterator.hasNext());
+            String country = iterator.next().getName();
+            for (String node : subtrees.remove(country)) {
+                assertTrue(iterator.hasNext());
+                assertEquals(node, iterator.next().getName());
+                iterator = iterator.switchRoot(store.getRoot());
+            }
+        }
+        assertFalse(iterator.hasNext());
+        assertTrue(subtrees.isEmpty());
+    }
+
 }

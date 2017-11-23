@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -75,14 +76,19 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         valueFactory = getValueFactory(root);
         propertyName = "testProperty";
         v = valueFactory.createValue("value");
-
-        getQueryEngineSettings().setFailTraversal(false);
+    }
+    
+    protected QueryEngineSettings getQueryEngineSettings() {
+        if (querySettings == null) {
+            querySettings = new QueryEngineSettings();
+            querySettings.setFailTraversal(false);
+        }
+        return querySettings;
     }
 
     @Override
     public void after() throws Exception {
         try {
-            getQueryEngineSettings().setFailTraversal(true);
             user.removeProperty(propertyName);
             for (Group g : groups) {
                 g.remove();

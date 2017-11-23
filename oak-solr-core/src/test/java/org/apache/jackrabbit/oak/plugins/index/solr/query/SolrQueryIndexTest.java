@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrCon
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -37,7 +38,6 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -432,7 +432,7 @@ public class SolrQueryIndexTest {
             assertTrue(c >= 0);
         }
     }
-    
+
     private static SelectorImpl newSelector(NodeState root, String name) {
         NodeTypeInfoProvider types = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = types.getNodeTypeInfo("nt:base");
@@ -462,5 +462,5 @@ public class SolrQueryIndexTest {
             return counter;
         }
     }
-    
+
 }

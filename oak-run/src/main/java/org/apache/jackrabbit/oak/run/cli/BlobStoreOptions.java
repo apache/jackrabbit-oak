@@ -45,7 +45,7 @@ public class BlobStoreOptions implements OptionsBean {
         fakeDsPathOption = parser.acceptsAll(asList("fake-ds-path"), "Path to be used to construct a Fake " +
                 "FileDataStore. It return an empty stream for any Blob but allows writes if used in read-write mode. (for testing purpose only)")
                 .withRequiredArg().ofType(String.class);
-        s3Option = parser.accepts("s3ds", "S3DataStore config path")
+        s3Option = parser.acceptsAll(asList("s3ds", "s3-config-path"), "S3DataStore config path")
                 .withRequiredArg().ofType(String.class);
         azureOption = parser.acceptsAll(asList("azureblobds", "azureds"), "AzureBlobStorageDataStore config path")
                 .withRequiredArg().ofType(String.class);
@@ -64,7 +64,8 @@ public class BlobStoreOptions implements OptionsBean {
     @Override
     public String description() {
         return "Options related to configuring a BlobStore. All config options here (except --fds-path) refer to " +
-                "the path of the config file. The file should be a '.config' file in the OSGi config admin format.";
+                "the path of the config file. The file can be a '.config' file in the OSGi config admin format or " +
+                "properties file with '.cfg' and '.properties' extensions.";
     }
 
     @Override

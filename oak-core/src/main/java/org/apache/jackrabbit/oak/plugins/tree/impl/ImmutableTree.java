@@ -25,7 +25,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeTypeAware;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
@@ -78,7 +80,7 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  * however, that according to the contract defined in {@code NodeState} these
  * objects are not expected to be used as hash keys.
  */
-public final class ImmutableTree extends AbstractTree {
+public final class ImmutableTree extends AbstractTree implements TreeTypeAware, ReadOnly {
 
     /**
      * Underlying node state
@@ -110,11 +112,13 @@ public final class ImmutableTree extends AbstractTree {
         this.parentProvider = parentProvider;
     }
 
+    //----------------------------------------------------------< TypeAware >---
+    @CheckForNull
     public TreeType getType() {
         return type;
     }
 
-    public void setType(TreeType type) {
+    public void setType(@Nonnull TreeType type) {
         this.type = type;
     }
 

@@ -111,7 +111,7 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     private static Mount defaultMount(Map<String, Mount> mounts) {
-        return Mounts.defaultMount(mounts.values());
+        return new Mounts.DefaultMount(mounts.values());
     }
 
 }

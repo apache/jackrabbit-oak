@@ -26,13 +26,13 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
+import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.NONE;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SKIP_NAME_CHECK;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.ALL;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.NONE;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
 
 import java.io.File;
 import java.io.IOException;
@@ -66,6 +66,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.core.IndexAccessor;
 import org.apache.jackrabbit.core.RepositoryContext;
@@ -82,6 +83,7 @@ import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -89,7 +91,14 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
+import org.apache.jackrabbit.oak.plugins.migration.NameFilteringNodeState;
+import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
+import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
+import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -114,10 +123,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
-import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.security.AuthorizableFolderEditor;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
@@ -578,9 +583,23 @@ public class RepositoryUpgrade {
 
             target.merge(targetBuilder, new LoggingCompositeHook(hooks, source, overrideEarlyShutdown()), CommitInfo.EMPTY);
             logger.info("Processing commit hooks completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
+
+            removeVersions();
+
             logger.debug("Repository upgrade completed.");
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
+        }
+    }
+
+    private void removeVersions() throws CommitFailedException {
+        NodeState root = target.getRoot();
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, fragmentPaths, excludeFragments);
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        if (!versionablesToStrip.isEmpty()) {
+            logger.info("Removing version histories for included paths");
+            NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);
+            target.merge(newRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
     }
 
@@ -597,6 +616,10 @@ public class RepositoryUpgrade {
         if (c.isCopyVersions() && !c.skipOrphanedVersionsCopy()
                 && c.getOrphanedMinDate().after(c.getVersionsMinDate())) {
             logger.info("Overriding early shutdown to false because of the copy versions settings");
+            return false;
+        }
+        if (c.isCopyVersions() && target.getRoot().hasChildNode(JcrConstants.JCR_SYSTEM)) {
+            logger.info("Overriding early shutdown to false because the target exists");
             return false;
         }
         return true;

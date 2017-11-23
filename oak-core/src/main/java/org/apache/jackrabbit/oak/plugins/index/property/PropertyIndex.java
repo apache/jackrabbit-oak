@@ -26,11 +26,14 @@ import java.net.URLEncoder;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Iterables;
 
 /**
  * Provides a QueryIndex that does lookups against a property index
@@ -89,14 +93,6 @@ class PropertyIndex implements QueryIndex {
 
     private static final String PROPERTY = "property";
 
-    // TODO the max string length should be removed, or made configurable
-    private static final int MAX_STRING_LENGTH = 100;
-
-    /**
-     * name used when the indexed value is an empty string
-     */
-    private static final String EMPTY_TOKEN = ":";
-
     private static final Logger LOG = LoggerFactory.getLogger(PropertyIndex.class);
 
     private final MountInfoProvider mountInfoProvider;
@@ -108,32 +104,6 @@ class PropertyIndex implements QueryIndex {
 
     PropertyIndex(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
-    }
-
-    static Set<String> encode(PropertyValue value, ValuePattern pattern) {
-        if (value == null) {
-            return null;
-        }
-        Set<String> values = new HashSet<String>();
-        for (String v : value.getValue(Type.STRINGS)) {
-            try {
-                if (v.length() > MAX_STRING_LENGTH) {
-                    v = v.substring(0, MAX_STRING_LENGTH);
-                }
-                if (!pattern.matches(v)) {
-                    continue;
-                }
-                if (v.isEmpty()) {
-                    v = EMPTY_TOKEN;
-                } else {
-                    v = URLEncoder.encode(v, Charsets.UTF_8.name());
-                }
-                values.add(v);
-            } catch (UnsupportedEncodingException e) {
-                throw new IllegalStateException("UTF-8 is unsupported", e);
-            }
-        }
-        return values;
     }
 
     private PropertyIndexPlan getPlan(NodeState root, Filter filter) {
@@ -160,6 +130,9 @@ class PropertyIndex implements QueryIndex {
         NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             NodeState definition = entry.getNodeState();
+            if (wrongIndex(entry, filter)) {
+                continue;
+            }
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
                     && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
                 PropertyIndexPlan plan = new PropertyIndexPlan(
@@ -179,6 +152,51 @@ class PropertyIndex implements QueryIndex {
         }
 
         return bestPlan;
+    }
+    
+    private static boolean wrongIndex(ChildNodeEntry entry, Filter filter) {
+        // REMARK: similar code is used in oak-lucene, IndexPlanner
+        // skip index if "option(index ...)" doesn't match
+        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        boolean wrong = false;
+        if (indexName != null && indexName.first != null) {
+            String name = indexName.first.getValue(Type.STRING);
+            String thisName = entry.getName();
+            if (thisName.equals(name)) {
+                // index name specified, and matches
+                return false;
+            }
+            wrong = true;
+        }
+        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        if (indexTag != null && indexTag.first != null) {
+            // index tag specified
+            NodeState definition = entry.getNodeState();
+            String[] tags = getOptionalStrings(definition, IndexConstants.INDEX_TAGS);
+            if (tags == null) {
+                // no tag
+                return true;
+            }
+            String tag = indexTag.first.getValue(Type.STRING);
+            for(String t : tags) {
+                if (t.equals(tag)) {
+                    // tag matches
+                    return false;
+                }
+            }
+            // no tag matches
+            return true;
+        }
+        // no tag specified
+        return wrong;
+    }
+    
+    private static String[] getOptionalStrings(NodeState defn, String propertyName) {
+        PropertyState ps = defn.getProperty(propertyName);
+        if (ps != null) {
+            return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
+        }
+        return null;
     }
 
     //--------------------------------------------------------< QueryIndex >--

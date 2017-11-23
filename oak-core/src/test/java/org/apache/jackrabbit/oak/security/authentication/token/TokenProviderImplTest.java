@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -408,21 +409,6 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
         assertTrue(info.matches(new TokenCredentials(info.getToken())));
         assertEquals(userId, info.getUserId());
-    }
-
-    @Test
-    public void testTokenNodeName() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
-        Tree tokenTree = getTokenTree(info);
-
-        // name must not be a uuid which is only used in case of conflict during
-        // creation which is not expected here.
-        try {
-            UUID.fromString(tokenTree.getName());
-            fail("UUID-name should only be used in case of conflict");
-        } catch (IllegalArgumentException e) {
-            // success
-        }
     }
 
     //--------------------------------------------------------------------------

@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * TODO document
  */
-@Component
-@Service(EditorProvider.class)
+@Component(service = EditorProvider.class)
 public class ConflictValidatorProvider extends ValidatorProvider {
 
     @Override

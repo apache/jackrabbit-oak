@@ -22,8 +22,10 @@ import java.util.ArrayList;
 
 import javax.jcr.Node;
 import javax.jcr.Session;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class LongPathTest extends AbstractRepositoryTest {
@@ -48,7 +50,7 @@ public class LongPathTest extends AbstractRepositoryTest {
             paths.add(n.getPath());
         }
         s.save();
-        
+
         Session s2 = createAdminSession();
         Node n2 = s2.getRootNode();
         for (int i = 0; i < 30; i++) {
@@ -57,5 +59,29 @@ public class LongPathTest extends AbstractRepositoryTest {
         }
         s2.logout();
     }
-    
+
+    @Test
+    @Ignore("OAK-1629")
+    public void testLongName() throws Exception {
+
+        try {
+            Session s = getAdminSession();
+
+            StringBuilder buff = new StringBuilder();
+            for (int i = 0; i < 100; i++) {
+                buff.append("0123456789");
+            }
+            String longName = "n" + buff.toString();
+            Node n = s.getRootNode().addNode(longName);
+            s.save();
+
+            Session s2 = createAdminSession();
+            Node n2 = s2.getRootNode().getNode(longName);
+            assertEquals(n.getPath(), n2.getPath());
+
+            s2.logout();
+        } catch (ConstraintViolationException ex) {
+            // acceptable
+        }
+    }
 }

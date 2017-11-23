@@ -36,6 +36,7 @@ import javax.annotation.Nonnull;
 import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
@@ -56,14 +57,17 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneJournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
@@ -72,7 +76,9 @@ import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -91,6 +97,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
 import static org.apache.commons.io.FileUtils.ONE_MB;
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
@@ -110,7 +117,7 @@ public class LuceneIndexProviderService {
             policyOption = ReferencePolicyOption.GREEDY,
             policy = ReferencePolicy.DYNAMIC
     )
-    private NodeAggregator nodeAggregator;
+    private QueryIndex.NodeAggregator nodeAggregator;
 
     private static final boolean PROP_DISABLED_DEFAULT = false;
 
@@ -236,20 +243,33 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_DISABLE_STORED_INDEX_DEFINITION = "disableStoredIndexDefinition";
 
-    private static final int PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL = -1;
+    private static final boolean PROP_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED = true;
     @Property(
-            intValue = PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL,
-            label = "Time interval (in seconds) for actively removing deleted index blobs from blob store",
+            boolValue = PROP_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED,
+            label = "Enable actively removing deleted index blobs from blob store",
             description = "Index blobs are explicitly unique and don't require mark-sweep type collection." +
-                    "This is number of seconds for scheduling clean-up. -1 would disable the functionality." +
-                    "Cleanup implies purging index blobs marked as deleted earlier during some indexing cycle."
+                    "This is used to enable the feature. Cleanup implies purging index blobs marked as deleted " +
+                    "earlier during some indexing cycle."
     )
-    private static final String PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL = "deletedBlobsCollectionInterval";
-    /**
-     * Actively deleted blob must be deleted for at least this long (in seconds)
-     */
-    final long MIN_BLOB_AGE_TO_ACTIVELY_DELETE = Long.getLong("oak.active.deletion.minAge",
-            TimeUnit.HOURS.toSeconds(24));
+    private static final String PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED = "deletedBlobsCollectionEnabled";
+
+    private static final int PROP_INDEX_CLEANER_INTERVAL_DEFAULT = 10*60;
+    @Property(
+            intValue = PROP_INDEX_CLEANER_INTERVAL_DEFAULT,
+            label = "Property Index Cleaner Interval (seconds)",
+            description = "Cleaner interval time (in seconds) for synchronous property indexes configured as " +
+                    "part of lucene indexes"
+    )
+    private static final String PROP_INDEX_CLEANER_INTERVAL = "propIndexCleanerIntervalInSecs";
+
+    private static final boolean PROP_ENABLE_SINGLE_BLOB_PER_INDEX_FILE_DEFAULT = true;
+    @Property(
+            boolValue = PROP_ENABLE_SINGLE_BLOB_PER_INDEX_FILE_DEFAULT,
+            label = "With CoW enabled, should index files by written as single blobs",
+            description = "Index files can be written as single blobs as chunked into smaller blobs. Enable" +
+                    " this to write single blob per index file. This would reduce number of blobs in the data store."
+    )
+    private static final String PROP_NAME_ENABLE_SINGLE_BLOB_PER_INDEX_FILE = "enableSingleBlobIndexFiles";
 
     private final Clock clock = Clock.SIMPLE;
 
@@ -286,9 +306,11 @@ public class LuceneIndexProviderService {
     @Reference
     private AsyncIndexInfoService asyncIndexInfoService;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-        policyOption = ReferencePolicyOption.GREEDY,
-        policy = ReferencePolicy.DYNAMIC
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY,
+            target = ONLY_STANDALONE_TARGET
     )
     private GarbageCollectableBlobStore blobStore;
 
@@ -315,6 +337,10 @@ public class LuceneIndexProviderService {
 
     private LuceneIndexEditorProvider editorProvider;
 
+    private IndexTracker tracker;
+
+    private PropertyIndexCleaner cleaner;
+
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
@@ -329,12 +355,19 @@ public class LuceneIndexProviderService {
         configureIndexDefinitionStorage(config);
         configureBooleanClauseLimit(config);
         initializeFactoryClassLoaders(getClass().getClassLoader());
+        if (System.getProperty(BufferedOakDirectory.ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM) == null) {
+            BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(PropertiesUtil.toBoolean(
+                    config.get(PROP_NAME_ENABLE_SINGLE_BLOB_PER_INDEX_FILE),
+                    PROP_ENABLE_SINGLE_BLOB_PER_INDEX_FILE_DEFAULT));
+        } else {
+            log.info("Not setting config for single blob for an index file as it's set by command line!");
+        }
 
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config);
-        IndexTracker tracker = createTracker(bundleContext, config);
+        tracker = createTracker(bundleContext, config);
         indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
         initializeActiveBlobCollector(whiteboard, config);
         initializeLogging(config);
@@ -345,10 +378,12 @@ public class LuceneIndexProviderService {
         registerLocalIndexObserver(bundleContext, tracker, config);
         registerIndexEditor(bundleContext, tracker, config);
         registerIndexInfoProvider(bundleContext);
+        registerIndexImporterProvider(bundleContext);
+        registerPropertyIndexCleaner(config, bundleContext);
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
-                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, indexPathService, getIndexCheckDir()),
+                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, indexPathService, getIndexCheckDir(), cleaner),
                 LuceneIndexMBean.TYPE,
                 "Lucene Index statistics"));
         registerGCMonitor(whiteboard, indexProvider.getTracker());
@@ -397,6 +432,10 @@ public class LuceneIndexProviderService {
         if (executorService != null){
             executorService.shutdown();
             executorService.awaitTermination(1, TimeUnit.MINUTES);
+        }
+
+        if (extractedTextCache != null) {
+            extractedTextCache.close();
         }
 
         InfoStream.setDefault(InfoStream.NO_OUTPUT);
@@ -475,16 +514,20 @@ public class LuceneIndexProviderService {
 
     private IndexTracker createTracker(BundleContext bundleContext, Map<String, ?> config) throws IOException {
         boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_READ), true);
+        IndexTracker tracker;
         if (enableCopyOnRead){
             initializeIndexCopier(bundleContext, config);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
             if (hybridIndex) {
                 nrtIndexFactory = new NRTIndexFactory(indexCopier, statisticsProvider);
             }
-            return new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier), nrtIndexFactory);
+            tracker = new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier), nrtIndexFactory);
+        } else {
+            tracker = new IndexTracker();
         }
 
-        return new IndexTracker();
+        tracker.setAsyncIndexInfoService(asyncIndexInfoService);
+        return tracker;
     }
 
     private void initializeIndexCopier(BundleContext bundleContext, Map<String, ?> config) throws IOException {
@@ -508,7 +551,7 @@ public class LuceneIndexProviderService {
 
     }
 
-    private ExecutorService getExecutorService(){
+    ExecutorService getExecutorService(){
         if (executorService == null){
             executorService = createExecutor();
         }
@@ -516,7 +559,7 @@ public class LuceneIndexProviderService {
     }
 
     private ExecutorService createExecutor() {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(0, 5, 60L, TimeUnit.SECONDS,
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger();
             private final Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
@@ -634,7 +677,11 @@ public class LuceneIndexProviderService {
         boolean alwaysUsePreExtractedCache = PropertiesUtil.toBoolean(config.get(PROP_PRE_EXTRACTED_TEXT_ALWAYS_USE),
                 PROP_PRE_EXTRACTED_TEXT_ALWAYS_USE_DEFAULT);
 
-        extractedTextCache = new ExtractedTextCache(cacheSizeInMB * ONE_MB, cacheExpiryInSecs, alwaysUsePreExtractedCache);
+        extractedTextCache = new ExtractedTextCache(
+                cacheSizeInMB * ONE_MB,
+                cacheExpiryInSecs,
+                alwaysUsePreExtractedCache,
+                indexDir);
         if (extractedTextProvider != null){
             registerExtractedTextProvider(extractedTextProvider);
         }
@@ -692,65 +739,65 @@ public class LuceneIndexProviderService {
         oakRegs.add(whiteboard.register(GCMonitor.class, gcMonitor, emptyMap()));
     }
 
-    private void registerBlobStore(GarbageCollectableBlobStore blobStore) {
-        if (editorProvider != null){
-            if (blobStore != null){
-                log.info("Registering blobStore {} with editorProvider. ", blobStore);
-            } else {
-                log.info("Unregistering blobStore");
-            }
-            editorProvider.setBlobStore(blobStore);
-        }
-    }
-
     private void registerIndexInfoProvider(BundleContext bundleContext) {
         IndexInfoProvider infoProvider = new LuceneIndexInfoProvider(nodeStore, asyncIndexInfoService, getIndexCheckDir());
         regs.add(bundleContext.registerService(IndexInfoProvider.class.getName(), infoProvider, null));
     }
 
+    private void registerIndexImporterProvider(BundleContext bundleContext) {
+        LuceneIndexImporter importer = new LuceneIndexImporter(blobStore);
+        regs.add(bundleContext.registerService(IndexImporterProvider.class.getName(), importer, null));
+    }
+
     private void initializeActiveBlobCollector(Whiteboard whiteboard, Map<String, ?> config) {
-        int activeDeletionInterval = PropertiesUtil.toInteger(
-                config.get(PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL),
-                PROP_DELETED_BLOB_COLLECTION_DEFAULT_INTERVAL);
-        if (activeDeletionInterval > -1 && blobStore!= null) {
+        boolean activeDeletionEnabled = PropertiesUtil.toBoolean(
+                config.get(PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED),
+                PROP_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED);
+        if (activeDeletionEnabled && blobStore!= null) {
             File blobCollectorWorkingDir = new File(indexDir, "deleted-blobs");
             activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.newInstance(blobCollectorWorkingDir, executorService);
-            oakRegs.add(
-                    scheduleWithFixedDelay(whiteboard, () ->
-                                activeDeletedBlobCollector.purgeBlobsDeleted(
-                                        getSafeTimestampForDeletedBlobs(checkpointMBean),
-                                        blobStore),
-                            activeDeletionInterval));
+            ActiveDeletedBlobCollectorMBean bean =
+                    new ActiveDeletedBlobCollectorMBeanImpl(activeDeletedBlobCollector, whiteboard, blobStore, executorService);
 
-            log.info("Active blob collector initialized at working dir: {}; deletion interval {} seconds;" +
-                            "minAge: {}",
-                    blobCollectorWorkingDir, activeDeletionInterval, MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
+            oakRegs.add(registerMBean(whiteboard, ActiveDeletedBlobCollectorMBean.class, bean,
+                    ActiveDeletedBlobCollectorMBean.TYPE, "Active lucene files collection"));
+            log.info("Active blob collector initialized at working dir: {}", blobCollectorWorkingDir);
         } else {
             activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.NOOP;
-            log.info("Active blob collector set to NOOP. deletionInterval: {} seconds; blobStore: {}",
-                    activeDeletionInterval, blobStore);
+            log.info("Active blob collector set to NOOP. enabled: {} seconds; blobStore: {}",
+                    activeDeletionEnabled, blobStore);
         }
     }
 
-    private long getSafeTimestampForDeletedBlobs(CheckpointMBean checkpointMBean) {
-        long timestamp = clock.getTime() - TimeUnit.SECONDS.toMillis(MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
+    private void registerPropertyIndexCleaner(Map<String, ?> config, BundleContext bundleContext) {
+        int cleanerInterval = PropertiesUtil.toInteger(config.get(PROP_INDEX_CLEANER_INTERVAL),
+                PROP_INDEX_CLEANER_INTERVAL_DEFAULT);
 
-        long minCheckpointTimestamp = checkpointMBean.getOldestCheckpointCreationTimestamp();
-        if (minCheckpointTimestamp < timestamp) {
-            log.info("Oldest checkpoint timestamp ({}) is older than buffer period ({}) for deleted blobs." +
-                    " Using that instead", minCheckpointTimestamp, timestamp);
-            timestamp = minCheckpointTimestamp;
+        if (cleanerInterval <= 0) {
+            log.info("Property index cleaner would not be registered");
+            return;
         }
 
-        return timestamp;
+        cleaner = new PropertyIndexCleaner(nodeStore, indexPathService, asyncIndexInfoService, statisticsProvider);
+
+        //Proxy check for DocumentNodeStore
+        if (nodeStore instanceof Clusterable) {
+            cleaner.setRecursiveDelete(true);
+            log.info("PropertyIndexCleaner configured to perform recursive delete");
+        }
+        oakRegs.add(scheduleWithFixedDelay(whiteboard, cleaner,
+                ImmutableMap.of("scheduler.name", PropertyIndexCleaner.class.getName()),
+                cleanerInterval, true, true));
+        log.info("Property index cleaner configured to run every [{}] seconds", cleanerInterval);
     }
 
-    protected void bindNodeAggregator(NodeAggregator aggregator) {
+
+    protected void bindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;
         initialize();
     }
 
-    protected void unbindNodeAggregator(NodeAggregator aggregator) {
+    protected void unbindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
         this.nodeAggregator = null;
         initialize();
     }
@@ -763,15 +810,5 @@ public class LuceneIndexProviderService {
     protected void unbindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
         this.extractedTextProvider = null;
         registerExtractedTextProvider(null);
-    }
-
-    protected void bindBlobStore(GarbageCollectableBlobStore blobStore) {
-        this.blobStore = blobStore;
-        registerBlobStore(blobStore);
-    }
-
-    protected void unbindBlobStore(GarbageCollectableBlobStore blobStore) {
-        this.blobStore = null;
-        registerBlobStore(blobStore);
     }
 }

@@ -34,7 +34,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.exercise.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
@@ -68,7 +68,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *   Fix the test such that it passes.
  *
  * - {@link #testRetrievePoliciesAtNamespaceRoot()}
- *   Same as before for {@link org.apache.jackrabbit.oak.plugins.name.NamespaceConstants#NAMESPACES_PATH}.
+ *   Same as before for {@link NamespaceConstants#NAMESPACES_PATH}.
  *
  *   Question: What are the differences?
  *   Question: Can you explain it?

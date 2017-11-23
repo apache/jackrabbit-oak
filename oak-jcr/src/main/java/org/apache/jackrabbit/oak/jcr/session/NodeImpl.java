@@ -90,8 +90,8 @@ import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -1446,7 +1446,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 PropertyDelegate property = dlg.getPropertyOrNull(oakName);
-                if (!isCheckedOut() && getOPV(dlg.getTree(), property.getPropertyState()) != OnParentVersionAction.IGNORE) {
+                if (property != null &&
+                        !isCheckedOut() &&
+                        getOPV(dlg.getTree(), property.getPropertyState()) != OnParentVersionAction.IGNORE) {
                     throw new VersionException(format(
                             "Cannot remove property. Node [%s] is checked in.", getNodePath()));
                 }

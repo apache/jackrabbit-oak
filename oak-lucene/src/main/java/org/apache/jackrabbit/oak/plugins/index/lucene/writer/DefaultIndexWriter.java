@@ -59,6 +59,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private final String dirName;
     private final String suggestDirName;
     private final boolean reindex;
+    private final LuceneIndexWriterConfig writerConfig;
     private IndexWriter writer;
     private Directory directory;
     private long genAtStart = -1;
@@ -66,18 +67,23 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
                               DirectoryFactory directoryFactory, String dirName, String suggestDirName,
-                              boolean reindex) {
+                              boolean reindex, LuceneIndexWriterConfig writerConfig) {
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
         this.directoryFactory = directoryFactory;
         this.dirName = dirName;
         this.suggestDirName = suggestDirName;
         this.reindex = reindex;
+        this.writerConfig = writerConfig;
     }
 
     @Override
     public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
-        getWriter().updateDocument(newPathTerm(path), doc);
+        if (reindex) {
+            getWriter().addDocument(doc);
+        } else {
+            getWriter().updateDocument(newPathTerm(path), doc);
+        }
         indexUpdated = true;
     }
 
@@ -138,18 +144,15 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     //~----------------------------------------< internal >
 
-    private IndexWriter getWriter() throws IOException {
+    IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
             directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
-            IndexWriterConfig config;
-            if (directoryFactory.remoteDirectory()){
-                config = getIndexWriterConfig(definition, false);
-            } else {
-                config = getIndexWriterConfig(definition, true);
-            }
+            IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
+            config.setMergePolicy(definition.getMergePolicy());
             writer = new IndexWriter(directory, config);
             genAtStart = getLatestGeneration(directory);
+            log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
             PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
         }
         return writer;
@@ -159,7 +162,6 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * eventually update suggest dictionary
      * @throws IOException if suggest dictionary update fails
      * @param analyzer the analyzer used to update the suggester
-     * @param blobStore
      */
     private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
         NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);

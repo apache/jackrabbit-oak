@@ -74,6 +74,12 @@ public abstract class AbstractMigratorTest {
         DefaultSplitBlobStore splitBlobStore = new DefaultSplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
         nodeStore = createNodeStore(splitBlobStore, repository);
         migrator = new BlobMigrator(splitBlobStore, nodeStore);
+
+        // see OAK-6066
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        builder.setProperty("foo", "bar");
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
     }
 
     protected abstract NodeStore createNodeStore(BlobStore blobStore, File repository) throws IOException;

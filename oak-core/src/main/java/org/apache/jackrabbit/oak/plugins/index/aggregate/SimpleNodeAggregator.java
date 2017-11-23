@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Iterators;
@@ -41,7 +42,7 @@ import com.google.common.collect.Iterators;
  * List based NodeAggregator
  * 
  */
-public class SimpleNodeAggregator implements NodeAggregator {
+public class SimpleNodeAggregator implements QueryIndex.NodeAggregator {
 
     public static final String INCLUDE_ALL = "*";
 

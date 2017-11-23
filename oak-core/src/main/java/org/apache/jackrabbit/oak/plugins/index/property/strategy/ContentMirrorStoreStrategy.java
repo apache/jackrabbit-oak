@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static com.google.common.collect.Queues.newArrayDeque;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
 
 import java.util.Deque;
@@ -31,20 +31,21 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.FilterIterators;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -81,26 +82,46 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     public static final int TRAVERSING_WARN = Integer.getInteger("oak.traversing.warn", 10000);
 
     private final String indexName;
+    private final String pathPrefix;
+    private final boolean prependPathPrefix;
 
     public ContentMirrorStoreStrategy() {
         this(INDEX_CONTENT_NODE_NAME);
     }
 
     public ContentMirrorStoreStrategy(String indexName) {
+        this(indexName, "", true);
+    }
+
+    /**
+     * Constructs a ContentMirrorStoreStrategy
+     *
+     * @param indexName name of sub node under which paths are stored
+     * @param pathPrefix path of the index in repository. Defaults to empty for indexes at root nodes i.e.
+     *                   those stored directly under '/oak:index'. For non root index its the path excluding
+     *                   the '/oak:index' node. For e.g. for index at '/content/oak:index/fooIndex' the
+     *                   pathPrefix would be '/content'.
+     *                   If this is appened to the paths returned by index then they would become absolute
+     *                   path in repository
+     * @param prependPathPrefix Should the path prefix be added to the query result
+     */
+    public ContentMirrorStoreStrategy(String indexName, String pathPrefix, boolean prependPathPrefix) {
         this.indexName = indexName;
+        this.pathPrefix = pathPrefix;
+        this.prependPathPrefix = prependPathPrefix;
     }
 
     @Override
     public void update(
-            NodeBuilder index, String path,
+            Supplier<NodeBuilder> index, String path,
             @Nullable final String indexName,
             @Nullable final NodeBuilder indexMeta,
             Set<String> beforeKeys, Set<String> afterKeys) {
         for (String key : beforeKeys) {
-            remove(index, key, path);
+            remove(index.get(), key, path);
         }
         for (String key : afterKeys) {
-            insert(index, key, path);
+            insert(index.get(), key, path);
         }
     }
 
@@ -147,7 +168,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                PathIterator it = new PathIterator(filter, indexName, "");
+                PathIterator it = new PathIterator(filter, indexName, pathPrefix, prependPathPrefix);
                 if (values == null) {
                     it.setPathContainsValue(true);
                     it.enqueue(getChildNodeEntries(index).iterator());
@@ -329,14 +350,15 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private String parentPath;
         private String currentPath;
         private boolean pathContainsValue;
+        private final boolean prependPathPrefix;
         
         /**
          * Keep the returned path, to avoid returning duplicate entries.
          */
         private final Set<String> knownPaths = Sets.newHashSet();
-        private final QueryEngineSettings settings;
+        private final QueryLimits settings;
 
-        PathIterator(Filter filter, String indexName, String pathPrefix) {
+        PathIterator(Filter filter, String indexName, String pathPrefix, boolean prependPathPrefix) {
             this.filter = filter;
             this.pathPrefix = pathPrefix;
             this.indexName = indexName;
@@ -351,7 +373,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }            
             parentPath = "";
             currentPath = "/";
-            this.settings = filter.getQueryEngineSettings();
+            this.settings = filter.getQueryLimits();
+            this.prependPathPrefix = prependPathPrefix;
         }
 
         void enqueue(Iterator<? extends ChildNodeEntry> it) {
@@ -459,7 +482,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 fetchNext();
                 init = true;
             }
-            String result = PathUtils.concat(pathPrefix, currentPath);
+            String result = prependPathPrefix ? PathUtils.concat(pathPrefix, currentPath) : currentPath;
             fetchNext();
             return result;
         }
@@ -592,7 +615,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public boolean exists(NodeBuilder index, String key) {
+    public boolean exists(Supplier<NodeBuilder> index, String key) {
         // This is currently not implemented, because there is no test case for it,
         // and because there is currently no need for this method with this class.
         // We would need to traverse the tree and search for an entry "match".

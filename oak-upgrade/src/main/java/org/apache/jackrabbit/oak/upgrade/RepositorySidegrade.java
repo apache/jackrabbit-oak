@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
@@ -28,10 +29,19 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
+import org.apache.jackrabbit.oak.plugins.migration.NameFilteringNodeState;
+import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
+import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
+import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -44,13 +54,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.LoggingCompositeHook;
 import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
-import org.apache.jackrabbit.oak.upgrade.cli.node.TarNodeStore;
-import org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState;
+import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentTarFactory;
 import org.apache.jackrabbit.oak.upgrade.nodestate.MetadataExposingNodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
-import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
 import org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
@@ -63,6 +68,7 @@ import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.NT_REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants.REP_PERMISSION_STORE;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_FRAGMENTS;
@@ -73,7 +79,6 @@ import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createIndexEditorProvider;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createTypeEditorProvider;
-import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.copyProperties;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
 
@@ -81,7 +86,7 @@ public class RepositorySidegrade {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySidegrade.class);
 
-    private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
+    static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
     private static final String WORKSPACE_NAME_PROP = "oak.upgrade.workspaceName";
 
@@ -89,6 +94,8 @@ public class RepositorySidegrade {
      * Target node store.
      */
     private final NodeStore target;
+
+    private final FileStore targetFileStore;
 
     private final NodeStore source;
 
@@ -181,6 +188,12 @@ public class RepositorySidegrade {
     public RepositorySidegrade(NodeStore source, NodeStore target) {
         this.source = source;
         this.target = target;
+
+        FileStore fs = null;
+        if (target instanceof SegmentTarFactory.NodeStoreWithFileStore) {
+            fs = ((SegmentTarFactory.NodeStoreWithFileStore) target).getFileStore();
+        }
+        this.targetFileStore = fs;
     }
 
     /**
@@ -316,7 +329,7 @@ public class RepositorySidegrade {
         builder.setChildNode(":async");
     }
 
-    private void copyState() throws CommitFailedException, RepositoryException {
+    private void copyState() throws CommitFailedException, RepositoryException, IOException {
         boolean migrateCheckpoints = true;
         if (!isCompleteMigration() && !forceCheckpoints) {
             LOG.info("Checkpoints won't be migrated because of the specified paths");
@@ -342,7 +355,7 @@ public class RepositorySidegrade {
         }
     }
 
-    private boolean migrateWithCheckpoints() throws CommitFailedException {
+    private boolean migrateWithCheckpoints() throws CommitFailedException, IOException {
         List<CheckpointRetriever.Checkpoint> checkpoints = CheckpointRetriever.getCheckpoints(source);
         if (checkpoints == null) {
             return false;
@@ -350,27 +363,27 @@ public class RepositorySidegrade {
 
         Map<String, String> nameToRevision = new LinkedHashMap<>();
         Map<String, String> checkpointSegmentToDoc = new LinkedHashMap<>();
-        NodeState previousRoot = EmptyNodeState.EMPTY_NODE;
-        NodeBuilder targetRoot = target.getRoot().builder();
+
+        NodeState initialRoot = target.getRoot();
+        NodeState targetRoot = initialRoot;
+        NodeState previousRoot = initialRoot;
         for (CheckpointRetriever.Checkpoint checkpoint : checkpoints) {
             NodeState checkpointRoot = source.retrieve(checkpoint.getName());
+            Map<String, String> checkpointInfo = source.checkpointInfo(checkpoint.getName());
+
             boolean tracePaths;
-            if (previousRoot == EmptyNodeState.EMPTY_NODE) {
+            if (previousRoot == initialRoot) {
                 LOG.info("Migrating first checkpoint: {}", checkpoint.getName());
                 tracePaths = true;
             } else {
                 LOG.info("Applying diff to {}", checkpoint.getName());
                 tracePaths = false;
             }
+            LOG.info("Checkpoint expiry time: {}, metadata: {}", checkpoint.getExpiryTime(), checkpointInfo);
 
-            NodeState currentRoot = wrapSource(checkpointRoot, tracePaths, true);
-            NodeState baseRoot = previousRoot == EmptyNodeState.EMPTY_NODE ? previousRoot : wrapSource(previousRoot, false, true);
-            currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetRoot));
-
-            target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            targetRoot = copyDiffToTarget(previousRoot, checkpointRoot, targetRoot, tracePaths);
             previousRoot = checkpointRoot;
 
-            Map<String, String> checkpointInfo = source.checkpointInfo(checkpoint.getName());
             String newCheckpointName = target.checkpoint(checkpoint.getExpiryTime() - System.currentTimeMillis(), checkpointInfo);
             if (checkpointInfo.containsKey("name")) {
                 nameToRevision.put(checkpointInfo.get("name"), newCheckpointName);
@@ -380,20 +393,19 @@ public class RepositorySidegrade {
 
         NodeState sourceRoot = source.getRoot();
         boolean tracePaths;
-        if (previousRoot == EmptyNodeState.EMPTY_NODE) {
+        if (previousRoot == initialRoot) {
             LOG.info("No checkpoints found; migrating head");
             tracePaths = true;
         } else {
             LOG.info("Applying diff to head");
             tracePaths = false;
         }
-        
-        NodeState currentRoot = wrapSource(sourceRoot, tracePaths, true);
-        NodeState baseRoot = previousRoot == EmptyNodeState.EMPTY_NODE ? previousRoot : wrapSource(previousRoot, false, true);
-        currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetRoot));
+
+        targetRoot = copyDiffToTarget(previousRoot, sourceRoot, targetRoot, tracePaths);
 
         LOG.info("Rewriting checkpoint names in /:async {}", nameToRevision);
-        NodeBuilder async = targetRoot.getChildNode(":async");
+        NodeBuilder targetBuilder = targetRoot.builder();
+        NodeBuilder async = targetBuilder.getChildNode(":async");
         for (Map.Entry<String, String> e : nameToRevision.entrySet()) {
             async.setProperty(e.getKey(), e.getValue(), Type.STRING);
 
@@ -409,9 +421,26 @@ public class RepositorySidegrade {
             }
             async.setProperty(e.getKey() + "-temp", tempValues, Type.STRINGS);
         }
-
-        target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        target.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return true;
+    }
+
+    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot, boolean tracePaths) throws IOException, CommitFailedException {
+
+        NodeBuilder targetBuilder = targetRoot.builder();
+        if (targetFileStore == null) {
+            NodeState currentRoot = wrapNodeState(after, tracePaths, true);
+            NodeState baseRoot = wrapNodeState(before, false, true);
+
+            currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetBuilder));
+        } else {
+            NodeState currentRoot = wrapNodeState(after, false, true);
+            NodeState baseRoot = wrapNodeState(before, false, true);
+
+            SegmentNodeState state = PersistingDiff.applyDiffOnNodeState(targetFileStore, baseRoot, currentRoot, targetRoot);
+            state.compareAgainstBaseState(targetRoot, new ApplyDiff(targetBuilder));
+        }
+        return target.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private void migrateWithoutCheckpoints() throws CommitFailedException, RepositoryException {
@@ -420,7 +449,7 @@ public class RepositorySidegrade {
             hooks.addAll(customCommitHooks);
         }
 
-        NodeState sourceRoot = wrapSource(source.getRoot(), true, false);
+        NodeState sourceRoot = wrapNodeState(source.getRoot(), true, false);
         NodeBuilder targetRoot = target.getRoot().builder();
         copyWorkspace(sourceRoot, targetRoot);
         removeCheckpointReferences(targetRoot);
@@ -444,6 +473,18 @@ public class RepositorySidegrade {
                 createIndexEditorProvider()
         )));
         target.merge(targetRoot, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
+        removeVersions();
+    }
+
+    private void removeVersions() throws CommitFailedException {
+        NodeState root = target.getRoot();
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, fragmentPaths, excludeFragments);
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        if (!versionablesToStrip.isEmpty()) {
+            LOG.info("Removing version histories for included paths");
+            NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);
+            target.merge(newRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
     }
 
     private boolean isCompleteMigration() {
@@ -509,16 +550,8 @@ public class RepositorySidegrade {
     }
 
     private void verify() {
-        final NodeState sourceRoot;
-        final NodeState targetRoot;
-
-        if (source instanceof TarNodeStore && target instanceof TarNodeStore) {
-            sourceRoot = ((TarNodeStore) source).getSuperRoot();
-            targetRoot = ((TarNodeStore) target).getSuperRoot();
-        } else {
-            sourceRoot = source.getRoot();
-            targetRoot = target.getRoot();
-        }
+        final NodeState sourceRoot = source.getRoot();
+        final NodeState targetRoot = target.getRoot();
 
         final NodeState reportingSource = ReportingNodeState.wrap(sourceRoot, new LoggingReporter(LOG, "Verifying", LOG_NODE_COPY, -1));
 
@@ -530,7 +563,7 @@ public class RepositorySidegrade {
         }
     }
 
-    private NodeState wrapSource(NodeState source, boolean tracePaths, boolean filterPaths) {
+    private NodeState wrapNodeState(NodeState source, boolean tracePaths, boolean filterPaths) {
         NodeState wrapped = source;
         if (migrateDocumentMetadata) {
             wrapped = MetadataExposingNodeState.wrap(wrapped);
@@ -550,4 +583,5 @@ public class RepositorySidegrade {
     private boolean targetExists() {
         return target.getRoot().getChildNodeEntries().iterator().hasNext();
     }
+
 }

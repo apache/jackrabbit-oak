@@ -19,17 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-public interface GCEstimation {
+interface GCEstimation {
 
-    /**
-     * Determines if the Gc operation needs to run or not
-     */
-    boolean gcNeeded();
-
-    /**
-     * User friendly message explaining the value of the
-     * {@link GCEstimation#gcNeeded()} flag
-     */
-    String gcLog();
+    GCEstimationResult estimate();
 
 }

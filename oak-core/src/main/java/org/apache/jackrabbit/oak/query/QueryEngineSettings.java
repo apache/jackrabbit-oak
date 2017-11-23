@@ -19,14 +19,18 @@
 package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBeanImpl;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsReporter;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 
 /**
  * Settings of the query engine.
  */
-public class QueryEngineSettings implements QueryEngineSettingsMBean {
+public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimits {
     
     /**
-     * the flag used to turn on/off the optimisations on top of the {@link Query} object.
+     * the flag used to turn on/off the optimisations on top of the {@code org.apache.jackrabbit.oak.query.Query} object.
      * {@code -Doak.query.sql2optimisation}
      */
     public static final String SQL2_OPTIMISATION_FLAG = "oak.query.sql2optimisation";
@@ -36,19 +40,19 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     public static final boolean SQL2_OPTIMIZATION_2 = 
             Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG_2, "true"));
 
-    static final String OAK_QUERY_LIMIT_IN_MEMORY = "oak.queryLimitInMemory";
+    public static final String OAK_QUERY_LIMIT_IN_MEMORY = "oak.queryLimitInMemory";
 
     // should be the same as QueryEngineSettingsService.DEFAULT_QUERY_LIMIT_IN_MEMORY
-    static final int DEFAULT_QUERY_LIMIT_IN_MEMORY =
+    public static final int DEFAULT_QUERY_LIMIT_IN_MEMORY =
             Integer.getInteger(OAK_QUERY_LIMIT_IN_MEMORY, 500000);
 
-    static final String OAK_QUERY_LIMIT_READS = "oak.queryLimitReads";
+    public static final String OAK_QUERY_LIMIT_READS = "oak.queryLimitReads";
 
     // should be the same as QueryEngineSettingsService.DEFAULT_QUERY_LIMIT_READS
-    static final int DEFAULT_QUERY_LIMIT_READS =
+    public static final int DEFAULT_QUERY_LIMIT_READS =
             Integer.getInteger(OAK_QUERY_LIMIT_READS, 100000);
 
-    static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
+    public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
     private static final boolean DEFAULT_FAIL_TRAVERSAL =
             Boolean.getBoolean(OAK_QUERY_FAIL_TRAVERSAL);
 
@@ -68,8 +72,10 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
             Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
 
     private static final String OAK_FAST_QUERY_SIZE = "oak.fastQuerySize";
-    static final boolean DEFAULT_FAST_QUERY_SIZE = Boolean.getBoolean(OAK_FAST_QUERY_SIZE);
+    public static final boolean DEFAULT_FAST_QUERY_SIZE = Boolean.getBoolean(OAK_FAST_QUERY_SIZE);
     private boolean fastQuerySize = DEFAULT_FAST_QUERY_SIZE;
+
+    private QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
 
     public QueryEngineSettings() {
     }
@@ -127,6 +133,14 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
         return sql2Optimisation;
     }
 
+    public QueryStatsMBean getQueryStats() {
+        return queryStats;
+    }
+    
+    public QueryStatsReporter getQueryStatsReporter() {
+        return queryStats;
+    }
+
     @Override
     public String toString() {
         return "QueryEngineSettings{" +
@@ -138,4 +152,5 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
                 ", fastQuerySize=" + fastQuerySize +
                 '}';
     }
+    
 }

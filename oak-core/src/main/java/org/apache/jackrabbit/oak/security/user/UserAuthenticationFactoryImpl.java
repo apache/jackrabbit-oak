@@ -16,18 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
-import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-@Component
-@Service
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.osgi.service.component.annotations.Component;
+
+@Component(
+        service = UserAuthenticationFactory.class,
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl")
 public class UserAuthenticationFactoryImpl implements UserAuthenticationFactory {
 
     @Nonnull

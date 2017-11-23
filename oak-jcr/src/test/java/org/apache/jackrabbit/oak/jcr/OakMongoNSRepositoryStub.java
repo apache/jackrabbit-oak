@@ -19,12 +19,10 @@ package org.apache.jackrabbit.oak.jcr;
 import java.util.Properties;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 
 /**
@@ -51,7 +49,6 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
      */
     public OakMongoNSRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
-        Session session = null;
         final DocumentNodeStore store;
         try {
             this.connection = MongoUtils.getConnection();
@@ -60,17 +57,12 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
                     setPersistentCache("target/persistentCache,time").
                     setMongoDB(connection.getDB()).
                     getNodeStore();
-            this.repository = new Jcr(store).with(getQueryEngineSettings()).with(BundlingConfigInitializer.INSTANCE).createRepository();
-
-            session = getRepository().login(superuser);
-            TestContentLoader loader = new TestContentLoader();
-            loader.loadTestContent(session);
+            Jcr jcr = new Jcr(store);
+            preCreateRepository(jcr);
+            this.repository = jcr.createRepository();
+            loadTestContent(repository);
         } catch (Exception e) {
             throw new RepositoryException(e);
-        } finally {
-            if (session != null) {
-                session.logout();
-            }
         }
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override

@@ -36,6 +36,8 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NO
  */
 public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
     public static final String CONFLICT = ":conflict";
+    public static final String BASE = ":base";
+    public static final String OURS = ":ours";
 
     public ConflictAnnotatingRebaseDiff(NodeBuilder builder) {
         super(builder);
@@ -48,47 +50,61 @@ public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
 
     @Override
     protected void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
-        conflictMarker(builder, ADD_EXISTING_PROPERTY).setProperty(after);
+        NodeBuilder cb = conflictMarker(builder, ADD_EXISTING_PROPERTY);
+        cb.child(BASE).setProperty(before);
+        cb.child(OURS).setProperty(after);
     }
 
     @Override
-    protected void changeDeletedProperty(NodeBuilder builder, PropertyState after) {
-        conflictMarker(builder, CHANGE_DELETED_PROPERTY).setProperty(after);
+    protected void changeDeletedProperty(NodeBuilder builder, PropertyState after, PropertyState base) {
+        NodeBuilder cb = conflictMarker(builder, CHANGE_DELETED_PROPERTY);
+        cb.child(BASE).setProperty(base);
+        cb.child(OURS).setProperty(after);
     }
 
     @Override
     protected void changeChangedProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
-        conflictMarker(builder, CHANGE_CHANGED_PROPERTY).setProperty(after);
+        NodeBuilder cb = conflictMarker(builder, CHANGE_CHANGED_PROPERTY);
+        cb.child(BASE).setProperty(before);
+        cb.child(OURS).setProperty(after);
     }
 
     @Override
     protected void deleteDeletedProperty(NodeBuilder builder, PropertyState before) {
-        conflictMarker(builder, DELETE_DELETED_PROPERTY).setProperty(before);
+        NodeBuilder cb = conflictMarker(builder, DELETE_DELETED_PROPERTY);
+        cb.child(BASE).setProperty(before);
     }
 
     @Override
     protected void deleteChangedProperty(NodeBuilder builder, PropertyState before) {
-        conflictMarker(builder, DELETE_CHANGED_PROPERTY).setProperty(before);
+        NodeBuilder cb = conflictMarker(builder, DELETE_CHANGED_PROPERTY);
+        cb.child(BASE).setProperty(before);
     }
 
     @Override
     protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
-        conflictMarker(builder, ADD_EXISTING_NODE).setChildNode(name, after);
+        NodeBuilder cb = conflictMarker(builder, ADD_EXISTING_NODE);
+        cb.child(BASE).setChildNode(name, before);
+        cb.child(OURS).setChildNode(name, after);
     }
 
     @Override
-    protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after) {
-        conflictMarker(builder, CHANGE_DELETED_NODE).setChildNode(name, after);
+    protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after, NodeState base) {
+        NodeBuilder cb = conflictMarker(builder, CHANGE_DELETED_NODE);
+        cb.child(BASE).setChildNode(name, base);
+        cb.child(OURS).setChildNode(name, after);
     }
 
     @Override
     protected void deleteDeletedNode(NodeBuilder builder, String name, NodeState before) {
-        conflictMarker(builder, DELETE_DELETED_NODE).setChildNode(name, before);
+        NodeBuilder cb = conflictMarker(builder, DELETE_DELETED_NODE);
+        cb.child(BASE).setChildNode(name, before);
     }
 
     @Override
     protected void deleteChangedNode(NodeBuilder builder, String name, NodeState before) {
-        conflictMarker(builder, DELETE_CHANGED_NODE).setChildNode(name, before);
+        NodeBuilder cb = conflictMarker(builder, DELETE_CHANGED_NODE);
+        cb.child(BASE).setChildNode(name, before);
     }
 
     private static NodeBuilder conflictMarker(NodeBuilder builder, ConflictType ct) {

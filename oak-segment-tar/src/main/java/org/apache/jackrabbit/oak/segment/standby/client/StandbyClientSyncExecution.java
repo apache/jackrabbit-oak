@@ -64,7 +64,8 @@ class StandbyClientSyncExecution {
         RecordId remoteHead = getHead();
 
         if (remoteHead == null) {
-            throw new IllegalStateException("Unable to fetch remote head");
+            log.error("Unable to fetch remote head");
+            return;
         }
 
         if (remoteHead.equals(store.getHead().getRecordId())) {
@@ -78,7 +79,7 @@ class StandbyClientSyncExecution {
         compareAgainstBaseState(current, before, builder);
         boolean ok = store.getRevisions().setHead(before.getRecordId(), remoteHead);
         store.flush();
-        log.debug("updated head state successfully: {} in {}ms.", ok, System.currentTimeMillis() - t);
+        log.info("updated head state successfully: {} in {}ms.", ok, System.currentTimeMillis() - t);
     }
 
     @Nullable

@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.atomic;
 
-import static org.apache.felix.scr.annotations.ReferenceCardinality.OPTIONAL_UNARY;
-import static org.apache.felix.scr.annotations.ReferencePolicy.DYNAMIC;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -26,14 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -47,26 +36,31 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import static org.osgi.service.component.annotations.ReferenceCardinality.OPTIONAL;
+import static org.osgi.service.component.annotations.ReferencePolicy.DYNAMIC;
+
 /**
  * Provide an instance of {@link AtomicCounterEditor}. See {@link AtomicCounterEditor} for
  * behavioural details.
  */
-@Component
-@Property(name = "type", value = "atomicCounter", propertyPrivate = true)
-@Service(EditorProvider.class)
+@Component(
+        property = "type=atomicCounter",
+        service = EditorProvider.class)
 public class AtomicCounterEditorProvider implements EditorProvider {
     private static final Logger LOG = LoggerFactory.getLogger(AtomicCounterEditorProvider.class);
 
-    @Reference(policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.OPTIONAL_UNARY, referenceInterface = Clusterable.class)
     private AtomicReference<Clusterable> cluster = new AtomicReference<Clusterable>();
 
-    @Reference(policy = DYNAMIC, cardinality = OPTIONAL_UNARY, referenceInterface = NodeStore.class)
     private volatile AtomicReference<NodeStore> store = new AtomicReference<NodeStore>();    
 
     private volatile AtomicReference<ScheduledExecutorService> scheduler = new AtomicReference<ScheduledExecutorService>();
@@ -193,6 +187,7 @@ public class AtomicCounterEditorProvider implements EditorProvider {
         }
     }
 
+    @Reference(name = "cluster", policy = DYNAMIC, cardinality = OPTIONAL)
     protected void bindCluster(Clusterable store) {
         this.cluster.set(store);
     }
@@ -201,6 +196,7 @@ public class AtomicCounterEditorProvider implements EditorProvider {
         this.cluster.compareAndSet(store, null);
     }
 
+    @Reference(name = "store", policy = DYNAMIC, cardinality = OPTIONAL)
     protected void bindStore(NodeStore store) {
         this.store.set(store);
     }

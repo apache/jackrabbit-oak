@@ -20,29 +20,16 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.segment.SegmentVersion.V_12;
+import static org.apache.jackrabbit.oak.segment.SegmentVersion.V_13;
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
-
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class SegmentVersionTest {
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
-
-    private File getFileStoreFolder() {
-        return folder.getRoot();
-    }
-
-    private File directory;
-
     @Test
     public void latestVersion() {
-        assertEquals(V_12, LATEST_VERSION);
+        assertEquals(V_13, LATEST_VERSION);
     }
 
 }

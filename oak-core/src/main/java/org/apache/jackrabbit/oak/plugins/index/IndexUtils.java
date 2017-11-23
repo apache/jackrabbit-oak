@@ -227,7 +227,11 @@ public class IndexUtils {
 
     @CheckForNull
     public static String getAsyncLaneName(NodeState idxState, String indexPath) {
-        PropertyState async = idxState.getProperty(IndexConstants.ASYNC_PROPERTY_NAME);
+        return getAsyncLaneName(idxState, indexPath, idxState.getProperty(IndexConstants.ASYNC_PROPERTY_NAME));
+    }
+
+    @CheckForNull
+    public static String getAsyncLaneName(NodeState idxState, String indexPath, PropertyState async) {
         if (async != null) {
             Set<String> asyncNames = Sets.newHashSet(async.getValue(Type.STRINGS));
             asyncNames.remove(IndexConstants.INDEXING_MODE_NRT);

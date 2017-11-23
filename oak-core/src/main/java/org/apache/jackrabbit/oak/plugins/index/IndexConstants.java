@@ -53,6 +53,17 @@ public interface IndexConstants {
     String VALUE_PATTERN = "valuePattern";
 
     /**
+     * A list of prefixes to be excluded from the index.
+     */
+    String VALUE_EXCLUDED_PREFIXES = "valueExcludedPrefixes";
+    
+    /**
+     * A list of prefixes to be included from the index.
+     * Include has higher priority than exclude.
+     */
+    String VALUE_INCLUDED_PREFIXES = "valueIncludedPrefixes";
+
+    /**
      * Marks a unique property index.
      */
     String UNIQUE_PROPERTY_NAME = "unique";
@@ -92,4 +103,41 @@ public interface IndexConstants {
      * The time is in string for as per Type.DATE
      */
     String CHECKPOINT_CREATION_TIME = "indexingCheckpointTime";
+    
+    /**
+     * The index tag hint (when using "option(index tagged x, y)", this is IN("x", "y"))
+     */
+    String INDEX_TAG_OPTION = ":indexTag";
+
+    /**
+     * The tags property in the index definition.
+     */
+    String INDEX_TAGS = "tags";
+
+    /**
+     * The index name hint (when using "option(index abc)", this is "abc")
+     */
+    String INDEX_NAME_OPTION = ":indexName";
+
+    /**
+     * Boolean property on any index node indicating that such a node should not be
+     * removed during reindex
+     */
+    String REINDEX_RETAIN = "retainNodeInReindex";
+
+    /**
+     * Index type for disabled indexes
+     */
+    String TYPE_DISABLED = "disabled";
+
+    /**
+     * Multi value property referring to index paths which current index supersedes
+     */
+    String SUPERSEDED_INDEX_PATHS = "supersedes";
+
+    /**
+     * Boolean flag indicating that old indexes need to be disabled
+     */
+    String DISABLE_INDEXES_ON_NEXT_CYCLE = ":disableIndexesOnNextCycle";
+
 }

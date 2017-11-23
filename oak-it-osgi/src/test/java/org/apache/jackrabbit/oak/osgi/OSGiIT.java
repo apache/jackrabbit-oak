@@ -56,8 +56,9 @@ public class OSGiIT {
     public Option[] configuration() throws IOException, URISyntaxException {
         return CoreOptions.options(
                 junitBundles(),
-                mavenBundle("org.apache.felix", "org.apache.felix.scr", "1.8.0"),
-                mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.4.0" ),
+                mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.0.12"),
+                mavenBundle("org.osgi", "org.osgi.dto", "1.0.0"),
+                mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.8.16" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
                 frameworkProperty("repository.home").value("target"),

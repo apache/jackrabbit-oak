@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
@@ -43,11 +45,11 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -89,7 +91,10 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = CompositeConfiguration.PARAM_RANKING,
                 label = "Ranking",
                 description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 200)
+                intValue = 200),
+        @Property(name = OAK_SECURITY_NAME,
+                propertyPrivate = true,
+                value = "org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration")        
 })
 public class CugConfiguration extends ConfigurationBase implements AuthorizationConfiguration, CugConstants {
 
@@ -104,7 +109,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
      * CUG authorization model multiplexing aware.
      */
     @Reference
-    private MountInfoProvider mountInfoProvider;
+    private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     private Set<String> supportedPaths = ImmutableSet.of();
 
@@ -115,9 +120,6 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
 
     public CugConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
-
-        mountInfoProvider = getParameters().getConfigValue(PARAM_MOUNT_PROVIDER, Mounts.defaultMountInfoProvider(), MountInfoProvider.class);
-        supportedPaths = CugUtil.getSupportedPaths(getParameters(), mountInfoProvider);
     }
 
     @Nonnull
@@ -160,7 +162,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
 
             Root root = RootFactory.createSystemRoot(store,
                     new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
-                    null, null, null, null);
+                    null, null, null);
             if (registerCugNodeTypes(root)) {
                 NodeState target = store.getRoot();
                 target.compareAgainstBaseState(base, new ApplyDiff(builder));
@@ -205,6 +207,14 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @Modified
     protected void modified(Map<String, Object> properties) {
         activate(properties);
+    }
+
+    public void bindMountInfoProvider(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+    }
+
+    public void unbindMountInfoProvider(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = null;
     }
 
     //--------------------------------------------------------------------------

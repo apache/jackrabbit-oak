@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import javax.annotation.CheckForNull;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Captures information related to index

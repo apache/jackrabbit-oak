@@ -22,15 +22,11 @@ package org.apache.jackrabbit.oak.segment;
 import static java.util.Collections.max;
 import static java.util.EnumSet.allOf;
 
-import java.util.Comparator;
-
 import com.google.common.primitives.UnsignedBytes;
 
 /**
- * Version of the segment storage format.
- * <ul>
- * <li>12 = all oak-segment-tar versions</li>
- * </ul>
+ * Version of the segment storage format. <ul> <li>12 = all oak-segment-tar
+ * versions</li> </ul>
  */
 public enum SegmentVersion {
 
@@ -53,19 +49,14 @@ public enum SegmentVersion {
      * code.
      */
 
-    V_12((byte) 12);
+    V_12((byte) 12),
+    V_13((byte) 13);
 
     /**
      * Latest segment version
      */
     public static final SegmentVersion LATEST_VERSION = max(allOf(SegmentVersion.class),
-            new Comparator<SegmentVersion>() {
-
-                @Override
-                public int compare(SegmentVersion v1, SegmentVersion v2) {
-                    return UnsignedBytes.compare(v1.version, v2.version);
-                }
-            });
+        (v1, v2) -> UnsignedBytes.compare(v1.version, v2.version));
 
     private final byte version;
 
@@ -73,24 +64,22 @@ public enum SegmentVersion {
         this.version = version;
     }
 
-    public boolean onOrAfter(SegmentVersion other) {
-        return compareTo(other) >= 0;
-    }
-
     public static byte asByte(SegmentVersion v) {
         return v.version;
     }
 
     public static SegmentVersion fromByte(byte v) {
+        if (v == V_13.version) {
+            return V_13;
+        }
         if (v == V_12.version) {
             return V_12;
-        } else {
-            throw new IllegalArgumentException("Unknown version " + v);
         }
+        throw new IllegalArgumentException("Unknown version " + v);
     }
 
     public static boolean isValid(byte v) {
-        return v == V_12.version;
+        return v == V_13.version || v == V_12.version;
     }
 
     public static boolean isValid(SegmentVersion version) {

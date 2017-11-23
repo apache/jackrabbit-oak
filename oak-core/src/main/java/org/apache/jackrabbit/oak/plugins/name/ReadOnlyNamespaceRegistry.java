@@ -30,6 +30,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 
 /**
  * Read-only namespace registry. Used mostly internally when access to the

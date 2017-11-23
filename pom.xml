@@ -41,7 +41,10 @@
     <module>oak-api</module>
     <module>oak-core-spi</module>
     <module>oak-store-spi</module>
+    <module>oak-query-spi</module>
+    <module>oak-security-spi</module>
     <module>oak-store-composite</module>
+    <module>oak-store-document</module>
 
     <module>oak-blob-plugins</module>
     <module>oak-blob</module>
@@ -55,6 +58,7 @@
     <module>oak-lucene</module>
     <module>oak-solr-core</module>
     <module>oak-solr-osgi</module>
+    <module>oak-search-mt</module>
     <module>oak-auth-external</module>
     <module>oak-auth-ldap</module>
     <module>oak-run-commons</module>
@@ -123,6 +127,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.0.0-M1</version>
             <executions>
               <execution>
                 <id>aggregate</id>
@@ -150,6 +155,7 @@
         <plugins>
           <plugin>
             <artifactId>maven-assembly-plugin</artifactId>
+            <version>3.1.0</version>
             <executions>
               <execution>
                 <goals>
@@ -173,6 +179,7 @@
           <!-- JCR-2455: Automatic staging of non-Maven release artifacts -->
           <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
+            <version>1.8</version>
             <executions>
               <execution>
                 <goals>
@@ -193,7 +200,12 @@
                         <include name="*.zip" />
                       </fileset>
                     </checksum>
-                    <checksum algorithm="SHA1" fileext=".sha">
+                    <checksum algorithm="SHA1" fileext=".sha1">
+                      <fileset dir="${basedir}/target/${project.version}">
+                        <include name="*.zip" />
+                      </fileset>
+                    </checksum>
+                    <checksum algorithm="SHA-512" fileext=".sha512">
                       <fileset dir="${basedir}/target/${project.version}">
                         <include name="*.zip" />
                       </fileset>

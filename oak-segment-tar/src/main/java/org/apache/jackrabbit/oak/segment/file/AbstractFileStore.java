@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData;
 
 import java.io.Closeable;
 import java.io.File;
@@ -28,12 +28,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Supplier;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -52,6 +50,11 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.file.tar.EntryRecovery;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
+import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,24 +69,37 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     private static final String MANIFEST_FILE_NAME = "manifest";
 
     /**
-     * This value can be used as an invalid store version, since the store
-     * version is defined to be strictly greater than zero.
+     * The minimum supported store version. It is possible for an implementation
+     * to support in a transparent and backwards-compatible way older versions
+     * of a repository. In this case, the minimum supported store version
+     * identifies the store format that can still be processed by the
+     * implementation. The minimum store version has to be greater than zero and
+     * less than or equal to the maximum store version.
      */
-    private static final int INVALID_STORE_VERSION = 0;
+    private static final int MIN_STORE_VERSION = 1;
 
     /**
-     * The store version is an always incrementing number, strictly greater than
-     * zero, that is changed every time there is a backwards incompatible
-     * modification to the format of the segment store.
+     * The maximum supported store version. It is possible for an implementation
+     * to support in a transparent and forwards-compatible way newer version of
+     * a repository. In this case, the maximum supported store version
+     * identifies the store format that can still be processed by the
+     * implementation. The maximum supported store version has to be greater
+     * than zero and greater than or equal to the minimum store version.
      */
-    static final int CURRENT_STORE_VERSION = 1;
+    private static final int MAX_STORE_VERSION = 2;
 
-    static final String FILE_NAME_FORMAT = "data%05d%s.tar";
+    static ManifestChecker newManifestChecker(File directory, boolean strictVersionCheck) {
+        return ManifestChecker.newManifestChecker(
+                new File(directory, MANIFEST_FILE_NAME),
+                notEmptyDirectory(directory),
+                strictVersionCheck ? MAX_STORE_VERSION : MIN_STORE_VERSION,
+                MAX_STORE_VERSION
+        );
+    }
 
-    protected static boolean notEmptyDirectory(File path) {
+    private static boolean notEmptyDirectory(File path) {
         Collection<File> entries = FileUtils.listFiles(path, new String[] {"tar"}, false);
-        checkArgument(entries != null, "{} is not a directory, or an I/O error occurred", path);
-        return entries.size() > 0;
+        return !entries.isEmpty();
     }
 
     @Nonnull
@@ -104,8 +120,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     final TarRecovery recovery = new TarRecovery() {
 
         @Override
-        public void recoverEntry(UUID uuid, byte[] data, TarWriter writer) throws IOException {
-            writeSegment(uuid, data, writer);
+        public void recoverEntry(UUID uuid, byte[] data, EntryRecovery entryRecovery) throws IOException {
+            writeSegment(uuid, data, entryRecovery);
         }
 
     };
@@ -122,61 +138,16 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         });
         this.blobStore = builder.getBlobStore();
         this.segmentCache = new SegmentCache(builder.getSegmentCacheSize());
-        this.segmentReader = new CachingSegmentReader(new Supplier<SegmentWriter>() {
-            @Override
-            public SegmentWriter get() {
-                return getWriter();
-            }
-        }, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
+        this.segmentReader = new CachingSegmentReader(this::getWriter, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
         this.memoryMapping = builder.getMemoryMapping();
         this.ioMonitor = builder.getIOMonitor();
     }
 
-    static SegmentNotFoundException asSegmentNotFoundException(ExecutionException e, SegmentId id) {
+    static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
         if (e.getCause() instanceof SegmentNotFoundException) {
             return (SegmentNotFoundException) e.getCause();
         }
         return new SegmentNotFoundException(id, e);
-    }
-
-    File getManifestFile() {
-        return new File(directory, MANIFEST_FILE_NAME);
-    }
-
-     Manifest openManifest() throws IOException {
-        File file = getManifestFile();
-
-        if (file.exists()) {
-            return Manifest.load(file);
-        }
-
-        return null;
-    }
-
-     static Manifest checkManifest(Manifest manifest) throws InvalidFileStoreVersionException {
-        if (manifest == null) {
-            throw new InvalidFileStoreVersionException("Using oak-segment-tar, but oak-segment should be used");
-        }
-
-        int storeVersion = manifest.getStoreVersion(INVALID_STORE_VERSION);
-
-        // A store version less than or equal to the highest invalid value means
-        // that something or someone is messing up with the manifest. This error
-        // is not recoverable and is thus represented as an ISE.
-
-        if (storeVersion <= INVALID_STORE_VERSION) {
-            throw new IllegalStateException("Invalid store version");
-        }
-
-        if (storeVersion < CURRENT_STORE_VERSION) {
-            throw new InvalidFileStoreVersionException("Using a too recent version of oak-segment-tar");
-        }
-
-        if (storeVersion > CURRENT_STORE_VERSION) {
-            throw new InvalidFileStoreVersionException("Using a too old version of oak-segment tar");
-        }
-
-        return manifest;
     }
 
     @Nonnull
@@ -233,12 +204,14 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return blobStore;
     }
 
-    private void writeSegment(UUID id, byte[] data, TarWriter w) throws IOException {
+    private void writeSegment(UUID id, byte[] data, EntryRecovery w) throws IOException {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        int generation = Segment.getGcGeneration(buffer, id);
-        w.writeEntry(msb, lsb, data, 0, data.length, generation);
+        GCGeneration generation = SegmentId.isDataSegmentId(lsb)
+                ? Segment.getGcGeneration(newSegmentData(buffer), id)
+                : GCGeneration.NULL;
+        w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
             Segment segment = new Segment(tracker, segmentReader, tracker.newSegmentId(msb, lsb), buffer);
             populateTarGraph(segment, w);
@@ -246,25 +219,20 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         }
     }
 
-    static void populateTarGraph(Segment segment, TarWriter w) {
+    private static void populateTarGraph(Segment segment, EntryRecovery w) {
         UUID from = segment.getSegmentId().asUUID();
         for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
-            w.addGraphEdge(from, segment.getReferencedSegmentId(i));
+            w.recoverGraphEdge(from, segment.getReferencedSegmentId(i));
         }
     }
 
-    static void populateTarBinaryReferences(final Segment segment, final TarWriter w) {
-        final int generation = segment.getGcGeneration();
+    private static void populateTarBinaryReferences(final Segment segment, final EntryRecovery w) {
+        final GCGeneration generation = segment.getGcGeneration();
         final UUID id = segment.getSegmentId().asUUID();
-        segment.forEachRecord(new RecordConsumer() {
-
-            @Override
-            public void consume(int number, RecordType type, int offset) {
-                if (type == RecordType.BLOB_ID) {
-                    w.addBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
-                }
+        segment.forEachRecord((number, type, offset) -> {
+            if (type == RecordType.BLOB_ID) {
+                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
             }
-
         });
     }
 

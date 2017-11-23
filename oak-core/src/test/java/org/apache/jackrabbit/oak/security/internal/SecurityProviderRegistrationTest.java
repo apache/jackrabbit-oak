@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.RegistrationConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
@@ -92,20 +94,29 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         assertEquals(isDefined, context.definesLocation(TreeLocation.create(tree)));
     }
 
-    private static <T> T mockConfiguration(Class<? extends SecurityConfiguration> cl) {
-        SecurityConfiguration sc = Mockito.mock(cl);
+    private static <T extends SecurityConfiguration> T mockConfiguration(Class<T> cl) {
+        T sc = Mockito.mock(cl);
         when(sc.getContext()).thenReturn(new ContextImpl());
         when(sc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
-        return (T) sc;
+        return sc;
     }
 
-    private static Map<String, Object> requiredServiceIdMap(@Nonnull String... ids) {
-        return ImmutableMap.of("requiredServicePids", ids);
+    private static SecurityProviderRegistration.Configuration configWithRequiredServiceIds(@Nonnull String... ids) {
+        return new SecurityProviderRegistration.Configuration() {
+            @Override
+            public Class<? extends Annotation> annotationType() { return SecurityProviderRegistration.Configuration.class; }
+
+            @Override
+            public String[] requiredServicePids() { return ids; }
+
+            @Override
+            public String authorizationCompositionType() { return "AND"; }
+        };
     }
 
     @Test
     public void testActivateWithRequiredId() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("serviceId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNull(service);
@@ -118,7 +129,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testActivate() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("serviceA", "serviceB"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceA", "serviceB"));
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNull(service);
@@ -141,14 +152,14 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
         assertTrue(((Preconditions) f.get(registration)).areSatisfied());
 
-        registration.activate(context.bundleContext(), requiredServiceIdMap("requiredService"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("requiredService"));
 
         assertFalse(((Preconditions) f.get(registration)).areSatisfied());
     }
 
     @Test
     public void testActivateWithoutPreconditions() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap());
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds());
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNotNull(service);
@@ -157,7 +168,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testModified() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("rpId", "authorizationId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId", "authorizationId"));
 
         registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(Constants.SERVICE_PID, "authorizationId"));
 
@@ -165,7 +176,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
         // modify requiredServiceIds by removing the rpId from the mandatory services
         // => should re-register the security provider
-        registration.modified(requiredServiceIdMap("authorizationId"));
+        registration.modified(configWithRequiredServiceIds("authorizationId"));
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNotNull(service);
@@ -176,7 +187,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testModifiedPreconditionStillSatisfied() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("rpId", "authorizationId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId", "authorizationId"));
 
         RestrictionProvider mockRp = Mockito.mock(RestrictionProvider.class);
         registration.bindRestrictionProvider(mockRp, ImmutableMap.of(Constants.SERVICE_PID, "rpId"));
@@ -185,7 +196,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNotNull(service);
 
-        registration.modified(requiredServiceIdMap("authorizationId"));
+        registration.modified(configWithRequiredServiceIds("authorizationId"));
 
         SecurityProvider service2 = context.getService(SecurityProvider.class);
         assertSame(service, service2);
@@ -193,7 +204,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testDeactivate() throws Exception {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("nodeName"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("nodeName"));
         AuthorizableNodeName mock = Mockito.mock(AuthorizableNodeName.class);
         registration.bindAuthorizableNodeName(mock, ImmutableMap.of(Constants.SERVICE_PID, "nodeName"));
 
@@ -208,7 +219,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testDeactivateWithoutPreconditions() throws Exception {
-        registration.activate(context.bundleContext(), requiredServiceIdMap());
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds());
         UserAuthenticationFactory mock = Mockito.mock(UserAuthenticationFactory.class);
         registration.bindUserAuthenticationFactory(mock, ImmutableMap.of(Constants.SERVICE_PID, "nodeName"));
 
@@ -225,7 +236,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         Field f = registration.getClass().getDeclaredField("preconditions");
         f.setAccessible(true);
 
-        registration.activate(context.bundleContext(), requiredServiceIdMap("nodeName"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("nodeName"));
 
         assertFalse(((Preconditions) f.get(registration)).areSatisfied());
 
@@ -241,7 +252,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testBindOptionalCandidate() throws Exception {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("serviceId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
 
         Field f = registration.getClass().getDeclaredField("preconditions");
         f.setAccessible(true);
@@ -257,7 +268,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testBindOptionalCandidateAfterRegistration() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("serviceId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
 
         registration.bindTokenConfiguration(mockConfiguration(TokenConfiguration.class), ImmutableMap.of(Constants.SERVICE_PID, "serviceId"));
 
@@ -273,7 +284,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testBindMandatoryCandidate() throws Exception {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("serviceId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
 
         Field f = registration.getClass().getDeclaredField("preconditions");
         f.setAccessible(true);
@@ -289,7 +300,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testUnbindMandatoryCandidate() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("actionProvider"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("actionProvider"));
 
         registration.bindUserConfiguration(mockConfiguration(UserConfiguration.class));
 
@@ -306,7 +317,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testUnbindMandatoryCandidateOnPreconditions() throws Exception {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("nodeName"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("nodeName"));
 
         Field f = registration.getClass().getDeclaredField("preconditions");
         f.setAccessible(true);
@@ -321,7 +332,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testUnbindOptionalCandidateAfterRegistration() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("serviceId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
 
         UserAuthenticationFactory uaf = Mockito.mock(UserAuthenticationFactory.class);
         Map<String, Object> properties = ImmutableMap.of(Constants.SERVICE_PID, "notMandatory");
@@ -538,7 +549,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testBindRestrictionProviderWithoutAuthorizationConfig() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("serviceId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
 
         RestrictionProvider mockRp = Mockito.mock(RestrictionProvider.class);
         registration.bindRestrictionProvider(mockRp, ImmutableMap.of(Constants.SERVICE_PID, "serviceId"));
@@ -556,11 +567,37 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     @Test
     public void testBindRestrictionProviderWithAuthorizationConfig() {
-        registration.activate(context.bundleContext(), requiredServiceIdMap("rpId", "authorizationId"));
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId", "authorizationId"));
 
         RestrictionProvider mockRp = Mockito.mock(RestrictionProvider.class);
         registration.bindRestrictionProvider(mockRp, ImmutableMap.of(Constants.SERVICE_PID, "rpId"));
         registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(Constants.SERVICE_PID, "authorizationId"));
+
+        SecurityProvider service = context.getService(SecurityProvider.class);
+        RestrictionProvider rp = service.getConfiguration(AuthorizationConfiguration.class).getRestrictionProvider();
+        assertTrue(rp instanceof WhiteboardRestrictionProvider);
+    }
+    
+    @Test
+    public void testActivateWithRequiredOakSecurityName() {
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
+
+        SecurityProvider service = context.getService(SecurityProvider.class);
+        assertNull(service);
+
+        registration.bindAuthorizableNodeName(Mockito.mock(AuthorizableNodeName.class), ImmutableMap.of(RegistrationConstants.OAK_SECURITY_NAME, "serviceId"));
+
+        service = context.getService(SecurityProvider.class);
+        assertNotNull(service);
+    }
+    
+    @Test
+    public void testActivateWithMixedServicePiAnddOakServiceName() {
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId", "authorizationId"));
+        
+        RestrictionProvider mockRp = Mockito.mock(RestrictionProvider.class);
+        registration.bindRestrictionProvider(mockRp, ImmutableMap.of(Constants.SERVICE_PID, "rpId"));
+        registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(RegistrationConstants.OAK_SECURITY_NAME, "authorizationId"));
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         RestrictionProvider rp = service.getConfiguration(AuthorizationConfiguration.class).getRestrictionProvider();

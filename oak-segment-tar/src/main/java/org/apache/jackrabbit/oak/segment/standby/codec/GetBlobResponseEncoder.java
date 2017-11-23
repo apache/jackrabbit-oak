@@ -17,38 +17,37 @@
 
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import java.nio.charset.Charset;
+import java.io.InputStream;
 
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GetBlobResponseEncoder extends MessageToByteEncoder<GetBlobResponse> {
+public class GetBlobResponseEncoder extends ChannelOutboundHandlerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(GetBlobResponseEncoder.class);
+    
+    private final int blobChunkSize;
 
-    @Override
-    protected void encode(ChannelHandlerContext ctx, GetBlobResponse msg, ByteBuf out) throws Exception {
-        log.debug("Sending blob {} to client {}", msg.getBlobId(), msg.getClientId());
-        encode(msg.getBlobId(), msg.getBlobData(), out);
+    public GetBlobResponseEncoder(final int blobChunkSize) {
+        this.blobChunkSize = blobChunkSize;
     }
+    
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+        if (msg instanceof GetBlobResponse) {
+            GetBlobResponse response = (GetBlobResponse) msg;
+            log.debug("Sending blob {} to client {}", response.getBlobId(), response.getClientId());
 
-    private static void encode(String blobId, byte[] data, ByteBuf out) {
-        byte[] blobIdBytes = blobId.getBytes(Charset.forName("UTF-8"));
+            String clientId = response.getClientId();
+            String blobId = response.getBlobId();
+            long length = response.getLength();
+            InputStream in = response.getInputStream();
 
-        Hasher hasher = Hashing.murmur3_32().newHasher();
-        long hash = hasher.putBytes(data).hash().padToLong();
-
-        out.writeInt(1 + 4 + blobIdBytes.length + 8 + data.length);
-        out.writeByte(Messages.HEADER_BLOB);
-        out.writeInt(blobIdBytes.length);
-        out.writeBytes(blobIdBytes);
-        out.writeLong(hash);
-        out.writeBytes(data);
+            ctx.writeAndFlush(new ChunkedBlobStream(clientId, blobId, length, in, blobChunkSize), promise);
+        } else {
+            ctx.write(msg, promise);
+        }
     }
-
 }

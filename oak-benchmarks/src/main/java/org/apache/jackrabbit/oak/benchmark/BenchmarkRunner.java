@@ -164,6 +164,21 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Integer.class).defaultsTo(2);
         OptionSpec<Integer> pathsPerMount = parser.accepts("pathsPerMount", "Number of paths per one mount.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1000);
+        OptionSpec<Integer> vgcMaxAge = parser.accepts("vgcMaxAge", "Continuous DocumentNodeStore VersionGC max age in sec (RDB only)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(-1);
+        OptionSpec<Integer> coldSyncInterval = parser.accepts("coldSyncInterval", "interval between sync cycles in sec (Segment-Tar-Cold only)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(5);
+        OptionSpec<Boolean> coldUseDataStore = parser
+                .accepts("useDataStore",
+                        "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.TRUE);
+        OptionSpec<Boolean> coldShareDataStore = parser
+                .accepts("shareDataStore",
+                        "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
+        
         OptionSpec<?> verbose = parser.accepts("verbose", "Enable verbose output");
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
@@ -199,15 +214,18 @@ public class BenchmarkRunner {
                         cacheSize * MB),
                 OakRepositoryFixture.getSegmentTar(base.value(options), 256, cacheSize,
                         mmap.value(options)),
-                OakRepositoryFixture.getSegmentTarWithBlobStore(base.value(options), 256, cacheSize,
+                OakRepositoryFixture.getSegmentTarWithDataStore(base.value(options), 256, cacheSize,
                         mmap.value(options), fdsCache.value(options)),
+                OakRepositoryFixture.getSegmentTarWithColdStandby(base.value(options), 256, cacheSize,
+                        mmap.value(options), coldUseDataStore.value(options), fdsCache.value(options), 
+                        coldSyncInterval.value(options), coldShareDataStore.value(options)),
                 OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), 
-                        dropDBAfterTest.value(options), cacheSize * MB),
+                        dropDBAfterTest.value(options), cacheSize * MB, vgcMaxAge.value(options)),
                 OakRepositoryFixture.getRDBWithDS(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
                         dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
-                        fdsCache.value(options)),
+                        fdsCache.value(options), vgcMaxAge.value(options)),
                 OakRepositoryFixture.getCompositeStore(base.value(options), 256, cacheSize,
                         mmap.value(options), mounts.value(options), pathsPerMount.value(options)),
                 OakRepositoryFixture.getCompositeMemoryStore(mounts.value(options), pathsPerMount.value(options))
@@ -437,7 +455,8 @@ public class BenchmarkRunner {
 
             new HybridIndexTest(base.value(options), statsProvider),
             new BundlingNodeTest(),
-            new PersistentCacheTest(statsProvider)
+            new PersistentCacheTest(statsProvider),
+            new BasicWriteTest()
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));

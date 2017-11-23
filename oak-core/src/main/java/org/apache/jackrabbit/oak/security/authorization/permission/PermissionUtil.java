@@ -74,8 +74,8 @@ public final class PermissionUtil implements PermissionConstants {
     }
 
     @Nonnull
-    public static Tree getPermissionsRoot(@Nonnull Root root, @Nonnull String workspaceName) {
-        return root.getTree(PERMISSIONS_STORE_PATH + '/' + workspaceName);
+    public static Tree getPermissionsRoot(@Nonnull Root root, @Nonnull String permissionRootName) {
+        return root.getTree(PERMISSIONS_STORE_PATH + '/' + permissionRootName);
     }
 
     @Nonnull

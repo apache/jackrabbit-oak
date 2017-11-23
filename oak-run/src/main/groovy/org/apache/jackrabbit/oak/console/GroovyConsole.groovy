@@ -127,7 +127,8 @@ class GroovyConsole {
                 new RefreshCommand(shell),
                 new RetrieveCommand(shell),
                 new LuceneCommand(shell),
-                new ExportRelevantDocumentsCommand(shell)
+                new ExportRelevantDocumentsCommand(shell),
+                new ExportCommand(shell)
         ])
 
         if(session.store instanceof DocumentNodeStore){

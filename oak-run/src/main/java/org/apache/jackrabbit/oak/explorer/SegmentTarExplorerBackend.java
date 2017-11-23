@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.explorer;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.reverseOrder;
-import static java.util.Collections.sort;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -131,17 +131,14 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
     }
 
     @Override
-    public Map<UUID, List<UUID>> getTarGraph(String file) throws IOException {
+    public Map<UUID, Set<UUID>> getTarGraph(String file) throws IOException {
         return store.getTarGraph(file);
     }
 
     @Override
     public List<String> getTarFiles() {
-        List<String> files = newArrayList();
-        for (String p : store.getTarReaderIndex().keySet()) {
-            files.add(new File(p).getName());
-        }
-        sort(files, reverseOrder());
+        List<String> files = new ArrayList<>(store.getTarReaderIndex().keySet());
+        files.sort(reverseOrder());
         return files;
     }
 
@@ -156,8 +153,8 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
                 continue;
             }
             for (String f : getTarFiles()) {
-                Map<UUID, List<UUID>> graph = store.getTarGraph(f);
-                for (Entry<UUID, List<UUID>> g : graph.entrySet()) {
+                Map<UUID, Set<UUID>> graph = store.getTarGraph(f);
+                for (Entry<UUID, Set<UUID>> g : graph.entrySet()) {
                     if (g.getValue() != null && g.getValue().contains(uuid)) {
                         UUID uuidP = g.getKey();
                         if (!todos.contains(uuidP)) {
@@ -377,10 +374,10 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
     }
 
     private String getFile(SegmentId segmentId) {
-        for (Entry<String, Set<UUID>> path2Uuid : index.entrySet()) {
-            for (UUID uuid : path2Uuid.getValue()) {
+        for (Entry<String, Set<UUID>> nameToId : index.entrySet()) {
+            for (UUID uuid : nameToId.getValue()) {
                 if (uuid.equals(segmentId.asUUID())) {
-                    return new File(path2Uuid.getKey()).getName();
+                    return nameToId.getKey();
                 }
             }
         }

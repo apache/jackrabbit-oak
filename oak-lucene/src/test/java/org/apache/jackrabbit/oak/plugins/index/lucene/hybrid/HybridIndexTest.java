@@ -19,10 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.management.ManagementFactory;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,27 +33,41 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.management.AttributeNotFoundException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.OptionalEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
@@ -74,18 +91,28 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.NRTCachingDirectory;
+import org.apache.lucene.store.NoLockFactory;
+import org.apache.lucene.store.SimpleFSDirectory;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 
 public class HybridIndexTest extends AbstractQueryTest {
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -93,6 +120,8 @@ public class HybridIndexTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
     private OptionalEditorProvider optionalEditorProvider = new OptionalEditorProvider();
+    private NRTIndexFactory nrtIndexFactory;
+    private LuceneIndexProvider luceneIndexProvider;
     private NodeStore nodeStore;
     private DocumentQueue queue;
     private Clock clock = new Clock.Virtual();
@@ -101,8 +130,10 @@ public class HybridIndexTest extends AbstractQueryTest {
     private long refreshDelta = TimeUnit.SECONDS.toMillis(1);
 
     @After
-    public void tearDown(){
+    public void tearDown() throws IOException {
+        luceneIndexProvider.close();
         new ExecutorCloser(executorService).close();
+        nrtIndexFactory.close();
     }
 
     @Override
@@ -115,10 +146,11 @@ public class HybridIndexTest extends AbstractQueryTest {
         }
         MountInfoProvider mip = defaultMountInfoProvider();
 
-        NRTIndexFactory nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
+        nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
+        nrtIndexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
-        LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
+        luceneIndexProvider = new LuceneIndexProvider(tracker);
         queue = new DocumentQueue(100, tracker, sameThreadExecutor());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
                 tracker,
@@ -133,8 +165,8 @@ public class HybridIndexTest extends AbstractQueryTest {
         Oak oak = new Oak(nodeStore)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
+                .with((QueryIndexProvider) luceneIndexProvider)
+                .with((Observer) luceneIndexProvider)
                 .with(localIndexObserver)
                 .with(editorProvider)
                 .with(new PropertyIndexEditorProvider())
@@ -327,13 +359,132 @@ public class HybridIndexTest extends AbstractQueryTest {
         assertQuery(query, of("/b", "/c"));
     }
 
+    @Test
+    public void noFileLeaks() throws Exception{
+        nrtIndexFactory.setDirectoryFactory(new NRTDirectoryFactory() {
+            @Override
+            public Directory createNRTDir(IndexDefinition definition, File indexDir) throws IOException {
+                Directory fsdir = new SimpleFSDirectory(indexDir, NoLockFactory.getNoLockFactory());
+                //TODO make these configurable
+                return new NRTCachingDirectory(fsdir, 0.001, 0.001);
+            }
+        });
+        String idxName = "hybridtest";
+        Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
+        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        root.commit();
+        runAsyncIndex();
+
+        createPath("/a").setProperty("foo", "bar");
+        root.commit();
+        runAsyncIndex();
+
+        System.out.printf("Open file count - At start %d%n", getOpenFileCount());
+        long fileCount1 = createTestDataAndRunAsync("/content/a", 100);
+        long fileCount2 = createTestDataAndRunAsync("/content/b", 100);
+        long fileCount3 = createTestDataAndRunAsync("/content/c", 100);
+        long fileCount4 = createTestDataAndRunAsync("/content/d", 1);
+        long fileCount5 = createTestDataAndRunAsync("/content/e", 1);
+        System.out.printf("Open file count - At end %d", getOpenFileCount());
+
+        assertThat(fileCount4, lessThanOrEqualTo(fileCount3));
+    }
+
+    @Test
+    public void paging() throws Exception{
+        String idxName = "hybridtest";
+        Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
+        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        root.commit();
+        runAsyncIndex();
+
+        createTestData("/content", LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2);
+        runAsyncIndex();
+
+        String query = "select [jcr:path] from [nt:base] where [foo] = 'bar'";
+        Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Iterator<? extends ResultRow> itr = result.getRows().iterator();
+        int count = 0;
+        for (int i = 0; i < LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE - 10; i++) {
+            assertTrue(itr.hasNext());
+            itr.next();
+            count++;
+        }
+
+        createTestData("/content2", 5);
+        LogCustomizer lc = LogCustomizer.forLogger(LucenePropertyIndex.class.getName())
+                .filter(Level.WARN)
+                .create();
+        lc.starting();
+
+        int size = Iterators.size(itr);
+
+        if (!lc.getLogs().isEmpty()){
+            fail(lc.getLogs().toString());
+        }
+
+        lc.finished();
+
+        int totalSize = LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2 + 5;
+        assertEquals(totalSize, count + size);
+    }
+
+    private long createTestDataAndRunAsync(String parentPath, int count) throws Exception {
+        createTestData(parentPath, count);
+        System.out.printf("Open file count - Post creation of %d nodes at %s is %d%n",count, parentPath, getOpenFileCount());
+        runAsyncIndex();
+        long openCount = getOpenFileCount();
+        System.out.printf("Open file count - Post async run at %s is %d%n",parentPath, openCount);
+        return openCount;
+    }
+
+    private void createTestData(String parentPath, int count) throws CommitFailedException {
+        createPath(parentPath);
+        root.commit();
+
+        for (int i = 0; i < count; i++) {
+            Tree parent = root.getTree(parentPath);
+            Tree t = parent.addChild("testNode"+i);
+            t.setProperty("foo", "bar");
+            root.commit();
+        }
+    }
+
+    private static long getOpenFileCount() throws Exception {
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        ObjectName name = new ObjectName("java.lang:type=OperatingSystem");
+        Long val = null;
+        try {
+            val = (Long) server.getAttribute(name, "OpenFileDescriptorCount");
+        } catch (AttributeNotFoundException e) {
+            //This attribute is only present if the os is unix i.e. when UnixOperatingSystemMXBean
+            //is the mbean in use. If running on windows the test would be assumed to be true
+            assumeNoException(e);
+        }
+        //dumpOpenFilePaths();
+        return val;
+    }
+
+    private static void dumpOpenFilePaths() throws IOException {
+        String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+        String pid = jvmName.split("@")[0];
+
+        CommandLine cl = new CommandLine("/bin/sh");
+        cl.addArguments(new String[]{"-c", "lsof -p "+pid+" | grep '/nrt'"}, false);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DefaultExecutor executor = new DefaultExecutor();
+        executor.setStreamHandler(new PumpStreamHandler(baos));
+        executor.execute(cl);
+        System.out.println(new String(baos.toByteArray()));
+    }
+
     private String explain(String query){
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
     private void runAsyncIndex() {
-        Runnable async = WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
+        AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
             @Override
             public boolean apply(@Nullable Runnable input) {
                 return input instanceof AsyncIndexUpdate;
@@ -341,6 +492,9 @@ public class HybridIndexTest extends AbstractQueryTest {
         });
         assertNotNull(async);
         async.run();
+        if (async.isFailing()) {
+            fail("AsyncIndexUpdate failed");
+        }
         root.refresh();
     }
 

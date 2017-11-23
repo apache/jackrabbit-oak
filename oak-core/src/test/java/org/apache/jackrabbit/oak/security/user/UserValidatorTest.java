@@ -17,25 +17,20 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -309,7 +304,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         NodeUtil nested = profile.addChild("nested", UserConstants.NT_REP_USER);
         nested.setString(UserConstants.REP_PRINCIPAL_NAME, "nested");
         nested.setString(UserConstants.REP_AUTHORIZABLE_ID, "nested");
-        nested.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID("nested"));
+        nested.setString(JcrConstants.JCR_UUID, UUIDUtils.generateUUID("nested"));
         try {
             root.commit();
             fail("Creating nested users must be detected.");
@@ -329,7 +324,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         NodeUtil nested = profile.addChild("nested", JcrConstants.NT_UNSTRUCTURED);
         nested.setString(UserConstants.REP_PRINCIPAL_NAME, "nested");
         nested.setString(UserConstants.REP_AUTHORIZABLE_ID, "nested");
-        nested.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID("nested"));
+        nested.setString(JcrConstants.JCR_UUID, UUIDUtils.generateUUID("nested"));
         root.commit();
 
         try {

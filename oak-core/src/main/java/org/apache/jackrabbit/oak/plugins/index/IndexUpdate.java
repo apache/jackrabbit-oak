@@ -31,7 +31,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
 import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
@@ -56,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCountEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.TraversalRateEstimator;
+import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -143,7 +146,7 @@ public class IndexUpdate implements Editor, PathSource {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.rootState = new IndexUpdateRootState(provider, async, root, updateCallback, traversalCallback, commitInfo, corruptIndexHandler);
+        this.rootState = new IndexUpdateRootState(provider, async, root, builder, updateCallback, traversalCallback, commitInfo, corruptIndexHandler);
         this.builder = checkNotNull(builder);
     }
 
@@ -214,18 +217,40 @@ public class IndexUpdate implements Editor, PathSource {
             return false;
         }
 
+        //Do not attempt reindex of disabled indexes
+        PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
+        if (type != null && TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
+            return false;
+        }
+
         PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
         if (ps != null && ps.getValue(BOOLEAN)) {
             return !rootState.ignoreReindexFlags;
         }
         // reindex in the case this is a new node, even though the reindex flag
-        // might be set to 'false' (possible via content import)
-        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
+        // might be set to 'false' (possible via content import).
+        // However if its already indexed i.e. has some hidden nodes (containing hidden data)
+        // then no need to reindex
+        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)
+                && !hasAnyHiddenNodes(definition);
         if (result) {
             log.info("Found a new index node [{}]. Reindexing is requested",
                     name);
         }
         return result;
+    }
+
+    private static boolean hasAnyHiddenNodes(NodeBuilder builder){
+        for (String name : builder.getChildNodeNames()) {
+            if (NodeStateUtils.isHidden(name)){
+                NodeBuilder childNode = builder.getChildNode(name);
+                if (childNode.getBoolean(IndexConstants.REINDEX_RETAIN)) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     private void collectIndexEditors(NodeBuilder definitions,
@@ -260,19 +285,32 @@ public class IndexUpdate implements Editor, PathSource {
                     } else {
                         definition.setProperty(REINDEX_PROPERTY_NAME, false);
                         incrementReIndexCount(definition);
-                        // as we don't know the index content node name
-                        // beforehand, we'll remove all child nodes
-                        for (String rm : definition.getChildNodeNames()) {
-                            if (NodeStateUtils.isHidden(rm)) {
-                                definition.getChildNode(rm).remove();
-                            }
-                        }
+                        removeIndexState(definition);
 
                         clearCorruptFlag(definition, indexPath);
                         reindex.put(concat(getPath(), INDEX_DEFINITIONS_NAME, name), editor);
                     }
+
+                    rootState.indexDisabler.markDisableFlagIfRequired(indexPath, definition);
                 } else {
+                    // not async index OR we're indexing in async mode
+                    if (getAsyncLaneName(definition.getNodeState(), indexPath) == null || rootState.async != null) {
+                        rootState.indexDisabler.disableOldIndexes(indexPath, definition);
+                    }
                     editors.add(editor);
+                }
+            }
+        }
+    }
+
+    private void removeIndexState(NodeBuilder definition) {
+        // as we don't know the index content node name
+        // beforehand, we'll remove all child nodes
+        for (String rm : definition.getChildNodeNames()) {
+            if (NodeStateUtils.isHidden(rm)) {
+                NodeBuilder childNode = definition.getChildNode(rm);
+                if (!childNode.getBoolean(IndexConstants.REINDEX_RETAIN)) {
+                    definition.getChildNode(rm).remove();
                 }
             }
         }
@@ -460,7 +498,7 @@ public class IndexUpdate implements Editor, PathSource {
         private boolean failOnMissingIndexProvider = Boolean
                 .getBoolean("oak.indexUpdate.failOnMissingIndexProvider");
 
-        private final Set<String> ignore = newHashSet("disabled");
+        private final Set<String> ignore = newHashSet("disabled", "ordered");
 
         public void onMissingIndex(String type, NodeBuilder definition, String indexPath)
                 throws CommitFailedException {
@@ -506,6 +544,7 @@ public class IndexUpdate implements Editor, PathSource {
         final String async;
         final NodeState root;
         final CommitInfo commitInfo;
+        final IndexDisabler indexDisabler;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
         final Set<IndexCommitCallback> indexCommitCallbacks = newIdentityHashSet();
         final CorruptIndexHandler corruptIndexHandler;
@@ -515,13 +554,15 @@ public class IndexUpdate implements Editor, PathSource {
         private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
-                                     IndexUpdateCallback updateCallback, NodeTraversalCallback traversalCallback,
+                                     NodeBuilder builder, IndexUpdateCallback updateCallback,
+                                     NodeTraversalCallback traversalCallback,
                                      CommitInfo commitInfo, CorruptIndexHandler corruptIndexHandler) {
             this.provider = checkNotNull(provider);
             this.async = async;
             this.root = checkNotNull(root);
             this.commitInfo = commitInfo;
             this.corruptIndexHandler = corruptIndexHandler;
+            this.indexDisabler = new IndexDisabler(builder);
             this.progressReporter = new IndexingProgressReporter(updateCallback, traversalCallback);
         }
 

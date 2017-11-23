@@ -21,22 +21,28 @@ package org.apache.jackrabbit.oak.spi.mount;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Set;
 import java.util.TreeSet;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.FULL_MATCH;
+import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.PARTIAL_MATCH;
 
 /**
  * Default {@link Mount} implementation for non-default mounts.
  */
-final class MountInfo implements Mount {
+public final class MountInfo implements Mount {
 
     private static final Function<String, String> SANITIZE_PATH =  new Function<String, String>() {
         @Override
@@ -51,7 +57,7 @@ final class MountInfo implements Mount {
     private final String name;
     private final boolean readOnly;
     private final String pathFragmentName;
-    private final NavigableSet<String> pathsSupportingFragments;
+    private final Set<String> pathsSupportingFragments;
     private final NavigableSet<String> includedPaths;
 
     MountInfo(String name, boolean readOnly, List<String> pathsSupportingFragments,
@@ -60,7 +66,7 @@ final class MountInfo implements Mount {
         this.readOnly = readOnly;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
-        this.pathsSupportingFragments = cleanCopy(pathsSupportingFragments);
+        this.pathsSupportingFragments = ImmutableSet.copyOf(pathsSupportingFragments);
     }
 
     @Override
@@ -79,8 +85,12 @@ final class MountInfo implements Mount {
 
     @Override
     public boolean isMounted(String path) {
-        if (isSupportFragment(path) && path.contains(pathFragmentName)){
-            return true;
+        if (path.contains(pathFragmentName)) {
+            String parent = path.substring(0, path.indexOf(pathFragmentName));
+            parent = parent.substring(0, parent.lastIndexOf('/'));
+            if (isSupportFragment(parent)) {
+                return true;
+            }
         }
 
         path = SANITIZE_PATH.apply(path);
@@ -106,9 +116,18 @@ final class MountInfo implements Mount {
 
     @Override
     public boolean isSupportFragment(String path) {
-        path = SANITIZE_PATH.apply(path);
-        String previousPath = pathsSupportingFragments.floor(path);
-        return previousPath != null && (previousPath.equals(path) || isAncestor(previousPath, path));
+        String subject = SANITIZE_PATH.apply(path);
+        return pathsSupportingFragments.stream()
+                .map(pattern -> FragmentMatcher.startsWith(pattern, subject))
+                .anyMatch(FULL_MATCH::equals);
+    }
+
+    @Override
+    public boolean isSupportFragmentUnder(String path) {
+        String subject = SANITIZE_PATH.apply(path);
+        return pathsSupportingFragments.stream()
+                .map(pattern -> FragmentMatcher.startsWith(pattern, subject))
+                .anyMatch(r -> r == PARTIAL_MATCH || r == FULL_MATCH);
     }
 
     @Override
@@ -119,6 +138,14 @@ final class MountInfo implements Mount {
     private static TreeSet<String> cleanCopy(Collection<String> includedPaths) {
         // ensure that paths don't have trailing slashes - this triggers an assertion in PathUtils isAncestor
         return newTreeSet(transform(includedPaths, SANITIZE_PATH));
+    }
+
+    public Set<String> getPathsSupportingFragments() {
+        return Collections.unmodifiableSet(pathsSupportingFragments);
+    }
+
+    public Set<String> getIncludedPaths() {
+        return Collections.unmodifiableSet(includedPaths);
     }
 
     @Override

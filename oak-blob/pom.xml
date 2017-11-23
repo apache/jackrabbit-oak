@@ -34,10 +34,6 @@
     <plugins>
       <plugin>
         <groupId>org.apache.felix</groupId>
-        <artifactId>maven-scr-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
@@ -68,8 +64,8 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>biz.aQute.bnd</groupId>
-      <artifactId>bndlib</artifactId>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.annotation</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -107,7 +103,6 @@
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
-      <version>1.5</version>
     </dependency>
 
     <!--  Optional dependency for jclouds s3 to enable s3 cloud store -->

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.mount;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Refers to a set of paths from a <tt>ContentRepository</tt> that are possibly 
@@ -84,6 +84,15 @@ public interface Mount {
      * @return true if the path fragment mounts are supported in the given subtree
      */
     boolean isSupportFragment(String path);
+
+    /**
+     * Checks if any path supporting the fragments falls under the specified path.
+     *
+     * @param path ancestor path
+     * @return true if the path fragment mounts are supported under some descendants
+     * of the specified path
+     */
+    boolean isSupportFragmentUnder(String path);
 
     /**
      * Checks if given path belongs to this <code>Mount</code>

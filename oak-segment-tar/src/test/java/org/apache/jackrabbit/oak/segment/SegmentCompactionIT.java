@@ -77,7 +77,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
-import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
@@ -471,8 +471,8 @@ public class SegmentCompactionIT {
                     if (!cancelled) {
                         try {
                             CommitHook commitHook = rnd.nextBoolean()
-                                    ? new CompositeHook(new ConflictHook(DefaultConflictHandler.OURS))
-                                    : new CompositeHook(new ConflictHook(DefaultConflictHandler.THEIRS));
+                                    ? new CompositeHook(ConflictHook.of(DefaultThreeWayConflictHandler.OURS))
+                                    : new CompositeHook(ConflictHook.of(DefaultThreeWayConflictHandler.THEIRS));
                             nodeStore.merge(root, commitHook, CommitInfo.EMPTY);
                             segmentCompactionMBean.committed();
                         } catch (CommitFailedException e) {

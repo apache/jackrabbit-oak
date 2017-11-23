@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.plugins.index;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.ASYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.SUPERSEDED_INDEX_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -77,6 +79,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -1835,6 +1838,86 @@ public class AsyncIndexUpdateTest {
         CommitInfo info = provider.lastIndexingContext.getCommitInfo();
         String indexStartTime = (String) info.getInfo().get(IndexConstants.CHECKPOINT_CREATION_TIME);
         assertNotNull(indexStartTime);
+    }
+
+    // OAK-6864
+    @Test
+    public void disableSupersededIndex() throws Exception {
+        IndexEditorProvider propIdxEditorProvider = new PropertyIndexEditorProvider();
+        EditorHook propIdxHook = new EditorHook(new IndexUpdateProvider(propIdxEditorProvider));
+        MemoryNodeStore store = new MemoryNodeStore();
+
+        String supersededIndexName = "supersededIndex";
+        String supersedingIndexName = "supersedingIndex";
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, propIdxEditorProvider);
+
+        // Create superseded index def and merge it
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder oakIndex = builder.child(INDEX_DEFINITIONS_NAME);
+        createIndexDefinition(oakIndex, supersededIndexName, true, false, ImmutableSet.of("foo"), null);
+        store.merge(builder, propIdxHook, CommitInfo.EMPTY);
+
+        // Create superseding index def and merge it
+        builder = store.getRoot().builder();
+        oakIndex = builder.child(INDEX_DEFINITIONS_NAME);
+        createIndexDefinition(oakIndex, supersedingIndexName, true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, ImmutableSet.of("async", "nrt"), Type.STRINGS)
+                .setProperty(SUPERSEDED_INDEX_PATHS, INDEX_DEFINITIONS_NAME + "/" + supersededIndexName)
+        ;
+        store.merge(builder, propIdxHook, CommitInfo.EMPTY);
+
+        // add a change and index it thought superseded index
+        builder = store.getRoot().builder();
+        builder.child("testNode1").setProperty("foo", "bar");
+        store.merge(builder, propIdxHook, CommitInfo.EMPTY);
+
+        // verify state
+        NodeState supersededIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersededIndexName);
+        assertEquals("Index disabled too early", "property", supersededIndex.getString("type"));
+        assertFalse("Don't set :disableIndexesOnNextCycle on superseded index",
+                supersededIndex.hasProperty(DISABLE_INDEXES_ON_NEXT_CYCLE));
+        NodeState supersedingIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersedingIndexName);
+        assertFalse("Don't set :disableIndexesOnNextCycle on superseding index just yet",
+                supersedingIndex.hasProperty(DISABLE_INDEXES_ON_NEXT_CYCLE));
+
+        // do an async run - this should reindex the superseding index
+        async.run();
+
+        // verify state
+        supersededIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersededIndexName);
+        assertEquals("Index disabled too early", "property", supersededIndex.getString("type"));
+        assertFalse("Don't set :disableIndexesOnNextCycle on superseded index",
+                supersededIndex.hasProperty(DISABLE_INDEXES_ON_NEXT_CYCLE));
+        supersedingIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersedingIndexName);
+        assertTrue(":disableIndexesOnNextCycle not set on superseding index after reindexing run",
+                supersedingIndex.hasProperty(DISABLE_INDEXES_ON_NEXT_CYCLE));
+
+        // add another change and index it thought superseded index
+        builder = store.getRoot().builder();
+        store.getRoot().builder().child("testNode2").setProperty("foo", "bar");
+        store.merge(builder, propIdxHook, CommitInfo.EMPTY);
+
+        // verify state
+        supersededIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersededIndexName);
+        assertEquals("Index disabled too early", "property", supersededIndex.getString("type"));
+        assertFalse("Don't set :disableIndexesOnNextCycle on superseded index",
+                supersededIndex.hasProperty(DISABLE_INDEXES_ON_NEXT_CYCLE));
+        supersedingIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersedingIndexName);
+        assertTrue(":disableIndexesOnNextCycle not set on superseding index after reindexing run",
+                supersedingIndex.getBoolean(DISABLE_INDEXES_ON_NEXT_CYCLE));
+
+        // do another async run - indexes should get disabled now
+        async.run();
+
+        // verify state
+        supersededIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersededIndexName);
+        assertEquals("Index yet not disabled", "disabled", supersededIndex.getString("type"));
+        assertFalse("Don't set :disableIndexesOnNextCycle on superseded index",
+                supersededIndex.hasProperty(DISABLE_INDEXES_ON_NEXT_CYCLE));
+        supersedingIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersedingIndexName);
+        assertFalse("Don't keep :disableIndexesOnNextCycle on superseding index after disabling",
+                supersedingIndex.hasProperty(DISABLE_INDEXES_ON_NEXT_CYCLE));
     }
 
     private static class TestIndexEditorProvider extends PropertyIndexEditorProvider {

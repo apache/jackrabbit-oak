@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr.observation.filter;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 
-import aQute.bnd.annotation.ConsumerType;
+import org.osgi.annotation.versioning.ConsumerType;
 
 /**
  * Extension of the JackrabbitEventFilter that exposes Oak specific

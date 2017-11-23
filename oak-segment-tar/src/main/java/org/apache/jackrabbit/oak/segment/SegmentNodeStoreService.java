@@ -437,7 +437,7 @@ public class SegmentNodeStoreService {
                 .setGcSizeDeltaEstimation(configuration.getSizeDeltaEstimation())
                 .setMemoryThreshold(configuration.getMemoryThreshold())
                 .setEstimationDisabled(configuration.getDisableEstimation())
-                .withGCNodeWriteMonitor(configuration.getGCProcessLog());
+                .setGCLogInterval(configuration.getGCProcessLog());
 
         // Build the FileStore
         FileStoreBuilder builder = fileStoreBuilder(configuration.getSegmentDirectory())
@@ -646,7 +646,8 @@ public class SegmentNodeStoreService {
                     (GarbageCollectableBlobStore) blobStore,
                     executor,
                     TimeUnit.SECONDS.toMillis(configuration.getBlobGcMaxAge()),
-                    getOrCreateId(segmentNodeStore)
+                    getOrCreateId(segmentNodeStore),
+                    whiteboard
             );
             closeables.add(registrations.registerMBean(
                     BlobGCMBean.class,

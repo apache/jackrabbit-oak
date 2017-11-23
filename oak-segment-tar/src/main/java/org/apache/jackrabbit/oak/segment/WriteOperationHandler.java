@@ -24,15 +24,16 @@ import java.io.IOException;
 import javax.annotation.Nonnull;
 
 /**
- * A {@code WriteOperationHandler} executes {@link WriteOperation WriteOperation}s and as
- * such serves as a bridge between {@link SegmentWriter} and {@link SegmentBufferWriter}.
+ * A {@code WriteOperationHandler} executes {@link WriteOperation
+ * WriteOperation}s and as such serves as a bridge between a {@link
+ * SegmentWriter} and {@link SegmentBufferWriter}.
  */
 interface WriteOperationHandler {
 
     /**
-     * A {@code WriteOperation} encapsulates an operation on a {@link SegmentWriter}.
-     * Executing it performs the actual act of persisting changes to a
-     * {@link SegmentBufferWriter}.
+     * A {@code WriteOperation} encapsulates an operation on a {@link
+     * SegmentWriter}. Executing it performs the actual act of persisting
+     * changes to a {@link SegmentBufferWriter}.
      */
     interface WriteOperation {
 

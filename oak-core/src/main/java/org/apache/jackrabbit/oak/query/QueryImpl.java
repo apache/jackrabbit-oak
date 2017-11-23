@@ -36,12 +36,15 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeJoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.CoalesceImpl;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
@@ -79,8 +82,9 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
@@ -104,8 +108,14 @@ import com.google.common.collect.Ordering;
  */
 public class QueryImpl implements Query {
 
+    public static final UnsupportedOperationException TOO_MANY_UNION = 
+            new UnsupportedOperationException("Too many union queries");
+    public final static int MAX_UNION = Integer.getInteger("oak.sql2MaxUnion", 1000);
+
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
     
+    private final QueryExecutionStats stats;
+
     private boolean potentiallySlowTraversalQueryLogged;
 
     private static final Ordering<QueryIndex> MINIMAL_COST_ORDERING = new Ordering<QueryIndex>() {
@@ -171,13 +181,15 @@ public class QueryImpl implements Query {
     private boolean potentiallySlowTraversalQuery;
 
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
-        ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings) {
+        ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings,
+        QueryExecutionStats stats) {
         this.statement = statement;
         this.source = source;
         this.constraint = constraint;
         this.columns = columns;
         this.namePathMapper = mapper;
         this.settings = settings;
+        this.stats = stats;
     }
 
     @Override
@@ -213,6 +225,12 @@ public class QueryImpl implements Query {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return true;
+            }
+
+            @Override
+            public boolean visit(CoalesceImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
             }
 
             @Override
@@ -796,6 +814,8 @@ public class QueryImpl implements Query {
             if (end) {
                 return;
             }
+            long nanos = System.nanoTime();
+            long oldIndex = rowIndex;
             if (!started) {
                 source.execute(rootState);
                 started = true;
@@ -818,6 +838,8 @@ public class QueryImpl implements Query {
                     break;
                 }
             }
+            nanos = System.nanoTime() - nanos;
+            stats.read(rowIndex - oldIndex, rowIndex, nanos);
         }
 
         @Override
@@ -984,9 +1006,25 @@ public class QueryImpl implements Query {
                         filter, sortOrder, rootState);
                 cost = Double.POSITIVE_INFINITY;
                 for (IndexPlan p : ipList) {
-                    // TODO limit is after all conditions
-                    long entryCount = Math.min(maxEntryCount, p.getEstimatedEntryCount());
+                    
+                    long entryCount = p.getEstimatedEntryCount();
+                    if (p.getSupportsPathRestriction()) {
+                        entryCount = scaleEntryCount(rootState, filter, entryCount);
+                    }
+                    if (sortOrder == null || p.getSortOrder() != null) {
+                        // if the query is unordered, or
+                        // if the query contains "order by" and the index can sort on that,
+                        // then we don't need to read all entries from the index
+                        entryCount = Math.min(maxEntryCount, entryCount);
+                    }
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
+
+                    if (LOG.isDebugEnabled()) {
+                        String plan = advIndex.getPlanDescription(p, rootState);
+                        String msg = String.format("cost for [%s] of type (%s) with plan [%s] is %1.2f", p.getPlanName(), indexName, plan, c);
+                        logDebug(msg);
+                    }
+
                     if (c < cost) {
                         cost = c;
                         indexPlan = p;
@@ -1029,6 +1067,40 @@ public class QueryImpl implements Query {
         }
         return new SelectorExecutionPlan(filter.getSelector(), bestIndex, 
                 bestPlan, bestCost);
+    }
+    
+    private long scaleEntryCount(NodeState rootState, FilterImpl filter, long count) {
+        PathRestriction r = filter.getPathRestriction();
+        if (r != PathRestriction.ALL_CHILDREN) {
+            return count;
+        }
+        String path = filter.getPath();
+        if (path.startsWith(JoinConditionImpl.SPECIAL_PATH_PREFIX)) {
+            // don't know the path currently, could be root
+            return count;
+        }
+        long filterPathCount = NodeCounter.getEstimatedNodeCount(rootState, path, true);
+        if (filterPathCount < 0) {
+            // don't know
+            return count;
+        }
+        long totalNodesCount = NodeCounter.getEstimatedNodeCount(rootState, "/", true);
+        if (totalNodesCount <= 0) {
+            totalNodesCount = 1;
+        }
+        // same logic as for the property index (see ContentMirrorStoreStrategy):
+        
+        // assume nodes in the index are evenly distributed in the repository (old idea)
+        long countScaledDown = (long) ((double) count / totalNodesCount * filterPathCount);
+        // assume 80% of the indexed nodes are in this subtree
+        long mostNodesFromThisSubtree = (long) (filterPathCount * 0.8);
+        // count can at most be the assumed subtree size
+        count = Math.min(count, mostNodesFromThisSubtree);
+        // this in theory should not have any effect, 
+        // except if the above estimates are incorrect,
+        // so this is just for safety feature
+        count = Math.max(count, countScaledDown);
+        return count;
     }
 
     @Override
@@ -1230,7 +1302,13 @@ public class QueryImpl implements Query {
         Query result = this;
         
         if (constraint != null) {
-            Set<ConstraintImpl> unionList = constraint.convertToUnion();
+            Set<ConstraintImpl> unionList;
+            try {
+                unionList = constraint.convertToUnion();
+            } catch (UnsupportedOperationException e) {
+                // too many union
+                return this;
+            }
             if (unionList.size() > 1) {
                 // there are some cases where multiple ORs simplify into a single one. If we get a
                 // union list of just one we don't really have to UNION anything.
@@ -1320,7 +1398,8 @@ public class QueryImpl implements Query {
             this.constraint,
             cols.toArray(new ColumnImpl[0]),
             this.namePathMapper,
-            this.settings);
+            this.settings,
+            this.stats);
         copy.explain = this.explain;
         copy.distinct = this.distinct;
         
@@ -1342,4 +1421,12 @@ public class QueryImpl implements Query {
         return constraint.containsUnfilteredFullTextCondition();
     }
 
+    public QueryOptions getQueryOptions() {
+        return queryOptions;
+    }
+
+    public QueryExecutionStats getQueryExecutionStats() {
+        return stats;
+    }
+    
 }

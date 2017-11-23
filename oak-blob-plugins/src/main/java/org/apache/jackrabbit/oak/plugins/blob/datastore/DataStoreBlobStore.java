@@ -660,6 +660,10 @@ public class DataStoreBlobStore
             return blobId;
         }
 
+        public long getLength() {
+            return length;
+        }
+
         final String blobId;
         final long length;
 

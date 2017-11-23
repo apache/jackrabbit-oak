@@ -86,7 +86,7 @@ public class StandbyStoreService {
 
     @Property(boolValue = SECURE_DEFAULT)
     public static final String SECURE = "secure";
-
+    
     public static final int READ_TIMEOUT_DEFAULT = 60000;
 
     @Property(intValue = READ_TIMEOUT_DEFAULT)
@@ -99,6 +99,8 @@ public class StandbyStoreService {
 
     @Reference(policy = STATIC, policyOption = GREEDY)
     private SegmentStoreProvider storeProvider = null;
+    
+    private static final int BLOB_CHUNK_SIZE = Integer.getInteger("oak.standby.blob.chunkSize", 1024 * 1024);
 
     private final Closer closer = Closer.create();
 
@@ -138,7 +140,7 @@ public class StandbyStoreService {
         String[] ranges = PropertiesUtil.toStringArray(props.get(ALLOWED_CLIENT_IP_RANGES), ALLOWED_CLIENT_IP_RANGES_DEFAULT);
         boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
 
-        StandbyServerSync standbyServerSync = new StandbyServerSync(port, fileStore, ranges, secure);
+        StandbyServerSync standbyServerSync = new StandbyServerSync(port, fileStore, BLOB_CHUNK_SIZE, ranges, secure);
         closer.register(standbyServerSync);
         standbyServerSync.start();
 

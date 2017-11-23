@@ -24,8 +24,13 @@ import java.io.IOException;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -48,7 +53,14 @@ public class InitializerTest {
                                 "usersPath", "/home/users",
                                 "groupsPath", "/home/groups",
                                 "defaultDepth", "1")))));
-        provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer().initialize(
+        WorkspaceInitializer workspaceInitializer = provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer();
+
+        if (workspaceInitializer instanceof QueryIndexProviderAware) {
+            ((QueryIndexProviderAware) workspaceInitializer).setQueryIndexProvider(
+                    new CompositeQueryIndexProvider(new PropertyIndexProvider(), new NodeTypeIndexProvider()));
+        }
+
+        workspaceInitializer.initialize(
                 builder, "default");
         builder.getNodeState();
     }

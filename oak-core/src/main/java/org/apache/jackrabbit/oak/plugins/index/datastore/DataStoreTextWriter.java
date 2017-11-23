@@ -35,6 +35,7 @@ import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
@@ -95,6 +96,12 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         }
 
         blobId = stripLength(blobId);
+        //Check for ref being non null to ensure its not an inlined binary
+        if (InMemoryDataRecord.isInstance(blobId)) {
+            log.debug("Pre extraction is not supported for in memory records. Path {}, BlobId {}", propertyPath, blobId);
+            return null;
+        }
+
         ExtractedText result = null;
         if (getEmptyBlobs().contains(blobId)) {
             result = ExtractedText.EMPTY;

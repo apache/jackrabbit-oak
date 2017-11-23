@@ -291,7 +291,6 @@ final class RecordWriters {
 
     /**
      * Block record writer.
-     * @see SegmentWriter#writeBlock
      * @see RecordType#BLOCK
      */
     private static class BlockWriter extends RecordWriter {

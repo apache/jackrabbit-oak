@@ -18,10 +18,12 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Denies read access for all principals except for the specified principals.
  */
+@ProviderType
 public interface CugPolicy extends PrincipalSetPolicy, JackrabbitAccessControlPolicy {
 
 }

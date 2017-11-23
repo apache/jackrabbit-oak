@@ -197,6 +197,11 @@ public class AggregateIndexPlan implements IndexPlan {
     }
 
     @Override
+    public boolean getSupportsPathRestriction() {
+        return false;
+    }
+
+    @Override
     @CheckForNull
     public Object getAttribute(String name) {
         return null;

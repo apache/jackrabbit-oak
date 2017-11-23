@@ -40,7 +40,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * instance ({@link Resolution#MERGED}).
  *
  * @see ConflictHandler
+ * @deprecated Use {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler} instead.
  */
+@Deprecated
 public interface PartialConflictHandler {
 
     /**

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Arrays;
@@ -31,6 +33,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ObjectArrays;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -85,7 +88,10 @@ import org.slf4j.LoggerFactory;
         @Property(name = ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS,
                 label = "External Identity Protection",
                 description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!",
-                boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS)
+                boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS),
+        @Property(name = OAK_SECURITY_NAME,
+                propertyPrivate= true, 
+                value = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration")
 })
 public class ExternalPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
 
@@ -189,7 +195,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
         private final SyncHandlerMappingTracker mappingTracker;
 
-        private Set<ServiceReference> enablingRefs = new HashSet<ServiceReference>();
+        private Set<ServiceReference> enablingRefs = new HashSet();
         private boolean isEnabled = false;
 
         public SyncConfigTracker(@Nonnull BundleContext context, @Nonnull SyncHandlerMappingTracker mappingTracker) {
@@ -230,10 +236,12 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         }
 
         private Map<String, String[]> getAutoMembership() {
-            Map<String, String[]> autoMembership = new HashMap<String, String[]>();
+            Map<String, String[]> autoMembership = new HashMap();
             for (ServiceReference ref : enablingRefs) {
                 String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
-                String[] membership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
+                String[] userAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
+                String[] groupAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
+                String[] membership =  ObjectArrays.concat(userAuthMembership, groupAuthMembership, String.class);
 
                 for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
                     String[] previous = autoMembership.put(idpName, membership);

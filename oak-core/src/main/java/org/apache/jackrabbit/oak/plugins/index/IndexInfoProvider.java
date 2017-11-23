@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import javax.annotation.CheckForNull;
 
-import aQute.bnd.annotation.ConsumerType;
+import org.osgi.annotation.versioning.ConsumerType;
 
 /**
  * Service to be provided by various index implementations.

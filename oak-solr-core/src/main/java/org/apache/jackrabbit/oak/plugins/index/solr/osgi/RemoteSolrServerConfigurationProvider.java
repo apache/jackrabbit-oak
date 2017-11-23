@@ -47,6 +47,12 @@ public class RemoteSolrServerConfigurationProvider implements SolrServerConfigur
     @Property(value = SolrServerConfigurationDefaults.COLLECTION, label = "Solr collection")
     private static final String SOLR_COLLECTION = "solr.collection";
 
+    @Property(intValue = SolrServerConfigurationDefaults.SOCKET_TIMEOUT, label = "Socket timeout (ms)")
+    private static final String SOCKET_TIMEOUT = "solr.socket.timeout";
+
+    @Property(intValue = SolrServerConfigurationDefaults.CONNECTION_TIMEOUT, label = "Connection timeout (ms)")
+    private static final String CONNECTION_TIMEOUT = "solr.connection.timeout";
+
     @Property(intValue = SolrServerConfigurationDefaults.SHARDS_NO, label = "No. of collection shards")
     private static final String SOLR_SHARDS_NO = "solr.shards.no";
 
@@ -72,7 +78,10 @@ public class RemoteSolrServerConfigurationProvider implements SolrServerConfigur
         solrShardsNo = Integer.valueOf(componentContext.getProperties().get(SOLR_SHARDS_NO).toString());
         solrReplicationFactor = Integer.valueOf(componentContext.getProperties().get(SOLR_REPLICATION_FACTOR).toString());
         solrConfDir = String.valueOf(componentContext.getProperties().get(SOLR_CONF_DIR));
-        remoteSolrServerConfiguration = new RemoteSolrServerConfiguration(solrZkHost, solrCollection, solrShardsNo, solrReplicationFactor, solrConfDir, solrHttpUrl);
+        int socketTimeout = Integer.valueOf(componentContext.getProperties().get(SOCKET_TIMEOUT).toString());
+        int connectionTimeout = Integer.valueOf(componentContext.getProperties().get(CONNECTION_TIMEOUT).toString());
+        remoteSolrServerConfiguration = new RemoteSolrServerConfiguration(solrZkHost, solrCollection, solrShardsNo,
+                solrReplicationFactor, solrConfDir, socketTimeout, connectionTimeout, solrHttpUrl);
     }
 
     @Deactivate

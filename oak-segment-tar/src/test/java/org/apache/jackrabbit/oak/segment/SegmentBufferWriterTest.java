@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -57,7 +57,7 @@ public class SegmentBufferWriterTest {
         }
 
         try (FileStore store = openFileStore()) {
-            segmentWriterBuilder("t").build(store).flush();
+            defaultSegmentWriterBuilder("t").build(store).flush();
         }
 
         List<SegmentId> after;
@@ -81,7 +81,7 @@ public class SegmentBufferWriterTest {
         }
 
         try (FileStore store = openFileStore()) {
-            SegmentWriter writer = segmentWriterBuilder("t").build(store);
+            SegmentWriter writer = defaultSegmentWriterBuilder("t").build(store);
             writer.writeString("test");
             writer.flush();
         }

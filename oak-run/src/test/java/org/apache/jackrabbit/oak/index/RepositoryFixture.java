@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
@@ -54,7 +53,12 @@ public class RepositoryFixture implements Closeable {
     private Whiteboard whiteboard;
 
     public RepositoryFixture(File dir) {
+        this(dir, null);
+    }
+
+    public RepositoryFixture(File dir, NodeStore nodeStore) {
         this.dir = dir;
+        this.nodeStore = nodeStore;
     }
 
     public Repository getRepository() throws IOException {

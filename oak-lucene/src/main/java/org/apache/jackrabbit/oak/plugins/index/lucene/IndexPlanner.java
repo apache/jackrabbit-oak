@@ -19,29 +19,35 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
+import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.lucene.index.IndexReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,12 +58,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 class IndexPlanner {
+    private static final String FLAG_ENTRY_COUNT = "oak.lucene.useActualEntryCount";
     private static final Logger log = LoggerFactory.getLogger(IndexPlanner.class);
     private final IndexDefinition definition;
     private final Filter filter;
@@ -65,6 +73,15 @@ class IndexPlanner {
     private final List<OrderEntry> sortOrder;
     private IndexNode indexNode;
     private PlanResult result;
+    private static boolean useActualEntryCount = false;
+
+    static {
+        useActualEntryCount = Boolean.parseBoolean(System.getProperty(FLAG_ENTRY_COUNT, "true"));
+        if (!useActualEntryCount) {
+            log.info("System property {} found to be false. IndexPlanner would use a default entryCount of 1000 instead" +
+                    " of using the actual entry count", FLAG_ENTRY_COUNT);
+        }
+    }
 
     public IndexPlanner(IndexNode indexNode,
                         String indexPath,
@@ -106,8 +123,18 @@ class IndexPlanner {
                 '}';
     }
 
+    //For tests
+    static void setUseActualEntryCount(boolean useActualEntryCount) {
+        IndexPlanner.useActualEntryCount = useActualEntryCount;
+    }
+
     private IndexPlan.Builder getPlanBuilder() {
         log.trace("Evaluating plan with index definition {}", definition);
+
+        if (wrongIndex()) {
+            return null;
+        }
+
         FullTextExpression ft = filter.getFullTextConstraint();
 
         if (!definition.getVersion().isAtLeast(IndexFormatVersion.V2)){
@@ -157,6 +184,8 @@ class IndexPlanner {
         //Optimization - Go further only if any of the property is configured
         //for property index
         List<String> facetFields = new LinkedList<String>();
+        boolean ntBaseRule = NT_BASE.equals(indexingRule.getNodeTypeName());
+        Map<String, PropertyDefinition> relativePropDefns = new HashMap<>();
         if (indexingRule.propertyIndexEnabled) {
             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
                 String name = pr.propertyName;
@@ -173,12 +202,36 @@ class IndexPlanner {
                 }
 
                 PropertyDefinition pd = indexingRule.getConfig(pr.propertyName);
+
+                boolean relativeProps = false;
+                if (pd == null && ntBaseRule) {
+                    //Direct match not possible. Check for relative property definition
+                    //i.e. if no match found for jcr:content/@keyword then check if
+                    //property definition exists for 'keyword'
+                    pd = getSimpleProperty(indexingRule, pr.propertyName);
+                    relativeProps = pd != null;
+                }
+
                 if (pd != null && pd.propertyIndexEnabled()) {
                     if (pr.isNullRestriction() && !pd.nullCheckEnabled){
                         continue;
                     }
-                    indexedProps.add(name);
-                    result.propDefns.put(name, pd);
+
+                    if (!matchesValuePattern(pr, pd)) {
+                        continue;
+                    }
+
+                    //A property definition with weight == 0 is only meant to be used
+                    //with some other definitions
+                    if (pd.weight != 0 && !relativeProps) {
+                        indexedProps.add(name);
+                    }
+
+                    if (relativeProps) {
+                        relativePropDefns.put(name, pd);
+                    } else {
+                        result.propDefns.put(name, pd);
+                    }
                 }
             }
         }
@@ -192,27 +245,22 @@ class IndexPlanner {
             return null;
         }
 
+        if (indexedProps.isEmpty() && !relativePropDefns.isEmpty() && !canEvalAlFullText) {
+            indexedProps = planForRelativeProperties(relativePropDefns);
+        }
+
         //Fulltext expression can also be like jcr:contains(jcr:content/metadata/@format, 'image')
 
         List<OrderEntry> sortOrder = createSortOrder(indexingRule);
         boolean canSort = canSortByProperty(sortOrder);
         if (!indexedProps.isEmpty() || canSort || ft != null
                 || evalPathRestrictions || evalNodeTypeRestrictions || canEvalNodeNameRestriction) {
-            //TODO Need a way to have better cost estimate to indicate that
-            //this index can evaluate more propertyRestrictions natively (if more props are indexed)
-            //For now we reduce cost per entry
-            int costPerEntryFactor = indexedProps.size();
+            int costPerEntryFactor = 1;
             costPerEntryFactor += sortOrder.size();
 
-            //this index can evaluate more propertyRestrictions natively (if more props are indexed)
-            //For now we reduce cost per entry
             IndexPlan.Builder plan = defaultPlan();
             if (!sortOrder.isEmpty()) {
                 plan.setSortOrder(sortOrder);
-            }
-
-            if (costPerEntryFactor == 0){
-                costPerEntryFactor = 1;
             }
 
             if (facetFields.size() > 0) {
@@ -231,12 +279,92 @@ class IndexPlanner {
                 result.enableNodeNameRestriction();
             }
 
+            // Set a index based guess here. Unique would set its own value below
+            if (useActualEntryCount && !definition.isEntryCountDefined()) {
+                int maxPossibleNumDocs = getMaxPossibleNumDocs(result.propDefns);
+                if (maxPossibleNumDocs >= 0) {
+                    plan.setEstimatedEntryCount(maxPossibleNumDocs);
+                }
+            }
+
+            if (sortOrder.isEmpty() && ft == null) {
+                boolean uniqueIndexFound = planForSyncIndexes(indexingRule);
+                if (uniqueIndexFound) {
+                    //For unique index there would be at max 1 entry
+                    plan.setEstimatedEntryCount(1);
+                }
+            }
+
             return plan.setCostPerEntry(definition.getCostPerEntry() / costPerEntryFactor);
         }
 
         //TODO Support for property existence queries
 
         return null;
+    }
+
+    private boolean matchesValuePattern(PropertyRestriction pr, PropertyDefinition pd) {
+        if (!pd.valuePattern.matchesAll()){
+            //So we have a valuePattern defined. So determine if
+            //this index can return a plan based on values
+            Set<String> values = ValuePatternUtil.getAllValues(pr);
+            if (values == null) {
+                // "is not null" condition, but we have a value pattern
+                // that doesn't match everything
+                // case of like search
+                String prefix = ValuePatternUtil.getLongestPrefix(filter, pr.propertyName);
+                if (!pd.valuePattern.matchesPrefix(prefix)) {
+                    // region match which is not fully in the pattern
+                    return false;
+                }
+            } else {
+                // we have a value pattern, for example (a|b),
+                // but we search (also) for 'c': can't match
+                if (!pd.valuePattern.matchesAll(values)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean wrongIndex() {
+        // REMARK: similar code is used in oak-core, PropertyIndex
+        // skip index if "option(index ...)" doesn't match
+        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        boolean wrong = false;
+        if (indexName != null && indexName.first != null) {
+            String name = indexName.first.getValue(Type.STRING);
+            String thisName = definition.getIndexName();
+            if (thisName != null) {
+                thisName = PathUtils.getName(thisName);
+                if (thisName.equals(name)) {
+                    // index name specified, and matches
+                    return false;
+                }
+            }
+            wrong = true;
+        }
+        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        if (indexTag != null && indexTag.first != null) {
+            // index tag specified
+            String[] tags = definition.getIndexTags();
+            if (tags == null) {
+                // no tag
+                return true;
+            }
+            String tag = indexTag.first.getValue(Type.STRING);
+            for(String t : tags) {
+                if (t.equals(tag)) {
+                    // tag matches
+                    return false;
+                }
+            }
+            // no tag matches
+            return true;
+        }
+        // no tag specified
+        return wrong;
     }
 
     private IndexPlan.Builder getNativeFunctionPlanBuilder(String indexingRuleBaseNodeType) {
@@ -335,7 +463,7 @@ class IndexPlanner {
                 visitTerm(term.getPropertyName());
                 return true;
             }
-                
+
             private void visitTerm(String propertyName) {
                 String p = propertyName;
                 String propertyPath = null;
@@ -432,6 +560,116 @@ class IndexPlanner {
         return true;
     }
 
+    /**
+     * Computes the indexedProps which can be part of query by virtue of relativizing i.e.
+     * if query is on jcr:content/keyword then perform search on keyword and change parent
+     * path to jcr:content
+     * @param relativePropDefns property definitions for such relative properties. The key
+     *                          would be actual property name as in query i.e. jcr:content/keyword
+     *                          while property definition would be for 'keyword'
+     * @return list of properties which are included in query issued to Lucene
+     */
+    private List<String> planForRelativeProperties(Map<String, PropertyDefinition> relativePropDefns) {
+        Multimap<String, Map.Entry<String, PropertyDefinition>> relpaths = ArrayListMultimap.create();
+        int maxSize = 0;
+        String maxCountedParent = null;
+
+        //Collect the relative properties grouped by parent path
+        //and track the parent having maximum properties
+        for (Map.Entry<String, PropertyDefinition> e : relativePropDefns.entrySet()) {
+            String relativePropertyPath = e.getKey();
+            String parent = getParentPath(relativePropertyPath);
+
+            relpaths.put(parent, e);
+            int count = relpaths.get(parent).size();
+            if (count > maxSize) {
+                maxSize = count;
+                maxCountedParent = parent;
+            }
+        }
+
+        //Set the parent path to one which is present in most prop. In case of tie any one
+        //such path would be picked
+        result.setParentPath(maxCountedParent);
+
+        //Now add only those properties to plan which have the maxCountedParent
+        List<String> indexedProps = new ArrayList<>(maxSize);
+        for (Map.Entry<String, PropertyDefinition> e : relpaths.get(maxCountedParent)) {
+            String relativePropertyPath = e.getKey();
+            result.propDefns.put(relativePropertyPath, e.getValue());
+            result.relPropMapping.put(relativePropertyPath, PathUtils.getName(relativePropertyPath));
+            if (e.getValue().weight != 0) {
+                indexedProps.add(relativePropertyPath);
+            }
+        }
+
+        return indexedProps;
+    }
+
+    @CheckForNull
+    private static PropertyDefinition getSimpleProperty(IndexingRule indexingRule, String relativePropertyName) {
+        String name = PathUtils.getName(relativePropertyName);
+        if (name.equals(relativePropertyName)){
+            //Not a relative property
+            return null;
+        }
+
+        //Properties using ../ or ./ notation not support. The relative property path
+        //must be fixed
+        if (relativePropertyName.startsWith("../") || relativePropertyName.startsWith("./")) {
+            return null;
+        }
+        return indexingRule.getConfig(name);
+    }
+
+    private boolean planForSyncIndexes(IndexingRule indexingRule) {
+        //If no sync index involved then return right away
+        if (!definition.hasSyncPropertyDefinitions()) {
+            return false;
+        }
+
+        if (result.propDefns.isEmpty() && !result.evaluateNodeTypeRestriction()) {
+            return false;
+        }
+
+        List<PropertyIndexResult> unique = newArrayList();
+        List<PropertyIndexResult> nonUnique = newArrayList();
+
+        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            String propertyName = result.getPropertyName(pr);
+            PropertyDefinition pd = result.propDefns.get(pr.propertyName);
+
+            if (pd != null) {
+                PropertyIndexResult e = new PropertyIndexResult(propertyName, pr);
+                if (pd.unique) {
+                    unique.add(e);
+                } else {
+                    nonUnique.add(e);
+                }
+            }
+        }
+
+        //Pick the first index (if multiple). For unique its fine
+        //For non unique we can probably later add support for cost
+        //based selection
+        boolean uniqueIndexFound = false;
+        if (!unique.isEmpty()) {
+            result.propertyIndexResult = unique.get(0);
+            uniqueIndexFound = true;
+        } else if (!nonUnique.isEmpty()) {
+            result.propertyIndexResult = nonUnique.get(0);
+        }
+
+        if (result.propertyIndexResult == null && result.evaluateNodeTypeRestriction()) {
+            PropertyDefinition pd = indexingRule.getConfig(JcrConstants.JCR_PRIMARYTYPE);
+            if (pd != null && pd.sync) {
+                result.syncNodeTypeRestrictions = true;
+            }
+        }
+
+        return uniqueIndexFound;
+    }
+
     private boolean canEvalPathRestrictions(IndexingRule rule) {
         //Opt out if one is looking for all children for '/' as its equivalent to
         //NO_RESTRICTION
@@ -467,6 +705,7 @@ class IndexPlanner {
                 .setIncludesNodeData(false) // we should not include node data
                 .setFilter(filter)
                 .setPathPrefix(getPathPrefix())
+                .setSupportsPathRestriction(definition.evaluatePathRestrictions())
                 .setDelayed(true) //Lucene is always async
                 .setAttribute(LucenePropertyIndex.ATTR_PLAN_RESULT, result)
                 .setEstimatedEntryCount(estimatedEntryCount())
@@ -474,14 +713,23 @@ class IndexPlanner {
     }
 
     private long estimatedEntryCount() {
+        int numOfDocs = getNumDocs();
+        if (useActualEntryCount) {
+            return definition.isEntryCountDefined() ? definition.getEntryCount() : numOfDocs;
+        } else {
+            return estimatedEntryCount_Compat(numOfDocs);
+        }
+    }
+
+    private long estimatedEntryCount_Compat(int numOfDocs) {
         //Other index only compete in case of property indexes. For fulltext
         //index return true count so as to allow multiple property indexes
         //to be compared fairly
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft != null && definition.isFullTextEnabled()){
-            return definition.getFulltextEntryCount(getReader().numDocs());
+            return definition.getFulltextEntryCount(numOfDocs);
         }
-        return Math.min(definition.getEntryCount(), getReader().numDocs());
+        return Math.min(definition.getEntryCount(), numOfDocs);
     }
 
     private String getPathPrefix() {
@@ -490,8 +738,41 @@ class IndexPlanner {
         return PathUtils.denotesRoot(parentPath) ? "" : parentPath;
     }
 
-    private IndexReader getReader() {
-        return indexNode.getSearcher().getIndexReader();
+    private int getNumDocs() {
+        return indexNode.getIndexStatistics().numDocs();
+    }
+
+    private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns) {
+        IndexStatistics indexStatistics = indexNode.getIndexStatistics();
+        int minNumDocs = indexStatistics.numDocs();
+        for (Map.Entry<String, PropertyDefinition> propDef : propDefns.entrySet()) {
+            String key = propDef.getKey();
+            if (result.relPropMapping.containsKey(key)) {
+                key = getName(key);
+            }
+            int docCntForField = indexStatistics.getDocCountFor(key);
+            if (docCntForField == -1) {
+                continue;
+            }
+
+            int weight = propDef.getValue().weight;
+
+            if (weight > 1) {
+                // use it to scale down the doc count - in broad strokes, we can think of weight
+                // as number of terms for the field with all terms getting equal share of
+                // the documents in this field
+                double scaledDocCnt = Math.ceil((double) docCntForField / weight);
+                if (minNumDocs < scaledDocCnt) {
+                    continue;
+                }
+                // since, we've already taken care that scaled cost is lower than minCost,
+                // we can safely cast without risking overflow
+                minNumDocs = (int)scaledDocCnt;
+            } else if (docCntForField < minNumDocs) {
+                minNumDocs = docCntForField;
+            }
+        }
+        return minNumDocs;
     }
 
     private List<OrderEntry> createSortOrder(IndexingRule rule) {
@@ -571,7 +852,7 @@ class IndexPlanner {
     private boolean notSupportedFeature() {
         if(filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
                 && filter.matchesAllTypes()
-                && filter.getPropertyRestrictions().isEmpty()) { 
+                && filter.getPropertyRestrictions().isEmpty()) {
             //This mode includes name(), localname() queries
             //OrImpl [a/name] = 'Hello' or [b/name] = 'World'
             //Relative parent properties where [../foo1] is not null
@@ -580,7 +861,7 @@ class IndexPlanner {
         boolean failTestOnMissingFunctionIndex = true;
         if (failTestOnMissingFunctionIndex) {
             // this means even just function restrictions fail the test
-            // (for example "where upper(name) = 'X'", 
+            // (for example "where upper(name) = 'X'",
             // if a matching function-based index is missing
             return false;
         }
@@ -608,8 +889,14 @@ class IndexPlanner {
         final String indexPath;
         final IndexDefinition indexDefinition;
         final IndexingRule indexingRule;
-        private List<PropertyDefinition> sortedProperties = newArrayList();
-        private Map<String, PropertyDefinition> propDefns = newHashMap();
+        private final List<PropertyDefinition> sortedProperties = newArrayList();
+
+        //Map of actual property name as present in our property definitions
+        private final Map<String, PropertyDefinition> propDefns = newHashMap();
+
+        //Map of property restriction name -> property definition name
+        //like 'jcr:content/status' -> 'status'
+        private final Map<String, String> relPropMapping = newHashMap();
 
         private boolean nonFullTextConstraints;
         private int parentDepth;
@@ -618,6 +905,8 @@ class IndexPlanner {
         private boolean nodeTypeRestrictions;
         private boolean nodeNameRestriction;
         private boolean uniquePathsRequired = true;
+        private PropertyIndexResult propertyIndexResult;
+        private boolean syncNodeTypeRestrictions;
 
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
@@ -627,6 +916,18 @@ class IndexPlanner {
 
         public PropertyDefinition getPropDefn(PropertyRestriction pr){
             return propDefns.get(pr.propertyName);
+        }
+
+        /**
+         * Returns the property name to be used for query for given PropertyRestriction
+         * The name can be same as one for property restriction or it can be a mapped one
+         */
+        public String getPropertyName(PropertyRestriction pr) {
+            return relPropMapping.getOrDefault(pr.propertyName, pr.propertyName);
+        }
+
+        public boolean hasProperty(String propName){
+            return propDefns.containsKey(propName);
         }
 
         public PropertyDefinition getOrderedProperty(int index){
@@ -671,7 +972,20 @@ class IndexPlanner {
             return nodeTypeRestrictions;
         }
 
+        public boolean evaluateSyncNodeTypeRestriction() {
+            return syncNodeTypeRestrictions;
+        }
+
         public boolean evaluateNodeNameRestriction() {return nodeNameRestriction;}
+
+        @CheckForNull
+        public PropertyIndexResult getPropertyIndexResult() {
+            return propertyIndexResult;
+        }
+
+        public boolean hasPropertyIndexResult(){
+            return propertyIndexResult != null;
+        }
 
         private void setParentPath(String relativePath){
             parentPathSegment = "/" + relativePath;
@@ -699,6 +1013,16 @@ class IndexPlanner {
 
         private void disableUniquePaths(){
             uniquePathsRequired = false;
+        }
+    }
+
+    public static class PropertyIndexResult {
+        final String propertyName;
+        final PropertyRestriction pr;
+
+        public PropertyIndexResult(String propertyName, PropertyRestriction pr) {
+            this.propertyName = propertyName;
+            this.pr = pr;
         }
     }
 }

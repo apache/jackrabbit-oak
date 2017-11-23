@@ -95,7 +95,7 @@ public final class FileIOUtils {
      */
     public static void sort(File file, Comparator<String> comparator) throws IOException {
         File sorted = createTempFile("fleioutilssort", null);
-        merge(sortInBatch(file, comparator, true), sorted);
+        merge(sortInBatch(file, comparator, true), sorted, comparator);
         move(sorted, file);
     }
 
@@ -110,6 +110,19 @@ public final class FileIOUtils {
         mergeSortedFiles(
             files,
             output, lexComparator, true);
+    }
+
+    /**
+     * Merges a list of files after sorting with the given comparator.
+     *
+     * @param files files to merge
+     * @param output merge output file
+     * @throws IOException
+     */
+    public static void merge(List<File> files, File output, Comparator<String> comparator) throws IOException {
+        mergeSortedFiles(
+            files,
+            output, comparator, true);
     }
 
     /**

@@ -20,10 +20,6 @@ import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceCon
 
 import javax.annotation.Nonnull;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -32,10 +28,12 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
-@Component
-@Service(IndexEditorProvider.class)
-@Property(name = IndexConstants.TYPE_PROPERTY_NAME , value = NodeReferenceConstants.TYPE, propertyPrivate = true)
+@Component(
+        service = IndexEditorProvider.class,
+        property = IndexConstants.TYPE_PROPERTY_NAME + "=" + NodeReferenceConstants.TYPE)
 public class ReferenceEditorProvider implements IndexEditorProvider {
 
     @Reference

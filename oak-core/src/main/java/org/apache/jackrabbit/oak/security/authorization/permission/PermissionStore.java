@@ -22,6 +22,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.Root;
+
 /**
  * The permission store is used to store and provide access control permissions for principals. It is responsible to
  * load and store the permissions in an optimal form in the repository and must not cache them.
@@ -47,5 +49,7 @@ interface PermissionStore {
     PrincipalPermissionEntries load(@Nonnull String principalName);
 
     long getNumEntries(@Nonnull String principalName, long max);
+
+    void flush(@Nonnull Root root);
 
 }

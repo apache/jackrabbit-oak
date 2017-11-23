@@ -44,7 +44,10 @@ public class CompareAgainstBaseStateTest {
     private NodeBuilder builder;
 
     public CompareAgainstBaseStateTest() throws IOException {
-        builder = new MemoryStore().getWriter().writeNode(EMPTY_NODE).builder();
+        MemoryStore store = new MemoryStore();
+        RecordId id = store.getWriter().writeNode(EMPTY_NODE);
+        SegmentNodeState node = new SegmentNodeState(store.getReader(), store.getWriter(), store.getBlobStore(), id);
+        builder = node.builder();
     }
 
     @Before

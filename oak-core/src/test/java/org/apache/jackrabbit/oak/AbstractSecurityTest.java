@@ -127,9 +127,13 @@ public abstract class AbstractSecurityTest {
 
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new SecurityProviderImpl(getSecurityConfigParameters());
+            securityProvider = initSecurityProvider();
         }
         return securityProvider;
+    }
+
+    protected SecurityProvider initSecurityProvider() {
+        return new SecurityProviderImpl(getSecurityConfigParameters());
     }
 
     protected Oak withEditors(Oak oak) {

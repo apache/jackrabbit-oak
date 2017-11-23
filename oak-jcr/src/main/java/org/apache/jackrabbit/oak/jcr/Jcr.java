@@ -29,36 +29,23 @@ import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
-import org.apache.jackrabbit.oak.plugins.itemsave.ItemSaveValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.plugins.version.VersionHook;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -95,7 +82,7 @@ public class Jcr {
     private CommitRateLimiter commitRateLimiter;
     private ScheduledExecutorService scheduledExecutor;
     private Executor executor;
-    private QueryEngineSettings queryEngineSettings;
+    private QueryLimits queryEngineSettings;
     private String defaultWorkspaceName;
     private Whiteboard whiteboard;
 
@@ -104,36 +91,30 @@ public class Jcr {
 
     private ContentRepository contentRepository;
     private Repository repository;
-    
+
     private Clusterable clusterable;
 
     public Jcr(Oak oak, boolean initialize) {
         this.oak = oak;
 
         if (initialize) {
-            with(new InitialContent());
-
-            with(new VersionHook());
-
-            with(new SecurityProviderImpl());
-
-            with(new ItemSaveValidatorProvider());
-            with(new NameValidatorProvider());
-            with(new NamespaceEditorProvider());
-            with(new TypeEditorProvider());
-            with(new ConflictValidatorProvider());
-            with(new ChangeCollectorProvider());
-
-            with(new ReferenceEditorProvider());
-            with(new ReferenceIndexProvider());
-
-            with(new PropertyIndexEditorProvider());
-            with(new NodeCounterEditorProvider());
-
-            with(new PropertyIndexProvider());
-            with(new NodeTypeIndexProvider());
-
-            with(new OrderedPropertyIndexEditorProvider());
+            OakDefaultComponents defs = OakDefaultComponents.INSTANCE;
+            with(defs.securityProvider());
+            for (CommitHook ch : defs.commitHooks()) {
+                with(ch);
+            }
+            for (RepositoryInitializer ri : defs.repositoryInitializers()) {
+                with(ri);
+            }
+            for (EditorProvider ep : defs.editorProviders()) {
+                with(ep);
+            }
+            for (IndexEditorProvider iep : defs.indexEditorProviders()) {
+                with(iep);
+            }
+            for (QueryIndexProvider qip : defs.queryIndexProviders()) {
+                with(qip);
+            }
         }
     }
 
@@ -155,7 +136,7 @@ public class Jcr {
         this.clusterable = checkNotNull(c);
         return this;
     }
-    
+
     @Nonnull
     public final Jcr with(@Nonnull RepositoryInitializer initializer) {
         ensureRepositoryIsNotCreated();
@@ -168,7 +149,7 @@ public class Jcr {
         oak.withAtomicCounter();
         return this;
     }
-    
+
     private void ensureRepositoryIsNotCreated() {
         checkState(repository == null && contentRepository == null,
                 "Repository was already created");
@@ -216,8 +197,17 @@ public class Jcr {
         return this;
     }
 
+    /**
+     * @deprecated Use {@link #with(ThreeWayConflictHandler)} instead
+     */
+    @Deprecated
     @Nonnull
     public final Jcr with(@Nonnull PartialConflictHandler conflictHandler) {
+        return with(ConflictHandlers.wrap(conflictHandler));
+    }
+
+    @Nonnull
+    public final Jcr with(@Nonnull ThreeWayConflictHandler conflictHandler) {
         ensureRepositoryIsNotCreated();
         this.conflictHandler.addHandler(checkNotNull(conflictHandler));
         return this;
@@ -277,7 +267,7 @@ public class Jcr {
     }
 
     @Nonnull
-    public Jcr with(@Nonnull QueryEngineSettings qs) {
+    public Jcr with(@Nonnull QueryLimits qs) {
         ensureRepositoryIsNotCreated();
         this.queryEngineSettings = checkNotNull(qs);
         return this;
@@ -373,7 +363,7 @@ public class Jcr {
         if (defaultWorkspaceName != null) {
             oak.with(defaultWorkspaceName);
         }
-        
+
         if (clusterable != null) {
             oak.with(clusterable);
         }

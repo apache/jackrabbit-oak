@@ -57,6 +57,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -135,6 +136,22 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
         assertEquals(0, Iterators.size(stagingCache.getAllIdentifiers()));
         assertEquals(0, stagingCache.getStats().getMaxTotalWeight());
+    }
+
+    @Test
+    public void testDefaultStatsProvider() throws Exception {
+        stagingCache =
+            UploadStagingCache.build(root, null, 1/*threads*/, 8 * 1024 /* bytes */,
+                uploader, null/*cache*/, null, executor, null, 3000, 6000);
+
+        // add load
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
+        assertTrue(future.isPresent());
+
+        assertNotNull(stagingCache.getIfPresent(ID_PREFIX + 0));
+
+        assertCacheStats(stagingCache, 1, 4 * 1024, 1, 1);
     }
 
     /**

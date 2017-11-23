@@ -19,14 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -35,16 +31,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     private final MountInfoProvider mountInfoProvider;
     private final DirectoryFactory directoryFactory;
+    private final LuceneIndexWriterConfig writerConfig;
 
     public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
-        @Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore) {
-        this(mountInfoProvider, new DefaultDirectoryFactory(indexCopier, blobStore));
-    }
-
-    public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
-                                     DirectoryFactory directoryFactory) {
+                                     DirectoryFactory directoryFactory, LuceneIndexWriterConfig writerConfig) {
         this.mountInfoProvider = checkNotNull(mountInfoProvider);
         this.directoryFactory = checkNotNull(directoryFactory);
+        this.writerConfig = checkNotNull(writerConfig);
     }
 
     @Override
@@ -52,10 +45,10 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
                                          NodeBuilder definitionBuilder, boolean reindex) {
         if (mountInfoProvider.hasNonDefaultMounts()){
             return new MultiplexingIndexWriter(directoryFactory, mountInfoProvider, definition,
-                definitionBuilder, reindex);
+                definitionBuilder, reindex, writerConfig);
         }
         return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory,
             LuceneIndexConstants.INDEX_DATA_CHILD_NAME,
-            LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex);
+            LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
     }
 }

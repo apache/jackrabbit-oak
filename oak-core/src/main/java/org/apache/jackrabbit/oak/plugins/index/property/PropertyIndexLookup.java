@@ -23,7 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NA
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
 import java.util.Collections;
 import java.util.List;
@@ -123,7 +123,7 @@ public class PropertyIndexLookup {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
         List<Iterable<String>> iterables = Lists.newArrayList();
-        ValuePattern pattern = new ValuePattern(indexMeta.getString(IndexConstants.VALUE_PATTERN));
+        ValuePattern pattern = new ValuePattern(indexMeta);
         for (IndexStoreStrategy s : getStrategies(indexMeta)) {
             iterables.add(s.query(filter, propertyName, indexMeta,
                     encode(value, pattern)));
@@ -144,7 +144,7 @@ public class PropertyIndexLookup {
             return Double.POSITIVE_INFINITY;
         }
         Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
-        ValuePattern pattern = new ValuePattern(indexMeta.getString(IndexConstants.VALUE_PATTERN));
+        ValuePattern pattern = new ValuePattern(indexMeta);
         double cost = strategies.isEmpty() ? MAX_COST : COST_OVERHEAD;
         for (IndexStoreStrategy s : strategies) {
             cost += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);

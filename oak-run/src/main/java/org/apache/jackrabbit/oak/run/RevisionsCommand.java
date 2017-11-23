@@ -366,6 +366,10 @@ public class RevisionsCommand implements Command {
             System.err.println("revisions mode only available for DocumentNodeStore");
             return;
         }
+        // usage of this DocumentNodeStore is single threaded. Reduce the
+        // number of cache segments to a minimum. This allows for caching
+        // bigger entries that would otherwise be evicted immediately
+        builder.setCacheSegmentCount(1);
         DocumentStore store = builder.getDocumentStore();
         // cluster node must be inactive
         for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(store)) {

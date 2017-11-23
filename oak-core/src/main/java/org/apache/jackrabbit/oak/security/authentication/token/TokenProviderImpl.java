@@ -24,8 +24,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -48,11 +46,12 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -203,7 +202,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         if (tokenParent != null) {
             try {
                 String id = user.getID();
-                long creationTime = new Date().getTime();
+                long creationTime = System.currentTimeMillis();
                 long exp;
                 if (attributes.containsKey(PARAM_TOKEN_EXPIRATION)) {
                     exp = Long.parseLong(attributes.get(PARAM_TOKEN_EXPIRATION).toString());
@@ -215,7 +214,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
 
                 TokenInfo tokenInfo;
                 try {
-                    String tokenName = generateTokenName(creationTime);
+                    String tokenName = uuid;
                     tokenInfo = createTokenNode(tokenParent, tokenName, expTime, uuid, id, attributes);
                     root.commit(CommitMarker.asCommitAttributes());
                 } catch (CommitFailedException e) {
@@ -323,13 +322,6 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             return TOKENS_NODE_NAME.equals(tokenTree.getParent().getName()) &&
                    TOKEN_NT_NAME.equals(TreeUtil.getPrimaryTypeName(tokenTree));
         }
-    }
-
-    @Nonnull
-    private static String generateTokenName(long creationTime) {
-        Calendar creation = GregorianCalendar.getInstance();
-        creation.setTimeInMillis(creationTime);
-        return Text.replace(ISO8601.format(creation), ":", ".");
     }
 
     @Nonnull

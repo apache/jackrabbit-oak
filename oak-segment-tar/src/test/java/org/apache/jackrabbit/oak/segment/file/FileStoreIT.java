@@ -31,11 +31,12 @@ import java.util.Random;
 
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.SegmentTestConstants;
+import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -76,7 +77,7 @@ public class FileStoreIT {
         store.close();
 
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
-        store.gc();
+        store.fullGC();
         store.flush();
         store.close();
 
@@ -94,6 +95,8 @@ public class FileStoreIT {
 
         SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
+        ArrayBasedBlob blob = new ArrayBasedBlob(new byte[SegmentTestConstants.MEDIUM_LIMIT]);
+        builder.setProperty("blob", blob);
         builder.setProperty("step", "a");
         store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
         store.flush();

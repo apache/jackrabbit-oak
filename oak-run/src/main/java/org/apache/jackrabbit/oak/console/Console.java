@@ -29,6 +29,7 @@ import org.codehaus.groovy.tools.shell.IO;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.codehaus.groovy.tools.shell.util.Preferences;
 
 /**
  * A command line console.
@@ -44,32 +45,34 @@ public class Console {
         Options opts = new Options();
         OptionSet options = opts.parseAndConfigure(parser, args);
 
-
-        NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
-
-        List<String> nonOptions = opts.getCommonOpts().getNonOptions();
-        List<String> scriptArgs = nonOptions.size() > 1 ?
-                nonOptions.subList(1, nonOptions.size()) : Collections.emptyList();
-        IO io = new IO();
-
-        if(options.has(quiet)){
-            io.setVerbosity(IO.Verbosity.QUIET);
-        }
-
-        if (!opts.getCommonOpts().isReadWrite()) {
-            io.out.println("Repository connected in read-only mode. Use '--read-write' for write operations");
-        }
-
-        GroovyConsole console =
-                new GroovyConsole(ConsoleSession.create(fixture.getStore(), fixture.getWhiteboard()), new IO(), fixture);
-
         int code = 0;
-        if(!scriptArgs.isEmpty()){
-            code = console.execute(scriptArgs);
-        }
+        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
+            List<String> nonOptions = opts.getCommonOpts().getNonOptions();
+            List<String> scriptArgs = nonOptions.size() > 1 ?
+                    nonOptions.subList(1, nonOptions.size()) : Collections.emptyList();
+            IO io = new IO();
 
-        if(scriptArgs.isEmpty() || options.has(shell)){
-            code = console.run();
+            if (options.has(quiet)) {
+                io.setVerbosity(IO.Verbosity.QUIET);
+            }
+
+            if (!opts.getCommonOpts().isReadWrite()) {
+                io.out.println("Repository connected in read-only mode. Use '--read-write' for write operations");
+            }
+
+            GroovyConsole console =
+                    new GroovyConsole(ConsoleSession.create(fixture.getStore(), fixture.getWhiteboard()), new IO(), fixture);
+
+            if (!scriptArgs.isEmpty()) {
+                if (!options.has(shell)) {
+                    Preferences.verbosity = IO.Verbosity.QUIET;
+                }
+                code = console.execute(scriptArgs);
+            }
+
+            if (scriptArgs.isEmpty() || options.has(shell)) {
+                code = console.run();
+            }
         }
 
         System.exit(code);

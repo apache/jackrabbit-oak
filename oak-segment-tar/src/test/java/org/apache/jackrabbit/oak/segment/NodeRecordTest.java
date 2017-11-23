@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -30,22 +32,23 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class NodeRecordTest {
 
-    private static class Generation implements Supplier<Integer> {
+    private static class Generation implements Supplier<GCGeneration> {
 
-        private int generation;
+        private GCGeneration generation;
 
-        public void set(int generation) {
+        public void set(GCGeneration generation) {
             this.generation = generation;
         }
 
         @Override
-        public Integer get() {
+        public GCGeneration get() {
             return generation;
         }
 
@@ -59,29 +62,26 @@ public class NodeRecordTest {
     }
 
     @Test
-    public void unreferencedNodeRecordShouldBeRoot() throws Exception {
-        try (FileStore store = newFileStore()) {
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
-            SegmentNodeState state = writer.writeNode(EmptyNodeState.EMPTY_NODE);
-            writer.flush();
-        }
-    }
-
-    @Test
     public void stableIdShouldPersistAcrossGenerations() throws Exception {
         try (FileStore store = newFileStore()) {
             SegmentWriter writer;
 
-            writer = SegmentWriterBuilder.segmentWriterBuilder("1").withGeneration(1).build(store);
-            SegmentNodeState one = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer = defaultSegmentWriterBuilder("1")
+                    .withGeneration(newGCGeneration(1, 0, false))
+                    .build(store);
+            SegmentNodeState one = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
             writer.flush();
 
-            writer = SegmentWriterBuilder.segmentWriterBuilder("2").withGeneration(2).build(store);
-            SegmentNodeState two = writer.writeNode(one);
+            writer = defaultSegmentWriterBuilder("2")
+                    .withGeneration(newGCGeneration(2, 0, false))
+                    .build(store);
+            SegmentNodeState two = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(one));
             writer.flush();
 
-            writer = SegmentWriterBuilder.segmentWriterBuilder("3").withGeneration(3).build(store);
-            SegmentNodeState three = writer.writeNode(two);
+            writer = defaultSegmentWriterBuilder("3")
+                    .withGeneration(newGCGeneration(3, 0, false))
+                    .build(store);
+            SegmentNodeState three = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(two));
             writer.flush();
 
             assertArrayEquals(asByteArray(three.getStableIdBytes()), asByteArray(two.getStableIdBytes()));
@@ -104,29 +104,30 @@ public class NodeRecordTest {
             // otherwise the write of some records (in this case, template
             // records) will be cached and prevent this test to fail.
 
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test")
+            SegmentWriter writer = defaultSegmentWriterBuilder("test")
                     .withGeneration(generation)
                     .withWriterPool()
                     .with(nodesOnlyCache())
                     .build(store);
 
-            generation.set(1);
+            generation.set(newGCGeneration(1, 0, false));
 
             // Write a new node with a non trivial template. This record will
             // belong to generation 1.
 
-            SegmentNodeState base = writer.writeNode(EmptyNodeState.EMPTY_NODE.builder()
+            RecordId baseId = writer.writeNode(EmptyNodeState.EMPTY_NODE.builder()
                     .setProperty("a", "a")
                     .setProperty("k", "v1")
                     .getNodeState()
             );
+            SegmentNodeState base = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), baseId);
             writer.flush();
 
-            generation.set(2);
+            generation.set(newGCGeneration(2, 0, false));
 
             // Compact that same record to generation 2.
 
-            SegmentNodeState compacted = writer.writeNode(base);
+            SegmentNodeState compacted = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(base));
             writer.flush();
 
             // Assert that even if the two records have the same stable ID,
@@ -177,20 +178,20 @@ public class NodeRecordTest {
 
             @Nonnull
             @Override
-            public Cache<String, RecordId> getStringCache(int generation, Operation operation) {
-                return Empty.INSTANCE.getStringCache(generation, operation);
+            public Cache<String, RecordId> getStringCache(int generation) {
+                return Empty.INSTANCE.getStringCache(generation);
             }
 
             @Nonnull
             @Override
-            public Cache<Template, RecordId> getTemplateCache(int generation, Operation operation) {
-                return Empty.INSTANCE.getTemplateCache(generation, operation);
+            public Cache<Template, RecordId> getTemplateCache(int generation) {
+                return Empty.INSTANCE.getTemplateCache(generation);
             }
 
             @Nonnull
             @Override
-            public Cache<String, RecordId> getNodeCache(int generation, Operation operation) {
-                return defaultCache.getNodeCache(generation, operation);
+            public Cache<String, RecordId> getNodeCache(int generation) {
+                return defaultCache.getNodeCache(generation);
             }
         };
     }

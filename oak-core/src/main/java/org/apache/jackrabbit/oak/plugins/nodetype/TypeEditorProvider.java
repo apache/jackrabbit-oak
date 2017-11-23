@@ -20,7 +20,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import java.util.Set;
 
@@ -28,11 +28,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeType;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditor.ConstraintViolationCallback;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
@@ -40,11 +39,11 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component
-@Service(EditorProvider.class)
+@Component(service = EditorProvider.class)
 public class TypeEditorProvider implements EditorProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(TypeEditorProvider.class);
@@ -92,11 +91,14 @@ public class TypeEditorProvider implements EditorProvider {
                     LOG.info("Node type changes: " + modifiedTypes + " appear to be trivial, repository will not be scanned");
                 }
                 else {
+                    
+                    ConstraintViolationCallback callback = strict ? TypeEditor.THROW_ON_CONSTRAINT_VIOLATION : TypeEditor.WARN_ON_CONSTRAINT_VIOLATION;
+                    
                     long start = System.currentTimeMillis();
                     // Some node types were modified, so scan the repository
                     // to make sure that the modified definitions still apply.
                     Editor editor = new VisibleEditor(new TypeEditor(
-                            strict, modifiedTypes, afterTypes,
+                            callback, modifiedTypes, afterTypes,
                             primary, mixins, builder));
                     LOG.info("Node type changes: " + modifiedTypes + " appear not to be trivial, starting repository scan");
                     CommitFailedException exception =
@@ -109,9 +111,11 @@ public class TypeEditorProvider implements EditorProvider {
                 }
             }
         }
+        
+        ConstraintViolationCallback callback = strict ? TypeEditor.THROW_ON_CONSTRAINT_VIOLATION : TypeEditor.WARN_ON_CONSTRAINT_VIOLATION;
 
         return new VisibleEditor(new TypeEditor(
-                strict, null, afterTypes, primary, mixins, builder));
+                callback, null, afterTypes, primary, mixins, builder));
     }
 
     private boolean isTrivialChange(ReadOnlyNodeTypeManager ntBefore, ReadOnlyNodeTypeManager ntAfter, String nodeType) {

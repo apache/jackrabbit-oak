@@ -28,6 +28,7 @@ import java.io.IOException;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
+import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -35,8 +36,10 @@ import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,14 +63,14 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
 
         try {
             SegmentNodeState head = restore.getHead();
-            int gen = head.getRecordId().getSegmentId().getGcGeneration();
+            GCGeneration gen = head.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                     store.getSegmentIdProvider(),
                     store.getReader(),
                     "r",
                     gen
             );
-            SegmentWriter writer = new SegmentWriter(
+            SegmentWriter writer = new DefaultSegmentWriter(
                     store,
                     store.getReader(),
                     store.getSegmentIdProvider(),
@@ -81,10 +84,10 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
                     writer,
                     store.getBlobStore(),
                     Suppliers.ofInstance(false),
-                    gcOptions
+                    GCNodeWriteMonitor.EMPTY
             );
-            compactor.setContentEqualityCheck(true);
             SegmentNodeState after = compactor.compact(current, head, current);
+            writer.flush();
             store.getRevisions().setHead(current.getRecordId(), after.getRecordId());
         } finally {
             restore.close();

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 
@@ -39,8 +40,18 @@ public class DefaultStandbyHeadReaderTest {
     @Test
     public void shouldReturnHeadSegmentId() throws Exception {
         try (FileStore store = newFileStore()) {
-            DefaultStandbyHeadReader reader = new DefaultStandbyHeadReader(store);
-            assertEquals(store.getHead().getRecordId().toString(), reader.readHeadRecordId());
+            store.flush();
+            DefaultStandbyHeadReader reader = new DefaultStandbyHeadReader(store, 0L);
+            assertEquals(store.getRevisions().getPersistedHead().toString(), reader.readHeadRecordId());
+        }
+    }
+    
+    @Test
+    public void shouldWaitForFlushAndReturnHeadSegmentId() throws Exception {
+        try (FileStore store = newFileStore()) {
+            DefaultStandbyHeadReader reader = new DefaultStandbyHeadReader(store, 10_000L);
+            assertNotNull(reader.readHeadRecordId());
+            assertEquals(store.getRevisions().getPersistedHead().toString(), reader.readHeadRecordId());
         }
     }
 

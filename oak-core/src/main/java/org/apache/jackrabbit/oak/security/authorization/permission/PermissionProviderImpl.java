@@ -24,10 +24,10 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -60,7 +60,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private Root immutableRoot;
 
-    public PermissionProviderImpl(@Nonnull Root root, @Nonnull String workspaceName,
+    public PermissionProviderImpl(@Nonnull Root root,
+                                  @Nonnull String workspaceName,
                                   @Nonnull Set<Principal> principals,
                                   @Nonnull RestrictionProvider restrictionProvider,
                                   @Nonnull ConfigurationParameters options,
@@ -159,11 +160,18 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             if (PermissionUtil.isAdminOrSystem(principals, options)) {
                 cp = AllPermissions.getInstance();
             } else {
-                cp = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, restrictionProvider, options, ctx);
+                cp = CompiledPermissionImpl.create(immutableRoot, workspaceName,
+                        getPermissionStore(immutableRoot, workspaceName, restrictionProvider), principals,
+                        restrictionProvider, options, ctx);
             }
             compiledPermissions = cp;
         }
         return cp;
+    }
+
+    protected PermissionStore getPermissionStore(Root root, String workspaceName,
+            RestrictionProvider restrictionProvider) {
+        return new PermissionStoreImpl(root, workspaceName, restrictionProvider);
     }
 
     private static boolean isVersionStorePath(@Nonnull String oakPath) {

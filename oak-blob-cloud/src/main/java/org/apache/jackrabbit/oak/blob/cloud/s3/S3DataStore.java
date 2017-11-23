@@ -29,10 +29,6 @@ import org.slf4j.LoggerFactory;
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
 public class S3DataStore extends AbstractSharedCachingDataStore {
-    /**
-     * Logger instance.
-     */
-    private static final Logger LOG = LoggerFactory.getLogger(S3DataStore.class);
 
     protected Properties properties;
 
@@ -40,8 +36,6 @@ public class S3DataStore extends AbstractSharedCachingDataStore {
      * The minimum size of an object that should be stored in this data store.
      */
     private int minRecordLength = 16 * 1024;
-
-    private String secret;
 
     @Override
     protected AbstractSharedBackend createBackend() {

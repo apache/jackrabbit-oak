@@ -52,7 +52,7 @@ class ResponseObserverHandler extends ChannelOutboundHandlerAdapter {
     }
 
     private void onGetBlobResponse(GetBlobResponse response) {
-        observer.didSendBinariesBytes(response.getClientId(), Math.max(0, response.getBlobData().length));
+        observer.didSendBinariesBytes(response.getClientId(), Math.max(0, response.getLength()));
     }
 
 }

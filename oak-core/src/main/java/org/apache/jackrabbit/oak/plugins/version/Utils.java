@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * {@code Utils} provide some utility methods.
  */
-public final class Utils {
+final class Utils {
     private Utils() {
     }
 

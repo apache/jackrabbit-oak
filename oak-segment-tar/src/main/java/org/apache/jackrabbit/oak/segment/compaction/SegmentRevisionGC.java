@@ -103,6 +103,10 @@ public interface SegmentRevisionGC {
      */
     void setEstimationDisabled(boolean disabled);
 
+    String getGCType();
+
+    void setGCType(String gcType);
+
     /**
      * Initiate a revision garbage collection operation
      */

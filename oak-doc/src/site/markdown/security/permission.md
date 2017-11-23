@@ -371,6 +371,7 @@ The supported configuration options of the default implementation are described 
 - [Differences wrt Jackrabbit 2.x](permission/differences.html)
 - [Permissions : The Default Implementation](permission/default.html)
 - [Permission Evaluation in Detail](permission/evaluation.html)
+- [Multiplexed PermissionStore](permission/multiplexing.html)
 - [Restriction Management](authorization/restriction.html)
 
 <!-- references -->

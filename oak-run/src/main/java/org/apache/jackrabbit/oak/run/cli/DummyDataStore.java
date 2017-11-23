@@ -44,7 +44,11 @@ public class DummyDataStore extends OakFileDataStore {
     }
 
     public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
-        return new DummyDataRecord(this, identifier);
+        DataRecord dr = super.getRecordIfStored(identifier);
+        if (dr == null) {
+            dr = new DummyDataRecord(this, identifier);
+        }
+        return dr;
     }
 
     private static final class DummyDataRecord extends AbstractDataRecord {

@@ -19,7 +19,15 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.roundDiv;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,8 +41,38 @@ import org.slf4j.LoggerFactory;
 
 public class ResponseDecoder extends ByteToMessageDecoder {
 
+    private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
     private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
 
+    static class DeleteOnCloseFileInputStream extends FileInputStream {
+        private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
+        
+        private File file;
+
+        public DeleteOnCloseFileInputStream(String fileName) throws FileNotFoundException {
+            this(new File(fileName));
+        }
+
+        public DeleteOnCloseFileInputStream(File file) throws FileNotFoundException {
+            super(file);
+            this.file = file;
+        }
+
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                if (file != null) {
+                    log.debug("Processing input stream finished! Deleting file {}", file.getAbsolutePath());
+                    file.delete();
+                    file = null;
+                }
+            }
+        }
+    }
+    
+    private int blobChunkSize;
+    
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         int length = in.readInt();
@@ -87,25 +125,55 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         out.add(new GetSegmentResponse(null, segmentId, data));
     }
 
-    private static void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) {
+    private void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) throws IOException {
+        byte mask = in.readByte();
+        long blobLength = in.readLong();
+        
         int blobIdLength = in.readInt();
-
         byte[] blobIdBytes = new byte[blobIdLength];
         in.readBytes(blobIdBytes);
-
         String blobId = new String(blobIdBytes, Charsets.UTF_8);
+        File tempFile = new File(TMP_DIR, blobId + ".tmp");
+        
+        // START_CHUNK flag enabled
+        if ((mask & (1 << 0)) != 0) {
+            blobChunkSize = in.readableBytes() - 8;
+            
+            if (tempFile.exists()) {
+                log.debug("Detected previous incomplete transfer for {}. Cleaning up...", blobId);
+                Files.delete(tempFile.toPath());
+            }
+        }
 
         long hash = in.readLong();
 
-        byte[] blobData = new byte[length - 1 - 4 - blobIdBytes.length - 8];
-        in.readBytes(blobData);
+        log.debug("Received chunk {}/{} of size {} from blob {}", roundDiv(tempFile.length() + in.readableBytes(), blobChunkSize),
+                roundDiv(blobLength, blobChunkSize), in.readableBytes(), blobId);
+        byte[] chunkData = new byte[in.readableBytes()];
+        in.readBytes(chunkData);
 
-        if (hash(blobData) != hash) {
-            log.debug("Invalid checksum, discarding blob {}", blobId);
+        if (hash(mask, blobLength, chunkData) != hash) {
+            log.debug("Invalid checksum, discarding current chunk from {}", blobId);
             return;
+        } else {
+            log.debug("All checks OK. Appending chunk to disk to {} ", tempFile.getAbsolutePath());
+            OutputStream outStream = new FileOutputStream(tempFile, true);
+            outStream.write(chunkData);
+            outStream.close();
         }
 
-        out.add(new GetBlobResponse(null, blobId, blobData));
+        // END_CHUNK flag enabled
+        if ((mask & (1 << 1)) != 0) {
+            log.debug("Received entire blob {}", blobId);
+
+            if (blobLength == tempFile.length()) {
+                FileInputStream fis = new DeleteOnCloseFileInputStream(tempFile);
+                out.add(new GetBlobResponse(null, blobId, fis, fis.getChannel().size()));
+            } else {
+                log.debug("Blob {} discarded due to size mismatch. Expected size: {}, actual size: {} ", blobId,
+                        blobLength, tempFile.length());
+            }
+        }
     }
 
     private static void decodeGetReferencesResponse(int length, ByteBuf in, List<Object> out) {
@@ -139,4 +207,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
     }
 
+    private static long hash(byte mask, long blobLength, byte[] data) {
+        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
+    }
+    
 }

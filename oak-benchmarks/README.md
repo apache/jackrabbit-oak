@@ -39,6 +39,7 @@ The following benchmark options (with default values) are currently supported:
     --rdbjdbcuser          - JDBC username (defaults to "")
     --rdbjdbcpasswd        - JDBC password (defaults to "")
     --rdbjdbctableprefix   - for RDB persistence: prefix for table names (defaults to "")
+    --vgcMaxAge            - Continuous DocumentNodeStore VersionGC max age in sec (RDB only)
 
 These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the

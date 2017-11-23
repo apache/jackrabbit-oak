@@ -55,6 +55,9 @@ public class CSVFileGenerator {
                         br.getEncoding(),
                         br.getPath()
                 );
+                if (count % 1000 == 0) {
+                    log.info("Processed {} binaries so far", count);
+                }
             }
             printer.flush();
             log.info("Generated csv output at {} with {} entries", outFile.getAbsolutePath(), count);

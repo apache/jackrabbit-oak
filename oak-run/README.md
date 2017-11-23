@@ -15,7 +15,6 @@ The following runmodes are currently available:
     * debug           : Print status information about an Oak repository.
     * explore         : Starts a GUI browser based on java swing.
     * garbage         : Identifies blob garbage on a DocumentMK repository
-    * graph           : Export the segment graph of a segment store to a file.
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
     * recovery        : Run a _lastRev recovery on a MongoMK repository
@@ -28,6 +27,7 @@ The following runmodes are currently available:
     * tika            : Performs text extraction
     * unlockUpgrade   : Unlock a DocumentMK upgrade to a newer version
     * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak.
+    * export          : Export repository content as json
     
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
@@ -129,33 +129,6 @@ The 'explore' mode starts a desktop browser GUI based on java swing which allows
 browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
-
-Graph
------
-
-The 'graph' mode export the segment graph of a file store to a text file in the
-[Guess GDF format](https://gephi.github.io/users/supported-graph-formats/gdf-format/),
-which is easily imported into [Gephi](https://gephi.github.io).
-
-As the GDF format only supports integer values but the segment time stamps are encoded as long
-values an optional 'epoch' argument can be specified. If no epoch is given on the command line
-the start of the day of the last modified date of the 'journal.log' is used. The epoch specifies
-a negative offset translating all timestamps into a valid int range.
-
-    $ java -jar oak-run-*.jar graph [File] <options>
-
-    [File] -- Path to segment store (required)
-
-    Option           Description
-    ------           -----------
-    --epoch <Long>   Epoch of the segment time stamps
-                       (derived from journal.log if not
-                       given)
-    --output <File>  Output file (default: segments.gdf)
-    --gc             Write the gc generation graph instead of the full graph
-    --pattern        Regular exception specifying which
-                       nodes to include (optional). Ignore
-                       when --gc is specified.
 
 History
 -------
@@ -562,6 +535,40 @@ Revisions
 
 See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revisionGC).
 
+Export
+------
+
+Dumps the repository content under any repository path as json. It can also dump the blobs referred in the dumped content
+
+    java -jar oak-run-*.jar export -p /path/in/repo /path/of/segmentstore -o /path/of/output/dir
+    
+This would create a json file `nodestates.json` in the output dir containing nodes content in json format. Blobs can be 
+included via `-b=true` option. When enabled the blob would be stored under `blobs` directory of output dir
+
+It support various options which can be seen by help `-h`
+
+    $ java -jar oak-run-*.jar export -h
+    Exports NodeState as json                                 
+    
+    
+    The export command supports exporting nodes from a repository in json. It also provide options to export the blobs
+      which are stored in FileDataStore format                                                                        
+    
+    Option                           Description                                                                       
+    ------                           -----------                                                                       
+    -b, --blobs [Boolean]            Export blobs also. By default blobs are not exported (default: false)             
+    -d, --depth [Integer]            Max depth to include in output (default: 2147483647)                              
+    -f, --filter <String>            Filter expression as json to filter out which nodes and properties are included in
+                                       exported file (default: {"properties":["*", "-:childOrder"]})                   
+    --filter-file <File>             Filter file which contains the filter json expression                             
+    --format <String>                Export format 'json' or 'txt' (default: json)                                     
+    -n, --max-child-nodes [Integer]  Maximum number of child nodes to include for a any parent (default: 2147483647)   
+    -o, --out <File>                 Output directory where the exported json and blobs are stored (default: .)        
+    -p, --path <String>              Repository path to export (default: /)                                            
+    --pretty [Boolean]               Pretty print the json output (default: true) 
+    
+The command can connect to any type of Oak repository. Refer to [Oak Run NodeStore Connection][1] for details
+
 License
 -------
 
@@ -583,3 +590,5 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+[1]: https://jackrabbit.apache.org/oak/docs/features/oak-run-nodestore-connection-options.html

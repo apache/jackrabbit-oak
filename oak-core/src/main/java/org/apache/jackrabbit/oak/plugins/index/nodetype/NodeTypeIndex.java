@@ -18,12 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Cursors;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -63,12 +67,28 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             // doesn't have a node type restriction
             return Double.POSITIVE_INFINITY;
         }
+        if (wrongIndex(filter)) {
+            return Double.POSITIVE_INFINITY;
+        }
+        
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root, mountInfoProvider);
         if (lookup.isIndexed(filter.getPath(), filter)) {
             return lookup.getCost(filter);
         } else {
             return Double.POSITIVE_INFINITY;
         }
+    }
+    
+    private static boolean wrongIndex(Filter filter) {
+        // skip index if "option(index ...)" doesn't match
+        PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
+        if (indexName != null && indexName.first != null) {
+            // index name specified: just verify this, and ignore tags
+            return !"nodetype".equals(indexName.first.getValue(Type.STRING));
+        }
+        PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
+        // index tag specified (the nodetype index doesn't support tags)
+        return indexTag != null && indexTag.first != null;
     }
 
     @Override
@@ -78,7 +98,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             throw new IllegalStateException(
                     "NodeType index is used even when no index is available for filter " + filter);
         }
-        return Cursors.newPathCursorDistinct(lookup.query(filter), filter.getQueryEngineSettings());
+        return Cursors.newPathCursorDistinct(lookup.query(filter), filter.getQueryLimits());
     }
     
     @Override

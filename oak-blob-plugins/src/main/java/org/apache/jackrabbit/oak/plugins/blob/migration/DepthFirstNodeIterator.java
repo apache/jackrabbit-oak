@@ -29,18 +29,30 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.AbstractIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DepthFirstNodeIterator extends AbstractIterator<ChildNodeEntry> {
 
-    private final Deque<Iterator<? extends ChildNodeEntry>> itQueue = new ArrayDeque<Iterator<? extends ChildNodeEntry>>();
+    private static final Logger log = LoggerFactory.getLogger(DepthFirstNodeIterator.class);
 
-    private final Deque<String> nameQueue = new ArrayDeque<String>();
+    private final Deque<Iterator<? extends ChildNodeEntry>> itQueue;
+
+    private final Deque<String> nameQueue;
 
     private final NodeState root;
 
     public DepthFirstNodeIterator(NodeState root) {
         this.root = root;
+        this.itQueue = new ArrayDeque<>();
+        this.nameQueue = new ArrayDeque<>();
         reset();
+    }
+
+    private DepthFirstNodeIterator(NodeState root, Deque<Iterator<? extends ChildNodeEntry>> itQueue, Deque<String> nameQueue) {
+        this.root = root;
+        this.itQueue = itQueue;
+        this.nameQueue = nameQueue;
     }
 
     public void reset() {
@@ -81,4 +93,27 @@ public class DepthFirstNodeIterator extends AbstractIterator<ChildNodeEntry> {
         return Joiner.on('/').appendTo(path, nameQueue).toString();
     }
 
+    public DepthFirstNodeIterator switchRoot(NodeState newRoot) {
+        Deque<Iterator<? extends ChildNodeEntry>> newQueue = new ArrayDeque<>();
+        NodeState current = newRoot;
+        for (String name : nameQueue) {
+            boolean found = false;
+            Iterator<? extends ChildNodeEntry> it = current.getChildNodeEntries().iterator();
+            newQueue.add(it);
+            while (it.hasNext()) {
+                ChildNodeEntry e = it.next();
+                if (name.equals(e.getName())) {
+                    current = e.getNodeState();
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                log.warn("Can't found {} in the new root. Switching to /", getPath());
+                return new DepthFirstNodeIterator(newRoot);
+            }
+        }
+        newQueue.add(current.getChildNodeEntries().iterator());
+        return new DepthFirstNodeIterator(newRoot, newQueue, nameQueue);
+    }
 }

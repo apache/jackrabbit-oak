@@ -29,6 +29,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
@@ -39,6 +41,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +63,7 @@ import static org.apache.commons.io.FileUtils.copyFile;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.forceMkdir;
 import static org.apache.commons.io.FileUtils.lineIterator;
+import static org.apache.commons.io.FileUtils.touch;
 import static org.apache.commons.io.FilenameUtils.concat;
 import static org.apache.commons.io.FilenameUtils.removeExtension;
 import static org.apache.commons.io.IOUtils.closeQuietly;
@@ -82,20 +86,23 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     /**
      * System property to skip tracker. If set will skip:
-     *  * Snapshots (No-op)
-     *  * Retrieve (return empty)
-     *  * Add (No-op)
+     * * Snapshots (No-op)
+     * * Retrieve (return empty)
+     * * Add (No-op)
      */
     private final boolean SKIP_TRACKER = Boolean.getBoolean("oak.datastore.skipTracker");
 
     private static final String datastoreMeta = "blobids";
     private static final String fileNamePrefix = "blob";
     private static final String mergedFileSuffix = ".refs";
+    private static final String snapshotMarkerSuffix = ".snapshot";
 
     /* Local instance identifier */
     private final String instanceId = randomUUID().toString();
 
     private final SharedDataStore datastore;
+    private final long snapshotInterval;
+    private final ActiveDeletionTracker deleteTracker;
 
     protected BlobIdStore store;
 
@@ -103,27 +110,28 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     private String prefix;
 
-    public BlobIdTracker(String path, String repositoryId,
-        long snapshotIntervalSecs, SharedDataStore datastore) throws IOException {
-        this(path, repositoryId, newSingleThreadScheduledExecutor(),
-            snapshotIntervalSecs, snapshotIntervalSecs, datastore);
+    private File rootDir;
+
+    public BlobIdTracker(String path, String repositoryId, long snapshotIntervalSecs, SharedDataStore datastore)
+        throws IOException {
+        this(path, repositoryId, newSingleThreadScheduledExecutor(), snapshotIntervalSecs, snapshotIntervalSecs,
+            datastore);
     }
 
-    public BlobIdTracker(String path, String repositoryId, ScheduledExecutorService scheduler,
-            long snapshotDelaySecs, long snapshotIntervalSecs, SharedDataStore datastore)
-        throws IOException {
+    public BlobIdTracker(String path, String repositoryId, ScheduledExecutorService scheduler, long snapshotDelaySecs,
+        long snapshotIntervalSecs, SharedDataStore datastore) throws IOException {
         String root = concat(path, datastoreMeta);
-        File rootDir = new File(root);
+        this.rootDir = new File(root);
         this.datastore = datastore;
         this.scheduler = scheduler;
-
+        this.snapshotInterval = SECONDS.toMillis(snapshotIntervalSecs);
         try {
             forceMkdir(rootDir);
             prefix = fileNamePrefix + "-" + repositoryId;
             this.store = new BlobIdStore(rootDir, prefix);
-            scheduler.scheduleAtFixedRate(new SnapshotJob(),
-                SECONDS.toMillis(snapshotDelaySecs),
+            scheduler.scheduleAtFixedRate(new SnapshotJob(), SECONDS.toMillis(snapshotDelaySecs),
                 SECONDS.toMillis(snapshotIntervalSecs), MILLISECONDS);
+            this.deleteTracker = new ActiveDeletionTracker(rootDir, prefix);
         } catch (IOException e) {
             LOG.error("Error initializing blob tracker", e);
             close();
@@ -131,32 +139,42 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
     }
 
-    @Override
-    public void remove(File recs) throws IOException {
-        store.removeRecords(recs);
+    public ActiveDeletionTracker getDeleteTracker() {
+        return deleteTracker;
     }
 
-    @Override
-    public void remove(Iterator<String> recs) throws IOException {
+    @Override public void remove(File recs, Options options) throws IOException {
+        if (options == Options.ACTIVE_DELETION) {
+            get();
+            deleteTracker.track(recs);
+        }
         store.removeRecords(recs);
+        snapshot(true);
     }
 
-    @Override
-    public void add(String id) throws IOException {
+    @Override public void remove(File recs) throws IOException {
+        store.removeRecords(recs);
+        snapshot(true);
+    }
+
+    @Override public void remove(Iterator<String> recs) throws IOException {
+        store.removeRecords(recs);
+        snapshot(true);
+    }
+
+    @Override public void add(String id) throws IOException {
         if (!SKIP_TRACKER) {
             store.addRecord(id);
         }
     }
 
-    @Override
-    public void add(Iterator<String> recs) throws IOException {
+    @Override public void add(Iterator<String> recs) throws IOException {
         if (!SKIP_TRACKER) {
             store.addRecords(recs);
         }
     }
 
-    @Override
-    public void add(File recs) throws IOException {
+    @Override public void add(File recs) throws IOException {
         if (!SKIP_TRACKER) {
             store.addRecords(recs);
         }
@@ -167,14 +185,13 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      * them to the local store and then returns an iterator over it.
      * This way the ids returned are as recent as the snapshots taken on all
      * instances/repositories connected to the DataStore.
-     *
+     * <p>
      * The iterator returned ia a Closeable instance and should be closed by calling #close().
      *
      * @return iterator over all the blob ids available
      * @throws IOException
      */
-    @Override
-    public Iterator<String> get() throws IOException {
+    @Override public Iterator<String> get() throws IOException {
         try {
             if (!SKIP_TRACKER) {
                 globalMerge();
@@ -187,8 +204,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
     }
 
-    @Override
-    public File get(String path) throws IOException {
+    @Override public File get(String path) throws IOException {
         if (!SKIP_TRACKER) {
             globalMerge();
             return store.getRecords(path);
@@ -210,31 +226,26 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
 
             // Download all the corresponding files for the records
-            List<File> refFiles = newArrayList(
-                transform(refRecords,
-                    new Function<DataRecord, File>() {
-                        @Override
-                        public File apply(DataRecord input) {
-                            InputStream inputStream = null;
-                            try {
-                                inputStream = input.getStream();
-                                return copy(inputStream);
-                            } catch (Exception e) {
-                                LOG.warn("Error copying data store file locally {}",
-                                    input.getIdentifier(), e);
-                            } finally {
-                                closeQuietly(inputStream);
-                            }
-                            return null;
-                        }
-                    }));
+            List<File> refFiles = newArrayList(transform(refRecords, new Function<DataRecord, File>() {
+                @Override public File apply(DataRecord input) {
+                    InputStream inputStream = null;
+                    try {
+                        inputStream = input.getStream();
+                        return copy(inputStream);
+                    } catch (Exception e) {
+                        LOG.warn("Error copying data store file locally {}", input.getIdentifier(), e);
+                    } finally {
+                        closeQuietly(inputStream);
+                    }
+                    return null;
+                }
+            }));
             LOG.info("Retrieved all blob id files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
             // Merge all the downloaded files in to the local store
             watch = Stopwatch.createStarted();
             store.merge(refFiles, true);
-            LOG.info("Merged all retrieved blob id files in [{}]",
-                watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.info("Merged all retrieved blob id files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
             // Remove all the data store records as they have been merged
             watch = Stopwatch.createStarted();
@@ -242,12 +253,15 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 datastore.deleteMetadataRecord(rec.getIdentifier().toString());
                 LOG.debug("Deleted metadata record {}", rec.getIdentifier().toString());
             }
-            LOG.info("Deleted all blob id metadata files in [{}]",
-                watch.elapsed(TimeUnit.MILLISECONDS));
+            LOG.info("Deleted all blob id metadata files in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
         } catch (IOException e) {
             LOG.error("Error in merging blob records iterator from the data store", e);
             throw e;
         }
+    }
+
+    private void snapshot() throws IOException {
+        snapshot(false);
     }
 
     /**
@@ -256,26 +270,30 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      *
      * @throws IOException
      */
-    private void snapshot() throws IOException {
+    private void snapshot(boolean skipStoreSnapshot) throws IOException {
         try {
             if (!SKIP_TRACKER) {
                 Stopwatch watch = Stopwatch.createStarted();
-                store.snapshot();
-                LOG.debug("Completed snapshot in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
+
+                if (!skipStoreSnapshot) {
+                    store.snapshot();
+                    LOG.debug("Completed snapshot in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
+                }
 
                 watch = Stopwatch.createStarted();
-
                 File recs = store.getBlobRecordsFile();
-                datastore.addMetadataRecord(recs,
-                    (prefix + instanceId + System.currentTimeMillis() + mergedFileSuffix));
-                LOG.info("Added blob id metadata record in DataStore in [{}]",
-                    watch.elapsed(TimeUnit.MILLISECONDS));
+                datastore.addMetadataRecord(recs, (prefix + instanceId + System.currentTimeMillis() + mergedFileSuffix));
+                LOG.info("Added blob id metadata record in DataStore in [{}]", watch.elapsed(TimeUnit.MILLISECONDS));
 
                 try {
                     forceDelete(recs);
                     LOG.info("Deleted blob record file after snapshot and upload {}", recs);
+
+                    // Update the timestamp for the snapshot marker
+                    touch(getSnapshotMarkerFile());
+                    LOG.info("Updated snapshot marker");
                 } catch (IOException e) {
-                    LOG.debug("Failed to delete file {}", recs, e);
+                    LOG.debug("Failed to in cleaning up {}", recs, e);
                 }
             }
         } catch (Exception e) {
@@ -284,15 +302,129 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         }
     }
 
+    private File getSnapshotMarkerFile() {
+        File snapshotMarker = new File(rootDir, prefix + snapshotMarkerSuffix);
+        return snapshotMarker;
+    }
+
     /**
      * Closes the tracker and the underlying store.
      *
      * @throws IOException
      */
-    @Override
-    public void close() throws IOException {
+    @Override public void close() throws IOException {
         store.close();
         new ExecutorCloser(scheduler).close();
+    }
+
+    /**
+     * Tracking any active deletions  store for managing the blob reference
+     */
+    public static class ActiveDeletionTracker {
+        /* Suffix for tracking file */
+        private static final String DEL_SUFFIX = ".del";
+
+        /* deletion tracking file */
+        private File delFile;
+
+        public static final String DELIM = ",";
+
+        /* Lock for operations on the active deletions file */
+        private final ReentrantLock lock;
+
+        private static final Function<String, String> transformer = new Function<String, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable String input) {
+                if (input != null) {
+                    return input.split(DELIM)[0];
+                }
+                return "";
+            }};
+
+        ActiveDeletionTracker(File rootDir, String prefix) throws IOException {
+            delFile = new File(rootDir, prefix + DEL_SUFFIX);
+            touch(delFile);
+            lock = new ReentrantLock();
+        }
+
+        /**
+         * Adds the ids in the file provided to the tracked deletions.
+         * @param recs the deleted ids to track
+         */
+        public void track(File recs) throws IOException {
+            lock.lock();
+            try {
+                append(Lists.newArrayList(recs), delFile, false);
+                sort(delFile);
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        public File retrieve(String path) throws IOException {
+            File copiedRecsFile = new File(path);
+            try {
+                copyFile(delFile, copiedRecsFile);
+                return copiedRecsFile;
+            } catch (IOException e) {
+                LOG.error("Error in retrieving active deletions file", e);
+                throw e;
+            }
+        }
+
+        /**
+         * Remove ids given by the file in parameter from the deletions being tracked.
+         *
+         * @param recs the sorted file containing ids to be removed from tracker
+         */
+        public void reconcile(File recs) throws IOException {
+            lock.lock();
+            try {
+                // Remove and spool the remaining ids into a temp file
+                File toBeRemoved = createTempFile("toBeRemoved", null);
+                File removed = createTempFile("removed", null);
+
+                FileLineDifferenceIterator toBeRemovedIterator = null;
+                FileLineDifferenceIterator removeIterator = null;
+                try {
+                    // Gather all records which are not required to be tracked anymore
+                    toBeRemovedIterator = new FileLineDifferenceIterator(recs, delFile, null);
+                    writeStrings(toBeRemovedIterator, toBeRemoved, false);
+
+                    // Remove records not to be tracked
+                    removeIterator = new FileLineDifferenceIterator(toBeRemoved, delFile, null);
+                    writeStrings(removeIterator, removed, false);
+                } finally {
+                    if (toBeRemovedIterator != null) {
+                        toBeRemovedIterator.close();
+                    }
+
+                    if (removeIterator != null) {
+                        removeIterator.close();
+                    }
+
+                    if (toBeRemoved != null) {
+                        toBeRemoved.delete();
+                    }
+                }
+
+                move(removed, delFile);
+                LOG.trace("removed active delete records");
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        /**
+         * Return any ids not existing in the deletions being tracked from the ids in file parameter.
+         *
+         * @param recs the file to search for ids existing in the deletions here
+         * @return
+         */
+        public Iterator<String> filter(File recs) throws IOException {
+            return new FileLineDifferenceIterator(delFile, recs, transformer);
+        }
     }
 
     /**
@@ -646,15 +778,41 @@ public class BlobIdTracker implements Closeable, BlobTracker {
      * Job which calls the snapshot on the tracker.
      */
     class SnapshotJob implements Runnable {
+        private long interval;
+        private Clock clock;
+
+        public SnapshotJob() {
+            this.interval = snapshotInterval;
+            this.clock = Clock.SIMPLE;
+        }
+
+        public SnapshotJob(long millis, Clock clock) {
+            this.interval = millis;
+            this.clock = clock;
+        }
+
         @Override
         public void run() {
-            try {
-                snapshot();
-                LOG.info("Finished taking snapshot");
-            } catch (Exception e) {
-                LOG.warn("Failure in taking snapshot", e);
+            if (!skip()) {
+                try {
+                    snapshot();
+                    LOG.info("Finished taking snapshot");
+                } catch(Exception e){
+                    LOG.warn("Failure in taking snapshot", e);
+                }
+            } else {
+                LOG.info("Skipping scheduled snapshot as it last executed within {} seconds",
+                    MILLISECONDS.toSeconds(interval));
             }
         }
-    }
 
+        private boolean skip() {
+            File snapshotMarker = getSnapshotMarkerFile();
+            if (snapshotMarker.exists() &&
+                (snapshotMarker.lastModified() > (clock.getTime() - interval))) {
+                return true;
+            }
+            return false;
+        }
+    }
 }

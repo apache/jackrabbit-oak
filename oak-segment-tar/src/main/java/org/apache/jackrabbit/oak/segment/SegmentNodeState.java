@@ -43,6 +43,7 @@ import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -50,6 +51,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -63,6 +65,9 @@ public class SegmentNodeState extends Record implements NodeState {
     @Nonnull
     private final SegmentReader reader;
 
+    @Nullable
+    private final BlobStore blobStore;
+
     @Nonnull
     private final Supplier<SegmentWriter> writer;
 
@@ -73,17 +78,20 @@ public class SegmentNodeState extends Record implements NodeState {
     SegmentNodeState(
             @Nonnull SegmentReader reader,
             @Nonnull Supplier<SegmentWriter> writer,
+            @Nullable BlobStore blobStore,
             @Nonnull RecordId id) {
         super(id);
         this.reader = checkNotNull(reader);
         this.writer = checkNotNull(memoize(writer));
+        this.blobStore = blobStore;
     }
 
-    SegmentNodeState(
+    public SegmentNodeState(
             @Nonnull SegmentReader reader,
             @Nonnull SegmentWriter writer,
+            @Nullable BlobStore blobStore,
             @Nonnull RecordId id) {
-        this(reader, Suppliers.ofInstance(writer), id);
+        this(reader, Suppliers.ofInstance(writer), blobStore, id);
     }
 
     RecordId getTemplateId() {
@@ -109,6 +117,15 @@ public class SegmentNodeState extends Record implements NodeState {
         return reader.readMap(segment.readRecordId(getRecordNumber(), 0, 2));
     }
 
+    @Nonnull
+    static String getStableId(@Nonnull ByteBuffer stableId) {
+        ByteBuffer buffer = stableId.duplicate();
+        long msb = buffer.getLong();
+        long lsb = buffer.getLong();
+        int offset = buffer.getInt();
+        return new UUID(msb, lsb) + ":" + offset;
+    }
+
     /**
      * Returns the stable id of this node. In contrast to the node's record id
      * (which is technically the node's address) the stable id doesn't change
@@ -116,12 +133,8 @@ public class SegmentNodeState extends Record implements NodeState {
      *
      * @return  stable id
      */
-    String getStableId() {
-        ByteBuffer buffer = getStableIdBytes();
-        long msb = buffer.getLong();
-        long lsb = buffer.getLong();
-        int offset = buffer.getInt();
-        return new UUID(msb, lsb) + ":" + offset;
+    public String getStableId() {
+        return getStableId(getStableIdBytes());
     }
 
     /**
@@ -132,7 +145,7 @@ public class SegmentNodeState extends Record implements NodeState {
      *
      * @return the stable ID of this node.
      */
-    ByteBuffer getStableIdBytes() {
+    public ByteBuffer getStableIdBytes() {
         // The first record id of this node points to the stable id.
         RecordId id = getSegment().readRecordId(getRecordNumber());
 
@@ -448,7 +461,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @Nonnull
     public SegmentNodeBuilder builder() {
-        return new SegmentNodeBuilder(this, writer.get());
+        return new SegmentNodeBuilder(this, blobStore, reader, writer.get());
     }
 
     @Override

@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.diffindex;
 
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Cursors;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,7 +41,7 @@ public abstract class DiffIndex implements QueryIndex {
 
     @Override
     public Cursor query(Filter filter, NodeState rootState) {
-        return Cursors.newPathCursor(collector.getResults(filter), filter.getQueryEngineSettings());
+        return Cursors.newPathCursor(collector.getResults(filter), filter.getQueryLimits());
     }
 
     @Override

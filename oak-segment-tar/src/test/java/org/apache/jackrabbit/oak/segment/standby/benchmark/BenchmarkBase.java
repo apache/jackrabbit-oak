@@ -18,101 +18,98 @@
  */
 package org.apache.jackrabbit.oak.segment.standby.benchmark;
 
-import static java.io.File.createTempFile;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import com.google.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 
-public class BenchmarkBase {
-    static final int port = Integer.getInteger("standby.server.port", 52800);
-    static final String LOCALHOST = "127.0.0.1";
+class BenchmarkBase {
 
-    static final int timeout = Integer.getInteger("standby.test.timeout", 500);
+    private static class TemporaryFolder implements Closeable {
 
-    File directoryS;
-    FileStore storeS;
-    ScheduledExecutorService executorS;
+        private final File folder;
 
-    File directoryC;
-    FileStore storeC;
-    ScheduledExecutorService executorC;
+        TemporaryFolder(String prefix) throws IOException {
+            folder = Files.createTempDirectory(Paths.get("target"), prefix).toFile();
+        }
 
-    public void setUpServerAndClient() throws Exception {
-        directoryS = createTmpTargetDir(getClass().getSimpleName() + "-Server");
-        executorS = Executors.newSingleThreadScheduledExecutor();
-        storeS = setupPrimary(directoryS, executorS);
+        File toFile() {
+            return folder;
+        }
 
-        // client
-        directoryC = createTmpTargetDir(getClass().getSimpleName() + "-Client");
-        executorC = Executors.newSingleThreadScheduledExecutor();
-        storeC = setupSecondary(directoryC, executorC);
+        @Override
+        public void close() throws IOException {
+            FileUtils.deleteDirectory(folder);
+        }
+
     }
 
-    public void closeServerAndClient() {
-        storeS.close();
-        storeC.close();
-        
-        try {
-            FileUtils.deleteDirectory(directoryS);
-            FileUtils.deleteDirectory(directoryC);
-        } catch (IOException e) {
-            // ignore
-        } finally {
-            if (executorS != null) {
-                new ExecutorCloser(executorS).close();
-            }
+    private static class TemporaryExecutor implements Closeable {
 
-            if (executorC != null) {
-                new ExecutorCloser(executorC).close();
-            }
+        private final ScheduledExecutorService executor;
+
+        TemporaryExecutor() {
+            executor = Executors.newSingleThreadScheduledExecutor();
         }
+
+        ScheduledExecutorService toScheduledExecutorService() {
+            return executor;
+        }
+
+        @Override
+        public void close() throws IOException {
+            new ExecutorCloser(executor).close();
+        }
+
     }
 
     private static FileStore newFileStore(File directory, ScheduledExecutorService executor) throws Exception {
         return fileStoreBuilder(directory)
-                .withMaxFileSize(1)
-                .withMemoryMapping(false)
-                .withNodeDeduplicationCacheSize(1)
-                .withSegmentCacheSize(0)
-                .withStringCacheSize(0)
-                .withTemplateCacheSize(0)
-                .withStatisticsProvider(new DefaultStatisticsProvider(executor))
-                .build();
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .withNodeDeduplicationCacheSize(1)
+            .withSegmentCacheSize(0)
+            .withStringCacheSize(0)
+            .withTemplateCacheSize(0)
+            .withStatisticsProvider(new DefaultStatisticsProvider(executor))
+            .build();
     }
 
-    protected FileStore setupPrimary(File directory, ScheduledExecutorService executor) throws Exception {
-        return newFileStore(directory, executor);
+    private Closer closer;
+
+    FileStore primaryStore;
+
+    FileStore standbyStore;
+
+    void setUpServerAndClient() throws Exception {
+        closer = Closer.create();
+
+        File primaryDirectory = closer.register(new TemporaryFolder("primary-")).toFile();
+        ScheduledExecutorService primaryExecutor = closer.register(new TemporaryExecutor()).toScheduledExecutorService();
+        primaryStore = closer.register(newFileStore(primaryDirectory, primaryExecutor));
+
+        File standbyDirectory = closer.register(new TemporaryFolder("standby-")).toFile();
+        ScheduledExecutorService standbyExecutor = closer.register(new TemporaryExecutor()).toScheduledExecutorService();
+        standbyStore = closer.register(newFileStore(standbyDirectory, standbyExecutor));
     }
 
-    protected FileStore setupSecondary(File directory, ScheduledExecutorService executor) throws Exception {
-        return newFileStore(directory, executor);
+    void closeServerAndClient() {
+        try {
+            closer.close();
+        } catch (IOException e) {
+            e.printStackTrace(System.err);
+        }
     }
 
-    public StandbyClientSync newStandbyClientSync(FileStore store) throws Exception {
-        return newStandbyClientSync(store, port, false);
-    }
-
-    public StandbyClientSync newStandbyClientSync(FileStore store, int port) throws Exception {
-        return newStandbyClientSync(store, port, false);
-    }
-
-    public StandbyClientSync newStandbyClientSync(FileStore store, int port, boolean secure) throws Exception {
-        return new StandbyClientSync(LOCALHOST, port, store, secure, timeout, false);
-    }
-
-    private static File createTmpTargetDir(String name) throws IOException {
-        File f = createTempFile(name, "dir", new File("target"));
-        f.delete();
-        f.mkdir();
-        return f;
-    }
 }

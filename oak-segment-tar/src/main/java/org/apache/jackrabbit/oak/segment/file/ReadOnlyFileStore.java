@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,9 +34,9 @@ import javax.annotation.Nonnull;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,9 +63,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     ReadOnlyFileStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
-        if (notEmptyDirectory(directory)) {
-            checkManifest(openManifest());
-        }
+        newManifestChecker(directory, builder.getStrictVersionCheck()).checkManifest();
 
         tarFiles = TarFiles.builder()
                 .withDirectory(directory)
@@ -75,7 +73,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
                 .withReadOnly()
                 .build();
 
-        writer = segmentWriterBuilder("read-only").withoutCache().build(this);
+        writer = defaultSegmentWriterBuilder("read-only").withoutCache().build(this);
         log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
                 memoryMapping);
     }
@@ -97,19 +95,6 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         if (revisions.setHead(currentHead, newHead)) {
             currentHead = newHead;
         }
-    }
-
-    /**
-     * Build the graph of segments reachable from an initial set of segments
-     * 
-     * @param roots
-     *            the initial set of segments
-     * @param visitor
-     *            visitor receiving call back while following the segment graph
-     * @throws IOException
-     */
-    public void traverseSegmentGraph(@Nonnull Set<UUID> roots, @Nonnull SegmentGraphVisitor visitor) throws IOException {
-        tarFiles.traverseSegmentGraph(roots, visitor);
     }
 
     @Override
@@ -157,7 +142,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         return tarFiles.getIndices();
     }
 
-    public Map<UUID, List<UUID>> getTarGraph(String fileName) throws IOException {
+    public Map<UUID, Set<UUID>> getTarGraph(String fileName) throws IOException {
         return tarFiles.getGraph(fileName);
     }
 

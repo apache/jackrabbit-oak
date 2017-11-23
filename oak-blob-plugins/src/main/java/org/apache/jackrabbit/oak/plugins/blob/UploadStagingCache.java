@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
@@ -141,6 +142,11 @@ public class UploadStagingCache implements Closeable {
     private FileCache downloadCache;
 
     /**
+     * Scheduled executor for stats in case required
+     */
+    private ScheduledExecutorService statsExecutor;
+
+    /**
      * Queue containing items to retry.
      */
     private LinkedBlockingQueue<String> retryQueue;
@@ -170,6 +176,10 @@ public class UploadStagingCache implements Closeable {
         this.retryQueue = new LinkedBlockingQueue<String>();
         this.uploadCacheSpace = new File(dir, "upload");
         this.uploader = uploader;
+        if (statisticsProvider == null) {
+            statsExecutor = Executors.newSingleThreadScheduledExecutor();
+            statisticsProvider = new DefaultStatisticsProvider(statsExecutor);
+        }
         this.cacheStats = new StagingCacheStats(this, statisticsProvider, size);
         this.downloadCache = cache;
 
@@ -502,6 +512,7 @@ public class UploadStagingCache implements Closeable {
         LOG.info("Staging cache stats on close [{}]", cacheStats.cacheInfoAsString());
         new ExecutorCloser(executor).close();
         new ExecutorCloser(scheduledExecutor).close();
+        new ExecutorCloser(statsExecutor).close();
     }
 
     protected void setDownloadCache(@Nullable FileCache downloadCache) {
@@ -591,12 +602,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
         super(DataStoreCacheStatsMBean.class);
         this.cache = cache;
 
-        StatisticsProvider statisticsProvider;
-        if (provider == null) {
-            statisticsProvider = StatisticsProvider.NOOP;
-        } else {
-            statisticsProvider = provider;
-        }
+        StatisticsProvider statisticsProvider = provider;
 
         // Configure cache name
         cacheName = "DataStore-StagingCache";

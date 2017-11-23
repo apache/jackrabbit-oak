@@ -246,6 +246,7 @@ db
 socketKeepAlive
 : Default - false
 : Enables socket keep-alive for MongoDB connections
+: Since 1.8.0, 1.6.2, 1.4.16
 
 cache
 : Default - 256
@@ -279,6 +280,35 @@ versionGcMaxAgeInSecs
   duration controls how much old revision data should be kept. For example if a node is deleted at time T1 then its
   content would only be marked deleted at revision for T1 but its content would not be removed. Only when a Revision
   GC is run then its content would removed and that too only after (currentTime -T1 > versionGcMaxAgeInSecs)
+
+versionGCExpression
+: Default ""
+: A cron expression that defines when the Revision GC is scheduled. If this
+  configuration entry is left empty, the default behaviour depends on the
+  `documentStoreType`. For `MONGO` the default is to schedule a run every five
+  seconds (also known as Continuous Revision Garbage Collection). For `RDB` the
+  default is no scheduled GC. It must be enabled explicitly with a cron 
+  expression. E.g. the following expression triggers a GC run every night at
+  2 AM: `0 0 2 * * ?`.
+: Since 1.7.11
+
+versionGCTimeLimitInSecs
+: Default 10800
+: A Revision GC run is canceled after this number of seconds. The default is
+  three hours.
+: Since 1.7.11
+
+journalGCMaxAge
+: Default 86400000 (24 hrs, was 6 hrs until 1.7.4)
+: Journal entries older than `journalGCMaxAge` can be removed by the journal
+  garbage collector. The maximum age is specified in milliseconds.
+: Since 1.0.19, 1.2.3, 1.4
+
+journalGCInterval
+: Default 300000 (5 min)
+: The interval in milliseconds with which the journal garbage collector removes
+  old journal entries.
+: Since 1.0.19, 1.2.3, 1.4
 
 blobCacheSize
 : Default 16 (MB)

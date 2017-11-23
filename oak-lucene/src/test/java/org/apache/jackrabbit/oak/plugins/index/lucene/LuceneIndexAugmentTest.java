@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
@@ -57,6 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 public class LuceneIndexAugmentTest extends AbstractQueryTest {
     private final SimpleIndexAugmentorFactory factory = new SimpleIndexAugmentorFactory();
@@ -219,6 +221,9 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
     //OAK-3576
     @Test
     public void nullBehavior() throws Exception {
+        // OAK-6833
+        assumeFalse(CIHelper.windows());
+
         //setup repo and index
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
         Tree props = createIndex(TestUtil.NT_TEST);

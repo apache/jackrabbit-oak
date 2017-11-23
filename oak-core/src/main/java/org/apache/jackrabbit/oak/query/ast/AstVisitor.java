@@ -31,6 +31,8 @@ public interface AstVisitor {
 
     boolean visit(ChildNodeJoinConditionImpl node);
 
+    boolean visit(CoalesceImpl node);
+
     boolean visit(ColumnImpl node);
 
     boolean visit(ComparisonImpl node);

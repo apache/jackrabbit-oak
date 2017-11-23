@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
+import static org.apache.jackrabbit.oak.segment.ListRecord.MAX_ELEMENTS;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -48,7 +49,6 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -144,6 +144,21 @@ public class RecordTest {
         assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, count);
     }
 
+    @Test
+    public void testLargeListRecord() throws IOException {
+        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
+
+        ListRecord one = writeList(MAX_ELEMENTS, blockId);
+        one.getEntry(0);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testTooLargeListRecord() throws IOException {
+        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
+
+        ListRecord one = writeList(MAX_ELEMENTS + 1, blockId);
+    }
+
     private ListRecord writeList(int size, RecordId id) throws IOException {
         List<RecordId> list = Collections.nCopies(size, id);
         return new ListRecord(writer.writeList(list), size);
@@ -166,8 +181,8 @@ public class RecordTest {
         checkRandomStreamRecord(0x80);
         checkRandomStreamRecord(0x4079);
         checkRandomStreamRecord(0x4080);
-        checkRandomStreamRecord(SegmentWriter.BLOCK_SIZE);
-        checkRandomStreamRecord(SegmentWriter.BLOCK_SIZE + 1);
+        checkRandomStreamRecord(SegmentStream.BLOCK_SIZE);
+        checkRandomStreamRecord(SegmentStream.BLOCK_SIZE + 1);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE + 1);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE * 2);
@@ -178,7 +193,7 @@ public class RecordTest {
         byte[] source = new byte[size];
         random.nextBytes(source);
 
-        Blob value = writer.writeStream(new ByteArrayInputStream(source));
+        Blob value = new SegmentBlob(store.getBlobStore(), writer.writeStream(new ByteArrayInputStream(source)));
         InputStream stream = value.getNewStream();
         checkBlob(source, value, 0);
         checkBlob(source, value, 1);
@@ -227,17 +242,14 @@ public class RecordTest {
     public void testMapRecord() throws IOException {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        MapRecord zero = writer.writeMap(
-                null, ImmutableMap.<String, RecordId>of());
-        MapRecord one = writer.writeMap(
-                null, ImmutableMap.of("one", blockId));
-        MapRecord two = writer.writeMap(
-                null, ImmutableMap.of("one", blockId, "two", blockId));
+        MapRecord zero = new MapRecord(store.getReader(), writer.writeMap(null, ImmutableMap.<String, RecordId>of()));
+        MapRecord one = new MapRecord(store.getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
+        MapRecord two = new MapRecord(store.getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId, "two", blockId)));
         Map<String, RecordId> map = newHashMap();
         for (int i = 0; i < 1000; i++) {
             map.put("key" + i, blockId);
         }
-        MapRecord many = writer.writeMap(null, map);
+        MapRecord many = new MapRecord(store.getReader(), writer.writeMap(null, map));
 
         Iterator<MapEntry> iterator;
 
@@ -278,7 +290,7 @@ public class RecordTest {
         Map<String, RecordId> changes = newHashMap();
         changes.put("key0", null);
         changes.put("key1000", blockId);
-        MapRecord modified = writer.writeMap(many, changes);
+        MapRecord modified = new MapRecord(store.getReader(), writer.writeMap(many, changes));
         assertEquals(1000, modified.size());
         iterator = modified.getEntries().iterator();
         for (int i = 1; i <= 1000; i++) {
@@ -296,7 +308,7 @@ public class RecordTest {
 
         Map<String, RecordId> changes = newHashMap();
         changes.put("one", null);
-        MapRecord zero = writer.writeMap(null, changes);
+        MapRecord zero = new MapRecord(store.getReader(), writer.writeMap(null, changes));
         assertEquals(0, zero.size());
     }
 
@@ -311,7 +323,7 @@ public class RecordTest {
             map.put(new String(key), blockId);
         }
 
-        MapRecord bad = writer.writeMap(null, map);
+        MapRecord bad = new MapRecord(store.getReader(), writer.writeMap(null, map));
 
         assertEquals(map.size(), bad.size());
         Iterator<MapEntry> iterator = bad.getEntries().iterator();
@@ -325,7 +337,7 @@ public class RecordTest {
     @Test
     public void testEmptyNode() throws IOException {
         NodeState before = EMPTY_NODE;
-        NodeState after = writer.writeNode(before);
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
         assertEquals(before, after);
     }
 
@@ -336,7 +348,7 @@ public class RecordTest {
                 .setProperty("bar", 123)
                 .setProperty("baz", Math.PI)
                 .getNodeState();
-        NodeState after = writer.writeNode(before);
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
         assertEquals(before, after);
     }
 
@@ -348,7 +360,7 @@ public class RecordTest {
             builder = builder.child("test");
         }
         NodeState before = builder.getNodeState();
-        NodeState after = writer.writeNode(before);
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
         assertEquals(before, after);
     }
 
@@ -358,14 +370,14 @@ public class RecordTest {
         for (int i = 0; i < 1000; i++) {
             builder.child("test" + i);
         }
-        NodeState before = writer.writeNode(builder.getNodeState());
+        NodeState before = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertEquals(builder.getNodeState(), before);
 
         builder = before.builder();
         for (int i = 0; i < 900; i++) {
             builder.getChildNode("test" + i).remove();
         }
-        NodeState after = writer.writeNode(builder.getNodeState());
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertEquals(builder.getNodeState(), after);
     }
 
@@ -379,13 +391,13 @@ public class RecordTest {
         // create enough copies of the value to fill a full segment
         List<Blob> blobs = newArrayList();
         while (blobs.size() * data.length < Segment.MAX_SEGMENT_SIZE) {
-            blobs.add(writer.writeStream(new ByteArrayInputStream(data)));
+            blobs.add(new SegmentBlob(store.getBlobStore(), writer.writeStream(new ByteArrayInputStream(data))));
         }
 
         // write a simple node that'll now be stored in a separate segment
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("test", blobs, BINARIES);
-        NodeState state = writer.writeNode(builder.getNodeState());
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
 
         // all the blobs should still be accessible, even if they're
         // referenced from another segment
@@ -412,7 +424,7 @@ public class RecordTest {
 
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(extPropertyState);
-        NodeState state = writer.writeNode(builder.getNodeState());
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
 
         try {
             InputStream is = state.getProperty("binary").getValue(BINARY).getNewStream();
@@ -427,7 +439,7 @@ public class RecordTest {
     public void testStringPrimaryType() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "foo", STRING);
-        NodeState state = writer.writeNode(builder.getNodeState());
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertNotNull(state.getProperty("jcr:primaryType"));
     }
 
@@ -435,15 +447,8 @@ public class RecordTest {
     public void testStringMixinTypes() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);
-        NodeState state = writer.writeNode(builder.getNodeState());
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertNotNull(state.getProperty("jcr:mixinTypes"));
-    }
-
-    @Test
-    public void testCancel() throws IOException {
-        NodeBuilder builder = EMPTY_NODE.builder();
-        NodeState state = writer.writeNode(builder.getNodeState(), Suppliers.ofInstance(true));
-        assertNull(state);
     }
 
 }

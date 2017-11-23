@@ -87,7 +87,7 @@ import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.spi.QValue;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.QValueFactoryImpl;
@@ -1222,6 +1222,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("newValue", p1.getString());
         assertEquals("newValue", p2.getString());
         assertEquals("newValue", p3.getString());
+    }
+
+    // OAK-6410
+    @Test
+    public void setInexistentProperty() throws RepositoryException {
+        Node node = getNode(TEST_PATH);
+        node.addMixin(JcrConstants.MIX_VERSIONABLE);
+        node.getSession().save();
+        node.getSession().getWorkspace().getVersionManager().checkin(TEST_PATH);
+        node.setProperty("inexistent", (Value) null);
     }
 
     @Test

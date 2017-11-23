@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.stats;
 import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface TimerStats extends Stats, Counting{

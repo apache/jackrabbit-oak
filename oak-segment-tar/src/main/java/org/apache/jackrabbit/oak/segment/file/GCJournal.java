@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -26,6 +27,7 @@ import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.DSYNC;
 import static java.nio.file.StandardOpenOption.WRITE;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -38,14 +40,17 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Persists the repository size and the reclaimed size following a cleanup
  * operation in the {@link #GC_JOURNAL gc journal} file with the format:
- * 'repoSize, reclaimedSize, timestamp, gcGen, nodes compacted'.
+ * 'repoSize, reclaimedSize, timestamp, gc generation, gc full generation (since Oak 1.8),
+ * number of nodes compacted, root id'.
  */
 public class GCJournal {
 
@@ -69,15 +74,16 @@ public class GCJournal {
      * persisted previously.
      *
      * @param reclaimedSize size reclaimed by cleanup
-     * @param repoSize current repo size
-     * @param gcGeneration gc generation
-     * @param nodes number of compacted nodes
-     * @param root  record id of the compacted root node
+     * @param repoSize      current repo size
+     * @param gcGeneration  gc generation
+     * @param nodes         number of compacted nodes
+     * @param root          record id of the compacted root node
      */
     public synchronized void persist(long reclaimedSize, long repoSize,
-            int gcGeneration, long nodes, @Nonnull String root) {
+            @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root
+    ) {
         GCJournalEntry current = read();
-        if (current.getGcGeneration() == gcGeneration) {
+        if (current.getGcGeneration().equals(gcGeneration)) {
             // failed compaction, only update the journal if the generation
             // increases
             return;
@@ -138,19 +144,25 @@ public class GCJournal {
     public static class GCJournalEntry {
 
         static final GCJournalEntry EMPTY = new GCJournalEntry(
-                -1, -1, -1, -1, -1, RecordId.NULL.toString10());
+                -1, -1, -1, GCGeneration.NULL, -1, RecordId.NULL.toString10());
 
         private final long repoSize;
+
         private final long reclaimedSize;
+
         private final long ts;
-        private final int gcGeneration;
+
+        @Nonnull
+        private final GCGeneration gcGeneration;
+
         private final long nodes;
 
         @Nonnull
         private final String root;
 
         public GCJournalEntry(long repoSize, long reclaimedSize, long ts,
-                int gcGeneration, long nodes, @Nonnull String root) {
+                @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root
+        ) {
             this.repoSize = repoSize;
             this.reclaimedSize = reclaimedSize;
             this.ts = ts;
@@ -161,21 +173,40 @@ public class GCJournal {
 
         @Override
         public String toString() {
-            return repoSize + "," + reclaimedSize + "," + ts + "," + gcGeneration + "," + nodes + "," + root;
+            return Joiner.on(",").join(
+                    repoSize,
+                    reclaimedSize,
+                    ts,
+                    gcGeneration.getGeneration(),
+                    gcGeneration.getFullGeneration(),
+                    nodes,
+                    root
+            );
         }
 
         static GCJournalEntry fromString(String in) {
             String[] items = in.split(",");
-            long repoSize = parseLong(items, 0);
-            long reclaimedSize = parseLong(items, 1);
-            long ts = parseLong(items, 2);
-            int gcGen = (int) parseLong(items, 3);
-            long nodes = parseLong(items, 4);
-            String root = parseString(items, 5);
+            int index = 0;
+
+            long repoSize = parseLong(items, index++);
+            long reclaimedSize = parseLong(items, index++);
+            long ts = parseLong(items, index++);
+            int generation = parseInt(items, index++);
+            int fullGeneration;
+            if (items.length == 7) {
+                // gc.log from Oak 1.8 onward
+                fullGeneration = parseInt(items, index++);
+            } else {
+                // gc.log from Oak 1.6
+                fullGeneration = generation;
+            }
+            long nodes = parseLong(items, index++);
+            String root = parseString(items, index);
             if (root == null) {
                 root = RecordId.NULL.toString10();
             }
-            return new GCJournalEntry(repoSize, reclaimedSize, ts, gcGen, nodes, root);
+            return new GCJournalEntry(repoSize, reclaimedSize, ts,
+                    newGCGeneration(generation, fullGeneration, false), nodes, root);
         }
 
         @CheckForNull
@@ -193,6 +224,18 @@ public class GCJournal {
                     return Long.parseLong(in);
                 } catch (NumberFormatException ex) {
                     LOG.warn("Unable to parse {} as long value.", in, ex);
+                }
+            }
+            return -1;
+        }
+
+        private static int parseInt(String[] items, int index) {
+            String in = parseString(items, index);
+            if (in != null) {
+                try {
+                    return Integer.parseInt(in);
+                } catch (NumberFormatException e) {
+                    LOG.warn("Unable to parse {} as an integer value.", in, e);
                 }
             }
             return -1;
@@ -222,7 +265,8 @@ public class GCJournal {
         /**
          * Returns the gc generation
          */
-        public int getGcGeneration() {
+        @Nonnull
+        public GCGeneration getGcGeneration() {
             return gcGeneration;
         }
 
@@ -245,7 +289,7 @@ public class GCJournal {
         public int hashCode() {
             final int prime = 31;
             int result = 1;
-            result = prime * result + gcGeneration;
+            result = prime * result + gcGeneration.hashCode();
             result = prime * result + root.hashCode();
             result = prime * result + (int) (nodes ^ (nodes >>> 32));
             result = prime * result + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
@@ -266,7 +310,7 @@ public class GCJournal {
                 return false;
             }
             GCJournalEntry other = (GCJournalEntry) obj;
-            if (gcGeneration != other.gcGeneration) {
+            if (!gcGeneration.equals(other.gcGeneration)) {
                 return false;
             }
             if (nodes != other.nodes) {
@@ -286,5 +330,7 @@ public class GCJournal {
             }
             return true;
         }
+
     }
+
 }

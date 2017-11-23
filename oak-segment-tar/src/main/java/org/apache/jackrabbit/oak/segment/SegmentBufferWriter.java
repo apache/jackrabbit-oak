@@ -27,6 +27,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
+import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
@@ -44,6 +45,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
+import org.apache.jackrabbit.oak.segment.data.SegmentData;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,20 +65,11 @@ import org.slf4j.LoggerFactory;
  * The behaviour of this class is undefined should the pre-allocated buffer be
  * overrun be calling any of the write methods.
  * <p>
- * Instances of this class are <em>not thread safe</em>. See also the class comment of
- * {@link SegmentWriter}.
+ * Instances of this class are <em>not thread safe</em>
  */
 public class SegmentBufferWriter implements WriteOperationHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentBufferWriter.class);
-
-    /**
-     * Enable an extra check logging warnings should this writer create segments
-     * referencing segments from an older generation.
-     *
-     * @see #checkGCGeneration(SegmentId)
-     */
-    private static final boolean ENABLE_GENERATION_CHECK = Boolean.getBoolean("enable-generation-check");
 
     private static final class Statistics {
 
@@ -115,7 +109,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     @Nonnull
     private final String wid;
 
-    private final int generation;
+    @Nonnull
+    private final GCGeneration gcGeneration;
 
     /**
      * The segment write buffer, filled from the end to the beginning
@@ -148,14 +143,14 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     public SegmentBufferWriter(@Nonnull SegmentIdProvider idProvider,
                                @Nonnull SegmentReader reader,
                                @CheckForNull String wid,
-                               int generation) {
+                               @Nonnull GCGeneration gcGeneration) {
         this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = (wid == null
                 ? "w-" + identityHashCode(this)
                 : wid);
 
-        this.generation = generation;
+        this.gcGeneration = checkNotNull(gcGeneration);
     }
 
     @Nonnull
@@ -164,8 +159,9 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         return writeOperation.execute(this);
     }
 
-    int getGeneration() {
-        return generation;
+    @Nonnull
+    GCGeneration getGCGeneration() {
+        return gcGeneration;
     }
 
     /**
@@ -187,12 +183,24 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         buffer[2] = 'K';
         buffer[3] = SegmentVersion.asByte(LATEST_VERSION);
         buffer[4] = 0; // reserved
-        buffer[5] = 0; // refcount
+        buffer[5] = 0; // reserved
 
+        int generation = gcGeneration.getGeneration();
         buffer[GC_GENERATION_OFFSET] = (byte) (generation >> 24);
         buffer[GC_GENERATION_OFFSET + 1] = (byte) (generation >> 16);
         buffer[GC_GENERATION_OFFSET + 2] = (byte) (generation >> 8);
         buffer[GC_GENERATION_OFFSET + 3] = (byte) generation;
+
+        int fullGeneration = gcGeneration.getFullGeneration();
+        if (gcGeneration.isCompacted()) {
+            // Set highest order bit to mark segment created by compaction
+            fullGeneration |= 0x80000000;
+        }
+        buffer[GC_FULL_GENERATION_OFFSET] = (byte) (fullGeneration >> 24);
+        buffer[GC_FULL_GENERATION_OFFSET + 1] = (byte) (fullGeneration >> 16);
+        buffer[GC_FULL_GENERATION_OFFSET + 2] = (byte) (fullGeneration >> 8);
+        buffer[GC_FULL_GENERATION_OFFSET + 3] = (byte) fullGeneration;
+
         length = 0;
         position = buffer.length;
         recordNumbers = new MutableRecordNumbers();
@@ -242,7 +250,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         checkNotNull(recordId);
         checkState(segmentReferences.size() + 1 < 0xffff,
                 "Segment cannot have more than 0xffff references");
-        checkGCGeneration(recordId.getSegmentId());
 
         writeShort(toShort(writeSegmentIdReference(recordId.getSegmentId())));
         writeInt(recordId.getRecordNumber());
@@ -262,29 +269,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         }
 
         return segmentReferences.addOrReference(id);
-    }
-
-    /**
-     * Check that the generation of a segment matches the generation of this writer and logs
-     * a warning otherwise.
-     * This check is skipped if the {@link #ENABLE_GENERATION_CHECK} is not set.
-     *
-     * @param id  id of the segment to check
-     */
-    private void checkGCGeneration(SegmentId id) {
-        if (ENABLE_GENERATION_CHECK) {
-            try {
-                if (isDataSegmentId(id.getLeastSignificantBits())) {
-                    if (id.getGcGeneration() < generation) {
-                        LOG.warn("Detected reference from {} to segment {} from a previous gc generation.",
-                                info(this.segment), info(id.getSegment()), new Exception());
-                    }
-                }
-            } catch (SegmentNotFoundException snfe) {
-                LOG.warn("Detected reference from {} to non existing segment {}",
-                        info(this.segment), id, snfe);
-            }
-        }
     }
 
     private static String info(Segment segment) {
@@ -320,7 +304,9 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * SEGMENT_REFERENCE_SIZE + recordNumberCount * RECORD_SIZE + length, 16);
 
             if (totalLength > buffer.length) {
-                throw new IllegalStateException("too much data for a segment");
+                throw new IllegalStateException(String.format(
+                        "Too much data for a segment %s (referencedSegmentIdCount=%d, recordNumberCount=%d, length=%d, totalLength=%d)",
+                        segment.getSegmentId(), referencedSegmentIdCount, recordNumberCount, length, totalLength));
             }
 
             statistics.size = length = totalLength;
@@ -421,6 +407,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         }
 
         if (segmentSize > buffer.length) {
+            LOG.debug("Flushing full segment {} (headerSize={}, recordSize={}, length={}, segmentSize={})",
+                    segment.getSegmentId(), headerSize, recordSize, length, segmentSize);
             flush(store);
         }
 

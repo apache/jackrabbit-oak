@@ -20,20 +20,16 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.UUID;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -45,11 +41,13 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,31 +67,34 @@ public class IdentifierManager {
     private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
 
     private final Root root;
-    private final ReadOnlyNodeTypeManager nodeTypeManager;
+    private final EffectiveNodeTypeProvider effectiveNodeTypeProvider;
 
     public IdentifierManager(Root root) {
         this.root = root;
-        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+        this.effectiveNodeTypeProvider = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
     }
 
+    /**
+     * @deprecated Use {@link UUIDUtils#generateUUID()}
+     */
     @Nonnull
     public static String generateUUID() {
-        return UUID.randomUUID().toString();
+        return UUIDUtils.generateUUID();
     }
 
+    /**
+     * @deprecated Use {@link UUIDUtils#generateUUID(String)}
+     */
     @Nonnull
     public static String generateUUID(String hint) {
-        UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes(Charsets.UTF_8));
-        return uuid.toString();
+        return UUIDUtils.generateUUID(hint);
     }
 
+    /**
+     * @deprecated Use {@link UUIDUtils#isValidUUID(String)} (String)}
+     */
     public static boolean isValidUUID(String uuid) {
-        try {
-            UUID.fromString(uuid);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+        return UUIDUtils.isValidUUID(uuid);
     }
 
     /**
@@ -132,7 +133,7 @@ public class IdentifierManager {
                     ? identifier
                     : identifier.substring(0, k);
 
-            checkArgument(isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
+            checkArgument(UUIDUtils.isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
 
             String basePath = resolveUUID(uuid);
             if (basePath == null) {
@@ -210,7 +211,7 @@ public class IdentifierManager {
      */
     @Nonnull
     public Iterable<String> getReferences(boolean weak, @Nonnull Tree tree, @Nullable final String propertyName) {
-        if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+        if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
@@ -303,7 +304,7 @@ public class IdentifierManager {
     @Nonnull
     public Iterable<String> getReferences(@Nonnull Tree tree, @Nonnull final String propertyName,
                                           @Nonnull String ntName, boolean weak) {
-        if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+        if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 

@@ -31,20 +31,21 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Iterators;
 import com.google.common.io.Closer;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
@@ -67,6 +68,8 @@ import static org.junit.Assume.assumeThat;
  * Test for BlobIdTracker to test addition, retrieval and removal of blob ids.
  */
 public class BlobIdTrackerTest {
+    private static final Logger LOG = LoggerFactory.getLogger(BlobIdTrackerTest.class);
+
     File root;
     SharedDataStore dataStore;
     BlobIdTracker tracker;
@@ -106,6 +109,7 @@ public class BlobIdTrackerTest {
 
     @Test
     public void addSnapshot() throws Exception {
+        LOG.info("In addSnapshot");
         Set<String> initAdd = add(tracker, range(0, 4));
         ScheduledFuture<?> scheduledFuture =
             scheduler.schedule(tracker.new SnapshotJob(), 0, TimeUnit.MILLISECONDS);
@@ -119,19 +123,64 @@ public class BlobIdTrackerTest {
 
     @Test
     public void addSnapshotRemove() throws Exception {
+        LOG.info("In addSnapshotRemove");
+        snapshotRemove(tracker.new SnapshotJob());
+    }
+
+    @Test
+    public void snapshotIgnoreAfterRemove() throws Exception {
+        LOG.info("In snapshotIgnoreAfterRemove");
+        BlobIdTracker.SnapshotJob job = tracker.new SnapshotJob();
+
+        snapshotRemove(job);
+
+        // Since already retrieved the datastore should be empty unless the snapshot has actually run
+        ScheduledFuture<?> scheduledFuture =
+            scheduler.schedule(job, 0, TimeUnit.MILLISECONDS);
+        scheduledFuture.get();
+        assertTrue("Snapshot not skipped",
+            read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())).isEmpty());
+    }
+
+    @Test
+    public void snapshotExecuteAfterRemove() throws Exception {
+        LOG.info("In snapshotExecuteAfterRemove");
+
+        Clock clock = Clock.ACCURATE;
+        BlobIdTracker.SnapshotJob job = tracker.new SnapshotJob(100, clock);
+
+        Set<String> present = snapshotRemove(job);
+
+        clock.waitUntil(System.currentTimeMillis() + 100);
+
+        // Since already retrieved the datastore should not be empty unless the snapshot is ignored
+        ScheduledFuture<?> scheduledFuture =
+            scheduler.schedule(job, 0, TimeUnit.MILLISECONDS);
+        scheduledFuture.get();
+
+        assertEquals("Elements not equal after snapshot after remove", present,
+            read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())));
+    }
+
+    private Set<String> snapshotRemove(BlobIdTracker.SnapshotJob job) throws Exception {
         Set<String> initAdd = add(tracker, range(0, 4));
         ScheduledFuture<?> scheduledFuture =
-            scheduler.schedule(tracker.new SnapshotJob(), 0, TimeUnit.MILLISECONDS);
+            scheduler.schedule(job, 0, TimeUnit.MILLISECONDS);
         scheduledFuture.get();
         assertEquals("Extra elements after add", initAdd, retrieve(tracker));
 
         remove(tracker, folder.newFile(), initAdd, range(1, 2));
+        assertEquals("Extra elements after removes synced with datastore",
+            initAdd, read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())));
 
         assertEquals("Extra elements after remove", initAdd, retrieve(tracker));
+        return initAdd;
     }
 
     @Test
     public void snapshotRetrieveIgnored() throws Exception {
+        LOG.info("In snapshotRetrieveIgnored");
+
         System.setProperty("oak.datastore.skipTracker", "true");
 
         // Close and open a new object to use the system property
@@ -161,6 +210,8 @@ public class BlobIdTrackerTest {
 
     @Test
     public void externalAddOffline() throws Exception {
+        LOG.info("In externalAddOffline");
+
         // Close and open a new object to use the system property
         closer.close();
 

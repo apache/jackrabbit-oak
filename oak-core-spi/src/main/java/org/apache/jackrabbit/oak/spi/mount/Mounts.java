@@ -93,7 +93,7 @@ public final class Mounts {
 
         @Override
         public String getName() {
-            return "";
+            return "<default>";
         }
 
         @Override
@@ -113,6 +113,11 @@ public final class Mounts {
 
         @Override
         public boolean isSupportFragment(String path) {
+            return false;
+        }
+
+        @Override
+        public boolean isSupportFragmentUnder(String path) {
             return false;
         }
 
@@ -154,25 +159,6 @@ public final class Mounts {
      */
     public static MountInfoProvider defaultMountInfoProvider() {
         return DEFAULT_PROVIDER;
-    }
-
-    /**
-     * Returns the default {@link Mount}
-     * 
-     * @return the default mount 
-     */
-    public static Mount defaultMount() {
-        return DEFAULT_MOUNT;
-    }
-
-    /**
-     * Creates a new default (root) mount with the specified non-default mounts
-     * 
-     * @param mounts the mounts to configure
-     * @return the created mount
-     */
-    public static Mount defaultMount(Collection<Mount> mounts) {
-        return new DefaultMount(mounts);
     }
 
     /**

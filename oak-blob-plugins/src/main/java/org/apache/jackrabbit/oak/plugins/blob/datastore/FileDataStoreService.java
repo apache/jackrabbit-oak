@@ -74,16 +74,6 @@ public class FileDataStoreService extends AbstractDataStoreService {
             properties.putAll(config);
             log.info("Initializing with properties " + properties);
 
-            if (JR2_CACHING) {
-                OakCachingFDS dataStore = new OakCachingFDS();
-                dataStore.setFsBackendPath(fsBackendPath);
-
-                // Disabling asyncUpload by default
-                dataStore.setAsyncUploadLimit(
-                    PropertiesUtil.toInteger(config.get("asyncUploadLimit"), 0));
-                dataStore.setProperties(properties);
-                return dataStore;
-            }
             return getCachingDataStore(properties, context);
         } else {
             log.info("OakFileDataStore initialized");

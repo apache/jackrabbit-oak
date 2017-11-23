@@ -123,7 +123,7 @@ public class CachingSegmentReader implements SegmentReader {
     @Nonnull
     @Override
     public SegmentNodeState readNode(@Nonnull RecordId id) {
-        return new SegmentNodeState(this, writer, id);
+        return new SegmentNodeState(this, writer, blobStore, id);
     }
 
     @Nonnull

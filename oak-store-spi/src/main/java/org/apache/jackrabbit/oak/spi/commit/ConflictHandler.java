@@ -37,8 +37,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * that the changes have been successfully merged by this {@code ConflictHandler}
  * instance ({@link Resolution#MERGED}).
  *
- * @see ConflictHandler
+ * @deprecated Use {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler} instead.
  */
+@Deprecated
 public interface ConflictHandler extends PartialConflictHandler {
 
     /**

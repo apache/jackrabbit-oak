@@ -25,16 +25,56 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.StandardSystemProperty;
+import com.google.common.base.Stopwatch;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-
-import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.run.commons.Command;
 
 class CompactCommand implements Command {
+
+    private enum FileAccessMode {
+
+        ARCH_DEPENDENT(null, "default access mode"),
+        MEMORY_MAPPED(true, "memory mapped access mode"),
+        REGULAR(false, "regular access mode"),
+        REGULAR_ENFORCED(false, "enforced regular access mode");
+
+        private final Boolean memoryMapped;
+
+        private final String description;
+
+        FileAccessMode(Boolean memoryMapped, String description) {
+            this.memoryMapped = memoryMapped;
+            this.description = description;
+        }
+
+        Boolean getMemoryMapped() {
+            return memoryMapped;
+        }
+
+        @Override
+        public String toString() {
+            return description;
+        }
+
+    }
+
+    private static FileAccessMode getFileAccessMode(Boolean arg, String os) {
+        if (os != null && os.toLowerCase().contains("windows")) {
+            return FileAccessMode.REGULAR_ENFORCED;
+        }
+        if (arg == null) {
+            return FileAccessMode.ARCH_DEPENDENT;
+        }
+        if (arg) {
+            return FileAccessMode.MEMORY_MAPPED;
+        }
+        return FileAccessMode.REGULAR;
+    }
 
     @Override
     public void execute(String... args) throws Exception {
@@ -43,8 +83,16 @@ class CompactCommand implements Command {
                 "Path to segment store (required)").ofType(String.class);
         OptionSpec<Boolean> mmapArg = parser.accepts("mmap",
                 "Use memory mapped access if true, use file access if false. " +
-                        "If not specified memory mapped access is used on 64 bit systems " +
-                        "and file access is used on 32 bit systems.")
+                    "If not specified, memory mapped access is used on 64 bit " +
+                    "systems and file access is used on 32 bit systems. On " +
+                    "Windows, regular file access is always enforced and this " +
+                    "option is ignored.")
+                .withOptionalArg()
+                .ofType(Boolean.class);
+        OptionSpec<Boolean> forceArg = parser.accepts("force",
+                "Force compaction and ignore a non matching segment store version. " +
+                        "CAUTION: this will upgrade the segment store to the latest version, " +
+                        "which is incompatible with older versions of Oak.")
                 .withOptionalArg()
                 .ofType(Boolean.class);
 
@@ -64,15 +112,15 @@ class CompactCommand implements Command {
         Set<String> afterLs = newHashSet();
         Stopwatch watch = Stopwatch.createStarted();
 
-        Boolean mmap = mmapArg.value(options);
-        System.out.println("Compacting " + directory);
-        if (mmap == null) {
-            System.out.println("With default access mode");
-        } else if (mmap) {
-            System.out.println("With memory mapped access");
-        } else {
-            System.out.println("With file access");
-        }
+        FileAccessMode fileAccessMode = getFileAccessMode(
+            mmapArg.value(options),
+            StandardSystemProperty.OS_NAME.value()
+        );
+
+        System.out.println("Compacting " + directory + " with " + fileAccessMode);
+
+        boolean force = isTrue(forceArg.value(options));
+
         System.out.println("    before ");
         beforeLs.addAll(list(directory));
         long sizeBefore = FileUtils.sizeOfDirectory(directory);
@@ -82,11 +130,10 @@ class CompactCommand implements Command {
         System.out.println("    -> compacting");
 
         try {
-            SegmentTarUtils.compact(directory, mmap);
+            SegmentTarUtils.compact(directory, fileAccessMode.getMemoryMapped(), force);
             success = true;
-        } catch (Throwable e) {
-            System.out.println("Compaction failure stack trace:");
-            e.printStackTrace(System.out);
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
         } finally {
             watch.stop();
             if (success) {
@@ -106,6 +153,10 @@ class CompactCommand implements Command {
                 System.exit(1);
             }
         }
+    }
+
+    private static boolean isTrue(Boolean value) {
+        return value != null && value;
     }
 
     private static Set<String> list(File directory) {

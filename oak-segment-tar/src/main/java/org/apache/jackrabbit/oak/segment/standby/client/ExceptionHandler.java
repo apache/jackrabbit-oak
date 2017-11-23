@@ -28,13 +28,14 @@ class ExceptionHandler extends ChannelInboundHandlerAdapter {
 
     private final String clientId;
 
-    public ExceptionHandler(String clientId) {
+    ExceptionHandler(String clientId) {
         this.clientId = clientId;
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.warn(String.format("Exception caught on client %s", clientId), cause);
+        ctx.close();
     }
 
 }

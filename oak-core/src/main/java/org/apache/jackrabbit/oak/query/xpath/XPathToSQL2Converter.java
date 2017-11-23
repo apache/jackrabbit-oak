@@ -266,6 +266,21 @@ public class XPathToSQL2Converter {
                         readOpenDotClose(true);
                         Expression.Property p = new Expression.Property(currentSelector, "rep:suggest()", false);
                         statement.addSelectColumn(p);
+                    } else if (readIf("rep:facet")) {
+                        // this will also deal with relative properties
+                        // (functions and so on are also working, but this is probably not needed)
+                        read("(");
+                        Expression e = parseExpression();
+                        if (!(e instanceof Expression.Property)) {
+                            throw getSyntaxError();
+                        }
+                        Expression.Property prop = (Expression.Property) e;
+                        String property = prop.getColumnAliasName();
+                        read(")");
+                        rewindSelector();
+                        Expression.Property p = new Expression.Property(currentSelector,
+                                "rep:facet(" + property + ")", false);
+                        statement.addSelectColumn(p);
                     }
                 } while (readIf("|"));
                 if (!readIf(")")) {
@@ -329,12 +344,24 @@ public class XPathToSQL2Converter {
                 statement.addOrderBy(order);
             } while (readIf(","));
         }
-        QueryOptions options = new QueryOptions();
+        QueryOptions options = null;
         if (readIf("option")) {
             read("(");
-            if (readIf("traversal")) {
-                String type = readIdentifier().toUpperCase(Locale.ENGLISH);
-                options.traversal = Traversal.valueOf(type);
+            options = new QueryOptions();
+            while (true) {
+                if (readIf("traversal")) {
+                    String type = readIdentifier().toUpperCase(Locale.ENGLISH);
+                    options.traversal = Traversal.valueOf(type);
+                } else if (readIf("index")) {
+                    if (readIf("name")) {
+                        options.indexName = readIdentifier();
+                    } else if (readIf("tag")) {
+                        options.indexTag = readIdentifier();
+                    }
+                } else {
+                    break;
+                }
+                readIf(",");
             }
             read(")");
         }
@@ -656,6 +683,13 @@ public class XPathToSQL2Converter {
             Expression.Cast c = new Expression.Cast(expr, "date");
             read(")");
             return c;
+        } else if ("fn:coalesce".equals(functionName)) {
+            Expression.Function f = new Expression.Function("coalesce");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:lower-case".equals(functionName)) {
             Expression.Function f = new Expression.Function("lower");
             f.params.add(parseExpression());
@@ -1126,7 +1160,7 @@ public class XPathToSQL2Converter {
             // but no longer in the individual statements
             // (can not use clear, because it is shared)
             stat.orderList = new ArrayList<Order>();
-            stat.queryOptions = new QueryOptions();
+            stat.queryOptions = null;
             if (result == null) {
                 result = stat;
             } else {
@@ -1136,6 +1170,8 @@ public class XPathToSQL2Converter {
         }
         result.orderList = orderList;
         result.queryOptions = queryOptions;
+        result.setExplain(statement.explain);
+        result.setMeasure(statement.measure);
         return result;
     }
 

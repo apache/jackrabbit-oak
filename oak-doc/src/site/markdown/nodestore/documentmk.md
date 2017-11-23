@@ -41,7 +41,7 @@
         * [Cache Invalidation](#cache-invalidation)
         * [Cache Configuration](#cache-configuration)
     * [Unlock upgrade](#unlockUpgrade)
-    * [Revision Garbage Collection](#revisionGC)
+    * [Revision Garbage Collection](#revision-gc)
 
 One of the plugins in Oak stores data in a document oriented format. 
 The plugin implements the low level `NodeStore` interface.
@@ -618,6 +618,9 @@ example unlocks an upgrade to 1.8 with a DocumentNodeStore on MongoDB:
 Please note that unlocking an upgrade is only possible when all cluster nodes
 are inactive, otherwise the command will refuse to change the format version.
 
+See also detailed instructions for various [upgrade](document/upgrade.html)
+paths.
+
 ## <a name="secondary-store"></a> Secondary Store
 
 `@since Oak 1.6`
@@ -629,13 +632,13 @@ Refer to [Secondary Store](document/secondary-store.html)
 As described in the section [Node Content Model](#node-content-model), the
 DocumentNodeStore does not overwrite existing data but adds it to an existing
 document when a property is updated. Cleaning up old data, which is not needed
-anymore is done with a process called `Revision Garbage Collection`. This
-process does not run automatically and must be triggered periodically by the
-application. The garbage collection process adds some pressure on the system,
-so the application should trigger it when it is most convenient. E.g. at night,
-when systems are usually not that busy. It is usually sufficient to run it once
-a day. There are several ways how the revision garbage collection can be
-triggered:
+anymore is done with a process called `Revision Garbage Collection`. Depending
+on deployment this process does not run automatically and must be triggered
+periodically by the application. The garbage collection process adds some 
+pressure on the system, so the application should trigger it when it is most 
+convenient. E.g. at night, when systems are usually not that busy. It is usually
+sufficient to run it once a day. There are several ways how the revision garbage
+collection can be triggered:
 
 * Call `startRevisionGC()` on the [RepositoryManagementMBean](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/api/jmx/RepositoryManagementMBean.html)
 * Call [gc()](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/VersionGarbageCollector.html#gc-long-java.util.concurrent.TimeUnit-) on the `VersionGarbageCollector` obtained from the `DocumentNodeStore` instance
@@ -681,6 +684,15 @@ MongoDB backend can be initiated with:
     java -jar oak-run-1.8.0.jar revisions mongodb://localhost:27017/oak collect
     
 This will collect changes identified as garbage, which is older than 24 hours.
+
+Starting with Oak 1.8 the DocumentNodeStoreService triggers Revision Garbage
+Collection (RGC) automatically. The default schedule depends on the type of
+backend.That is, on RDB the service will schedule a RGC daily at 2 AM. Whereas
+on MongoDB the RGC runs every five seconds. The latter is also known as 
+`Continuous Revision Garbage Collection`. In this mode, the RGC will not log
+every run but only write an INFO message every hour summarizing the GC cycles
+for the past hour.
+For more details, see also the [OSGi configuration][osgi-config] page. 
 
 [1]: http://docs.mongodb.org/manual/core/read-preference/
 [2]: http://docs.mongodb.org/manual/core/write-concern/

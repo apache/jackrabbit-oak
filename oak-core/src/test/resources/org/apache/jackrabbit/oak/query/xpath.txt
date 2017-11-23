@@ -24,6 +24,46 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# OAK-6792
+
+xpath2sql /jcr:root//*/(rep:facet(jcr:data/jcr:createdBy))
+select [jcr:path], [jcr:score], [rep:facet(jcr:data/jcr:createdBy)]
+  from [nt:base] as a
+  where isdescendantnode(a, '/')
+  /* xpath ... */
+
+
+xpath2sql /jcr:root//*/(rep:facet(jcr:createdBy))
+select [jcr:path], [jcr:score], [rep:facet(jcr:createdBy)]
+  from [nt:base] as a
+  where isdescendantnode(a, '/')
+  /* xpath ... */
+
+# OAK-6778
+
+xpath2sql explain /jcr:root/content/(activities|people)//element(*, acme:Asset)
+explain select [jcr:path], [jcr:score], *
+  from [acme:Asset] as a
+  where isdescendantnode(a, '/content/activities')
+  /* xpath ... */
+ 
+xpath2sql explain measure /jcr:root/content/(activities|people)//element(*, acme:Asset)
+explain measure select [jcr:path], [jcr:score], *
+  from [acme:Asset] as a
+  where isdescendantnode(a, '/content/activities')
+  /* xpath ... */
+
+# OAK-937
+
+xpath2sql /jcr:root/content//* option(index tag a, index name b)
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where isdescendantnode(a, '/content') option(index name [b], index tag [a])
+  /* xpath ... */
+
+select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/content') option(index tag [a-b])
+java.text.ParseException: Query: select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/content') option(index tag [a-b](*)); expected: a-z, A-Z, 0-9, _
+
 # OAK-5949
 
 xpath2sql /jcr:root/home//element(*,rep:Authorizable)[jcr:like(@rep:authorizableId,'@')]

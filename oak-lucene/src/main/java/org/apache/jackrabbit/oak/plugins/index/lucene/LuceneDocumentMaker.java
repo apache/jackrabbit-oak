@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -258,11 +259,16 @@ public class LuceneDocumentMaker {
             dirty = true;
         } else {
             if (pd.propertyIndex && pd.includePropertyType(property.getType().tag())) {
-                dirty |= addTypedFields(fields, property, pname);
+                dirty |= addTypedFields(fields, property, pname, pd);
             }
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {
                 for (String value : property.getValue(Type.STRINGS)) {
+
+                    if (!includePropertyValue(value, pd)){
+                        continue;
+                    }
+
                     if (pd.analyzed && pd.includePropertyType(property.getType().tag())) {
                         String analyzedPropName = constructAnalyzedPropertyName(pname);
                         fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
@@ -299,7 +305,7 @@ public class LuceneDocumentMaker {
         return pname;
     }
 
-    private boolean addTypedFields(List<Field> fields, PropertyState property, String pname) {
+    private boolean addTypedFields(List<Field> fields, PropertyState property, String pname, PropertyDefinition pd) {
         int tag = property.getType().tag();
         boolean fieldAdded = false;
         for (int i = 0; i < property.count(); i++) {
@@ -317,8 +323,10 @@ public class LuceneDocumentMaker {
                 f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
             }
 
-            fields.add(f);
-            fieldAdded = true;
+            if (includePropertyValue(property, i, pd)){
+                fields.add(f);
+                fieldAdded = true;
+            }
         }
         return fieldAdded;
     }
@@ -370,7 +378,7 @@ public class LuceneDocumentMaker {
                     new BytesRef(property.getValue(Type.STRING)));
             }
 
-            if (f != null) {
+            if (f != null && includePropertyValue(property, 0, pd)) {
                 fields.add(f);
                 fieldAdded = true;
             }
@@ -382,6 +390,22 @@ public class LuceneDocumentMaker {
                     Type.fromTag(tag, false), path, e);
         }
         return fieldAdded;
+    }
+
+    private boolean includePropertyValue(PropertyState property, int i, PropertyDefinition pd) {
+        if (property.getType().tag() == PropertyType.BINARY){
+            return true;
+        }
+
+        if (pd.valuePattern.matchesAll()) {
+            return true;
+        }
+
+        return includePropertyValue(property.getValue(Type.STRING, i), pd);
+    }
+
+    private boolean includePropertyValue(String value, PropertyDefinition pd){
+        return pd.valuePattern.matches(value);
     }
 
     private static boolean isVisible(String name) {
@@ -448,7 +472,7 @@ public class LuceneDocumentMaker {
                 if (pd.ordered) {
                     addTypedOrderedFields(fields, functionValue, pd.function, pd);
                 }
-                addTypedFields(fields, functionValue, pd.function);
+                addTypedFields(fields, functionValue, pd.function, pd);
                 fieldAdded = true;
             }
         }

@@ -23,11 +23,9 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -37,9 +35,9 @@ import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService
-    .JR2_CACHING_PROP;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.activate;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.injectServices;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 
@@ -67,24 +65,11 @@ public class S3DataStoreServiceTest {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
     }
 
-    @After
-    public void tear() {
-        System.clearProperty(JR2_CACHING_PROP);
-    }
 
     @Test
     public void testDefaultS3Implementation() throws IOException {
         registerBlobStore();
         assertNotNull(context.getService(AbstractSharedCachingDataStore.class));
-
-        unregisterBlobStore();
-    }
-
-    @Test
-    public void testJR2Caching() throws IOException {
-        System.setProperty(JR2_CACHING_PROP, "true");
-        registerBlobStore();
-        assertNotNull(context.getService(SharedS3DataStore.class));
 
         unregisterBlobStore();
     }
@@ -95,8 +80,9 @@ public class S3DataStoreServiceTest {
         Map<String, Object> properties = newHashMap();
         properties.putAll(Maps.fromProperties(S3DataStoreUtils.getS3Config()));
         properties.put("repository.home", folder.newFolder().getAbsolutePath());
-        service = context
-            .registerInjectActivateService(new S3DataStoreService(), properties);
+        service = new S3DataStoreService();
+        injectServices(service, context.bundleContext());
+        activate(service, context.bundleContext(), properties);
     }
 
     private void unregisterBlobStore() {

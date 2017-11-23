@@ -21,6 +21,11 @@
 
 This tool supports maintenance operations such as backup and compaction.
 
+#### Compatibility
+
+We recommend to use the same version of `oak-run` as the one of `oak-core`
+deployed on your system.
+
 #### Backup
 
 To back up a repository, use:

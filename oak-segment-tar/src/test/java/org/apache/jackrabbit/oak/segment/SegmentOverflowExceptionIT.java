@@ -108,7 +108,7 @@ public class SegmentOverflowExceptionIT {
 
                     if (compact) {
                         compact = false;
-                        fileStore.gc();
+                        fileStore.fullGC();
                     }
                 } catch (SegmentNotFoundException snfe) {
                     // Usually this can be ignored as SNFEs are somewhat expected here

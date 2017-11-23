@@ -31,9 +31,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 import com.google.common.collect.Sets;
@@ -295,6 +296,9 @@ public class AndImpl extends ConstraintImpl {
                 nonUnion.add(c);
             } else {
                 union.addAll(converted);
+                if (union.size() > QueryImpl.MAX_UNION) {
+                    throw QueryImpl.TOO_MANY_UNION;
+                }
             }
         }
         if (!union.isEmpty() && nonUnion.size() == 1) {

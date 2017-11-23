@@ -25,7 +25,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -45,16 +48,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -66,7 +73,6 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -234,6 +240,26 @@ public class IndexUpdateTest {
     }
 
     @Test
+    public void testReindexAuto_ImportCase() throws Exception{
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+        idx.child(":index");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+                "rootIndex");
+
+        assertEquals(0, ns.getLong("reindexCount"));
+        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertFalse(ps.getValue(Type.BOOLEAN));
+    }
+
+    @Test
     public void testReindexHidden() throws Exception {
         NodeState before = EmptyNodeState.EMPTY_NODE;
         NodeBuilder builder = before.builder();
@@ -314,6 +340,59 @@ public class IndexUpdateTest {
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
 
+    }
+
+    /**
+     * Tests that with explicit reindex i.e. reindex=true those hidden nodes
+     * which have IndexConstants.REINDEX_RETAIN set to true are not removed
+     */
+    @Test
+    public void reindexSkipRemovalOfRetainedNodes() throws Exception{
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        nb.child(":hidden-node-1").setProperty("foo", "bar");
+        nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
+        nb.child("visible-node");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex");
+        checkPathExists(ns, "visible-node");
+        checkPathExists(ns, ":hidden-node-2");
+        assertFalse(ns.getChildNode(":hidden-node-1").exists());
+        assertEquals(1, ns.getLong(REINDEX_COUNT));
+    }
+
+    /**
+     * Test that an index is still reindexed if it has hidden nodes but with all such
+     * hidden nodes having IndexConstants.REINDEX_RETAIN set to true i.e. this index
+     * does not yet have any hidden nodes corresponding to persisted index like lucene
+     */
+    @Test
+    public void reindexSkipRemovalOfRetainedNodes_FreshIndex() throws Exception{
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+        nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
+        nb.child("visible-node");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex");
+        checkPathExists(ns, "visible-node");
+        checkPathExists(ns, ":hidden-node-2");
+        assertEquals(1, ns.getLong(REINDEX_COUNT));
     }
 
 
@@ -799,6 +878,78 @@ public class IndexUpdateTest {
             assertEquals("Either not all callbacks are called OR same callback got called twice for " + progress,
                     2, numCallbacks.get());
         }
+    }
+
+    @Test
+    public void indexesDisabled() throws Exception{
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "barIndex", true, false, ImmutableSet.of("bar"), null);
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        before = indexed;
+        builder = indexed.builder();
+        NodeBuilder newIndex = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "newIndex", true, false, ImmutableSet.of("bar"), null);
+        newIndex.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/fooIndex"), Type.STRINGS);
+
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        //Post reindex also index should not be disabled
+        assertEquals("property", indexed.getChildNode("oak:index").getChildNode("fooIndex").getString(TYPE_PROPERTY_NAME));
+        assertTrue(indexed.getChildNode("oak:index").getChildNode("newIndex").getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
+
+        before = indexed;
+        builder = indexed.builder();
+        builder.child("testRoot2").setProperty("foo", "abc");
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        //Index only disabled after next cycle
+        assertEquals(IndexConstants.TYPE_DISABLED, indexed.getChildNode("oak:index").getChildNode("fooIndex").getString(TYPE_PROPERTY_NAME));
+        assertFalse(indexed.getChildNode("oak:index").getChildNode("newIndex").getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
+    }
+
+    @Test
+    public void reindexForDisabledIndexes() throws Exception{
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(new CompositeIndexEditorProvider(
+                        new PropertyIndexEditorProvider(),
+                        new ReferenceEditorProvider()
+                )));
+
+        NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        before = indexed;
+        builder = before.builder();
+        builder.getChildNode("oak:index").getChildNode("fooIndex").setProperty(TYPE_PROPERTY_NAME, TYPE_DISABLED);
+        builder.getChildNode("oak:index").getChildNode("fooIndex").setProperty(REINDEX_PROPERTY_NAME, true);
+        after = builder.getNodeState();
+
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).filter(Level.INFO).create();
+        customLogs.starting();
+
+        before = after;
+        builder = before.builder();
+        builder.child("testRoot2").setProperty("foo", "abc");
+        after = builder.getNodeState();
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        assertTrue(customLogs.getLogs().isEmpty());
+        customLogs.finished();
+
     }
 
     private static void markCorrupt(NodeBuilder builder, String indexName) {

@@ -29,11 +29,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
@@ -41,16 +36,18 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
 import org.apache.jackrabbit.util.ISO8601;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@Component
-@Service
-@Properties({
-        @Property(name = "felix.inventory.printer.name", value = "oak-index-stats"),
-        @Property(name = "felix.inventory.printer.title", value = "Oak Index Stats"),
-        @Property(name = "felix.inventory.printer.format", value = { "TEXT"})
-})
+@Component(
+        service = InventoryPrinter.class,
+        property = {
+            "felix.inventory.printer.name=oak-index-stats",
+            "felix.inventory.printer.title=Oak Index Stats",
+            "felix.inventory.printer.format=TEXT"
+        })
 public class IndexPrinter implements InventoryPrinter {
 
     @Reference

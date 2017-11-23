@@ -36,7 +36,7 @@ import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(metatype = true, label = "Apache Jackrabbit Oak MountInfoProvider")
+@Component(metatype = false, label = "Apache Jackrabbit Oak MountInfoProvider")
 public class MountInfoProviderService {
 
     @Property(label = "Mounted paths",
@@ -64,6 +64,7 @@ public class MountInfoProviderService {
     private static final String[] PROP_PATHS_SUPPORTING_FRAGMENTS_DEFAULT = new String[] {"/"};
 
     @Property(label = "Paths supporting fragments",
+            unbounded = PropertyUnbounded.ARRAY,
             description = "oak:mount-* under this paths will be included to mounts",
             value = {"/"}
     )

@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -91,7 +90,14 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     @Override
     public boolean isValid(String indexPath) throws IOException {
         IndexConsistencyChecker checker = new IndexConsistencyChecker(nodeStore.getRoot(), indexPath, workDir);
-        return checker.check(IndexConsistencyChecker.Level.BLOBS_ONLY).clean;
+
+        boolean result = false;
+        try{
+            result = checker.check(IndexConsistencyChecker.Level.BLOBS_ONLY).clean;
+        } catch (Exception e) {
+            log.warn("Error occurred while performing consistency check for {}", indexPath, e);
+        }
+        return result;
     }
 
     private void computeAsyncIndexInfo(NodeState idxState, String indexPath, LuceneIndexInfo info) {
@@ -113,9 +119,8 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         IndexDefinition defn = IndexDefinition.newBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
         for (String dirName : idxState.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(dirName) && MultiplexersLucene.isIndexDirName(dirName)) {
-                Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true);
-                try (DirectoryReader dirReader = DirectoryReader.open(dir)) {
-                    info.numEntries += dirReader.numDocs();
+                try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true)) {
+                    info.numEntries += DirectoryUtils.getNumDocs(dir);
                     info.size = DirectoryUtils.dirSize(dir);
                 }
             }

@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.segment.WriterCacheManager.Operation.WRITE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
@@ -33,22 +32,22 @@ public class WriteCacheManagerTest {
     public void emptyGenerations() {
         WriterCacheManager cache = Empty.INSTANCE;
         assertEquals(
-                cache.getTemplateCache(0, WRITE),
-                cache.getTemplateCache(1, WRITE));
+                cache.getTemplateCache(0),
+                cache.getTemplateCache(1));
         assertEquals(
-                cache.getStringCache(0, WRITE),
-                cache.getStringCache(1, WRITE));
+                cache.getStringCache(0),
+                cache.getStringCache(1));
     }
 
     @Test
     public void nonEmptyGenerations() {
         WriterCacheManager cache = new Default();
         assertNotEquals(
-                cache.getTemplateCache(0, WRITE),
-                cache.getTemplateCache(1, WRITE));
+                cache.getTemplateCache(0),
+                cache.getTemplateCache(1));
         assertNotEquals(
-                cache.getStringCache(0, WRITE),
-                cache.getStringCache(1, WRITE));
+                cache.getStringCache(0),
+                cache.getStringCache(1));
     }
 
 }

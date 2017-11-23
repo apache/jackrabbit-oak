@@ -26,7 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PREFI
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_COUNTER;
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_INCREMENT;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
 import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -108,11 +108,31 @@ public class AtomicCounterEditorTest {
         public String getInstanceId() {
             return "1";
         }
+
+        @Override
+        public String getVisibilityToken() {
+            return "";
+        }
+
+        @Override
+        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+            return true;
+        }
     };
     private static final Clusterable CLUSTER_2 = new Clusterable() {
         @Override
         public String getInstanceId() {
             return "2";
+        }
+
+        @Override
+        public String getVisibilityToken() {
+            return "";
+        }
+
+        @Override
+        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+            return true;
         }
     };
     private static final EditorHook HOOK_NO_CLUSTER = new EditorHook(

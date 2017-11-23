@@ -18,13 +18,19 @@
  */
 package org.apache.jackrabbit.oak.run.cli;
 
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.io.IOException;
 
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -61,6 +67,18 @@ public class SegmentTarFixtureTest {
             builder.setChildNode("foo");
             s.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
+    }
+
+    @Test
+    public void customizerCalled() throws Exception{
+        Options o = createSegmentOptions(folder.getRoot());
+        FileStoreTarBuilderCustomizer customizer = mock(FileStoreTarBuilderCustomizer.class);
+        o.getWhiteboard().register(FileStoreTarBuilderCustomizer.class, customizer, emptyMap());
+        try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(o, false)) {
+
+        }
+
+        verify(customizer, times(1)).customize(any(FileStoreBuilder.class));
     }
 
     private static void createStoreAt(File path) throws InvalidFileStoreVersionException, IOException {

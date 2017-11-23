@@ -155,7 +155,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         File file = cache.getIfPresent((Object) (ID_PREFIX + 0));
         assertNull(file);
         assertCacheStats(cache, 0, 0, 0, 0);
-
+        assertEquals(1, cache.getStats().getMissCount());
         LOG.info("Finished getIfPresentObjectNoCache");
     }
 

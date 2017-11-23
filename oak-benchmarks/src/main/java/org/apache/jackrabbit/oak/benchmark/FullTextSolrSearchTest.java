@@ -98,7 +98,8 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
             serverProvider = createEmbeddedSolrServerProvider(false);
         } else if (server != null && (server.startsWith("http") || server.matches("\\w+\\:\\d{3,5}"))) {
             log.info("using remote Solr {}", server);
-            RemoteSolrServerConfiguration remoteSolrServerConfiguration = new RemoteSolrServerConfiguration(server, "oak", 2, 2, null, server);
+            RemoteSolrServerConfiguration remoteSolrServerConfiguration = new RemoteSolrServerConfiguration(
+                    server, "oak", 2, 2, null, 10, 10, server);
             serverProvider = remoteSolrServerConfiguration.getProvider();
         } else {
             throw new IllegalArgumentException("server parameter value must be either 'embedded', 'default', an URL or an host:port String");

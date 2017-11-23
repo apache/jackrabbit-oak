@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.List;
@@ -29,11 +30,15 @@ import java.util.regex.Pattern;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -46,7 +51,7 @@ public class JsonSerializer {
 
     private static final JsonFilter DEFAULT_FILTER = new JsonFilter(DEFAULT_FILTER_EXPRESSION);
 
-    private final JsopBuilder json;
+    private final JsopWriter json;
 
     private final int depth;
 
@@ -59,7 +64,7 @@ public class JsonSerializer {
     private final BlobSerializer blobs;
 
     private JsonSerializer(
-            JsopBuilder json, int depth, long offset, int maxChildNodes,
+            JsopWriter json, int depth, long offset, int maxChildNodes,
             JsonFilter filter, BlobSerializer blobs) {
         this.json = checkNotNull(json);
         this.depth = depth;
@@ -76,9 +81,21 @@ public class JsonSerializer {
                 new JsonFilter(filter), blobs);
     }
 
-    public JsonSerializer(JsopBuilder json, BlobSerializer blobs) {
+    public JsonSerializer(JsopWriter json,
+            int depth, long offset, int maxChildNodes,
+            String filter, BlobSerializer blobs) {
+        this(json, depth, offset, maxChildNodes,
+                new JsonFilter(filter), blobs);
+    }
+
+    public JsonSerializer(JsopWriter json, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
                 DEFAULT_FILTER, blobs);
+    }
+
+    public JsonSerializer(JsopWriter json, String filter, BlobSerializer blobs) {
+        this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
+                new JsonFilter(filter), blobs);
     }
 
     protected JsonSerializer getChildSerializer() {
@@ -97,14 +114,9 @@ public class JsonSerializer {
             }
         }
 
-        if (filter.includeProperty(":childNodeCount")) {
-            json.key(":childNodeCount");
-            json.value(node.getChildNodeCount(Integer.MAX_VALUE));
-        }
-
         int index = 0;
         int count = 0;
-        for (ChildNodeEntry child : node.getChildNodeEntries()) {
+        for (ChildNodeEntry child : getChildNodeEntries(node)) {
             String name = child.getName();
             if (filter.includeNode(name) && index++ >= offset) {
                 if (count++ >= maxChildNodes) {
@@ -122,6 +134,19 @@ public class JsonSerializer {
         }
 
         json.endObject();
+    }
+
+    private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState node) {
+        PropertyState order = node.getProperty(":childOrder");
+        if (order != null) {
+            List<String> names = ImmutableList.copyOf(order.getValue(NAMES));
+            List<ChildNodeEntry> entries = Lists.newArrayListWithCapacity(names.size());
+            for (String name : names) {
+                entries.add(new MemoryChildNodeEntry(name, node.getChildNode(name)));
+            }
+            return entries;
+        }
+        return node.getChildNodeEntries();
     }
 
     public void serialize(PropertyState property) {

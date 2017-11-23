@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.file.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
@@ -356,8 +356,8 @@ public class ConsistencyChecker implements Closeable {
     }
     
     static class NodeWrapper {
-        NodeState node;
-        String path;
+        final NodeState node;
+        final String path;
         
         NodeWrapper(NodeState node, String path) {
             this.node = node;

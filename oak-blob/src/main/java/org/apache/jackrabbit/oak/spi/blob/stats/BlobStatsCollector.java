@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.spi.blob.stats;
 
 import java.util.concurrent.TimeUnit;
 
-import aQute.bnd.annotation.ConsumerType;
+import org.osgi.annotation.versioning.ConsumerType;
 
 /**
  * BlobStoreStatsCollector receives callback when blobs are written and read

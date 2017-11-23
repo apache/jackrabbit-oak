@@ -15,10 +15,8 @@
  * limitations under the License.
  */
 
-@Version("5.0.0")
-@Export(optional = "provide:=true")
+@Version("4.7.0")
 package org.apache.jackrabbit.oak.api.jmx;
 
-import aQute.bnd.annotation.Export;
-import aQute.bnd.annotation.Version;
+import org.osgi.annotation.versioning.Version;
 

@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -40,22 +36,8 @@ public final class OakVersion {
     @Nonnull
     public synchronized static String getVersion() {
         if (version == null) {
-            version = "SNAPSHOT"; // fallback
-            InputStream stream = OakVersion.class
-                    .getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-core/pom.properties");
-            if (stream != null) {
-                try {
-                    try {
-                        Properties properties = new Properties();
-                        properties.load(stream);
-                        version = properties.getProperty("version");
-                    } finally {
-                        stream.close();
-                    }
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
+            version = org.apache.jackrabbit.oak.commons.OakVersion.getVersion(
+                    "oak-core", OakVersion.class);
         }
         return version;
     }

@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
@@ -113,6 +114,8 @@ public class SQL2Parser {
     
     private boolean literalUsageLogged;
 
+    private final QueryExecutionStats stats;
+
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      * 
@@ -120,10 +123,12 @@ public class SQL2Parser {
      * @param nodeTypes the nodetypes
      * @param settings the query engine settings
      */
-    public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes, QueryEngineSettings settings) {
+    public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes, QueryEngineSettings settings,
+            QueryExecutionStats stats) {
         this.namePathMapper = namePathMapper;
         this.nodeTypes = checkNotNull(nodeTypes);
         this.settings = checkNotNull(settings);
+        this.stats = checkNotNull(stats);
     }
 
     /**
@@ -167,9 +172,20 @@ public class SQL2Parser {
         QueryOptions options = new QueryOptions();
         if (readIf("OPTION")) {
             read("(");
-            if (readIf("TRAVERSAL")) {
-                String n = readName().toUpperCase(Locale.ENGLISH);
-                options.traversal = Traversal.valueOf(n);
+            while (true) {
+                if (readIf("TRAVERSAL")) {
+                    String n = readName().toUpperCase(Locale.ENGLISH);
+                    options.traversal = Traversal.valueOf(n);
+                } else if (readIf("INDEX")) {
+                    if (readIf("NAME")) {
+                        options.indexName = readName();
+                    } else if (readIf("TAG")) {
+                        options.indexTag = readLabel();
+                    }
+                } else {
+                    break;
+                }
+                readIf(",");
             }
             read(")");
         }
@@ -222,7 +238,7 @@ public class SQL2Parser {
             constraint = parseConstraint();
         }
         QueryImpl q = new QueryImpl(
-                statement, source, constraint, columnArray, namePathMapper, settings);
+                statement, source, constraint, columnArray, namePathMapper, settings, stats);
         q.setDistinct(distinct);
         return q;
     }
@@ -273,6 +289,14 @@ public class SQL2Parser {
         }
 
         return factory.selector(nodeTypeInfo, selectorName);
+    }
+    
+    private String readLabel() throws ParseException {
+        String label = readName();
+        if (!label.matches("[a-zA-Z0-9_]*") || label.isEmpty() || label.length() > 128) {
+            throw getSyntaxError("a-z, A-Z, 0-9, _");
+        }
+        return label;
     }
 
     private String readName() throws ParseException {
@@ -658,6 +682,11 @@ public class SQL2Parser {
             } else {
                 op = factory.fullTextSearchScore(readName());
             }
+        } else if ("COALESCE".equalsIgnoreCase(functionName)) {
+            DynamicOperandImpl op1 = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl op2 = parseDynamicOperand();
+            op = factory.coalesce(op1, op2);
         } else if ("LOWER".equalsIgnoreCase(functionName)) {
             op = factory.lowerCase(parseDynamicOperand());
         } else if ("UPPER".equalsIgnoreCase(functionName)) {
@@ -667,7 +696,7 @@ public class SQL2Parser {
             read(",");
             op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
         } else {
-            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, LOWER, UPPER, or PROPERTY");
+            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
         }
         read(")");
         return op;
@@ -880,7 +909,7 @@ public class SQL2Parser {
                         read(")");
                     }
                     readOptionalAlias(column);
-                } else {                    
+                } else {
                     column.propertyName = readName();
                     if (column.propertyName.equals("rep:spellcheck")) {
                         if (readIf("(")) {

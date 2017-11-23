@@ -72,7 +72,7 @@ public class StandbyTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
                 StandbyClientSync clientSync = newStandbyClientSync(secondary, serverPort.getPort())
         ) {
             serverSync.start();
@@ -112,7 +112,7 @@ public class StandbyTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary);
+                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
                 StandbyClientSync clientSync = newStandbyClientSync(secondary, serverPort.getPort())
         ) {
             serverSync.start();

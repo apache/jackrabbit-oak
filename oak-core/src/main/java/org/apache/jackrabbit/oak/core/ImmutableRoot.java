@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
+import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
@@ -44,7 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * passed to the constructor. This root implementation provides a query engine
  * with index support limited to the {@link PropertyIndexProvider}.
  */
-public final class ImmutableRoot implements Root {
+public final class ImmutableRoot implements Root, ReadOnly {
 
     private final ImmutableTree rootTree;
 

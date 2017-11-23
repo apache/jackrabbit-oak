@@ -51,6 +51,7 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
@@ -68,33 +69,55 @@ import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterOld;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.itemsave.ItemSaveValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
@@ -143,6 +166,8 @@ public class Oak {
     private final List<Observer> observers = Lists.newArrayList();
 
     private List<EditorProvider> editorProviders = newArrayList();
+
+    private CompositeConflictHandler conflictHandler;
 
     private SecurityProvider securityProvider;
 
@@ -379,8 +404,13 @@ public class Oak {
     }
 
     @Nonnull
-    public Oak with(@Nonnull QueryEngineSettings queryEngineSettings) {
-        this.queryEngineSettings = new AnnotatedQueryEngineSettings(queryEngineSettings);
+    public Oak with(@Nonnull QueryLimits settings) {
+        QueryEngineSettings s = new QueryEngineSettings();
+        s.setFailTraversal(settings.getFailTraversal());
+        s.setFullTextComparisonWithoutIndex(settings.getFullTextComparisonWithoutIndex());
+        s.setLimitInMemory(settings.getLimitInMemory());
+        s.setLimitReads(settings.getLimitReads());
+        this.queryEngineSettings = new AnnotatedQueryEngineSettings(s);
         return this;
     }
 
@@ -482,6 +512,10 @@ public class Oak {
             if (ri != RepositoryInitializer.DEFAULT) {
                 initializers.add(ri);
             }
+
+            for (ThreeWayConflictHandler tch : sc.getConflictHandlers()) {
+                with(tch);
+            }
         }
         return this;
     }
@@ -491,12 +525,30 @@ public class Oak {
      *
      * @param conflictHandler conflict handler
      * @return this builder
+     * @deprecated Use {@link #with(ThreeWayConflictHandler)} instead
      */
+    @Deprecated
     @Nonnull
     public Oak with(@Nonnull ConflictHandler conflictHandler) {
+        return with(ConflictHandlers.wrap(conflictHandler));
+    }
+
+    @Nonnull
+    public Oak with(@Nonnull ThreeWayConflictHandler conflictHandler) {
         checkNotNull(conflictHandler);
         withEditorHook();
-        commitHooks.add(new ConflictHook(conflictHandler));
+
+        if (this.conflictHandler == null) {
+            if (conflictHandler instanceof CompositeConflictHandler) {
+                this.conflictHandler = (CompositeConflictHandler) conflictHandler;
+            } else {
+                this.conflictHandler = new CompositeConflictHandler();
+                this.conflictHandler.addHandler(conflictHandler);
+            }
+            commitHooks.add(new ConflictHook(conflictHandler));
+        } else {
+            this.conflictHandler.addHandler(conflictHandler);
+        }
         return this;
     }
 
@@ -660,11 +712,19 @@ public class Oak {
                     PropertyIndexAsyncReindexMBean.TYPE, "async"));
         }
 
-        regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
-                new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        if (NodeCounter.USE_OLD_COUNTER) {
+            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
+                    new NodeCounterOld(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        } else {
+            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
+                    new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        }
 
         regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
                 queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings"));
+
+        regs.add(registerMBean(whiteboard, QueryStatsMBean.class,
+                queryEngineSettings.getQueryStats(), QueryStatsMBean.TYPE, "Oak Query Statistics (Extended)"));
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
@@ -673,7 +733,11 @@ public class Oak {
                         new Function<SecurityConfiguration, WorkspaceInitializer>() {
                             @Override
                             public WorkspaceInitializer apply(SecurityConfiguration sc) {
-                                return sc.getWorkspaceInitializer();
+                                WorkspaceInitializer wi = sc.getWorkspaceInitializer();
+                                if (wi instanceof QueryIndexProviderAware){
+                                    ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
+                                }
+                                return wi;
                             }
                         });
         OakInitializer.initialize(
@@ -854,16 +918,8 @@ public class Oak {
             settings.setFastQuerySize(fastQuerySize);
         }
 
-        public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
-            settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
-        }
-
-        public boolean getFullTextComparisonWithoutIndex() {
-            return settings.getFullTextComparisonWithoutIndex();
-        }
-
-        public boolean isSql2Optimisation() {
-            return settings.isSql2Optimisation();
+        public QueryStatsMBean getQueryStats() {
+            return settings.getQueryStats();
         }
 
         public QueryEngineSettings unwrap() {
@@ -875,4 +931,55 @@ public class Oak {
             return settings.toString();
         }
     }
+
+    public static class OakDefaultComponents {
+
+        public static final OakDefaultComponents INSTANCE = new OakDefaultComponents();
+
+        private final Iterable<CommitHook> commitHooks = ImmutableList.of(new VersionHook());
+
+        private  final Iterable<RepositoryInitializer> repositoryInitializers = ImmutableList
+                .of(new InitialContent());
+
+        private  final Iterable<EditorProvider> editorProviders = ImmutableList.of(
+                new ItemSaveValidatorProvider(), new NameValidatorProvider(), new NamespaceEditorProvider(),
+                new TypeEditorProvider(), new ConflictValidatorProvider(), new ChangeCollectorProvider());
+
+        private  final Iterable<IndexEditorProvider> indexEditorProviders = ImmutableList.of(
+                new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider(),
+                new OrderedPropertyIndexEditorProvider());
+
+        private  final Iterable<QueryIndexProvider> queryIndexProviders = ImmutableList
+                .of(new ReferenceIndexProvider(), new PropertyIndexProvider(), new NodeTypeIndexProvider());
+
+        private  final SecurityProvider securityProvider = new SecurityProviderImpl();
+
+        private OakDefaultComponents() {
+        }
+
+        public Iterable<CommitHook> commitHooks() {
+            return commitHooks;
+        }
+
+        public Iterable<RepositoryInitializer> repositoryInitializers() {
+            return repositoryInitializers;
+        }
+
+        public Iterable<EditorProvider> editorProviders() {
+            return editorProviders;
+        }
+
+        public Iterable<IndexEditorProvider> indexEditorProviders() {
+            return indexEditorProviders;
+        }
+
+        public Iterable<QueryIndexProvider> queryIndexProviders() {
+            return queryIndexProviders;
+        }
+
+        public SecurityProvider securityProvider() {
+            return securityProvider;
+        }
+    }
+
 }

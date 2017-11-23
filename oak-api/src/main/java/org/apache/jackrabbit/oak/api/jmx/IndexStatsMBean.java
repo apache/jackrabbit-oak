@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.api.jmx;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface IndexStatsMBean {

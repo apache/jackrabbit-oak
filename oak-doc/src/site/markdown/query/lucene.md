@@ -37,11 +37,13 @@
 * [LuceneIndexProvider Configuration](#osgi-config)
 * [Tika Config](#tika-config)
     * [Mime type usage](#mime-type-usage)
+    * [Mime type mapping](#mime-type-mapping)
 * [Non Root Index Definitions](#non-root-index)
 * [Native Query and Index Selection](#native-query)
 * [CopyOnRead](#copy-on-read)
 * [CopyOnWrite](#copy-on-write)
 * [Lucene Index MBeans](#mbeans)
+* [Active Index Files Collection](#active-blob-collection)
 * [Analyzing created Lucene Index](#luke)
 * [Pre-Extracting Text from Binaries](#text-extraction)
 * [Advanced search features](#advanced-search-features)
@@ -331,6 +333,7 @@ structure
       - notNullCheckEnabled (boolean) = false
       - nullCheckEnabled (boolean) = false
       - excludeFromAggregation (boolean) = false
+      - weight (long) = -1
 
 Following are the details about the above mentioned config options which can be
 defined at the property definition level
@@ -430,6 +433,20 @@ nullCheckEnabled
 excludeFromAggregation
 : Since 1.0.27, 1.2.11
 : if set to true the property would be excluded from aggregation [OAK-3981][OAK-3981]
+
+<a name="weight"></a>
+weight
+: Since 1.6.3
+: At times, we have property definitions which are added to support for dense results right out of 
+  the index (e.g. `contains(*, 'foo') AND [bar]='baz'`). In such cases, the added property definition "might" 
+  not be the best one to answer queries which only have the property restriction (eg only `[bar]='baz'`). This 
+  can happen when that index specifies some exclude paths and hence does not index all `bar` properties.
+  
+  For such cases set `weight` to `0` for such properties. In such a case IndexPlanner would not use those property
+  definitions to determine if that index can answer the query but it would still use them if some other index entry
+  causes that index to be selected for evaluating such a query.
+  
+  Refer [OAK-5899][OAK-5899] for more details
 
 <a name="property-names"></a>**Property Names**
 
@@ -649,7 +666,7 @@ defaults to 5
 
 #### <a name="analyzers"></a>Analyzers
 
-`@since Oak 1.5.5, 1.4.7`
+`@since Oak 1.5.5, 1.4.7, 1.2.19`
 Unless custom analyzer is configured (as documented below), in-built analyzer
 can be configured to include original term as well to be indexed. This is
 controlled by setting boolean property `indexOriginalTerm` on analyzers node.
@@ -761,6 +778,9 @@ Points to note
 7. When defining synonyms:
     * in the synonym file, lines like _plane, airplane, aircraft_ refer to tokens that are mutual synoyms whereas lines 
     like _plane => airplane_ refer to _one way_ synonyms, so that plane will be expanded to airplane but not vice versa
+    * continuing with the point above, since oak would use the same
+    analyzer for indexing as well as querying, using one-way synonyms in
+    any practical way is not supported at the moment.
     * special characters have to be escaped
     * multi word synonyms need particular attention (see https://lucidworks.com/2014/07/12/solution-for-multi-term-synonyms-in-lucenesolr-using-the-auto-phrasing-tokenfilter)
     
@@ -953,6 +973,23 @@ and that is supported by Tika. By default indexer uses [TypeDetector][OAK-2895]
 instead of default `DefaultDetector` which relies on the `jcr:mimeType` to pick up the
 right parser. 
 
+#### <a name="mime-type-mapping"></a>Mime type mapping
+
+`@since Oak 1.7.7`
+
+In certain circumstances, it may be desired to pass a value other than the `jcr:mimeType` property
+into the Tika parser. For example, this would be necessary if a binary has an application-specific 
+mime type, but is parsable by the standard Tika parser for some generic type. To support these cases,
+create a node structure under the `tika/mimeTypes` node following the mime type structure, e.g.
+
+    + tika
+        + mimeTypes (nt:unstructured)
+          + application (nt:unstructured)
+            + vnd.mycompany-document (nt:unstructured)
+              - mappedType = application/pdf
+
+When this index is indexing a binary of type `application/vnd.mycompany-document` it will force Tika
+to treat it as a binary of type `application/pdf`.
 
 ### <a name="non-root-index"></a>Non Root Index Definitions
 
@@ -1041,11 +1078,13 @@ provide better performance and hence faster indexing times.
 
 **indexPath**
 
+_Not required from Oak 1.6 , 1.4.7+_ 
+
 To speed up the indexing with CopyOnWrite you would also need to set `indexPath`
 in index definition to the path of index in the repository. For e.g. if your
 index is defined at `/oak:index/lucene` then value of `indexPath` should be set 
 to `/oak:index/lucene`. This would enable the indexer to perform any read 
-during the indexing process locally and thus avoid costly read from remote
+during the indexing process locally and thus avoid costly read from remote.
 
 For more details refer to [OAK-2247][OAK-2247]. This feature can be enabled via
 [Lucene Index provider service configuration](#osgi-config)
@@ -1056,6 +1095,24 @@ Oak Lucene registers a JMX bean `LuceneIndex` which provide details about the
 index content e.g. size of index, number of documents present in index etc
 
 ![Lucene Index MBean](lucene-index-mbean.png)
+
+### <a name="active-blob-collection"></a>Active Index Files Collection
+
+`@since Oak 1.7.1`
+
+Lucene indexing for moderately active repository creates a lot of deleted files.
+This creates excessive load for usual mark-sweep garbage collection. Since, blobs
+related to indexed data are explicitly made unique, it's safe to delete them as
+soon as index node referring that blob is deleted.
+
+Such active deletion of index blobs was implemented in [OAK-2808][OAK-2808]. The
+feature periodically deletes blobs which are deleted from the index. This 'period'
+can be controlled by `deletedBlobsCollectionInterval` property in
+[Lucene Index provider service configuration](#osgi-config).
+
+The feature would only delete blobs which have been deleted before a certain time.
+This is 24 hours by default and can be controlled by defining `oak.active.deletion.minAge`
+as number of hours to not purge a blob after it's deleted from the repository.
 
 ### <a name="luke"></a>Analyzing created Lucene Index
 
@@ -1103,52 +1160,7 @@ From the Luke UI shown you can access various details.
 
 ### <a name="text-extraction"></a>Pre-Extracting Text from Binaries
 
-`@since Oak 1.0.18, 1.2.3`
-
-Lucene indexing is performed in a single threaded mode. Extracting text from 
-binaries is an expensive operation and slows down the indexing rate considerably.
-For incremental indexing this mostly works fine but if performing a reindex
-or creating the index for the first time after migration then it increases the 
-indexing time considerably. 
-
-To speed up the Lucene indexing for such cases i.e. reindexing, we can decouple 
-the text extraction from actual indexing. 
-
-1. Extract and store the extracted text from binaries via [oak-run tool][oak-run-tika]
-2. Configure a `PreExtractedTextProvider` which can lookup extracted text and 
-   thus avoid text extraction at time of actual indexing
-   
-Below are details around steps required for making using of this feature
-
-1. Generate the csv file containing binary file details
-
-        java -cp tika-app-1.8.jar:oak-run.jar \
-        org.apache.jackrabbit.oak.run.Main tika \  
-        --fds-path /path/to/datastore \
-        --nodestore /path/to/segmentstore --data-file dump.csv generate
-
-2. Extract the text 
-
-        java -cp tika-app-1.8.jar:oak-run.jar \
-        org.apache.jackrabbit.oak.run.Main tika \
-        --data-file binary-stats.csv \
-        --store-path ./store 
-        --fds-path /path/to/datastore  extract
-
-3.  Configure the `PreExtractedTextProvider` - Once the extraction is performed 
-    configure a `PreExtractedTextProvider` within the application such that Lucene 
-    indexer can make use of that to lookup extracted text. 
-
-    For this look for OSGi config for `Apache Jackrabbit Oak DataStore PreExtractedTextProvider`
-        
-    ![OSGi Configuration](pre-extracted-text-osgi.png)   
-   
-Once `PreExtractedTextProvider` is configured then upon reindexing Lucene
-indexer would make use of it to check if text needs to be extracted or not. Check
-`TextExtractionStatsMBean` for various statistics around text extraction and also
-to validate if `PreExtractedTextProvider` is being used.
-
-For more details on this feature refer to [OAK-2892][OAK-2892]
+Refer to [pre-extraction via oak-run](pre-extract-text.html).
 
 ### <a name="advanced-search-features"></a>Advanced search features
 
@@ -1770,6 +1782,8 @@ such fields
 [OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [OAK-4400]: https://issues.apache.org/jira/browse/OAK-4400
+[OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
+[OAK-2808]: https://issues.apache.org/jira/browse/OAK-2808
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console

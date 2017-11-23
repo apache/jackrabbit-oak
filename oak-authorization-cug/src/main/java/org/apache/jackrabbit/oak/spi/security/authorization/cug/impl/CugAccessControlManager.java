@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
@@ -59,7 +59,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * Implementation of the {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager}
@@ -181,7 +180,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             checkValidPolicy(absPath, policy);
 
             Tree tree = getTree(oakPath, Permissions.MODIFY_ACCESS_CONTROL, true);
-            Tree typeRoot = getRoot().getTree(NODE_TYPES_PATH);
+            Tree typeRoot = getRoot().getTree(NodeTypeConstants.NODE_TYPES_PATH);
             if (!TreeUtil.isNodeType(tree, MIX_REP_CUG_MIXIN, typeRoot)) {
                 TreeUtil.addMixin(tree, MIX_REP_CUG_MIXIN, typeRoot, null);
             }

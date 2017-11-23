@@ -153,8 +153,7 @@ public class MigrationOptions {
         this.dstS3Config = args.getOption(OptionParserFactory.DST_S3_CONFIG);
 
         if (args.hasOption(OptionParserFactory.SRC_EXTERNAL_BLOBS)) {
-            this.srcExternalBlobs = Boolean
-                    .valueOf(OptionParserFactory.SRC_EXTERNAL_BLOBS);
+            this.srcExternalBlobs = args.getBooleanOption(OptionParserFactory.SRC_EXTERNAL_BLOBS);
         } else {
             this.srcExternalBlobs = null;
         }

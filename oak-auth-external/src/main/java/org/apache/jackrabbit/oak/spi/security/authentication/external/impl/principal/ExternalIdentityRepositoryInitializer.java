@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -78,7 +78,7 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
 
             Root root = RootFactory.createSystemRoot(store,
                     new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
-                    null, null, null, null);
+                    null, null, null);
 
             // create index definition for "rep:externalId" and "rep:externalPrincipalNames"
             Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
@@ -100,10 +100,7 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
             if (root.hasPendingChanges()) {
                 root.commit();
             }
-        } catch (RepositoryException e) {
-            log.error(errorMsg, e);
-            throw new RuntimeException(e);
-        } catch (CommitFailedException e) {
+        } catch (RepositoryException | CommitFailedException e) {
             log.error(errorMsg, e);
             throw new RuntimeException(e);
         }

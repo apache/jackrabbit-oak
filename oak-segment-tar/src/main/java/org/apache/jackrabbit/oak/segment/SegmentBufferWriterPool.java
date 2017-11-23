@@ -36,13 +36,13 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.Monitor.Guard;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
  * which it passes to its {@link #execute(WriteOperation) execute} method.
  * <p>
- * Instances of this class are thread safe. See also the class comment of
- * {@link SegmentWriter}.
+ * Instances of this class are thread safe.
  */
 public class SegmentBufferWriterPool implements WriteOperationHandler {
 
@@ -75,7 +75,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     private final SegmentReader reader;
 
     @Nonnull
-    private final Supplier<Integer> gcGeneration;
+    private final Supplier<GCGeneration> gcGeneration;
 
     @Nonnull
     private final String wid;
@@ -86,7 +86,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             @Nonnull SegmentIdProvider idProvider,
             @Nonnull SegmentReader reader,
             @Nonnull String wid,
-            @Nonnull Supplier<Integer> gcGeneration) {
+            @Nonnull Supplier<GCGeneration> gcGeneration) {
         this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = checkNotNull(wid);
@@ -191,7 +191,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
                         getWriterId(wid),
                         gcGeneration.get()
                 );
-            } else if (writer.getGeneration() != gcGeneration.get()) {
+            } else if (!writer.getGCGeneration().equals(gcGeneration.get())) {
                 disposed.add(writer);
                 writer = new SegmentBufferWriter(
                         idProvider,

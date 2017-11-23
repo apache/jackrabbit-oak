@@ -218,7 +218,7 @@ public class SegmentDataStoreBlobGCIT {
         // Ensure cleanup is efficient by surpassing the number of
         // retained generations
         for (int k = 0; k < gcOptions.getRetainedGenerations(); k++) {
-            store.compact();
+            store.compactFull();
         }
         store.cleanup();
 

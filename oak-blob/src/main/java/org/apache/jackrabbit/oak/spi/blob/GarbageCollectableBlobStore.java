@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 import java.io.IOException;
 import java.util.Iterator;

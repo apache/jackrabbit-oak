@@ -29,6 +29,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
+
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -85,6 +87,7 @@ public class TypeEditorTest {
     public void removeMandatoryProperty() throws CommitFailedException {
         EffectiveType effective = createControl().createMock(EffectiveType.class);
         expect(effective.isMandatoryProperty("mandatory")).andReturn(true);
+        expect(effective.getDirectTypeNames()).andReturn(Collections.emptyList());
 
         replay(effective);
 
@@ -107,6 +110,7 @@ public class TypeEditorTest {
     public void removeMandatoryChildNode() throws CommitFailedException {
         EffectiveType effective = createControl().createMock(EffectiveType.class);
         expect(effective.isMandatoryChildNode("mandatory")).andReturn(true);
+        expect(effective.getDirectTypeNames()).andReturn(Collections.emptyList());
 
         replay(effective);
 

@@ -22,9 +22,12 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Consumer;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
@@ -47,27 +50,36 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
 
     static final Logger LOG = LoggerFactory.getLogger(UniqueEntryStoreStrategy.class);
 
+    private static final Consumer<NodeBuilder> NOOP = (nb) -> {};
+
     private final String indexName;
+
+    private final Consumer<NodeBuilder> insertCallback;
 
     public UniqueEntryStoreStrategy() {
         this(INDEX_CONTENT_NODE_NAME);
     }
 
     public UniqueEntryStoreStrategy(String indexName) {
+        this(indexName, NOOP);
+    }
+
+    public UniqueEntryStoreStrategy(String indexName, @Nonnull Consumer<NodeBuilder> insertCallback) {
         this.indexName = indexName;
+        this.insertCallback = insertCallback;
     }
 
     @Override
     public void update(
-            NodeBuilder index, String path,
+            Supplier<NodeBuilder> index, String path,
             @Nullable final String indexName,
             @Nullable final NodeBuilder indexMeta,
             Set<String> beforeKeys, Set<String> afterKeys) {
         for (String key : beforeKeys) {
-            remove(index, key, path);
+            remove(index.get(), key, path);
         }
         for (String key : afterKeys) {
-            insert(index, key, path);
+            insert(index.get(), key, path);
         }
     }
 
@@ -94,7 +106,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
         }
     }
     
-    private static void insert(NodeBuilder index, String key, String value) {
+    private void insert(NodeBuilder index, String key, String value) {
         ApproximateCounter.adjustCountSync(index, 1);
         NodeBuilder k = index.child(key);
         ArrayList<String> list = new ArrayList<String>();
@@ -113,31 +125,69 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
         }
         PropertyState s2 = MultiStringPropertyState.stringProperty("entry", list);
         k.setProperty(s2);
+
+        insertCallback.accept(k);
     }
 
     @Override
     public Iterable<String> query(final Filter filter, final String indexName, 
             final NodeState indexMeta, final Iterable<String> values) {
-        final NodeState index = indexMeta.getChildNode(getIndexNodeName());
-        return new Iterable<String>() {
+        return query0(filter, indexName, indexMeta, values, new HitProducer<String>() {
             @Override
-            public Iterator<String> iterator() {
+            public String produce(NodeState indexHit, String pathName) {
+                PropertyState s = indexHit.getProperty("entry");
+                return s.getValue(Type.STRING, 0);
+            }
+        });        
+    }
+
+    
+    
+    /**
+     * Search for a given set of values, returning <tt>IndexEntry</tt> results
+     * 
+     * @param filter the filter (can optionally be used for optimized query execution)
+     * @param indexName the name of the index (for logging)
+     * @param indexMeta the index metadata node (may not be null)
+     * @param values values to look for (null to check for property existence)
+     * @return an iterator of index entries
+     * 
+     * @throws UnsupportedOperationException if the operation is not supported
+     */
+    public Iterable<IndexEntry> queryEntries(Filter filter, String indexName, NodeState indexMeta,
+            Iterable<String> values) {
+        return query0(filter, indexName, indexMeta, values, new HitProducer<IndexEntry>() {
+            @Override
+            public IndexEntry produce(NodeState indexHit, String pathName) {
+                PropertyState s = indexHit.getProperty("entry");
+                return new IndexEntry(s.getValue(Type.STRING, 0), pathName);
+            }
+        });
+    }
+
+    private <T> Iterable<T> query0(Filter filter, String indexName, NodeState indexMeta,
+            Iterable<String> values, HitProducer<T> prod) {
+        final NodeState index = indexMeta.getChildNode(getIndexNodeName());
+        return new Iterable<T>() {
+            @Override
+            public Iterator<T> iterator() {
                 if (values == null) {
-                    return new Iterator<String>() {
+                    return new Iterator<T>() {
                         
                         Iterator<? extends ChildNodeEntry> it = index.getChildNodeEntries().iterator();
-
+                        
                         @Override
                         public boolean hasNext() {
                             return it.hasNext();
                         }
-
+                        
                         @Override
-                        public String next() {
-                            PropertyState s = it.next().getNodeState().getProperty("entry");
-                            return s.getValue(Type.STRING, 0);
+                        public T next() {
+                            ChildNodeEntry indexEntry = it.next();
+                            
+                            return prod.produce(indexEntry.getNodeState(), indexEntry.getName());
                         }
-
+                        
                         @Override
                         public void remove() {
                             it.remove();
@@ -145,24 +195,22 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
                         
                     };
                 }
-                ArrayList<String> list = new ArrayList<String>();
+                ArrayList<T> list = new ArrayList<>();
                 for (String p : values) {
                     NodeState key = index.getChildNode(p);
                     if (key.exists()) {
                         // we have an entry for this value, so use it
-                        PropertyState s = key.getProperty("entry");
-                        String v = s.getValue(Type.STRING, 0);
-                        list.add(v);
+                        list.add(prod.produce(key, p));
                     }
                 }
                 return list.iterator();
             }
         };
     }
-
+    
     @Override
-    public boolean exists(NodeBuilder index, String key) {
-        return index.hasChildNode(key);
+    public boolean exists(Supplier<NodeBuilder> index, String key) {
+        return index.get().hasChildNode(key);
     }
 
     @Override
@@ -208,4 +256,24 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     public String getIndexNodeName() {
         return indexName;
     }
+
+    /**
+     * Creates a specific type of "hit" to return from the query methods
+     * 
+     * <p>Use primarily to reduce duplication when the query algorithms execute mostly the same steps but return different objects.</p>
+     * 
+     * @param <T> The type of Hit to produce
+     */
+    private interface HitProducer<T> {
+        
+        /**
+         * Invoked when a matching index entry is found 
+         * 
+         * @param indexHit the index node
+         * @param propertyValue the value of the property
+         * @return the value produced for the specific "hit" 
+         */
+        T produce(NodeState indexHit, String propertyValue);
+    }
+    
 }

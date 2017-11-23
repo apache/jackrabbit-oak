@@ -36,8 +36,8 @@ public class CommunicationObserverTest {
 
         private final List<CommunicationPartnerMBean> communicationPartners = new ArrayList<>();
 
-        TestCommunicationObserver(String id) {
-            super(id);
+        TestCommunicationObserver(String id, int maxClientMBeans) {
+            super(id, maxClientMBeans);
         }
 
         @Override
@@ -58,7 +58,7 @@ public class CommunicationObserverTest {
 
     @Before
     public void before() {
-        observer = new TestCommunicationObserver("test");
+        observer = new TestCommunicationObserver("test", 10);
     }
 
     @After
@@ -80,10 +80,10 @@ public class CommunicationObserverTest {
 
     @Test
     public void shouldNotKeepManyObservablePartnerMBeans() throws Exception {
-        for (int i = 0; i < CommunicationObserver.MAX_CLIENT_STATISTICS * 2; i++) {
+        for (int i = 0; i < 20; i++) {
             observer.gotMessageFrom(randomUUID().toString(), "request", "127.0.0.1", 8080);
         }
-        assertEquals(CommunicationObserver.MAX_CLIENT_STATISTICS, observer.communicationPartners.size());
+        assertEquals(10, observer.communicationPartners.size());
     }
 
     @Test

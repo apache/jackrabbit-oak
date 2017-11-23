@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -109,9 +109,12 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
         }
 
         if (directory != null) {
-            OakDirectory suggestDirectory = null;
+            Directory suggestDirectory = null;
             if (definition.isSuggestEnabled()) {
                 suggestDirectory = new OakDirectory(new ReadOnlyBuilder(defnNodeState), suggestDataNodeName, definition, true);
+                if (cloner != null && definition.getUniqueId() != null) {
+                    suggestDirectory = cloner.wrapForRead(indexPath, definition, suggestDirectory, suggestDataNodeName);
+                }
             }
 
             try{

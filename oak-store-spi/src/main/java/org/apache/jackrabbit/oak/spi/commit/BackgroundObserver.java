@@ -110,12 +110,6 @@ public class BackgroundObserver implements Observer, Closeable {
     private ContentChange last;
 
     /**
-     * Flag to indicate that some content changes were dropped because
-     * the queue was full.
-     */
-    private boolean full;
-
-    /**
      * Current background task
      */
     private volatile NotifyingFutureTask currentTask = NotifyingFutureTask.completed();
@@ -283,28 +277,30 @@ public class BackgroundObserver implements Observer, Closeable {
 
             //TODO - Support for merging ChangeSet for external changes
             queue.remove(last);
-            full = false;
         }
 
-        ContentChange change;
-        if (full) {
-            // If the queue is full, some commits have already been skipped
-            // so we need to drop the possible local commit information as
-            // only external changes can be merged together to larger chunks.
+        ContentChange change = new ContentChange(root, info);
+
+        // Try to add this change to the queue without blocking
+        boolean full = !queue.offer(change);
+
+        if (full && last != null) { // last is only null at the beginning
+            // queue is full.
+            
+            // when the change can't be added to the queue because it's full
+            // remove the last entry and add an explicit overflow entry instead.
+            queue.remove(last);
+
+            // by removing the last entry we have to drop the possible
+            // local commit information of the current change, 
+            // as we're doing collapsing here and the commit information
+            // no longer represents an individual commit
             change = new ContentChange(root, CommitInfo.EMPTY_EXTERNAL);
-        } else {
-            change = new ContentChange(root, info);
+            queue.offer(change);
         }
-
-        // Try to add this change to the queue without blocking, and
-        // mark the queue as full if there wasn't enough space
-        full = !queue.offer(change);
-
-        if (!full) {
-            // Keep track of the last change added, so we can do the
-            // compacting of external changes shown above.
-            last = change;
-        }
+        // Keep track of the last change added, so we can do the
+        // compacting of external changes shown above.
+        last = change;
 
         // Set the completion handler on the currently running task. Multiple calls
         // to onComplete are not a problem here since we always pass the same value.

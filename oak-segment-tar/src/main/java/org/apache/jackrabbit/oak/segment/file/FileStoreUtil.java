@@ -19,11 +19,8 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.slf4j.Logger;
@@ -62,60 +59,6 @@ class FileStoreUtil {
                 } catch (IllegalArgumentException ignore) {
                     log.warn("Skipping invalid record id {}", entry);
                 }
-            }
-        }
-        return null;
-    }
-
-    static boolean containSegment(List<TarReader> readers, SegmentId id) {
-        return containSegment(readers, id.getMostSignificantBits(), id.getLeastSignificantBits());
-    }
-
-    /**
-     * Check if a segment is contained in one of the provided TAR files.
-     *
-     * @param readers A list of {@link TarReader} instances.
-     * @param msb     Most significant bits of the segment ID.
-     * @param lsb     Least significant bits of the segment ID.
-     * @return {@code true} if the segment is contained in at least one of the
-     * provided TAR files, {@code false} otherwise.
-     */
-    static boolean containSegment(List<TarReader> readers, long msb, long lsb) {
-        for (TarReader reader : readers) {
-            if (reader.containsEntry(msb, lsb)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    static ByteBuffer readEntry(List<TarReader> readers, SegmentId id) {
-        return readEntry(readers, id.getMostSignificantBits(), id.getLeastSignificantBits());
-    }
-
-    /**
-     * Read the entry corresponding to a segment from one of the provided TAR
-     * files.
-     *
-     * @param readers A list of {@link TarReader} instances.
-     * @param msb     Most significant bits of the segment ID.
-     * @param lsb     Least significant bits of the segment ID.
-     * @return An instance of {@link ByteBuffer} if the entry for the segment
-     * could be found, {@code null} otherwise.
-     */
-    static ByteBuffer readEntry(List<TarReader> readers, long msb, long lsb) {
-        for (TarReader reader : readers) {
-            if (reader.isClosed()) {
-                log.debug("Skipping closed tar file {}", reader);
-                continue;
-            }
-            try {
-                ByteBuffer buffer = reader.readEntry(msb, lsb);
-                if (buffer != null) {
-                    return buffer;
-                }
-            } catch (IOException e) {
-                log.warn("Failed to read from tar file {}", reader, e);
             }
         }
         return null;

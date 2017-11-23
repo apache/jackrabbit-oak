@@ -179,6 +179,8 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
                         TimeDurationFormatter.forLogging().format(timeRequired, TimeUnit.SECONDS),
                         percentComplete
                 );
+            } else {
+                return String.format("(Elapsed %s)", watch);
             }
         }
         return "";
@@ -192,7 +194,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
             if (!log.isDebugEnabled() && !st.reindex) {
                 continue;
             }
-            if (st.updateCount > 0) {
+            if (st.updateCount > 0 || st.reindex) {
                 pw.printf("    - %s%n", st);
             }
         }

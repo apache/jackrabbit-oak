@@ -17,13 +17,12 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.readSegmentWithRetry;
-
 import java.io.IOException;
 import java.util.UUID;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,24 +38,24 @@ class DefaultStandbySegmentReader implements StandbySegmentReader {
     }
 
     @Override
-    public byte[] readSegment(String segmentId) {
-        UUID uuid = UUID.fromString(segmentId);
+    public byte[] readSegment(String id) {
+        UUID uuid = UUID.fromString(id);
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
+        SegmentId segmentId = store.getSegmentIdProvider().newSegmentId(msb, lsb);
 
-        Segment segment = readSegmentWithRetry(store, store.getSegmentIdProvider().newSegmentId(msb, lsb));
-
-        if (segment == null) {
-            return null;
+        if (store.containsSegment(segmentId)) {
+            Segment segment = store.readSegment(segmentId);
+            try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+                segment.writeTo(stream);
+                return stream.toByteArray();
+            } catch (IOException e) {
+                log.warn("Error while reading segment content", e);
+                return null;
+            }
         }
-
-        try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
-            segment.writeTo(stream);
-            return stream.toByteArray();
-        } catch (IOException e) {
-            log.warn("Error while reading segment content", e);
-            return null;
-        }
+        
+        return null;
     }
 
 }

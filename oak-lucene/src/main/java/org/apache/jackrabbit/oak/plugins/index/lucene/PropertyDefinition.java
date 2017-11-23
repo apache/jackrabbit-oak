@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
+import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,9 +39,10 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_IS_REGEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 
-class PropertyDefinition {
+public class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
     /**
      * The default boost: 1.0f.
@@ -93,6 +95,8 @@ class PropertyDefinition {
 
     final boolean excludeFromAggregate;
 
+    final int weight;
+
     /**
      * Property name excluding the relativePath. For regular expression based definition
      * its set to null
@@ -102,7 +106,7 @@ class PropertyDefinition {
 
     /**
      * For function-based indexes: the function name, in Polish notation.
-     */    
+     */
     final String function;
     
     /**
@@ -110,11 +114,18 @@ class PropertyDefinition {
      */    
     final String[] functionCode;
 
+    public final ValuePattern valuePattern;
+
+    public final boolean sync;
+
+    public final boolean unique;
+
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
+        this.weight = getOptionalValue(defn, PROP_WEIGHT, -1);
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);
@@ -128,8 +139,6 @@ class PropertyDefinition {
             this.analyzed = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ANALYZED, false);
         }
 
-        //If node is not set for full text then a property definition indicates that definition is for property index
-        this.propertyIndex = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
         this.ordered = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ORDERED, false);
         this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, LuceneIndexConstants.PROP_INCLUDED_TYPE,
                 IndexDefinition.TYPES_ALLOW_ALL);
@@ -148,6 +157,12 @@ class PropertyDefinition {
         this.function = FunctionIndexProcessor.convertToPolishNotation(
                 getOptionalValue(defn, LuceneIndexConstants.PROP_FUNCTION, null));
         this.functionCode = FunctionIndexProcessor.getFunctionCode(this.function);
+        this.valuePattern = new ValuePattern(defn);
+        this.unique = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_UNIQUE, false);
+        this.sync = unique || getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_SYNC, false);
+
+        //If some property is set to sync then propertyIndex mode is always enabled
+        this.propertyIndex = sync || getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
         validate();
     }
 
@@ -212,6 +227,7 @@ class PropertyDefinition {
                 ", useInSuggest=" + useInSuggest+
                 ", nullCheckEnabled=" + nullCheckEnabled +
                 ", notNullCheckEnabled=" + notNullCheckEnabled +
+                ", function=" + function +
                 '}';
     }
 

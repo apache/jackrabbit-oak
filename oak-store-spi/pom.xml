@@ -32,10 +32,6 @@
       <plugins>
         <plugin>
           <groupId>org.apache.felix</groupId>
-          <artifactId>maven-scr-plugin</artifactId>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
           <configuration>
             <instructions>
@@ -43,13 +39,32 @@
                 org.apache.jackrabbit.oak.json,
                 org.apache.jackrabbit.oak.spi.cluster,
                 org.apache.jackrabbit.oak.spi.commit,
+                org.apache.jackrabbit.oak.spi.filter,
                 org.apache.jackrabbit.oak.spi.lifecycle,
                 org.apache.jackrabbit.oak.spi.state,
                 org.apache.jackrabbit.oak.plugins.memory,
-                org.apache.jackrabbit.oak.plugins.value
+                org.apache.jackrabbit.oak.plugins.value,
+                org.apache.jackrabbit.oak.plugins.value.jcr
               </Export-Package>
             </instructions>
           </configuration>
+          <executions>
+            <execution>
+              <id>baseline</id>
+              <goals>
+                <goal>baseline</goal>
+              </goals>
+              <phase>pre-integration-test</phase>
+              <configuration>
+                <!--
+                  This is required as classes present in this module
+                  were part of oak-core. This should be removed
+                  post 1.8 release
+                -->
+                <comparisonArtifactId>oak-core</comparisonArtifactId>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
@@ -74,16 +89,6 @@
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.compendium</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>biz.aQute.bnd</groupId>
-      <artifactId>bndlib</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
       <scope>provided</scope>
     </dependency>
 

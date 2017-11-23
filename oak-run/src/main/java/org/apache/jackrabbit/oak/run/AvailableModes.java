@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.exporter.NodeStateExportCommand;
 import org.apache.jackrabbit.oak.index.IndexCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
@@ -33,12 +34,12 @@ public final class AvailableModes {
             .put("check", new CheckCommand())
             .put("datastorecacheupgrade", new DataStoreCacheUpgradeCommand())
             .put("compact", new CompactCommand())
+            .put("composite-prepare", new CompositePrepareCommand())
             .put("console", new ConsoleCommand())
             .put("datastorecheck", new DataStoreCheckCommand())
             .put("debug", new DebugCommand())
             .put("explore", new ExploreCommand())
             .put("garbage", new GarbageCommand())
-            .put("graph", new GraphCommand())
             .put("help", new HelpCommand())
             .put("history", new HistoryCommand())
             .put(JsonIndexCommand.INDEX, new JsonIndexCommand())
@@ -54,5 +55,7 @@ public final class AvailableModes {
             .put("upgrade", new UpgradeCommand())
             .put("unlockupgrade", new UnlockUpgradeCommand())
             .put(IndexCommand.NAME, new IndexCommand())
+            .put(NodeStateExportCommand.NAME, new NodeStateExportCommand())
+            .put("server", new ServerCommand())
             .build());
 }

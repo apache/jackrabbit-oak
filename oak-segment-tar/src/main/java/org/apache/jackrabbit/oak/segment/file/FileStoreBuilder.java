@@ -40,13 +40,17 @@ import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager;
-import org.apache.jackrabbit.oak.segment.compaction.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
+import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,28 +97,32 @@ public class FileStoreBuilder {
     @CheckForNull
     private EvictingWriteCacheManager cacheManager;
 
-    @Nonnull
-    private final GCListener gcListener = new GCListener(){
+    private class FileStoreGCListener extends DelegatingGCMonitor implements GCListener {
         @Override
-        public void compactionSucceeded(int newGeneration) {
+        public void compactionSucceeded(@Nonnull GCGeneration newGeneration) {
             compacted();
             if (cacheManager != null) {
-                cacheManager.evictOldGeneration(newGeneration);
+                cacheManager.evictOldGeneration(newGeneration.getGeneration());
             }
         }
 
         @Override
-        public void compactionFailed(int failedGeneration) {
+        public void compactionFailed(@Nonnull GCGeneration failedGeneration) {
             if (cacheManager != null) {
-                cacheManager.evictGeneration(failedGeneration);
+                cacheManager.evictGeneration(failedGeneration.getGeneration());
             }
         }
-    };
+    }
+
+    @Nonnull
+    private final FileStoreGCListener gcListener = new FileStoreGCListener();
 
     @Nonnull
     private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;
 
     private IOMonitor ioMonitor = new IOMonitorAdapter();
+
+    private boolean strictVersionCheck;
     
     private boolean built;
 
@@ -286,8 +294,23 @@ public class FileStoreBuilder {
         return this;
     }
 
+    @Nonnull
     public FileStoreBuilder withIOMonitor(IOMonitor ioMonitor) {
         this.ioMonitor = checkNotNull(ioMonitor);
+        return this;
+    }
+
+    /**
+     * Enable strict version checking. With strict version checking enabled Oak
+     * will fail to start if the store version does not exactly match this Oak version.
+     * This is useful to e.g. avoid inadvertent upgrades during when running offline
+     * compaction accidentally against an older version of a store.
+     * @param strictVersionCheck  enables strict version checking iff {@code true}.
+     * @return this instance
+     */
+    @Nonnull
+    public FileStoreBuilder withStrictVersionCheck(boolean strictVersionCheck) {
+        this.strictVersionCheck = strictVersionCheck;
         return this;
     }
     
@@ -432,13 +455,17 @@ public class FileStoreBuilder {
     public WriterCacheManager getCacheManager() {
         if (cacheManager == null) {
             cacheManager = new EvictingWriteCacheManager(stringDeduplicationCacheSize,
-                    templateDeduplicationCacheSize, nodeDeduplicationCacheSize, statsProvider);
+                    templateDeduplicationCacheSize, nodeDeduplicationCacheSize);
         }
         return cacheManager;
     }
 
     IOMonitor getIOMonitor() {
         return ioMonitor;
+    }
+
+    boolean getStrictVersionCheck() {
+        return strictVersionCheck;
     }
 
     @Override
@@ -463,12 +490,10 @@ public class FileStoreBuilder {
         public EvictingWriteCacheManager(
                 int stringCacheSize,
                 int templateCacheSize,
-                int nodeCacheSize,
-                @Nonnull StatisticsProvider statisticsProvider) {
+                int nodeCacheSize) {
             super(RecordCache.factory(stringCacheSize, new StringCacheWeigher()),
                 RecordCache.factory(templateCacheSize, new TemplateCacheWeigher()),
-                PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()),
-                statisticsProvider);
+                PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()));
         }
 
         void evictOldGeneration(final int newGeneration) {

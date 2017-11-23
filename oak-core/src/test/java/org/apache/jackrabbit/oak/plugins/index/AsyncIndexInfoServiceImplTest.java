@@ -19,11 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -74,6 +79,39 @@ public class AsyncIndexInfoServiceImplTest {
 
         AsyncIndexInfo info2 = service.getInfo("foo-async");
         assertNull(info2.getStatsMBean());
+    }
+
+    @Test
+    public void indexedUpto() throws Exception{
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+
+        AsyncIndexUpdate async2 = new AsyncIndexUpdate("foo-async", store, provider);
+        async2.run();
+
+        Map<String, Long> result = service.getIndexedUptoPerLane();
+
+        assertFalse(result.isEmpty());
+        assertTrue(result.get("async") > -1);
+        assertTrue(result.get("foo-async") > -1);
+    }
+
+    @Test
+    public void asyncStateChanged() throws Exception{
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+
+        AsyncIndexUpdate async2 = new AsyncIndexUpdate("foo-async", store, provider);
+        async2.run();
+
+        NodeState root = store.getRoot();
+        assertFalse(service.hasIndexerUpdatedForAnyLane(root, root));
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(":async").setProperty(AsyncIndexUpdate.lastIndexedTo("async"), 42L);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue(service.hasIndexerUpdatedForAnyLane(root, store.getRoot()));
     }
 
 }

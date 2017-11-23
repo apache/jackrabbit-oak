@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +38,8 @@ import com.google.common.io.ByteStreams;
  * For reading any record of type "VALUE" as binary streams.
  */
 public class SegmentStream extends InputStream {
+
+    static final int BLOCK_SIZE = 1 << 12; // 4kB
 
     @CheckForNull
     public static RecordId getRecordIdIfAvailable(

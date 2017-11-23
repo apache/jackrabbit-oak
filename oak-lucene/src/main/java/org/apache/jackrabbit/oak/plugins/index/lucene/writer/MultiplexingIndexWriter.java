@@ -37,17 +37,19 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
     private final IndexDefinition definition;
     private final NodeBuilder definitionBuilder;
     private final boolean reindex;
+    private final LuceneIndexWriterConfig writerConfig;
 
     private final Map<Mount, DefaultIndexWriter> writers = Maps.newHashMap();
 
     public MultiplexingIndexWriter(DirectoryFactory directoryFactory, MountInfoProvider mountInfoProvider,
                                    IndexDefinition definition, NodeBuilder definitionBuilder,
-                                   boolean reindex) {
+                                   boolean reindex, LuceneIndexWriterConfig writerConfig) {
         this.mountInfoProvider = mountInfoProvider;
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
         this.reindex = reindex;
         this.directoryFactory = directoryFactory;
+        this.writerConfig = writerConfig;
     }
 
     @Override
@@ -97,6 +99,6 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
         String dirName = MultiplexersLucene.getIndexDirName(m);
         String suggestDirName = MultiplexersLucene.getSuggestDirName(m);
         return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory, dirName,
-            suggestDirName, reindex);
+            suggestDirName, reindex, writerConfig);
     }
 }

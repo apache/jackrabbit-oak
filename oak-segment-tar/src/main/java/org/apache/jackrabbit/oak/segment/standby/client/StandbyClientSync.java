@@ -35,6 +35,7 @@ import javax.management.StandardMBean;
 import com.google.common.base.Supplier;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ClientStandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
@@ -102,7 +103,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         try {
             jmxServer.registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
-            log.error("can register standby status mbean", e);
+            log.error("cannot register standby status mbean", e);
         }
     }
 
@@ -118,7 +119,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         try {
             jmxServer.unregisterMBean(new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
-            log.error("can unregister standby status mbean", e);
+            log.error("cannot unregister standby status mbean", e);
         }
         closeGroup();
         observer.unregister();
@@ -152,11 +153,11 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                 try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs)) {
                     client.connect(host, port);
 
-                    int genBefore = headGeneration(fileStore);
+                    GCGeneration genBefore = headGeneration(fileStore);
                     new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
-                    int genAfter = headGeneration(fileStore);
+                    GCGeneration genAfter = headGeneration(fileStore);
 
-                    if (autoClean && (genAfter > genBefore)) {
+                    if (autoClean && (genAfter.compareWith(genBefore)) > 0) {
                         log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
                         cleanupAndRemove();
                     }
@@ -178,7 +179,8 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         }
     }
 
-    private static int headGeneration(FileStore fileStore) {
+    @Nonnull
+    private static GCGeneration headGeneration(FileStore fileStore) {
         return fileStore.getHead().getRecordId().getSegment().getGcGeneration();
     }
 

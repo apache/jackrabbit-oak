@@ -254,7 +254,7 @@ class UserPrincipalProvider implements PrincipalProvider {
                 if (groupTree != null && UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
                     Group gr = createGroupPrincipal(groupTree);
                     if (gr != null) {
-                        groupPrincipals.add(createGroupPrincipal(groupTree));
+                        groupPrincipals.add(gr);
                     }
                 }
             }

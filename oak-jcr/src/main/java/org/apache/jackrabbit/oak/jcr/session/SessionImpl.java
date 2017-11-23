@@ -66,6 +66,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -669,7 +670,7 @@ public class SessionImpl implements JackrabbitSession {
                         // add-node needs to be checked on the (path of) the
                         // new node that has/will be added
                         String path = PathUtils.concat(tree.getPath(), sessionContext.getOakName(arguments[0].toString()));
-                        return accessMgr.hasPermissions(path, Session.ACTION_ADD_NODE);
+                        return accessMgr.hasPermissions(path, Session.ACTION_ADD_NODE)  && !isMountedReadOnly(path);
                     }
                 } else if ("setPrimaryType".equals(methodName) || "addMixin".equals(methodName) || "removeMixin".equals(methodName)) {
                     permission = Permissions.NODE_TYPE_MANAGEMENT;
@@ -685,7 +686,7 @@ public class SessionImpl implements JackrabbitSession {
                 } else if ("remove".equals(methodName)) {
                     permission = Permissions.REMOVE_NODE;
                 }
-                return accessMgr.hasPermissions(tree, null, permission);
+                return accessMgr.hasPermissions(tree, null, permission) && !isMountedReadOnly(tree.getPath());
             } else {
                 if ("setValue".equals(methodName)) {
                     permission = Permissions.MODIFY_PROPERTY;
@@ -694,14 +695,21 @@ public class SessionImpl implements JackrabbitSession {
                 }
                 NodeDelegate parentDelegate = dlg.getParent();
                 if (parentDelegate != null) {
-                    return accessMgr.hasPermissions(parentDelegate.getTree(), ((PropertyDelegate) dlg).getPropertyState(), permission);
+                    return accessMgr.hasPermissions(parentDelegate.getTree(), ((PropertyDelegate) dlg).getPropertyState(), permission) 
+                            && !isMountedReadOnly(parentDelegate.getPath());
                 } else {
-                    return accessMgr.hasPermissions(dlg.getPath(), (permission == Permissions.MODIFY_PROPERTY) ? Session.ACTION_SET_PROPERTY : Session.ACTION_REMOVE);
+                    return accessMgr.hasPermissions(dlg.getPath(), (permission == Permissions.MODIFY_PROPERTY) ? Session.ACTION_SET_PROPERTY : Session.ACTION_REMOVE)
+                            && !isMountedReadOnly(dlg.getPath());
                 }
             }
         }
         // TODO: add more best-effort checks
         return true;
+    }
+
+    private boolean isMountedReadOnly(String path) {
+        MountInfoProvider mip = sessionContext.getMountInfoProvider();
+        return mip != null && mip.getMountByPath(path).isReadOnly();
     }
 
     @Override

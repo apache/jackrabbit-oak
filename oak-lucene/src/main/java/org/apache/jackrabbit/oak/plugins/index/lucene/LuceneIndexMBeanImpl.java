@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -41,6 +42,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -49,7 +51,9 @@ import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex.PathStoredFieldVisitor;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexInfo;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Result;
@@ -61,6 +65,8 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -72,6 +78,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
+import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,18 +90,21 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAnce
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
     private final NodeStore nodeStore;
     private final IndexPathService indexPathService;
     private final File workDir;
+    private final PropertyIndexCleaner propertyIndexCleaner;
 
-    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir) {
+    public LuceneIndexMBeanImpl(IndexTracker indexTracker, NodeStore nodeStore, IndexPathService indexPathService, File workDir, @Nullable PropertyIndexCleaner cleaner) {
         super(LuceneIndexMBean.class);
         this.indexTracker = checkNotNull(indexTracker);
         this.nodeStore = checkNotNull(nodeStore);
         this.indexPathService = indexPathService;
         this.workDir = checkNotNull(workDir);
+        this.propertyIndexCleaner = cleaner;
     }
 
     @Override
@@ -227,6 +237,41 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     @Override
+    public String[] getFieldTermsInfo(String indexPath, String field, int max) throws IOException {
+        return getFieldTermPrefixInfo(indexPath, field, max, null);
+    }
+
+    @Override
+    public String[] getFieldTermInfo(String indexPath, String field, String term) throws IOException {
+        return getFieldTermPrefixInfo(indexPath, field, Integer.MAX_VALUE, term);
+    }
+
+    private String[] getFieldTermPrefixInfo(String indexPath, String field, int max, String term) throws IOException {
+        TreeSet<String> indexes = new TreeSet<String>();
+        if (indexPath == null || indexPath.isEmpty()) {
+            indexes.addAll(indexTracker.getIndexNodePaths());
+        } else {
+            indexes.add(indexPath);
+        }
+        ArrayList<String> list = new ArrayList<String>();
+        for (String path : indexes) {
+            IndexNode indexNode = null;
+            try {
+                indexNode = indexTracker.acquireIndexNode(path);
+                if (indexNode != null) {
+                    IndexSearcher searcher = indexNode.getSearcher();
+                    list.addAll(getFieldTerms(path, field, max, term, searcher));
+                }
+            } finally {
+                if (indexNode != null) {
+                    indexNode.release();
+                }
+            }
+        }
+        return list.toArray(new String[0]);
+    }
+
+    @Override
     public String getStoredIndexDefinition(@Name("indexPath") String indexPath) {
         IndexDefinition defn = indexTracker.getIndexDefinition(indexPath);
         NodeState state;
@@ -301,6 +346,22 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         return clean;
     }
 
+    @Override
+    public String performPropertyIndexCleanup() throws CommitFailedException {
+        String result = "PropertyIndexCleaner not enabled";
+        if (propertyIndexCleaner != null) {
+            result = propertyIndexCleaner.performCleanup(true).toString();
+        }
+        log.info("Explicit cleanup run done with result {}", result);
+        return result;
+    }
+
+    @Override
+    public String getHybridIndexInfo(String indexPath) {
+        NodeState idx = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
+        return new HybridPropertyIndexInfo(idx).getInfoAsJson();
+    }
+
     private Result getConsistencyCheckResult(String indexPath, boolean fullCheck) throws IOException {
         NodeState root = nodeStore.getRoot();
         Level level = fullCheck ? Level.FULL : Level.BLOBS_ONLY;
@@ -342,6 +403,73 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             }
         }
         return list;
+    }
+
+    private static ArrayList<String> getFieldTerms(String path,
+            String field, int max, String term, IndexSearcher searcher) throws IOException {
+        if (field == null || field.isEmpty()) {
+            ArrayList<String> list = new ArrayList<String>();
+            IndexReader reader = searcher.getIndexReader();
+            Fields fields = MultiFields.getFields(reader);
+            if (fields != null) {
+                for(String f : fields) {
+                    list.addAll(getFieldTerms(path, f, max, term, searcher));
+                }
+            }
+            return list;
+        }
+        IndexReader reader = searcher.getIndexReader();
+        Terms terms = MultiFields.getTerms(reader, field);
+        ArrayList<String> result = new ArrayList<>();
+        if (terms == null) {
+            return result;
+        }
+        TermsEnum iterator = terms.iterator(null);
+        BytesRef byteRef = null;
+        class Entry implements Comparable<Entry> {
+            String term;
+            int count;
+            @Override
+            public int compareTo(Entry o) {
+                int c = Integer.compare(count, o.count);
+                if (c == 0) {
+                    c = term.compareTo(o.term);
+                }
+                return -c;
+            }
+        }
+        ArrayList<Entry> list = new ArrayList<>();
+        long totalCount = 0;
+        while((byteRef = iterator.next()) != null) {
+            Entry e = new Entry();
+            e.term = byteRef.utf8ToString();
+            if (term != null) {
+                if (e.term != null && !e.term.equals(term)) {
+                    continue;
+                }
+            }
+            e.count = iterator.docFreq();
+            totalCount += e.count;
+            if (e.count > 1) {
+                list.add(e);
+            }
+            if (max > 0 && list.size() > 2 * max) {
+                sortAndTruncateList(list, max);
+            }
+        }
+        sortAndTruncateList(list, max);
+        result.add(totalCount + " (total for field " + field + ")");
+        for(Entry e : list) {
+            result.add(e.count + " " + e.term);
+        }
+        return result;
+    }
+
+    static <T extends Comparable<T>> void sortAndTruncateList(ArrayList<T> list, int max) {
+        Collections.sort(list);
+        if (max > 0 && list.size() > max) {
+            list.subList(max, list.size()).clear();
+        }
     }
 
     private static String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel, int maxPathCount)

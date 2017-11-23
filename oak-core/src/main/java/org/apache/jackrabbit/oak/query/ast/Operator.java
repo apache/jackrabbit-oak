@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.query.fulltext.LikePattern;
+import org.apache.jackrabbit.oak.spi.query.fulltext.LikePattern;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
 /**

@@ -28,11 +28,11 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.slf4j.Logger;
@@ -150,6 +150,11 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         }
 
         if (parent == null) {
+            PropertyUpdateCallback callback = context.getPropertyUpdateCallback();
+            if (callback != null) {
+                callback.done();
+            }
+
             try {
                 context.closeWriter();
             } catch (IOException e) {
@@ -168,6 +173,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     public void propertyAdded(PropertyState after) {
         markPropertyChanged(after.getName());
         checkAggregates(after.getName());
+        propertyUpdated(null, after);
     }
 
     @Override
@@ -175,6 +181,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         markPropertyChanged(before.getName());
         propertiesModified.add(before);
         checkAggregates(before.getName());
+        propertyUpdated(before, after);
     }
 
     @Override
@@ -182,6 +189,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         markPropertyChanged(before.getName());
         propertiesModified.add(before);
         checkAggregates(before.getName());
+        propertyUpdated(before, null);
     }
 
     @Override
@@ -343,6 +351,36 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 && !propertiesChanged
                 && indexingRule.isIndexed(name)) {
             propertiesChanged = true;
+        }
+    }
+
+    private void propertyUpdated(PropertyState before, PropertyState after) {
+        PropertyUpdateCallback callback = context.getPropertyUpdateCallback();
+
+        //Avoid further work if no callback is present
+        if (callback == null) {
+            return;
+        }
+
+        String propertyName = before != null ? before.getName() : after.getName();
+
+        if (isIndexable()) {
+            PropertyDefinition pd = indexingRule.getConfig(propertyName);
+            if (pd != null) {
+                callback.propertyUpdated(getPath(), propertyName, pd, before, after);
+            }
+        }
+
+        for (Matcher m : matcherState.matched) {
+            if (m.aggregatesProperty(propertyName)) {
+                Aggregate.Include i = m.getCurrentInclude();
+                if (i instanceof Aggregate.PropertyInclude) {
+                    PropertyDefinition pd = ((Aggregate.PropertyInclude) i).getPropertyDefinition();
+                    String propertyRelativePath = PathUtils.concat(m.getMatchedPath(), propertyName);
+
+                    callback.propertyUpdated(m.getRootPath(), propertyRelativePath, pd, before, after);
+                }
+            }
         }
     }
 

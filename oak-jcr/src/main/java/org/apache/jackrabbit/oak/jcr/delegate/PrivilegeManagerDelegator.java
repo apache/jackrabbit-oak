@@ -68,7 +68,7 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
 
     @Override
     public Privilege registerPrivilege(final String privilegeName, final boolean isAbstract, final String[] declaredAggregateNames) throws AccessDeniedException, NamespaceException, RepositoryException {
-        return delegate.perform(new SessionOperation<Privilege>("registerPrivilege") {
+        return delegate.perform(new SessionOperation<Privilege>("registerPrivilege", true) {
             @Nonnull
             @Override
             public Privilege perform() throws RepositoryException {

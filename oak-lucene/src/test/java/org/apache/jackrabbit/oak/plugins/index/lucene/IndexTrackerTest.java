@@ -26,9 +26,11 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -39,6 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.STATUS_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
@@ -47,6 +50,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("UnusedAssignment")
 public class IndexTrackerTest {
@@ -203,6 +209,84 @@ public class IndexTrackerTest {
 
         assertTrue(corruptIndexHandler.getFailingIndexData("async").containsKey("/oak:index/foo"));
     }
+    
+    @Test
+    public void avoidRedundantDiff() throws Exception{
+        IndexTracker tracker2 = new IndexTracker();
+
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        tracker.update(indexed);
+        tracker2.update(indexed);
+
+        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        assertEquals(1, indexNode.getSearcher().getIndexReader().numDocs());
+        indexNode.release();
+
+        before = indexed;
+        builder = before.builder();
+        builder.child("a").setProperty("foo", "bar");
+        after = builder.getNodeState();
+
+        AsyncIndexInfoService service = mock(AsyncIndexInfoService.class);
+        when(service.hasIndexerUpdatedForAnyLane(any(NodeState.class), any(NodeState.class))).thenReturn(false);
+        tracker.setAsyncIndexInfoService(service);
+
+        indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+        tracker2.update(indexed);
+
+        //As we falsely said no change has happened index state would remain same
+        indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        assertEquals(1, indexNode.getSearcher().getIndexReader().numDocs());
+        indexNode.release();
+
+        //While tracker2 does not use async service it sees the index change
+        indexNode = tracker2.acquireIndexNode("/oak:index/lucene");
+        assertEquals(2, indexNode.getSearcher().getIndexReader().numDocs());
+        indexNode.release();
+    }
+
+    @Test
+    public void avoidNonStatusChanges() throws Exception{
+
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        indexed = ModifiedNodeState.squeeze(indexed);
+        tracker.update(indexed);
+
+        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        int indexNodeId = indexNode.getIndexNodeId();
+        indexNode.release();
+
+        before = indexed;
+        builder = before.builder();
+        TestUtil.child(builder, "/oak:index/lucene/:property-index").setProperty("foo", "bar");
+        after = builder.getNodeState();
+        indexed = ModifiedNodeState.squeeze(after);
+
+        tracker.update(indexed);
+
+        indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        int indexNodeId2 = indexNode.getIndexNodeId();
+        indexNode.release();
+
+        assertEquals(indexNodeId, indexNodeId2);
+    }
 
     private NodeState corruptIndex(String indexPath) {
         NodeBuilder dir = TestUtil.child(builder, PathUtils.concat(indexPath, ":data"));
@@ -212,6 +296,8 @@ public class IndexTrackerTest {
                         .singletonList(new ArrayBasedBlob("foo".getBytes())), Type.BINARIES));
             }
         }
+
+        TestUtil.child(builder, PathUtils.concat(indexPath, IndexDefinition.STATUS_NODE)).setProperty("foo", "bar");
         return builder.getNodeState();
     }
 

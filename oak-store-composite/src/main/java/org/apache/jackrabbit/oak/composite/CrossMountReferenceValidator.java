@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -23,8 +27,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -33,10 +35,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Maps.newHashMap;
@@ -49,8 +47,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 public class CrossMountReferenceValidator extends DefaultValidator {
 
     private final Logger LOG = LoggerFactory.getLogger(CrossMountReferenceValidator.class);
-
-    private static final Filter EMPTY_FILTER = new FilterImpl(null, null, new QueryEngineSettings());
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final CrossMountReferenceValidator parent;
@@ -137,7 +133,7 @@ public class CrossMountReferenceValidator extends DefaultValidator {
             return newReferencableNodes.get(uuid);
         }
         for (IndexStoreStrategy store : uuidStores) {
-            for (String path : store.query(EMPTY_FILTER, null, uuidDefinition, of(uuid))) {
+            for (String path : store.query(Filter.EMPTY_FILTER, null, uuidDefinition, of(uuid))) {
                 return path;
             }
         }

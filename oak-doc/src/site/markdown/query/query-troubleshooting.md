@@ -23,7 +23,7 @@ The first step in query troubleshooting is often to detect a query is slow,
 or traverses many nodes. Queries that traverse many nodes are logged
 as follows:
 
-    *WARN* org.apache.jackrabbit.oak.spi.query.Cursors$TraversingCursor 
+    *WARN* org.apache.jackrabbit.oak.plugins.index.Cursors$TraversingCursor 
         Traversed 22000 nodes with filter Filter(query=
         select * from [nt:base] where isdescendantnode('/etc') and lower([jcr:title]) like '%coat%');
         consider creating an index or changing the query

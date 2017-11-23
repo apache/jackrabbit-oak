@@ -27,6 +27,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 
 public class SegmentRevisionGCMBean
         extends AnnotatedStandardMBean
@@ -114,6 +115,16 @@ public class SegmentRevisionGCMBean
     }
 
     @Override
+    public String getGCType() {
+        return gcOptions.getGCType().toString();
+    }
+
+    @Override
+    public void setGCType(String gcType) {
+        gcOptions.setGCType(GCType.valueOf(gcType));
+    }
+
+    @Override
     public void startRevisionGC() {
         fileStore.getGCRunner().run();
     }
@@ -173,31 +184,31 @@ public class SegmentRevisionGCMBean
 
     @Override
     public boolean isRevisionGCRunning() {
-        return gcOptions.getGCNodeWriteMonitor().isCompactionRunning();
+        return fileStore.getGCNodeWriteMonitor().isCompactionRunning();
     }
 
     @Override
     public long getCompactedNodes() {
-        return gcOptions.getGCNodeWriteMonitor().getCompactedNodes();
+        return fileStore.getGCNodeWriteMonitor().getCompactedNodes();
     }
 
     @Override
     public long getEstimatedCompactableNodes() {
-        return gcOptions.getGCNodeWriteMonitor().getEstimatedTotal();
+        return fileStore.getGCNodeWriteMonitor().getEstimatedTotal();
     }
 
     @Override
     public int getEstimatedRevisionGCCompletion() {
-        return gcOptions.getGCNodeWriteMonitor().getEstimatedPercentage();
+        return fileStore.getGCNodeWriteMonitor().getEstimatedPercentage();
     }
 
     @Override
     public long getRevisionGCProgressLog() {
-        return gcOptions.getGCNodeWriteMonitor().getGcProgressLog();
+        return fileStore.getGCNodeWriteMonitor().getGcProgressLog();
     }
 
     @Override
     public void setRevisionGCProgressLog(long gcProgressLog) {
-        gcOptions.getGCNodeWriteMonitor().setGcProgressLog(gcProgressLog);
+        gcOptions.setGCLogInterval(gcProgressLog);
     }
 }

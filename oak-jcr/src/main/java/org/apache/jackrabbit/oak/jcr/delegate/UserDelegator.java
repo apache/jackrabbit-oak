@@ -108,7 +108,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void changePassword(final String password) throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation<Void>("changePassword") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("changePassword", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 getDelegate().changePassword(password);
@@ -118,7 +118,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void changePassword(final String password, final String oldPassword) throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation<Void>("changePassword") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("changePassword", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 getDelegate().changePassword(password, oldPassword);
@@ -128,7 +128,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void disable(final String reason) throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation<Void>("disable") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("disable", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 getDelegate().disable(reason);

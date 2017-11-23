@@ -29,8 +29,11 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -57,6 +60,7 @@ public class DefaultIndexReaderFactoryTest {
     private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
     private MountInfoProvider mip = Mounts.newBuilder()
             .mount("foo", "/libs", "/apps").build();
+    private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
 
     @Test
     public void emptyDir() throws Exception{
@@ -67,7 +71,7 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void indexDir() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
+        LuceneIndexWriterFactory factory = newDirectoryFactory();
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
@@ -104,7 +108,8 @@ public class DefaultIndexReaderFactoryTest {
             .createCachingFDS(folder.newFolder().getAbsolutePath(),
                 folder.newFolder().getAbsolutePath());
 
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, new DataStoreBlobStore(ds));
+        DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, new DataStoreBlobStore(ds));
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig);
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
@@ -136,7 +141,7 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void suggesterDir() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
+        LuceneIndexWriterFactory factory = newDirectoryFactory();
         enabledSuggestorForSomeProp();
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
@@ -156,7 +161,7 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void multipleReaders() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
+        LuceneIndexWriterFactory factory = newDirectoryFactory();
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
@@ -170,7 +175,7 @@ public class DefaultIndexReaderFactoryTest {
 
     @Test
     public void multipleReaders_SingleSuggester() throws Exception{
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
+        LuceneIndexWriterFactory factory = newDirectoryFactory();
         enabledSuggestorForSomeProp();
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
@@ -198,5 +203,10 @@ public class DefaultIndexReaderFactoryTest {
         NodeBuilder prop = builder.child("indexRules").child("nt:base").child("properties").child("prop1");
         prop.setProperty("name", "foo");
         prop.setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
+    }
+
+    private LuceneIndexWriterFactory newDirectoryFactory(){
+        DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
+        return new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig);
     }
 }

@@ -158,7 +158,7 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public User createUser(final String userID, final String password) throws AuthorizableExistsException, RepositoryException {
-        return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser") {
+        return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
             @Nonnull
             @Override
             public User perform() throws RepositoryException {
@@ -170,7 +170,7 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public User createUser(final String userID, final String password, final Principal principal, final String intermediatePath) throws RepositoryException {
-        return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser") {
+        return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
             @Nonnull
             @Override
             public User perform() throws RepositoryException {
@@ -182,7 +182,7 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public User createSystemUser(final String userID, final String intermediatePath) throws RepositoryException {
-        return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser") {
+        return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
             @Nonnull
             @Override
             public User perform() throws RepositoryException {
@@ -194,7 +194,7 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public Group createGroup(final String groupID) throws RepositoryException {
-        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup") {
+        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
             @Nonnull
             @Override
             public Group perform() throws RepositoryException {
@@ -206,7 +206,7 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public Group createGroup(final Principal principal) throws RepositoryException {
-        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup") {
+        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
             @Nonnull
             @Override
             public Group perform() throws RepositoryException {
@@ -218,7 +218,7 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public Group createGroup(final Principal principal, final String intermediatePath) throws RepositoryException {
-        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup") {
+        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
             @Nonnull
             @Override
             public Group perform() throws RepositoryException {
@@ -230,7 +230,7 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public Group createGroup(final String groupID, final Principal principal, final String intermediatePath) throws RepositoryException {
-        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup") {
+        return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
             @Nonnull
             @Override
             public Group perform() throws RepositoryException {

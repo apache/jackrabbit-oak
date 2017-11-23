@@ -43,14 +43,19 @@
 
   <!-- For index tooling -->
   <logger name="org.apache.jackrabbit.oak.index" level="INFO"/>
+  <logger name="org.apache.jackrabbit.oak.plugins.index.importer" level="INFO"/>
   <logger name="org.apache.jackrabbit.oak.plugins.index.IndexUpdate" level="INFO"/>
   <logger name="org.apache.jackrabbit.oak.plugins.index.progress" level="INFO"/>
+  <logger name="org.apache.jackrabbit.oak.index.indexer.document" level="INFO"/>
 
   <!-- Display information messages from oak-run check (oak-segment) -->
   <logger name="org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker" level="DEBUG"/>
 
   <!-- Display information messages from oak-run check (oak-segment-tar) -->
   <logger name="org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker" level="DEBUG"/>
+
+  <!-- Display information messages from oak-run composite-prepare -->
+  <logger name="org.apache.jackrabbit.oak.run.CompositePrepareCommand" level="INFO"/>
 
   <root level="warn">
     <appender-ref ref="STDERR" />

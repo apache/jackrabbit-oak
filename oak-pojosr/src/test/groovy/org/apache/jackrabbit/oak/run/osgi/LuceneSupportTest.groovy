@@ -20,16 +20,16 @@
 package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.felix.connect.launch.PojoServiceRegistry
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator
+
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexFormatVersion
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
+import org.apache.jackrabbit.oak.spi.query.QueryIndex
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore;
 import org.junit.Test
 
 import javax.jcr.Node
@@ -41,7 +41,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT
 import static org.apache.jackrabbit.JcrConstants.NT_FILE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
-import static org.junit.Assert.fail
 
 class LuceneSupportTest extends AbstractRepositoryFactoryTest {
     Session session
@@ -71,15 +70,13 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
                 new ByteArrayInputStream("the quick brown fox jumps over the lazy dog.".getBytes('utf-8')))
         session.save()
 
+        SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
+                NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
+        getRegistry ( ).registerService ( QueryIndex.NodeAggregator.class.name, agg, null )
+
         //The lucene index is set to synched mode
         retry(30, 200) {
             String query = "SELECT * FROM [nt:base] as f WHERE CONTAINS (f.*, 'dog')"
-            assert [ '/myFile/jcr:content' ] as HashSet == execute ( query )
-
-            SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                    NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
-            getRegistry ( ).registerService ( NodeAggregator.class.name, agg, null )
-
             assert [ "/myFile", '/myFile/jcr:content' ] as HashSet == execute ( query )
             return true
         }

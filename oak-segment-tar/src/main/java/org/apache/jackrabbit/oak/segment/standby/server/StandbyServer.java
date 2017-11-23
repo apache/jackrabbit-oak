@@ -34,11 +34,12 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LineBasedFrameDecoder;
-import io.netty.handler.codec.compression.SnappyFramedEncoder;
+import io.netty.handler.codec.compression.SnappyFrameEncoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -54,9 +55,16 @@ import org.slf4j.LoggerFactory;
 class StandbyServer implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(StandbyServer.class);
+    
+    /**
+     * If a persisted head state cannot be acquired in less than this timeout,
+     * the 'get head' request from the client will be discarded.
+     */
+    static final long READ_HEAD_TIMEOUT =
+            Long.getLong("standby.server.timeout", 10_000L);
 
-    static Builder builder(int port, StoreProvider provider) {
-        return new Builder(port, provider);
+    static Builder builder(int port, StoreProvider provider, int blobChunkSize) {
+        return new Builder(port, provider, blobChunkSize);
     }
 
     private final int port;
@@ -76,6 +84,8 @@ class StandbyServer implements AutoCloseable {
         private final int port;
 
         private final StoreProvider storeProvider;
+        
+        private final int blobChunkSize;
 
         private boolean secure;
 
@@ -85,9 +95,10 @@ class StandbyServer implements AutoCloseable {
 
         private CommunicationObserver observer;
 
-        private Builder(final int port, final StoreProvider storeProvider) {
+        private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
             this.port = port;
             this.storeProvider = storeProvider;
+            this.blobChunkSize = blobChunkSize;
         }
 
         Builder secure(boolean secure) {
@@ -134,7 +145,6 @@ class StandbyServer implements AutoCloseable {
         b.group(bossGroup, workerGroup);
         b.channel(NioServerSocketChannel.class);
 
-        b.option(ChannelOption.TCP_NODELAY, true);
         b.option(ChannelOption.SO_REUSEADDR, true);
         b.childOption(ChannelOption.TCP_NODELAY, true);
         b.childOption(ChannelOption.SO_REUSEADDR, true);
@@ -159,12 +169,19 @@ class StandbyServer implements AutoCloseable {
                 p.addLast(new StateHandler(builder.stateConsumer));
                 p.addLast(new RequestObserverHandler(builder.observer));
 
-                // Encoders
+                // Snappy Encoder
 
-                p.addLast(new SnappyFramedEncoder());
+                p.addLast(new SnappyFrameEncoder());
+
+                // Use chunking transparently 
+                
+                p.addLast(new ChunkedWriteHandler());
+                
+                // Other Encoders
+                
                 p.addLast(new GetHeadResponseEncoder());
                 p.addLast(new GetSegmentResponseEncoder());
-                p.addLast(new GetBlobResponseEncoder());
+                p.addLast(new GetBlobResponseEncoder(builder.blobChunkSize));
                 p.addLast(new GetReferencesResponseEncoder());
                 p.addLast(new ResponseObserverHandler(builder.observer));
 
@@ -172,7 +189,7 @@ class StandbyServer implements AutoCloseable {
 
                 FileStore store = builder.storeProvider.provideStore();
 
-                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store)));
+                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store, READ_HEAD_TIMEOUT)));
                 p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(store)));
                 p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store.getBlobStore())));
                 p.addLast(new GetReferencesRequestHandler(new DefaultStandbyReferencesReader(store)));

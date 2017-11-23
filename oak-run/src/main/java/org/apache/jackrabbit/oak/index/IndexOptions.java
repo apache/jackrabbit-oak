@@ -39,19 +39,19 @@ import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
 
 public class IndexOptions implements OptionsBean {
 
-    public static final OptionsBeanFactory FACTORY = new OptionsBeanFactory() {
-        @Override
-        public OptionsBean newInstance(OptionParser parser) {
-            return new IndexOptions(parser);
-        }
-    };
+    public static final OptionsBeanFactory FACTORY = IndexOptions::new;
 
     private final OptionSpec<File> workDirOpt;
     private final OptionSpec<File> outputDirOpt;
+    private final OptionSpec<File> indexImportDir;
+    private final OptionSpec<File> preExtractedTextOpt;
+    private final OptionSpec<File> indexDefinitionsOpt;
     private final OptionSpec<Void> stats;
     private final OptionSpec<Void> definitions;
     private final OptionSpec<Void> dumpIndex;
     private final OptionSpec<Void> reindex;
+    private final OptionSpec<Void> importIndex;
+    private final OptionSpec<Void> docTraversal;
     private final OptionSpec<Integer> consistencyCheck;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
@@ -65,6 +65,11 @@ public class IndexOptions implements OptionsBean {
                 .withRequiredArg().ofType(File.class).defaultsTo(new File("temp"));
         outputDirOpt = parser.accepts("index-out-dir", "Directory used for output files")
                 .withRequiredArg().ofType(File.class).defaultsTo(new File("indexing-result"));
+        preExtractedTextOpt = parser.accepts("pre-extracted-text-dir", "Directory storing pre extracted text")
+                .withRequiredArg().ofType(File.class);
+        indexDefinitionsOpt = parser.accepts("index-definitions-file", "index definition file which " +
+                "include new index definitions or changes to existing index definitions")
+                .withRequiredArg().ofType(File.class);
 
         stats = parser.accepts("index-info", "Collects and dumps various statistics related to the indexes");
         definitions = parser.accepts("index-definitions", "Collects and dumps index definitions");
@@ -83,10 +88,19 @@ public class IndexOptions implements OptionsBean {
                 .withOptionalArg().ofType(Integer.class).defaultsTo(1);
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
-        reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths").availableIf("index-paths");
+        reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
+
+        importIndex = parser.accepts("index-import", "Imports index");
+        docTraversal = parser.accepts("doc-traversal-mode", "Use Document traversal mode for reindex in " +
+                "DocumentNodeStore setups. This may provide better performance in some cases (experimental)");
+
+        indexImportDir = parser.accepts("index-import-dir", "Directory containing index files. This " +
+                "is required when --index-import operation is selected")
+                .requiredIf(importIndex)
+                .withRequiredArg().ofType(File.class);
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex);
+        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
         operationNames = collectionOperationNames(actionOpts);
     }
 
@@ -128,6 +142,18 @@ public class IndexOptions implements OptionsBean {
         return outputDirOpt.value(options);
     }
 
+    public File getPreExtractedTextDir() {
+        return preExtractedTextOpt.value(options);
+    }
+
+    public File getIndexDefinitionsFile() {
+        return indexDefinitionsOpt.value(options);
+    }
+
+    public File getIndexImportDir() {
+        return indexImportDir.value(options);
+    }
+
     public boolean dumpStats(){
         return options.has(stats) || !anyActionSelected();
     }
@@ -150,6 +176,14 @@ public class IndexOptions implements OptionsBean {
 
     public boolean isReindex() {
         return options.has(reindex);
+    }
+
+    public boolean isImportIndex() {
+        return options.has(importIndex);
+    }
+
+    public boolean isDocTraversalMode() {
+        return  options.has(docTraversal);
     }
 
     public String getCheckpoint(){

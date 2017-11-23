@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.upgrade;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 
 import javax.annotation.Nullable;
 import java.util.Set;

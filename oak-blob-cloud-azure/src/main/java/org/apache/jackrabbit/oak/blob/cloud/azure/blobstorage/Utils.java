@@ -101,9 +101,21 @@ public final class Utils {
 
 
     public static String getConnectionStringFromProperties(Properties properties) {
+
+        String sasUri = properties.getProperty(AzureConstants.AZURE_SAS, "");
+        String blobEndpoint = properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "");
+
+        if (!sasUri.isEmpty()) {
+            return getConnectionStringForSas(sasUri, blobEndpoint);
+        }
+
         return getConnectionString(
             properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""),
             properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""));
+    }
+
+    private static String getConnectionStringForSas(String sasUri, String blobEndpoint) {
+        return String.format("BlobEndpoint=%s;SharedAccessSignature=%s", blobEndpoint, sasUri);
     }
 
     public static String getConnectionString(final String accountName, final String accountKey) {

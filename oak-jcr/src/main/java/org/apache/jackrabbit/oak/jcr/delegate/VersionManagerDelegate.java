@@ -40,7 +40,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.RESTORE_PREFIX;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.RESTORE_PREFIX;
 
 /**
  * {@code VersionManagerDelegate}...

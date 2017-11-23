@@ -24,7 +24,6 @@ import java.io.IOException;
 
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
@@ -62,13 +61,16 @@ public class LuceneIndexDumper {
             NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
             IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx, indexPath).build();
             indexDir = DirectoryUtils.createIndexDir(baseDir, indexPath);
-            DirectoryUtils.writeMeta(indexDir, indexPath);
+            IndexMeta meta = new IndexMeta(indexPath);
+
             for (String dirName : idx.getChildNodeNames()) {
                 if (NodeStateUtils.isHidden(dirName) &&
                         (isIndexDirName(dirName) || isSuggestIndexDirName(dirName))) {
-                    copyContent(idx, defn, indexDir, dirName, closer);
+                    copyContent(idx, defn, meta, indexDir, dirName, closer);
                 }
             }
+
+            DirectoryUtils.writeMeta(indexDir, meta);
         }
     }
 
@@ -80,8 +82,11 @@ public class LuceneIndexDumper {
         return indexDir;
     }
 
-    private void copyContent(NodeState idx, IndexDefinition defn, File dir, String dirName, Closer closer) throws IOException {
+    private void copyContent(NodeState idx, IndexDefinition defn, IndexMeta meta, File dir, String dirName, Closer closer) throws IOException {
         File idxDir = DirectoryUtils.createSubDir(dir, dirName);
+
+        meta.addDirectoryMapping(dirName, idxDir.getName());
+
         Directory sourceDir = new OakDirectory(new ReadOnlyBuilder(idx), dirName, defn, true);
         Directory targetDir = FSDirectory.open(idxDir);
 

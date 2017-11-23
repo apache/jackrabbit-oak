@@ -27,8 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
-import junit.framework.Assert;
-
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.junit.Test;
 
@@ -37,6 +36,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class PermissionEntryProviderImplTest {
 
@@ -176,6 +176,9 @@ public class PermissionEntryProviderImplTest {
             return cnt;
         }
 
+        public void flush(@Nonnull Root root) {
+        }
+
     }
 
     private class MockPermissionEntryCache extends PermissionEntryCache {
@@ -183,7 +186,7 @@ public class PermissionEntryProviderImplTest {
         public void load(@Nonnull PermissionStore store,
                 @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap,
                 @Nonnull String principalName) {
-            Assert.fail("The number of  entries exceeds the max cache size");
+            fail("The number of  entries exceeds the max cache size");
         }
     }
 }

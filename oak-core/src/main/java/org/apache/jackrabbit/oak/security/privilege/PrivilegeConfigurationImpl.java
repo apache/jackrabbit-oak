@@ -24,9 +24,6 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -39,12 +36,13 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * Configuration for the privilege management component.
  */
-@Component()
-@Service({PrivilegeConfiguration.class, SecurityConfiguration.class})
+@Component(service = {PrivilegeConfiguration.class, SecurityConfiguration.class})
 public class PrivilegeConfigurationImpl extends ConfigurationBase implements PrivilegeConfiguration {
 
     //---------------------------------------------< PrivilegeConfiguration >---

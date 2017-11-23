@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.server;
 
 import static java.util.Arrays.asList;
 import static java.util.UUID.randomUUID;
-import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -57,7 +57,7 @@ public class DefaultStandbyReferenceReaderTest {
     @Test
     public void shouldReturnEmptyReferences() throws Exception {
         try (FileStore store = newFileStore()) {
-            SegmentWriter writer = segmentWriterBuilder("test").build(store);
+            SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
 
             RecordId id = writer.writeString("test");
             writer.flush();
@@ -71,7 +71,7 @@ public class DefaultStandbyReferenceReaderTest {
     @Test
     public void shouldReturnReferences() throws Exception {
         try (FileStore store = newFileStore()) {
-            SegmentWriter writer = segmentWriterBuilder("test").build(store);
+            SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
 
             RecordId a = writer.writeString("test");
             writer.flush();

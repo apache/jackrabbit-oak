@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
  * @see DateVersionSelector
  * @see javax.jcr.version.VersionManager#restore
  */
-public interface VersionSelector {
+interface VersionSelector {
 
     /**
      * Selects a version of the given version history. If this VersionSelector

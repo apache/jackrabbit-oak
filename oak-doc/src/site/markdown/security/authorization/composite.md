@@ -87,7 +87,7 @@ Once multiple modules are deployed a [CompositeAccessControlManager] with the fo
 characteristics will be returned:
 
 - API calls reading information will return the combined result of the wrapped implementations. 
-- Methods defined solely by `JackrabbitAccessControlManager` additionally test for the delegatees to implement that extentions.
+- Methods defined solely by `JackrabbitAccessControlManager` additionally test for the delegatees to implement that extension.
 - API calls writing back policies will look for the responsible `PolicyOwner` and specifically delegate the call. If no owner can be found an `AccessControlException` is thrown. 
 
 Hence, a given authorization model is free to implement JCR `AccessControlManager` 
@@ -115,7 +115,7 @@ effective permissions:
   permissions have been successfully processed and none of the delegatees involved 
   denied access.
   
-This implies that evalution of permissions across multiple implementations is 
+This implies that evaluation of permissions across multiple implementations is 
 strictly additive: as soon as one provider denies access (either by an explicit 
 deny or by a missing explicit allow) permissions are denied.
 
@@ -127,12 +127,12 @@ For a given permission provider this means: Calling the same method outside of
 the context of the aggregation (i.e. single model setup), a 'limited' provider must 
 never grant access for permissions or items it isn't able to handle properly. 
 In other words: permissions that have not been explicitly granted within the scope 
-of an implemenation must be denied.
+of an implementation must be denied.
 
 #### Restriction Management
 
 Support for multiple restriction providers has already been been present with the 
-default authorization implementation since Oak 1.0. The mechnism described in 
+default authorization implementation since Oak 1.0. The mechanism described in 
 section [Restriction Management](restriction.html) is not affected by the new functionality.
 
 The `CompositeAuthorizationConfiguration` is in charge of collecting 
@@ -148,8 +148,8 @@ types of `AccessControlPolicy` where restriction management doesn't apply (see f
 <a name="configuration"/>
 ### Configuration
 
-There are no implementation specific configuration options associated with 
-the `CompositeAuthorizationConfiguration`.
+By default the `CompositeAuthorizationConfiguration` aggregates results by applying an `AND` operation to the current set of providers.
+This can be changed via configuration to an `OR`. See section [Introduction to Oak Security](../../introduction.html#configuration) for further details.
 
 <a name="pluggability"/>
 ### Pluggability
@@ -158,7 +158,7 @@ The following steps are required to plug an additional authorization model into
 the Oak repository:
 
 - Implement your custom `AuthorizationConfiguration`
-- Deploy the bundle containing the implemenation
+- Deploy the bundle containing the implementation
 - Bind your `AuthorizationConfiguration` to the `SecurityProvider`:
     - in an OSGi setup this is achieved by adding the configuration to the 
       `requiredServicePids` property of the `SecurityProviderRegistration` _("Apache Jackrabbit Oak SecurityProvider")_ 

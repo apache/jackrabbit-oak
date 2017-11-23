@@ -70,7 +70,7 @@ public class RefreshOnGCTest {
         compact = new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                fileStore.compact();
+                fileStore.compactFull();
                 return null;
             }
         };

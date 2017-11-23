@@ -29,6 +29,10 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
  * An xpath statement.
  */
 public class Statement {
+    
+    private static final UnsupportedOperationException TOO_MANY_UNION = 
+            new UnsupportedOperationException("Too many union queries");
+    private final static int MAX_UNION = Integer.getInteger("oak.xpathMaxUnion", 1000);
 
     boolean explain;
     boolean measure;
@@ -52,7 +56,7 @@ public class Statement {
     
     String xpathQuery;
     
-    QueryOptions queryOptions = new QueryOptions();
+    QueryOptions queryOptions;
     
     public Statement optimize() {
         ignoreOrderByScoreDesc();
@@ -62,7 +66,12 @@ public class Statement {
         where = where.optimize();
         optimizeSelectorNodeTypes();
         ArrayList<Expression> unionList = new ArrayList<Expression>();
-        addToUnionList(where, unionList);
+        try {
+            addToUnionList(where, unionList);
+        } catch (UnsupportedOperationException e) {
+            // too many union
+            return this;
+        }
         if (unionList.size() == 1) {
             return this;
         }
@@ -141,6 +150,9 @@ public class Statement {
                 return;
             }
         }
+        if (unionList.size() > MAX_UNION) {
+            throw TOO_MANY_UNION;
+        }
         unionList.add(condition);
     }
     
@@ -214,9 +226,7 @@ public class Statement {
                 buff.append(orderList.get(i));
             }
         }
-        if (queryOptions.traversal != Traversal.DEFAULT) {
-            buff.append(" option(traversal " + queryOptions.traversal +")");
-        }
+        appendQueryOptions(buff, queryOptions);
         // leave original xpath string as a comment
         appendXPathAsComment(buff, xpathQuery);
         return buff.toString();        
@@ -315,14 +325,43 @@ public class Statement {
                     buff.append(orderList.get(i));
                 }
             }
-            if (queryOptions.traversal != Traversal.DEFAULT) {
-                buff.append(" option(traversal " + queryOptions.traversal +")");
-            }
+            appendQueryOptions(buff, queryOptions);
             // leave original xpath string as a comment
             appendXPathAsComment(buff, xpathQuery);
             return buff.toString();
         }
         
+    }
+    
+    private static void appendQueryOptions(StringBuilder buff, QueryOptions queryOptions) {
+        if (queryOptions == null) {
+            return;
+        }
+        buff.append(" option(");
+        int optionCount = 0;
+        if (queryOptions.traversal != Traversal.DEFAULT) {
+            buff.append("traversal " + queryOptions.traversal);
+            optionCount++;
+        }
+        if (queryOptions.indexName != null) {
+            if (optionCount > 0) {
+                buff.append(", ");
+            }
+            buff.append("index name [");
+            buff.append(queryOptions.indexName);
+            buff.append("]");
+            optionCount++;
+        }
+        if (queryOptions.indexTag != null) {
+            if (optionCount > 0) {
+                buff.append(", ");
+            }
+            buff.append("index tag [");
+            buff.append(queryOptions.indexTag);
+            buff.append("]");
+            optionCount++;
+        }
+        buff.append(")");
     }
     
     private static void appendXPathAsComment(StringBuilder buff, String xpath) {

@@ -20,11 +20,12 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.generateUUID;
+import static org.apache.jackrabbit.oak.commons.UUIDUtils.generateUUID;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -33,13 +34,13 @@ public class UuidPredicateTest {
     @Test
     public void emptyUuidList() {
         UuidPredicate p = new UuidPredicate(new String[] {});
-        NodeState tree = createNodeWithUuid(generateUUID());
+        NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
         assertFalse(p.apply(tree));
     }
 
     @Test
     public void singleUuidMatch() {
-        String uuid = generateUUID();
+        String uuid = UUIDUtils.generateUUID();
         UuidPredicate p = new UuidPredicate(new String[] {uuid});
         NodeState tree = createNodeWithUuid(uuid);
         assertTrue(p.apply(tree));
@@ -47,16 +48,16 @@ public class UuidPredicateTest {
 
     @Test
     public void singleUuidMiss() {
-        UuidPredicate p = new UuidPredicate(new String[] {generateUUID()});
-        NodeState tree = createNodeWithUuid(generateUUID());
+        UuidPredicate p = new UuidPredicate(new String[] {UUIDUtils.generateUUID()});
+        NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
         assertFalse(p.apply(tree));
     }
 
     @Test
     public void multipleUuidsMatch() {
-        String uuid = generateUUID();
+        String uuid = UUIDUtils.generateUUID();
         UuidPredicate p = new UuidPredicate(
-                new String[] {generateUUID(), generateUUID(), uuid});
+                new String[] {UUIDUtils.generateUUID(), UUIDUtils.generateUUID(), uuid});
         NodeState tree = createNodeWithUuid(uuid);
         assertTrue(p.apply(tree));
     }
@@ -64,8 +65,8 @@ public class UuidPredicateTest {
     @Test
     public void multipleUuidsMiss() {
         UuidPredicate p = new UuidPredicate(
-                new String[] {generateUUID(), generateUUID(), generateUUID()});
-        NodeState tree = createNodeWithUuid(generateUUID());
+                new String[] {UUIDUtils.generateUUID(), UUIDUtils.generateUUID(), UUIDUtils.generateUUID()});
+        NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
         assertFalse(p.apply(tree));
     }
 
