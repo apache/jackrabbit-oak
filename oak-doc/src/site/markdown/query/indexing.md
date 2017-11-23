@@ -514,7 +514,7 @@ Once reindexing starts, the following log entries can be seen in the log:
 
 Once reindexing is complete, the `reindex` flag is set to `false` automatically.
 
-### <a name="reduce-reindexing-times"></a> Reducing reindexing times
+### <a name="reduce-reindexing-times"></a> Reducing Reindexing Times
 
 If the index being reindexed has full text extraction configured then reindexing can take long time as most of the 
 time is spent in text extraction. 
