@@ -54,7 +54,6 @@ import org.slf4j.LoggerFactory;
 public class RDBDocumentSerializer {
 
     private final DocumentStore store;
-    private final Set<String> columnProperties;
 
     private static final String MODIFIED = "_modified";
     private static final String MODCOUNT = "_modCount";
@@ -69,16 +68,15 @@ public class RDBDocumentSerializer {
 
     private static final RDBJSONSupport JSON = new RDBJSONSupport(true);
 
-    public RDBDocumentSerializer(DocumentStore store, Set<String> columnProperties) {
+    public RDBDocumentSerializer(DocumentStore store) {
         this.store = store;
-        this.columnProperties = columnProperties;
     }
 
     /**
      * Serializes all non-column properties of the {@link Document} into a JSON
      * string.
      */
-    public String asString(@Nonnull Document doc) {
+    public String asString(@Nonnull Document doc, Set<String> columnProperties) {
         StringBuilder sb = new StringBuilder(32768);
         sb.append("{");
         boolean needComma = false;
@@ -100,7 +98,7 @@ public class RDBDocumentSerializer {
      * Serializes the changes in the {@link UpdateOp} into a JSON array; each
      * entry is another JSON array holding operation, key, revision, and value.
      */
-    public String asString(UpdateOp update) {
+    public String asString(UpdateOp update, Set<String> columnProperties) {
         StringBuilder sb = new StringBuilder("[");
         boolean needComma = false;
         for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
