@@ -70,8 +70,7 @@ public class JournalIT extends AbstractJournalTest {
         final DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
         LOG.info("cache size 1: "+(ns1.getDocumentStore().getCacheStats()==null ? "null" : ns1.getDocumentStore().getCacheStats().getElementCount()));
 
-        // invalidate both caches under test first
-        invalidateDocChildrenCache(ns1);
+        // invalidate cache under test first
         ns1.getDocumentStore().invalidateCache();
 
         {
@@ -167,8 +166,7 @@ public class JournalIT extends AbstractJournalTest {
         final DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
         final DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
 
-        // invalidate both caches under test first
-        invalidateDocChildrenCache(ns1);
+        // invalidate cache under test first
         ns1.getDocumentStore().invalidateCache();
 
         // first create child node in instance 1

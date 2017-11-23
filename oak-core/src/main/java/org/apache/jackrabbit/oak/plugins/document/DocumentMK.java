@@ -532,7 +532,6 @@ public class DocumentMK implements MicroKernel {
         private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
         private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
         private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
-        private int docChildrenCachePercentage = DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
         private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
         private int cacheStackMoveDistance = DEFAULT_CACHE_STACK_MOVE_DISTANCE;
         private boolean useSimpleRevision;
@@ -768,19 +767,29 @@ public class DocumentMK implements MicroKernel {
 
         public Builder memoryCacheDistribution(int nodeCachePercentage,
                                                int childrenCachePercentage,
-                                               int docChildrenCachePercentage,
                                                int diffCachePercentage) {
             checkArgument(nodeCachePercentage >= 0);
             checkArgument(childrenCachePercentage>= 0);
-            checkArgument(docChildrenCachePercentage >= 0);
             checkArgument(diffCachePercentage >= 0);
             checkArgument(nodeCachePercentage + childrenCachePercentage +
-                    docChildrenCachePercentage + diffCachePercentage < 100);
+                    diffCachePercentage < 100);
             this.nodeCachePercentage = nodeCachePercentage;
             this.childrenCachePercentage = childrenCachePercentage;
-            this.docChildrenCachePercentage = docChildrenCachePercentage;
             this.diffCachePercentage = diffCachePercentage;
             return this;
+        }
+
+        /**
+         * @deprecated Use {@link #memoryCacheDistribution(int, int, int)}
+         *  instead. As of 1.2.28, this method ignores the
+         *  {@code docChildrenCachePercentage}.
+         */
+        public Builder memoryCacheDistribution(int nodeCachePercentage,
+                                               int childrenCachePercentage,
+                                               int docChildrenCachePercentage,
+                                               int diffCachePercentage) {
+            return memoryCacheDistribution(nodeCachePercentage,
+                    childrenCachePercentage, diffCachePercentage);
         }
 
         public long getNodeCacheSize() {
@@ -793,11 +802,7 @@ public class DocumentMK implements MicroKernel {
 
         public long getDocumentCacheSize() {
             return memoryCacheSize - getNodeCacheSize() - getChildrenCacheSize()
-                    - getDiffCacheSize() - getDocChildrenCacheSize();
-        }
-
-        public long getDocChildrenCacheSize() {
-            return memoryCacheSize * docChildrenCachePercentage / 100;
+                    - getDiffCacheSize();
         }
 
         public long getDiffCacheSize() {
@@ -895,10 +900,6 @@ public class DocumentMK implements MicroKernel {
 
         public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache() {
             return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), null, null);
-        }
-
-        public Cache<StringValue, NodeDocument.Children> buildDocChildrenCache() {
-            return buildCache(CacheType.DOC_CHILDREN, getDocChildrenCacheSize(), null, null);
         }
 
         public Cache<PathRev, StringValue> buildMemoryDiffCache() {
