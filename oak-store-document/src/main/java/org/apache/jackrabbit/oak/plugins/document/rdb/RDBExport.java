@@ -68,15 +68,18 @@ public class RDBExport {
 
     private static final RDBJSONSupport JSON = new RDBJSONSupport(false);
 
+    private static final Set<String> EXCLUDE_COLUMNS = new HashSet<String>();
+    static {
+        EXCLUDE_COLUMNS.add(Document.ID);
+    }
+
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
 
         String url = null, user = null, pw = null, table = "nodes", query = null, dumpfile = null, lobdir = null;
         List<String> fieldList = Collections.emptyList();
         Format format = Format.JSON;
         PrintStream out = System.out;
-        Set<String> excl = new HashSet<String>();
-        excl.add(Document.ID);
-        RDBDocumentSerializer ser = new RDBDocumentSerializer(new MemoryDocumentStore(), excl);
+        RDBDocumentSerializer ser = new RDBDocumentSerializer(new MemoryDocumentStore());
         String columns = null;
 
         String param = null;
@@ -358,7 +361,7 @@ public class RDBExport {
     @Nonnull
     private static StringBuilder dumpRow(RDBDocumentSerializer ser, String id, RDBRow row) {
         NodeDocument doc = ser.fromRow(Collection.NODES, row);
-        String docjson = ser.asString(doc);
+        String docjson = ser.asString(doc, EXCLUDE_COLUMNS);
         StringBuilder fulljson = new StringBuilder();
         fulljson.append("{\"_id\":\"");
         JsopBuilder.escape(id, fulljson);

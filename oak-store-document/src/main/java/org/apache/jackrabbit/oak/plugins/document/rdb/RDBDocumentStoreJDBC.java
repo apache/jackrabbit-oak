@@ -249,7 +249,7 @@ public class RDBDocumentStoreJDBC {
         int[] results;
         try {
             for (T document : sortedDocs) {
-                String data = this.ser.asString(document);
+                String data = this.ser.asString(document, tmd.getColumnProperties());
                 String id = document.getId();
                 Number hasBinary = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
                 Boolean deletedOnce = (Boolean) document.get(NodeDocument.DELETED_ONCE);
@@ -330,7 +330,7 @@ public class RDBDocumentStoreJDBC {
                     continue; // This is a new document. We'll deal with the inserts later.
                 }
 
-                String data = this.ser.asString(document);
+                String data = this.ser.asString(document, tmd.getColumnProperties());
                 Number hasBinary = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
                 Boolean deletedOnce = (Boolean) document.get(NodeDocument.DELETED_ONCE);
                 Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);

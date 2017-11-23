@@ -640,6 +640,7 @@ public class RDBDocumentStore implements DocumentStore {
         private boolean idIsBinary = false;
         private boolean hasVersion = false;
         private int dataLimitInOctets = 16384;
+        private Set<String> columnProperties = Collections.unmodifiableSet(COLUMNPROPERTIES);
 
         public RDBTableMetaData(String name) {
             this.name = name;
@@ -647,6 +648,10 @@ public class RDBDocumentStore implements DocumentStore {
 
         public int getDataLimitInOctets() {
             return this.dataLimitInOctets;
+        }
+
+        public Set<String> getColumnProperties() {
+            return this.columnProperties;
         }
 
         public String getName() {
@@ -815,7 +820,7 @@ public class RDBDocumentStore implements DocumentStore {
     private static final Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(
             new String[] { ID, NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, COLLISIONSMODCOUNT, MODIFIED, MODCOUNT }));
 
-    private final RDBDocumentSerializer ser = new RDBDocumentSerializer(this, COLUMNPROPERTIES);
+    private final RDBDocumentSerializer ser = new RDBDocumentSerializer(this);
 
     private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
         this.stats = builder.getDocumentStoreStatsCollector();
@@ -921,6 +926,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void obtainFlagsFromResultSetMeta(ResultSetMetaData met, RDBTableMetaData tmd) throws SQLException {
+
         for (int i = 1; i <= met.getColumnCount(); i++) {
             String lcName = met.getColumnName(i).toLowerCase(Locale.ENGLISH);
             if ("id".equals(lcName)) {
@@ -1770,7 +1776,7 @@ public class RDBDocumentStore implements DocumentStore {
 
             // every 16th update is a full rewrite
             if (isAppendableUpdate(update) && modcount % 16 != 0) {
-                String appendData = ser.asString(update);
+                String appendData = ser.asString(update, tmd.getColumnProperties());
                 if (appendData.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
                     try {
                         Operation modOperation = update.getChanges().get(MODIFIEDKEY);
@@ -1792,7 +1798,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
             if (!success && shouldRetry) {
-                data = ser.asString(document);
+                data = ser.asString(document, tmd.getColumnProperties());
                 Object m = document.get(MODIFIED);
                 long modified = (m instanceof Long) ? ((Long)m).longValue() : 0;
                 success = db.update(connection, tmd, document.getId(), modified, hasBinary, deletedOnce, modcount, cmodcount,
@@ -1866,7 +1872,7 @@ public class RDBDocumentStore implements DocumentStore {
                 int longest = 0, longestChars = 0;
 
                 for (Document d : documents) {
-                    String data = ser.asString(d);
+                    String data = ser.asString(d, tmd.getColumnProperties());
                     byte bytes[] = asBytes(data);
                     if (bytes.length > longest) {
                         longest = bytes.length;

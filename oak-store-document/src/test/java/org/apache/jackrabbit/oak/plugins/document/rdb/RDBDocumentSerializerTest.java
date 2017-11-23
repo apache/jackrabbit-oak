@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +45,7 @@ public class RDBDocumentSerializerTest {
     @Before
     public void setUp() throws Exception {
         store = fixture.createDocumentStore();
-        ser = new RDBDocumentSerializer(store, Collections.singleton("_id"));
+        ser = new RDBDocumentSerializer(store);
     }
 
     @After
