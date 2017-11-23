@@ -32,11 +32,11 @@ While developing scripts, it is typically a good idea to verify the [Json is val
 To start the interactive mode,
 with the branch-less commit option, and MongoDB, use:
 
-    java -jar oak-run-*.jar index --disableBranches --script - \
+    java -jar oak-run-*.jar json-index --disableBranches --script - \
       mongodb://localhost:27017/oak
 
 This will open the repository and allow to write and read from the repository.
-An example script creates a node "test", and then re-indexes it:
+An example script creates an index "test", and then re-indexes it:
 
     {"addNode": "/oak:index/test", "node": {
         "jcr:primaryType": "oak:QueryIndexDefinition", 
@@ -115,7 +115,7 @@ and then switches it back to async mode.
 Such scripts are typically stored as a text file (here `reindex-counter.txt`),
 and executed as follows:
 
-    java -jar oak-run-1.6-SNAPSHOT.jar index --disableBranches \
+    java -jar oak-run-1.6-SNAPSHOT.jar json-index --disableBranches \
         --script reindex-counter.txt  
         mongodb://localhost:27017/oak
 
