@@ -264,6 +264,7 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
             public void onEvent(EventIterator events) {
                 try {
                     if (hasRecievedInit.get()) {
+                        System.out.println("Have got an event but we shall first stall. Current counter: " + counter.get());
                         semaphore.acquire();
                         long numEvents = events.getSize();
                         counter.addAndGet(numEvents);
