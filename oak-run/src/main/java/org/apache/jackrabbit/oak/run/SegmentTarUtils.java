@@ -207,7 +207,9 @@ final class SegmentTarUtils {
     }
 
     private static FileStore bootstrapFileStore(String path) throws IOException, InvalidFileStoreVersionException {
-        return fileStoreBuilder(new File(path)).build();
+        return fileStoreBuilder(new File(path))
+            .withStrictVersionCheck(true)
+            .build();
     }
 
     private static ReadOnlyFileStore openReadOnlyFileStore(File path, boolean memoryMapped)
