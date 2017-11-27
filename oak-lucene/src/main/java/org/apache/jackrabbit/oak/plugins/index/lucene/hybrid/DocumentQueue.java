@@ -37,6 +37,8 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Striped;
+
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -45,7 +47,6 @@ import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.lucene.index.IndexableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

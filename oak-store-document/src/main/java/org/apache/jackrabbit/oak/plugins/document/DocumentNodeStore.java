@@ -125,7 +125,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

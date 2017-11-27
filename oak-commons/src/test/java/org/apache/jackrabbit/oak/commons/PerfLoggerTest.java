@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.commons.benchmark;
+package org.apache.jackrabbit.oak.commons;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,11 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-/**
- * Timing tests for {@link PerfLogger} using {@code Thread.sleep} because
- * virtual clock requires currentTimeMillis (OAK-3877)
- */
-public class PerfLoggerIT {
+public class PerfLoggerTest {
     @Mock
     Logger logger;
 
@@ -49,54 +45,137 @@ public class PerfLoggerIT {
         perfLogger = new PerfLogger(logger);
     }
 
-    //test for logger set at DEBUG
+    //test for logger set at TRACE
     @Test
-    public void logAtDebugTimeoutNotHit() {
-        setupDebugLogger();
+    public void logAtTraceSimpleStart() {
+        setupTraceLogger();
 
         long start = perfLogger.start();
-        perfLogger.end(start, 100, "message", "argument");
+        perfLogger.end(start, -1, "message", "argument");
 
-        verifyTraceInteractions(1, false, false);
+        verifyTraceInteractions(1, false, true);
         verifyDebugInteractions(2, false);
         verifyNoMoreInteractions(logger);
     }
 
     @Test
-    public void logAtDebugTimeoutHit() throws InterruptedException {
+    public void logAtTraceMessageStart() {
+        setupTraceLogger();
+
+        long start = perfLogger.start("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, true, true);
+        verifyDebugInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtTraceSimpleStartWithInfoLog() {
+        setupTraceLogger();
+
+        long start = perfLogger.startForInfoLog();
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(1, false, true);
+        verifyInfoInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtTraceMessageStartWithInfoLog() {
+        setupTraceLogger();
+
+        long start = perfLogger.startForInfoLog("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, true, true);
+        verifyInfoInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+    //end TRACE tests
+
+    //test for logger set at DEBUG
+    @Test
+    public void logAtDebugSimpleStart() {
         setupDebugLogger();
 
         long start = perfLogger.start();
-        Thread.sleep(100);
-        perfLogger.end(start, 20, "message", "argument");
+        perfLogger.end(start, -1, "message", "argument");
 
         verifyTraceInteractions(1, false, false);
         verifyDebugInteractions(3, true);
         verifyNoMoreInteractions(logger);
     }
-    //end DEBUG tests
 
+    @Test
+    public void logAtDebugMessageStart() {
+        setupDebugLogger();
+
+        long start = perfLogger.start("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, false, false);
+        verifyDebugInteractions(3, true);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtDebugSimpleStartWithInfoLog() {
+        setupDebugLogger();
+
+        long start = perfLogger.startForInfoLog();
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(1, false, false);
+        verifyDebugInteractions(1, true);
+        verifyInfoInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtDebugMessageStartWithInfoLog() {
+        setupDebugLogger();
+
+        long start = perfLogger.startForInfoLog("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyTraceInteractions(2, false, false);
+        verifyDebugInteractions(1, true);
+        verifyInfoInteractions(2, false);
+        verifyNoMoreInteractions(logger);
+    }
+    //end DEBUG tests
 
     //test for logger set at INFO
     @Test
-    public void logAtInfoDebugTimeoutHit() throws InterruptedException {
+    public void logAtInfoSimpleStart() {
         setupInfoLogger();
 
         long start = perfLogger.start();
-        Thread.sleep(100);
-        perfLogger.end(start, 20, "message", "argument");
+        perfLogger.end(start, -1, "message", "argument");
 
         verifyDebugInteractions(1, false);
         verifyNoMoreInteractions(logger);
     }
 
     @Test
-    public void logAtInfoInfoTimeoutNotHit() throws InterruptedException {
+    public void logAtInfoMessageStart() {
+        setupInfoLogger();
+
+        long start = perfLogger.start("Start message");
+        perfLogger.end(start, -1, "message", "argument");
+
+        verifyDebugInteractions(1, false);
+        verifyNoMoreInteractions(logger);
+    }
+
+    @Test
+    public void logAtInfoSimpleStartWithInfoLog() {
         setupInfoLogger();
 
         long start = perfLogger.startForInfoLog();
-        Thread.sleep(100);
-        perfLogger.end(start, 20, 500, "message", "argument");
+        perfLogger.end(start, -1, "message", "argument");
 
         verifyTraceInteractions(1, false, false);
         verifyDebugInteractions(1, false);
@@ -105,20 +184,23 @@ public class PerfLoggerIT {
     }
 
     @Test
-    public void logAtInfoInfoTimeoutHit() throws InterruptedException {
+    public void logAtInfoMessageStartWithInfoLog() {
         setupInfoLogger();
 
-        long start = perfLogger.startForInfoLog();
-        Thread.sleep(100);
-        perfLogger.end(start, 20, 50, "message", "argument");
+        long start = perfLogger.startForInfoLog("Start message");
+        perfLogger.end(start, -1, "message", "argument");
 
-        verifyTraceInteractions(1, false, false);
+        verifyTraceInteractions(2, false, false);
         verifyDebugInteractions(1, false);
-        verifyInfoInteractions(2, true);
+        verifyInfoInteractions(2, false);
         verifyNoMoreInteractions(logger);
     }
     //end INFO tests
 
+    private void setupTraceLogger() {
+        when(logger.isTraceEnabled()).thenReturn(true);
+        setupDebugLogger();
+    }
     private void setupDebugLogger() {
         when(logger.isDebugEnabled()).thenReturn(true);
         setupInfoLogger();
@@ -153,4 +235,5 @@ public class PerfLoggerIT {
             verify(logger, times(1)).info(anyString(), any(Object[].class));
         }
     }
+
 }
