@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -32,11 +37,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
 class SegmentTarFixtureProvider {
 
@@ -66,6 +66,7 @@ class SegmentTarFixtureProvider {
             wb.register(ReadOnlyFileStore.class, fileStore, emptyMap());
         } else {
             FileStore fileStore = builder
+                    .withStrictVersionCheck(true)
                     .withStatisticsProvider(statisticsProvider)
                     .build();
             closer.register(fileStore);
