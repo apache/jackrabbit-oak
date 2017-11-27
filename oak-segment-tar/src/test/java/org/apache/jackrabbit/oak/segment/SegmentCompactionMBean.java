@@ -46,6 +46,34 @@ public interface SegmentCompactionMBean {
     int getCorePoolSize();
 
     /**
+     * Set the number of checkpoints to remove and re-create according to the
+     * {@link #setCheckpointInterval(int) checkpoint interval}.
+     * @param count  number of checkpoints
+     */
+    void setMaxCheckpoints(int count);
+
+    /**
+     * @return  the maximal number of checkpoints.
+     */
+    int getMaxCheckpoints();
+
+    /**
+     * @return  the actual number of checkpoints.
+     */
+    int getCheckpointCount();
+
+    /**
+     * Set the checkpoint interval
+     * @param interval  number of seconds between removing and recreating a checkpoint
+     */
+    void setCheckpointInterval(int interval);
+
+    /**
+     * @return  the checkpoint interval in seconds
+     */
+    int getCheckpointInterval();
+
+    /**
      * Set the compaction interval
      * @param minutes  number of minutes to wait between compaction cycles.
      */
