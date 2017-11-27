@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
