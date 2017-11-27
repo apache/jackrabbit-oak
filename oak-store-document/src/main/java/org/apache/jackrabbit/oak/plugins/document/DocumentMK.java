@@ -22,6 +22,7 @@ import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServiceConfiguration.PROP_UPDATE_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
 
 import java.io.InputStream;
@@ -145,7 +146,7 @@ public class DocumentMK {
      * Number of content updates that need to happen before the updates
      * are automatically purged to the private branch.
      */
-    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 100000);
+    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", Builder.DEFAULT_UPDATE_LIMIT);
 
     /**
      * The node store.
@@ -561,6 +562,7 @@ public class DocumentMK {
         public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 30;
         public static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
         public static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
+        public static final int DEFAULT_UPDATE_LIMIT = 100000;
         private DocumentNodeStore nodeStore;
         private Supplier<DocumentStore> documentStoreSupplier = ofInstance(new MemoryDocumentStore());
         private String mongoUri;
