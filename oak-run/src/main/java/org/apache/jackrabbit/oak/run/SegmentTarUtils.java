@@ -225,7 +225,9 @@ final class SegmentTarUtils {
     }
 
     private static FileStore openFileStore(String directory, boolean force) throws IOException, InvalidFileStoreVersionException {
-        return newFileStoreBuilder(directory, force).build();
+        return newFileStoreBuilder(directory, force)
+            .withStrictVersionCheck(true)
+            .build();
     }
 
     private static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException, InvalidFileStoreVersionException {
