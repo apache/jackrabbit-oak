@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.6
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.7
 
 Introduction
 ------------
@@ -7,70 +7,83 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.6 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.7 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.6
+Changes in Oak 1.6.7
 ---------------------
+
+Sub-task
+
+    [OAK-3262] - oak-jcr: update test exclusions once JCR-3901 is
+    resolved
 
 Technical task
 
-    [OAK-5650] - RDBDocumentStore on Oracle:
-    ArrayIndexOutOfBoundsException in Oracle JDBC driver
-    [OAK-5855] - RDBDocumentStore: improve query support for VersionGC
-    [OAK-6140] - Create RDB-specific BlobReferenceIterator
-    [OAK-6237] - Tomcat JDBC pool's StatementCache interceptor may
-    cache borked PreparedStatements with DB2
-    [OAK-6652] - RDB*Store: update postgresql JDBC driver reference to
-    42.1.4
-    [OAK-6660] - RDB*Store: update mysql JDBC driver reference to
-    5.1.44 (2017-08-30)
-    [OAK-6696] - RDB*Store: update Tomcat JDBC pool dependency to
-    7.0.81
-    [OAK-6782] - RDBDocumentStore: inconsistent handling of cache
-    invalidation on remove()
-    [OAK-6863] - RDB*Store: update Oracle JDBC dependency to 12.2.0.1
+    [OAK-6716] - RDB*Store: update DB2 JDBC dependency to 4.19.66
+    [OAK-6811] - BasicDocumentStore: avoid use of API edge case in
+    test of cache invalidation
+    [OAK-6860] - RDB*Store: update Derby to release 10.14
+    [OAK-6903] - RDB*Store: update Tomcat JDBC pool dependency to
+    7.0.82
+    [OAK-6906] - RDB*Store: update Tomcat JDBC pool dependency to
+    8.5.23 (for branches compatible with Java 7)
+    [OAK-6907] - RDB*Store: require ojdbc 12.2.0.1 because of known
+    issues in earlier versions
+    [OAK-6985] - RDBDocumentStoreJDBC: remove unused parameter
 
 Bug
 
-    [OAK-5772] - Test failure:
-    segment.standby.MBeanIT.testClientAndServerEmptyConfig
-    [OAK-6604] - Oak Blob Cloud is not used by oak-upgrade
-    [OAK-6611] - [upgrade][oak-blob-cloud] Many S3DataStore errors
-    during migration with oak-upgrade
-    [OAK-6635] - IndexReader closed exception in DocumentQueue
-    [OAK-6656] - OrderedPropertyIndexEditorProvider does not return
-    Editor to IndexUpdate leading to "ordered" being marked as missing
-    type
-    [OAK-6685] - Background operation may fail when document is
-    malformed
-    [OAK-6777] - IndexReader closed exception in previous reader
+    [OAK-5458] - Test failure: RepositoryBootIT.repositoryLogin
+    [OAK-5933] - Checkpoints are not sorted correctly in
+    RepositorySidegrade
+    [OAK-6011] - Test failure: JdbcToSegmentTest:validateMigration
+    [OAK-6057] - incorrect system property check in blob/upgrade tests
+    [OAK-6300] - CacheConsistencyTestBase: potential NPE in teardown
+    [OAK-6306] - upgrade uses lucene wrong version (transient
+    dependency)
+    [OAK-6360] - Failed to retrieve previously indexed checkpoint in
+    composite node store
+    [OAK-6454] - Inaccurate data in the oak-upgrade progress logger
+    [OAK-6560] - Sidegrade uses too much memory
+    [OAK-6633] - Overwriting a versionable node with the
+    copy-versions=false doesn't remove versionable properties
+    [OAK-6750] - Lucene facets don't work with relative properties
+    [OAK-6784] - Exceptions are inhibited in oak-run compact
+    [OAK-6789] - RDB: RevisionGC performance on Oracle
+    [OAK-6852] - RDBDocumentStore conditional remove: check condition
+    properly
+    [OAK-6953] - CacheLIRS cannot be disabled
 
 Improvement
 
-    [OAK-5985] - add CloseableIterator similar to CloseableIterable
-    [OAK-6218] - Including id in DocumentStoreException which wrap
-    MongoException
-    [OAK-6637] - Release IndexNode lock in finally clause
-    [OAK-6650] - new release checksum requirements
-    [OAK-6693] - Ensure that IndexNodeManager releases lock in case of
-    error in acquiring it
-    [OAK-6878] - Populate S3DataStore fields with the passed
-    properties in oak-upgrade
+    [OAK-5940] - Remove CachedNodeDocument
+    [OAK-6003] - Allow to migrate checkpoints for all type of
+    sidegrades
+    [OAK-6131] - No need to rebuild the counter/uuid index anymore
+    [OAK-6188] - Allow to exclude nodes containing name fragment
+    during the migration
+    [OAK-6190] - Allow to migrate checkpoints even if the custom
+    include paths are specified
+    [OAK-6792] - rep:facet not supported in xpath
+    [OAK-6839] - RDBDocumentStore: queries done by GC processes should
+    not thrash the cache
+    [OAK-6931] - Enable the -Dcache of offline compaction
 
 Task
 
-    [OAK-6162] - BlobReferenceIterator refactoring
-    [OAK-6171] - Refactor MongoBlobReferenceIterator
-    [OAK-6631] - Update Oak 1.6 to Jackrabbit 2.14.3
-    [OAK-6642] - Backport OAK-6110 to 1.6 (Offline compaction uses too
-    much memory)
-    [OAK-6655] - Update travis build configuration
-    [OAK-6657] - Remove travis webhook configuration
+    [OAK-5028] - Remove DocumentStore.update()
+    [OAK-6872] - Update Oak 1.6 to Jackrabbit 2.14.4
+    [OAK-6971] - Remove composite node store-related features from the
+    oak-upgrade
+
+Test
+
+    [OAK-6007] - Introduce a FailingDocumentStore
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
