@@ -16,28 +16,28 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
 public class CompositePrepareCommand implements Command {
 
@@ -69,8 +69,9 @@ public class CompositePrepareCommand implements Command {
             System.exit(1);
         }
 
-        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(store);
-        FileStore fs = builder.build();
+        FileStore fs = fileStoreBuilder(store)
+            .withStrictVersionCheck(true)
+            .build();
         try {
             new OakResourceTransformer(fs, paths.values(options)).transform();
         } finally {
