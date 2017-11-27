@@ -231,23 +231,12 @@ public class Compact {
         return names;
     }
 
-    private static Object printableSize(long size) {
-        return printable(() -> String.format("%s (%d bytes)", humanReadableByteCount(size), size));
+    private static String printableSize(long size) {
+        return String.format("%s (%d bytes)", humanReadableByteCount(size), size);
     }
 
-    private static Object printableStopwatch(Stopwatch s) {
-        return printable(() -> String.format("%s (%ds)", s, s.elapsed(TimeUnit.SECONDS)));
-    }
-
-    private static Object printable(Supplier<String> s) {
-        return new Object() {
-
-            @Override
-            public String toString() {
-                return s.get();
-            }
-
-        };
+    private static String printableStopwatch(Stopwatch s) {
+        return String.format("%s (%ds)", s, s.elapsed(TimeUnit.SECONDS));
     }
 
     private final File path;
