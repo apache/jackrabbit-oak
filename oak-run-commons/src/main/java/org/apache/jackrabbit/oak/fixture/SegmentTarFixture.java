@@ -193,6 +193,7 @@ class SegmentTarFixture extends OakFixture {
                     .withStatisticsProvider(statsProvider)
                     .withSegmentCacheSize(segmentCacheSize)
                     .withMemoryMapping(memoryMapping)
+                    .withStrictVersionCheck(true)
                     .build();
             
             if (withColdStandby) {
