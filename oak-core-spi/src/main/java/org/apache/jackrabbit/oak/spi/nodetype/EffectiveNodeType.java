@@ -25,7 +25,9 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.osgi.annotation.versioning.ProviderType;
 
+@ProviderType
 public interface EffectiveNodeType {
     boolean includesNodeType(String nodeTypeName);
 
