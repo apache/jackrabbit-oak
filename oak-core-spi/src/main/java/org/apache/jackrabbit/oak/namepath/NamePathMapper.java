@@ -22,10 +22,13 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * The {@code NamePathMapper} interface combines {@code NameMapper} and
  * {@code PathMapper}.
  */
+@ProviderType
 public interface NamePathMapper extends NameMapper, PathMapper {
 
     NamePathMapper DEFAULT = new Default();
