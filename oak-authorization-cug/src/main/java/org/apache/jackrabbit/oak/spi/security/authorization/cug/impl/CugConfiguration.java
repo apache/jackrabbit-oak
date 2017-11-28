@@ -214,6 +214,8 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     }
 
     public void unbindMountInfoProvider(MountInfoProvider mountInfoProvider) {
+        // set to null (and not default) to comply with OSGi lifecycle,
+        // if the reference is unset it means the service is being deactivated
         this.mountInfoProvider = null;
     }
 
