@@ -40,6 +40,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import joptsimple.internal.Strings;
@@ -179,13 +180,15 @@ public class DataStoreCheckTest {
     @Test
     public void testCorrect() throws Exception {
         File dump = temporaryFolder.newFolder();
+        File repoHome = temporaryFolder.newFolder();
         setupDataStore.close();
-        testAllParams(dump);
+        testAllParams(dump, repoHome);
     }
 
     @Test
     public void testConsistency() throws Exception {
         File dump = temporaryFolder.newFolder();
+        File repoHome = temporaryFolder.newFolder();
 
         Random rand = new Random();
         String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
@@ -194,18 +197,49 @@ public class DataStoreCheckTest {
         assertEquals(1, count);
         setupDataStore.close();
 
-        testAllParams(dump);
+        testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
         assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)));
         assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
     }
 
-    private void testAllParams(File dump) throws Exception {
+    @Test
+    public void testConsistencyWithDeleteTracker() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        File repoHome = temporaryFolder.newFolder();
+
+        File trackerFolder = new File(repoHome, "blobids");
+        FileUtils.forceMkdir(trackerFolder);
+
+        File delTracker = new File(trackerFolder, "activedeletions.del");
+        Random rand = new Random();
+        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        blobsAdded.remove(deletedBlobId);
+        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+
+        String activeDeletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        blobsAdded.remove(activeDeletedBlobId);
+        count += setupDataStore.countDeleteChunks(ImmutableList.of(activeDeletedBlobId), 0);
+        assertEquals(2, count);
+
+        // artificially put the deleted id in the tracked .del file
+        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+
+        setupDataStore.close();
+
+        testAllParams(dump, repoHome);
+
+        assertFileEquals(dump, "[id]", blobsAdded);
+        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)));
+        assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+    }
+
+    private void testAllParams(File dump, File repoHome) throws Exception {
         DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
-                "--dump", dump.getAbsolutePath());
+                "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath());
 
         checkCommand.execute(argsList.toArray(new String[0]));
     }
@@ -227,7 +261,7 @@ public class DataStoreCheckTest {
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
-                "--dump", dump.getAbsolutePath());
+                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
         testIncorrectParams(argsList, Lists.newArrayList("Operation not defined for SegmentNodeStore without external datastore"));
 
     }
@@ -238,13 +272,44 @@ public class DataStoreCheckTest {
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
             .newArrayList("--consistency", "--" + dsOption, cfgFilePath,
-                "--dump", dump.getAbsolutePath());
+                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
         testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
 
         argsList = Lists
             .newArrayList("--ref", "--" + dsOption, cfgFilePath,
-                "--dump", dump.getAbsolutePath());
+                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
         testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [store]"));
+    }
+
+    @Test
+    public void testTrackWithRefs() throws Exception {
+        setupDataStore.close();
+        File dump = temporaryFolder.newFolder();
+        List<String> argsList = Lists
+            .newArrayList("--ref", "--store", storePath,
+                "--dump", dump.getAbsolutePath(), "--track", "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
+        testIncorrectParams(argsList,
+            Lists.newArrayList("Option(s) [track] are unavailable given other options on the command line"));
+    }
+
+    @Test
+    public void testConsistencyNoRepo() throws Exception {
+        setupDataStore.close();
+        File dump = temporaryFolder.newFolder();
+        List<String> argsList = Lists
+            .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
+                "--dump", dump.getAbsolutePath());
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [repoHome]"));
+    }
+
+    @Test
+    public void testTrackNoRepo() throws Exception {
+        setupDataStore.close();
+        File dump = temporaryFolder.newFolder();
+        List<String> argsList = Lists
+            .newArrayList("--id", "--ref", "--consistency", "--store", storePath,
+                "--dump", dump.getAbsolutePath(), "--track");
+        testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s) [repoHome]"));
     }
 
     public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {
