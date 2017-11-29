@@ -548,6 +548,11 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         /** Root state of the transient head, top of persisted branch. */
         private DocumentNodeState head;
 
+        /**
+         * Number of commits on this persisted branch.
+         */
+        private int numCommits;
+
         @Override
         public String toString() {
             return "Persisted[" + base + ", " + head + ']';
@@ -606,11 +611,12 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                     public DocumentNodeState call() throws Exception {
                         checkForConflicts();
                         NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
-                        head = DocumentNodeStoreBranch.this.persist(toCommit, head, info);
+                        persistTransientHead(toCommit);
                         return store.getRoot(store.merge(head.getRootRevision(), info));
                     }
                 });
                 branchState = new Merged(base);
+                store.getStatsCollector().doneMergeBranch(numCommits);
                 success = true;
                 return newRoot;
             } catch (CommitFailedException e) {
@@ -632,6 +638,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         private void persistTransientHead(NodeState newHead) {
             head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY);
+            numCommits++;
+            store.getStatsCollector().doneBranchCommit();
         }
 
         private void resetBranch(DocumentNodeState branchHead, DocumentNodeState ancestor) {
