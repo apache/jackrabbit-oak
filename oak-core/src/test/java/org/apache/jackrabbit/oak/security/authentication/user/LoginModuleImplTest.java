@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
@@ -394,7 +394,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
                     UserConfiguration.NAME,
                     ConfigurationParameters.of(
                             UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, authenticationFactory));
-            this.sp = new SecurityProviderImpl(params);
+            this.sp = new SecurityProviderBuilder().with(params).build();
         }
 
         @Override

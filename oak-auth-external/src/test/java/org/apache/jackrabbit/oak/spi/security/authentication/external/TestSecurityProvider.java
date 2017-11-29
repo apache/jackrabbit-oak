@@ -18,26 +18,29 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+public class TestSecurityProvider {
 
-public class TestSecurityProvider extends SecurityProviderImpl {
+    public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration,
+            @Nonnull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
+        SecurityProvider delegate = new SecurityProviderBuilder().with(configuration).build();
 
-    public TestSecurityProvider(@Nonnull ConfigurationParameters configuration, @Nonnull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
-        super(configuration);
-
-        PrincipalConfiguration principalConfiguration = getConfiguration(PrincipalConfiguration.class);
+        PrincipalConfiguration principalConfiguration = delegate.getConfiguration(PrincipalConfiguration.class);
         if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
             throw new IllegalStateException();
         } else {
-            PrincipalConfiguration defConfig = checkNotNull(((CompositePrincipalConfiguration) principalConfiguration).getDefaultConfig());
-            bindPrincipalConfiguration(externalPrincipalConfiguration);
-            bindPrincipalConfiguration(defConfig);
+            externalPrincipalConfiguration.setSecurityProvider(delegate);
+            CompositePrincipalConfiguration composite = (CompositePrincipalConfiguration) principalConfiguration;
+            PrincipalConfiguration defConfig = composite.getDefaultConfig();
+            composite.addConfiguration(externalPrincipalConfiguration);
+            composite.addConfiguration(defConfig);
         }
+        return delegate;
     }
 }

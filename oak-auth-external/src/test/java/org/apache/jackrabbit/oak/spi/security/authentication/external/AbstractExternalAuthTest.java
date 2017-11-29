@@ -136,7 +136,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new TestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
+            securityProvider = TestSecurityProvider.newTestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
 
             // register PrincipalConfiguration with OSGi context
             context.registerInjectActivateService(externalPrincipalConfiguration);

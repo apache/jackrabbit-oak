@@ -55,6 +55,7 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Deprecated
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     private volatile AuthenticationConfiguration authenticationConfiguration;

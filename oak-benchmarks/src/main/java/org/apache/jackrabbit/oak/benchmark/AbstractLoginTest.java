@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -143,7 +143,7 @@ abstract class AbstractLoginTest extends AbstractTest {
                                     UserConfiguration.NAME, ConfigurationParameters.of(iterations, cache));
                         }
                         conf = prepare(conf);
-                        SecurityProvider sp = new SecurityProviderImpl(conf);
+                        SecurityProvider sp = new SecurityProviderBuilder().with(conf).build();
                         return new Jcr(oak).with(sp);
                     }
                 });
