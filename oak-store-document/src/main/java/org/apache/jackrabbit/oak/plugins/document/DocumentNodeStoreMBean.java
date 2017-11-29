@@ -60,4 +60,8 @@ public interface DocumentNodeStoreMBean {
     CompositeData getExternalChangeCountHistory();
 
     CompositeData getBackgroundUpdateCountHistory();
+
+    CompositeData getBranchCommitHistory();
+
+    CompositeData getMergeBranchCommitHistory();
 }
