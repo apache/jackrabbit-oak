@@ -50,7 +50,7 @@ import static org.junit.Assert.assertTrue;
 public class CugConfigurationTest extends AbstractSecurityTest {
 
     private static CugConfiguration createConfiguration(ConfigurationParameters params) {
-        SecurityProvider sp = new CugSecurityProvider(ConfigurationParameters.EMPTY);
+        SecurityProvider sp = CugSecurityProvider.newTestSecurityProvider(ConfigurationParameters.EMPTY);
         CugConfiguration cugConfiguration = new CugConfiguration();
         cugConfiguration.setSecurityProvider(sp);
         cugConfiguration.activate(params);

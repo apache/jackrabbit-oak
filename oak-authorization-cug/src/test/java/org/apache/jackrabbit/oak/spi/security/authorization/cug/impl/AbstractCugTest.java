@@ -137,7 +137,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new CugSecurityProvider(getSecurityConfigParameters());
+            securityProvider = CugSecurityProvider.newTestSecurityProvider(getSecurityConfigParameters());
         }
         return securityProvider;
     }

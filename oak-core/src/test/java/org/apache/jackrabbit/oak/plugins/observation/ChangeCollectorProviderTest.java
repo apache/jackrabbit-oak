@@ -48,13 +48,12 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -71,7 +70,7 @@ public class ChangeCollectorProviderTest {
     private ContentRepository contentRepository;
     private ContentSession session;
     private Recorder recorder;
-    private SecurityProviderImpl securityProvider;
+    private SecurityProvider securityProvider;
 
     class ContentChange {
         final NodeState root;
@@ -95,7 +94,7 @@ public class ChangeCollectorProviderTest {
 
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new SecurityProviderImpl(ConfigurationParameters.EMPTY);
+            securityProvider = new SecurityProviderBuilder().build();
         }
         return securityProvider;
     }

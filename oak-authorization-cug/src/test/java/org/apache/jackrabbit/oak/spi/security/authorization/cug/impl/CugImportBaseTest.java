@@ -107,7 +107,7 @@ public abstract class CugImportBaseTest {
     @Before
     public void before() throws Exception {
         ConfigurationParameters config = getConfigurationParameters();
-        SecurityProvider securityProvider = new CugSecurityProvider(config);
+        SecurityProvider securityProvider = CugSecurityProvider.newTestSecurityProvider(config);
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setFailTraversal(true);
 

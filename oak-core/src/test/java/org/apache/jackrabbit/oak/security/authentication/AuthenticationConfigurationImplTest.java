@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
@@ -46,7 +46,7 @@ public class AuthenticationConfigurationImplTest {
 
     @Test
     public void testGetLoginCtxProvider() {
-        authConfiguration.setSecurityProvider(new SecurityProviderImpl());
+        authConfiguration.setSecurityProvider(new SecurityProviderBuilder().build());
 
         assertNotNull(authConfiguration.getLoginContextProvider(repo));
     }

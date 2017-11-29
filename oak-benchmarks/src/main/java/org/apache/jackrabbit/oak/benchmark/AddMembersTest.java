@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -135,7 +135,9 @@ public class AddMembersTest extends AbstractTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, importBehavior)));
+                    ConfigurationParameters config = ConfigurationParameters.of(UserConfiguration.NAME,
+                            ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, importBehavior));
+                    SecurityProvider sp = new SecurityProviderBuilder().with(config).build();
                     return new Jcr(oak).with(sp);
                 }
             });

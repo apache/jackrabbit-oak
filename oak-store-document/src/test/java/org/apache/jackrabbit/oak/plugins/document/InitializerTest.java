@@ -18,11 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
@@ -34,13 +35,13 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         NodeBuilder builder = mk.getNodeStore().getRoot().builder();
         new InitialContent().initialize(builder);
 
-        SecurityProviderImpl provider = new SecurityProviderImpl(
+        SecurityProvider provider = new SecurityProviderBuilder().with(
                 ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",
                                 "usersPath", "/home/users",
                                 "groupsPath", "/home/groups",
-                                "defaultDepth", "1")))));
+                                "defaultDepth", "1"))))).build();
         provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer().initialize(
                 builder, "default");
         builder.getNodeState();
@@ -53,13 +54,13 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         new InitialContent().initialize(builder);
         mk.getNodeStore().merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        SecurityProviderImpl provider = new SecurityProviderImpl(
+        SecurityProvider provider = new SecurityProviderBuilder().with(
                 ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",
                                 "usersPath", "/home/users",
                                 "groupsPath", "/home/groups",
-                                "defaultDepth", "1")))));
+                                "defaultDepth", "1"))))).build();
         provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer().initialize(
                 builder, "default");
         builder.getNodeState();

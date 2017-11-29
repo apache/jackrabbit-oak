@@ -54,7 +54,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -133,7 +133,7 @@ public abstract class AbstractSecurityTest {
     }
 
     protected SecurityProvider initSecurityProvider() {
-        return new SecurityProviderImpl(getSecurityConfigParameters());
+        return new SecurityProviderBuilder().with(getSecurityConfigParameters()).build();
     }
 
     protected Oak withEditors(Oak oak) {

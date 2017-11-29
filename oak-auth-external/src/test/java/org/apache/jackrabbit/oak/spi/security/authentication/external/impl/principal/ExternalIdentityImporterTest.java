@@ -78,7 +78,8 @@ public class ExternalIdentityImporterTest {
 
     @Before
     public void before() throws Exception {
-        securityProvider = new TestSecurityProvider(getConfigurationParameters(), new ExternalPrincipalConfiguration());
+        securityProvider = TestSecurityProvider.newTestSecurityProvider(getConfigurationParameters(),
+                new ExternalPrincipalConfiguration());
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setFailTraversal(true);
 
