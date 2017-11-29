@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.run;
 import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
 import static com.google.common.base.Stopwatch.createStarted;
 import static com.google.common.io.Closeables.close;
+import static java.io.File.createTempFile;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.commons.io.FileUtils.listFiles;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
@@ -29,6 +31,8 @@ import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
@@ -39,6 +43,8 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
@@ -79,7 +85,8 @@ public class DataStoreCheckCommand implements Command {
 
         String helpStr =
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
-                + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>] [--dump <path>]";
+                + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>]"
+                + " [--dump <path>] [--repoHome <repo_home>] [--track]";
 
         Closer closer = Closer.create();
         try {
@@ -96,8 +103,12 @@ public class DataStoreCheckCommand implements Command {
                 .withRequiredArg().ofType(String.class);
 
             // Optional argument to specify tracking
-            ArgumentAcceptingOptionSpec<String> track = parser.accepts("track", "Local repository home folder")
-                .withRequiredArg().ofType(String.class);
+            OptionSpecBuilder trackOverride = parser.accepts("track", "Force override tracked ids");
+
+            // Required argument for --consistency to specify tracking folder (otherwise can have inconsistencies)
+            ArgumentAcceptingOptionSpec<String> repoHome = parser.accepts("repoHome", "Local repository home folder")
+                .requiredIf(trackOverride, consistencyOp).withRequiredArg().ofType(String.class);
+
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -106,12 +117,16 @@ public class DataStoreCheckCommand implements Command {
             idOp.requiredUnless(refOp, consistencyOp);
             refOp.requiredUnless(idOp, consistencyOp);
             consistencyOp.requiredUnless(idOp, refOp);
+            trackOverride.availableIf(idOp, consistencyOp);
 
             OptionSet options = null;
             try {
                 options = parser.parse(args);
             } catch (Exception e) {
                 System.err.println(e);
+                System.err.println(Arrays.toString(args));
+                System.err.println();
+                System.err.println("Options :");
                 parser.printHelpOn(System.err);
                 return;
             }
@@ -163,9 +178,9 @@ public class DataStoreCheckCommand implements Command {
                 File dumpFile = register.createFile(idOp, dumpPath);
                 retrieveBlobIds(blobStore, dumpFile);
 
-                // If track path specified copy the file to the location
-                if (options.has(track)) {
-                    String trackPath = options.valueOf(track);
+                // If track path and track override specified copy the file to the location
+                if (options.has(repoHome) && options.has(trackOverride)) {
+                    String trackPath = options.valueOf(repoHome);
                     File trackingFileParent = new File(FilenameUtils.concat(trackPath, "blobids"));
                     File trackingFile = new File(trackingFileParent,
                         "blob-" + String.valueOf(System.currentTimeMillis()) + ".gen");
@@ -180,7 +195,7 @@ public class DataStoreCheckCommand implements Command {
 
             if (options.has(consistencyOp)) {
                 checkConsistency(register.get(idOp), register.get(refOp),
-                    register.createFile(consistencyOp, dumpPath));
+                    register.createFile(consistencyOp, dumpPath), options.valueOf(repoHome));
             }
         } catch (Throwable t) {
             t.printStackTrace();
@@ -225,7 +240,7 @@ public class DataStoreCheckCommand implements Command {
         }
     }
 
-    private static void checkConsistency(File ids, File refs, File missing) throws IOException {
+    private static void checkConsistency(File ids, File refs, File missing, String trackRoot) throws IOException {
         System.out.println("Starting consistency check");
         Stopwatch watch = createStarted();
 
@@ -238,7 +253,39 @@ public class DataStoreCheckCommand implements Command {
                 }
                 return "";
             }});
-        long candidates = writeStrings(iter, missing, true);
+
+
+        // write the candidates identified to a temp file
+        File candTemp = createTempFile("candTemp", null);
+        int candidates = writeStrings(iter, candTemp, true);
+
+        try {
+            // retrieve the .del file from track directory
+            File trackingFileParent = new File(FilenameUtils.concat(trackRoot, "blobids"));
+            if (trackingFileParent.exists()) {
+                Collection<File> files =
+                    listFiles(trackingFileParent, FileFilterUtils.suffixFileFilter(".del"), null);
+
+                // If a delete file is present filter the tracked deleted ids
+                if (!files.isEmpty()) {
+                    File delFile = files.iterator().next();
+                    FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(delFile, candTemp, new Function<String, String>() {
+                        @Nullable @Override public String apply(@Nullable String input) {
+                            if (input != null) {
+                                return input.split(DELIM)[0];
+                            }
+                            return "";
+                        }
+                    });
+                    candidates = FileIOUtils.writeStrings(filteringIter, missing, true);
+                }
+            } else {
+                System.out.println("Skipping active deleted tracked as parameter [repoHome] : [" + trackRoot + "] incorrect");
+                FileUtils.copyFile(candTemp, missing);
+            }
+        } finally {
+            FileUtils.forceDelete(candTemp);
+        }
 
         System.out.println("Consistency check found " + candidates + " missing blobs");
         if (candidates > 0) {
