@@ -459,7 +459,8 @@ Use the following command:
             [--store <path>|<mongo_uri>] \
             [--s3ds <s3ds_config>|--fds <fds_config>] \
             [--dump <path>] \
-            [--track <DataStore local tracking path>]
+            [--repoHome <local_repository_root>]
+            [--track]
 
 The following options are available:
 
@@ -472,8 +473,8 @@ The following options are available:
     --dump           - Path where to dump the files (Optional). Otherwise, files will be dumped in the user tmp directory.
     --s3ds           - Path to the S3DataStore configuration file
     --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
-    --track          - Path of the local reposity home folder (Optional). This will place a copy of the downloaded blob ids to be tracked.
-
+    --repoHome       - Path of the local reposity home folder. Mandatory for --consistency & --track options 
+    --track          - Whether to force override the tracked ids (Valid only for --id & --consistency options)
 Note:
 For using S3DataStore the following additional jars have to be downloaded
     - [commons-logging-1.1.3.jar](http://central.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar)
