@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 
 final class CugSecurityProvider {
 
+    private CugSecurityProvider() {}
+
     public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration) {
         SecurityProvider delegate = new SecurityProviderBuilder().with(configuration).build();
 

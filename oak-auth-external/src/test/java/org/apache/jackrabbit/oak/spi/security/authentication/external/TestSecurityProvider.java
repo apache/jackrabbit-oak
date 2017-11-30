@@ -25,7 +25,9 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.princ
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 
-public class TestSecurityProvider {
+public final class TestSecurityProvider {
+
+    private TestSecurityProvider() {}
 
     public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration,
             @Nonnull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
