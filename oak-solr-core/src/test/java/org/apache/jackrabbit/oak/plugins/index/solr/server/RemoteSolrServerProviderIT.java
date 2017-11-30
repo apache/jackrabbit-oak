@@ -18,7 +18,9 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.common.util.NamedList;
@@ -42,7 +44,7 @@ public class RemoteSolrServerProviderIT {
         req.setParam("numShards", "2");
         req.setParam("replicationFactor", "2");
         req.setParam("collection.configName", "myconf");
-        CloudSolrServer cloudSolrServer = new CloudSolrServer(host);
+        CloudSolrClient cloudSolrServer = new CloudSolrClient(host);
         cloudSolrServer.setZkConnectTimeout(1000);
         NamedList<Object> request = cloudSolrServer.request(req);
         return request != null && request.get("success") != null;
@@ -62,9 +64,9 @@ public class RemoteSolrServerProviderIT {
                 String collection = "sample_" + System.nanoTime();
                 RemoteSolrServerProvider remoteSolrServerProvider = new RemoteSolrServerProvider(
                         new RemoteSolrServerConfiguration(host, collection, 2, 2, null, 10, 10, null));
-                SolrServer solrServer = remoteSolrServerProvider.getSolrServer();
+                SolrClient solrServer = remoteSolrServerProvider.getSolrServer();
                 assertNotNull(solrServer);
-                solrServer.shutdown();
+                solrServer.close();
                 break;
             }
         }

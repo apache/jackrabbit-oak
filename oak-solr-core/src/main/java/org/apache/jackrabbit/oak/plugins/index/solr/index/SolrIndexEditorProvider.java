@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +69,7 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
                     NodeState nodeState = definition.getNodeState();
                     OakSolrConfiguration configuration = new OakSolrNodeStateConfiguration(nodeState);
                     SolrServerConfigurationProvider configurationProvider = new NodeStateSolrServerConfigurationProvider(definition.getChildNode("server").getNodeState());
-                    SolrServer solrServer = new OakSolrServer(configurationProvider);
+                    SolrClient solrServer = new OakSolrServer(configurationProvider);
                     editor = getEditor(configuration, solrServer, callback);
                 } else { // otherwise use the default configuration providers (e.g. defined via code or OSGi)
                     OakSolrConfiguration configuration = oakSolrConfigurationProvider.getConfiguration();
@@ -85,7 +86,7 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
         return definition.hasChildNode("server");
     }
 
-    private SolrIndexEditor getEditor(OakSolrConfiguration configuration, SolrServer solrServer,
+    private SolrIndexEditor getEditor(OakSolrConfiguration configuration, SolrClient solrServer,
                                       IndexUpdateCallback callback) {
         SolrIndexEditor editor = null;
         try {

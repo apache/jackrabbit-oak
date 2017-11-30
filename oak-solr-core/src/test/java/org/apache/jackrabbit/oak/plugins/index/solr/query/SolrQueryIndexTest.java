@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
@@ -349,7 +349,7 @@ public class SolrQueryIndexTest {
         SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
                 " contains([jcr:content/*], 'founded')";
-        SolrServer solrServer = mock(SolrServer.class);
+        SolrClient solrServer = mock(SolrClient.class);
         SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
         when(solrServerProvider.getSearchingSolrServer()).thenReturn(solrServer);
         OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
@@ -396,7 +396,7 @@ public class SolrQueryIndexTest {
         String query = "select * from [nt:base] as a where native('solr','select?q=searchKeywords:\"foo\"^20 text:\"foo\"^1 " +
                 "description:\"foo\"^8 something:\"foo\"^3 headline:\"foo\"^5 title:\"foo\"^10 &q.op=OR'";
         String sqlQuery = "select * from [nt:base] a where native('solr','" + query + "'";
-        SolrServer solrServer = mock(SolrServer.class);
+        SolrClient solrServer = mock(SolrClient.class);
         SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
         when(solrServerProvider.getSearchingSolrServer()).thenReturn(solrServer);
         OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);

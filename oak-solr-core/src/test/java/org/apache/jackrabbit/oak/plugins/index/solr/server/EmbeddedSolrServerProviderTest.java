@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.junit.Test;
@@ -33,7 +34,7 @@ public class EmbeddedSolrServerProviderTest {
     public void testEmbeddedSolrServerInitialization() throws Exception {
         EmbeddedSolrServerConfiguration solrServerConfiguration = new EmbeddedSolrServerConfiguration(getClass().getResource("/solr").getFile(), "oak");
         EmbeddedSolrServerProvider embeddedSolrServerProvider = new EmbeddedSolrServerProvider(solrServerConfiguration);
-        SolrServer solrServer = embeddedSolrServerProvider.getSolrServer();
+        SolrClient solrServer = embeddedSolrServerProvider.getSolrServer();
         assertNotNull(solrServer);
         SolrPingResponse ping = solrServer.ping();
         assertNotNull(ping);
