@@ -47,7 +47,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     static final String NODES_FIND_SPLIT = "DOCUMENT_NODES_FIND_SPLIT";
     static final String NODES_FIND_SLAVE = "DOCUMENT_NODES_FIND_SLAVE";
     static final String NODES_FIND_PRIMARY = "DOCUMENT_NODES_FIND_PRIMARY";
-    static final String NODES_FIND_MISSING_TIMER = "DOCUMENT_NODES_FIND_MISSING";
+    static final String NODES_FIND_MISSING = "DOCUMENT_NODES_FIND_MISSING";
+    static final String NODES_FIND_MISSING_TIMER = "DOCUMENT_NODES_FIND_MISSING_TIMER";
     static final String NODES_FIND_TIMER = "DOCUMENT_NODES_FIND";
 
     static final String NODES_QUERY_FIND_READ_COUNT = "DOCUMENT_NODES_QUERY_FIND";
@@ -79,6 +80,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
 
     private final MeterStats findNodesCachedMeter;
+    private final MeterStats findNodesMissing;
     private final TimerStats findNodesMissingTimer;
     private final MeterStats findNodesSlave;
     private final TimerStats findNodesTimer;
@@ -111,6 +113,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     public DocumentStoreStats(StatisticsProvider provider) {
         statisticsProvider = checkNotNull(provider);
         findNodesCachedMeter = provider.getMeter(NODES_FIND_CACHED, StatsOptions.DEFAULT);
+        findNodesMissing = provider.getMeter(NODES_FIND_MISSING, StatsOptions.DEFAULT);
         findNodesMissingTimer = provider.getTimer(NODES_FIND_MISSING_TIMER, StatsOptions.METRICS_ONLY);
         findNodesTimer = provider.getTimer(NODES_FIND_TIMER, StatsOptions.METRICS_ONLY);
         findSplitNodes = provider.getMeter(NODES_FIND_SPLIT, StatsOptions.DEFAULT);
@@ -162,7 +165,13 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
                                  boolean docFound, boolean isSlaveOk) {
         if (collection == Collection.NODES){
             //For now collect time for reads from primary/secondary in same timer
-            TimerStats timer = docFound ? findNodesTimer : findNodesMissingTimer;
+            TimerStats timer;
+            if (docFound) {
+                timer = findNodesTimer;
+            } else {
+                timer = findNodesMissingTimer;
+                findNodesMissing.mark();
+            }
             timer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
 
             //For now only nodes can be looked up from slave
@@ -313,6 +322,11 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
+    public long getNodesFindMissingCount() {
+        return findNodesMissing.getCount();
+    }
+
+    @Override
     public long getNodesReadByQueryCount() {
         return queryNodesResult.getCount();
     }
@@ -344,72 +358,92 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
     @Override
     public CompositeData getFindCachedNodesHistory() {
-        return getTimeSeriesData(NODES_FIND_CACHED, NODES_FIND_CACHED);
+        return getTimeSeriesData(NODES_FIND_CACHED,
+                "Number of find node document calls served from the cache.");
     }
 
     @Override
     public CompositeData getFindSplitNodesHistory() {
-        return getTimeSeriesData(NODES_FIND_SPLIT, NODES_FIND_SPLIT);
+        return getTimeSeriesData(NODES_FIND_SPLIT,
+                "Number of un-cached find calls for split document.");
     }
 
     @Override
     public CompositeData getFindNodesFromPrimaryHistory() {
-        return getTimeSeriesData(NODES_FIND_PRIMARY, NODES_FIND_PRIMARY);
+        return getTimeSeriesData(NODES_FIND_PRIMARY,
+                "Number of un-cached find node document calls targeting the primary.");
     }
 
     @Override
     public CompositeData getFindNodesFromSlaveHistory() {
-        return getTimeSeriesData(NODES_FIND_SLAVE, NODES_FIND_SLAVE);
+        return getTimeSeriesData(NODES_FIND_SLAVE,
+                "Number of un-cached find node document calls targeting a slave/secondary.");
+    }
+
+    @Override
+    public CompositeData getFindNodesMissingHistory() {
+        return getTimeSeriesData(NODES_FIND_MISSING,
+                "Number of un-cached find node document calls that returned no document.");
     }
 
     @Override
     public CompositeData getQueryNodesFromSlaveHistory() {
-        return getTimeSeriesData(NODES_QUERY_SLAVE, NODES_QUERY_SLAVE);
+        return getTimeSeriesData(NODES_QUERY_SLAVE,
+                "Number of queries for node documents targeting a slave/secondary.");
     }
 
     @Override
     public CompositeData getQueryNodesFromPrimaryHistory() {
-        return getTimeSeriesData(NODES_QUERY_PRIMARY, NODES_QUERY_PRIMARY);
+        return getTimeSeriesData(NODES_QUERY_PRIMARY,
+                "Number of queries for node documents targeting the primary.");
     }
 
     @Override
     public CompositeData getQueryNodesLockHistory() {
-        return getTimeSeriesData(NODES_QUERY_LOCK, NODES_QUERY_LOCK);
+        return getTimeSeriesData(NODES_QUERY_LOCK,
+                "Number of queries for node documents done while holding a lock.");
     }
 
     @Override
     public CompositeData getQueryJournalHistory() {
-        return getTimeSeriesData(JOURNAL_QUERY, JOURNAL_QUERY);
+        return getTimeSeriesData(JOURNAL_QUERY,
+                "Number of queries for journal documents.");
     }
 
     @Override
     public CompositeData getCreateJournalHistory() {
-        return getTimeSeriesData(JOURNAL_CREATE, JOURNAL_CREATE);
+        return getTimeSeriesData(JOURNAL_CREATE,
+                "Number of journal documents created.");
     }
 
     @Override
     public CompositeData getCreateNodesHistory() {
-        return getTimeSeriesData(NODES_CREATE, NODES_CREATE);
+        return getTimeSeriesData(NODES_CREATE,
+                "Number of node documents created.");
     }
 
     @Override
     public CompositeData getUpdateNodesHistory() {
-        return getTimeSeriesData(NODES_UPDATE, NODES_UPDATE);
+        return getTimeSeriesData(NODES_UPDATE,
+                "Number of node documents updated.");
     }
 
     @Override
     public CompositeData getUpdateNodesRetryHistory() {
-        return getTimeSeriesData(NODES_UPDATE_RETRY_COUNT, NODES_UPDATE_RETRY_COUNT);
+        return getTimeSeriesData(NODES_UPDATE_RETRY_COUNT,
+                "Number of times a node document update had to be retried.");
     }
 
     @Override
     public CompositeData getUpdateNodesFailureHistory() {
-        return getTimeSeriesData(NODES_UPDATE_FAILURE, NODES_UPDATE_FAILURE);
+        return getTimeSeriesData(NODES_UPDATE_FAILURE,
+                "Number of times a node document update failed.");
     }
 
     @Override
     public CompositeData getRemoveNodesHistory() {
-        return getTimeSeriesData(NODES_REMOVE, NODES_REMOVE);
+        return getTimeSeriesData(NODES_REMOVE,
+                "Number of removed node documents.");
     }
 
     private CompositeData getTimeSeriesData(String name, String desc){
