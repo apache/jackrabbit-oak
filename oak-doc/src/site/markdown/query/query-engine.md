@@ -229,7 +229,10 @@ and then restart the application:
 
 #### Quoting
 
-The query parser is now generally more strict about invalid syntax.
+[Special characters in queries need to be escaped.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping)
+
+However, compared to Jackrabbit 2.x,
+the query parser is now generally more strict about invalid syntax.
 The following query used to work in Jackrabbit 2.x, but not in Oak,
 because multiple way to quote the path are used at the same time:
 
