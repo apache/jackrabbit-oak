@@ -24,8 +24,14 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.security.authorization.restriction.WhiteboardRestrictionProvider;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableNodeName;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -44,10 +50,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
-import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableActionProvider;
-import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableNodeName;
-import org.apache.jackrabbit.oak.security.authorization.restriction.WhiteboardRestrictionProvider;
-import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -138,6 +140,9 @@ public class SecurityProviderRegistration {
     private final List<RestrictionProvider> restrictionProviders = newCopyOnWriteArrayList();
     private final List<UserAuthenticationFactory> userAuthenticationFactories = newCopyOnWriteArrayList();
 
+    private RootProvider rootProvider;
+    private TreeProvider treeProvider;
+
     //----------------------------------------------------< SCR integration >---
 
     @Activate
@@ -219,6 +224,26 @@ public class SecurityProviderRegistration {
 
     public void unbindUserConfiguration(UserConfiguration userConfiguration) {
         this.userConfiguration = null;
+    }
+
+    //-------------------------------------------< unary tree/root provider >---
+
+    @Reference(name = "rootProvider")
+    public void bindRootProvider(RootProvider rootProvider) {
+        this.rootProvider = rootProvider;
+    }
+
+    public void unbindRootProvider(RootProvider rootProvider) {
+        this.rootProvider = null;
+    }
+
+    @Reference(name = "treeProvider")
+    public void bindTreeProvider(TreeProvider treeProvider) {
+        this.treeProvider = treeProvider;
+    }
+
+    public void unbindTreeProvider(RootProvider treeProvider) {
+        this.treeProvider = null;
     }
 
     //-----------------------------------< multiple security configurations >---
@@ -493,25 +518,25 @@ public class SecurityProviderRegistration {
 
         // Static, mandatory references
 
-        securityProvider.setAuthenticationConfiguration(ConfigurationInitializer.initializeConfiguration(securityProvider, authenticationConfiguration));
-        securityProvider.setPrivilegeConfiguration(ConfigurationInitializer.initializeConfiguration(securityProvider, privilegeConfiguration));
+        securityProvider.setAuthenticationConfiguration(ConfigurationInitializer.initializeConfiguration(authenticationConfiguration, securityProvider, rootProvider, treeProvider));
+        securityProvider.setPrivilegeConfiguration(ConfigurationInitializer.initializeConfiguration(privilegeConfiguration, securityProvider, rootProvider, treeProvider));
 
         ConfigurationParameters userParams = ConfigurationParameters.of(
                 ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, createWhiteboardAuthorizableActionProvider()),
                 ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, createWhiteboardAuthorizableNodeName()),
                 ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, createWhiteboardUserAuthenticationFactory()));
-        securityProvider.setUserConfiguration(ConfigurationInitializer.initializeConfiguration(securityProvider, userConfiguration, userParams));
+        securityProvider.setUserConfiguration(ConfigurationInitializer.initializeConfiguration(userConfiguration, securityProvider, userParams, rootProvider, treeProvider));
 
         // Multiple, dynamic references
 
         ConfigurationParameters restrictionParams = ConfigurationParameters.of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, createWhiteboardRestrictionProvider());
-        ConfigurationInitializer.initializeConfigurations(securityProvider, authorizationConfiguration, restrictionParams);
+        ConfigurationInitializer.initializeConfigurations(authorizationConfiguration, securityProvider, restrictionParams, rootProvider, treeProvider);
         securityProvider.setAuthorizationConfiguration(authorizationConfiguration);
 
-        ConfigurationInitializer.initializeConfigurations(securityProvider, principalConfiguration, ConfigurationParameters.EMPTY);
+        ConfigurationInitializer.initializeConfigurations(principalConfiguration, securityProvider, ConfigurationParameters.EMPTY, rootProvider, treeProvider);
         securityProvider.setPrincipalConfiguration(principalConfiguration);
 
-        ConfigurationInitializer.initializeConfigurations(securityProvider, tokenConfiguration, ConfigurationParameters.EMPTY);
+        ConfigurationInitializer.initializeConfigurations(tokenConfiguration, securityProvider, ConfigurationParameters.EMPTY, rootProvider, treeProvider);
         securityProvider.setTokenConfiguration(tokenConfiguration);
 
         // Whiteboard
