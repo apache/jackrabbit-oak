@@ -24,6 +24,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
@@ -203,6 +205,38 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertSame(securityProvider, cc.getSecurityProvider());
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testGetRootProviderNotInitialized() {
+        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+        cc.getRootProvider();
+    }
+
+    @Test()
+    public void testSetRootProvider() {
+        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+
+        RootProvider rootProvider = Mockito.mock(RootProvider.class);
+        cc.setRootProvider(rootProvider);
+
+        assertSame(rootProvider, cc.getRootProvider());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetTreeProviderNotInitialized() {
+        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+        cc.getTreeProvider();
+    }
+
+    @Test()
+    public void testSetTreeProvider() {
+        CompositeConfiguration cc = new CompositeConfiguration("name") {};
+
+        TreeProvider treeProvider = Mockito.mock(TreeProvider.class);
+        cc.setTreeProvider(treeProvider);
+
+        assertSame(treeProvider, cc.getTreeProvider());
+    }
+
     @Test
     public void testGetProtectedItemImporters() {
         assertTrue(compositeConfiguration.getProtectedItemImporters().isEmpty());
@@ -324,7 +358,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         addConfiguration(new SecurityConfiguration.Default());
         assertSame(ConfigurationParameters.EMPTY, compositeConfiguration.getParameters());
 
-        ConfigurationParameters params = ConfigurationParameters.of("a","valueA", "b", "valueB");
+        ConfigurationParameters params = ConfigurationParameters.of("a", "valueA", "b", "valueB");
         SecurityConfiguration withParams = new SecurityConfiguration.Default() {
             @Nonnull
             @Override
@@ -336,7 +370,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
         assertEquals(ImmutableSet.copyOf(params.keySet()), ImmutableSet.copyOf(compositeConfiguration.getParameters().keySet()));
 
-        ConfigurationParameters params2 = ConfigurationParameters.of("a","valueA2", "c", "valueC");
+        ConfigurationParameters params2 = ConfigurationParameters.of("a", "valueA2", "c", "valueC");
         SecurityConfiguration withParams2 = new SecurityConfiguration.Default() {
             @Nonnull
             @Override
