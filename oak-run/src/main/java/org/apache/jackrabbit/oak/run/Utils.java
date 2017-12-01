@@ -252,7 +252,9 @@ class Utils {
             delegate = azureds;
         } else if (options.has(nods)){
             delegate = new DummyDataStore();
-            delegate.init(null);
+            File homeDir =  Files.createTempDir();
+            delegate.init(homeDir.getAbsolutePath());
+            closer.register(asCloseable(homeDir));
         }
         else {
             delegate = new OakFileDataStore();
