@@ -40,6 +40,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
@@ -88,6 +89,23 @@ public class FileIOUtilsTest {
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
 
         assertEquals(added, retrieved);
+    }
+
+    @Test
+    public void writeCustomReadOrgStrings() throws Exception {
+        Set<String> added = newHashSet("a-", "z-", "e-", "b-");
+        Set<String> actual = newHashSet("a", "z", "e", "b");
+
+        File f = folder.newFile();
+        int count = writeStrings(added.iterator(), f, false, new Function<String, String>() {
+            @Nullable @Override public String apply(@Nullable String input) {
+                return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
+            }
+        }, null, null);
+        assertEquals(added.size(), count);
+
+        Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
+        assertEquals(actual, retrieved);
     }
 
     @Test

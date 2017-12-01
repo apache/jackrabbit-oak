@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Charsets;
@@ -72,6 +73,12 @@ public final class FileIOUtils {
     public final static Comparator<String> lexComparator = new Comparator<String>() {
         @Override public int compare(String s1, String s2) {
             return s1.compareTo(s2);
+        }
+    };
+
+    public final static Function<String, String> passThruTransformer = new Function<String, String>() {
+        @Nullable @Override public String apply(@Nullable String input) {
+            return input;
         }
     };
 
@@ -223,13 +230,31 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
         @Nullable Logger logger, @Nullable String message) throws IOException {
+        return writeStrings(iterator, f, escape, passThruTransformer, logger, message);
+    }
+
+    /**
+     * Writes string from the given iterator to the given file and optionally
+     * escape the written strings for line breaks.
+     *
+     * @param iterator the source of the strings
+     * @param f file to write to
+     * @param escape escape whether to escape for line breaks
+     * @param transformer any transformation on the input
+     * @param logger logger to log progress
+     * @param message message to log
+     * @return
+     * @throws IOException
+     */
+    public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
+        @Nonnull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
         BufferedWriter writer =  newWriter(f, UTF_8);
         boolean threw = true;
 
         int count = 0;
         try {
             while (iterator.hasNext()) {
-                writeAsLine(writer, iterator.next(), escape);
+                writeAsLine(writer, transformer.apply(iterator.next()), escape);
                 count++;
                 if (logger != null) {
                     if (count % 1000 == 0) {
