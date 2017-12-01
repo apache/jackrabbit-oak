@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NA
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -318,9 +319,8 @@ class PropertyIndexEditor implements IndexEditor {
                         keysToCheckForUniqueness, indexMeta);
                 if (failed != null) {
                     String msg = String.format(
-                            "Uniqueness constraint violated at path [%s] for one of the "
-                                    + "property in %s having value %s",
-                            getPath(), propertyNames, failed);
+                            "Uniqueness constraint violated property %s having value %s",
+                            propertyNames, failed);
                     throw new CommitFailedException(CONSTRAINT, 30, msg);
                 }
             }
@@ -364,6 +364,10 @@ class PropertyIndexEditor implements IndexEditor {
             for (IndexStoreStrategy s : getStrategies(true)) {
                 count += s.count(root, indexMeta, singleton(key), 2);
                 if (count > 1) {
+                    Iterator<String> it = s.query(null, null, indexMeta, singleton(key)).iterator();
+                    if (it.hasNext()) {
+                        return key + ": " + it.next();
+                    }
                     return key;
                 }
             }
