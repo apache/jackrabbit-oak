@@ -31,22 +31,9 @@ final class CugSecurityProvider {
     private CugSecurityProvider() {}
 
     public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration) {
-        SecurityProvider delegate = new SecurityProviderBuilder().with(configuration).build();
+        CugConfiguration cugConfiguration = new CugConfiguration();
+        cugConfiguration.activate(configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY));
 
-        AuthorizationConfiguration authorizationConfiguration = delegate
-                .getConfiguration(AuthorizationConfiguration.class);
-        if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
-            throw new IllegalStateException();
-        } else {
-            CugConfiguration cugConfiguration = new CugConfiguration();
-            cugConfiguration.setSecurityProvider(delegate);
-            cugConfiguration.activate(configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY));
-
-            CompositeAuthorizationConfiguration composite = (CompositeAuthorizationConfiguration) authorizationConfiguration;
-            AuthorizationConfiguration defConfig = checkNotNull(composite.getDefaultConfig());
-            composite.addConfiguration(cugConfiguration);
-            composite.addConfiguration(defConfig);
-        }
-        return delegate;
+        return new SecurityProviderBuilder().with(configuration).with(cugConfiguration, AuthorizationConfiguration.class).build();
     }
 }
