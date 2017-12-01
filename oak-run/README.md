@@ -457,7 +457,7 @@ Use the following command:
 
     $ java -jar oak-run-*.jar datastorecheck [--id] [--ref] [--consistency] \
             [--store <path>|<mongo_uri>] \
-            [--s3ds <s3ds_config>|--fds <fds_config>] \
+            [--s3ds <s3ds_config>|--fds <fds_config>|--nods] \
             [--dump <path>] \
             [--repoHome <local_repository_root>]
             [--track]
@@ -474,6 +474,7 @@ The following options are available:
     --dump           - Path where to dump the files (Optional). Otherwise, files will be dumped in the user tmp directory.
     --s3ds           - Path to the S3DataStore configuration file
     --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
+    --nods           - To check for misconfigured external references when no data store should be there (Use instead of --s3ds or --fds)
     --repoHome       - Path of the local reposity home folder. Mandatory for --consistency & --track options 
     --track          - Whether to force override the tracked ids (Valid only for --id & --consistency options)
     --verbose        - Outputs backend friendly blobids. Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.

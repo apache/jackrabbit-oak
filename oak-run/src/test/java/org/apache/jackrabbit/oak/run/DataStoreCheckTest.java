@@ -293,6 +293,16 @@ public class DataStoreCheckTest {
         assertFileEquals(dump, "[consistency]", encodedIds(Sets.newHashSet(deletedBlobId), dsOption));
     }
 
+    @Test
+    public void testConsistencyNoDS() throws Exception {
+        File dump = temporaryFolder.newFolder();
+
+        testTarNoDSOption(dump);
+
+        assertFileEquals(dump, "[ref]", blobsAdded);
+        assertFileEquals(dump, "[consistency]", blobsAdded);
+    }
+
     private void testAllParams(File dump, File repoHome) throws Exception {
         DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
         List<String> argsList = Lists
@@ -320,6 +330,14 @@ public class DataStoreCheckTest {
                 "--dump", dump.getAbsolutePath());
         log.info("Running testMissinOpParams: {}", argsList);
         testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "id", "ref", "consistency"));
+    }
+
+    public void testTarNoDSOption(File dump) throws Exception {
+        DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
+        List<String> argsList = Lists
+            .newArrayList("--id", "--ref", "--consistency", "--nods", "--store", storePath,
+                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
+        checkCommand.execute(argsList.toArray(new String[0]));
     }
 
     @Test

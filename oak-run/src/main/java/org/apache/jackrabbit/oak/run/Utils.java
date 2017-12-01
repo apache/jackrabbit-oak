@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.sql.DataSource;
 
+import joptsimple.OptionSpecBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -49,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.run.cli.DummyDataStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -220,11 +222,12 @@ class Utils {
             parser.accepts("fds", "FileDataStore config").withRequiredArg().ofType(String.class);
         ArgumentAcceptingOptionSpec<String> azureBlobDSConfig =
             parser.accepts("azureblobds", "AzureBlobStorageDataStore config").withRequiredArg().ofType(String.class);
+        OptionSpecBuilder nods = parser.accepts("nods", "No DataStore ");
 
 
         OptionSet options = parser.parse(args);
 
-        if (!options.has(s3dsConfig) && !options.has(fdsConfig) && !options.has(azureBlobDSConfig)) {
+        if (!options.has(s3dsConfig) && !options.has(fdsConfig) && !options.has(azureBlobDSConfig) && !options.has(nods)) {
             return null;
         }
 
@@ -247,7 +250,11 @@ class Utils {
             azureds.init(homeDir.getAbsolutePath());
             closer.register(asCloseable(homeDir));
             delegate = azureds;
-        } else {
+        } else if (options.has(nods)){
+            delegate = new DummyDataStore();
+            delegate.init(null);
+        }
+        else {
             delegate = new OakFileDataStore();
             String cfgPath = fdsConfig.value(options);
             Properties props = loadAndTransformProps(cfgPath);
