@@ -24,8 +24,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
