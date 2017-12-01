@@ -479,18 +479,16 @@ The following options are available:
     --track          - Whether to force override the tracked ids (Valid only for --id & --consistency options)
     --verbose        - Outputs backend friendly blobids. Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
 Note:
-For using S3DataStore the following additional jars have to be downloaded
-    - [commons-logging-1.1.3.jar](http://central.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar)
-    - [aws-java-sdk-osgi-1.11.24.jar](http://central.maven.org/maven2/com/amazonaws/aws-java-sdk-osgi/1.11.24/aws-java-sdk-osgi-1.11.24.jar)
-    
+
 The command to be executed for S3DataStore
 
-    java -classpath oak-run-*.jar:aws-java-sdk-osgi-1.11.24.jar:commons-logging-1.1.3.jar \
+    java -classpath oak-run-*.jar \
         org.apache.jackrabbit.oak.run.Main \
         datastorecheck --id --ref --consistency \
         --store <path>|<mongo_uri> \
         --s3ds <s3ds_config> \
         --dump <dump_path>
+        --repoHome <repo_home>
 
 The config files should be formatted according to the OSGi configuration admin specification
 
