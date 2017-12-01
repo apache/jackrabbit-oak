@@ -38,6 +38,9 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -79,7 +82,11 @@ public class DataStoreCheckTest {
     private static final Logger log = LoggerFactory.getLogger(DataStoreCheckTest.class);
 
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target")) {
+        @Override
+        public void delete() {}
+
+    };
 
     private String storePath;
 
@@ -205,6 +212,25 @@ public class DataStoreCheckTest {
     }
 
     @Test
+    public void testConsistencyVerbose() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        File repoHome = temporaryFolder.newFolder();
+
+        Random rand = new Random();
+        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        blobsAdded.remove(deletedBlobId);
+        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+        assertEquals(1, count);
+        setupDataStore.close();
+
+        testAllParamsVerbose(dump, repoHome);
+
+        assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
+        assertFileEquals(dump, "[ref]", encodedIds(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption));
+        assertFileEquals(dump, "[consistency]", encodedIds(Sets.newHashSet(deletedBlobId), dsOption));
+    }
+
+    @Test
     public void testConsistencyWithDeleteTracker() throws Exception {
         File dump = temporaryFolder.newFolder();
         File repoHome = temporaryFolder.newFolder();
@@ -235,11 +261,52 @@ public class DataStoreCheckTest {
         assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
     }
 
+    @Test
+    public void testConsistencyVerboseWithDeleteTracker() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        File repoHome = temporaryFolder.newFolder();
+
+        File trackerFolder = new File(repoHome, "blobids");
+        FileUtils.forceMkdir(trackerFolder);
+
+        File delTracker = new File(trackerFolder, "activedeletions.del");
+        Random rand = new Random();
+        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        blobsAdded.remove(deletedBlobId);
+        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+
+        String activeDeletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        blobsAdded.remove(activeDeletedBlobId);
+        count += setupDataStore.countDeleteChunks(ImmutableList.of(activeDeletedBlobId), 0);
+        assertEquals(2, count);
+
+        // artificially put the deleted id in the tracked .del file
+        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+
+        setupDataStore.close();
+
+        testAllParamsVerbose(dump, repoHome);
+
+        assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
+        assertFileEquals(dump, "[ref]",
+            encodedIds(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)), dsOption));
+        assertFileEquals(dump, "[consistency]", encodedIds(Sets.newHashSet(deletedBlobId), dsOption));
+    }
+
     private void testAllParams(File dump, File repoHome) throws Exception {
         DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath());
+
+        checkCommand.execute(argsList.toArray(new String[0]));
+    }
+
+    private void testAllParamsVerbose(File dump, File repoHome) throws Exception {
+        DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
+        List<String> argsList = Lists
+            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
+                "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath(), "--verbose");
 
         checkCommand.execute(argsList.toArray(new String[0]));
     }
@@ -351,5 +418,13 @@ public class DataStoreCheckTest {
         FileOutputStream fos = FileUtils.openOutputStream(cfgFile);
         ConfigurationHandler.write(fos, props);
         return cfgFile.getAbsolutePath();
+    }
+
+    private static Set<String> encodedIds(Set<String> ids, String dsOption) {
+        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
+            @Nullable @Override public String apply(@Nullable String input) {
+                return DataStoreCheckCommand.encodeId(input, "--"+dsOption);
+            }
+        }));
     }
 }

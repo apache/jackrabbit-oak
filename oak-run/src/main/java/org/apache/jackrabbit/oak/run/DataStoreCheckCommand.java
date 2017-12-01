@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
+import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
 import static com.google.common.base.Stopwatch.createStarted;
 import static com.google.common.io.Closeables.close;
 import static java.io.File.createTempFile;
@@ -35,14 +36,17 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Splitter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
@@ -77,6 +81,11 @@ import joptsimple.OptionSpecBuilder;
  */
 public class DataStoreCheckCommand implements Command {
     private static final String DELIM = ",";
+    private static final String FDS = "--fds";
+    private static final String S3DS = "--s3ds";
+    private static final String AZUREDS = "--azureblobds";
+    private static final String DASH = "-";
+    private static final String HASH = "#";
 
     @Override
     public void execute(String... args) throws Exception {
@@ -86,7 +95,7 @@ public class DataStoreCheckCommand implements Command {
         String helpStr =
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>]"
-                + " [--dump <path>] [--repoHome <repo_home>] [--track]";
+                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose]";
 
         Closer closer = Closer.create();
         try {
@@ -109,6 +118,8 @@ public class DataStoreCheckCommand implements Command {
             ArgumentAcceptingOptionSpec<String> repoHome = parser.accepts("repoHome", "Local repository home folder")
                 .requiredIf(trackOverride, consistencyOp).withRequiredArg().ofType(String.class);
 
+            // Optional argument to specify tracking
+            OptionSpecBuilder verbose = parser.accepts("verbose", "Output backend formatted ids/paths");
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -159,8 +170,10 @@ public class DataStoreCheckCommand implements Command {
             }
 
             // Initialize S3/FileDataStore if configured
+            String dsType = "";
             GarbageCollectableBlobStore dataStore  = Utils.bootstrapDataStore(args, closer);
             if (dataStore != null) {
+                dsType = getDSType(args);
                 blobStore = dataStore;
             }
 
@@ -175,8 +188,15 @@ public class DataStoreCheckCommand implements Command {
             closer.register(register);
 
             if (options.has(idOp) || options.has(consistencyOp)) {
+                File idTemp = createTempFile("ids", null);
+                closer.register(new Closeable() {
+                    @Override public void close() throws IOException {
+                        forceDelete(idTemp);
+                    }
+                });
+
                 File dumpFile = register.createFile(idOp, dumpPath);
-                retrieveBlobIds(blobStore, dumpFile);
+                retrieveBlobIds(blobStore, idTemp);
 
                 // If track path and track override specified copy the file to the location
                 if (options.has(repoHome) && options.has(trackOverride)) {
@@ -184,24 +204,81 @@ public class DataStoreCheckCommand implements Command {
                     File trackingFileParent = new File(FilenameUtils.concat(trackPath, "blobids"));
                     File trackingFile = new File(trackingFileParent,
                         "blob-" + String.valueOf(System.currentTimeMillis()) + ".gen");
-                    FileUtils.copyFile(dumpFile, trackingFile);
+                    FileUtils.copyFile(idTemp, trackingFile);
+                }
+
+                if (options.has(verbose)) {
+                    verboseIds(closer, dsType, idTemp, dumpFile);
+                } else {
+                    FileUtils.copyFile(idTemp, dumpFile);
                 }
             }
 
             if (options.has(refOp) || options.has(consistencyOp)) {
                 retrieveBlobReferences(blobStore, marker,
-                    register.createFile(refOp, dumpPath));
+                    register.createFile(refOp, dumpPath), dsType, options.has(verbose));
             }
 
             if (options.has(consistencyOp)) {
                 checkConsistency(register.get(idOp), register.get(refOp),
-                    register.createFile(consistencyOp, dumpPath), options.valueOf(repoHome));
+                    register.createFile(consistencyOp, dumpPath), options.valueOf(repoHome), dsType);
             }
         } catch (Throwable t) {
             t.printStackTrace();
         } finally {
             closer.close();
         }
+    }
+
+    private static void verboseIds(Closer closer, final String dsType, File readFile, File writeFile) throws IOException {
+        LineIterator idIterator = FileUtils.lineIterator(readFile);
+        // Create a temp file to write real ids and register with closer
+        File longIdTemp = createTempFile("longids", null);
+        closer.register(new Closeable() {
+            @Override public void close() throws IOException {
+                forceDelete(longIdTemp);
+            }
+        });
+
+        // Read and write the converted ids
+        FileIOUtils.writeStrings(idIterator, longIdTemp, true,
+            new Function<String, String>() {
+                @Nullable @Override public String apply(@Nullable String input) {
+                return encodeId(input, dsType);
+            }
+        }, null, null);
+        FileUtils.copyFile(longIdTemp, writeFile);
+    }
+
+    private static String getDSType(String[] args) {
+        List<String> argList = Arrays.asList(args);
+        if (argList.contains(S3DS)) {
+            return S3DS;
+        } else if (argList.contains(FDS)) {
+            return FDS;
+        } else if (argList.contains(AZUREDS)) {
+            return AZUREDS;
+        }
+        return "";
+    }
+
+    static String encodeId(String id, String dsType) {
+        List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings().splitToList(id);
+        String blobId = idLengthSepList.get(0);
+
+        if (dsType.equals(FDS)) {
+            return (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value() + blobId
+                .substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+        } else if (dsType.equals(S3DS) || dsType.equals(AZUREDS)) {
+            return (blobId.substring(0, 4) + DASH + blobId.substring(4));
+        }
+        return id;
+    }
+
+    private static String decodeId(String id) {
+        List<String> list = Splitter.on(FILE_SEPARATOR.value()).trimResults().omitEmptyStrings().splitToList(id);
+        String pathStrippedId = list.get(list.size() -1);
+        return Joiner.on("").join(Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
     }
 
     static class FileRegister implements Closeable {
@@ -240,7 +317,8 @@ public class DataStoreCheckCommand implements Command {
         }
     }
 
-    private static void checkConsistency(File ids, File refs, File missing, String trackRoot) throws IOException {
+    private static void checkConsistency(File ids, File refs, File missing, String trackRoot, String dsType)
+        throws IOException {
         System.out.println("Starting consistency check");
         Stopwatch watch = createStarted();
 
@@ -272,7 +350,7 @@ public class DataStoreCheckCommand implements Command {
                     FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(delFile, candTemp, new Function<String, String>() {
                         @Nullable @Override public String apply(@Nullable String input) {
                             if (input != null) {
-                                return input.split(DELIM)[0];
+                                return encodeId(decodeId(input.split(DELIM)[0]), dsType);
                             }
                             return "";
                         }
@@ -294,8 +372,8 @@ public class DataStoreCheckCommand implements Command {
         System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
     }
 
-    private static void retrieveBlobReferences(GarbageCollectableBlobStore blobStore,
-            BlobReferenceRetriever marker, File marked) throws IOException {
+    private static void retrieveBlobReferences(GarbageCollectableBlobStore blobStore, BlobReferenceRetriever marker,
+        File marked, String dsType, boolean isVerbose) throws IOException {
         final BufferedWriter writer = Files.newWriter(marked, Charsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
         boolean threw = true;
@@ -314,9 +392,13 @@ public class DataStoreCheckCommand implements Command {
                             Iterator<String> idIter = finalBlobStore.resolveChunks(blobId);
 
                             while (idIter.hasNext()) {
-                                String id = delimJoiner.join(idIter.next(), nodeId);
+                                String id = idIter.next();
+                                if (isVerbose) {
+                                    id = encodeId(id, dsType);
+                                }
+                                String combinedId = delimJoiner.join(id, nodeId);
                                 count.getAndIncrement();
-                                writeAsLine(writer, id, true);
+                                writeAsLine(writer, combinedId, true);
                             }
                         } catch (Exception e) {
                             throw new RuntimeException("Error in retrieving references", e);
