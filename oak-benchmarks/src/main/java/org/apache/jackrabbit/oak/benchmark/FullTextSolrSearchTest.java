@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +114,7 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
             embeddedSolrServerConfiguration = embeddedSolrServerConfiguration.withHttpConfiguration("/solr", 8983);
         }
         EmbeddedSolrServerProvider embeddedSolrServerProvider = embeddedSolrServerConfiguration.getProvider();
-        SolrServer solrServer = embeddedSolrServerProvider.getSolrServer();
+        SolrClient solrServer = embeddedSolrServerProvider.getSolrServer();
         if (storageEnabled != null && !storageEnabled) {
             // change schema.xml and reload the core
             File schemaXML = new File(solrHome.getAbsolutePath() + "/oak/conf", "schema.xml");
@@ -131,7 +131,7 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
 
     @Override
     protected void afterSuite() throws Exception {
-        SolrServer solrServer = serverProvider.getSolrServer();
+        SolrClient solrServer = serverProvider.getSolrServer();
         if (solrServer != null) {
             solrServer.shutdown();
         }
