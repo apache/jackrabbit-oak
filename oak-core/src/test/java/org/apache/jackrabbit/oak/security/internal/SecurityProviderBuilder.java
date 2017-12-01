@@ -19,8 +19,13 @@ package org.apache.jackrabbit.oak.security.internal;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -28,16 +33,45 @@ public class SecurityProviderBuilder {
 
     private ConfigurationParameters configuration = null;
 
+    private SecurityConfiguration sc;
+    private Class<? extends SecurityConfiguration> cls;
+
     public SecurityProviderBuilder with(@Nonnull ConfigurationParameters configuration) {
         this.configuration = checkNotNull(configuration);
         return this;
     }
 
+    public SecurityProviderBuilder with(@Nonnull SecurityConfiguration sc, @Nonnull Class<? extends SecurityConfiguration> cls) {
+        this.sc = sc;
+        this.cls = cls;
+        return this;
+    }
+
     public SecurityProvider build() {
+        SecurityProvider sp;
         if (configuration != null) {
-            return new SecurityProviderImpl(configuration);
+            sp = new SecurityProviderImpl(configuration);
         } else {
-            return new SecurityProviderImpl();
+            sp = new SecurityProviderImpl();
         }
+
+        if (sc != null && cls != null) {
+            Object cc = sp.getConfiguration(cls);
+            if (!(cc instanceof CompositeConfiguration)) {
+                throw new IllegalStateException();
+            } else {
+                if (sc instanceof ConfigurationBase) {
+                    ((ConfigurationBase) sc).setSecurityProvider(sp);
+                }
+
+                CompositeConfiguration composite = (CompositeConfiguration) cc;
+                SecurityConfiguration defConfig = composite.getDefaultConfig();
+
+                composite.addConfiguration(sc);
+                composite.addConfiguration(defConfig);
+            }
+        }
+
+        return sp;
     }
 }
