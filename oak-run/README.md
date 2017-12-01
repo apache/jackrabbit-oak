@@ -461,6 +461,7 @@ Use the following command:
             [--dump <path>] \
             [--repoHome <local_repository_root>]
             [--track]
+            [--verbose]
 
 The following options are available:
 
@@ -475,6 +476,7 @@ The following options are available:
     --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
     --repoHome       - Path of the local reposity home folder. Mandatory for --consistency & --track options 
     --track          - Whether to force override the tracked ids (Valid only for --id & --consistency options)
+    --verbose        - Outputs backend friendly blobids. Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
 Note:
 For using S3DataStore the following additional jars have to be downloaded
     - [commons-logging-1.1.3.jar](http://central.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar)
