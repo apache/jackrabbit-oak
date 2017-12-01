@@ -82,11 +82,7 @@ public class DataStoreCheckTest {
     private static final Logger log = LoggerFactory.getLogger(DataStoreCheckTest.class);
 
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target")) {
-        @Override
-        public void delete() {}
-
-    };
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     private String storePath;
 
