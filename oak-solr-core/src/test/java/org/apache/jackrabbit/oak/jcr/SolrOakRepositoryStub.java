@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
-import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 
 public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
@@ -49,7 +48,7 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
     protected void preCreateRepository(Jcr jcr) {
         String path = getClass().getResource("/").getFile() + "/queryjcrtest" ;
         File f = new File(path);
-        final SolrClient solrServer;
+        final SolrServer solrServer;
         try {
             solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "oak")).getSolrServer();
         } catch (Exception e) {
@@ -63,17 +62,17 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
             @CheckForNull
             @Override
-            public SolrClient getSolrServer() throws Exception {
+            public SolrServer getSolrServer() throws Exception {
                 return solrServer;
             }
 
             @Override
-            public SolrClient getIndexingSolrServer() throws Exception {
+            public SolrServer getIndexingSolrServer() throws Exception {
                 return solrServer;
             }
 
             @Override
-            public SolrClient getSearchingSolrServer() throws Exception {
+            public SolrServer getSearchingSolrServer() throws Exception {
                 return solrServer;
             }
         };
