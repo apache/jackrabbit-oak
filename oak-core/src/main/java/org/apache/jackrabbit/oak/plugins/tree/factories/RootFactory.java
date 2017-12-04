@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 /**
  * Factory to obtain immutable {@code Root} objects.
  *
- * @deprecated Please use {@link RootProvider} instead
+ * @deprecated Please use {@code RootProvider} instead
  */
 public final class RootFactory {
 
