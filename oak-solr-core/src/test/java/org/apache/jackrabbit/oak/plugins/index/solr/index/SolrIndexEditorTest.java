@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -47,7 +46,7 @@ public class SolrIndexEditorTest {
 
     @Test
     public void testIndexedProperties() throws Exception {
-        SolrClient solrServer = TestUtils.createSolrServer();
+        SolrServer solrServer = TestUtils.createSolrServer();
         OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
         IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
         SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration, callback);
@@ -68,7 +67,7 @@ public class SolrIndexEditorTest {
     @Test
     public void testIgnoredPropertiesNotIndexed() throws Exception {
         NodeBuilder builder = mock(NodeBuilder.class);
-        SolrClient solrServer = TestUtils.createSolrServer();
+        SolrServer solrServer = TestUtils.createSolrServer();
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
             @Nonnull
             @Override

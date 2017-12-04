@@ -34,7 +34,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
-import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServer;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +76,7 @@ public class SolrServerProviderService implements SolrServerProvider {
 
     private String serverType;
 
-    private SolrClient cachedSolrServer;
+    private SolrServer cachedSolrServer;
 
     @Activate
     protected void activate(ComponentContext context) throws Exception {
@@ -140,7 +140,7 @@ public class SolrServerProviderService implements SolrServerProvider {
 
     @CheckForNull
     @Override
-    public SolrClient getSolrServer() throws Exception {
+    public SolrServer getSolrServer() throws Exception {
         synchronized (solrServerConfigurationProviders) {
             if (cachedSolrServer == null) {
                 cachedSolrServer = getServer();
@@ -151,18 +151,18 @@ public class SolrServerProviderService implements SolrServerProvider {
 
     @CheckForNull
     @Override
-    public SolrClient getIndexingSolrServer() throws Exception {
+    public SolrServer getIndexingSolrServer() throws Exception {
         return getSolrServer();
     }
 
     @CheckForNull
     @Override
-    public SolrClient getSearchingSolrServer() throws Exception {
+    public SolrServer getSearchingSolrServer() throws Exception {
         return getSolrServer();
     }
 
-    private SolrClient getServer() {
-        SolrClient solrServer = null;
+    private SolrServer getServer() {
+        SolrServer solrServer = null;
         if (serverType != null && !"none".equals(serverType)) {
             SolrServerConfigurationProvider solrServerConfigurationProvider = solrServerConfigurationProviders.get(serverType);
             if (solrServerConfigurationProvider != null) {
