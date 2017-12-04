@@ -477,7 +477,9 @@ The following options are available:
     --nods           - To check for misconfigured external references when no data store should be there (Use instead of --s3ds or --fds)
     --repoHome       - Path of the local reposity home folder. Mandatory for --consistency & --track options 
     --track          - Whether to force override the tracked ids (Valid only for --id & --consistency options)
-    --verbose        - Outputs backend friendly blobids. Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
+    --verbose        - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
+                       This options would typically be a slower option since, it requires the whole repo traversal.  
+                       Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
 Note:
 
 The command to be executed for S3DataStore
