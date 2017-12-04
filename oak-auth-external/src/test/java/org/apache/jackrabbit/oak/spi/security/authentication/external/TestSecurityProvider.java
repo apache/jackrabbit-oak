@@ -31,18 +31,6 @@ public final class TestSecurityProvider {
 
     public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration,
             @Nonnull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
-        SecurityProvider delegate = new SecurityProviderBuilder().with(configuration).build();
-
-        PrincipalConfiguration principalConfiguration = delegate.getConfiguration(PrincipalConfiguration.class);
-        if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
-            throw new IllegalStateException();
-        } else {
-            externalPrincipalConfiguration.setSecurityProvider(delegate);
-            CompositePrincipalConfiguration composite = (CompositePrincipalConfiguration) principalConfiguration;
-            PrincipalConfiguration defConfig = composite.getDefaultConfig();
-            composite.addConfiguration(externalPrincipalConfiguration);
-            composite.addConfiguration(defConfig);
-        }
-        return delegate;
+        return new SecurityProviderBuilder().with(configuration).with(externalPrincipalConfiguration, PrincipalConfiguration.class).build();
     }
 }

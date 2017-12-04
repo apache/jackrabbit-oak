@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,23 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
+package org.apache.jackrabbit.oak.plugins.tree;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-/**
- * {@link org.apache.solr.client.solrj.SolrServer} configuration provider.
- */
-public interface SolrServerConfigurationProvider<S extends SolrServerProvider> {
+public interface RootProvider {
 
-    /**
-     * Provide a {@link SolrServerConfiguration} to be used to initialize a specific
-     * {@link org.apache.solr.client.solrj.SolrServer} implementation.
-     *
-     * @return the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration} holding the configuration parameters
-     */
     @Nonnull
-    SolrServerConfiguration<S> getSolrServerConfiguration();
+    Root createReadOnlyRoot(@Nonnull NodeState rootState);
+
+    @Nonnull
+    Root createReadOnlyRoot(@Nonnull Root root);
+
+    @Nonnull
+    Root createSystemRoot(@Nonnull NodeStore store, @Nullable CommitHook commitHook);
 }

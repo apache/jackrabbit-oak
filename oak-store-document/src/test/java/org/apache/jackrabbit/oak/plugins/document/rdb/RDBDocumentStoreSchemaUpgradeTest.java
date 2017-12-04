@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import javax.sql.DataSource;
 
@@ -28,7 +29,9 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -101,6 +104,30 @@ public class RDBDocumentStoreSchemaUpgradeTest {
     }
 
     @Test
+    public void init0then1() {
+        RDBOptions op = new RDBOptions().tablePrefix("T0T1").initialSchema(0).upgradeToSchema(0).dropTablesOnClose(true);
+        RDBDocumentStore rdb0 = null;
+        RDBDocumentStore rdb1 = null;
+        try {
+            rdb0 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
+            RDBTableMetaData meta0 = rdb0.getTable(Collection.NODES);
+            assertFalse(meta0.hasVersion());
+            rdb1 = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), new RDBOptions().tablePrefix("T0T1").initialSchema(0).upgradeToSchema(1));
+            RDBTableMetaData meta1 = rdb1.getTable(Collection.NODES);
+            assertTrue(meta1.hasVersion());
+            UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo"), true);
+            assertTrue(rdb1.create(Collection.NODES, Collections.singletonList(testInsert)));
+        } finally {
+            if (rdb1 != null) {
+                rdb1.dispose();
+            }
+            if (rdb0 != null) {
+                rdb0.dispose();
+            }
+        }
+    }
+
+    @Test
     public void init01fail() {
         LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
                 .contains("Attempted to upgrade").create();
@@ -119,7 +146,10 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             assertFalse(meta.hasVersion());
             assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size(),
                     logCustomizer.getLogs().size());
+            UpdateOp testInsert = new UpdateOp(Utils.getIdFromPath("/foo"), true);
+            assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
         } finally {
+            wds.setFailAlterTableAddColumnStatements(false);
             logCustomizer.finished();
             if (rdb != null) {
                 rdb.dispose();

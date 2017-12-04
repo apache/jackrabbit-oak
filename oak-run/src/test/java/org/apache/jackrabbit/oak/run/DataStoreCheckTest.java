@@ -34,14 +34,20 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
@@ -84,6 +90,8 @@ public class DataStoreCheckTest {
     private String storePath;
 
     private Set<String> blobsAdded;
+
+    private Map<String, String> blobsAddedWithNodes;
 
     private String cfgFilePath;
 
@@ -145,12 +153,15 @@ public class DataStoreCheckTest {
         NodeBuilder a = store.getRoot().builder();
         int numBlobs = 10;
         blobsAdded = Sets.newHashSet();
+        blobsAddedWithNodes = Maps.newHashMap();
+
         for (int i = 0; i < numBlobs; i++) {
             SegmentBlob b = (SegmentBlob) store.createBlob(randomStream(i, 18342));
             Iterator<String> idIter = setupDataStore.resolveChunks(b.getBlobId());
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
                 blobsAdded.add(chunk);
+                blobsAddedWithNodes.put(chunk, "/c"+i+"/x");
             }
             a.child("c" + i).setProperty("x", b);
         }
@@ -205,6 +216,30 @@ public class DataStoreCheckTest {
     }
 
     @Test
+    public void testConsistencyVerbose() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        File repoHome = temporaryFolder.newFolder();
+
+        Random rand = new Random();
+        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        blobsAdded.remove(deletedBlobId);
+
+        long count = setupDataStore
+            .countDeleteChunks(ImmutableList.of(deletedBlobId),
+                0);
+        assertEquals(1, count);
+        setupDataStore.close();
+
+        testAllParamsVerbose(dump, repoHome);
+
+        assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
+        assertFileEquals(dump, "[ref]",
+            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption, blobsAddedWithNodes));
+        assertFileEquals(dump, "[consistency]",
+            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
+    }
+
+    @Test
     public void testConsistencyWithDeleteTracker() throws Exception {
         File dump = temporaryFolder.newFolder();
         File repoHome = temporaryFolder.newFolder();
@@ -235,11 +270,64 @@ public class DataStoreCheckTest {
         assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
     }
 
+    @Test
+    public void testConsistencyVerboseWithDeleteTracker() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        File repoHome = temporaryFolder.newFolder();
+
+        File trackerFolder = new File(repoHome, "blobids");
+        FileUtils.forceMkdir(trackerFolder);
+
+        File delTracker = new File(trackerFolder, "activedeletions.del");
+        Random rand = new Random();
+        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        blobsAdded.remove(deletedBlobId);
+        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+
+        String activeDeletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        blobsAdded.remove(activeDeletedBlobId);
+        count += setupDataStore.countDeleteChunks(ImmutableList.of(activeDeletedBlobId), 0);
+        assertEquals(2, count);
+
+        // artificially put the deleted id in the tracked .del file
+        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+
+        setupDataStore.close();
+
+        testAllParamsVerbose(dump, repoHome);
+
+        assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
+        assertFileEquals(dump, "[ref]",
+            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)), dsOption,
+                blobsAddedWithNodes));
+        assertFileEquals(dump, "[consistency]",
+            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
+    }
+
+    @Test
+    public void testConsistencyNoDS() throws Exception {
+        File dump = temporaryFolder.newFolder();
+
+        testTarNoDSOption(dump);
+
+        assertFileEquals(dump, "[ref]", blobsAdded);
+        assertFileEquals(dump, "[consistency]", blobsAdded);
+    }
+
     private void testAllParams(File dump, File repoHome) throws Exception {
         DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath());
+
+        checkCommand.execute(argsList.toArray(new String[0]));
+    }
+
+    private void testAllParamsVerbose(File dump, File repoHome) throws Exception {
+        DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
+        List<String> argsList = Lists
+            .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
+                "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath(), "--verbose");
 
         checkCommand.execute(argsList.toArray(new String[0]));
     }
@@ -253,6 +341,14 @@ public class DataStoreCheckTest {
                 "--dump", dump.getAbsolutePath());
         log.info("Running testMissinOpParams: {}", argsList);
         testIncorrectParams(argsList, Lists.newArrayList("Missing required option(s)", "id", "ref", "consistency"));
+    }
+
+    public void testTarNoDSOption(File dump) throws Exception {
+        DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
+        List<String> argsList = Lists
+            .newArrayList("--id", "--ref", "--consistency", "--nods", "--store", storePath,
+                "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
+        checkCommand.execute(argsList.toArray(new String[0]));
     }
 
     @Test
@@ -351,5 +447,23 @@ public class DataStoreCheckTest {
         FileOutputStream fos = FileUtils.openOutputStream(cfgFile);
         ConfigurationHandler.write(fos, props);
         return cfgFile.getAbsolutePath();
+    }
+
+    private static Set<String> encodedIds(Set<String> ids, String dsOption) {
+        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
+            @Nullable @Override public String apply(@Nullable String input) {
+                return DataStoreCheckCommand.encodeId(input, "--"+dsOption);
+            }
+        }));
+    }
+
+    private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
+        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
+            @Nullable @Override public String apply(@Nullable String input) {
+                return Joiner.on(",").join(
+                    DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                    blobsAddedWithNodes.get(input));
+            }
+        }));
     }
 }
