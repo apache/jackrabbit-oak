@@ -18,6 +18,14 @@ Apache Jackrabbit is a project of the Apache Software Foundation.
 Changes in Oak 1.7.12
 ---------------------
 
+Sub-task
+
+    [OAK-7011] - Add setter/getter to ConfigurationBase and
+    CompositeConfiguration
+    [OAK-7012] - Add references to SecurityProviderImpl and
+    SecurityProviderRegistration
+    [OAK-7015] - Deprecate TreeFactory/RootFactory
+
 Technical task
 
     [OAK-5918] - Document enhancements in DocumentNodeStore in 1.6
@@ -73,9 +81,12 @@ Technical task
     FileStore
     [OAK-7004] - The server command should not silently upgrade the
     FileStore
+    [OAK-7019] - RDBDocumentStore: refactor table upgrade code
 
 Bug
 
+    [OAK-5173] - Path in uniqueness constraint violation exception is
+    always the root
     [OAK-6066] - Migration of binaries relies on implementation
     details of the TarMK
     [OAK-6100] - Test failure:
@@ -135,10 +146,18 @@ Improvement
     [OAK-6347] - Don't track local changes in the document cache
     tracker
     [OAK-6381] - Improved index analysis tools
+    [OAK-6489] - Datastorecheck command should output the path of
+    missing datastore
+    [OAK-6551] - Add an option to datastorecheck command to include
+    path details in the missing blobs report
+    [OAK-6586] - [oak-run] Add option to datastorecheck command to
+    report misconfigured external binary references
     [OAK-6862] - Active deletion of Lucene binaries: JMX bean, and
     ability to disable automatic
     [OAK-6873] - UserInitializer should not use hard coded
     QueryIndexProvider
+    [OAK-6899] - Add explicit dependency versions for aws-java-sdk in
+    oak-run
     [OAK-6905] - Query engine: support coalesce function as in-built
     method
     [OAK-6910] - Offline compaction should not use mmap on Windows
@@ -152,10 +171,13 @@ Improvement
     conditions
     [OAK-6969] - Reduce the responsibilities of CompactCommand in
     favour of Compact
+    [OAK-6980] - Replacement for RootFactory and TreeFactory
     [OAK-6981] - move OsgiContext defined in derived tests to
     AbstractExternalAuthTest
     [OAK-7009] - Test factories for SecurityProvider should have
     private constructor
+    [OAK-7018] - Move setup of composite security configurations to
+    SecurityProviderBuilder
 
 New Feature
 
