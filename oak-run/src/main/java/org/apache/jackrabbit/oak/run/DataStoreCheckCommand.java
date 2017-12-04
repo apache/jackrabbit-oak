@@ -16,18 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
-import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static com.google.common.base.Stopwatch.createStarted;
-import static com.google.common.io.Closeables.close;
-import static java.io.File.createTempFile;
-import static java.util.Arrays.asList;
-import static org.apache.commons.io.FileUtils.forceDelete;
-import static org.apache.commons.io.FileUtils.listFiles;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
@@ -43,37 +31,60 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Splitter;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.LineIterator;
-import org.apache.commons.io.filefilter.FileFilterUtils;
-import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
-import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
-import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closeables;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
-
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.LineIterator;
+import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
+import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
+import static com.google.common.base.Stopwatch.createStarted;
+import static com.google.common.io.Closeables.close;
+import static java.io.File.createTempFile;
+import static java.util.Arrays.asList;
+import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.commons.io.FileUtils.listFiles;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 /**
  * Command to check data store consistency and also optionally retrieve ids
@@ -86,6 +97,13 @@ public class DataStoreCheckCommand implements Command {
     private static final String AZUREDS = "--azureblobds";
     private static final String DASH = "-";
     private static final String HASH = "#";
+
+    private static final Comparator<String> idComparator = new Comparator<String>() {
+        @Override
+        public int compare(String s1, String s2) {
+            return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
+        }
+    };
 
     @Override
     public void execute(String... args) throws Exception {
@@ -154,18 +172,24 @@ public class DataStoreCheckCommand implements Command {
 
             GarbageCollectableBlobStore blobStore  = null;
             BlobReferenceRetriever marker = null;
+            NodeStore nodeStore = null;
             if (options.has(store)) {
                 String source = options.valueOf(store);
                 if (source.startsWith(MongoURI.MONGODB_PREFIX)) {
                     MongoClientURI uri = new MongoClientURI(source);
                     MongoClient client = new MongoClient(uri);
-                    DocumentNodeStore nodeStore =
+                    DocumentNodeStore docNodeStore =
                         new DocumentMK.Builder().setMongoDB(client.getDB(uri.getDatabase())).getNodeStore();
-                    closer.register(Utils.asCloseable(nodeStore));
-                    blobStore = (GarbageCollectableBlobStore) nodeStore.getBlobStore();
-                    marker = new DocumentBlobReferenceRetriever(nodeStore);
+                    closer.register(Utils.asCloseable(docNodeStore));
+                    blobStore = (GarbageCollectableBlobStore) docNodeStore.getBlobStore();
+                    marker = new DocumentBlobReferenceRetriever(docNodeStore);
+                    nodeStore = docNodeStore;
                 } else {
-                    marker = SegmentTarUtils.newBlobReferenceRetriever(source, closer);
+                    FileStore fileStore = fileStoreBuilder(new File(source)).withStrictVersionCheck(true).build();
+                    marker = new SegmentBlobReferenceRetriever(fileStore);
+                    closer.register(fileStore);
+                    nodeStore =
+                        SegmentNodeStoreBuilders.builder(fileStore).build();
                 }
             }
 
@@ -215,8 +239,17 @@ public class DataStoreCheckCommand implements Command {
             }
 
             if (options.has(refOp) || options.has(consistencyOp)) {
-                retrieveBlobReferences(blobStore, marker,
-                    register.createFile(refOp, dumpPath), dsType, options.has(verbose));
+                if (options.has(verbose) &&
+                    (nodeStore instanceof SegmentNodeStore ||
+                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) {
+                    NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
+                    closer.register(traverser);
+                    traverser.traverse();
+                    FileUtils.copyFile(traverser.references, register.createFile(refOp, dumpPath));
+                } else {
+                    retrieveBlobReferences(blobStore, marker,
+                        register.createFile(refOp, dumpPath), dsType, options.has(verbose));
+                }
             }
 
             if (options.has(consistencyOp)) {
@@ -407,12 +440,8 @@ public class DataStoreCheckCommand implements Command {
                 }
             );
             writer.flush();
-            sort(marked, new Comparator<String>() {
-                @Override
-                public int compare(String s1, String s2) {
-                    return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
-                }
-            });
+            sort(marked, idComparator);
+
             System.out.println(count.get() + " blob references found");
             System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
             threw = false;
@@ -433,5 +462,81 @@ public class DataStoreCheckCommand implements Command {
         sort(blob);
         System.out.println(count + " blob ids found");
         System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
+    }
+
+    static class NodeTraverser implements Closeable {
+        private final String dsType;
+        private final File references;
+        private final NodeStore nodeStore;
+        private final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
+
+        public NodeTraverser(NodeStore nodeStore, String dsType) throws IOException {
+            this.references = File.createTempFile("traverseref", null);
+            this.nodeStore = nodeStore;
+            this.dsType = dsType;
+        }
+
+        private void binaryProperties(NodeState state, String path, BufferedWriter writer, AtomicInteger count) {
+            for (PropertyState p : state.getProperties()) {
+                String propPath = PathUtils.concat(path, p.getName());
+                try {
+                    if (p.getType() == Type.BINARY) {
+                        count.incrementAndGet();
+                        writeAsLine(writer,
+                            getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), true);
+                    } else if (p.getType() == Type.BINARIES && p.count() > 0) {
+                        Iterator<Blob> iterator = p.getValue(Type.BINARIES).iterator();
+                        while (iterator.hasNext()) {
+                            count.incrementAndGet();
+
+                            String id = iterator.next().getContentIdentity();
+                            writeAsLine(writer,
+                                getLine(id, propPath), true);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error in retrieving blob id for path " + propPath);
+                }
+            }
+        }
+
+        private String getLine(String id, String path) {
+            return delimJoiner.join(encodeId(id, dsType), path);
+        }
+
+        private void traverseChildren(NodeState state, String path, BufferedWriter writer, AtomicInteger count) {
+            binaryProperties(state, path, writer, count);
+            for (ChildNodeEntry c : state.getChildNodeEntries()) {
+                traverseChildren(c.getNodeState(), PathUtils.concat(path, c.getName()), writer, count);
+            }
+        }
+
+        public void traverse() throws IOException {
+            BufferedWriter writer = null;
+            final AtomicInteger count = new AtomicInteger();
+            boolean threw = true;
+            System.out.println("Starting dump of blob references by traversing");
+            Stopwatch watch = createStarted();
+
+            try {
+                writer = Files.newWriter(references, Charsets.UTF_8);
+                traverseChildren(nodeStore.getRoot(), "/", writer, count);
+
+                writer.flush();
+                sort(references, idComparator);
+
+                System.out.println(count.get() + " blob references found");
+                System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
+                threw = false;
+            } finally {
+                Closeables.close(writer, threw);
+            }
+        }
+
+
+        @Override
+        public void close() throws IOException {
+            FileUtils.forceDelete(references);
+        }
     }
 }

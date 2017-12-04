@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -41,10 +42,12 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
@@ -82,11 +85,16 @@ public class DataStoreCheckTest {
     private static final Logger log = LoggerFactory.getLogger(DataStoreCheckTest.class);
 
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target")) {
+        @Override
+        public void delete() {}
+    };
 
     private String storePath;
 
     private Set<String> blobsAdded;
+
+    private Map<String, String> blobsAddedWithNodes;
 
     private String cfgFilePath;
 
@@ -148,12 +156,15 @@ public class DataStoreCheckTest {
         NodeBuilder a = store.getRoot().builder();
         int numBlobs = 10;
         blobsAdded = Sets.newHashSet();
+        blobsAddedWithNodes = Maps.newHashMap();
+
         for (int i = 0; i < numBlobs; i++) {
             SegmentBlob b = (SegmentBlob) store.createBlob(randomStream(i, 18342));
             Iterator<String> idIter = setupDataStore.resolveChunks(b.getBlobId());
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
                 blobsAdded.add(chunk);
+                blobsAddedWithNodes.put(chunk, "/c"+i+"/x");
             }
             a.child("c" + i).setProperty("x", b);
         }
@@ -215,15 +226,20 @@ public class DataStoreCheckTest {
         Random rand = new Random();
         String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
-        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+
+        long count = setupDataStore
+            .countDeleteChunks(ImmutableList.of(deletedBlobId),
+                0);
         assertEquals(1, count);
         setupDataStore.close();
 
         testAllParamsVerbose(dump, repoHome);
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
-        assertFileEquals(dump, "[ref]", encodedIds(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption));
-        assertFileEquals(dump, "[consistency]", encodedIds(Sets.newHashSet(deletedBlobId), dsOption));
+        assertFileEquals(dump, "[ref]",
+            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)), dsOption, blobsAddedWithNodes));
+        assertFileEquals(dump, "[consistency]",
+            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
 
     @Test
@@ -285,8 +301,10 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIds(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)), dsOption));
-        assertFileEquals(dump, "[consistency]", encodedIds(Sets.newHashSet(deletedBlobId), dsOption));
+            encodedIdsAndPath(Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)), dsOption,
+                blobsAddedWithNodes));
+        assertFileEquals(dump, "[consistency]",
+            encodedIdsAndPath(Sets.newHashSet(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
 
     @Test
@@ -438,6 +456,16 @@ public class DataStoreCheckTest {
         return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
             @Nullable @Override public String apply(@Nullable String input) {
                 return DataStoreCheckCommand.encodeId(input, "--"+dsOption);
+            }
+        }));
+    }
+
+    private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
+        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
+            @Nullable @Override public String apply(@Nullable String input) {
+                return Joiner.on(",").join(
+                    DataStoreCheckCommand.encodeId(input, "--"+dsOption),
+                    blobsAddedWithNodes.get(input));
             }
         }));
     }
