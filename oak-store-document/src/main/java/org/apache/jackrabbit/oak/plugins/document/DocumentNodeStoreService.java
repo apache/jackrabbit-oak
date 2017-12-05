@@ -23,8 +23,10 @@ import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_MEMORY_CACHE_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -63,6 +65,8 @@ import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -248,83 +252,31 @@ public class DocumentNodeStoreService {
     }
 
     private void registerNodeStore() throws IOException {
-        String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
-        String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
-        DocumentMK.Builder mkBuilder =
-                new DocumentMK.Builder().
-                setStatisticsProvider(statisticsProvider).
-                memoryCacheSize(config.cache() * MB).
-                memoryCacheDistribution(
-                        config.nodeCachePercentage(),
-                        config.prevDocCachePercentage(),
-                        config.childrenCachePercentage(),
-                        config.diffCachePercentage()).
-                setCacheSegmentCount(config.cacheSegmentCount()).
-                setCacheStackMoveDistance(config.cacheStackMoveDistance()).
-                setBundlingDisabled(config.bundlingDisabled()).
-                setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
-                setLeaseCheck(!ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED /* OAK-2739: enabled by default */).
-                setLeaseFailureHandler(new LeaseFailureHandler() {
-                    
-                    @Override
-                    public void handleLeaseFailure() {
-                        try {
-                            // plan A: try stopping oak-core
-                            log.error("handleLeaseFailure: stopping oak-core...");
-                            Bundle bundle = context.getBundleContext().getBundle();
-                            bundle.stop(Bundle.STOP_TRANSIENT);
-                            log.error("handleLeaseFailure: stopped oak-core.");
-                            // plan A worked, perfect!
-                        } catch (BundleException e) {
-                            log.error("handleLeaseFailure: exception while stopping oak-core: "+e, e);
-                            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
-                            log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
-                            context.disableComponent(DocumentNodeStoreService.class.getName());
-                            log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
-                            // plan B succeeded.
-                        }
-                    }
-                }).
-                setPrefetchExternalChanges(config.prefetchExternalChanges()).
-                setUpdateLimit(config.updateLimit()).
-                setJournalGCMaxAge(config.journalGCMaxAge()).
-                setNodeCachePredicate(createCachePredicate());
-
-        if (!Strings.isNullOrEmpty(persistentCache)) {
-            mkBuilder.setPersistentCache(persistentCache);
-        }
-        if (!Strings.isNullOrEmpty(journalCache)) {
-            mkBuilder.setJournalCache(journalCache);
-        }
-
-        boolean wrappingCustomBlobStore = customBlobStore && blobStore instanceof BlobStoreWrapper;
-
-        //Set blobstore before setting the DB
-        if (customBlobStore && !wrappingCustomBlobStore) {
-            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
-                    "initialized", CUSTOM_BLOB_STORE);
-            mkBuilder.setBlobStore(blobStore);
-        }
-
+        DocumentNodeStoreBuilder mkBuilder;
         if (documentStoreType == DocumentStoreType.RDB) {
+            RDBDocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder();
+            configureBuilder(builder);
             checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
             if (!customBlobStore) {
                 checkNotNull(blobDataSource, "DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE);
-                mkBuilder.setRDBConnection(dataSource, blobDataSource);
+                builder.setRDBConnection(dataSource, blobDataSource);
                 log.info("Connected to datasources {} {}", dataSource, blobDataSource);
             } else {
                 if (blobDataSource != null && blobDataSource != dataSource) {
                     log.info("Ignoring blobDataSource {} as custom blob store takes precedence.", blobDataSource);
                 }
-                mkBuilder.setRDBConnection(dataSource);
+                builder.setRDBConnection(dataSource);
                 log.info("Connected to datasource {}", dataSource);
             }
+            mkBuilder = builder;
         } else {
             String uri = config.mongouri();
             String db = config.db();
             boolean soKeepAlive = config.socketKeepAlive();
 
             MongoClientURI mongoURI = new MongoClientURI(uri);
+            String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
+            String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
 
             if (log.isInfoEnabled()) {
                 // Take care around not logging the uri directly as it
@@ -336,9 +288,12 @@ public class DocumentNodeStoreService {
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
-            mkBuilder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
-            mkBuilder.setSocketKeepAlive(soKeepAlive);
-            mkBuilder.setMongoDB(uri, db, config.blobCacheSize());
+            MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
+            configureBuilder(builder);
+            builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
+            builder.setSocketKeepAlive(soKeepAlive);
+            builder.setMongoDB(uri, db, config.blobCacheSize());
+            mkBuilder = builder;
 
             log.info("Connected to database '{}'", db);
         }
@@ -351,7 +306,7 @@ public class DocumentNodeStoreService {
         }
 
         //Set wrapping blob store after setting the DB
-        if (wrappingCustomBlobStore) {
+        if (isWrappingCustomBlobStore()) {
             ((BlobStoreWrapper) blobStore).setBlobStore(mkBuilder.getBlobStore());
             mkBuilder.setBlobStore(blobStore);
         }
@@ -373,7 +328,7 @@ public class DocumentNodeStoreService {
         mkBuilder.setGCMonitor(new DelegatingGCMonitor(
                 newArrayList(gcMonitor, loggingGCMonitor)));
 
-        nodeStore = mkBuilder.getNodeStore();
+        nodeStore = mkBuilder.build();
 
         // ensure a clusterId is initialized 
         // and expose it as 'oak.clusterid' repository descriptor
@@ -461,6 +416,66 @@ public class DocumentNodeStoreService {
         nodeStoreReg = context.getBundleContext().registerService(
             serviceClasses,
             nodeStore, props);
+    }
+
+    private void configureBuilder(DocumentNodeStoreBuilder builder) {
+        String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
+        String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
+        builder.setStatisticsProvider(statisticsProvider).
+                memoryCacheSize(config.cache() * MB).
+                memoryCacheDistribution(
+                        config.nodeCachePercentage(),
+                        config.prevDocCachePercentage(),
+                        config.childrenCachePercentage(),
+                        config.diffCachePercentage()).
+                setCacheSegmentCount(config.cacheSegmentCount()).
+                setCacheStackMoveDistance(config.cacheStackMoveDistance()).
+                setBundlingDisabled(config.bundlingDisabled()).
+                setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
+                setLeaseCheck(!ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED /* OAK-2739: enabled by default */).
+                setLeaseFailureHandler(new LeaseFailureHandler() {
+
+                    @Override
+                    public void handleLeaseFailure() {
+                        try {
+                            // plan A: try stopping oak-core
+                            log.error("handleLeaseFailure: stopping oak-core...");
+                            Bundle bundle = context.getBundleContext().getBundle();
+                            bundle.stop(Bundle.STOP_TRANSIENT);
+                            log.error("handleLeaseFailure: stopped oak-core.");
+                            // plan A worked, perfect!
+                        } catch (BundleException e) {
+                            log.error("handleLeaseFailure: exception while stopping oak-core: "+e, e);
+                            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
+                            log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
+                            context.disableComponent(DocumentNodeStoreService.class.getName());
+                            log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
+                            // plan B succeeded.
+                        }
+                    }
+                }).
+                setPrefetchExternalChanges(config.prefetchExternalChanges()).
+                setUpdateLimit(config.updateLimit()).
+                setJournalGCMaxAge(config.journalGCMaxAge()).
+                setNodeCachePredicate(createCachePredicate());
+
+        if (!Strings.isNullOrEmpty(persistentCache)) {
+            builder.setPersistentCache(persistentCache);
+        }
+        if (!Strings.isNullOrEmpty(journalCache)) {
+            builder.setJournalCache(journalCache);
+        }
+
+        //Set blobstore before setting the document store
+        if (customBlobStore && !isWrappingCustomBlobStore()) {
+            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
+                    "initialized", CUSTOM_BLOB_STORE);
+            builder.setBlobStore(blobStore);
+        }
+    }
+
+    private boolean isWrappingCustomBlobStore() {
+        return customBlobStore && blobStore instanceof BlobStoreWrapper;
     }
 
     private Predicate<String> createCachePredicate() {
@@ -671,7 +686,7 @@ public class DocumentNodeStoreService {
         }
     }
 
-    private void registerJMXBeans(final DocumentNodeStore store, DocumentMK.Builder mkBuilder) throws
+    private void registerJMXBeans(final DocumentNodeStore store, DocumentNodeStoreBuilder mkBuilder) throws
             IOException {
         registerCacheStatsMBean(store.getNodeCacheStats());
         registerCacheStatsMBean(store.getNodeChildrenCacheStats());

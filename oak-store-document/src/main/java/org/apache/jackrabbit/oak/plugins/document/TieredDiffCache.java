@@ -32,7 +32,7 @@ class TieredDiffCache extends DiffCache {
     private final DiffCache localCache;
     private final DiffCache memoryCache;
 
-    TieredDiffCache(DocumentMK.Builder builder) {
+    TieredDiffCache(DocumentNodeStoreBuilder builder) {
         this.localCache = new LocalDiffCache(builder);
         this.memoryCache = new MemoryDiffCache(builder);
     }

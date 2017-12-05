@@ -54,7 +54,6 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
@@ -231,7 +230,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
-    public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
+    public MongoDocumentStore(DB db, MongoDocumentNodeStoreBuilder builder) {
         MongoStatus mongoStatus = builder.getMongoStatus();
         if (mongoStatus == null) {
             mongoStatus = new MongoStatus(db);
