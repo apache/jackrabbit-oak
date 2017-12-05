@@ -49,7 +49,7 @@ public class LocalDiffCache extends DiffCache {
     private final Cache<RevisionsKey, Diff> diffCache;
     private final CacheStats diffCacheStats;
 
-    LocalDiffCache(DocumentMK.Builder builder) {
+    LocalDiffCache(DocumentNodeStoreBuilder builder) {
         this.diffCache = builder.buildLocalDiffCache();
         this.diffCacheStats = new CacheStats(diffCache,
                 "Document-LocalDiff",

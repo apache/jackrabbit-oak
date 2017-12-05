@@ -66,7 +66,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
@@ -233,9 +233,9 @@ public class RDBDocumentStore implements DocumentStore {
 
     /**
      * Creates a {@linkplain RDBDocumentStore} instance using the provided
-     * {@link DataSource}, {@link DocumentMK.Builder}, and {@link RDBOptions}.
+     * {@link DataSource}, {@link DocumentNodeStoreBuilder}, and {@link RDBOptions}.
      */
-    public RDBDocumentStore(DataSource ds, DocumentMK.Builder builder, RDBOptions options) {
+    public RDBDocumentStore(DataSource ds, DocumentNodeStoreBuilder builder, RDBOptions options) {
         try {
             initialize(ds, builder, options);
         } catch (Exception ex) {
@@ -245,10 +245,10 @@ public class RDBDocumentStore implements DocumentStore {
 
     /**
      * Creates a {@linkplain RDBDocumentStore} instance using the provided
-     * {@link DataSource}, {@link DocumentMK.Builder}, and default
+     * {@link DataSource}, {@link DocumentNodeStoreBuilder}, and default
      * {@link RDBOptions}.
      */
-    public RDBDocumentStore(DataSource ds, DocumentMK.Builder builder) {
+    public RDBDocumentStore(DataSource ds, DocumentNodeStoreBuilder builder) {
         this(ds, builder, new RDBOptions());
     }
 
@@ -829,7 +829,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private final RDBDocumentSerializer ser = new RDBDocumentSerializer(this);
 
-    private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
+    private void initialize(DataSource ds, DocumentNodeStoreBuilder builder, RDBOptions options) throws Exception {
         this.stats = builder.getDocumentStoreStatsCollector();
         this.tableMeta.put(Collection.NODES,
                 new RDBTableMetaData(createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES))));

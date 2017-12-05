@@ -24,13 +24,13 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 
 import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CACHE_SEGMENT_COUNT;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CACHE_STACK_MOVE_DISTANCE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_UPDATE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_SEGMENT_COUNT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_STACK_MOVE_DISTANCE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_DIFF_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
 
 @ObjectClassDefinition(
         pid = {PID},

@@ -59,7 +59,7 @@ public class MemoryDiffCache extends DiffCache {
     protected final CacheStats diffCacheStats;
 
 
-    protected MemoryDiffCache(DocumentMK.Builder builder) {
+    protected MemoryDiffCache(DocumentNodeStoreBuilder builder) {
         diffCache = builder.buildMemoryDiffCache();
         diffCacheStats = new CacheStats(diffCache, "Document-MemoryDiff",
                 builder.getWeigher(), builder.getMemoryDiffCacheSize());

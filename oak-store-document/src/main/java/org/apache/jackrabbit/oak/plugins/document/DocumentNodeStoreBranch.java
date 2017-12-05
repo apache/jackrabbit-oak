@@ -452,7 +452,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      *         as the base of this branch</li>
      *     <li>{@link Persisted} on {@link #setRoot(NodeState)} if the number of
      *         changes counted from the base to the new root reaches
-     *         {@link DocumentMK.Builder#getUpdateLimit()}.</li>
+     *         {@link DocumentNodeStoreBuilder#getUpdateLimit()}.</li>
      *     <li>{@link Merged} on {@link BranchState#merge(CommitHook, CommitInfo, boolean)}</li>
      * </ul>
      */

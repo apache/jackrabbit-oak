@@ -32,8 +32,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
@@ -157,6 +156,12 @@ public final class DocumentNodeStore
             DocumentBundlor.META_PROP_NON_BUNDLED_CHILD,
             DocumentBundlor.META_PROP_BUNDLED_CHILD
     );
+
+    /**
+     * Enable fast diff operations.
+     */
+    private static final boolean FAST_DIFF = Boolean.parseBoolean(
+            System.getProperty("oak.documentMK.fastDiff", "true"));
 
     /**
      * Feature flag to enable concurrent add/remove operations of hidden empty
@@ -507,7 +512,7 @@ public final class DocumentNodeStore
 
     private final Predicate<String> nodeCachePredicate;
 
-    public DocumentNodeStore(DocumentMK.Builder builder) {
+    public <T extends DocumentNodeStoreBuilder<T>> DocumentNodeStore(DocumentNodeStoreBuilder<T> builder) {
         this.nodeCachePredicate = builder.getNodeCachePredicate();
         this.updateLimit = builder.getUpdateLimit();
         this.commitValueResolver = new CommitValueResolver(builder.getCommitValueCacheSize(),
@@ -2995,7 +3000,7 @@ public final class DocumentNodeStore
         return mbean;
     }
 
-    private DocumentNodeStoreMBean createMBean(DocumentMK.Builder builder) {
+    private DocumentNodeStoreMBean createMBean(DocumentNodeStoreBuilder builder) {
         try {
             return new DocumentNodeStoreMBeanImpl(this,
                     builder.getStatisticsProvider().getStats(),
