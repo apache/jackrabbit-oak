@@ -136,10 +136,8 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         // START_CHUNK flag enabled
         if ((mask & (1 << 0)) != 0) {
             blobChunkSize = in.readableBytes() - 8;
-            
-            if (tempFile.exists()) {
-                log.debug("Detected previous incomplete transfer for {}. Cleaning up...", blobId);
-                Files.delete(tempFile.toPath());
+            if (Files.deleteIfExists(tempFile.toPath())) {
+                log.debug("Deleted temporary file for previous incomplete transfer of {}", blobId);
             }
         }
 
@@ -155,9 +153,9 @@ public class ResponseDecoder extends ByteToMessageDecoder {
             return;
         } else {
             log.debug("All checks OK. Appending chunk to disk to {} ", tempFile.getAbsolutePath());
-            OutputStream outStream = new FileOutputStream(tempFile, true);
-            outStream.write(chunkData);
-            outStream.close();
+            try (OutputStream outStream = new FileOutputStream(tempFile, true)) {
+                outStream.write(chunkData);
+            }
         }
 
         // END_CHUNK flag enabled
