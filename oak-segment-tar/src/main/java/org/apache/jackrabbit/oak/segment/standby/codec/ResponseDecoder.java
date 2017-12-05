@@ -42,10 +42,12 @@ import org.slf4j.LoggerFactory;
 public class ResponseDecoder extends ByteToMessageDecoder {
 
     private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
+
     private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
 
     static class DeleteOnCloseFileInputStream extends FileInputStream {
-        private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
+
+        private static final Logger log = LoggerFactory.getLogger(DeleteOnCloseFileInputStream.class);
         
         private File file;
 
@@ -69,6 +71,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
                 }
             }
         }
+
     }
     
     private int blobChunkSize;
