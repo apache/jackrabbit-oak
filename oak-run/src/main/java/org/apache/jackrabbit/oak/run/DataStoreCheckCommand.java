@@ -84,6 +84,7 @@ import static org.apache.commons.io.FileUtils.listFiles;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 /**
@@ -264,23 +265,28 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static void verboseIds(Closer closer, final String dsType, File readFile, File writeFile) throws IOException {
-        LineIterator idIterator = FileUtils.lineIterator(readFile);
-        // Create a temp file to write real ids and register with closer
-        File longIdTemp = createTempFile("longids", null);
-        closer.register(new Closeable() {
-            @Override public void close() throws IOException {
-                forceDelete(longIdTemp);
-            }
-        });
+        LineIterator idIterator = FileUtils.lineIterator(readFile, Charsets.UTF_8.name());
+        try {
+            // Create a temp file to write real ids and register with closer
+            File longIdTemp = createTempFile("longids", null);
+            closer.register(new Closeable() {
+                @Override public void close() throws IOException {
+                    forceDelete(longIdTemp);
+                }
+            });
 
-        // Read and write the converted ids
-        FileIOUtils.writeStrings(idIterator, longIdTemp, true,
-            new Function<String, String>() {
+            // Read and write the converted ids
+            FileIOUtils.writeStrings(idIterator, longIdTemp, false, new Function<String, String>() {
                 @Nullable @Override public String apply(@Nullable String input) {
-                return encodeId(input, dsType);
+                    return encodeId(input, dsType);
+                }
+            }, null, null);
+            FileUtils.copyFile(longIdTemp, writeFile);
+        } finally {
+            if (idIterator != null) {
+                idIterator.close();
             }
-        }, null, null);
-        FileUtils.copyFile(longIdTemp, writeFile);
+        }
     }
 
     private static String getDSType(String[] args) {
@@ -368,7 +374,7 @@ public class DataStoreCheckCommand implements Command {
 
         // write the candidates identified to a temp file
         File candTemp = createTempFile("candTemp", null);
-        int candidates = writeStrings(iter, candTemp, true);
+        int candidates = writeStrings(iter, candTemp, false);
 
         try {
             // retrieve the .del file from track directory
@@ -388,7 +394,7 @@ public class DataStoreCheckCommand implements Command {
                             return "";
                         }
                     });
-                    candidates = FileIOUtils.writeStrings(filteringIter, missing, true);
+                    candidates = FileIOUtils.writeStrings(filteringIter, missing, false);
                 }
             } else {
                 System.out.println("Skipping active deleted tracked as parameter [repoHome] : [" + trackRoot + "] incorrect");
@@ -429,9 +435,9 @@ public class DataStoreCheckCommand implements Command {
                                 if (isVerbose) {
                                     id = encodeId(id, dsType);
                                 }
-                                String combinedId = delimJoiner.join(id, nodeId);
+                                String combinedId = delimJoiner.join(id, escapeLineBreak(nodeId));
                                 count.getAndIncrement();
-                                writeAsLine(writer, combinedId, true);
+                                writeAsLine(writer, combinedId, false);
                             }
                         } catch (Exception e) {
                             throw new RuntimeException("Error in retrieving references", e);
@@ -457,7 +463,7 @@ public class DataStoreCheckCommand implements Command {
         Stopwatch watch = createStarted();
 
         Iterator<String> blobIter = blobStore.getAllChunkIds(0);
-        int count = writeStrings(blobIter, blob, true);
+        int count = writeStrings(blobIter, blob, false);
 
         sort(blob);
         System.out.println(count + " blob ids found");
@@ -483,7 +489,7 @@ public class DataStoreCheckCommand implements Command {
                     if (p.getType() == Type.BINARY) {
                         count.incrementAndGet();
                         writeAsLine(writer,
-                            getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), true);
+                            getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), false);
                     } else if (p.getType() == Type.BINARIES && p.count() > 0) {
                         Iterator<Blob> iterator = p.getValue(Type.BINARIES).iterator();
                         while (iterator.hasNext()) {
@@ -491,7 +497,7 @@ public class DataStoreCheckCommand implements Command {
 
                             String id = iterator.next().getContentIdentity();
                             writeAsLine(writer,
-                                getLine(id, propPath), true);
+                                getLine(id, propPath), false);
                         }
                     }
                 } catch (Exception e) {
@@ -501,7 +507,7 @@ public class DataStoreCheckCommand implements Command {
         }
 
         private String getLine(String id, String path) {
-            return delimJoiner.join(encodeId(id, dsType), path);
+            return delimJoiner.join(encodeId(id, dsType), escapeLineBreak(path));
         }
 
         private void traverseChildren(NodeState state, String path, BufferedWriter writer, AtomicInteger count) {
