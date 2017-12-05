@@ -58,14 +58,12 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
         @Override
         public void close() throws IOException {
-            try {
-                super.close();
-            } finally {
-                if (Files.deleteIfExists(file.toPath())) {
-                    log.debug("File {} was deleted", file.getAbsolutePath());
-                } else {
-                    log.debug("Could not delete {}, not found", file.getAbsoluteFile());
-                }
+            super.close();
+
+            if (Files.deleteIfExists(file.toPath())) {
+                log.debug("File {} was deleted", file.getAbsolutePath());
+            } else {
+                log.debug("Could not delete {}, not found", file.getAbsoluteFile());
             }
         }
 
