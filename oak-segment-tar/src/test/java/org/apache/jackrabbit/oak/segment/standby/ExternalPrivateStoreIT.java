@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryBlobStore;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -70,6 +71,7 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
     }
 
     @Test
+    @Ignore("OAK-7027") // FIXME OAK-7027
     public void testSyncFailingDueToTooShortTimeout() throws Exception {
         final int blobSize = 5 * MB;
         FileStore primary = getPrimary();
