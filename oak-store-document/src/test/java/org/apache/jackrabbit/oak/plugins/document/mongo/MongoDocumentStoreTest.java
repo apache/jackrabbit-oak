@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.Map;
+
 import com.mongodb.DB;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
@@ -29,8 +31,10 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -77,6 +81,15 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         } else {
             assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE, NodeDocument.MODIFIED_IN_SECS));
         }
+    }
+
+    @Test
+    public void getStats() throws Exception {
+        Map<String, String> info = mk.getNodeStore().getDocumentStore().getStats();
+        assertThat(info.keySet(), hasItem("nodes.count"));
+        assertThat(info.keySet(), hasItem("clusterNodes.count"));
+        assertThat(info.keySet(), hasItem("journal.count"));
+        assertThat(info.keySet(), hasItem("settings.count"));
     }
 
     static final class TestStore extends MongoDocumentStore {

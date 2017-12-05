@@ -40,6 +40,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -1347,7 +1348,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      *
      * @return db level ReadPreference
      */
-    ReadPreference getConfiguredReadPreference(Collection collection){
+    <T extends Document> ReadPreference getConfiguredReadPreference(Collection<T> collection){
         return getDBCollection(collection).getReadPreference();
     }
 
@@ -1432,8 +1433,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     @Nonnull
     @Override
     public Map<String, String> getStats() {
-        // TODO: OAK-7028
-        return Collections.emptyMap();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        List<DBCollection> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
+        all.forEach(c -> toMapBuilder(builder, c.getStats(), c.getName()));
+        return builder.build();
     }
 
     long getMaxDeltaForModTimeIdxSecs() {
@@ -1706,6 +1709,22 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                                                                         Collection<T> collection,
                                                                         String id) {
         return handleException(ex, collection, Collections.singleton(id));
+    }
+
+    private static void toMapBuilder(ImmutableMap.Builder<String, String> builder,
+                                     BasicDBObject stats,
+                                     String prefix) {
+        stats.forEach((k, v) -> {
+            // exclude some verbose internals and status
+            if (!k.equals("wiredTiger") && !k.equals("indexDetails") && !k.equals("ok")) {
+                String key = prefix + "." + k;
+                if (v instanceof BasicDBObject) {
+                    toMapBuilder(builder, (BasicDBObject) v, key);
+                } else {
+                    builder.put(key, String.valueOf(v));
+                }
+            }
+        });
     }
 
     private static class BulkUpdateResult {
