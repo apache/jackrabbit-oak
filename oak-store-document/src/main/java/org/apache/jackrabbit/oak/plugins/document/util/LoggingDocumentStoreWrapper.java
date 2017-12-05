@@ -352,6 +352,14 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
         return store.getMetadata();
     }
 
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        Map<String, String> result = store.getStats();
+        logMethod("getStats", result);
+        return result;
+    }
+
     @Override
     public long determineServerTimeDifferenceMillis() {
         logMethod("determineServerTimeDifferenceMillis", "start");

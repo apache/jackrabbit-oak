@@ -1429,6 +1429,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return metadata;
     }
 
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        // TODO: OAK-7028
+        return Collections.emptyMap();
+    }
+
     long getMaxDeltaForModTimeIdxSecs() {
         return maxDeltaForModTimeIdxSecs;
     }

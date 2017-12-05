@@ -155,6 +155,12 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
         return store.getMetadata();
     }
 
+    @Nonnull
+    @Override
+    public synchronized Map<String, String> getStats() {
+        return store.getStats();
+    }
+
     @Override
     public synchronized void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
         if (store instanceof RevisionListener) {

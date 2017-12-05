@@ -224,6 +224,12 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
         return delegate.getMetadata();
     }
 
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        return delegate.getStats();
+    }
+
     @Override
     public long determineServerTimeDifferenceMillis() {
         return delegate.determineServerTimeDifferenceMillis();

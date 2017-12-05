@@ -423,6 +423,19 @@ public interface DocumentStore {
     Map<String, String> getMetadata();
 
     /**
+     * Returns statistics about the underlying storage. The information and
+     * keys returned by this method are implementation specific, may change
+     * between releases or may even depend on deployment aspects. E.g. depending
+     * on access rights, the method may return more or less information from
+     * the underlying store. This method should only be used for informational
+     * or debug purposes.
+     *
+     * @return statistics about this document store.
+     */
+    @Nonnull
+    Map<String, String> getStats();
+
+    /**
      * @return the estimated time difference in milliseconds between the local
      * instance and the (typically common, shared) document server system. The
      * value can be zero if the times are estimated to be equal, positive when

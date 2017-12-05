@@ -160,6 +160,12 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
         return store.getMetadata();
     }
 
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        return store.getStats();
+    }
+
     @Override
     public long determineServerTimeDifferenceMillis() {
         return store.determineServerTimeDifferenceMillis();
