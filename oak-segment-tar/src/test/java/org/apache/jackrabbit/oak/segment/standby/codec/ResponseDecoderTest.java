@@ -92,8 +92,10 @@ public class ResponseDecoderTest {
         GetBlobResponse response = (GetBlobResponse) channel.readInbound();
         assertEquals("blobId", response.getBlobId());
         assertEquals(blobData.length, response.getLength());
-        byte[] receivedData = IOUtils.toByteArray(response.getInputStream());
-        assertArrayEquals(blobData, receivedData);
+        try (InputStream is = response.getInputStream()) {
+            byte[] receivedData = IOUtils.toByteArray(is);
+            assertArrayEquals(blobData, receivedData);
+        }
     }
 
     @Test
