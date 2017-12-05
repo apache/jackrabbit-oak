@@ -51,10 +51,6 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         
         private File file;
 
-        public DeleteOnCloseFileInputStream(String fileName) throws FileNotFoundException {
-            this(new File(fileName));
-        }
-
         public DeleteOnCloseFileInputStream(File file) throws FileNotFoundException {
             super(file);
             this.file = file;
