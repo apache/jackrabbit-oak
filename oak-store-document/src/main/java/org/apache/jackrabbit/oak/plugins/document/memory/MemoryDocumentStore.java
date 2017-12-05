@@ -455,6 +455,17 @@ public class MemoryDocumentStore implements DocumentStore {
         return metadata;
     }
 
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        return ImmutableMap.<String, String>builder()
+                .put(Collection.NODES.toString(), String.valueOf(nodes.size()))
+                .put(Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()))
+                .put(Collection.SETTINGS.toString(), String.valueOf(settings.size()))
+                .put(Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()))
+                .build();
+    }
+
     @Override
     public long determineServerTimeDifferenceMillis() {
         // the MemoryDocumentStore has no delays, thus return 0

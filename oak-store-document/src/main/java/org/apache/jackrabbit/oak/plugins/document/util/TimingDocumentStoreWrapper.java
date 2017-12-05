@@ -383,6 +383,19 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
         return base.getMetadata();
     }
 
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        try {
+            long start = now();
+            Map<String, String> result = base.getStats();
+            updateAndLogTimes("getStats", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
     @Override
     public long determineServerTimeDifferenceMillis() {
         try {

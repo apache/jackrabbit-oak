@@ -754,6 +754,13 @@ public class RDBDocumentStore implements DocumentStore {
         return metadata;
     }
 
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        // TODO: OAK-7029
+        return Collections.emptyMap();
+    }
+
     // implementation
 
     private static final String MODIFIED = "_modified";
