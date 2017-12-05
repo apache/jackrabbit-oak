@@ -48,22 +48,23 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     private static class DeleteOnCloseFileInputStream extends FileInputStream {
 
         private static final Logger log = LoggerFactory.getLogger(DeleteOnCloseFileInputStream.class);
-        
-        private File file;
+
+        private final File file;
 
         DeleteOnCloseFileInputStream(File file) throws FileNotFoundException {
             super(file);
             this.file = file;
         }
 
+        @Override
         public void close() throws IOException {
             try {
                 super.close();
             } finally {
-                if (file != null) {
-                    log.debug("Processing input stream finished! Deleting file {}", file.getAbsolutePath());
-                    file.delete();
-                    file = null;
+                if (Files.deleteIfExists(file.toPath())) {
+                    log.debug("File {} was deleted", file.getAbsolutePath());
+                } else {
+                    log.debug("Could not delete {}, not found", file.getAbsoluteFile());
                 }
             }
         }
