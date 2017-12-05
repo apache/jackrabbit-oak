@@ -45,13 +45,13 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
     private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
 
-    static class DeleteOnCloseFileInputStream extends FileInputStream {
+    private static class DeleteOnCloseFileInputStream extends FileInputStream {
 
         private static final Logger log = LoggerFactory.getLogger(DeleteOnCloseFileInputStream.class);
         
         private File file;
 
-        public DeleteOnCloseFileInputStream(File file) throws FileNotFoundException {
+        DeleteOnCloseFileInputStream(File file) throws FileNotFoundException {
             super(file);
             this.file = file;
         }
