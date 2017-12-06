@@ -34,11 +34,12 @@ public class RDBRow {
     private final Boolean deletedOnce;
     private final long modified, modcount, cmodcount;
     private final long schemaVersion;
+    private final long sdType, sdMaxRevTime;
     private final String data;
     private final byte[] bdata;
 
     public RDBRow(String id, Long hasBinaryProperties, Boolean deletedOnce, Long modified, Long modcount, Long cmodcount,
-            Long schemaVersion, String data, byte[] bdata) {
+            Long schemaVersion, Long sdType, Long sdMaxRevTime, String data, byte[] bdata) {
         this.id = id;
         this.hasBinaryProperties = hasBinaryProperties;
         this.deletedOnce = deletedOnce;
@@ -46,6 +47,8 @@ public class RDBRow {
         this.modcount = modcount != null ? modcount.longValue() : LONG_UNSET;
         this.cmodcount = cmodcount != null ? cmodcount.longValue() : LONG_UNSET;
         this.schemaVersion = schemaVersion != null ? schemaVersion.longValue() : LONG_UNSET;
+        this.sdType = sdType != null ? sdType.longValue() : LONG_UNSET;
+        this.sdMaxRevTime = sdMaxRevTime != null ? sdMaxRevTime.longValue() : LONG_UNSET;
         this.data = data;
         this.bdata = bdata;
     }
@@ -96,6 +99,20 @@ public class RDBRow {
      */
     public long getSchemaVersion() {
         return schemaVersion;
+    }
+
+    /**
+     * @return {@link #LONG_UNSET} when not set in the database
+     */
+    public long getSdType() {
+        return sdType;
+    }
+
+    /**
+     * @return {@link #LONG_UNSET} when not set in the database
+     */
+    public long getSdMaxRevTime() {
+        return sdMaxRevTime;
     }
 
     @CheckForNull

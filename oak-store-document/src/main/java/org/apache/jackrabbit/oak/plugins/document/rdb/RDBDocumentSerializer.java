@@ -55,9 +55,11 @@ public class RDBDocumentSerializer {
 
     private final DocumentStore store;
 
-    private static final String MODIFIED = "_modified";
-    private static final String MODCOUNT = "_modCount";
+    private static final String MODIFIED = NodeDocument.MODIFIED_IN_SECS;
+    private static final String MODCOUNT = NodeDocument.MOD_COUNT;
     private static final String CMODCOUNT = "_collisionsModCount";
+    private static final String SDTYPE = NodeDocument.SD_TYPE;
+    private static final String SDMAXREVTIME = NodeDocument.SD_MAX_REV_TIME_IN_SECS;
     private static final String ID = "_id";
     private static final String HASBINARY = NodeDocument.HAS_BINARY_FLAG;
     private static final String DELETEDONCE = NodeDocument.DELETED_ONCE;
@@ -163,6 +165,14 @@ public class RDBDocumentSerializer {
         }
         if (row.deletedOnce() != null) {
             doc.put(DELETEDONCE, row.deletedOnce().booleanValue());
+        }
+        if (row.getSchemaVersion() >= 2) {
+            if (row.getSdType() != RDBRow.LONG_UNSET) {
+                doc.put(SDTYPE, row.getSdType());
+            }
+            if (row.getSdMaxRevTime() != RDBRow.LONG_UNSET) {
+                doc.put(SDMAXREVTIME, row.getSdMaxRevTime());
+            }
         }
 
         byte[] bdata = row.getBdata();
