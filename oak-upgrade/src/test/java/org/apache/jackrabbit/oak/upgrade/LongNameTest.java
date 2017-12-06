@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.collect.Iterables.cycle;
 import static com.google.common.collect.Iterables.limit;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -35,7 +36,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -97,7 +97,7 @@ public class LongNameTest {
 
     @Test
     public void longNameShouldBeSkipped() throws RepositoryException, IOException {
-        DocumentNodeStore nodeStore = new DocumentMK.Builder().getNodeStore();
+        DocumentNodeStore nodeStore = newDocumentNodeStoreBuilder().build();
         try {
             upgrade(nodeStore, false, true);
 
@@ -131,7 +131,7 @@ public class LongNameTest {
 
     @Test(expected = RepositoryException.class)
     public void longNameOnDocumentStoreThrowsAnException() throws RepositoryException, IOException {
-        DocumentNodeStore nodeStore = new DocumentMK.Builder().getNodeStore();
+        DocumentNodeStore nodeStore = newDocumentNodeStoreBuilder().build();
         try {
             upgrade(nodeStore, false, false);
         } finally {

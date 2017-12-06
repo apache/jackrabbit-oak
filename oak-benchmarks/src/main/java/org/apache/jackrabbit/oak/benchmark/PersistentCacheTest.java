@@ -22,9 +22,9 @@ import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -58,13 +58,13 @@ public class PersistentCacheTest extends AbstractTest {
             OakFixture oakFixture = ((OakRepositoryFixture) fixture).getOakFixture();
             if (oakFixture instanceof OakFixture.MongoFixture) {
                 OakFixture.MongoFixture mongoFixture = (OakFixture.MongoFixture) oakFixture;
-                DocumentMK.Builder builder = mongoFixture.getBuilder(1);
+                DocumentNodeStoreBuilder builder = mongoFixture.getBuilder(1);
                 builder.setStatisticsProvider(statsProvider);
                 builder.setPersistentCache("target/persistentCache,time," + CACHE_OPTIONS);
-                dns = builder.getNodeStore();
+                dns = builder.build();
                 nodesCache = DocumentNodeStoreHelper.getNodesCache(dns);
-                Oak[] cluster = mongoFixture.setUpCluster(new DocumentMK.Builder[] {builder}, statsProvider);
-                return new Repository[] { new Jcr(cluster[0]).createRepository() };
+                Oak oak = new Oak(dns);
+                return new Repository[] { new Jcr(oak).createRepository() };
             }
         }
         throw new IllegalArgumentException("Fixture " + fixture + " not supported for this benchmark.");

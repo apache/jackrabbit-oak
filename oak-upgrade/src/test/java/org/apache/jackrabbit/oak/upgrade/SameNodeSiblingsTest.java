@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -39,7 +40,6 @@ import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
@@ -151,7 +151,7 @@ public class SameNodeSiblingsTest {
 
         config = RepositoryConfig.install(crx2RepoDir); // re-create the config
         RepositoryContext context = RepositoryContext.create(config);
-        DocumentNodeStore target = new DocumentMK.Builder().getNodeStore();
+        DocumentNodeStore target = newDocumentNodeStoreBuilder().build();
         try {
             RepositoryUpgrade upgrade = new RepositoryUpgrade(context, target);
             upgrade.copy(null);

@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
 import com.mongodb.DB;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -27,13 +27,12 @@ import com.google.common.io.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
-public class MongoFactory implements NodeStoreFactory {
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 
-    private static final long MB = 1024 * 1024;
+public class MongoFactory extends DocumentFactory {
 
     private final MongoClientURI uri;
 
@@ -50,7 +49,7 @@ public class MongoFactory implements NodeStoreFactory {
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
         System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
-        DocumentMK.Builder builder = getBuilder(cacheSize);
+        MongoDocumentNodeStoreBuilder builder = baseConfiguration(newMongoDocumentNodeStoreBuilder(), cacheSize);
         builder.setMongoDB(getDB(closer));
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
@@ -58,12 +57,12 @@ public class MongoFactory implements NodeStoreFactory {
         if (readOnly) {
             builder.setReadOnlyMode();
         }
-        DocumentNodeStore documentNodeStore = builder.getNodeStore();
+        DocumentNodeStore documentNodeStore = builder.build();
 
         // TODO probably we should disable all observers, see OAK-5651
         documentNodeStore.getBundlingConfigHandler().unregisterObserver();
 
-        closer.register(asCloseable(documentNodeStore));
+        closer.register(documentNodeStore::dispose);
         return documentNodeStore;
     }
 
@@ -75,7 +74,7 @@ public class MongoFactory implements NodeStoreFactory {
             db = uri.getDatabase();
         }
         MongoClient client = new MongoClient(uri);
-        closer.register(asCloseable(client));
+        closer.register(client::close);
         return client.getDB(db);
     }
 
@@ -90,34 +89,6 @@ public class MongoFactory implements NodeStoreFactory {
         } finally {
             closer.close();
         }
-    }
-
-    static Closeable asCloseable(final DocumentNodeStore documentNodeStore) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                documentNodeStore.dispose();
-            }
-        };
-    }
-
-    private static Closeable asCloseable(final MongoClient client) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                client.close();
-            }
-        };
-    }
-
-    static DocumentMK.Builder getBuilder(int cacheSize) {
-        boolean fastMigration = !Boolean.getBoolean("mongomk.disableFastMigration");
-        DocumentMK.Builder builder = new DocumentMK.Builder();
-        builder.memoryCacheSize(cacheSize * MB);
-        if (fastMigration) {
-            builder.disableBranches();
-        }
-        return builder;
     }
 
     @Override

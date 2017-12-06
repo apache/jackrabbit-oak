@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 
 /**
  * Extension point which needs to be registered with the Whiteboard
@@ -29,5 +29,5 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
  */
 public interface DocumentBuilderCustomizer {
 
-    void customize(DocumentMK.Builder builder) throws IOException;
+    void customize(DocumentNodeStoreBuilder builder) throws IOException;
 }
