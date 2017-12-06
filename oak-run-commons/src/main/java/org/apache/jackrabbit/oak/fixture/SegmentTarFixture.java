@@ -28,6 +28,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+
+import com.google.common.base.StandardSystemProperty;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.Oak;
@@ -249,7 +251,7 @@ class SegmentTarFixture extends OakFixture {
         }
         
         serverSyncs[i] = new StandbyServerSync(port, stores[i], 1 * MB);
-        clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], false, DEFAULT_TIMEOUT, false);
+        clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], false, DEFAULT_TIMEOUT, false, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
         
         serverSyncs[i].start();
         clientSyncs[i].start();

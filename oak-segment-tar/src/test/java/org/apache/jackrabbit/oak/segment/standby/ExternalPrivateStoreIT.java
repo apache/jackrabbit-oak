@@ -80,8 +80,8 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         addTestContent(store, "server", blobSize);
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 1 * MB);
-                StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), false, 60)
+            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyClientSync cl = new StandbyClientSync(getServerHost(), 60, secondary, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();
             primary.flush();
