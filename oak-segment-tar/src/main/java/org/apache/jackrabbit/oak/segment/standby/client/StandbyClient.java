@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -76,13 +77,16 @@ class StandbyClient implements AutoCloseable {
 
     private final NioEventLoopGroup group;
 
+    private final File spoolFolder;
+
     private Channel channel;
 
-    StandbyClient(NioEventLoopGroup group, String clientId, boolean secure, int readTimeoutMs) {
+    StandbyClient(NioEventLoopGroup group, String clientId, boolean secure, int readTimeoutMs, File spoolFolder) {
         this.group = group;
         this.clientId = clientId;
         this.secure = secure;
         this.readTimeoutMs = readTimeoutMs;
+        this.spoolFolder = spoolFolder;
     }
 
     void connect(String host, int port) throws Exception {
@@ -121,7 +125,7 @@ class StandbyClient implements AutoCloseable {
                         // The frame length limits the chunk size to max. 2.2GB
 
                         p.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4));
-                        p.addLast(new ResponseDecoder());
+                        p.addLast(new ResponseDecoder(spoolFolder));
 
                         // Encoders
 

@@ -29,6 +29,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.UUID;
 
@@ -37,9 +38,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.commons.io.IOUtils;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class ResponseDecoderTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Test
     public void unrecognizedMessagesShouldBeDropped() throws Exception {
@@ -47,7 +53,7 @@ public class ResponseDecoderTest {
         buf.writeInt(1);
         buf.writeByte(-1);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         assertNull(channel.readInbound());
     }
@@ -60,7 +66,7 @@ public class ResponseDecoderTest {
         byte mask = createMask(1, 1);
         ByteBuf buf = createBlobChunkBuffer(Messages.HEADER_BLOB, 3L, blobId, blobData, mask);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetBlobResponse response = (GetBlobResponse) channel.readInbound();
         assertEquals("blobId", response.getBlobId());
@@ -85,7 +91,7 @@ public class ResponseDecoderTest {
         byte secondMask = createMask(2, 2);
         ByteBuf secondBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, secondChunkbData, secondMask);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(firstBuf);
         channel.writeInbound(secondBuf);
         
@@ -116,7 +122,7 @@ public class ResponseDecoderTest {
         buf.writeLong(hash(mask, 3L, blobData) + 1);
         buf.writeBytes(blobData);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         assertNull(channel.readInbound());
     }
@@ -131,7 +137,7 @@ public class ResponseDecoderTest {
         in.writeByte(Messages.HEADER_RECORD);
         in.writeBytes(recordIdBytes);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(in);
         GetHeadResponse response = (GetHeadResponse) channel.readInbound();
         assertEquals(recordId, response.getHeadRecordId());
@@ -150,7 +156,7 @@ public class ResponseDecoderTest {
         buf.writeLong(hash(data));
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetSegmentResponse response = (GetSegmentResponse) channel.readInbound();
         assertEquals(uuid, UUID.fromString(response.getSegmentId()));
@@ -166,7 +172,7 @@ public class ResponseDecoderTest {
         buf.writeByte(Messages.HEADER_REFERENCES);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
@@ -182,7 +188,7 @@ public class ResponseDecoderTest {
         buf.writeByte(Messages.HEADER_REFERENCES);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         assertNull(channel.readInbound());
     }
@@ -196,7 +202,7 @@ public class ResponseDecoderTest {
         buf.writeByte(Messages.HEADER_REFERENCES);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
@@ -212,7 +218,7 @@ public class ResponseDecoderTest {
         buf.writeByte(Messages.HEADER_REFERENCES);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
@@ -232,7 +238,7 @@ public class ResponseDecoderTest {
         buf.writeLong(hash(data) + 1);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         assertNull(channel.readInbound());
     }

@@ -25,12 +25,12 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 
+import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
-import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,8 +62,8 @@ public class RecoverTestIT extends TestBase {
         addTestContent(store, "client");
 
         try (
-                StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, 1 * MB);
-                StandbyClientSync cl = newStandbyClientSync(storeC, serverPort.getPort())
+            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, MB);
+            StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();
             store = SegmentNodeStoreBuilders.builder(storeS).build();

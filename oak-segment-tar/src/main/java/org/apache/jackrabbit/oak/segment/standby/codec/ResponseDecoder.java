@@ -41,8 +41,6 @@ import org.slf4j.LoggerFactory;
 
 public class ResponseDecoder extends ByteToMessageDecoder {
 
-    private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
-
     private static final Logger log = LoggerFactory.getLogger(ResponseDecoder.class);
 
     private static class DeleteOnCloseFileInputStream extends FileInputStream {
@@ -68,9 +66,15 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         }
 
     }
+
+    private final File spoolFolder;
     
     private int blobChunkSize;
-    
+
+    public ResponseDecoder(File spoolFolder) {
+        this.spoolFolder = spoolFolder;
+    }
+
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         int length = in.readInt();
@@ -131,7 +135,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         byte[] blobIdBytes = new byte[blobIdLength];
         in.readBytes(blobIdBytes);
         String blobId = new String(blobIdBytes, Charsets.UTF_8);
-        File tempFile = new File(TMP_DIR, blobId + ".tmp");
+        File tempFile = new File(spoolFolder, blobId + ".tmp");
         
         // START_CHUNK flag enabled
         if ((mask & (1 << 0)) != 0) {

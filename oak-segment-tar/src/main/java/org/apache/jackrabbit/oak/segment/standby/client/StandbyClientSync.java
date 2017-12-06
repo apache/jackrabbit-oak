@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment.standby.client;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.UUID;
@@ -35,8 +36,8 @@ import javax.management.StandardMBean;
 import com.google.common.base.Supplier;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ClientStandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
@@ -83,7 +84,9 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final NioEventLoopGroup group;
 
-    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean) {
+    private final File spoolFolder;
+
+    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean, File spoolFolder) {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.syncStartTimestamp = -1;
@@ -97,7 +100,8 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.fileStore = store;
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
         this.observer = new CommunicationObserver((s == null || s.isEmpty()) ? UUID.randomUUID().toString() : s);
-        group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
+        this.group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
+        this.spoolFolder = spoolFolder;
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
@@ -150,7 +154,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
             try {
                 long startTimestamp = System.currentTimeMillis();
-                try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs)) {
+                try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs, spoolFolder)) {
                     client.connect(host, port);
 
                     GCGeneration genBefore = headGeneration(fileStore);
