@@ -167,8 +167,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
             log.debug("Received entire blob {}", blobId);
 
             if (blobLength == tempFile.length()) {
-                FileInputStream fis = new DeleteOnCloseFileInputStream(tempFile);
-                out.add(new GetBlobResponse(null, blobId, fis, fis.getChannel().size()));
+                out.add(new GetBlobResponse(null, blobId, new DeleteOnCloseFileInputStream(tempFile), blobLength));
             } else {
                 log.debug("Blob {} discarded due to size mismatch. Expected size: {}, actual size: {} ", blobId,
                         blobLength, tempFile.length());
