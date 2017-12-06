@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
 import org.apache.jackrabbit.oak.run.cli.DocumentNodeStoreOptions;
 import org.apache.jackrabbit.oak.run.cli.Options;
@@ -46,7 +46,7 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
     }
 
     @Override
-    public void customize(DocumentMK.Builder builder) throws IOException {
+    public void customize(DocumentNodeStoreBuilder builder) throws IOException {
         configurePersistentCache(builder);
         configureCacheSize(builder);
 
@@ -55,7 +55,7 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
         }
     }
 
-    private void configurePersistentCache(DocumentMK.Builder builder) throws IOException {
+    private void configurePersistentCache(DocumentNodeStoreBuilder builder) throws IOException {
         if (System.getProperty(PERSISTENT_CACHE_PROP) == null) {
             File temp = opts.getOptionBean(IndexOptions.class).getWorkDir();
             File cache = new File(temp, "cache");
@@ -65,7 +65,7 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
         }
     }
 
-    private void configureCacheForReadOnlyMode(DocumentMK.Builder builder) {
+    private void configureCacheForReadOnlyMode(DocumentNodeStoreBuilder builder) {
         if (!docStoreOpts.isCacheDistributionDefined()) {
             builder.memoryCacheDistribution(
                     35,
@@ -83,7 +83,7 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
         log.info("Configuring cache for single threaded access");
     }
 
-    private void configureCacheSize(DocumentMK.Builder builder) {
+    private void configureCacheSize(DocumentNodeStoreBuilder builder) {
         //Set cache size to max 4GB or half of min memory
         if (docStoreOpts.getCacheSize() == 0) {
             long maxMem = Runtime.getRuntime().maxMemory();

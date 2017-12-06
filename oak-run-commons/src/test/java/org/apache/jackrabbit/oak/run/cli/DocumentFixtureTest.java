@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.run.cli;
 import java.io.IOException;
 
 import joptsimple.OptionParser;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -64,7 +64,7 @@ public class DocumentFixtureTest {
 
         }
 
-        verify(customizer, times(1)).customize(any(DocumentMK.Builder.class));
+        verify(customizer, times(1)).customize(any(DocumentNodeStoreBuilder.class));
     }
 
     private Options createMongoOptions() throws IOException {

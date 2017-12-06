@@ -33,9 +33,9 @@ import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -126,8 +126,8 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
     @Test
     public void bundling() throws Exception{
-        DocumentMK.Builder docBuilder = builderProvider.newBuilder().setMongoDB(getConnection().getDB());
-        DocumentNodeStore store = docBuilder.getNodeStore();
+        DocumentNodeStoreBuilder docBuilder = builderProvider.newBuilder().setMongoDB(getConnection().getDB());
+        DocumentNodeStore store = docBuilder.build();
 
         Whiteboard wb = new DefaultWhiteboard();
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();

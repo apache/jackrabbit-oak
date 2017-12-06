@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.run.commons.Command;
@@ -85,6 +84,7 @@ import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 /**
@@ -180,7 +180,7 @@ public class DataStoreCheckCommand implements Command {
                     MongoClientURI uri = new MongoClientURI(source);
                     MongoClient client = new MongoClient(uri);
                     DocumentNodeStore docNodeStore =
-                        new DocumentMK.Builder().setMongoDB(client.getDB(uri.getDatabase())).getNodeStore();
+                        newMongoDocumentNodeStoreBuilder().setMongoDB(client.getDB(uri.getDatabase())).build();
                     closer.register(Utils.asCloseable(docNodeStore));
                     blobStore = (GarbageCollectableBlobStore) docNodeStore.getBlobStore();
                     marker = new DocumentBlobReferenceRetriever(docNodeStore);

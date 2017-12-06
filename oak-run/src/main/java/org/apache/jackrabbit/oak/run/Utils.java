@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.run;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 
 import java.io.Closeable;
 import java.io.File;
@@ -46,8 +48,8 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.cli.DummyDataStore;
@@ -159,9 +161,9 @@ class Utils {
         }
 
         if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
-            DocumentMK.Builder builder = createDocumentMKBuilder(options, closer);
+            DocumentNodeStoreBuilder builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
-                DocumentNodeStore store = builder.getNodeStore();
+                DocumentNodeStore store = builder.build();
                 closer.register(asCloseable(store));
                 return store;
             }
@@ -171,7 +173,7 @@ class Utils {
     }
 
     @CheckForNull
-    static DocumentMK.Builder createDocumentMKBuilder(NodeStoreOptions options,
+    static DocumentNodeStoreBuilder createDocumentMKBuilder(NodeStoreOptions options,
                                                       Closer closer)
             throws IOException {
         String src = options.getStoreArg();
@@ -179,7 +181,7 @@ class Utils {
             options.printHelpOn(System.err);
             System.exit(1);
         }
-        DocumentMK.Builder builder = new DocumentMK.Builder();
+        DocumentNodeStoreBuilder builder;
         if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(src);
             if (uri.getDatabase() == null) {
@@ -189,11 +191,11 @@ class Utils {
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
             closer.register(asCloseable(mongo));
-            builder.setMongoDB(mongo.getDB());
+            builder = newMongoDocumentNodeStoreBuilder().setMongoDB(mongo.getDB());
         } else if (src.startsWith("jdbc")) {
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(src,
                     options.getRDBJDBCUser(), options.getRDBJDBCPassword());
-            builder.setRDBConnection(ds);
+            builder = newRDBDocumentNodeStoreBuilder().setRDBConnection(ds);
         } else {
             return null;
         }

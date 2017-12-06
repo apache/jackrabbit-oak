@@ -39,8 +39,8 @@ import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
@@ -57,7 +57,6 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGCSupport;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
@@ -204,13 +203,13 @@ public class RevisionsCommand implements Command {
     private VersionGarbageCollector bootstrapVGC(RevisionsOptions options,
                                                  Closer closer)
             throws IOException {
-        DocumentMK.Builder builder = createDocumentMKBuilder(options, closer);
+        DocumentNodeStoreBuilder builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
             System.exit(1);
         }
         // create a VersionGCSupport while builder is read-write
-        VersionGCSupport gcSupport = createVersionGCSupport(builder);
+        VersionGCSupport gcSupport = builder.createVersionGCSupport();
         // check for matching format version
         FormatVersion version = versionOf(gcSupport.getDocumentStore());
         if (!DocumentNodeStore.VERSION.equals(version)) {
@@ -225,7 +224,7 @@ public class RevisionsCommand implements Command {
         builder.setReadOnlyMode();
         // create a version GC that operates on a read-only DocumentNodeStore
         // and a GC support with a writable DocumentStore
-        VersionGarbageCollector gc = createVersionGC(builder.getNodeStore(), gcSupport);
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport);
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -361,7 +360,7 @@ public class RevisionsCommand implements Command {
                     RevisionsOptions.CMD_SWEEP + " command");
             return;
         }
-        DocumentMK.Builder builder = createDocumentMKBuilder(options, closer);
+        DocumentNodeStoreBuilder builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
             return;
@@ -386,7 +385,7 @@ public class RevisionsCommand implements Command {
             return;
         }
         builder.setReadOnlyMode();
-        DocumentNodeStore ns = builder.getNodeStore();
+        DocumentNodeStore ns = builder.build();
         closer.register(asCloseable(ns));
         MissingLastRevSeeker seeker = builder.createMissingLastRevSeeker();
         SweepHelper.sweep(store, new RevisionContextWrapper(ns, clusterId), seeker);
