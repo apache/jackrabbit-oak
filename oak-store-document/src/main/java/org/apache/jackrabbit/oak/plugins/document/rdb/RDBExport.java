@@ -222,7 +222,7 @@ public class RDBExport {
             try {
                 RDBRow row = new RDBRow(id, "1".equals(shasbinary) ? 1L : 0L, "1".equals(sdeletedonce),
                         smodified.length() == 0 ? 0 : Long.parseLong(smodified), Long.parseLong(smodcount),
-                        Long.parseLong(scmodcount), -1L, sdata, bytes);
+                        Long.parseLong(scmodcount), -1L, -1L, -1L, sdata, bytes);
                 StringBuilder fulljson = dumpRow(ser, id, row);
                 if (format == Format.CSV) {
                     out.println(asCSV(fieldNames, fulljson));
@@ -324,7 +324,7 @@ public class RDBExport {
             String data = rs.getString("DATA");
             byte[] bdata = rs.getBytes("BDATA");
 
-            RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, -1L, data, bdata);
+            RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, -1L, -1L, -1L, data, bdata);
             StringBuilder fulljson = dumpRow(ser, id, row);
             if (format == Format.CSV) {
                 out.println(asCSV(fieldNames, fulljson));

@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +38,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedState
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 /**
  * Defines variation in the capabilities of different RDBs.
@@ -111,7 +112,9 @@ public enum RDBDocumentStoreDB {
         public String getTableCreationStatement(String tableName, int schema) {
             return ("create table " + tableName
                     + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                    + (schema >= 1 ? "VERSION smallint, " : "") + "DATA varchar(16384), BDATA bytea)");
+                    + (schema >= 1 ? "VERSION smallint, " : "")
+                    + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                    + "DATA varchar(16384), BDATA bytea)");
         }
 
         @Override
@@ -157,16 +160,18 @@ public enum RDBDocumentStoreDB {
         public String getTableCreationStatement(String tableName, int schema) {
             return "create table " + tableName
                     + " (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                    + (schema >= 1 ? "VERSION smallint, " : "") + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
+                    + (schema >= 1 ? "VERSION smallint, " : "")
+                    + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                    + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
         }
 
         @Override
-        public List<String> getIndexCreationStatements(String tableName) {
+        public List<String> getIndexCreationStatements(String tableName, int schema) {
             List<String> statements = new ArrayList<String>();
             String pkName = tableName + "_pk";
             statements.add("create unique index " + pkName + " on " + tableName + " ( ID ) cluster");
             statements.add("alter table " + tableName + " add constraint " + pkName + " primary key ( ID )");
-            statements.addAll(super.getIndexCreationStatements(tableName));
+            statements.addAll(super.getIndexCreationStatements(tableName, schema));
             return statements;
         }
 
@@ -238,7 +243,9 @@ public enum RDBDocumentStoreDB {
             // see https://issues.apache.org/jira/browse/OAK-1914
             return ("create table " + tableName
                     + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, "
-                    + (schema >= 1 ? "VERSION number, " : "") + "DATA varchar(4000), BDATA blob)");
+                    + (schema >= 1 ? "VERSION number, " : "")
+                    + (schema >= 2 ? "SDTYPE number, SDMAXREVTIME number, " : "")
+                    + "DATA varchar(4000), BDATA blob)");
         }
 
         @Override
@@ -266,6 +273,16 @@ public enum RDBDocumentStoreDB {
             }
             return result.toString();
         }
+
+        @Override
+        public String getSmallintType() {
+            return "number";
+        }
+
+        @Override
+        public String getBigintType() {
+            return "number";
+        }
     },
 
     MYSQL("MySQL") {
@@ -284,7 +301,9 @@ public enum RDBDocumentStoreDB {
             // see https://issues.apache.org/jira/browse/OAK-1913
             return ("create table " + tableName
                     + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                    + (schema >= 1 ? "VERSION smallint, " : "") + "DATA varchar(16000), BDATA longblob)");
+                    + (schema >= 1 ? "VERSION smallint, " : "")
+                    + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                    + "DATA varchar(16000), BDATA longblob)");
         }
 
         @Override
@@ -356,7 +375,9 @@ public enum RDBDocumentStoreDB {
             // see https://issues.apache.org/jira/browse/OAK-2395
             return ("create table " + tableName
                     + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                    + (schema >= 1 ? "VERSION smallint, " : "") + "DATA nvarchar(4000), BDATA varbinary(max))");
+                    + (schema >= 1 ? "VERSION smallint, " : "")
+                    + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                    + "DATA nvarchar(4000), BDATA varbinary(max))");
         }
 
         @Override
@@ -496,23 +517,38 @@ public enum RDBDocumentStoreDB {
     public String getTableCreationStatement(String tableName, int schema) {
         return "create table " + tableName
                 + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
-                + (schema >= 1 ? "VERSION smallint, " : "") + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
+                + (schema >= 1 ? "VERSION smallint, " : "")
+                + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
+                + "DATA varchar(16384), BDATA blob(" + 1024 * 1024 * 1024 + "))";
     }
 
-    public List<String> getIndexCreationStatements(String tableName) {
+    public List<String> getIndexCreationStatements(String tableName, int level) {
+        List<String> result = Lists.newArrayList();
         if (CREATEINDEX.equals("modified-id")) {
-            return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (MODIFIED, ID)");
+            result.add("create index " + tableName + "_MI on " + tableName + " (MODIFIED, ID)");
         } else if (CREATEINDEX.equals("id-modified")) {
-            return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (ID, MODIFIED)");
+            result.add("create index " + tableName + "_MI on " + tableName + " (ID, MODIFIED)");
         } else if (CREATEINDEX.equals("modified")) {
-            return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (MODIFIED)");
-        } else {
-            return Collections.emptyList();
+            result.add("create index " + tableName + "_MI on " + tableName + " (MODIFIED)");
         }
+        if (level == 2) {
+            result.add("create index " + tableName + "_VSN on " + tableName + " (VERSION)");
+            result.add("create index " + tableName + "_SDT on " + tableName + " (SDTYPE)");
+            result.add("create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)");
+        }
+        return result;
     }
 
     public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
         return "";
+    }
+
+    public String getSmallintType() {
+        return "smallint";
+    }
+
+    public String getBigintType() {
+        return "bigint";
     }
 
     /**
@@ -521,8 +557,19 @@ public enum RDBDocumentStoreDB {
      * @return the table modification string
      */
     public List<String> getTableUpgradeStatements(String tableName, int level) {
-        Preconditions.checkArgument(level == 1, "level must be 1");
-        return Collections.singletonList("alter table " + tableName + " add VERSION smallint");
+        String smallint = getSmallintType();
+        String bigint = getBigintType();
+        if (level == 1) {
+            return Collections.singletonList("alter table " + tableName + " add VERSION " + smallint);
+        } else if (level == 2) {
+            String[] statements = new String[] { "alter table " + tableName + " add SDTYPE " + smallint,
+                    "alter table " + tableName + " add SDMAXREVTIME " + bigint,
+                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)",
+                    "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)", };
+            return Arrays.asList(statements);
+        } else {
+            throw new IllegalArgumentException("level must be 1 or 2");
+        }
     }
 
     protected String description;

@@ -47,7 +47,7 @@ public class RDBHelper {
 
             for (String table : RDBDocumentStore.getTableNames()) {
                 System.out.println("  " + ddb.getTableCreationStatement(table, defaultOpts.getInitialSchema()));
-                for (String s : ddb.getIndexCreationStatements(table)) {
+                for (String s : ddb.getIndexCreationStatements(table, defaultOpts.getInitialSchema())) {
                     System.out.println("    " + s);
                 }
                 for (int level = initial + 1; level <= upgradeTo; level++) {
