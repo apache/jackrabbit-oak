@@ -203,7 +203,7 @@ public class RevisionsCommand implements Command {
     private VersionGarbageCollector bootstrapVGC(RevisionsOptions options,
                                                  Closer closer)
             throws IOException {
-        DocumentNodeStoreBuilder builder = createDocumentMKBuilder(options, closer);
+        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
             System.exit(1);
@@ -360,7 +360,7 @@ public class RevisionsCommand implements Command {
                     RevisionsOptions.CMD_SWEEP + " command");
             return;
         }
-        DocumentNodeStoreBuilder builder = createDocumentMKBuilder(options, closer);
+        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
             return;

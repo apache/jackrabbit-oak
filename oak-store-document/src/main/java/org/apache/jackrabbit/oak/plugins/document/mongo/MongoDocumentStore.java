@@ -230,7 +230,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
-    public MongoDocumentStore(DB db, MongoDocumentNodeStoreBuilder builder) {
+    public MongoDocumentStore(DB db, MongoDocumentNodeStoreBuilderBase<?> builder) {
         MongoStatus mongoStatus = builder.getMongoStatus();
         if (mongoStatus == null) {
             mongoStatus = new MongoStatus(db);

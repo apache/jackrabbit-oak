@@ -121,7 +121,7 @@ public class RevisionsCommandTest {
 
         // remove the sweep revision to force a sweep run
         MongoConnection c = connectionFactory.getConnection();
-        DocumentNodeStoreBuilder builder = builderProvider.newBuilder().setMongoDB(c.getDB());
+        DocumentNodeStoreBuilder<?> builder = builderProvider.newBuilder().setMongoDB(c.getDB());
         DocumentStore store = builder.getDocumentStore();
         UpdateOp op = new UpdateOp(getIdFromPath("/"), false);
         op.removeMapEntry("_sweepRev", new Revision(0, 0, clusterId));

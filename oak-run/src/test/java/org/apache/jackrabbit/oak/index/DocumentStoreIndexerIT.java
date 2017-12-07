@@ -126,7 +126,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
     @Test
     public void bundling() throws Exception{
-        DocumentNodeStoreBuilder docBuilder = builderProvider.newBuilder().setMongoDB(getConnection().getDB());
+        DocumentNodeStoreBuilder<?> docBuilder = builderProvider.newBuilder().setMongoDB(getConnection().getDB());
         DocumentNodeStore store = docBuilder.build();
 
         Whiteboard wb = new DefaultWhiteboard();

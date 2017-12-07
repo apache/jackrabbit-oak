@@ -512,7 +512,7 @@ public final class DocumentNodeStore
 
     private final Predicate<String> nodeCachePredicate;
 
-    public <T extends DocumentNodeStoreBuilder<T>> DocumentNodeStore(DocumentNodeStoreBuilder<T> builder) {
+    public DocumentNodeStore(DocumentNodeStoreBuilder<?> builder) {
         this.nodeCachePredicate = builder.getNodeCachePredicate();
         this.updateLimit = builder.getUpdateLimit();
         this.commitValueResolver = new CommitValueResolver(builder.getCommitValueCacheSize(),
@@ -3000,7 +3000,7 @@ public final class DocumentNodeStore
         return mbean;
     }
 
-    private DocumentNodeStoreMBean createMBean(DocumentNodeStoreBuilder builder) {
+    private DocumentNodeStoreMBean createMBean(DocumentNodeStoreBuilder<?> builder) {
         try {
             return new DocumentNodeStoreMBeanImpl(this,
                     builder.getStatisticsProvider().getStats(),

@@ -161,7 +161,7 @@ class Utils {
         }
 
         if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
-            DocumentNodeStoreBuilder builder = createDocumentMKBuilder(options, closer);
+            DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
                 DocumentNodeStore store = builder.build();
                 closer.register(asCloseable(store));
@@ -173,15 +173,15 @@ class Utils {
     }
 
     @CheckForNull
-    static DocumentNodeStoreBuilder createDocumentMKBuilder(NodeStoreOptions options,
-                                                      Closer closer)
+    static DocumentNodeStoreBuilder<?> createDocumentMKBuilder(NodeStoreOptions options,
+                                                               Closer closer)
             throws IOException {
         String src = options.getStoreArg();
         if (src == null || src.length() == 0) {
             options.printHelpOn(System.err);
             System.exit(1);
         }
-        DocumentNodeStoreBuilder builder;
+        DocumentNodeStoreBuilder<?> builder;
         if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(src);
             if (uri.getDatabase() == null) {

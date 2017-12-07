@@ -30,8 +30,8 @@ import static com.google.common.base.Suppliers.ofInstance;
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
  */
-public class RDBDocumentNodeStoreBuilder<T extends RDBDocumentNodeStoreBuilder<T>>
-        extends DocumentNodeStoreBuilder<T> {
+public class RDBDocumentNodeStoreBuilder
+        extends DocumentNodeStoreBuilder<RDBDocumentNodeStoreBuilder> {
 
     /**
      * @return a new {@link RDBDocumentNodeStoreBuilder}.
@@ -40,19 +40,13 @@ public class RDBDocumentNodeStoreBuilder<T extends RDBDocumentNodeStoreBuilder<T
         return new RDBDocumentNodeStoreBuilder();
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    protected T thisBuilder() {
-        return (T) this;
-    }
-
     /**
      * Sets a {@link DataSource} to use for the RDB document and blob
      * stores.
      *
      * @return this
      */
-    public T setRDBConnection(DataSource ds) {
+    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource ds) {
         setRDBConnection(ds, new RDBOptions());
         return thisBuilder();
     }
@@ -63,7 +57,7 @@ public class RDBDocumentNodeStoreBuilder<T extends RDBDocumentNodeStoreBuilder<T
      *
      * @return this
      */
-    public T setRDBConnection(DataSource ds, RDBOptions options) {
+    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource ds, RDBOptions options) {
         this.documentStoreSupplier = ofInstance(new RDBDocumentStore(ds, this, options));
         if(blobStore == null) {
             GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
@@ -78,7 +72,7 @@ public class RDBDocumentNodeStoreBuilder<T extends RDBDocumentNodeStoreBuilder<T
      *
      * @return this
      */
-    public T setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
+    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
         this.documentStoreSupplier = ofInstance(new RDBDocumentStore(documentStoreDataSource, this));
         if(blobStore == null) {
             GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
