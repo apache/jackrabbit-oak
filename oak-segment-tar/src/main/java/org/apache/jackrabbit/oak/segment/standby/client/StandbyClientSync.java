@@ -166,8 +166,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
                 GCGeneration genBefore = headGeneration(fileStore);
 
-                try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs, spoolFolder)) {
-                    client.connect(host, port);
+                try (StandbyClient client = new StandbyClient(host, port, group, observer.getID(), secure, readTimeoutMs, spoolFolder)) {
                     execution.execute(client);
                 }
 
