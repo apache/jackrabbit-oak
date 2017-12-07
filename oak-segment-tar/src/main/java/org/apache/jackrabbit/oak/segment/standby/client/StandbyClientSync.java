@@ -33,7 +33,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
-import com.google.common.base.Supplier;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -86,6 +85,18 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final File spoolFolder;
 
+    private final StandbyClientSyncExecution execution;
+
+    private static String clientId() {
+        String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
+
+        if (s == null || s.isEmpty()) {
+            return UUID.randomUUID().toString();
+        }
+
+        return s;
+    }
+
     public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean, File spoolFolder) {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
@@ -98,14 +109,12 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.readTimeoutMs = readTimeoutMs;
         this.autoClean = autoClean;
         this.fileStore = store;
-        String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
-        this.observer = new CommunicationObserver((s == null || s.isEmpty()) ? UUID.randomUUID().toString() : s);
+        this.observer = new CommunicationObserver(clientId());
         this.group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
+        this.execution = new StandbyClientSyncExecution(fileStore, running::get);
         this.spoolFolder = spoolFolder;
-
-        final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
-            jmxServer.registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
+            ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
             log.error("cannot register standby status mbean", e);
         }
@@ -154,18 +163,23 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
             try {
                 long startTimestamp = System.currentTimeMillis();
+
+                GCGeneration genBefore = headGeneration(fileStore);
+
                 try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs, spoolFolder)) {
                     client.connect(host, port);
-
-                    GCGeneration genBefore = headGeneration(fileStore);
-                    new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
-                    GCGeneration genAfter = headGeneration(fileStore);
-
-                    if (autoClean && (genAfter.compareWith(genBefore)) > 0) {
-                        log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
-                        cleanupAndRemove();
-                    }
+                    execution.execute(client);
                 }
+
+                fileStore.flush();
+
+                GCGeneration genAfter = headGeneration(fileStore);
+
+                if (autoClean && genAfter.compareWith(genBefore) > 0) {
+                    log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
+                    cleanupAndRemove();
+                }
+
                 this.failedRequests = 0;
                 this.syncStartTimestamp = startTimestamp;
                 this.syncEndTimestamp = System.currentTimeMillis();
@@ -190,17 +204,6 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private void cleanupAndRemove() throws IOException {
         fileStore.cleanup();
-    }
-
-    private Supplier<Boolean> newRunningSupplier() {
-        return new Supplier<Boolean>() {
-
-            @Override
-            public Boolean get() {
-                return running.get();
-            }
-
-        };
     }
 
     @Nonnull
