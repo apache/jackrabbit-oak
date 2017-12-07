@@ -205,23 +205,8 @@ public class FileStore extends AbstractFileStore {
 
         this.snfeListener = builder.getSnfeListener();
 
-        fileStoreScheduler.scheduleAtFixedRate(format("TarMK flush [%s]", directory), 5, SECONDS, () -> {
-            try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
-                if (shutDown.isShutDown()) {
-                    log.debug("Shut down in progress, skipping flush");
-                } else if (revisions == null) {
-                    log.debug("No TarRevisions available, skipping flush");
-                } else {
-                    revisions.tryFlush(() -> {
-                        segmentWriter.flush();
-                        tarFiles.flush();
-                        stats.flushed();
-                    });
-                }
-            } catch (IOException e) {
-                log.warn("Failed to flush the TarMK at {}", directory, e);
-            }
-        });
+        fileStoreScheduler.scheduleAtFixedRate(format("TarMK flush [%s]", directory), 5, SECONDS,
+                                               this::tryFlush);
 
         fileStoreScheduler.scheduleAtFixedRate(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
                                                fileReaper::reap);
@@ -333,9 +318,34 @@ public class FileStore extends AbstractFileStore {
         });
     }
 
+    /**
+     * Flush all pending changes
+     */
     public void flush() throws IOException {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             doFlush();
+        }
+    }
+
+    /**
+     * Try to flush all pending changes to disk if possible without waiting
+     * for a lock or other resources currently not available.
+     */
+    public void tryFlush() {
+        try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
+            if (shutDown.isShutDown()) {
+                log.debug("Shut down in progress, skipping flush");
+            } else if (revisions == null) {
+                log.debug("No TarRevisions available, skipping flush");
+            } else {
+                revisions.tryFlush(() -> {
+                    segmentWriter.flush();
+                    tarFiles.flush();
+                    stats.flushed();
+                });
+            }
+        } catch (IOException e) {
+            log.warn("Failed to flush the TarMK at {}", directory, e);
         }
     }
 
