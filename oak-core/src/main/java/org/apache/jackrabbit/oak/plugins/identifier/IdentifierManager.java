@@ -351,7 +351,8 @@ public class IdentifierManager {
         try {
             Map<String, PropertyValue> bindings = Collections.singletonMap("id", uuid);
             Result result = root.getQueryEngine().executeQuery(
-                    "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id" + 
+                    "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id " + 
+                    "OPTION(INDEX NAME [uuid], INDEX TAG [uuid])" +
                     QueryEngine.INTERNAL_SQL2_QUERY, 
                     Query.JCR_SQL2,
                     bindings, NO_MAPPINGS);
