@@ -98,7 +98,6 @@ The build consists of the following components:
   
   - oak-http          - HTTP binding for Oak
   - oak-pojosr  
-  - oak-remote 
   
   - [oak-exercise][3] - Oak training material
   - oak-examples      - Oak examples (webapp and standalone)
@@ -113,6 +112,7 @@ The following components have been moved to the Jackrabbit Attic:
   - oak-mk            - MicroKernel implementation (see OAK-2702)
   - oak-mk-remote     - MicroKernel remoting  (see [OAK-2693][2])
   - oak-it/mk         - integration tests for MicroKernel
+  - oak-remote        - Oak Remote API (see OAK-7035)
 
 
 

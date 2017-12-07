@@ -36,7 +36,6 @@ Oak API
     - [oak-auth-ldap](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-auth-ldap/)
     - [oak-segment-tar](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-segment-tar/)
     - [oak-authorization-cug](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-authorization-cug/)
-    - [oak-remote](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-remote/)
     - [oak-exercise](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-exercise/)
 
 ### Key API entry points
