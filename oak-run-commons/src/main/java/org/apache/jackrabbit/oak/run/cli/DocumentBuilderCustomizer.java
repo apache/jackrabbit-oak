@@ -29,5 +29,5 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
  */
 public interface DocumentBuilderCustomizer {
 
-    void customize(DocumentNodeStoreBuilder builder) throws IOException;
+    void customize(DocumentNodeStoreBuilder<?> builder) throws IOException;
 }

@@ -22,7 +22,7 @@ abstract class DocumentFactory implements NodeStoreFactory {
 
     private static final long MB = 1024 * 1024;
 
-    static <T extends DocumentNodeStoreBuilder> T baseConfiguration(T builder, int cacheSize) {
+    static <T extends DocumentNodeStoreBuilder<?>> T baseConfiguration(T builder, int cacheSize) {
         boolean fastMigration = !Boolean.getBoolean("mongomk.disableFastMigration");
         builder.memoryCacheSize(cacheSize * MB);
         if (fastMigration) {

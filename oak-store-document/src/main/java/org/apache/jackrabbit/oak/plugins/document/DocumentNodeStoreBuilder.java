@@ -167,7 +167,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
      */
-    public static DocumentNodeStoreBuilder newDocumentNodeStoreBuilder() {
+    public static DocumentNodeStoreBuilder<?> newDocumentNodeStoreBuilder() {
         return new DocumentNodeStoreBuilder();
     }
 
@@ -176,7 +176,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     @SuppressWarnings("unchecked")
-    protected T thisBuilder() {
+    protected final T thisBuilder() {
         return (T) this;
     }
 

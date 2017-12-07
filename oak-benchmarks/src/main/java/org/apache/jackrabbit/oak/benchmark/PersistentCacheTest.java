@@ -58,7 +58,7 @@ public class PersistentCacheTest extends AbstractTest {
             OakFixture oakFixture = ((OakRepositoryFixture) fixture).getOakFixture();
             if (oakFixture instanceof OakFixture.MongoFixture) {
                 OakFixture.MongoFixture mongoFixture = (OakFixture.MongoFixture) oakFixture;
-                DocumentNodeStoreBuilder builder = mongoFixture.getBuilder(1);
+                DocumentNodeStoreBuilder<?> builder = mongoFixture.getBuilder(1);
                 builder.setStatisticsProvider(statsProvider);
                 builder.setPersistentCache("target/persistentCache,time," + CACHE_OPTIONS);
                 dns = builder.build();

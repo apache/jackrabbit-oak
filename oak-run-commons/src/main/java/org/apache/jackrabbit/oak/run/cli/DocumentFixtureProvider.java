@@ -53,7 +53,7 @@ class DocumentFixtureProvider {
                                          boolean readOnly) throws IOException {
         CommonOptions commonOpts = options.getOptionBean(CommonOptions.class);
 
-        DocumentNodeStoreBuilder builder;
+        DocumentNodeStoreBuilder<?> builder;
         if (commonOpts.isMongo()) {
             builder = newMongoDocumentNodeStoreBuilder();
         } else if (commonOpts.isRDB()) {

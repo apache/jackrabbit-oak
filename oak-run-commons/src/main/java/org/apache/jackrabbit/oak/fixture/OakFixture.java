@@ -210,7 +210,7 @@ public abstract class OakFixture {
             @Override
             public Oak getOak(int clusterId) throws Exception {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                DocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder()
+                DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder()
                         .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
                         .setClusterId(clusterId).setLogging(false);
                 BlobStore blobStore = getBlobStore(StatisticsProvider.NOOP);
@@ -227,7 +227,7 @@ public abstract class OakFixture {
                 for (int i = 0; i < cluster.length; i++) {
                     BlobStore blobStore = getBlobStore(statsProvider);
                     DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                    DocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder()
+                    DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder()
                             .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
                             .setStatisticsProvider(statsProvider)
                             // FIXME: OAK-3389
@@ -388,9 +388,9 @@ public abstract class OakFixture {
             this.dsCacheInMB = dsCacheInMB;
         }
 
-        public DocumentNodeStoreBuilder getBuilder(int clusterId) throws UnknownHostException {
+        public DocumentNodeStoreBuilder<?> getBuilder(int clusterId) throws UnknownHostException {
             MongoConnection mongo = new MongoConnection(uri);
-            DocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder() {
+            DocumentNodeStoreBuilder<?> builder = new MongoDocumentNodeStoreBuilder() {
                 @Override
                 public DocumentNodeStore build() {
                     DocumentNodeStore ns = super.build();
@@ -412,7 +412,7 @@ public abstract class OakFixture {
             return newOak(getBuilder(clusterId).build());
         }
 
-        public Oak[] setUpCluster(DocumentNodeStoreBuilder[] builders, StatisticsProvider statsProvider) throws Exception {
+        public Oak[] setUpCluster(DocumentNodeStoreBuilder<?>[] builders, StatisticsProvider statsProvider) throws Exception {
             Oak[] cluster = new Oak[builders.length];
             for (int i = 0; i < cluster.length; i++) {
                 cluster[i] = newOak(builders[i].build());
@@ -422,7 +422,7 @@ public abstract class OakFixture {
 
         @Override
         public Oak[] setUpCluster(int n, StatisticsProvider statsProvider) throws Exception {
-            DocumentNodeStoreBuilder[] builders = new DocumentNodeStoreBuilder[n];
+            DocumentNodeStoreBuilder<?>[] builders = new DocumentNodeStoreBuilder[n];
             for (int i = 0; i < n; i++) {
                 builders[i] = getBuilder(i + 1);
             }
@@ -450,7 +450,7 @@ public abstract class OakFixture {
             }
         }
 
-        private void setupBlobStore(DocumentNodeStoreBuilder builder, StatisticsProvider statsProvider) {
+        private void setupBlobStore(DocumentNodeStoreBuilder<?> builder, StatisticsProvider statsProvider) {
             initializeBlobStoreFixture(statsProvider);
             if (blobStoreFixture != null) {
                 builder.setBlobStore(blobStoreFixture.setUp());
@@ -468,7 +468,7 @@ public abstract class OakFixture {
             }
         }
 
-        private void configurePersistentCache(DocumentNodeStoreBuilder builder) {
+        private void configurePersistentCache(DocumentNodeStoreBuilder<?> builder) {
             //TODO Persistent cache should be removed in teardown
             builder.setPersistentCache("target/persistentCache,time");
 

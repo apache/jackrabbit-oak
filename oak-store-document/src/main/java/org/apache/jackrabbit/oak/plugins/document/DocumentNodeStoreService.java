@@ -254,7 +254,7 @@ public class DocumentNodeStoreService {
     }
 
     private void registerNodeStore() throws IOException {
-        DocumentNodeStoreBuilder mkBuilder;
+        DocumentNodeStoreBuilder<?> mkBuilder;
         if (documentStoreType == DocumentStoreType.RDB) {
             RDBDocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder();
             configureBuilder(builder);
@@ -419,7 +419,7 @@ public class DocumentNodeStoreService {
             nodeStore, props);
     }
 
-    private void configureBuilder(DocumentNodeStoreBuilder builder) {
+    private void configureBuilder(DocumentNodeStoreBuilder<?> builder) {
         String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
         String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
         builder.setStatisticsProvider(statisticsProvider).
@@ -688,7 +688,7 @@ public class DocumentNodeStoreService {
         }
     }
 
-    private void registerJMXBeans(final DocumentNodeStore store, DocumentNodeStoreBuilder mkBuilder) throws
+    private void registerJMXBeans(final DocumentNodeStore store, DocumentNodeStoreBuilder<?> mkBuilder) throws
             IOException {
         registerCacheStatsMBean(store.getNodeCacheStats());
         registerCacheStatsMBean(store.getNodeChildrenCacheStats());
