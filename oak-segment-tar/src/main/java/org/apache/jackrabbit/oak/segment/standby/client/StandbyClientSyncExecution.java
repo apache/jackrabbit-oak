@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -49,19 +50,16 @@ class StandbyClientSyncExecution {
 
     private final SegmentIdProvider idProvider;
 
-    private final StandbyClient client;
-
     private final Supplier<Boolean> running;
 
-    StandbyClientSyncExecution(FileStore store, StandbyClient client, Supplier<Boolean> running) {
+    StandbyClientSyncExecution(FileStore store, Supplier<Boolean> running) {
         this.store = store;
         this.idProvider = store.getSegmentIdProvider();
-        this.client = client;
         this.running = running;
     }
 
-    void execute() throws Exception {
-        RecordId remoteHead = getHead();
+    void execute(StandbyClient client) throws Exception {
+        RecordId remoteHead = getHead(client);
 
         if (remoteHead == null) {
             log.error("Unable to fetch remote head");
@@ -72,18 +70,17 @@ class StandbyClientSyncExecution {
             return;
         }
 
-        long t = System.currentTimeMillis();
+        Stopwatch stopwatch = Stopwatch.createStarted();
         SegmentNodeState before = store.getHead();
         SegmentNodeBuilder builder = before.builder();
         SegmentNodeState current = newSegmentNodeState(remoteHead);
-        compareAgainstBaseState(current, before, builder);
-        boolean ok = store.getRevisions().setHead(before.getRecordId(), remoteHead);
-        store.flush();
-        log.info("updated head state successfully: {} in {}ms.", ok, System.currentTimeMillis() - t);
+        compareAgainstBaseState(client, current, before, builder);
+        store.getRevisions().setHead(before.getRecordId(), remoteHead);
+        log.info("Updated head state in {}", stopwatch);
     }
 
     @Nullable
-    private RecordId getHead() throws Exception {
+    private RecordId getHead(StandbyClient client) throws Exception {
         String head = client.getHead();
         if (head == null) {
             return null;
@@ -95,18 +92,19 @@ class StandbyClientSyncExecution {
         return store.getReader().readNode(id);
     }
 
-    private boolean compareAgainstBaseState(SegmentNodeState current, SegmentNodeState before, SegmentNodeBuilder builder) throws Exception {
+    private void compareAgainstBaseState(StandbyClient client, SegmentNodeState current, SegmentNodeState before, SegmentNodeBuilder builder) throws Exception {
         while (true) {
             try {
-                return current.compareAgainstBaseState(before, new StandbyDiff(builder, store, client, running));
+                current.compareAgainstBaseState(before, new StandbyDiff(builder, store, client, running));
+                return;
             } catch (SegmentNotFoundException e) {
                 log.debug("Found missing segment {}", e.getSegmentId());
-                copySegmentHierarchyFromPrimary(UUID.fromString(e.getSegmentId()));
+                copySegmentHierarchyFromPrimary(client, UUID.fromString(e.getSegmentId()));
             }
         }
     }
 
-    private void copySegmentHierarchyFromPrimary(UUID segmentId) throws Exception {
+    private void copySegmentHierarchyFromPrimary(StandbyClient client, UUID segmentId) throws Exception {
         LinkedList<UUID> batch = new LinkedList<>();
 
         batch.offer(segmentId);
@@ -137,7 +135,7 @@ class StandbyClientSyncExecution {
                 continue;
             }
 
-            for (String s : readReferences(current)) {
+            for (String s : readReferences(client, current)) {
                 UUID referenced = UUID.fromString(s);
 
                 // Short circuit for the "backward reference". The segment graph
@@ -189,17 +187,16 @@ class StandbyClientSyncExecution {
 
         for (UUID id : bulk) {
             log.info("Copying bulk segment {} from primary", id);
-            copySegmentFromPrimary(id);
+            copySegmentFromPrimary(client, id);
         }
 
         for (UUID id : data) {
             log.info("Copying data segment {} from primary", id);
-            copySegmentFromPrimary(id);
+            copySegmentFromPrimary(client, id);
         }
-
     }
 
-    private Iterable<String> readReferences(UUID id) throws InterruptedException {
+    private Iterable<String> readReferences(StandbyClient client, UUID id) throws InterruptedException {
         Iterable<String> references = client.getReferences(id.toString());
 
         if (references == null) {
@@ -216,7 +213,7 @@ class StandbyClientSyncExecution {
         ));
     }
 
-    private void copySegmentFromPrimary(UUID uuid) throws Exception {
+    private void copySegmentFromPrimary(StandbyClient client, UUID uuid) throws Exception {
         byte[] data = client.getSegment(uuid.toString());
 
         if (data == null) {
