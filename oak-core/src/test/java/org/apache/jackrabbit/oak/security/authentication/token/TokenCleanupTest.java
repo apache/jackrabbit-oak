@@ -16,17 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeFalse;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class TokenCleanupTest extends AbstractTokenTest {
 
@@ -84,6 +86,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
 
     @Test
     public void testAllExpiredReachingThreshold() throws Exception {
+        assumeFalse(CIHelper.windows());  // FIXME OAK-6982
         createExpiredTokens(5);
         int extras = createTokensUntilCleanup();
         assertTokenNodes(extras);
