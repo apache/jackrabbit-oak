@@ -205,39 +205,37 @@ public class FileStore extends AbstractFileStore {
 
         this.snfeListener = builder.getSnfeListener();
 
-        fileStoreScheduler.scheduleAtFixedRate(
-                format("TarMK flush [%s]", directory), 5, SECONDS,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        if (shutDown.shutDownRequested()) {
-                            return;
-                        }
-                        try {
-                            tryFlush();
-                        } catch (IOException e) {
-                            log.warn("Failed to flush the TarMK at {}", directory, e);
-                        }
-                    }
-                });
-        fileStoreScheduler.scheduleAtFixedRate(
-                format("TarMK filer reaper [%s]", directory), 5, SECONDS,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        fileReaper.reap();
-                    }
-                });
-        fileStoreScheduler.scheduleAtFixedRate(
-                format("TarMK disk space check [%s]", directory), 1, MINUTES,
-                new Runnable() {
-                    final SegmentGCOptions gcOptions = builder.getGcOptions();
+        fileStoreScheduler.scheduleAtFixedRate(format("TarMK flush [%s]", directory), 5, SECONDS, () -> {
+            try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
+                if (shutDown.isShutDown()) {
+                    log.debug("Shut down in progress, skipping flush");
+                } else if (revisions == null) {
+                    log.debug("No TarRevisions available, skipping flush");
+                } else {
+                    revisions.tryFlush(() -> {
+                        segmentWriter.flush();
+                        tarFiles.flush();
+                        stats.flushed();
+                    });
+                }
+            } catch (IOException e) {
+                log.warn("Failed to flush the TarMK at {}", directory, e);
+            }
+        });
 
-                    @Override
-                    public void run() {
-                        checkDiskSpace(gcOptions);
-                    }
-                });
+        fileStoreScheduler.scheduleAtFixedRate(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
+                                               fileReaper::reap);
+
+        fileStoreScheduler.scheduleAtFixedRate(format("TarMK disk space check [%s]", directory), 1, MINUTES, () -> {
+           try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
+               if (shutDown.isShutDown()) {
+                   log.debug("Shut down in progress, skipping disk space check");
+               } else {
+                   checkDiskSpace(builder.getGcOptions());
+               }
+           }
+        });
+
         log.info("TarMK opened at {}, mmap={}, size={} ({} bytes)",
             directory,
             memoryMapping,
@@ -320,24 +318,9 @@ public class FileStore extends AbstractFileStore {
         return stats;
     }
 
-    private void doTryFlush() throws IOException {
-        if (revisions == null) {
-            log.debug("No TarRevisions available, skipping flush");
-            return;
-        }
-        revisions.tryFlush(() -> {
-            segmentWriter.flush();
-            tarFiles.flush();
-            stats.flushed();
-        });
-    }
-
-    private void tryFlush() throws IOException {
-        try (ShutDownCloser ignored = shutDown.keepAlive()) {
-            doTryFlush();
-        }
-    }
-
+    /*
+     * Callers of this method must hold the shutdown lock
+     */
     private void doFlush() throws IOException {
         if (revisions == null) {
             log.debug("No TarRevisions available, skipping flush");
@@ -1143,7 +1126,7 @@ public class FileStore extends AbstractFileStore {
                     reason = "Not enough memory";
                     return true;
                 }
-                if (store.shutDown.shutDownRequested()) {
+                if (store.shutDown.isShutDown()) {
                     reason = "The FileStore is shutting down";
                     return true;
                 }
