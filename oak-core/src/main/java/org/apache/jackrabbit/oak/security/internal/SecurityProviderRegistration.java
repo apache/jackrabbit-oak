@@ -242,7 +242,7 @@ public class SecurityProviderRegistration {
         this.treeProvider = treeProvider;
     }
 
-    public void unbindTreeProvider(RootProvider treeProvider) {
+    public void unbindTreeProvider(TreeProvider treeProvider) {
         this.treeProvider = null;
     }
 
