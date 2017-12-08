@@ -172,13 +172,13 @@ public final class FileIOUtils {
                     closeQuietly(iStream);
                 }
             }
+            threw = false;
+        } finally {
             if (delete) {
                 for (File f : files) {
                     f.delete();
                 }
             }
-            threw = false;
-        } finally {
             close(appendStream, threw);
         }
     }
