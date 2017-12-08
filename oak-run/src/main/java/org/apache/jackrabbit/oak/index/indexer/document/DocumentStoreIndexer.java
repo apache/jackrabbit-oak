@@ -31,6 +31,8 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -96,12 +98,18 @@ public class DocumentStoreIndexer implements Closeable{
                         nodeStore, getMongoDocumentStore())
                         .withProgressCallback(this::reportDocumentRead)
                         .withPathPredicate(indexer::shouldInclude);
+        closer.register(nsep);
 
-        for (NodeStateEntry entry : nsep) {
+        //TODO Use flatFileStore only if we have relative nodes to be indexed
+        FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(nsep, indexHelper.getWorkDir())
+                .withBlobStore(indexHelper.getGCBlobStore())
+                .withPreferredPathElements(indexer.getRelativeIndexedNodeNames())
+                .build();
+        closer.register(flatFileStore);
+
+        for (NodeStateEntry entry : flatFileStore) {
             indexer.index(entry);
         }
-
-        nsep.close();
 
         progressReporter.reindexingTraversalEnd();
         progressReporter.logReport();
