@@ -63,7 +63,15 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final boolean secure;
 
-    private boolean active = false;
+    private final FileStore fileStore;
+
+    private final NioEventLoopGroup group;
+
+    private final File spoolFolder;
+
+    private final StandbyClientSyncExecution execution;
+
+    private final AtomicBoolean active = new AtomicBoolean(false);
 
     private int failedRequests;
 
@@ -71,21 +79,11 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private volatile String state;
 
-    private final Object sync = new Object();
-
-    private final FileStore fileStore;
-
-    private final AtomicBoolean running = new AtomicBoolean(true);
+    private volatile boolean running = true;
 
     private long syncStartTimestamp;
 
     private long syncEndTimestamp;
-
-    private final NioEventLoopGroup group;
-
-    private final File spoolFolder;
-
-    private final StandbyClientSyncExecution execution;
 
     private static String clientId() {
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
@@ -111,7 +109,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.fileStore = store;
         this.observer = new CommunicationObserver(clientId());
         this.group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
-        this.execution = new StandbyClientSyncExecution(fileStore, running::get);
+        this.execution = new StandbyClientSyncExecution(fileStore, () -> running);
         this.spoolFolder = spoolFolder;
         try {
             ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
@@ -146,20 +144,17 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         try {
             Thread.currentThread().setName("standby-run-" + standbyRunCounter.incrementAndGet());
 
-            if (!isRunning()) {
-                // manually stopped
+            if (!running) {
                 return;
             }
 
             state = STATUS_STARTING;
 
-            synchronized (sync) {
-                if (active) {
-                    return;
-                }
-                state = STATUS_RUNNING;
-                active = true;
+            if (!active.compareAndSet(false, true)) {
+                return;
             }
+
+            state = STATUS_RUNNING;
 
             try {
                 long startTimestamp = System.currentTimeMillis();
@@ -187,9 +182,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
                 this.failedRequests++;
                 log.error("Failed synchronizing state.", e);
             } finally {
-                synchronized (this.sync) {
-                    this.active = false;
-                }
+                active.set(false);
             }
         } finally {
             Thread.currentThread().setName(name);
@@ -213,18 +206,18 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     @Override
     public boolean isRunning() {
-        return running.get();
+        return running;
     }
 
     @Override
     public void start() {
-        running.set(true);
+        running = true;
         state = STATUS_RUNNING;
     }
 
     @Override
     public void stop() {
-        running.set(false);
+        running = false;
         state = STATUS_STOPPED;
     }
 
