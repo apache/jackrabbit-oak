@@ -29,12 +29,22 @@ import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FlatFileNodeStoreBuilder {
+    private static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
+    private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
+    private static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterable<NodeStateEntry> nodeStates;
     private final File workDir;
     private Iterable<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
+
+    private boolean useZip = Boolean.getBoolean(OAK_INDEXER_USE_ZIP);
+    private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
+    private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, 5);
 
     public FlatFileNodeStoreBuilder(Iterable<NodeStateEntry> nodeStates, File workDir) {
         this.nodeStates = nodeStates;
@@ -64,9 +74,20 @@ public class FlatFileNodeStoreBuilder {
         FileUtils.forceMkdir(sortWorkDir);
         NodeStateEntrySorter sorter =
                 new NodeStateEntrySorter(new PathElementComparator(preferredPathElements), storeFile, sortWorkDir);
-        //TODO Configure flags zip and deleteOriginal, maxMemory
+
+        logFlags();
+
+        sorter.setUseZip(useZip);
+        sorter.setMaxMemoryInGB(maxMemory);
+        sorter.setDeleteOriginal(deleteOriginal);
         sorter.sort();
         return sorter.getSortedFile();
+    }
+
+    private void logFlags() {
+        log.info("Compression enabled while sorting : {} ({})", useZip, OAK_INDEXER_USE_ZIP);
+        log.info("Delete original dump from traversal : {} ({})", deleteOriginal, OAK_INDEXER_DELETE_ORIGINAL);
+        log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemory, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
     }
 
     private File writeToStore(File dir, String fileName) throws IOException {
