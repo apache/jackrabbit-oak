@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.commons.hash;
+package org.apache.jackrabbit.oak.plugins.index.counter;
 
 /**
  * An implementation of the SipHash-2-2 function, to prevent hash flooding.
