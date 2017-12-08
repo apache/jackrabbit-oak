@@ -128,7 +128,7 @@ public class NotImpl extends ConstraintImpl {
         // then we can not apply it, as in "not contains(., 'x')".
         // Also, if the constraint _contains_ a unfiltered fulltext condition, as in
         // "not (x=1 or contains(., 'x')".
-        return constraint.requiresFullTextIndex() || 
+        return constraint.containsUnfilteredFullTextCondition() || 
                 constraint.requiresFullTextIndex();
     }
 
