@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 
 public class IndexMBeanRegistration implements Registration {
 
@@ -45,7 +47,7 @@ public class IndexMBeanRegistration implements Registration {
                 AsyncIndexUpdate.PROP_ASYNC_NAME, task.getName(),
                 "scheduler.name", AsyncIndexUpdate.class.getName() + "-" + task.getName()
         );
-        regs.add(scheduleWithFixedDelay(whiteboard, task, config, delayInSeconds, true, true));
+        regs.add(scheduleWithFixedDelay(whiteboard, task, config, delayInSeconds, RUN_ON_LEADER, true));
         regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
                 task.getIndexStats(), IndexStatsMBean.TYPE, task.getName()));
     }
