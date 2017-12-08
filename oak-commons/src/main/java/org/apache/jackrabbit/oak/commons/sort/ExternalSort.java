@@ -506,6 +506,11 @@ public class ExternalSort {
             int rowcounter = merge(fbw, cmp, distinct, bfbs, typeToString);
             return rowcounter;
         } finally {
+            for (BinaryFileBuffer buffer : bfbs) {
+                try {
+                    buffer.close();
+                } catch (Exception e) {}
+            }
             for (File f : files) {
                 f.delete();
             }
