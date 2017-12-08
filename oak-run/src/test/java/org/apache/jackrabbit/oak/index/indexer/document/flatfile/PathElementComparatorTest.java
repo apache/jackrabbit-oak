@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
 import static org.junit.Assert.assertEquals;
 
 public class PathElementComparatorTest {
@@ -53,8 +55,8 @@ public class PathElementComparatorTest {
     }
 
     @Test
-    public void preferredElements() throws Exception{
-        PathElementComparator c = new PathElementComparator(asList("jcr:content"));
+    public void preferredElements() {
+        PathElementComparator c = new PathElementComparator(singleton("jcr:content"));
         assertEquals(asList("/a", "/a/jcr:content", "/a/b"), sortPaths(asList("/a/jcr:content", "/a/b", "/a"), c));
 
         assertSorted(asList("/a", "/a/jcr:content", "/a/b"),c);
@@ -72,11 +74,15 @@ public class PathElementComparatorTest {
         assertEquals(sorted, sortedNew);
     }
 
-    private List<String> sortPaths(List<String> paths){
+    static List<String> sortPaths(List<String> paths){
         return sortPaths(paths, new PathElementComparator());
     }
 
-    private List<String> sortPaths(List<String> paths, Comparator<Iterable<String>> comparator) {
+    static List<String> sortPaths(List<String> paths, Set<String> preferredElements) {
+        return sortPaths(paths, new PathElementComparator(preferredElements));
+    }
+
+    static List<String> sortPaths(List<String> paths, Comparator<Iterable<String>> comparator) {
         List<Iterable<String>> copy = paths.stream().map(p -> ImmutableList.copyOf(PathUtils.elements(p)))
                 .sorted(comparator).collect(Collectors.toList());
         Joiner j = Joiner.on('/');
