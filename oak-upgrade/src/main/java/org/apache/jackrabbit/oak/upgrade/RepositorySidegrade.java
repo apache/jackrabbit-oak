@@ -390,7 +390,7 @@ public class RepositorySidegrade {
 
             currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetBuilder));
         } else {
-            NodeState currentRoot = wrapNodeState(after, false, true);
+            NodeState currentRoot = wrapNodeState(after, tracePaths, true);
             NodeState baseRoot = wrapNodeState(before, false, true);
 
             SegmentNodeState state = PersistingDiff.applyDiffOnNodeState(targetFileStore, baseRoot, currentRoot, targetRoot);
