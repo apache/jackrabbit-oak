@@ -72,12 +72,12 @@ public class NodeStateEntrySorter {
     }
 
     public void setMaxMemoryInGB(long maxMemoryInGb) {
-        this.maxMemory = maxMemory * ONE_GB;
+        this.maxMemory = maxMemoryInGb * ONE_GB;
     }
 
     public void sort() throws IOException {
         long estimatedMemory = estimateAvailableMemory();
-        long memory = Math.max(estimatedMemory, maxMemory);
+        long memory = Math.min(estimatedMemory, maxMemory);
         log.info("Sorting with memory {} (estimated {})", humanReadableByteCount(memory), humanReadableByteCount(estimatedMemory));
         Stopwatch w = Stopwatch.createStarted();
 
