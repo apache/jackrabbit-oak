@@ -62,6 +62,13 @@ DocumentMK supports a number of backends, with a storage abstraction called `Doc
 * `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for testing purposes.
 * `RDBDocumentStore`: stores documents in a relational data base.
 
+Please note that the `RDBDocumentStore` requires a specific configuration of the database and that database defaults may not be the same on all operating systems:
+
+* The database needs to be created/configured to support all Unicode characters in text fields, and to collate by Unicode code point (in DB2: "collate using identity", in Postgres: "C").
+* For MySQL, the database parameter "max_allowed_packet" needs to be increased to support ~16M blobs.
+
+Please read Javadoc of `org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore` for further details. Improper configuration may lead to unexpected results and even prevent `RDBDocumentStore` from recovering properly after a crash. 
+
 The remaining part of the document will focus on the `MongoDocumentStore` to explain and illustrate concepts of the DocumentMK.
 
 ## <a name="content-model"></a> Content Model
