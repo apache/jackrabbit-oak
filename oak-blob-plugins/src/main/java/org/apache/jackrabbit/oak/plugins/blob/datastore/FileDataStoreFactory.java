@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.FileDataStore;
 import org.osgi.service.component.ComponentContext;
 
 import java.util.Map;
@@ -35,7 +36,11 @@ import java.util.Map;
 public class FileDataStoreFactory extends AbstractDataStoreFactory {
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
-        return FileDataStoreService.createFileDataStore(context, config, getDescription(), closer);
+        DataStore ds = FileDataStoreService.createFileDataStore(context, config, getDescription(), closer);
+        if (ds instanceof FileDataStore && null != config.get("path")) {
+            ((FileDataStore)ds).setPath((String)config.get("path"));
+        }
+        return ds;
     }
 
     @Override
