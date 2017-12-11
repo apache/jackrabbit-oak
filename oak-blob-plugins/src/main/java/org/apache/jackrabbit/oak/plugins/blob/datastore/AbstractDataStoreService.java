@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -112,6 +114,7 @@ public abstract class AbstractDataStoreService {
         String homeDir = lookup(context, PROP_HOME);
         if (config.containsKey(PATH) && !Strings.isNullOrEmpty((String) config.get(PATH))) {
             log.info("Initializing the DataStore with path [{}]", config.get(PATH));
+            homeDir = (String) config.get(PATH);
         }
         else if (homeDir != null) {
             log.info("Initializing the DataStore with homeDir [{}]", homeDir);
@@ -133,10 +136,24 @@ public abstract class AbstractDataStoreService {
             props.put(PROP_SPLIT_BLOBSTORE, context.getProperties().get(PROP_SPLIT_BLOBSTORE));
         }
 
-        closeables.add(context.getBundleContext().registerService(new String[]{
-                BlobStore.class.getName(),
-                GarbageCollectableBlobStore.class.getName()
-        }, dataStore, props));
+        BundleContext bundleContext = context.getBundleContext();
+        boolean alreadyRegistered = false;
+        try {
+            ServiceReference[] refs =bundleContext.getAllServiceReferences(BlobStore.class.getName(),
+                    String.format("(%s=%s)", Constants.SERVICE_PID, ds.getClass().getName()));
+            if (null != refs) {
+                alreadyRegistered = true;
+            }
+        }
+        catch (InvalidSyntaxException e) {
+            log.warn("Couldn't check for preexisting data store service references", e);
+        }
+        if (! alreadyRegistered) {
+            closeables.add(context.getBundleContext().registerService(new String[]{
+                    BlobStore.class.getName(),
+                    GarbageCollectableBlobStore.class.getName()
+            }, dataStore, props));
+        }
 
         closeables.add(registerMBeans(context.getBundleContext(), dataStore, stats));
 
