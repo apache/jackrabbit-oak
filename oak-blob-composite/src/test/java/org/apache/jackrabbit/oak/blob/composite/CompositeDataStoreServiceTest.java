@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.blob.composite;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.InMemoryDataStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -31,6 +32,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertNull;
@@ -49,6 +51,7 @@ public class CompositeDataStoreServiceTest {
     @Before
     public void setup() {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+//        context.registerService(DelegateHandler.class, new IntelligentDelegateHandler());
     }
 
     private DataStoreProvider createDelegateDataStore(final String role) {
@@ -79,13 +82,16 @@ public class CompositeDataStoreServiceTest {
         return dsp;
     }
 
-    private CompositeDataStoreService registerService(final String role) {
+    private CompositeDataStoreService registerService(final String role)
+            throws IOException{
         return registerService(role, "");
     }
 
-    private CompositeDataStoreService registerService(final String role, final String cfgString) {
+    private CompositeDataStoreService registerService(final String role, final String cfgString)
+            throws IOException {
         Map<String, Object> serviceConfig = Maps.newHashMap();
         serviceConfig.put(role, cfgString);
+        serviceConfig.put("path", folder.newFolder().getAbsolutePath());
         CompositeDataStoreService service = new CompositeDataStoreService();
         context.registerInjectActivateService(service, serviceConfig);
         return service;
@@ -103,7 +109,7 @@ public class CompositeDataStoreServiceTest {
 
 
     @Test
-    public void testCreateCompositeDataStoreService() {
+    public void testCreateCompositeDataStoreService() throws IOException {
         registerDataStoreProvider(DEFAULT_ROLE);
         registerService(DEFAULT_ROLE);
 
@@ -111,14 +117,14 @@ public class CompositeDataStoreServiceTest {
     }
 
     @Test
-    public void testCreateCompositeDataStoreServiceWithoutDataStoreProvider() {
+    public void testCreateCompositeDataStoreServiceWithoutDataStoreProvider() throws IOException {
         registerService(DEFAULT_ROLE);
 
         verifyServiceRegistrationState(context, false);
     }
 
     @Test
-    public void testCreateCompositeDataStoreServiceThenAddDataStoreProvider() {
+    public void testCreateCompositeDataStoreServiceThenAddDataStoreProvider() throws IOException {
         registerService(DEFAULT_ROLE);
         verifyServiceRegistrationState(context, false);
 
@@ -127,9 +133,10 @@ public class CompositeDataStoreServiceTest {
     }
 
     @Test
-    public void testCreateCompositeDataStoreServiceDeferredDataStoreCreationIsAdditive() {
+    public void testCreateCompositeDataStoreServiceDeferredDataStoreCreationIsAdditive() throws IOException {
         Map<String, Object> serviceConfig = Maps.newHashMap();
         serviceConfig.put(DEFAULT_ROLE, "");
+        serviceConfig.put("path", folder.newFolder().getAbsolutePath());
         serviceConfig.put("local2", "");
         CompositeDataStoreService service = new CompositeDataStoreService();
         context.registerInjectActivateService(service, serviceConfig);
@@ -156,7 +163,7 @@ public class CompositeDataStoreServiceTest {
     }
 
     @Test
-    public void testRemoveDataStoreProviderDeregistersService() {
+    public void testRemoveDataStoreProviderDeregistersService() throws IOException {
         DataStoreProvider dsp = registerDataStoreProvider(DEFAULT_ROLE);
         CompositeDataStoreService service = registerService(DEFAULT_ROLE);
 
@@ -167,7 +174,6 @@ public class CompositeDataStoreServiceTest {
         verifyServiceRegistrationState(context, false);
     }
 
-
     @Test
     public void testCreateDataStoreWithoutActiveDelegatesReturnsNull() {
         CompositeDataStoreService service = new CompositeDataStoreService();
@@ -177,5 +183,58 @@ public class CompositeDataStoreServiceTest {
         assertNull(ds);
 
         assertNull(context.getService(CompositeDataStore.class));
+    }
+
+    @Test
+    public void testDSIsInitializedIfServiceStartsFirst() throws IOException {
+        registerService(DEFAULT_ROLE);
+        assertNull(context.getService(CompositeDataStore.class));
+        assertNull(context.getService(BlobStore.class));
+
+        registerDataStoreProvider(DEFAULT_ROLE);
+        assertNotNull(context.getService(CompositeDataStore.class));
+        assertNotNull(context.getService(BlobStore.class));
+    }
+
+    @Test
+    public void testDSIsInitializedIfDelegatesStartFirst() throws IOException {
+        registerDataStoreProvider(DEFAULT_ROLE);
+        assertNull(context.getService(CompositeDataStore.class));
+        assertNull(context.getService(BlobStore.class));
+
+        registerService(DEFAULT_ROLE);
+        assertNotNull(context.getService(CompositeDataStore.class));
+        assertNotNull(context.getService(BlobStore.class));
+    }
+
+    @Test
+    public void testCreateServiceThenMultipleDelegatesHasCorrectNumberOfRegistrations() throws IOException {
+        Map<String, Object> serviceConfig = Maps.newHashMap();
+        serviceConfig.put(DEFAULT_ROLE, "");
+        serviceConfig.put("path", folder.newFolder().getAbsolutePath());
+        serviceConfig.put("local2", "");
+        CompositeDataStoreService service = new CompositeDataStoreService();
+        context.registerInjectActivateService(service, serviceConfig);
+
+        CompositeDataStore[] dataStores = context.getServices(CompositeDataStore.class, null);
+        assertEquals(0, dataStores.length);
+        BlobStore[] blobStores = context.getServices(BlobStore.class, null);
+        assertEquals(0, blobStores.length);
+
+        DataStoreProvider dsp1 = registerDataStoreProvider(DEFAULT_ROLE);
+        DataStoreProvider[] providers = context.getServices(DataStoreProvider.class, null);
+        assertEquals(1, providers.length);
+        dataStores = context.getServices(CompositeDataStore.class, null);
+        assertEquals(1, dataStores.length);
+        blobStores = context.getServices(BlobStore.class, null);
+        assertEquals(1, blobStores.length);
+
+        DataStoreProvider dsp2 = registerDataStoreProvider("local2");
+        providers = context.getServices(DataStoreProvider.class, null);
+        assertEquals(2, providers.length);
+        dataStores = context.getServices(CompositeDataStore.class, null);
+        assertEquals(1, dataStores.length);
+        blobStores = context.getServices(BlobStore.class, null);
+        assertEquals(1, blobStores.length);
     }
 }

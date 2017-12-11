@@ -38,6 +38,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
 import java.io.Closeable;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -63,16 +64,18 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
             referenceInterface = DataStoreProvider.class,
             target="(!(service.pid=org.apache.jackrabbit.oak.plugins.blob.datastore.CompositeDataStore))"
     )
-    private List<CompositeDataStoreDelegate> delegateDataStores = Lists.newArrayList();
+    private List<DelegateDataStore> delegateDataStores = Lists.newArrayList();
 
     private ComponentContext context;
     private Map<String, Object> config = Maps.newConcurrentMap();
 
-    private boolean isRegistered = false;
+    private boolean isServiceRegistered = false;
     private Closer closer = Closer.create();
 
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
+        log.info("Creating Composite Data Store");
+
         this.context = context;
         if (null == this.config) {
             this.config = config;
@@ -101,29 +104,36 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
             }
             dataStore = new CompositeDataStore(properties);
         }
-        for (CompositeDataStoreDelegate delegate : delegateDataStores) {
+        for (DelegateDataStore delegate : delegateDataStores) {
             dataStore.addDelegate(delegate);
         }
 
-        if (isRegistered) {
-            return;
+        if (! isServiceRegistered) {
+            log.info("Registering Composite Data Store");
+
+            BundleContext bundleContext = context.getBundleContext();
+
+            Dictionary<String, Object> props = new Hashtable<>();
+            props.put(Constants.SERVICE_PID, dataStore.getClass().getName());
+            props.put(DESCRIPTION, getDescription());
+
+            closer.register(asCloseable(bundleContext.registerService(
+                    new String[] {
+                            DataStore.class.getName(),
+                            CompositeDataStore.class.getName()
+                    },
+                    dataStore,
+                    props
+            )));
+            isServiceRegistered = true;
         }
 
-        BundleContext bundleContext = context.getBundleContext();
-
-        Dictionary<String, Object> props = new Hashtable<>();
-        props.put(Constants.SERVICE_PID, dataStore.getClass().getName());
-        props.put(DESCRIPTION, getDescription());
-
-        closer.register(asCloseable(bundleContext.registerService(
-                new String[] {
-                        DataStore.class.getName(),
-                        CompositeDataStore.class.getName()
-                },
-                dataStore,
-                props
-        )));
-        isRegistered = true;
+        try {
+            registerDataStore(context, config, dataStore, getStatisticsProvider(), getDescription(), closer);
+        }
+        catch (RepositoryException e) {
+            log.error("Unable to register CompositeDataStore as a data store", e);
+        }
     }
 
     protected void deactivate() throws DataStoreException {
@@ -137,7 +147,7 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
     }
 
     protected void addDelegateDataStore(final DataStoreProvider ds, final Map<String, Object> config) {
-        CompositeDataStoreDelegate delegate = CompositeDataStoreDelegate.builder(ds)
+        DelegateDataStore delegate = DelegateDataStore.builder(ds)
                 .withConfig(config)
                 .build();
         if (null != delegate) {
@@ -153,14 +163,14 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
     protected void removeDelegateDataStore(final DataStoreProvider ds) {
         dataStore.removeDelegate(ds);
 
-        delegateDataStores.removeIf((CompositeDataStoreDelegate delegate) -> delegate.getDataStore().getClass() == ds.getClass());
+        delegateDataStores.removeIf((DelegateDataStore delegate) -> delegate.getDataStore().getClass() == ds.getClass());
 
         if (context == null) {
             log.info("removeDelegateDataStore: context is null, delaying reconfiguration");
             return;
         }
 
-        if (isRegistered && delegateDataStores.isEmpty()) {
+        if (isServiceRegistered && delegateDataStores.isEmpty()) {
             unregisterCompositeDataStore();
         }
     }

@@ -1,8 +1,9 @@
-package org.apache.jackrabbit.oak.blob.composite;
+package org.apache.jackrabbit.oak.blob.composite.delegate;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.InMemoryDataStore;
+import org.apache.jackrabbit.oak.blob.composite.DelegateDataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,7 +15,7 @@ import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertNotNull;
 
-public class CompositeDataStoreDelegateTest {
+public class DelegateDataStoreTest {
     private DataStoreProvider ds;
     private String defaultRole = "local1";
     private Map<String, Object> defaultConfig = Maps.newConcurrentMap();
@@ -40,7 +41,7 @@ public class CompositeDataStoreDelegateTest {
         };
     }
 
-    void validate(CompositeDataStoreDelegate delegate,
+    void validate(DelegateDataStore delegate,
                   DataStoreProvider ds,
                   String role,
                   Map<String, ?> config) {
@@ -61,8 +62,8 @@ public class CompositeDataStoreDelegateTest {
 
     @Test
     public void testBuildCompositeDataStoreDelegate() {
-        CompositeDataStoreDelegate delegate =
-                CompositeDataStoreDelegate.builder(ds)
+        DelegateDataStore delegate =
+                DelegateDataStore.builder(ds)
                         .withConfig(defaultConfig)
                         .build();
 
@@ -71,8 +72,8 @@ public class CompositeDataStoreDelegateTest {
 
     @Test
     public void testBuildWithNullDataStoreProviderFails() {
-        CompositeDataStoreDelegate delegate =
-                CompositeDataStoreDelegate.builder(null)
+        DelegateDataStore delegate =
+                DelegateDataStore.builder(null)
                         .withConfig(defaultConfig)
                         .build();
         assertNull(delegate);
@@ -80,8 +81,8 @@ public class CompositeDataStoreDelegateTest {
 
     @Test
     public void testBuildWithoutConfig() {
-        CompositeDataStoreDelegate delegate =
-                CompositeDataStoreDelegate.builder(ds)
+        DelegateDataStore delegate =
+                DelegateDataStore.builder(ds)
                         .build();
         Map<String, Object> cfg = Maps.newHashMap();
         cfg.put(DataStoreProvider.ROLE, defaultRole);
@@ -90,8 +91,8 @@ public class CompositeDataStoreDelegateTest {
 
     @Test
     public void testBuildWithNullConfig() {
-        CompositeDataStoreDelegate delegate =
-                CompositeDataStoreDelegate.builder(ds)
+        DelegateDataStore delegate =
+                DelegateDataStore.builder(ds)
                         .withConfig(null)
                         .build();
 
@@ -101,8 +102,8 @@ public class CompositeDataStoreDelegateTest {
     @Test
     public void testBuildWithEmptyConfig() {
         Map<String, Object> cfg = Maps.newHashMap();
-        CompositeDataStoreDelegate delegate =
-                CompositeDataStoreDelegate.builder(ds)
+        DelegateDataStore delegate =
+                DelegateDataStore.builder(ds)
                         .withConfig(cfg)
                         .build();
 

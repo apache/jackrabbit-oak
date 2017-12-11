@@ -17,18 +17,18 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.blob.composite;
+package org.apache.jackrabbit.oak.blob.composite.delegate;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 
 import java.util.Map;
 
-public class CompositeDataStoreDelegate {
+public class DelegateDataStore {
     private final DataStoreProvider ds;
     private final Map<String, Object> config;
 
-    CompositeDataStoreDelegate(final DataStoreProvider ds, final Map<String, Object> config) {
+    DelegateDataStore(final DataStoreProvider ds, final Map<String, Object> config) {
         this.ds = ds;
         if (null != config) {
             this.config = config;
@@ -55,7 +55,7 @@ public class CompositeDataStoreDelegate {
         return new CompositeDataStoreDelegateBuilder(ds);
     }
 
-    static class CompositeDataStoreDelegateBuilder {
+    public static class CompositeDataStoreDelegateBuilder {
         DataStoreProvider ds = null;
         Map<String, Object> config = Maps.newConcurrentMap();
 
@@ -68,9 +68,9 @@ public class CompositeDataStoreDelegate {
             return this;
         }
 
-        public CompositeDataStoreDelegate build() {
+        public DelegateDataStore build() {
             if (null != ds) {
-                return new CompositeDataStoreDelegate(ds, config);
+                return new DelegateDataStore(ds, config);
             }
             return null;
         }
