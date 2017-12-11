@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -166,7 +165,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     public void testGetChild() throws Exception {
         Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
 
-        ImmutableTree t = (ImmutableTree) RootFactory.createReadOnlyRoot(root).getTree("/");
+        ImmutableTree t = (ImmutableTree) getRootProvider().createReadOnlyRoot(root).getTree("/");
         TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
         for (String name : PathUtils.elements(versionHistory.getPath())) {
             t = t.getChild(name);
