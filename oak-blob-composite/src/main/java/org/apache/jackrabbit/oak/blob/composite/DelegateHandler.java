@@ -17,22 +17,109 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.blob.composite.delegate;
+package org.apache.jackrabbit.oak.blob.composite;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.osgi.framework.Bundle;
+import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 
 import java.util.Iterator;
 
 public interface DelegateHandler {
-    void addDelegateDataStore(final DelegateDataStore ds);
-    void removeDelegateDataStoresForBundle(final Bundle bundle);
+    /**
+     * Add a {@link DelegateDataStore} to this handler.  This means the
+     * specified delegate will be considered a delegate by this delegate handler.
+     *
+     * @param dataStore A {@link DelegateDataStore} to be handled by this handler
+     */
+    void addDelegateDataStore(final DelegateDataStore dataStore);
+
+    /**
+     * Remove a {@link DelegateDataStore} from this handler.  This means the
+     * specified delegate will no longer be considered a delegate by this delegate
+     * handler.
+     *
+     * @param provider
+     * @return True if this action caused a {@link DataStoreProvider} to be removed,
+     * False if no matching {@link DataStoreProvider} was found.
+     */
+    boolean removeDelegateDataStore(final DataStoreProvider provider);
+
+    /**
+     * Determine whether this handler has at least one delegate.
+     *
+     * @return true if the handler has at least one delegate
+     */
     boolean hasDelegate();
-    DataStore selectWritableDelegate(final DataIdentifier identifier);
-    Iterator<DataStore> getDelegateIterator(final DataIdentifier identifier, final DelegateTraversalOptions options);
-    Iterator<DataStore> getDelegateIterator(final DataIdentifier identifier);
-    Iterator<DataStore> getDelegateIterator(final DelegateTraversalOptions options);
-    Iterator<DataStore> getDelegateIterator();
+
+    /**
+     * Gives a hint to this provider that the specified {@link DataIdentifier} is being
+     * managed by the specified {@link DataStore} delegate.  The handler can then keep
+     * record of these hints for use in filtering delegates by identifier.
+     *
+     * @param identifier A {@link DataIdentifier} being managed by a {@link DataStore}
+     * @param delegate The {@link DataStore} managing the {@link DataIdentifier}
+     */
+    void mapIdentifierToDelegate(final DataIdentifier identifier, final DataStore delegate);
+
+    /**
+     * Suggests to the provider to remove any hints pertaining to the specified
+     * {@link DataIdentifier}.  The handler is not obligated to actually remove the
+     * hint, as some implementations of storing hints (like Bloom filters) may not
+     * support delete operations.
+     *
+     * @param identifier A {@link DataIdentifier} for which mapping hints should
+     *                   be removed
+     */
+    void unmapIdentifierFromDelegates(final DataIdentifier identifier);
+
+    /**
+     * Get a data store iterator for all writable delegates managed by the
+     * {@link CompositeDataStore}.  They are returned in priority order based on the
+     * handler's prioritization strategy.
+     *
+     * @return Iterator to writable data stores
+     */
+    Iterator<DataStore> getWritableDelegatesIterator();
+
+    /**
+     * Get a data store iterator for all writable delegates managed by the
+     * {@link CompositeDataStore} that this handler believes contain a matching record
+     * for the provided identifier.  The iterator may contain no data stores if
+     * the handler believes the record doesn't exist in any writable delegate
+     * data stores.
+     *
+     * @param identifier A {@link DataIdentifier} for filtering the data stores
+     * @return Iterator to writable data stores
+     */
+    Iterator<DataStore> getWritableDelegatesIterator(final DataIdentifier identifier);
+
+    /**
+     * Get a data store iterator for all delegates managed by the
+     * {@link CompositeDataStore}.  They are returned in priority order based on the
+     * handler's prioritization strategy.
+     *
+     * @return Iterator to all data stores
+     */
+    Iterator<DataStore> getAllDelegatesIterator();
+
+    /**
+     * Get a data store iterator for all delegates managed by the
+     * {@link CompositeDataStore} that this handler believes contain a matching record
+     * for the provided identifier.  The iterator may contain no data stores if
+     * the handler believes the record doesn't exist in any delegate data stores.
+     *
+     * @param identifier A {@link DataIdentifier} for filtering the data stores
+     * @return Iterator to all data stores
+     */
+    Iterator<DataStore> getAllDelegatesIterator(final DataIdentifier identifier);
+
+    /**
+     * Returns the overall value for the minimum record length for all the managed
+     * delegates, based on whatever strategy is employed by the injected
+     * {@link DelegateMinRecordLengthSelector}.
+     *
+     * @return The value to use for the minimum record length
+     */
     int getMinRecordLength();
 }

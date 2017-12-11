@@ -17,42 +17,40 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.blob.composite.delegate;
+package org.apache.jackrabbit.oak.blob.composite;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.osgi.framework.Bundle;
+import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
 @Component
 public class IntelligentDelegateHandler implements DelegateHandler {
     private static Logger LOG = LoggerFactory.getLogger(IntelligentDelegateHandler.class);
 
-    private Map<String, DataStore> dataStoresByBundleName = Maps.newConcurrentMap();
-
+    private Map<DataStoreProvider, Set<DataIdentifier>> handledProviders = Maps.newConcurrentMap();
     private List<DataStore> nonFilteredWritableDataStores = Lists.newArrayList();
     private List<DataStore> nonFilteredReadOnlyDataStores = Lists.newArrayList();
 
-    @Reference
-    private DelegateMinRecordLengthSelector minRecordLengthSelector;
+    //@Reference
+    private DelegateMinRecordLengthSelector minRecordLengthSelector = new GuaranteedMinRecordLengthSelector();
 
     @Override
     public String toString() {
-        return String.format("Strategy: %s, data store bundles: %s, writable data stores: %s, readonly data stores: %s, rec len chooser: %s",
+        return String.format("Strategy: %s, writable data stores: %s, readonly data stores: %s, rec len chooser: %s",
                 this.getClass().getSimpleName(),
-                dataStoresByBundleName,
                 nonFilteredWritableDataStores,
                 nonFilteredReadOnlyDataStores,
                 minRecordLengthSelector.getClass().getSimpleName());
@@ -60,25 +58,29 @@ public class IntelligentDelegateHandler implements DelegateHandler {
 
     @Override
     public void addDelegateDataStore(final DelegateDataStore ds) {
-//        if (spec.isReadOnly()) {
-//            nonFilteredReadOnlyDataStores.add(ds);
-//        }
-//        else {
-//            nonFilteredWritableDataStores.add(ds);
-//        }
-//        dataStoresByBundleName.put(spec.getBundleName(), ds);
+        if (! handledProviders.containsKey(ds.getDataStore())) {
+            handledProviders.put(ds.getDataStore(), Sets.newConcurrentHashSet());
+            if (ds.isReadOnly()) {
+                nonFilteredReadOnlyDataStores.add(ds.getDataStore().getDataStore());
+            } else {
+                nonFilteredWritableDataStores.add(ds.getDataStore().getDataStore());
+            }
+        }
     }
 
     @Override
-    public void removeDelegateDataStoresForBundle(Bundle bundle) {
-        String bundleName = bundle.getSymbolicName();
-        if (dataStoresByBundleName.containsKey(bundleName)) {
-            DataStore toRemove = dataStoresByBundleName.get(bundleName);
+    public boolean removeDelegateDataStore(final DataStoreProvider provider) {
+        boolean wasProviderRemoved = false;
+        if (handledProviders.containsKey(provider)) {
             for (List<DataStore> l : Lists.newArrayList(nonFilteredWritableDataStores,
                     nonFilteredReadOnlyDataStores)) {
-                l.remove(toRemove);
+                wasProviderRemoved |= l.remove(provider.getDataStore());
+            }
+            if (wasProviderRemoved) {
+                handledProviders.remove(provider);
             }
         }
+        return wasProviderRemoved;
     }
 
     @Override
@@ -87,75 +89,72 @@ public class IntelligentDelegateHandler implements DelegateHandler {
     }
 
     @Override
-    public DataStore selectWritableDelegate(final DataIdentifier identifier) {
-        Iterator<DataStore> iter = getDelegateIterator(identifier, DelegateTraversalOptions.RW_ONLY);
-        DataStore firstWritableDelegate = null;
-        while (iter.hasNext()) {
-            DataStore writableDelegate = iter.next();
-            if (null == firstWritableDelegate) {
-                firstWritableDelegate = writableDelegate;
+    public void mapIdentifierToDelegate(final DataIdentifier identifier, final DataStore delegate) {
+        for (Map.Entry<DataStoreProvider, Set<DataIdentifier>> entry : handledProviders.entrySet()) {
+            if (entry.getKey().getDataStore().equals(delegate)) {
+                entry.getValue().add(identifier);
             }
-            try {
-                if (null != writableDelegate.getRecordIfStored(identifier)) {
-                    return writableDelegate;
+        }
+    }
+
+    @Override
+    public void unmapIdentifierFromDelegates(final DataIdentifier identifier) {
+        for (Set<DataIdentifier> idSet : handledProviders.values()) {
+            idSet.remove(identifier);
+        }
+    }
+
+    private boolean delegateProbablyHandlesIdentifier(final DataStore delegate, final DataIdentifier identifier) {
+        for (Map.Entry<DataStoreProvider, Set<DataIdentifier>> entry : handledProviders.entrySet()) {
+            if (entry.getKey().getDataStore().equals(delegate)
+                    && entry.getValue().contains(identifier)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public Iterator<DataStore> getWritableDelegatesIterator() {
+        return getIterator(null, true);
+    }
+
+    @Override
+    public Iterator<DataStore> getWritableDelegatesIterator(@Nullable final DataIdentifier identifier) {
+        return getIterator(identifier, true);
+    }
+
+    @Override
+    public Iterator<DataStore> getAllDelegatesIterator() {
+        return getIterator(null, false);
+    }
+
+    @Override
+    public Iterator<DataStore> getAllDelegatesIterator(final DataIdentifier identifier) {
+        return getIterator(identifier, false);
+    }
+
+    private Iterator<DataStore> getIterator(@Nullable final DataIdentifier identifier, final boolean writableOnly) {
+        if (null != identifier) {
+            List<DataStore> matchingDataStores = Lists.newArrayList();
+            for (DataStore ds : nonFilteredWritableDataStores) {
+                if (delegateProbablyHandlesIdentifier(ds, identifier)) {
+                    matchingDataStores.add(ds);
                 }
             }
-            catch (DataStoreException dse) {
-                LOG.warn("Unable to access delegate data store while selecting writable delegate", dse);
+            if (! writableOnly) {
+                for (DataStore ds : nonFilteredReadOnlyDataStores) {
+                    if (delegateProbablyHandlesIdentifier(ds, identifier)) {
+                        matchingDataStores.add(ds);
+                    }
+                }
             }
+            return matchingDataStores.iterator();
         }
-        if (null == firstWritableDelegate) {
-            LOG.error("No writable delegates configured - could not select a writable delegate");
-        }
-        return firstWritableDelegate;
-    }
 
-    @Override
-    public Iterator<DataStore> getDelegateIterator() {
-        return getIterator(Optional.empty(), Optional.empty());
-    }
-
-    @Override
-    public Iterator<DataStore> getDelegateIterator(final DataIdentifier identifier) {
-        return getIterator(Optional.of(identifier), Optional.empty());
-    }
-
-    @Override
-    public Iterator<DataStore> getDelegateIterator(final DelegateTraversalOptions options) {
-        return getIterator(Optional.empty(), Optional.of(options));
-    }
-
-    @Override
-    public Iterator<DataStore> getDelegateIterator(final DataIdentifier identifier, final DelegateTraversalOptions options) {
-        return getIterator(Optional.of(identifier), Optional.of(options));
-    }
-
-    private Iterator<DataStore> getIterator(final Optional<DataIdentifier> identifierOptional, final Optional<DelegateTraversalOptions> optionsOptional) {
-        // DataIdentifiers and DelegateTraversalOptions are used to limit the number of data stores we iterate.
-        // If these are not provided we return all iterators.
-
-        if (optionsOptional.isPresent()) {
-            DelegateTraversalOptions options = optionsOptional.get();
-            Iterator<DataStore> i;
-            if (DelegateTraversalOptions.RORW_OPTION.RO_ONLY == options.readWriteOption) {
-                i = nonFilteredReadOnlyDataStores.iterator();
-            }
-            else if (DelegateTraversalOptions.RORW_OPTION.RW_ONLY == options.readWriteOption) {
-                i = nonFilteredWritableDataStores.iterator();
-            }
-            else {
-                i = Iterators.concat(nonFilteredWritableDataStores.iterator(),
-                        nonFilteredReadOnlyDataStores.iterator());
-            }
-
-            return i;
-        }
-        else {
-            return Iterators.concat(
-                    nonFilteredWritableDataStores.iterator(),
-                    nonFilteredReadOnlyDataStores.iterator()
-            );
-        }
+        // If no identifier provided, return iterator to all applicable delegates
+        return writableOnly ? nonFilteredWritableDataStores.iterator() :
+                Iterators.concat(nonFilteredWritableDataStores.iterator(), nonFilteredReadOnlyDataStores.iterator());
     }
 
     @Override

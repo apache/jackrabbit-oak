@@ -1,13 +1,7 @@
-package org.apache.jackrabbit.oak.blob.composite.delegate;
+package org.apache.jackrabbit.oak.blob.composite;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.InMemoryDataStore;
-import org.apache.jackrabbit.oak.blob.composite.DelegateDataStore;
-import org.apache.jackrabbit.oak.blob.composite.DelegateHandler;
-import org.apache.jackrabbit.oak.blob.composite.DelegateMinRecordLengthSelector;
-import org.apache.jackrabbit.oak.blob.composite.GuaranteedMinRecordLengthSelector;
-import org.apache.jackrabbit.oak.blob.composite.IntelligentDelegateHandler;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,9 +22,23 @@ public class GuaranteedMinRecordLengthSelectorTest {
         minRecordLengthSelector = new GuaranteedMinRecordLengthSelector();
     }
 
+    private DelegateDataStore createDelegateDataStore(final String role, int minRecordLength) {
+        return createDelegateDataStore(role, minRecordLength, false);
+    }
+
+    private DelegateDataStore createDelegateDataStore(final String role, int minRecordLength, boolean readOnly) {
+        Map<String, Object> config = Maps.newHashMap();
+        config.put(DataStoreProvider.ROLE, role);
+        config.put(MRL_KEY, minRecordLength);
+        if (readOnly) {
+            config.put("readOnly", true);
+        }
+        return createDelegateDataStore(role, config);
+    }
+
     private DelegateDataStore createDelegateDataStore(final String role, final Map<String, Object> config) {
         return new DelegateDataStore(new DataStoreProvider() {
-            private InMemoryDataStore ds;
+            private InMemoryDataStore ds = new InMemoryDataStore(config);
             @Override
             public DataStore getDataStore() {
                 return ds;
@@ -46,26 +54,42 @@ public class GuaranteedMinRecordLengthSelectorTest {
     @Test
     public void testSingleDelegateReturnsDelegateMinRecLen() {
         String role = "role1";
-        long len = 4096;
-        Map<String, Object> config = Maps.newHashMap();
-        config.put(DataStoreProvider.ROLE, role);
-        config.put(MRL_KEY, len);
-        delegateHandler.addDelegateDataStore(createDelegateDataStore("role1", config));
+        int len = 4096;
+        delegateHandler.addDelegateDataStore(createDelegateDataStore(role, len));
         assertEquals(len, minRecordLengthSelector.getMinRecordLength(delegateHandler));
     }
 
     @Test
     public void testMultipleWritableDelegatesReturnsOverallMinRecLen() {
-
+        String role1 = "role1";
+        String role2 = "role2";
+        int len1 = 4096;
+        int len2 = 8192;
+        delegateHandler.addDelegateDataStore(createDelegateDataStore(role1, len1));
+        delegateHandler.addDelegateDataStore(createDelegateDataStore(role2, len2));
+        assertEquals(len1, minRecordLengthSelector.getMinRecordLength(delegateHandler));
     }
 
     @Test
     public void testGetMinRecLenIgnoresReadonlyDelegates() {
-
+        String role1 = "role1";
+        String role2 = "role2";
+        int len1 = 4096;
+        int len2 = 8192;
+        delegateHandler.addDelegateDataStore(createDelegateDataStore(role1, len1, true));
+        delegateHandler.addDelegateDataStore(createDelegateDataStore(role2, len2));
+        assertEquals(len2, minRecordLengthSelector.getMinRecordLength(delegateHandler));
     }
 
-    @Test
-    public void testNullDataStoreReturnsNPE() {
-
+    static class InMemoryDataStore extends org.apache.jackrabbit.core.data.InMemoryDataStore {
+        private static int defaultMinRecordLength = 1024*16;
+        private int minRecordLength = defaultMinRecordLength;
+        InMemoryDataStore(final Map<String, Object> config) {
+            Object o = config.get("minRecordLength");
+            if (null != o) {
+                minRecordLength = (int) o;
+            }
+            this.setMinRecordLength(minRecordLength);
+        }
     }
 }

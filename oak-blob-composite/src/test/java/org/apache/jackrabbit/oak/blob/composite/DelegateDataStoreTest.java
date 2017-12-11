@@ -1,16 +1,18 @@
-package org.apache.jackrabbit.oak.blob.composite.delegate;
+package org.apache.jackrabbit.oak.blob.composite;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.InMemoryDataStore;
-import org.apache.jackrabbit.oak.blob.composite.DelegateDataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertNotNull;
@@ -108,5 +110,75 @@ public class DelegateDataStoreTest {
                         .build();
 
         validate(delegate, ds, defaultRole, cfg);
+    }
+
+    @Test
+    public void testApplyCompositeDataStoreConfig() {
+        DelegateDataStore delegate = DelegateDataStore.builder(ds).withConfig(defaultConfig).build();
+        assertFalse(delegate.isReadOnly());
+
+        assertTrue(delegate.applyCompositeDataStoreConfig("readOnly:true,p1:v1"));
+
+        assertTrue(delegate.isReadOnly());
+        assertEquals("v1", delegate.getConfig().get("p1"));
+    }
+
+    @Test
+    public void testApplyCompositeDataStoreConfigNullString() {
+        DelegateDataStore delegate = DelegateDataStore.builder(ds).withConfig(defaultConfig).build();
+        assertFalse(delegate.applyCompositeDataStoreConfig(null));
+    }
+
+    @Test
+    public void testApplyCompositeDataStoreConfigEmptyString() {
+        DelegateDataStore delegate = DelegateDataStore.builder(ds).withConfig(defaultConfig).build();
+        assertFalse(delegate.applyCompositeDataStoreConfig(""));
+    }
+
+    @Test
+    public void testApplyCompositeDataStoreConfigInvalidFormat() {
+        DelegateDataStore delegate = DelegateDataStore.builder(ds).withConfig(defaultConfig).build();
+        assertFalse(delegate.isReadOnly());
+
+        assertFalse(delegate.applyCompositeDataStoreConfig("readOnly=true"));
+        assertFalse(delegate.isReadOnly());
+
+        assertFalse(delegate.applyCompositeDataStoreConfig("invalid"));
+        assertFalse(delegate.isReadOnly());
+    }
+
+    @Test
+    public void testIsReadOnly() {
+        Map<String, Object> cfg = Maps.newHashMap();
+        DelegateDataStore delegate;
+
+        // Test forms of true
+        List<String> formsOfTrue = Lists.newArrayList();
+        formsOfTrue.add("true");
+        formsOfTrue.add("True");
+        formsOfTrue.add("TRUE");
+        for (String ro : formsOfTrue) {
+            cfg.put("readOnly", ro);
+            delegate = DelegateDataStore.builder(ds)
+                    .build();
+            assertFalse(delegate.isReadOnly());
+            assertTrue(delegate.applyCompositeDataStoreConfig(String.format("readOnly:%s", ro)));
+            assertTrue(delegate.isReadOnly());
+        }
+
+        // Test forms of false
+        List<String> formsOfFalse = Lists.newArrayList();
+        formsOfFalse.add("false");
+        formsOfFalse.add("False");
+        formsOfFalse.add("FALSE");
+        formsOfFalse.add("something else");
+        for (String ro : formsOfFalse) {
+            cfg.put("readOnly", ro);
+            delegate = DelegateDataStore.builder(ds)
+                    .build();
+            assertFalse(delegate.isReadOnly());
+            assertTrue(delegate.applyCompositeDataStoreConfig(String.format("readOnly:%s", ro)));
+            assertFalse(delegate.isReadOnly());
+        }
     }
 }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.blob.composite.delegate;
+package org.apache.jackrabbit.oak.blob.composite;
 
 public interface DelegateMinRecordLengthSelector {
     int getMinRecordLength(DelegateHandler delegateHandler);

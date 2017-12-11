@@ -17,14 +17,17 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.blob.composite.delegate;
+package org.apache.jackrabbit.oak.blob.composite;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 
 import java.util.Map;
 
 public class DelegateDataStore {
+    private static final String READ_ONLY = "readOnly";
+
     private final DataStoreProvider ds;
     private final Map<String, Object> config;
 
@@ -51,11 +54,46 @@ public class DelegateDataStore {
         return config;
     }
 
+    public boolean applyCompositeDataStoreConfig(final String cfg) {
+        if (Strings.isNullOrEmpty(cfg)) {
+            return false;
+        }
+        boolean cfgChanged = false;
+        for (String pair : cfg.split(",")) {
+            String[] kv = pair.split(":");
+            if (2 == kv.length) {
+                cfgChanged = true;
+                config.put(kv[0].trim(), kv[1].trim().toLowerCase());
+            }
+        }
+        return cfgChanged;
+    }
+
+    public boolean isReadOnly() {
+        Object o = config.get(READ_ONLY);
+        if (null == o) {
+            return false;
+        }
+        if (o instanceof Boolean) {
+            return (Boolean) o;
+        }
+        if (o instanceof String) {
+            return Boolean.valueOf((String) o);
+        }
+        if (o instanceof Integer) {
+            return 0 != (int) o;
+        }
+        if (o instanceof Long) {
+            return 0L != (long) o;
+        }
+        return false;
+    }
+
     public static CompositeDataStoreDelegateBuilder builder(final DataStoreProvider ds) {
         return new CompositeDataStoreDelegateBuilder(ds);
     }
 
-    public static class CompositeDataStoreDelegateBuilder {
+    static class CompositeDataStoreDelegateBuilder {
         DataStoreProvider ds = null;
         Map<String, Object> config = Maps.newConcurrentMap();
 
@@ -64,7 +102,7 @@ public class DelegateDataStore {
         }
 
         public CompositeDataStoreDelegateBuilder withConfig(final Map<String, Object> config) {
-            this.config = config;
+            this.config = Maps.newHashMap(config);
             return this;
         }
 

@@ -23,7 +23,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.InMemoryDataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.junit.Test;
 
@@ -36,70 +35,26 @@ import java.util.Set;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
+import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.createDataStoreProvider;
+import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.createDelegate;
+import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.createDelegates;
+import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.createEmptyCompositeDataStore;
 import static org.junit.Assert.assertNotNull;
 
-public class CompositeDataStoreTest {
-    private DataStoreProvider createDataStoreProvider(final String role) {
-        return new DataStoreProvider() {
-            DataStore ds = new InMemoryDataStore();
+// Test the delegate management capabilities of the CompositeDataStore.
+public class CompositeDataStoreDelegateManagementTest {
 
-            @Override
-            public DataStore getDataStore() {
-                return ds;
-            }
-
-            @Override
-            public String getRole() {
-                return role;
-            }
-        };
-    }
-
-    private List<DelegateDataStore> createDelegates(List<String> roles) {
-        List<DelegateDataStore> delegates = Lists.newArrayList();
-        for (String role : roles) {
-            delegates.add(createDelegate(role));
-        }
-        return delegates;
-    }
-
-    private DelegateDataStore createDelegate(String role) {
-        return createDelegate(
-                createDataStoreProvider(role),
-                role,
-                Maps.newHashMap()
-        );
-    }
-
-    private DelegateDataStore createDelegate(DataStoreProvider dsp, String role, Map<String, Object> cfg) {
-        return DelegateDataStore.builder(dsp)
-                .withConfig(cfg)
-                .build();
-    }
-
-    private CompositeDataStore createCompositeDataStore(List<String> roles) {
-        Map<String, Object> config = Maps.newHashMap();
-
-        for (String role : roles) {
-            config.put(role, "");
-        }
-
-        Properties properties = new Properties();
-        properties.putAll(config);
-        return new CompositeDataStore(properties);
-    }
-
-    private Set<DataStoreProvider> delegatesToDataStores(List<DelegateDataStore> delegates) {
-        Set<DataStoreProvider> result = Sets.newHashSet();
+    private Set<DataStore> delegatesToDataStores(List<DelegateDataStore> delegates) {
+        Set<DataStore> result = Sets.newHashSet();
         for (DelegateDataStore delegate : delegates) {
-            result.add(delegate.getDataStore());
+            result.add(delegate.getDataStore().getDataStore());
         }
         return result;
     }
 
     private void testAddDelegates(List<String> roles) {
         List<DelegateDataStore> delegates = createDelegates(roles);
-        CompositeDataStore cds = createCompositeDataStore(roles);
+        CompositeDataStore cds = createEmptyCompositeDataStore(roles);
 
         for (DelegateDataStore delegate : delegates) {
             assertTrue(cds.addDelegate(delegate));
@@ -109,11 +64,11 @@ public class CompositeDataStoreTest {
     }
 
     private void verifyDelegatesInCompositeDataStore(List<DelegateDataStore> delegates, CompositeDataStore cds) {
-        Set<DataStoreProvider> expectedDataStores = delegatesToDataStores(delegates);
-        Iterator<DataStoreProvider> iter = cds.getDelegateIterator();
+        Set<DataStore> expectedDataStores = delegatesToDataStores(delegates);
+        Iterator<DataStore> iter = cds.delegateHandler.getAllDelegatesIterator();
         int delegateCount = 0;
         while (iter.hasNext()) {
-            DataStoreProvider ds = iter.next();
+            DataStore ds = iter.next();
             assertNotNull(ds);
             assertTrue(expectedDataStores.contains(ds));
             delegateCount++;
@@ -166,7 +121,7 @@ public class CompositeDataStoreTest {
         for (DelegateDataStore delegate : delegates) {
             assertFalse(cds.addDelegate(delegate));
 
-            Iterator<DataStoreProvider> iter = cds.getDelegateIterator();
+            Iterator<DataStore> iter = cds.delegateHandler.getAllDelegatesIterator();
             assertFalse(iter.hasNext());
         }
     }
@@ -186,7 +141,7 @@ public class CompositeDataStoreTest {
         CompositeDataStore cds = new CompositeDataStore(properties);
         assertFalse(cds.addDelegate(delegate));
 
-        Iterator<DataStoreProvider> iter = cds.getDelegateIterator();
+        Iterator<DataStore> iter = cds.delegateHandler.getAllDelegatesIterator();
         assertFalse(iter.hasNext());
     }
 
@@ -194,14 +149,14 @@ public class CompositeDataStoreTest {
     public void testRemoveDelegate() {
         List<String> roles = Lists.newArrayList("local1");
         DelegateDataStore delegate = createDelegate(roles.get(0));
-        CompositeDataStore cds = createCompositeDataStore(roles);
+        CompositeDataStore cds = createEmptyCompositeDataStore(roles);
         assertTrue(cds.addDelegate(delegate));
 
         verifyDelegatesInCompositeDataStore(Lists.newArrayList(delegate), cds);
 
         assertTrue(cds.removeDelegate(delegate.getDataStore()));
 
-        Iterator<DataStoreProvider> iter = cds.getDelegateIterator();
+        Iterator<DataStore> iter = cds.delegateHandler.getAllDelegatesIterator();
         assertFalse(iter.hasNext());
     }
 
@@ -209,7 +164,7 @@ public class CompositeDataStoreTest {
     public void testRemoveOneOfManyDelegates() {
         List<String> roles = Lists.newArrayList("local1", "local2", "remote1");
         List<DelegateDataStore> delegates = createDelegates(roles);
-        CompositeDataStore cds = createCompositeDataStore(roles);
+        CompositeDataStore cds = createEmptyCompositeDataStore(roles);
         for (DelegateDataStore delegate : delegates) {
             assertTrue(cds.addDelegate(delegate));
         }
@@ -219,15 +174,15 @@ public class CompositeDataStoreTest {
         assertTrue(cds.removeDelegate(delegates.get(1).getDataStore()));
         delegates.remove(1);
 
-        Set<DataStoreProvider> dsps = delegatesToDataStores(delegates);
+        Set<DataStore> dsps = delegatesToDataStores(delegates);
 
-        Iterator<DataStoreProvider> iter = cds.getDelegateIterator();
+        Iterator<DataStore> iter = cds.delegateHandler.getAllDelegatesIterator();
         assertTrue(iter.hasNext());
         int delegateCount = 0;
         while (iter.hasNext()) {
             delegateCount++;
-            DataStoreProvider dsp = iter.next();
-            assertTrue(dsps.contains(dsp));
+            DataStore ds = iter.next();
+            assertTrue(dsps.contains(ds));
         }
         assertEquals(dsps.size(), delegateCount);
     }
@@ -236,7 +191,7 @@ public class CompositeDataStoreTest {
     public void testRemoveAllDelegates() {
         List<String> roles = Lists.newArrayList("local1", "local2", "remote1");
         List<DelegateDataStore> delegates = createDelegates(roles);
-        CompositeDataStore cds = createCompositeDataStore(roles);
+        CompositeDataStore cds = createEmptyCompositeDataStore(roles);
         for (DelegateDataStore delegate : delegates) {
             assertTrue(cds.addDelegate(delegate));
         }
@@ -247,7 +202,7 @@ public class CompositeDataStoreTest {
             assertTrue(cds.removeDelegate(delegate.getDataStore()));
         }
 
-        Iterator<DataStoreProvider> iter = cds.getDelegateIterator();
+        Iterator<DataStore> iter = cds.delegateHandler.getAllDelegatesIterator();
         assertFalse(iter.hasNext());
     }
 
@@ -255,7 +210,7 @@ public class CompositeDataStoreTest {
     public void testRemoveNonMatchingDelegate() {
         List<String> roles = Lists.newArrayList("local1");
         DelegateDataStore delegate = createDelegate(roles.get(0));
-        CompositeDataStore cds = createCompositeDataStore(roles);
+        CompositeDataStore cds = createEmptyCompositeDataStore(roles);
         assertTrue(cds.addDelegate(delegate));
 
         verifyDelegatesInCompositeDataStore(Lists.newArrayList(delegate), cds);
@@ -263,7 +218,7 @@ public class CompositeDataStoreTest {
         DataStoreProvider otherDsp = createDataStoreProvider("local1");
         assertFalse(cds.removeDelegate(otherDsp));
 
-        Iterator<DataStoreProvider> iter = cds.getDelegateIterator();
+        Iterator<DataStore> iter = cds.delegateHandler.getAllDelegatesIterator();
         assertTrue(iter.hasNext());
     }
 

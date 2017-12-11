@@ -17,17 +17,20 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.blob.composite.delegate;
+package org.apache.jackrabbit.oak.blob.composite;
 
+import org.apache.felix.scr.annotations.Component;
 import org.apache.jackrabbit.core.data.DataStore;
 
+import javax.annotation.Nonnull;
 import java.util.Iterator;
 
+@Component
 public class GuaranteedMinRecordLengthSelector implements DelegateMinRecordLengthSelector {
     @Override
-    public int getMinRecordLength(DelegateHandler delegateHandler) {
+    public int getMinRecordLength(@Nonnull DelegateHandler delegateHandler) {
         int minRecordLength = Integer.MAX_VALUE;
-        Iterator<DataStore> i = delegateHandler.getDelegateIterator(DelegateTraversalOptions.RW_ONLY);
+        Iterator<DataStore> i = delegateHandler.getWritableDelegatesIterator();
         while (i.hasNext()) {
             DataStore ds = i.next();
             minRecordLength = Math.min(minRecordLength, ds.getMinRecordLength());
