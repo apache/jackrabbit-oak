@@ -204,11 +204,8 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.identifier</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.aggregate</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.counter</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.fulltext</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.nodetype</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.property</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.property.jmx</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.reference</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.lock</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.memory</filter>
