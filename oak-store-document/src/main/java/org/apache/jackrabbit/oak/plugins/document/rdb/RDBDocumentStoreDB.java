@@ -564,6 +564,7 @@ public enum RDBDocumentStoreDB {
         } else if (level == 2) {
             String[] statements = new String[] { "alter table " + tableName + " add SDTYPE " + smallint,
                     "alter table " + tableName + " add SDMAXREVTIME " + bigint,
+                    "create index " + tableName + "_VSN on " + tableName + " (VERSION)",
                     "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)",
                     "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)", };
             return Arrays.asList(statements);
