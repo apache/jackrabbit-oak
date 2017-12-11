@@ -302,7 +302,7 @@ public class ClusterNodeInfo {
      * OAK-2739 / OAK-3397 : once a lease check turns out negative, this flag
      * is set to prevent any further checks to succeed. Also, only the first
      * one to change this flag will take the appropriate action that results
-     * from a failed leaseCheck (which is currently to stop oak-core bundle)
+     * from a failed leaseCheck (which is currently to stop oak-store-document bundle)
      */
     private boolean leaseCheckFailed = false;
 
@@ -333,7 +333,10 @@ public class ClusterNodeInfo {
      */
     private boolean newEntry;
 
-    /** OAK-3397 / OAK-3400 : the LeaseFailureHandler is the one that actually stops the oak-core bundle (or does something else if necessary) **/
+    /**
+     * OAK-3397 / OAK-3400 : the LeaseFailureHandler is the one that actually
+     * stops the oak-store-document bundle (or does something else if necessary)
+     */
     private LeaseFailureHandler leaseFailureHandler;
 
     private ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, ClusterNodeState state,
@@ -733,7 +736,7 @@ public class ClusterNodeInfo {
                 ", lease check end time (leaseEndTime-leaseFailureMargin): "+(leaseEndTime - leaseFailureMargin)+
                 ", now: "+now+
                 ", remaining: "+((leaseEndTime - leaseFailureMargin) - now)+
-                ") Need to stop oak-core/DocumentNodeStoreService.";
+                ") Need to stop oak-store-document/DocumentNodeStoreService.";
         LOG.error(errorMsg);
 
         handleLeaseFailure(errorMsg);
@@ -741,7 +744,7 @@ public class ClusterNodeInfo {
 
     private void handleLeaseFailure(final String errorMsg) {
         // OAK-3397 : unlike previously, when the lease check fails we should not
-        // do a hard System exit here but rather stop the oak-core bundle
+        // do a hard System exit here but rather stop the oak-store-document bundle
         // (or if that fails just deactivate DocumentNodeStore) - with the
         // goals to prevent this instance to continue to operate
         // give that a lease failure is a strong indicator of a faulty

@@ -24,7 +24,7 @@ package org.apache.jackrabbit.oak.plugins.document;
  * When ClusterNodeInfo does not have such a LeaseFailureHandler, 
  * the only thing it does is fail every subsequent access with
  * an exception - but it doesn't do fancy things like stopping
- * the oak-core bundle etc. Such an operation must be provided
+ * the oak-store-document bundle etc. Such an operation must be provided
  * in a LeaseFailureHandler.
  */
 public interface LeaseFailureHandler {
@@ -34,7 +34,7 @@ public interface LeaseFailureHandler {
      * failure and has started preventing any further access
      * to the DocumentStore by throwing exceptions - what's
      * now left is any further actions that should be taken
-     * such as eg stopping the oak-core bundle. This part
+     * such as eg stopping the oak-store-document bundle. This part
      * however is optional from the ClusterNodeInfo's pov
      * and must be done by here in this LeaseFailureHandler.
      */
