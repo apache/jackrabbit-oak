@@ -22,6 +22,8 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -65,7 +67,7 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
 
     @Nonnull
     PrincipalProvider createPrincipalProvider() {
-        Set<String> autoMembership = syncConfig.user().getAutoMembership();
+        Set<String> autoMembership = ImmutableSet.copyOf(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()));
         return new ExternalGroupPrincipalProvider(root, getSecurityProvider().getConfiguration(UserConfiguration.class),
                 NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), autoMembership.toArray(new String[autoMembership.size()])));
     }

@@ -96,8 +96,11 @@ public class BulkTransferBenchmark extends BenchmarkBase {
     private void test(String name, int nodeCount, boolean useSSL) throws Exception {
         createNodes(nodeCount);
 
-        try (StandbyServerSync serverSync = new StandbyServerSync(PORT, primaryStore, 1024 * 1024, useSSL);
-             StandbyClientSync clientSync = new StandbyClientSync(HOST, PORT, standbyStore, useSSL, TIMEOUT, false)) {
+        try (
+            TemporaryFolder spoolFolder = new TemporaryFolder("spool-");
+            StandbyServerSync serverSync = new StandbyServerSync(PORT, primaryStore, 1024 * 1024, useSSL);
+            StandbyClientSync clientSync = new StandbyClientSync(HOST, PORT, standbyStore, useSSL, TIMEOUT, false, spoolFolder.toFile())
+        ) {
             serverSync.start();
 
             MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();

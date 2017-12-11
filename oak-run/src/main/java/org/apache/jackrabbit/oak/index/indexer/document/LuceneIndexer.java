@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -76,6 +77,16 @@ public class LuceneIndexer implements NodeStateIndexer {
             writeToIndex(doc, entry.getPath());
             progressReporter.indexUpdate(definition.getIndexPath());
         }
+    }
+
+    @Override
+    public boolean indexesRelativeNodes() {
+        return definition.indexesRelativeNodes();
+    }
+
+    @Override
+    public Set<String> getRelativeIndexedNodeNames() {
+        return definition.getRelativeNodeNames();
     }
 
     @Override

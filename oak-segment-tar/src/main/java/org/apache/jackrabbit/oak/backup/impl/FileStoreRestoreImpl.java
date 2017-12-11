@@ -58,7 +58,9 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
         ReadOnlyFileStore restore = fileStoreBuilder(source).buildReadOnly();
         Stopwatch watch = Stopwatch.createStarted();
 
-        FileStore store = fileStoreBuilder(destination).build();
+        FileStore store = fileStoreBuilder(destination)
+            .withStrictVersionCheck(true)
+            .build();
         SegmentNodeState current = store.getHead();
 
         try {

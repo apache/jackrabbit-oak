@@ -58,7 +58,9 @@ public class FileStoreBackupImpl implements FileStoreBackup {
         Stopwatch watch = Stopwatch.createStarted();
         SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions().setOffline();
 
-        FileStoreBuilder builder = fileStoreBuilder(destination).withDefaultMemoryMapping();
+        FileStoreBuilder builder = fileStoreBuilder(destination)
+            .withStrictVersionCheck(true)
+            .withDefaultMemoryMapping();
 
         if (USE_FAKE_BLOBSTORE) {
             builder.withBlobStore(new BasicReadOnlyBlobStore());
@@ -105,6 +107,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
         backup = fileStoreBuilder(destination)
                 .withDefaultMemoryMapping()
                 .withGCOptions(gcOptions)
+                .withStrictVersionCheck(true)
                 .build();
 
         try {

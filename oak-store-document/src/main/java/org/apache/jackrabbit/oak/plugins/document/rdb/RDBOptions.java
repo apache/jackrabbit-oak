@@ -25,9 +25,9 @@ public class RDBOptions {
 
     private boolean dropTablesOnClose = false;
     private String tablePrefix = "";
-    private int initialSchema = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.INITIALSCHEMA", 1);
+    private int initialSchema = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.INITIALSCHEMA", 2);
     private int upgradeToSchema = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.UPGRADETOSCHEMA",
-            1);
+            2);
 
     public RDBOptions() {
     }

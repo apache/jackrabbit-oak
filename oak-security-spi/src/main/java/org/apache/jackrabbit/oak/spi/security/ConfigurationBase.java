@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+
 /**
  * Abstract base implementation for the various security configurations.
  */
@@ -26,6 +29,10 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
     private SecurityProvider securityProvider;
 
     private ConfigurationParameters config = ConfigurationParameters.EMPTY;
+
+    private RootProvider rootProvider;
+
+    private TreeProvider treeProvider;
 
     /**
      * osgi constructor
@@ -55,6 +62,30 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
 
     public void setParameters(@Nonnull ConfigurationParameters config) {
         this.config = config;
+    }
+
+    public void setRootProvider(@Nonnull RootProvider rootProvider) {
+        this.rootProvider = rootProvider;
+    }
+
+    @Nonnull
+    public RootProvider getRootProvider() {
+        if (rootProvider == null) {
+            throw new IllegalStateException("RootProvider missing.");
+        }
+        return rootProvider;
+    }
+
+    public void setTreeProvider(@Nonnull TreeProvider treeProvider) {
+        this.treeProvider = treeProvider;
+    }
+
+    @Nonnull
+    public TreeProvider getTreeProvider() {
+        if (treeProvider == null) {
+            throw new IllegalStateException("TreeProvider missing.");
+        }
+        return treeProvider;
     }
 
     //----------------------------------------------< SecurityConfiguration >---

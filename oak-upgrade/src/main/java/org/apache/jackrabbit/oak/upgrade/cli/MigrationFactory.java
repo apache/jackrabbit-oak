@@ -86,12 +86,6 @@ public class MigrationFactory {
         if (options.getExcludePaths() != null) {
             upgrade.setExcludes(options.getExcludePaths());
         }
-        if (options.getFragmentPaths() != null) {
-            upgrade.setFragmentPaths(options.getFragmentPaths());
-        }
-        if (options.getExcludeFragments() != null) {
-            upgrade.setExcludeFragments(options.getExcludeFragments());
-        }
         if (options.getMergePaths() != null) {
             upgrade.setMerges(options.getMergePaths());
         }
@@ -114,17 +108,10 @@ public class MigrationFactory {
         if (options.getExcludePaths() != null) {
             sidegrade.setExcludes(options.getExcludePaths());
         }
-        if (options.getExcludeFragments() != null) {
-            sidegrade.setExcludeFragments(options.getExcludeFragments());
-        }
-        if (options.getFragmentPaths() != null) {
-            sidegrade.setFragmentPaths(options.getFragmentPaths());
-        }
         if (options.getMergePaths() != null) {
             sidegrade.setMerges(options.getMergePaths());
         }
         sidegrade.setFilterLongNames(stores.getSrcType().isSupportLongNames() && !stores.getDstType().isSupportLongNames());
-        sidegrade.setIncludeIndex(options.isIncludeIndex());
         sidegrade.setVerify(options.isVerify());
         sidegrade.setOnlyVerify(options.isOnlyVerify());
         sidegrade.setSkipCheckpoints(options.isSkipCheckpoints());

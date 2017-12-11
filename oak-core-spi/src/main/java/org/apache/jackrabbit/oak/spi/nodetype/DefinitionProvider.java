@@ -24,10 +24,12 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * DefinitionProvider... TODO
  */
+@ProviderType
 public interface DefinitionProvider {
 
     @Nonnull

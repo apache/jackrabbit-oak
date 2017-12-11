@@ -22,9 +22,12 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * TODO document
  */
+@ProviderType
 public interface NameMapper {
 
     /**

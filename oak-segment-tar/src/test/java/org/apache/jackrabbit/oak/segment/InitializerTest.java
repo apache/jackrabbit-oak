@@ -26,12 +26,13 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -46,13 +47,13 @@ public class InitializerTest {
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);
 
-        SecurityProviderImpl provider = new SecurityProviderImpl(
+        SecurityProvider provider = new SecurityProviderBuilder().with(
                 ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",
                                 "usersPath", "/home/users",
                                 "groupsPath", "/home/groups",
-                                "defaultDepth", "1")))));
+                                "defaultDepth", "1"))))).build();
         WorkspaceInitializer workspaceInitializer = provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer();
 
         if (workspaceInitializer instanceof QueryIndexProviderAware) {

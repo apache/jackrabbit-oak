@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.run;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -34,6 +33,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -80,7 +80,7 @@ public class UnlockUpgradeCommandTest {
 
     private void resetFormatVersion(FormatVersion v) {
         MongoConnection c = connectionFactory.getConnection();
-        DocumentStore s = new MongoDocumentStore(c.getDB(), new DocumentMK.Builder());
+        DocumentStore s = new MongoDocumentStore(c.getDB(), newMongoDocumentNodeStoreBuilder());
         s.remove(Collection.SETTINGS, "version");
         assertTrue(v.writeTo(s));
         s.dispose();

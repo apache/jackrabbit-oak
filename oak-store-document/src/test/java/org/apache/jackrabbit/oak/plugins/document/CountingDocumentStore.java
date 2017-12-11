@@ -162,14 +162,6 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
     }
 
     @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        getStats(collection).numCreateOrUpdateCalls++;
-        delegate.update(collection, keys, updateOp);
-    }
-
-    @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
                                                  UpdateOp update) {
         getStats(collection).numCreateOrUpdateCalls++;
@@ -230,6 +222,12 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
     @Override
     public Map<String, String> getMetadata() {
         return delegate.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        return delegate.getStats();
     }
 
     @Override

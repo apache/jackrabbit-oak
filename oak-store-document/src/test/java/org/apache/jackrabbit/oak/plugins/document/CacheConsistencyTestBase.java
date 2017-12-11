@@ -108,29 +108,6 @@ public abstract class CacheConsistencyTestBase {
             setTemporaryUpdateException(null);
         }
 
-        // update
-        try {
-            // make sure cache is populated
-            olddoc = ds.find(Collection.NODES, id1);
-
-            String random = UUID.randomUUID().toString();
-            setTemporaryUpdateException(random);
-            try {
-                up1 = new UpdateOp(id1, false);
-                up1.set("_test", random);
-                ds.update(Collection.NODES, Collections.singletonList(id1), up1);
-                fail("should have failed with DocumentStoreException");
-            } catch (DocumentStoreException ex) {
-                assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
-                // make sure cache was invalidated
-                NodeDocument newdoc = ds.find(Collection.NODES, id1, 1000);
-                assertNotNull(newdoc);
-                assertEquals(random, newdoc.get("_test"));
-            }
-        } finally {
-            setTemporaryUpdateException(null);
-        }
-
         // createOrUpdate
         try {
             // make sure cache is populated

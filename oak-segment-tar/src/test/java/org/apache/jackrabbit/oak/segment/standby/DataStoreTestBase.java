@@ -25,9 +25,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.commons.junit.TemporaryPort;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -53,6 +52,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +62,9 @@ public abstract class DataStoreTestBase extends TestBase {
     private static final Logger logger = LoggerFactory.getLogger(DataStoreTestBase.class);
 
     private static final long GB = 1024 * 1024 * 1024;
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Rule
     public TemporaryPort serverPort = new TemporaryPort();
@@ -125,7 +128,7 @@ public abstract class DataStoreTestBase extends TestBase {
     }
 
     @Before
-    public void before() {
+    public void before() throws Exception {
         logger.info("Test begin: {}", testName.getMethodName());
     }
 
@@ -143,10 +146,12 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
 
+        File spoolFolder = folder.newFolder();
+
         // run 1: unsuccessful
         try (
             StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
-            StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 4_000)
+            StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, 4_000, false, spoolFolder)
         ) {
             serverSync.start();
             // no persisted head on primary
@@ -159,7 +164,7 @@ public abstract class DataStoreTestBase extends TestBase {
         // run 2: successful
         try (
             StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
-            StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 4_000)
+            StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, 4_000, false, spoolFolder)
         ) {
             serverSync.start();
             // this time persisted head will be available on primary
@@ -196,7 +201,7 @@ public abstract class DataStoreTestBase extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize);
         try (
             StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
-            StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort())
+            StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();
             primary.flush();
@@ -227,8 +232,6 @@ public abstract class DataStoreTestBase extends TestBase {
      */
     @Test
     public void testSyncBigBlob() throws Exception {
-        assumeFalse(CIHelper.windows());
-        
         final long blobSize = GB;
         final int seed = 13;
 
@@ -240,7 +243,7 @@ public abstract class DataStoreTestBase extends TestBase {
 
         try (
             StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 8 * MB);
-            StandbyClientSync cl = newStandbyClientSync(secondary, serverPort.getPort(), 60_000)
+            StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, 2 * 60 * 1000, false, folder.newFolder())
         ) {
             serverSync.start();
             primary.flush();
@@ -279,7 +282,7 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
             StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
-            StandbyClientSync clientSync = newStandbyClientSync(secondary, serverPort.getPort())
+            StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();
 
@@ -343,9 +346,11 @@ public abstract class DataStoreTestBase extends TestBase {
         try (StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB)) {
             serverSync.start();
 
+            File spoolFolder = folder.newFolder();
+
             try (
                 NetworkErrorProxy ignored = new NetworkErrorProxy(proxyPort.getPort(), getServerHost(), serverPort.getPort(), flipPosition, skipPosition, skipBytes);
-                StandbyClientSync clientSync = newStandbyClientSync(secondary, proxyPort.getPort())
+                StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), proxyPort.getPort(), secondary, false, getClientTimeout(), false, spoolFolder)
             ) {
                 clientSync.run();
             }
@@ -360,7 +365,7 @@ public abstract class DataStoreTestBase extends TestBase {
                 primary.flush();
             }
 
-            try (StandbyClientSync clientSync = newStandbyClientSync(secondary, serverPort.getPort())) {
+            try (StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, spoolFolder)) {
                 clientSync.run();
             }
         }

@@ -42,16 +42,25 @@ public class IndexMBeanRegistrationTest {
                 return super.register(type, service, properties);
             }
         };
+        long schedulingDelayInSecs = 7; // some number which is hard to default else-where
 
         AsyncIndexUpdate update = new AsyncIndexUpdate("async",
                 new MemoryNodeStore(), new CompositeIndexEditorProvider());
         IndexMBeanRegistration reg = new IndexMBeanRegistration(wb);
-        reg.registerAsyncIndexer(update, 5);
+        reg.registerAsyncIndexer(update, schedulingDelayInSecs);
         try {
             Map<?, ?> map = props.get();
             assertNotNull(map);
             assertEquals(AsyncIndexUpdate.class.getName() + "-async",
                     map.get("scheduler.name"));
+            assertEquals(schedulingDelayInSecs,
+                    map.get("scheduler.period"));
+            assertEquals(false,
+                    map.get("scheduler.concurrent"));
+            assertEquals("LEADER",
+                    map.get("scheduler.runOn"));
+            assertEquals("oak",
+                    map.get("scheduler.threadPool"));
         } finally {
             reg.unregister();
         }

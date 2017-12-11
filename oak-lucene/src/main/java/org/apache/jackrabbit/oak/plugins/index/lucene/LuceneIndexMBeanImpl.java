@@ -90,7 +90,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAnce
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
-    
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
     private final NodeStore nodeStore;
@@ -235,9 +235,18 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         return list.toArray(new String[0]);
     }
-    
+
     @Override
     public String[] getFieldTermsInfo(String indexPath, String field, int max) throws IOException {
+        return getFieldTermPrefixInfo(indexPath, field, max, null);
+    }
+
+    @Override
+    public String[] getFieldTermInfo(String indexPath, String field, String term) throws IOException {
+        return getFieldTermPrefixInfo(indexPath, field, Integer.MAX_VALUE, term);
+    }
+
+    private String[] getFieldTermPrefixInfo(String indexPath, String field, int max, String term) throws IOException {
         TreeSet<String> indexes = new TreeSet<String>();
         if (indexPath == null || indexPath.isEmpty()) {
             indexes.addAll(indexTracker.getIndexNodePaths());
@@ -251,7 +260,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 indexNode = indexTracker.acquireIndexNode(path);
                 if (indexNode != null) {
                     IndexSearcher searcher = indexNode.getSearcher();
-                    list.addAll(getFieldTerms(path, field, max, searcher));
+                    list.addAll(getFieldTerms(path, field, max, term, searcher));
                 }
             } finally {
                 if (indexNode != null) {
@@ -260,7 +269,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             }
         }
         return list.toArray(new String[0]);
-    }    
+    }
 
     @Override
     public String getStoredIndexDefinition(@Name("indexPath") String indexPath) {
@@ -395,23 +404,23 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         return list;
     }
-    
-    private static ArrayList<String> getFieldTerms(String path, 
-            String field, int max, IndexSearcher searcher) throws IOException {
+
+    private static ArrayList<String> getFieldTerms(String path,
+            String field, int max, String term, IndexSearcher searcher) throws IOException {
         if (field == null || field.isEmpty()) {
             ArrayList<String> list = new ArrayList<String>();
             IndexReader reader = searcher.getIndexReader();
             Fields fields = MultiFields.getFields(reader);
             if (fields != null) {
                 for(String f : fields) {
-                    list.addAll(getFieldTerms(path, f, max, searcher));
+                    list.addAll(getFieldTerms(path, f, max, term, searcher));
                 }
             }
             return list;
         }
         IndexReader reader = searcher.getIndexReader();
         Terms terms = MultiFields.getTerms(reader, field);
-        ArrayList<String> result = new ArrayList<>();        
+        ArrayList<String> result = new ArrayList<>();
         if (terms == null) {
             return result;
         }
@@ -429,11 +438,16 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 return -c;
             }
         }
-        ArrayList<Entry> list = new ArrayList<>();        
+        ArrayList<Entry> list = new ArrayList<>();
         long totalCount = 0;
-        while((byteRef = iterator.next()) != null) {       
+        while((byteRef = iterator.next()) != null) {
             Entry e = new Entry();
             e.term = byteRef.utf8ToString();
+            if (term != null) {
+                if (e.term != null && !e.term.equals(term)) {
+                    continue;
+                }
+            }
             e.count = iterator.docFreq();
             totalCount += e.count;
             if (e.count > 1) {
@@ -450,14 +464,14 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         }
         return result;
     }
-    
+
     static <T extends Comparable<T>> void sortAndTruncateList(ArrayList<T> list, int max) {
         Collections.sort(list);
         if (max > 0 && list.size() > max) {
             list.subList(max, list.size()).clear();
         }
     }
-    
+
     private static String[] determineIndexedPaths(IndexSearcher searcher, final int maxLevel, int maxPathCount)
             throws IOException {
         Set<String> paths = Sets.newHashSet();

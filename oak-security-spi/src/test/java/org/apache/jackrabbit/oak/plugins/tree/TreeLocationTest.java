@@ -18,70 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
 
-public class TreeLocationTest {
-
-    private Tree rootTree;
-    private Tree nonExisting;
-    private Root root;
-
-    @Before
-    public void setUp() throws Exception {
-
-        rootTree = mockTree("/", null);
-        when(rootTree.hasProperty("p")).thenReturn(true);
-        when(rootTree.getProperty("p")).thenReturn(PropertyStates.createProperty("p", 1));
-
-        nonExisting = Mockito.mock(Tree.class);
-        when(nonExisting.exists()).thenReturn(false);
-        when(nonExisting.getName()).thenReturn("nonExisting");
-
-        Tree x = mockTree("/x", rootTree);
-        Tree subTree = mockTree("/z", rootTree);
-        Tree child = mockTree("/z/child", subTree);
-        when(child.hasProperty("p")).thenReturn(true);
-        when(child.getProperty("p")).thenReturn(PropertyStates.createProperty("p", "value"));
-
-        when(subTree.getChild("child")).thenReturn(child);
-        when(rootTree.getChild("z")).thenReturn(subTree);
-        when(rootTree.getChild("x")).thenReturn(x);
-
-        root = Mockito.mock(Root.class);
-        when(root.getTree("/")).thenReturn(rootTree);
-    }
-
-    private Tree mockTree(String path, Tree parent) {
-        Tree t = Mockito.mock(Tree.class);
-        when(t.getPath()).thenReturn(path);
-        when(t.getName()).thenReturn(PathUtils.getName(path));
-        if (PathUtils.denotesRoot(path)) {
-            when(t.getParent()).thenThrow(IllegalStateException.class);
-            when(t.isRoot()).thenReturn(true);
-        } else {
-            when(t.getParent()).thenReturn(parent);
-            when(t.isRoot()).thenReturn(false);
-        }
-        when(t.exists()).thenReturn(true);
-        when(t.hasProperty("nonExisting")).thenReturn(false);
-        when(t.hasChild("nonExisting")).thenReturn(false);
-        when(t.getChild("nonExisting")).thenReturn(nonExisting);
-        return t;
-    }
+public class TreeLocationTest extends AbstractTreeTest {
 
     @Test
     public void testNullLocation() {
@@ -119,6 +65,8 @@ public class TreeLocationTest {
     public void testPropertyLocation() {
         TreeLocation propLocation = TreeLocation.create(root, "/p");
         assertNotNull(propLocation.getProperty());
+        assertEquals("p", propLocation.getName());
+        assertTrue(propLocation.exists());
 
         TreeLocation abc = propLocation.getChild("b").getChild("c");
         assertEquals("/p/b/c", abc.getPath());
@@ -126,15 +74,23 @@ public class TreeLocationTest {
 
         TreeLocation ab = abc.getParent();
         assertEquals("/p/b", ab.getPath());
+        assertEquals("b", ab.getName());
         assertNull(ab.getProperty());
 
         assertEquals(propLocation.getProperty(), ab.getParent().getProperty());
     }
 
     @Test
+    public void testRemovePropertyLocation() {
+        TreeLocation propLocation = TreeLocation.create(root, "/p");
+        assertTrue(propLocation.remove());
+    }
+
+    @Test
     public void getDeepLocation() {
         TreeLocation child = TreeLocation.create(root, "/z/child");
         assertNotNull(child.getTree());
+        assertEquals("child", child.getName());
         assertNull(child.getProperty());
 
         TreeLocation p = TreeLocation.create(root, "/z/child/p");
@@ -146,6 +102,8 @@ public class TreeLocationTest {
         assertNull(n.getTree());
         assertNull(n.getProperty());
         assertEquals("/z/child/p/3/4", n.getPath());
+        assertFalse(n.exists());
+        assertFalse(n.remove());
 
         TreeLocation t = n.getParent().getParent();
         assertNull(t.getTree());
@@ -154,5 +112,27 @@ public class TreeLocationTest {
         TreeLocation t2 = t.getParent();
         assertNotNull(t2.getTree());
         assertEquals("/z/child", t2.getPath());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRemoveExisting() {
+        TreeLocation child = TreeLocation.create(root, "/z/child");
+        child.remove();
+    }
+
+    @Test
+    public void testRemoveNonExisting() {
+        TreeLocation nonExisting = TreeLocation.create(root, "/nonExisting");
+        // remove must not throw as it doesn't exist
+        assertFalse(nonExisting.remove());
+    }
+
+    @Test
+    public void testNonExisting() {
+        TreeLocation nonExisting = TreeLocation.create(root, "/nonExisting");
+        assertNull(nonExisting.getTree());
+
+        assertEquals("nonExisting", nonExisting.getName());
+        assertEquals("/nonExisting", nonExisting.getPath());
     }
 }

@@ -70,16 +70,19 @@ public class BlobMigrator {
     public BlobMigrator(SplitBlobStore blobStore, NodeStore nodeStore) {
         this.blobStore = blobStore;
         this.nodeStore = nodeStore;
-        refreshAndReset();
     }
 
     public boolean start() throws IOException {
         totalMigratedNodes = 0;
-        refreshAndReset();
+        refreshAndReset(nodeStore.getRoot());
         return migrate();
     }
 
     public boolean migrate() throws IOException {
+        if (nodeIterator == null) {
+            refreshAndReset(nodeStore.getRoot());
+        }
+
         do {
             while (nodeIterator.hasNext()) {
                 lastPath = nodeIterator.getPath();
@@ -104,15 +107,19 @@ public class BlobMigrator {
 
     private boolean tryCommit() {
         try {
-            nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            NodeState newRoot = nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             totalMigratedNodes += migratedNodes;
             log.info("{} nodes merged succesfully. Nodes migrated in this session: {}", migratedNodes, totalMigratedNodes);
             lastCommit = System.currentTimeMillis();
             migratedNodes = 0;
+
+            rootBuilder = newRoot.builder();
+            nodeIterator = nodeIterator.switchRoot(newRoot);
+
             return true;
         } catch (CommitFailedException e) {
             log.error("Can't commit. Resetting the migrator", e);
-            refreshAndReset();
+            refreshAndReset(nodeStore.getRoot());
             return false;
         }
     }
@@ -141,8 +148,7 @@ public class BlobMigrator {
         return totalMigratedNodes;
     }
 
-    private void refreshAndReset() {
-        NodeState rootState = nodeStore.getRoot();
+    private void refreshAndReset(NodeState rootState) {
         rootBuilder = rootState.builder();
         nodeIterator = new DepthFirstNodeIterator(rootState);
         lastPath = null;

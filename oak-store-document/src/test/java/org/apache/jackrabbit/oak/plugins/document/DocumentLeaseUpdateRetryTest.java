@@ -79,7 +79,7 @@ public class DocumentLeaseUpdateRetryTest {
         clock.waitUntil(clock.getTime() + leaseUpdateInterval + 1000);
         // but also actually sleep more than 1s to give the background tasks of
         // DNS a chance to run
-        Thread.sleep(1200);
+        Thread.sleep(2000);
 
         // assert leaseEndTime having been updated - ie lease having been
         // updated

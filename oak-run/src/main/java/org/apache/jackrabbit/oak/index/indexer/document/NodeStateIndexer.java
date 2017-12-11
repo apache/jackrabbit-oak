@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -32,5 +33,9 @@ public interface NodeStateIndexer extends Closeable{
     boolean shouldInclude(NodeDocument doc);
 
     void index(NodeStateEntry entry) throws IOException, CommitFailedException;
+
+    boolean indexesRelativeNodes();
+
+    Set<String> getRelativeIndexedNodeNames();
 }
 

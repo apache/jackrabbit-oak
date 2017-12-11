@@ -371,26 +371,6 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        assertUnconditional(updateOp);
-        Lock lock = rwLock.writeLock();
-        lock.lock();
-        try {
-            ConcurrentSkipListMap<String, T> map = getMap(collection);
-            for (String key : keys) {
-                if (!map.containsKey(key)) {
-                    continue;
-                }
-                internalCreateOrUpdate(collection, updateOp.shallowCopy(key), true);
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("Nodes:\n");
@@ -473,6 +453,17 @@ public class MemoryDocumentStore implements DocumentStore {
     @Override
     public Map<String, String> getMetadata() {
         return metadata;
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        return ImmutableMap.<String, String>builder()
+                .put(Collection.NODES.toString(), String.valueOf(nodes.size()))
+                .put(Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()))
+                .put(Collection.SETTINGS.toString(), String.valueOf(settings.size()))
+                .put(Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()))
+                .build();
     }
 
     @Override

@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -122,13 +124,6 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
     }
 
     @Override
-    public final <T extends Document> void update(Collection<T> collection,
-            List<String> keys, UpdateOp updateOp) {
-        performLeaseCheck();
-        delegate.update(collection, keys, updateOp);
-    }
-
-    @Override
     public final <T extends Document> T createOrUpdate(Collection<T> collection,
             UpdateOp update) {
         performLeaseCheck();
@@ -204,6 +199,13 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
     public final Map<String, String> getMetadata() {
         performLeaseCheck();
         return delegate.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        performLeaseCheck();
+        return delegate.getStats();
     }
 
     @Override

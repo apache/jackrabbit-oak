@@ -51,6 +51,7 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
@@ -68,20 +69,35 @@ import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterOld;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.itemsave.ItemSaveValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -915,4 +931,55 @@ public class Oak {
             return settings.toString();
         }
     }
+
+    public static class OakDefaultComponents {
+
+        public static final OakDefaultComponents INSTANCE = new OakDefaultComponents();
+
+        private final Iterable<CommitHook> commitHooks = ImmutableList.of(new VersionHook());
+
+        private  final Iterable<RepositoryInitializer> repositoryInitializers = ImmutableList
+                .of(new InitialContent());
+
+        private  final Iterable<EditorProvider> editorProviders = ImmutableList.of(
+                new ItemSaveValidatorProvider(), new NameValidatorProvider(), new NamespaceEditorProvider(),
+                new TypeEditorProvider(), new ConflictValidatorProvider(), new ChangeCollectorProvider());
+
+        private  final Iterable<IndexEditorProvider> indexEditorProviders = ImmutableList.of(
+                new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider(),
+                new OrderedPropertyIndexEditorProvider());
+
+        private  final Iterable<QueryIndexProvider> queryIndexProviders = ImmutableList
+                .of(new ReferenceIndexProvider(), new PropertyIndexProvider(), new NodeTypeIndexProvider());
+
+        private  final SecurityProvider securityProvider = new SecurityProviderImpl();
+
+        private OakDefaultComponents() {
+        }
+
+        public Iterable<CommitHook> commitHooks() {
+            return commitHooks;
+        }
+
+        public Iterable<RepositoryInitializer> repositoryInitializers() {
+            return repositoryInitializers;
+        }
+
+        public Iterable<EditorProvider> editorProviders() {
+            return editorProviders;
+        }
+
+        public Iterable<IndexEditorProvider> indexEditorProviders() {
+            return indexEditorProviders;
+        }
+
+        public Iterable<QueryIndexProvider> queryIndexProviders() {
+            return queryIndexProviders;
+        }
+
+        public SecurityProvider securityProvider() {
+            return securityProvider;
+        }
+    }
+
 }

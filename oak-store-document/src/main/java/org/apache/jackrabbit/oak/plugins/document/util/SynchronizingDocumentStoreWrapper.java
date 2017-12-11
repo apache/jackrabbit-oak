@@ -96,12 +96,6 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
     }
 
     @Override
-    public synchronized <T extends Document> void update(final Collection<T> collection, final List<String> keys,
-            final UpdateOp updateOp) {
-        store.update(collection, keys, updateOp);
-    }
-
-    @Override
     public synchronized <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update) {
         return store.createOrUpdate(collection, update);
     }
@@ -159,6 +153,12 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
     @Override
     public synchronized Map<String, String> getMetadata() {
         return store.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public synchronized Map<String, String> getStats() {
+        return store.getStats();
     }
 
     @Override

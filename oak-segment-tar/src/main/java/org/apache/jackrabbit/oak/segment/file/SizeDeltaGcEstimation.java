@@ -20,85 +20,120 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 
-public class SizeDeltaGcEstimation implements GCEstimation {
+class SizeDeltaGcEstimation implements GCEstimation {
 
     private final long delta;
 
     private final GCJournal gcJournal;
 
-    private final long totalSize;
+    private final long currentSize;
 
-    private boolean gcNeeded;
+    private final boolean full;
 
-    private String gcInfo = "unknown";
-
-    private boolean finished = false;
-
-    public SizeDeltaGcEstimation(@Nonnull SegmentGCOptions opts,
-            @Nonnull GCJournal gcJournal, long totalSize) {
-        this.delta = checkNotNull(opts).getGcSizeDeltaEstimation();
+    SizeDeltaGcEstimation(long delta, @Nonnull GCJournal gcJournal, long currentSize, boolean full) {
+        this.delta = delta;
         this.gcJournal = checkNotNull(gcJournal);
-        this.totalSize = totalSize;
+        this.currentSize = currentSize;
+        this.full = full;
     }
 
     @Override
-    public boolean gcNeeded() {
-        if (!finished) {
-            run();
-        }
-        return gcNeeded;
-    }
-
-    @Override
-    public String gcLog() {
-        if (!finished) {
-            run();
-        }
-        return gcInfo;
-    }
-
-    private void run() {
-        if (finished) {
-            return;
-        }
+    public GCEstimationResult estimate() {
         if (delta == 0) {
-            gcNeeded = true;
-            gcInfo = "Estimation skipped because the size delta value equals 0";
-        } else if (getPreviousCleanupSize() < 0) {
-            gcNeeded = true;
-            gcInfo = "Estimation skipped because of missing gc journal data (expected on first run)";
-        } else {
-            long lastGc = getPreviousCleanupSize();
-            long gain = totalSize - lastGc;
-            long gainP = 100 * (totalSize - lastGc) / lastGc;
-            gcNeeded = gain > delta;
-            gcInfo = format(
-                    "Segmentstore size has increased since the last garbage collection from %s (%s bytes) to %s (%s bytes), " +
-                    "an increase of %s (%s bytes) or %s%%. ",
-                    humanReadableByteCount(lastGc), lastGc,
-                    humanReadableByteCount(totalSize), totalSize,
-                    humanReadableByteCount(gain), gain, gainP);
-            if (gcNeeded) {
-                gcInfo = gcInfo + format(
-                        "This is greater than sizeDeltaEstimation=%s (%s bytes), so running garbage collection",
-                        humanReadableByteCount(delta), delta);
-            } else {
-                gcInfo = gcInfo + format(
-                        "This is less than sizeDeltaEstimation=%s (%s bytes), so skipping garbage collection",
-                        humanReadableByteCount(delta), delta);
-            }
+            return new GCEstimationResult(true, "Estimation skipped because the size delta value equals 0");
         }
-        finished = true;
+
+        long previousSize = readPreviousSize();
+
+        if (previousSize < 0) {
+            return new GCEstimationResult(true, "Estimation skipped because of missing gc journal data (expected on first run)");
+        }
+
+        if (full && previousIsTail()) {
+            return new GCEstimationResult(true,
+                    "Detected previous garbage collection of type tail so running full garbage collection now.");
+        }
+
+        long gain = currentSize - previousSize;
+        boolean gcNeeded = gain > delta;
+        String gcInfo = format(
+            "Segmentstore size has increased since the last %s garbage collection from %s (%s bytes) to %s (%s bytes), an increase of %s (%s bytes) or %s%%. ",
+            full ? "full" : "tail",
+            humanReadableByteCount(previousSize), previousSize,
+            humanReadableByteCount(currentSize), currentSize,
+            humanReadableByteCount(gain), gain, 100 * gain / previousSize
+        );
+        if (gcNeeded) {
+            gcInfo = gcInfo + format(
+                "This is greater than sizeDeltaEstimation=%s (%s bytes), so running garbage collection",
+                humanReadableByteCount(delta), delta
+            );
+        } else {
+            gcInfo = gcInfo + format(
+                "This is less than sizeDeltaEstimation=%s (%s bytes), so skipping garbage collection",
+                humanReadableByteCount(delta), delta
+            );
+        }
+        return new GCEstimationResult(gcNeeded, gcInfo);
     }
 
-    private long getPreviousCleanupSize() {
+    private long readPreviousSize() {
+        if (full) {
+            return readPreviousFullCleanupSize();
+        }
+        return readPreviousTailCleanupSize();
+    }
+
+    private long readPreviousFullCleanupSize() {
+        List<GCJournalEntry> entries = new ArrayList<>(gcJournal.readAll());
+
+        if (entries.isEmpty()) {
+            return -1;
+        }
+
+        entries.sort((a, b) -> {
+            if (a.getGcGeneration().getFullGeneration() > b.getGcGeneration().getFullGeneration()) {
+                return -1;
+            }
+            if (a.getGcGeneration().getFullGeneration() < b.getGcGeneration().getFullGeneration()) {
+                return 1;
+            }
+            return Integer.compare(a.getGcGeneration().getGeneration(), b.getGcGeneration().getGeneration());
+        });
+
+        return entries.iterator().next().getRepoSize();
+    }
+
+    private long readPreviousTailCleanupSize() {
         return gcJournal.read().getRepoSize();
     }
+
+    private boolean previousIsTail() {
+        List<GCJournalEntry> entries = newArrayList(gcJournal.readAll());
+        if (entries.isEmpty()) {
+            // We should not get here but if we do the condition is vacuously true
+            return true;
+        } else if (entries.size() == 1) {
+            // A single entry in the gc log must be from a full compaction
+            // as an initial compaction cannot be of type tail
+            return false;
+        } else {
+            int m = entries.get(entries.size() - 2).getGcGeneration().getFullGeneration();
+            int n = entries.get(entries.size() - 1).getGcGeneration().getFullGeneration();
+            // No change in the full generation indicates the last compaction was of type tail
+            return m == n;
+        }
+    }
+
 }

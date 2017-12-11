@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -144,7 +143,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.ioMonitor = builder.getIOMonitor();
     }
 
-    static SegmentNotFoundException asSegmentNotFoundException(ExecutionException e, SegmentId id) {
+    static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
         if (e.getCause() instanceof SegmentNotFoundException) {
             return (SegmentNotFoundException) e.getCause();
         }

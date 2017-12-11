@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EVALUATE_PATH_RESTRICTION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
@@ -66,7 +67,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PropertyIndex
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -1610,12 +1610,12 @@ public class IndexPlannerTest {
     @Test
     public void unableToReadCountForJcrTitle() throws Exception {
         try {
-            IndexStatistics.failReadingFieldJcrTitle = true;
+            IndexStatistics.failReadingSyntheticallyFalliableField = true;
             String indexPath = "/test";
             IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
             idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
             idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
-            idxBuilder.indexRule("nt:base").property("jcr:title").propertyIndex();
+            idxBuilder.indexRule("nt:base").property(SYNTHETICALLY_FALLIABLE_FIELD).propertyIndex();
             idxBuilder.indexRule("nt:base").property("bar").propertyIndex();
             NodeState defn = idxBuilder.build();
 
@@ -1624,7 +1624,7 @@ public class IndexPlannerTest {
             IndexDefinition idxDefn = new IndexDefinition(root, defn, indexPath);
             Document doc = new Document();
             doc.add(new StringField("foo1", "bar1", Field.Store.NO));
-            doc.add(new StringField("jcr:title", "title", Field.Store.NO));
+            doc.add(new StringField(SYNTHETICALLY_FALLIABLE_FIELD, "failingField", Field.Store.NO));
             Directory sampleDirectory = createSampleDirectory(numOfDocs, doc);
             IndexNode node = createIndexNode(idxDefn, sampleDirectory);
 
@@ -1636,16 +1636,16 @@ public class IndexPlannerTest {
             assertEquals(numOfDocs, plan.getEstimatedEntryCount());
 
             filter = createFilter("nt:base");
-            filter.restrictProperty("jcr:title", Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
             planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
             plan = planner.getPlan();
 
-            // jcr:title's count couldn't be read - so, fallback to numDocs
+            // falliable field's count couldn't be read - so, fallback to numDocs
             assertEquals(numOfDocs + 1, plan.getEstimatedEntryCount());
 
             filter = createFilter("nt:base");
             filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
-            filter.restrictProperty("jcr:title", Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
             planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
             plan = planner.getPlan();
 
@@ -1654,15 +1654,70 @@ public class IndexPlannerTest {
 
             filter = createFilter("nt:base");
             filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
-            filter.restrictProperty("jcr:title", Operator.EQUAL, PropertyValues.newString("bar"));
+            filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
             planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
             plan = planner.getPlan();
 
             // min() still comes into play even when one field's count couldn't be read
             assertEquals(0, plan.getEstimatedEntryCount());
         } finally {
-            IndexStatistics.failReadingFieldJcrTitle = false;
+            IndexStatistics.failReadingSyntheticallyFalliableField = false;
         }
+    }
+
+    @Test
+    public void costForPathTransformation() throws Exception {
+        IndexStatistics.failReadingSyntheticallyFalliableField = true;
+        String indexPath = "/test";
+        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
+        idxBuilder.indexRule("nt:base").property("foo2").propertyIndex();
+        Tree fooPD = idxBuilder.getBuilderTree().getChild("indexRules").getChild("nt:base")
+                .getChild("properties").getChild("foo2");
+        fooPD.setProperty(PROP_FUNCTION, "lower([foo])");
+        NodeState defn = idxBuilder.build();
+
+        long numOfDocs = 100;
+
+        IndexDefinition idxDefn = new IndexDefinition(root, defn, indexPath);
+        IndexNode node = createIndexNode(idxDefn, 100);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+        filter = createFilter("nt:base");
+        filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        // there is no doc with foo1
+        assertEquals(0, plan.getEstimatedEntryCount());
+
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty("a/foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        //Because path transormation comes into play only when direct prop defs don't match
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+        filter = createFilter("nt:base");
+        filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty(convertToPolishNotation("lower([foo])"), Operator.EQUAL,
+                PropertyValues.newString("foo1"));
+        planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+
+        // there is no doc with lower([foo])
+        assertEquals(0, plan.getEstimatedEntryCount());
+
     }
     //------ END - Cost via doc count per field plan tests
 

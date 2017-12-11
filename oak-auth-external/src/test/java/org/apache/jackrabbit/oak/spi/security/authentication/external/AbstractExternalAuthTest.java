@@ -47,13 +47,18 @@ import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 
 /**
  * Abstract base test for external-authentication tests.
  */
 public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
+
+    @Rule
+    public final OsgiContext context = new OsgiContext();
 
     protected static final String USER_ID = TestIdentityProvider.ID_TEST_USER;
     protected static final String TEST_CONSTANT_PROPERTY_NAME = "profile/constantProperty";
@@ -131,7 +136,10 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new TestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
+            securityProvider = TestSecurityProvider.newTestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
+
+            // register PrincipalConfiguration with OSGi context
+            context.registerInjectActivateService(externalPrincipalConfiguration);
         }
         return securityProvider;
     }

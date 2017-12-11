@@ -53,6 +53,7 @@
     * [Score Explanation](#score-explanation)
     * [Custom hooks](#custom-hooks)
 * [Design Considerations](#design-considerations)
+* [Limits](#limits)
 * [Lucene Index vs Property Index](#lucene-vs-property)
 * [Examples](#examples)
     * [A - Simple queries](#simple-queries)
@@ -666,7 +667,7 @@ defaults to 5
 
 #### <a name="analyzers"></a>Analyzers
 
-`@since Oak 1.5.5, 1.4.7`
+`@since Oak 1.5.5, 1.4.7, 1.2.19`
 Unless custom analyzer is configured (as documented below), in-built analyzer
 can be configured to include original term as well to be indexed. This is
 controlled by setting boolean property `indexOriginalTerm` on analyzers node.
@@ -1400,6 +1401,12 @@ Following analogy might be helpful to people coming from RDBMS world. Treat your
 nodetype as Table in your DB and all the direct or relative properties as columns
 in that table. Various property definitions can then be considered as index for 
 those columns. 
+
+### <a name="limits"></a>Limits
+
+The Apache Lucene version currently used in Oak has a limit of about 2^31 documents per index
+([this includes Lucene version 6](http://lucene.apache.org/core/6_5_0/core/org/apache/lucene/codecs/lucene62/package-summary.html#Limitations)).
+If a larger index is needed, please use Apache Solr, which doesn't have this limit.
 
 ### <a name="lucene-vs-property"></a>Lucene Index vs Property Index
 

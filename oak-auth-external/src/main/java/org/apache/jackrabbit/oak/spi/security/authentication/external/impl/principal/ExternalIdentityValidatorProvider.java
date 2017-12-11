@@ -101,8 +101,7 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
     }
 
     @Override
-    protected Validator getRootValidator(@Nonnull NodeState before, @Nonnull NodeState after,
-                                         @Nonnull CommitInfo info) {
+    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         return new ExternalIdentityValidator(after, true);
     }
 

@@ -258,31 +258,6 @@ public interface DocumentStore {
             throws IllegalArgumentException, DocumentStoreException;
 
     /**
-     * Update documents with the given keys. Only existing documents are
-     * updated and keys for documents that do not exist are simply ignored.
-     * There is no guarantee in which sequence the updates are performed.
-     * <p>
-     * If this method fails with a {@code DocumentStoreException}, then only some
-     * of the documents identified by {@code keys} may have been updated. The
-     * implementation however ensures that the result of the operation is
-     * properly reflected in the document cache. That is, an implementation
-     * could simply evict documents with the given keys from the cache.
-     *
-     * @param <T> the document type.
-     * @param collection the collection.
-     * @param keys the keys of the documents to update.
-     * @param updateOp the update operation to apply to each of the documents
-     *        (where {@link Condition}s are not allowed)
-     * @throws IllegalArgumentException when the {@linkplain UpdateOp} is conditional
-     * @throws DocumentStoreException if the operation failed. E.g. because of
-     *          an I/O error.
-     */
-    <T extends Document> void update(Collection<T> collection,
-                                     List<String> keys,
-                                     UpdateOp updateOp)
-            throws IllegalArgumentException, DocumentStoreException;
-
-    /**
      * Atomically checks if the document exists and updates it, otherwise the
      * document is created (aka upsert). The returned document is immutable.
      * <p>
@@ -446,6 +421,19 @@ public interface DocumentStore {
      * @return description of the underlying storage.
      */
     Map<String, String> getMetadata();
+
+    /**
+     * Returns statistics about the underlying storage. The information and
+     * keys returned by this method are implementation specific, may change
+     * between releases or may even depend on deployment aspects. E.g. depending
+     * on access rights, the method may return more or less information from
+     * the underlying store. This method should only be used for informational
+     * or debug purposes.
+     *
+     * @return statistics about this document store.
+     */
+    @Nonnull
+    Map<String, String> getStats();
 
     /**
      * @return the estimated time difference in milliseconds between the local

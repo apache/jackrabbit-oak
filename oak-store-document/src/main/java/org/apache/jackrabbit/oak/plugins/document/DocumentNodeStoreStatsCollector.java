@@ -24,7 +24,11 @@ public interface DocumentNodeStoreStatsCollector {
 
     void doneBackgroundUpdate(BackgroundWriteStats stats);
 
-    void doneMerge(int numRetries, long timeTaken, boolean suspended, boolean exclusive);
+    void doneBranchCommit();
+
+    void doneMergeBranch(int numCommits);
+
+    void doneMerge(int numRetries, long time, boolean suspended, boolean exclusive);
 
     void failedMerge(int numRetries, long time, boolean suspended, boolean exclusive);
 }

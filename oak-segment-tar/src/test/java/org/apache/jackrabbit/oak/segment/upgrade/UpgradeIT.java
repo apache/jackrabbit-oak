@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.upgrade;
 
+import static com.google.common.base.StandardSystemProperty.OS_NAME;
 import static com.google.common.collect.Iterables.transform;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -32,7 +33,6 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
 
 import javax.annotation.Nonnull;
 
@@ -63,11 +63,7 @@ public class UpgradeIT {
                 "console", fileStoreHome.getRoot().getAbsolutePath(), "--read-write",
                 ":load create16store.groovy")
                 .directory(new File("target", "upgrade-it"))
-                .redirectError(Redirect.INHERIT)
-                .redirectOutput(Redirect.INHERIT)
-                .redirectInput(Redirect.INHERIT)
                 .start();
-
         assertTrue(
                 "Timeout while creating the source repository",
                 oakConsole.waitFor(2, MINUTES));
@@ -95,12 +91,14 @@ public class UpgradeIT {
     public void offRCUpgradesSegments() throws IOException, InvalidFileStoreVersionException {
         checkSegmentVersion(V_12);
         checkStoreVersion(1);
+
         Compact.builder()
-                .withPath(fileStoreHome.getRoot())
-                .withMmap(true)
-                .withForce(true)
-                .build()
-                .run();
+            .withPath(fileStoreHome.getRoot())
+            .withMmap(true)
+            .withOs(OS_NAME.value())
+            .withForce(true)
+            .build()
+            .run();
 
         // Upgraded
         checkStoreVersion(2);
@@ -111,12 +109,14 @@ public class UpgradeIT {
     public void offRCUpgradesRequiresForce() throws IOException, InvalidFileStoreVersionException {
         checkSegmentVersion(V_12);
         checkStoreVersion(1);
+
         Compact.builder()
-                .withPath(fileStoreHome.getRoot())
-                .withMmap(true)
-                .withForce(false)
-                .build()
-                .run();
+            .withPath(fileStoreHome.getRoot())
+            .withMmap(true)
+            .withOs(OS_NAME.value())
+            .withForce(false)
+            .build()
+            .run();
 
         // Not upgraded
         checkStoreVersion(1);

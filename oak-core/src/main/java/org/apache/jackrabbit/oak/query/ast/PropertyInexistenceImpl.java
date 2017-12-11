@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
  * "child/propertyName"), then this requires that the given child node exists.
  */
 public class PropertyInexistenceImpl extends ConstraintImpl {
+    //OAK-6838
+    private final boolean USE_OLD_INEXISTENCE_CHECK = Boolean.getBoolean("oak.useOldInexistenceCheck");
 
     private final String selectorName;
     private final String propertyName;
@@ -63,7 +65,7 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
         String name = PathUtils.getName(pn);
         for (String p : PathUtils.elements(relativePath)) {
             if (t == null || !t.exists()) {
-                return false;
+                return !USE_OLD_INEXISTENCE_CHECK;
             }
             if (p.equals("..")) {
                 t = t.isRoot() ? null : t.getParent();
@@ -73,7 +75,12 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
                 t = t.getChild(p);
             }
         }
-        return t != null && t.exists() && !t.hasProperty(name);
+
+        if (USE_OLD_INEXISTENCE_CHECK) {
+            return t != null && t.exists() && !t.hasProperty(name);
+        } else {
+            return t == null || !t.exists() || !t.hasProperty(name);
+        }
     }
 
     @Override

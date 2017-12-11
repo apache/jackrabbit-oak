@@ -20,7 +20,9 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -53,6 +55,25 @@ public class CompositeIndexer implements NodeStateIndexer {
         for (NodeStateIndexer indexer : indexers) {
             indexer.index(entry);
         }
+    }
+
+    @Override
+    public boolean indexesRelativeNodes() {
+        for (NodeStateIndexer indexer : indexers) {
+            if (indexer.indexesRelativeNodes()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public Set<String> getRelativeIndexedNodeNames() {
+        Set<String> result = new HashSet<>();
+        for (NodeStateIndexer indexer : indexers) {
+            result.addAll(indexer.getRelativeIndexedNodeNames());
+        }
+        return result;
     }
 
     @Override

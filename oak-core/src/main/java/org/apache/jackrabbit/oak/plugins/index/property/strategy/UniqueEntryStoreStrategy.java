@@ -136,7 +136,18 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
             @Override
             public String produce(NodeState indexHit, String pathName) {
                 PropertyState s = indexHit.getProperty("entry");
-                return s.getValue(Type.STRING, 0);
+                if (s.count() <= 1) {
+                    return s.getValue(Type.STRING, 0);
+                } else {
+                    StringBuilder buff = new StringBuilder();
+                    for (int i = 0; i < s.count(); i++) {
+                        if (i > 0) {
+                            buff.append(", ");
+                        }
+                        buff.append(s.getValue(Type.STRING, i));
+                    }
+                    return buff.toString();
+                }
             }
         });        
     }

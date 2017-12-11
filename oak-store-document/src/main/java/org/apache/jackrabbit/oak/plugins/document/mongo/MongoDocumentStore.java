@@ -40,6 +40,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -53,7 +54,6 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
@@ -78,7 +78,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,10 +103,8 @@ import com.mongodb.WriteResult;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
-import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
-import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Sets.difference;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -232,7 +230,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
-    public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
+    public MongoDocumentStore(DB db, MongoDocumentNodeStoreBuilderBase<?> builder) {
         MongoStatus mongoStatus = builder.getMongoStatus();
         if (mongoStatus == null) {
             mongoStatus = new MongoStatus(db);
@@ -1233,63 +1231,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
     }
 
-    @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        log("update", keys, updateOp);
-        UpdateUtils.assertUnconditional(updateOp);
-        DBCollection dbCollection = getDBCollection(collection);
-        QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
-        // make sure we don't modify the original updateOp
-        updateOp = updateOp.copy();
-        DBObject update = createUpdate(updateOp, false);
-        final Stopwatch watch = startWatch();
-        try {
-            Map<String, NodeDocument> cachedDocs = Collections.emptyMap();
-            if (collection == Collection.NODES) {
-                cachedDocs = Maps.newHashMap();
-                for (String key : keys) {
-                    cachedDocs.put(key, nodesCache.getIfPresent(key));
-                }
-            }
-            try {
-                dbCollection.update(query.get(), update, false, true);
-                if (collection == Collection.NODES) {
-                    Map<String, ModificationStamp> modCounts = getModStamps(filterValues(cachedDocs, notNull()).keySet());
-                    // update cache
-                    for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
-                        // the cachedDocs is not empty, so the collection = NODES
-                        Lock lock = nodeLocks.acquire(entry.getKey());
-                        try {
-                            ModificationStamp postUpdateModStamp = modCounts.get(entry.getKey());
-                            if (postUpdateModStamp != null
-                                    && entry.getValue() != null
-                                    && entry.getValue() != NodeDocument.NULL
-                                    && Long.valueOf(postUpdateModStamp.modCount - 1).equals(entry.getValue().getModCount())) {
-                                // post update modCount is one higher than
-                                // what we currently see in the cache. we can
-                                // replace the cached document
-                                NodeDocument newDoc = applyChanges(Collection.NODES, entry.getValue(), updateOp.shallowCopy(entry.getKey()));
-                                nodesCache.replaceCachedDocument(entry.getValue(), newDoc);
-                            } else {
-                                // make sure concurrently loaded document is
-                                // invalidated
-                                nodesCache.invalidate(entry.getKey());
-                            }
-                        } finally {
-                            lock.unlock();
-                        }
-                    }
-                }
-            } catch (MongoException e) {
-                throw handleException(e, collection, keys);
-            }
-        } finally {
-            stats.doneUpdate(watch.elapsed(TimeUnit.NANOSECONDS), collection, keys.size());
-        }
-    }
-
     /**
      * Returns the {@link Document#MOD_COUNT} and
      * {@link NodeDocument#MODIFIED_IN_SECS} values of the documents with the
@@ -1406,7 +1347,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      *
      * @return db level ReadPreference
      */
-    ReadPreference getConfiguredReadPreference(Collection collection){
+    <T extends Document> ReadPreference getConfiguredReadPreference(Collection<T> collection){
         return getDBCollection(collection).getReadPreference();
     }
 
@@ -1486,6 +1427,15 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     @Override
     public Map<String, String> getMetadata() {
         return metadata;
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        List<DBCollection> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
+        all.forEach(c -> toMapBuilder(builder, c.getStats(), c.getName()));
+        return builder.build();
     }
 
     long getMaxDeltaForModTimeIdxSecs() {
@@ -1758,6 +1708,22 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                                                                         Collection<T> collection,
                                                                         String id) {
         return handleException(ex, collection, Collections.singleton(id));
+    }
+
+    private static void toMapBuilder(ImmutableMap.Builder<String, String> builder,
+                                     BasicDBObject stats,
+                                     String prefix) {
+        stats.forEach((k, v) -> {
+            // exclude some verbose internals and status
+            if (!k.equals("wiredTiger") && !k.equals("indexDetails") && !k.equals("ok")) {
+                String key = prefix + "." + k;
+                if (v instanceof BasicDBObject) {
+                    toMapBuilder(builder, (BasicDBObject) v, key);
+                } else {
+                    builder.put(key, String.valueOf(v));
+                }
+            }
+        });
     }
 
     private static class BulkUpdateResult {

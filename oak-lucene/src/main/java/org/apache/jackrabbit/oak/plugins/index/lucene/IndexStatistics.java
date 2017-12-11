@@ -43,7 +43,9 @@ public class IndexStatistics {
     // For ease of tests as there didn't seem an easy way to make an IndexReader delegator
     // that would fail calls to reader on-demand.
     static boolean failReadingFields = false;
-    static boolean failReadingFieldJcrTitle = false;
+    static boolean failReadingSyntheticallyFalliableField = false;
+
+    static final String SYNTHETICALLY_FALLIABLE_FIELD = "synthetically-falliable-field";
 
     /**
      * @param reader {@link IndexReader} for which statistics need to be collected.
@@ -70,7 +72,7 @@ public class IndexStatistics {
                 if (isPropertyField(f)) {
                     int docCntForField = -1;
                     try {
-                        if (failReadingFieldJcrTitle && "jcr:title".equals(f)) {
+                        if (failReadingSyntheticallyFalliableField && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {
                             throw new IOException("Synthetically fail to read count for field jcr:title");
                         }
                         docCntForField = reader.getDocCount(f);
@@ -101,10 +103,10 @@ public class IndexStatistics {
     /**
      * @param field Index field for which number of indexed documents are to be return
      * @return number of indexed documents (without subtracting potentially deleted ones)
-     *         for the given {@code field}.<br/>
-     *         -1: if index codec doesn't store doc-count-for-field statistics, OR <br/>
-     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reader threw an exception while reading fields, OR <br/>
-     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception thrown while reading count for the field, OR <br/>
+     *         for the given {@code field}.<br>
+     *         -1: if index codec doesn't store doc-count-for-field statistics, OR <br>
+     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reader threw an exception while reading fields, OR <br>
+     *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;exception thrown while reading count for the field, OR <br>
      *             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc-count is asked for a non-property field.
      */
     public int getDocCountFor(String field) {

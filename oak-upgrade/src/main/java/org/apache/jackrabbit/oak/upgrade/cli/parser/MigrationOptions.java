@@ -48,13 +48,7 @@ public class MigrationOptions {
 
     private final String[] excludePaths;
 
-    private final String[] fragmentPaths;
-
-    private final String[] excludeFragments;
-
     private final String[] mergePaths;
-
-    private final boolean includeIndex;
 
     private final boolean failOnError;
 
@@ -123,10 +117,7 @@ public class MigrationOptions {
         }
         this.includePaths = checkPaths(args.getOptionList(OptionParserFactory.INCLUDE_PATHS));
         this.excludePaths = checkPaths(args.getOptionList(OptionParserFactory.EXCLUDE_PATHS));
-        this.fragmentPaths = checkPaths(args.getOptionList(OptionParserFactory.FRAGMENT_PATHS));
-        this.excludeFragments = args.getOptionList(OptionParserFactory.EXCLUDE_FRAGMENTS);
         this.mergePaths = checkPaths(args.getOptionList(OptionParserFactory.MERGE_PATHS));
-        this.includeIndex = args.hasOption(OptionParserFactory.INCLUDE_INDEX);
         this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
         this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
         this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
@@ -187,14 +178,6 @@ public class MigrationOptions {
         return excludePaths;
     }
 
-    public String[] getFragmentPaths() {
-        return fragmentPaths;
-    }
-
-    public String[] getExcludeFragments() {
-        return excludeFragments;
-    }
-
     public String[] getMergePaths() {
         return mergePaths;
     }
@@ -213,10 +196,6 @@ public class MigrationOptions {
 
     public boolean isSkipNameCheck() {
         return skipNameCheck;
-    }
-
-    public boolean isIncludeIndex() {
-        return includeIndex;
     }
 
     public boolean isIgnoreMissingBinaries() {
@@ -346,14 +325,6 @@ public class MigrationOptions {
             log.info("paths to exclude: {}", (Object) excludePaths);
         }
 
-        if (fragmentPaths != null) {
-            log.info("paths supporting fragments: {}", (Object) fragmentPaths);
-        }
-
-        if (excludeFragments != null) {
-            log.info("fragments to exclude: {}", (Object) excludeFragments);
-        }
-
         if (failOnError) {
             log.info("Unreadable nodes will cause failure of the entire transaction");
         }
@@ -368,10 +339,6 @@ public class MigrationOptions {
 
         if (skipNameCheck) {
             log.info("Test for long-named nodes will be disabled");
-        }
-
-        if (includeIndex) {
-            log.info("Index data for the paths {} will be copied", (Object) includePaths);
         }
 
         if (ignoreMissingBinaries) {

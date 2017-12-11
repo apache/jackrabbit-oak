@@ -38,7 +38,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -74,9 +74,9 @@ public abstract class AbstractImportTest {
     public void before() throws Exception {
         ConfigurationParameters config = getConfigurationParameters();
         if (config != null) {
-            securityProvider = new SecurityProviderImpl(config);
+            securityProvider = new SecurityProviderBuilder().with(config).build();
         } else {
-            securityProvider = new SecurityProviderImpl();
+            securityProvider = new SecurityProviderBuilder().build();
         }
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setFailTraversal(true);

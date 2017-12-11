@@ -227,6 +227,7 @@ public class PropertyDefinition {
                 ", useInSuggest=" + useInSuggest+
                 ", nullCheckEnabled=" + nullCheckEnabled +
                 ", notNullCheckEnabled=" + notNullCheckEnabled +
+                ", function=" + function +
                 '}';
     }
 

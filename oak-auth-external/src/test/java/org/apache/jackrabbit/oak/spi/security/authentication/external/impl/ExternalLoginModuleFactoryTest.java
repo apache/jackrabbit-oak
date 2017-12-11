@@ -47,9 +47,6 @@ import static org.junit.Assert.assertTrue;
 
 public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase {
 
-    @Rule
-    public final OsgiContext context = new OsgiContext();
-
     @Override
     protected Oak withEditors(Oak oak) {
         super.withEditors(oak);

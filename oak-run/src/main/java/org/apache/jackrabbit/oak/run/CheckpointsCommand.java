@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 
 import com.google.common.io.Closer;
@@ -34,6 +33,8 @@ import com.mongodb.MongoURI;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 
 class CheckpointsCommand implements Command {
 
@@ -63,9 +64,9 @@ class CheckpointsCommand implements Command {
             if (connection.startsWith(MongoURI.MONGODB_PREFIX)) {
                 MongoClientURI uri = new MongoClientURI(connection);
                 MongoClient client = new MongoClient(uri);
-                final DocumentNodeStore store = new DocumentMK.Builder()
+                final DocumentNodeStore store = newMongoDocumentNodeStoreBuilder()
                         .setMongoDB(client.getDB(uri.getDatabase()))
-                        .getNodeStore();
+                        .build();
                 closer.register(Utils.asCloseable(store));
                 cps = Checkpoints.onDocumentMK(store);
             } else {

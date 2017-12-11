@@ -33,7 +33,7 @@ import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -81,9 +81,9 @@ public class ImportIgnoreTest {
             params.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
             ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(params));
 
-            securityProvider = new SecurityProviderImpl(config);
+            securityProvider = new SecurityProviderBuilder().with(config).build();
         } else {
-            securityProvider = new SecurityProviderImpl();
+            securityProvider = new SecurityProviderBuilder().build();
         }
 
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();

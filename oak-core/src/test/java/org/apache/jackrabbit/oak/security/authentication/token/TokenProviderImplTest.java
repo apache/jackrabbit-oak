@@ -411,21 +411,6 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         assertEquals(userId, info.getUserId());
     }
 
-    @Test
-    public void testTokenNodeName() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
-        Tree tokenTree = getTokenTree(info);
-
-        // name must not be a uuid which is only used in case of conflict during
-        // creation which is not expected here.
-        try {
-            UUID.fromString(tokenTree.getName());
-            fail("UUID-name should only be used in case of conflict");
-        } catch (IllegalArgumentException e) {
-            // success
-        }
-    }
-
     //--------------------------------------------------------------------------
     private static void assertTokenInfo(TokenInfo info, String userId) {
         assertNotNull(info);

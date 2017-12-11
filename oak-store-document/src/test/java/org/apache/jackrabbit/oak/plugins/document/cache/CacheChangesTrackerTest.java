@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -145,6 +144,19 @@ public class CacheChangesTrackerTest {
 
         cache.invalidate("1:/aaa");
         assertFalse(tracker.mightBeenAffected("1:/aaa"));
+    }
+
+
+    @Test
+    public void testOnlyExternalChanges() {
+        NodeDocumentCache cache = createCache();
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit("/parent"), getKeyUpperLimit("/parent"));
+
+        cache.putNonConflictingDocs(tracker, ImmutableSet.of(createDoc("2:/parent/local")));
+        assertFalse(tracker.mightBeenAffected("2:/parent/local"));
+
+        cache.put(createDoc("2:/parent/external"));
+        assertTrue(tracker.mightBeenAffected("2:/parent/external"));
     }
 
     private NodeDocumentCache createCache() {

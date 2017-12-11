@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 
 class BenchmarkBase {
 
-    private static class TemporaryFolder implements Closeable {
+    static class TemporaryFolder implements Closeable {
 
         private final File folder;
 
