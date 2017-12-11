@@ -91,14 +91,15 @@ public class DocumentStoreIndexer implements Closeable{
         DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
-        progressReporter.reindexingTraversalStart("/");
-
         NodeStateEntryTraverser nsep =
                 new NodeStateEntryTraverser(rootDocumentState.getRootRevision(),
                         nodeStore, getMongoDocumentStore())
                         .withProgressCallback(this::reportDocumentRead)
                         .withPathPredicate(indexer::shouldInclude);
         closer.register(nsep);
+
+        //As first traversal is for dumping change the message prefix
+        progressReporter.setMessagePrefix("Dumping");
 
         //TODO Use flatFileStore only if we have relative nodes to be indexed
         FlatFileStore flatFileStore = new FlatFileNodeStoreBuilder(nsep, indexHelper.getWorkDir())
@@ -107,7 +108,10 @@ public class DocumentStoreIndexer implements Closeable{
                 .build();
         closer.register(flatFileStore);
 
+        progressReporter.reindexingTraversalStart("/");
+
         for (NodeStateEntry entry : flatFileStore) {
+            reportDocumentRead(entry.getPath());
             indexer.index(entry);
         }
 
