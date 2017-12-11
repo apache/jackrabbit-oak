@@ -34,7 +34,6 @@ import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -201,7 +200,6 @@ public class DocumentNodeStoreServiceTest {
         assertFalse(dns.getNodeCachePredicate().apply("/x"));
     }
 
-    @Ignore("SLING-7233")
     @Test
     public void preset() throws Exception {
         MockOsgi.setConfigForPid(context.bundleContext(),
@@ -214,6 +212,7 @@ public class DocumentNodeStoreServiceTest {
 
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         MongoDocumentStore mds = getMongoDocumentStore(store);
+        assertNotNull(mds);
         DB db = MongoDocumentStoreTestHelper.getDB(mds);
         assertTrue(db.getMongo().getMongoOptions().isSocketKeepAlive());
     }
