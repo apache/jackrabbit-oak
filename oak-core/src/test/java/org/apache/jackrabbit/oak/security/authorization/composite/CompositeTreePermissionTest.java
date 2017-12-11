@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
@@ -56,7 +55,7 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
         TreeUtil.addChild(rootNode, "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         root.commit();
 
-        readOnlyRoot = RootFactory.createReadOnlyRoot(root);
+        readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
         rootTree = (ImmutableTree) readOnlyRoot.getTree("/");
 
         fullScopeProvider = new FullScopeProvider(readOnlyRoot);

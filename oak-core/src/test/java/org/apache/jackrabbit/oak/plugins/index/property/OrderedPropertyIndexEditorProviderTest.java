@@ -32,12 +32,10 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -59,11 +57,9 @@ public class OrderedPropertyIndexEditorProviderTest {
     private final String DEPRECATION_MESSAGE = OrderedIndex.DEPRECATION_MESSAGE.replace("{}",
             "/" + INDEX_DEFINITIONS_NAME + "/" + indexName);
     
-    private Tree createIndexDef(NodeBuilder root) throws RepositoryException {
-        return IndexUtils
-        .createIndexDefinition(
-            TreeFactory.createTree(root
-                .child(IndexConstants.INDEX_DEFINITIONS_NAME)), indexName, false,
+    private NodeBuilder createIndexDef(NodeBuilder root) throws RepositoryException {
+        return IndexUtils.createIndexDefinition(
+            root.child(IndexConstants.INDEX_DEFINITIONS_NAME), indexName, false,
             ImmutableList.of(indexedProperty), null, OrderedIndex.TYPE, null);
     }
     

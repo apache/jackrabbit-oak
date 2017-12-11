@@ -28,8 +28,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
@@ -110,7 +110,8 @@ public class PrivilegeContextTest {
 
     @Test
     public void testEmptyNotDefinesTree() {
-        assertFalse(ctx.definesTree(TreeFactory.createReadOnlyTree(EmptyNodeState.EMPTY_NODE)));
+        TreeProviderService treeProvider = new TreeProviderService();
+        assertFalse(ctx.definesTree(treeProvider.createReadOnlyTree(EmptyNodeState.EMPTY_NODE)));
     }
 
     @Test
