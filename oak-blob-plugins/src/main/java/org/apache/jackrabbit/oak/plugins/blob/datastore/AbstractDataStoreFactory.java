@@ -38,7 +38,6 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Dictionary;
@@ -73,33 +72,21 @@ public abstract class AbstractDataStoreFactory {
             String[] description = desc.toArray(new String[0]);
             OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
 
-            try {
-                final DataStore dataStore = AbstractDataStoreService.registerDataStore(
-                        context,
-                        config,
-                        createDataStore(context, config),
-                        getStatisticsProvider(),
-                        description,
-                        closer
-                );
-                if (null != dataStore) {
-                    Map<String, Object> props = Maps.newConcurrentMap();
-                    props.put(DataStoreProvider.ROLE, role);
+            final DataStore dataStore = createDataStore(context, config);
+            if (null != dataStore) {
+                Map<String, Object> props = Maps.newConcurrentMap();
+                props.put(DataStoreProvider.ROLE, role);
 
-                    closer.register(asCloseable(whiteboard.register(
-                            DataStoreProvider.class,
-                            new DataStoreProvider() {
-                                @Override public String getRole() { return role; }
-                                @Override public DataStore getDataStore() { return dataStore; }
-                            },
-                            props
-                    )));
+                closer.register(asCloseable(whiteboard.register(
+                        DataStoreProvider.class,
+                        new DataStoreProvider() {
+                            @Override public String getRole() { return role; }
+                            @Override public DataStore getDataStore() { return dataStore; }
+                        },
+                        props
+                )));
 
-                    log.info("Registered DataStoreProvider of type {} with role {}", dataStore.getClass().getSimpleName(), role);
-                }
-            }
-            catch (RepositoryException e) {
-                throw new IOException(e);
+                log.info("Registered DataStoreProvider of type {} with role {}", dataStore.getClass().getSimpleName(), role);
             }
         }
     }
