@@ -157,7 +157,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
 
     @Override
     public <T extends Document> int remove(final Collection<T> collection,
-                                           final Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                           final Map<String, Long> toRemove) {
         try {
             logMethod("remove", collection, toRemove);
             return logResult(new Callable<Integer>() {
@@ -199,25 +199,6 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
                 @Override
                 public Boolean call() throws Exception {
                     return store.create(collection, updateOps);
-                }
-            });
-        } catch (Exception e) {
-            logException(e);
-            throw convert(e);
-        }
-    }
-
-    @Override
-    public <T extends Document> void update(final Collection<T> collection,
-                                            final List<String> keys,
-                                            final UpdateOp updateOp) {
-        try {
-            logMethod("update", collection, keys, updateOp);
-            logResult(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    store.update(collection, keys, updateOp);
-                    return null;
                 }
             });
         } catch (Exception e) {
@@ -369,6 +350,14 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
     @Override
     public Map<String, String> getMetadata() {
         return store.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        Map<String, String> result = store.getStats();
+        logMethod("getStats", result);
+        return result;
     }
 
     @Override

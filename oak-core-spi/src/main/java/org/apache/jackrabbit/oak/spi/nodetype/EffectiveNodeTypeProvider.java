@@ -23,10 +23,12 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * EffectiveNodeTypeProvider... TODO
  */
+@ProviderType
 public interface EffectiveNodeTypeProvider {
 
     /**

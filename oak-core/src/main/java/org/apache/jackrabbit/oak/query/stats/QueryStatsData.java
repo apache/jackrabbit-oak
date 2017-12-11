@@ -140,6 +140,7 @@ public class QueryStatsData {
         long time;
         
         public void execute(long nanos) {
+            QueryRecorder.record(query, internal);
             executeCount++;
             lastExecutedMillis = System.currentTimeMillis();
             time += nanos;

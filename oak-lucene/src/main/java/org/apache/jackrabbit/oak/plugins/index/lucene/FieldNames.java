@@ -128,4 +128,14 @@ public final class FieldNames {
     public static String createFacetFieldName(String pname) {
         return pname + "_facet";
     }
+
+    /**
+     * @return if {@code field} represents a field property indexed data
+     */
+    static boolean isPropertyField(String field) {
+        return !field.startsWith(ANALYZED_FIELD_PREFIX)
+                && !field.startsWith(FULLTEXT_RELATIVE_NODE)
+                && !field.startsWith(":")
+                && !field.endsWith("_facet");
+    }
 }

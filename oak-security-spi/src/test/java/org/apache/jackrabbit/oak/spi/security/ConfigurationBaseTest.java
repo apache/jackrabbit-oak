@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -39,6 +41,33 @@ public class ConfigurationBaseTest {
         assertSame(securityProvider, base.getSecurityProvider());
     }
 
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetRootProvider() {
+        base.getRootProvider();
+    }
+
+    @Test
+    public void testSetRootProvider() {
+        RootProvider rootProvider = Mockito.mock(RootProvider.class);
+        base.setRootProvider(rootProvider);
+
+        assertSame(rootProvider, base.getRootProvider());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testTreeProvider() {
+        base.getTreeProvider();
+    }
+
+    @Test
+    public void testSetTreeProvider() {
+        TreeProvider treeProvider = Mockito.mock(TreeProvider.class);
+        base.setTreeProvider(treeProvider);
+
+        assertSame(treeProvider, base.getTreeProvider());
+    }
+
     @Test
     public void testGetParameters() {
         assertSame(ConfigurationParameters.EMPTY, base.getParameters());
@@ -50,5 +79,15 @@ public class ConfigurationBaseTest {
 
         base.setParameters(params);
         assertEquals(params, base.getParameters());
+    }
+
+    @Test
+    public void testNonOsgiConstructor() {
+        SecurityProvider sp = new OpenSecurityProvider();
+        ConfigurationParameters config = ConfigurationParameters.of("a", "value");
+        ConfigurationBase base = new ConfigurationBase(sp, config){};
+
+        assertSame(sp, base.getSecurityProvider());
+        assertSame(config, base.getParameters());
     }
 }

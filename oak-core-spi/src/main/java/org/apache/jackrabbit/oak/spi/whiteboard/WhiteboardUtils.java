@@ -34,12 +34,22 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.DEFAULT;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_SINGLE;
+
 public class WhiteboardUtils {
 
     /**
      * JMX Domain name under which Oak related JMX MBeans are registered
      */
     public static final String JMX_OAK_DOMAIN = "org.apache.jackrabbit.oak";
+
+    public enum ScheduleExecutionInstanceTypes {
+        DEFAULT,
+        RUN_ON_SINGLE,
+        RUN_ON_LEADER
+    }
 
     public static Registration scheduleWithFixedDelay(
             Whiteboard whiteboard, Runnable runnable, long delayInSeconds) {
@@ -56,13 +66,25 @@ public class WhiteboardUtils {
     public static Registration scheduleWithFixedDelay(
             Whiteboard whiteboard, Runnable runnable, Map<String, Object> extraProps, long delayInSeconds, boolean runOnSingleClusterNode,
             boolean useDedicatedPool) {
+        return scheduleWithFixedDelay(whiteboard, runnable, extraProps, delayInSeconds,
+                runOnSingleClusterNode ? RUN_ON_SINGLE : DEFAULT,
+                useDedicatedPool);
+    }
+
+    public static Registration scheduleWithFixedDelay(
+            Whiteboard whiteboard, Runnable runnable, Map<String, Object> extraProps, long delayInSeconds,
+            ScheduleExecutionInstanceTypes scheduleExecutionInstanceTypes, boolean useDedicatedPool) {
+
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
                 .putAll(extraProps)
                 .put("scheduler.period", delayInSeconds)
                 .put("scheduler.concurrent", false);
-        if (runOnSingleClusterNode) {
-            //Make use of feature while running in Sling SLING-2979
+        if (scheduleExecutionInstanceTypes == RUN_ON_SINGLE) {
+            //Make use of feature while running in Sling SLING-5387
             builder.put("scheduler.runOn", "SINGLE");
+        } else if (scheduleExecutionInstanceTypes == RUN_ON_LEADER) {
+            //Make use of feature while running in Sling SLING-2979
+            builder.put("scheduler.runOn", "LEADER");
         }
         if (useDedicatedPool) {
             //Make use of dedicated threadpool SLING-5831

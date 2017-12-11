@@ -50,8 +50,10 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private static final String MERGE_SUCCESS_TIME = "DOCUMENT_NS_MERGE_SUCCESS_TIME";
     private static final String MERGE_SUCCESS_SUSPENDED = "DOCUMENT_NS_MERGE_SUCCESS_SUSPENDED";
     private static final String MERGE_SUCCESS_EXCLUSIVE = "DOCUMENT_NS_MERGE_SUCCESS_EXCLUSIVE";
-
     static final String MERGE_FAILED_EXCLUSIVE = "DOCUMENT_NS_MERGE_FAILED_EXCLUSIVE";
+
+    static final String BRANCH_COMMIT_COUNT = "DOCUMENT_NS_BRANCH_COMMIT_COUNT";
+    static final String MERGE_BRANCH_COMMIT_COUNT = "DOCUMENT_NS_MERGE_BRANCH_COMMIT_COUNT";
 
     private final TimerStats readHead;
     private final TimerStats readCacheInvalidate;
@@ -75,8 +77,10 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final TimerStats mergeSuccessTime;
     private final MeterStats mergeSuccessExclusive;
     private final MeterStats mergeSuccessSuspended;
-
     private final MeterStats mergeFailedExclusive;
+
+    private final MeterStats branchCommitRate;
+    private final MeterStats mergeBranchCommitRate;
 
 
     public DocumentNodeStoreStats(StatisticsProvider sp) {
@@ -102,8 +106,10 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         mergeSuccessTime = sp.getTimer(MERGE_SUCCESS_TIME, StatsOptions.METRICS_ONLY);
         mergeSuccessExclusive = sp.getMeter(MERGE_SUCCESS_EXCLUSIVE, StatsOptions.METRICS_ONLY);
         mergeSuccessSuspended = sp.getMeter(MERGE_SUCCESS_SUSPENDED, StatsOptions.METRICS_ONLY);
-
         mergeFailedExclusive = sp.getMeter(MERGE_FAILED_EXCLUSIVE, StatsOptions.DEFAULT); //Enable time series
+
+        branchCommitRate = sp.getMeter(BRANCH_COMMIT_COUNT, StatsOptions.DEFAULT);
+        mergeBranchCommitRate = sp.getMeter(MERGE_BRANCH_COMMIT_COUNT, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -135,10 +141,20 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     }
 
     @Override
-    public void doneMerge(int numRetries, long timeTaken, boolean suspended, boolean exclusive) {
+    public void doneBranchCommit() {
+        branchCommitRate.mark();
+    }
+
+    @Override
+    public void doneMergeBranch(int numCommits) {
+        mergeBranchCommitRate.mark(numCommits);
+    }
+
+    @Override
+    public void doneMerge(int numRetries, long time, boolean suspended, boolean exclusive) {
         mergeSuccessRate.mark();
         mergeSuccessRetries.update(numRetries);
-        mergeSuccessTime.update(timeTaken, TimeUnit.MILLISECONDS);
+        mergeSuccessTime.update(time, TimeUnit.MILLISECONDS);
 
         if (exclusive) {
             mergeSuccessExclusive.mark();

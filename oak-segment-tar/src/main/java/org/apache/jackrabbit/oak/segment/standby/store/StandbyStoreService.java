@@ -22,9 +22,11 @@ import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
 import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
 
 import java.io.Closeable;
+import java.io.File;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -156,7 +158,7 @@ public class StandbyStoreService {
         int readTimeout = PropertiesUtil.toInteger(props.get(READ_TIMEOUT), READ_TIMEOUT_DEFAULT);
         boolean clean = PropertiesUtil.toBoolean(props.get(AUTO_CLEAN), AUTO_CLEAN_DEFAULT);
 
-        StandbyClientSync standbyClientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean);
+        StandbyClientSync standbyClientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
         closer.register(standbyClientSync);
 
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();

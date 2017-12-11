@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ReaderRefreshPolicy;
@@ -41,7 +42,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -275,10 +275,16 @@ public class IndexNodeManager {
         final IndexSearcher searcher;
         final List<LuceneIndexReader> nrtReaders;
         final int searcherId = SEARCHER_ID_COUNTER.incrementAndGet();
+        final IndexStatistics indexStatistics;
 
         public SearcherHolder(IndexSearcher searcher, List<LuceneIndexReader> nrtReaders) {
             this.searcher = searcher;
             this.nrtReaders = nrtReaders;
+            this.indexStatistics = new IndexStatistics(searcher.getIndexReader());
+        }
+
+        public IndexStatistics getIndexStatistics() {
+            return indexStatistics;
         }
     }
 
@@ -305,6 +311,11 @@ public class IndexNodeManager {
         @Override
         public IndexSearcher getSearcher() {
             return holder.searcher;
+        }
+
+        @Override
+        public IndexStatistics getIndexStatistics() {
+            return holder.getIndexStatistics();
         }
 
         @Override

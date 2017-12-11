@@ -106,10 +106,10 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                           Map<String, Long> toRemove) {
         int num = 0;
         // remove individually
-        for (Map.Entry<String, Map<UpdateOp.Key, UpdateOp.Condition>> rm : toRemove.entrySet()) {
+        for (Map.Entry<String, Long> rm : toRemove.entrySet()) {
             maybeFail();
             num += super.remove(collection, singletonMap(rm.getKey(), rm.getValue()));
         }
@@ -137,17 +137,6 @@ class FailingDocumentStore extends DocumentStoreWrapper {
             }
         }
         return true;
-    }
-
-    @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        // update individually
-        for (String k : keys) {
-            maybeFail();
-            super.update(collection, singletonList(k), updateOp);
-        }
     }
 
     @Override

@@ -682,6 +682,11 @@ public class SQL2Parser {
             } else {
                 op = factory.fullTextSearchScore(readName());
             }
+        } else if ("COALESCE".equalsIgnoreCase(functionName)) {
+            DynamicOperandImpl op1 = parseDynamicOperand();
+            read(",");
+            DynamicOperandImpl op2 = parseDynamicOperand();
+            op = factory.coalesce(op1, op2);
         } else if ("LOWER".equalsIgnoreCase(functionName)) {
             op = factory.lowerCase(parseDynamicOperand());
         } else if ("UPPER".equalsIgnoreCase(functionName)) {
@@ -691,7 +696,7 @@ public class SQL2Parser {
             read(",");
             op = factory.propertyValue(pv.getSelectorName(), pv.getPropertyName(), readString().getValue(Type.STRING));
         } else {
-            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, LOWER, UPPER, or PROPERTY");
+            throw getSyntaxError("LENGTH, NAME, LOCALNAME, SCORE, COALESCE, LOWER, UPPER, or PROPERTY");
         }
         read(")");
         return op;
@@ -904,7 +909,7 @@ public class SQL2Parser {
                         read(")");
                     }
                     readOptionalAlias(column);
-                } else {                    
+                } else {
                     column.propertyName = readName();
                     if (column.propertyName.equals("rep:spellcheck")) {
                         if (readIf("(")) {

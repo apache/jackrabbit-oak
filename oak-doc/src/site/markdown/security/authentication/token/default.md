@@ -97,6 +97,15 @@ that the expiration time has not been reset. The token will consequently expire
 and the user will need to login again using the configured login
 mechanism (e.g. using the credentials support for token creation).
 
+#### Token Cleanup
+
+Automatic token cleanup can be enabled by setting the `tokenCleanupThreshold` parameter
+to a value larger than `0` (`0` means disabled). This will trigger a cleanup call if
+the number of tokens under a user exceeds this value. (As an implementation detail a
+throttling method was introduced to only allow the call to go through 1/8 times).
+
+This is available with Oak 1.7.12 on, see also [OAK-6818]for additional information.
+
 <a name="representation"/>
 ### Representation in the Repository
 
@@ -195,7 +204,7 @@ all of type `Constraint` with the following codes:
 <a name="configuration"/>
 ### Configuration
 
-The default Oak [TokenConfiguration] allows to define the following configuration
+The default Oak `TokenConfiguration` allows to define the following configuration
 options for the `TokenProvider`:
 
 #### Configuration Parameters
@@ -208,6 +217,7 @@ options for the `TokenProvider`:
 | PARAM_PASSWORD_HASH_ALGORITHM       | String  | SHA-256                  |
 | PARAM_PASSWORD_HASH_ITERATIONS      | int     | 1000                     |
 | PARAM_PASSWORD_SALT_SIZE            | int     | 8                        |
+| PARAM_TOKEN_CLEANUP_THRESHOLD       | long    | 0 (no cleanup)           |
 | | | |
 
 

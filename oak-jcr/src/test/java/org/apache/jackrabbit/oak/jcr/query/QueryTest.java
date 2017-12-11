@@ -46,6 +46,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -379,22 +380,55 @@ public class QueryTest extends AbstractRepositoryTest {
         assertFalse(it.hasNext());
 
     }
-    
+
+    // OAK-1085
     @Test
     public void relativeNotExistsProperty() throws Exception {
+        String oldCompatValue = System.getProperty("oak.useOldInexistenceCheck");
+        System.setProperty("oak.useOldInexistenceCheck", "true");
+        try {
+            Session session = getAdminSession();
+            Node content = session.getRootNode().addNode("test");
+            content.addNode("one").addNode("child").setProperty("prop", "hello");
+            content.addNode("two").addNode("child");
+            session.save();
+            String query = "//*[not(child/@prop)]";
+            QueryResult r = session.getWorkspace().getQueryManager().createQuery(
+                    query, "xpath").execute();
+            NodeIterator it = r.getNodes();
+            assertTrue(it.hasNext());
+            String path = it.nextNode().getPath();
+            assertEquals("/test/two", path);
+            assertFalse(it.hasNext());
+        } finally {
+            if (oldCompatValue == null) {
+                System.clearProperty("oak.useOldInexistenceCheck");
+            } else {
+                System.setProperty("oak.useOldInexistenceCheck", oldCompatValue);
+            }
+        }
+    }
+
+    //OAK-6838
+    @Test
+    public void relativeNotExistsProperty_New() throws Exception {
         Session session = getAdminSession();
         Node content = session.getRootNode().addNode("test");
         content.addNode("one").addNode("child").setProperty("prop", "hello");
         content.addNode("two").addNode("child");
         session.save();
-        String query = "//*[not(child/@prop)]";
+        String query = "/jcr:root/test//*[not(child/@prop)]";
         QueryResult r = session.getWorkspace().getQueryManager().createQuery(
                 query, "xpath").execute();
         NodeIterator it = r.getNodes();
-        assertTrue(it.hasNext());
-        String path = it.nextNode().getPath();
-        assertEquals("/test/two", path);
-        assertFalse(it.hasNext());
+
+        Set<String> expected = Sets.newHashSet("/test/two", "/test/two/child", "/test/one/child");
+        while (it.hasNext()) {
+            String path = it.nextNode().getPath();
+            assertTrue("Unexpected path " + path, expected.contains(path));
+            expected.remove(path);
+        }
+        assertTrue("These paths not part of result: " + expected, expected.isEmpty());
     }
 
     @Test

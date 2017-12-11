@@ -64,6 +64,7 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 
@@ -73,6 +74,7 @@ import org.osgi.service.metatype.annotations.Option;
 @Component(
         service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
         property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl")
+@Designate(ocd = AuthorizationConfigurationImpl.Configuration.class)
 public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
     
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak AuthorizationConfiguration")
@@ -94,7 +96,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
                         @Option(label = ImportBehavior.NAME_BESTEFFORT, value = ImportBehavior.NAME_BESTEFFORT),
                         @Option(label = ImportBehavior.NAME_IGNORE, value = ImportBehavior.NAME_IGNORE)
                 })
-        String importBehaviour() default ImportBehavior.NAME_ABORT;
+        String importBehavior() default ImportBehavior.NAME_ABORT;
 
         @AttributeDefinition(
                 name = "Readable Paths",
@@ -125,7 +127,8 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    private void activate(Map<String, Object> properties) {
+    // reference to @Configuration class needed for correct DS xml generation
+    private void activate(Configuration configuration, Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
 

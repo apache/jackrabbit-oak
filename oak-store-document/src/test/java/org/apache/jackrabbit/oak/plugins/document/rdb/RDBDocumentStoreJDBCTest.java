@@ -80,7 +80,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         assumeTrue(super.rdbDataSource != null);
 
         dbInfo = RDBDocumentStoreDB.getValue(((RDBDocumentStore) super.ds).getMetadata().get("db"));
-        RDBDocumentSerializer ser = new RDBDocumentSerializer(super.ds,  Collections.singleton("_id"));
+        RDBDocumentSerializer ser = new RDBDocumentSerializer(super.ds);
         jdbc = new RDBDocumentStoreJDBC(dbInfo, ser, 100, 10000);
     }
 

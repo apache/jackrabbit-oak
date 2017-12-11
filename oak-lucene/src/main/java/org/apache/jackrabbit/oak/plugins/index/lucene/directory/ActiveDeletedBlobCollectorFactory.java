@@ -24,8 +24,9 @@ import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker.Options;
@@ -64,7 +65,10 @@ public class ActiveDeletedBlobCollectorFactory {
          * @return an instance of {@link BlobDeletionCallback} that can be used to track deleted blobs
          */
         BlobDeletionCallback getBlobDeletionCallback();
+
         void purgeBlobsDeleted(long before, GarbageCollectableBlobStore blobStore);
+
+        void cancelBlobCollection();
     }
 
     public static ActiveDeletedBlobCollector NOOP = new ActiveDeletedBlobCollector() {
@@ -75,6 +79,11 @@ public class ActiveDeletedBlobCollectorFactory {
 
         @Override
         public void purgeBlobsDeleted(long before, GarbageCollectableBlobStore blobStore) {
+
+        }
+
+        @Override
+        public void cancelBlobCollection() {
 
         }
     };
@@ -133,6 +142,8 @@ public class ActiveDeletedBlobCollectorFactory {
 
         private final ExecutorService executorService;
 
+        private volatile boolean cancelled;
+
         private static final String BLOB_FILE_PATTERN_PREFIX = "blobs-";
         private static final String BLOB_FILE_PATTERN_SUFFIX = ".txt";
         private static final String BLOB_FILE_PATTERN = BLOB_FILE_PATTERN_PREFIX + "%s" + BLOB_FILE_PATTERN_SUFFIX;
@@ -166,6 +177,9 @@ public class ActiveDeletedBlobCollectorFactory {
          * @param blobStore used to purge blobs/chunks
          */
         public void purgeBlobsDeleted(long before, @Nonnull GarbageCollectableBlobStore blobStore) {
+            cancelled = false;
+            long start = clock.getTime();
+            LOG.info("Starting purge of blobs deleted before {}", before);
             long numBlobsDeleted = 0;
             long numChunksDeleted = 0;
 
@@ -185,9 +199,13 @@ public class ActiveDeletedBlobCollectorFactory {
             }
 
             long lastCheckedBlobTimestamp = readLastCheckedBlobTimestamp();
+            long lastDeletedBlobTimestamp = lastCheckedBlobTimestamp;
             String currInUseFileName = deletedBlobsFileWriter.inUseFileName;
             deletedBlobsFileWriter.releaseInUseFile();
             for (File deletedBlobListFile : FileUtils.listFiles(rootDirectory, blobFileNameFilter, null)) {
+                if (cancelled) {
+                    break;
+                }
                 if (deletedBlobListFile.getName().equals(deletedBlobsFileWriter.inUseFileName)) {
                     continue;
                 }
@@ -202,6 +220,10 @@ public class ActiveDeletedBlobCollectorFactory {
                 if (timestamp < before) {
                     try {
                         for (String deletedBlobLine : FileUtils.readLines(deletedBlobListFile, (String) null)) {
+                            if (cancelled) {
+                                break;
+                            }
+
                             String[] parsedDeletedBlobIdLine = deletedBlobLine.split("\\|", 3);
                             if (parsedDeletedBlobIdLine.length != 3) {
                                 LOG.warn("Unparseable line ({}) in file {}. It won't be retried.",
@@ -218,6 +240,8 @@ public class ActiveDeletedBlobCollectorFactory {
                                     if (blobDeletionTimestamp >= before) {
                                         break;
                                     }
+
+                                    lastDeletedBlobTimestamp = Math.max(lastDeletedBlobTimestamp, blobDeletionTimestamp);
 
                                     List<String> chunkIds = Lists.newArrayList(blobStore.resolveChunks(deletedBlobId));
                                     if (chunkIds.size() > 0) {
@@ -240,6 +264,8 @@ public class ActiveDeletedBlobCollectorFactory {
                                     LOG.warn("Couldn't parse blobTimestamp(" + parsedDeletedBlobIdLine[1] +
                                             "). deletedBlobLine - " + deletedBlobLine +
                                             "; file - " + deletedBlobListFile.getName(), nfe);
+                                } catch (DataStoreException dse) {
+                                    LOG.debug("Exception occurred while attempting to delete blob " + deletedBlobId, dse);
                                 } catch (Exception e) {
                                     LOG.warn("Exception occurred while attempting to delete blob " + deletedBlobId, e);
                                 }
@@ -253,14 +279,19 @@ public class ActiveDeletedBlobCollectorFactory {
                     // OAK-6314 revealed that blobs appended might not be immediately available. So, we'd skip
                     // the file that was being processed when purge started - next cycle would re-process and
                     // delete
-                    if (!deletedBlobListFile.getName().equals(currInUseFileName) && !deletedBlobListFile.delete()) {
-                        LOG.warn("File {} couldn't be deleted while all blobs listed in it have been purged", deletedBlobListFile);
+                    if (!deletedBlobListFile.getName().equals(currInUseFileName)) {
+                        if (!deletedBlobListFile.delete()) {
+                            LOG.warn("File {} couldn't be deleted while all blobs listed in it have been purged", deletedBlobListFile);
+                        } else {
+                            LOG.debug("File {} deleted", deletedBlobListFile);
+                        }
                     }
                 } else {
                     LOG.debug("Skipping {} as its timestamp is newer than {}", deletedBlobListFile.getName(), before);
                 }
             }
 
+            long startBlobTrackerSyncTime = clock.getTime();
             // Synchronize deleted blob ids with the blob id tracker
             try {
                 Closeables.close(idTempDeleteWriter, true);
@@ -274,9 +305,20 @@ public class ActiveDeletedBlobCollectorFactory {
             } catch(Exception e) {
                 LOG.warn("Error refreshing tracked blob ids", e);
             }
+            long endBlobTrackerSyncTime = clock.getTime();
+            LOG.info("Synchronizing changes with blob tracker took {} ms", endBlobTrackerSyncTime - startBlobTrackerSyncTime);
 
-            LOG.info("Deleted {} blobs contained in {} chunks", numBlobsDeleted, numChunksDeleted);
-            writeOutLastCheckedBlobTimestamp(before);
+            if (cancelled) {
+                LOG.info("Deletion run cancelled by user");
+            }
+            long end = clock.getTime();
+            LOG.info("Deleted {} blobs contained in {} chunks in {} ms", numBlobsDeleted, numChunksDeleted, end - start);
+            writeOutLastCheckedBlobTimestamp(lastDeletedBlobTimestamp);
+        }
+
+        @Override
+        public void cancelBlobCollection() {
+            cancelled = true;
         }
 
         private long readLastCheckedBlobTimestamp() {

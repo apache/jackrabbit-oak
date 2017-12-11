@@ -22,7 +22,9 @@ package org.apache.jackrabbit.oak.index;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -33,9 +35,9 @@ import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -126,8 +128,8 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
     @Test
     public void bundling() throws Exception{
-        DocumentMK.Builder docBuilder = builderProvider.newBuilder().setMongoDB(getConnection().getDB());
-        DocumentNodeStore store = docBuilder.getNodeStore();
+        DocumentNodeStoreBuilder<?> docBuilder = builderProvider.newBuilder().setMongoDB(getConnection().getDB());
+        DocumentNodeStore store = docBuilder.build();
 
         Whiteboard wb = new DefaultWhiteboard();
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
@@ -261,6 +263,16 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
             if (p.test(entry.getPath())) {
                 paths.add(entry.getPath());
             }
+        }
+
+        @Override
+        public boolean indexesRelativeNodes() {
+            return false;
+        }
+
+        @Override
+        public Set<String> getRelativeIndexedNodeNames() {
+            return Collections.emptySet();
         }
 
         @Override

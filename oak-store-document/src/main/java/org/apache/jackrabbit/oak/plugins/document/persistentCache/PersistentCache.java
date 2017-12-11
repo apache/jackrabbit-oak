@@ -80,7 +80,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private int readGeneration = -1;
     private int writeGeneration;
     private long maxBinaryEntry = 1024 * 1024;
-    private int autoCompact = 50;
+    private int autoCompact = 0;
     private boolean appendOnly;
     private boolean manualCommit;
     private Broadcaster broadcaster;

@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -57,9 +56,6 @@ import static org.junit.Assert.assertTrue;
 public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginModuleTestBase {
 
     private static final String NON_EXISTING_NAME = "nonExisting";
-
-    @Rule
-    public final OsgiContext context = new OsgiContext();
 
     private Root r;
     private UserManager userManager;
@@ -80,10 +76,6 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginModuleTe
         valueFactory = getValueFactory(r);
 
         syncConfig.user().setDynamicMembership(true);
-
-        // register the ExternalPrincipal configuration in order to have it's
-        // activate method invoked.
-        context.registerInjectActivateService(externalPrincipalConfiguration);
 
         // first configuration based on test base-setup with
         // - dynamic membership = true

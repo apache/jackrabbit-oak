@@ -122,6 +122,26 @@ public class CompositeCredentialsSupportTest {
         assertTrue(attributesD.isEmpty());
     }
 
+    @Test
+    public void testEmpty() {
+        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> newHashSet());
+
+        assertTrue(cs.getCredentialClasses().isEmpty());
+        assertTrue(cs.getAttributes(new TestCredentials()).isEmpty());
+    }
+
+    @Test
+    public void testSingleValued() {
+        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> newHashSet(SimpleCredentialsSupport.getInstance()));
+
+        assertEquals(SimpleCredentialsSupport.getInstance().getCredentialClasses(), cs.getCredentialClasses());
+        assertTrue(cs.getAttributes(new TestCredentials()).isEmpty());
+
+        SimpleCredentials creds = new SimpleCredentials("userid", new char[0]);
+        creds.setAttribute("attr", "value");
+        assertEquals(SimpleCredentialsSupport.getInstance().getAttributes(creds), cs.getAttributes(creds));
+    }
+
     private static final class TestCredentials implements Credentials {
     }
 

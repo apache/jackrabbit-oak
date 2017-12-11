@@ -23,7 +23,9 @@ It is meant as an entry point for any newcommer to Jackrabbit Oak
 * Michael Duerig, [Into the tar pit: a TarMK deep dive](https://adapt.to/2016/en/schedule/into-the-tar-pit--a-tarmk-deep-dive.html) (September 2016) adaptTo() 2016
 * Michael Duerig, [Avoiding and dealing with conflicting updates in Oak](https://adapt.to/2015/en/schedule/avoiding-and-dealing-with-conflicting-updates-in-oak.html) (September 2015) adaptTo() 2015
 * Davide Giannella, [Scaling the query with Oak](https://adapt.to/2015/en/schedule/scaling-the-query-with-oak.html) (September 2015) adaptTo() 2015
+* Tommaso Teofili, [Scaling Search in Oak with Solr](https://adapt.to/2013/en/schedule/09_scalingsearch.html) (September 2013) adaptTo() 2013
 * Michael Marth, [Oak: an introduction for users](https://adapt.to/2013/en/schedule/03_oakintro.html) (September 2013) adaptTo() 2013
+* Tommaso Teofili [Oak / Solr integration](https://adapt.to/2012/en/schedule/oak-solr-integration.html) (September 2012) adaptTo() 2012
 * Michael Duerig, Jukka Zitting [Apache Jackrabbit Oak](https://adapt.to/2012/en/schedule/apache-jackrabbit-oak.html) (September 2012) adaptTo() 2012
 * [JCR and Jackrabbit related links](http://jackrabbit.apache.org/jcr/articles.html)
 * [Oak, the architecture of Apache Jackrabbit 3](http://www.slideshare.net/jukka/oak-the-architecture-of-apache-jackrabbit-3).

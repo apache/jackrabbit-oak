@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Throwables.propagate;
-import static com.google.common.base.Throwables.propagateIfInstanceOf;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
@@ -31,7 +29,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -54,7 +51,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This implementation of {@code Revisions} is backed by a
  * {@link #JOURNAL_FILE_NAME journal} file where the current head is persisted
- * by calling {@link #flush(Callable)}.
+ * by calling {@link #tryFlush(Flusher)}.
  * <p>
  * The {@link #setHead(Function, Option...)} method supports a timeout
  * {@link Option}, which can be retrieved through factory methods of this class.
@@ -82,7 +79,7 @@ public class TarRevisions implements Revisions, Closeable {
      * The journal file. It is protected by {@link #journalFileLock}. It becomes
      * {@code null} after it's closed.
      */
-    private RandomAccessFile journalFile;
+    private volatile RandomAccessFile journalFile;
 
     /**
      * The persisted head of the root journal, used to determine whether the
@@ -181,45 +178,69 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     /**
-     * Flush the id of the current head to the journal after a call to
-     * {@code persisted}. This method does nothing and returns immediately if
-     * called concurrently and a call is already in progress.
-     * @param persisted     call back for upstream dependencies to ensure
-     *                      the current head state is actually persisted before
-     *                      its id is written to the head state.
-     * @throws IOException
+     * Flush the id of the current head to the journal after a call to {@code
+     * persisted}. Differently from {@link #tryFlush(Flusher)}, this method
+     * does not return early if a concurrent call is in progress. Instead, it
+     * blocks the caller until the requested flush operation is performed.
+     *
+     * @param flusher call back for upstream dependencies to ensure the current
+     *                head state is actually persisted before its id is written
+     *                to the head state.
      */
-    public void flush(@Nonnull Callable<Void> persisted) throws IOException {
+    void flush(Flusher flusher) throws IOException {
         if (head.get() == null) {
+            LOG.debug("No head available, skipping flush");
+            return;
+        }
+        journalFileLock.lock();
+        try {
+            doFlush(flusher);
+        } finally {
+            journalFileLock.unlock();
+        }
+    }
+
+    /**
+     * Flush the id of the current head to the journal after a call to {@code
+     * persisted}. This method does nothing and returns immediately if called
+     * concurrently and a call is already in progress.
+     *
+     * @param flusher call back for upstream dependencies to ensure the current
+     *                head state is actually persisted before its id is written
+     *                to the head state.
+     */
+    void tryFlush(Flusher flusher) throws IOException {
+        if (head.get() == null) {
+            LOG.debug("No head available, skipping flush");
             return;
         }
         if (journalFileLock.tryLock()) {
             try {
-                if (journalFile == null) {
-                    return;
-                }
-                doFlush(persisted);
+                doFlush(flusher);
             } finally {
                 journalFileLock.unlock();
             }
+        } else {
+            LOG.debug("Unable to lock the journal, skipping flush");
         }
     }
 
-    private void doFlush(Callable<Void> persisted) throws IOException {
-        try {
-            RecordId before = persistedHead.get();
-            RecordId after = getHead();
-            if (!after.equals(before)) {
-                persisted.call();
-                LOG.debug("TarMK journal update {} -> {}", before, after);
-                journalFile.writeBytes(after.toString10() + " root " + System.currentTimeMillis() + "\n");
-                journalFile.getChannel().force(false);
-                persistedHead.set(after);
-            }
-        } catch (Exception e) {
-            propagateIfInstanceOf(e, IOException.class);
-            propagate(e);
+    private void doFlush(Flusher flusher) throws IOException {
+        if (journalFile == null) {
+            LOG.debug("No journal file available, skipping flush");
+            return;
         }
+        RecordId before = persistedHead.get();
+        RecordId after = getHead();
+        if (after.equals(before)) {
+            LOG.debug("Head state did not change, skipping flush");
+            return;
+        }
+        flusher.flush();
+        LOG.debug("TarMK journal update {} -> {}", before, after);
+        journalFile.writeBytes(after.toString10() + " root " + System.currentTimeMillis() + "\n");
+        journalFile.getChannel().force(false);
+        persistedHead.set(after);
     }
 
     @Nonnull

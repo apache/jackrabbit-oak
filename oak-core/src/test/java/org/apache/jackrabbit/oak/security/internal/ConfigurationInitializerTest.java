@@ -18,12 +18,15 @@ package org.apache.jackrabbit.oak.security.internal;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -35,37 +38,40 @@ public class ConfigurationInitializerTest {
     private final SecurityProvider sp = new InternalSecurityProvider();
     private final ConfigurationParameters params = ConfigurationParameters.of("key", "value");
 
+    private final RootProvider rootProvider = Mockito.mock(RootProvider.class);
+    private final TreeProvider treeProvider = Mockito.mock(TreeProvider.class);
+
     @Test
     public void testInitConfigurationReturnsSame() {
         SecurityConfiguration sc = new SecurityConfiguration.Default();
 
-        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sp, sc));
+        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider));
     }
 
     @Test
     public void testInitBaseConfigurationReturnsSame() {
         SecurityConfiguration sc = new TestConfiguration();
 
-        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sp, sc));
+        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider));
     }
 
     @Test
     public void testInitConfigurationWithParamReturnsSame() {
         SecurityConfiguration sc = new SecurityConfiguration.Default();
-        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sp, sc, params));
+        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sc, sp, params, rootProvider, treeProvider));
     }
 
     @Test
     public void testInitBaseConfigurationWithParamReturnsSame() {
         SecurityConfiguration sc = new TestConfiguration();
-        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sp, sc, params));
+        assertSame(sc, ConfigurationInitializer.initializeConfiguration(sc, sp, params, rootProvider, treeProvider));
     }
 
     @Test
     public void testInitNonBaseConfiguration() {
         SecurityConfiguration sc = new SecurityConfiguration.Default();
 
-        ConfigurationInitializer.initializeConfiguration(sp, sc);
+        ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider);
         assertFalse(sc.getParameters().containsKey("key"));
     }
 
@@ -73,7 +79,7 @@ public class ConfigurationInitializerTest {
     public void testInitBaseConfiguration() {
         TestConfiguration sc = new TestConfiguration();
 
-        SecurityConfiguration afterInit = ConfigurationInitializer.initializeConfiguration(sp, sc);
+        SecurityConfiguration afterInit = ConfigurationInitializer.initializeConfiguration(sc, sp, rootProvider, treeProvider);
         assertSame(sc, afterInit);
 
         // verify securityprovider
@@ -91,11 +97,15 @@ public class ConfigurationInitializerTest {
     public void testInitBaseConfigurationWithParam() {
         TestConfiguration sc = new TestConfiguration();
 
-        SecurityConfiguration afterInit = ConfigurationInitializer.initializeConfiguration(sp, sc, params);
+        SecurityConfiguration afterInit = ConfigurationInitializer.initializeConfiguration(sc, sp, params, rootProvider, treeProvider);
         assertSame(sc, afterInit);
 
         // verify securityprovider
         assertSame(sp, sc.getSecurityProvider());
+
+        // verify tree/root provider
+        assertSame(rootProvider, sc.getRootProvider());
+        assertSame(treeProvider, sc.getTreeProvider());
 
         // verify params
         ConfigurationParameters parameters = afterInit.getParameters();
@@ -111,7 +121,7 @@ public class ConfigurationInitializerTest {
         composite.addConfiguration(new SecurityConfiguration.Default());
         composite.addConfiguration(new SecurityConfiguration.Default());
 
-        ConfigurationInitializer.initializeConfigurations(sp, composite, params);
+        ConfigurationInitializer.initializeConfigurations(composite, sp, params, rootProvider, treeProvider);
 
         // verify securityprovider
         assertSame(sp, composite.getSecurityProvider());
@@ -128,7 +138,7 @@ public class ConfigurationInitializerTest {
         composite.addConfiguration(new TestConfiguration());
         composite.addConfiguration(new TestConfiguration());
 
-        ConfigurationInitializer.initializeConfigurations(sp, composite, params);
+        ConfigurationInitializer.initializeConfigurations(composite, sp, params, rootProvider, treeProvider);
 
         // verify securityprovider
         assertSame(sp, composite.getSecurityProvider());

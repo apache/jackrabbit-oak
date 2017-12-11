@@ -23,7 +23,9 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 
 import static com.google.common.collect.Maps.newHashMap;
@@ -42,6 +44,11 @@ public class DocumentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegi
         assumeTrue(MongoUtils.isAvailable());
     }
 
+    @Before
+    public void registerPreset() {
+        context.registerInjectActivateService(new DocumentNodeStoreService.Preset());
+    }
+
     @After
     @Override
     public void tearDown() throws Exception {
@@ -57,7 +64,9 @@ public class DocumentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegi
         properties.put("repository.home", repoHome);
         properties.put("mongouri", MongoUtils.URL);
         properties.put("db", MongoUtils.DB);
-        service = context.registerInjectActivateService(new DocumentNodeStoreService(), properties);
+        MockOsgi.setConfigForPid(context.bundleContext(),
+                DocumentNodeStoreService.class.getName(), properties);
+        service = context.registerInjectActivateService(new DocumentNodeStoreService());
     }
 
     @Override

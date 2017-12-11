@@ -64,7 +64,7 @@ public class QueryEngineSettingsService {
                 name = "Fast result size",
                 description = "Whether the query result size (QueryResult.getSize()) should return an estimation for queries that return many nodes. " +
                         "The estimate will be larger or equal the actual result size, as it includes unindexed properties and nodes that are not accessible. " +
-                        "If diabled, for such cases -1 is returned. " +
+                        "If disabled, for such cases -1 is returned. " +
                         "Note: even if enabled, getSize may still return -1 if the index used does not support the feature." 
         )
         boolean fastQuerySize() default false;

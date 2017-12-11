@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeJoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.CoalesceImpl;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
@@ -224,6 +225,12 @@ public class QueryImpl implements Query {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return true;
+            }
+
+            @Override
+            public boolean visit(CoalesceImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
             }
 
             @Override
@@ -1004,8 +1011,12 @@ public class QueryImpl implements Query {
                     if (p.getSupportsPathRestriction()) {
                         entryCount = scaleEntryCount(rootState, filter, entryCount);
                     }
-                    
-                    entryCount = Math.min(maxEntryCount, entryCount);
+                    if (sortOrder == null || p.getSortOrder() != null) {
+                        // if the query is unordered, or
+                        // if the query contains "order by" and the index can sort on that,
+                        // then we don't need to read all entries from the index
+                        entryCount = Math.min(maxEntryCount, entryCount);
+                    }
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
 
                     if (LOG.isDebugEnabled()) {

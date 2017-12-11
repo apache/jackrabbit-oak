@@ -22,23 +22,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
-import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupFrameworkThenConfiguration;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CACHE_SEGMENT_COUNT;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CACHE_STACK_MOVE_DISTANCE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_MEMORY_CACHE_SIZE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Dictionary;
@@ -57,7 +53,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -69,8 +64,11 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreMetrics;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -105,13 +103,13 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -120,7 +118,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.metatype.annotations.Designate;
+import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,8 +127,7 @@ import org.slf4j.LoggerFactory;
  */
 @Component(
         configurationPolicy = ConfigurationPolicy.REQUIRE,
-        service = {})
-@Designate(ocd = Configuration.class)
+        configurationPid = {Configuration.PID})
 public class DocumentNodeStoreService {
 
     private static final long MB = 1024 * 1024;
@@ -141,14 +138,18 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_SO_KEEP_ALIVE = false;
     static final String DEFAULT_PERSISTENT_CACHE = "cache,binary=0";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
-    static final boolean DEFAULT_CONTINUOUS_RGC = false;
-    private static final String PREFIX = "oak.documentstore.";
+    static final boolean DEFAULT_CUSTOM_BLOB_STORE = false;
+    public static final String CONTINUOUS_RGC_EXPR = "*/5 * * * * ?";
+    public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
+    public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
     private static final String DESCRIPTION = "oak.nodestore.description";
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
+    static final boolean DEFAULT_PREFETCH_EXTERNAL_CHANGES = false;
     private static final String DEFAULT_PROP_HOME = "./repository";
     static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60;
     static final boolean DEFAULT_BUNDLING_DISABLED = false;
+    static final String DEFAULT_VER_GC_EXPRESSION = "";
 
     /**
      * Revisions older than this time would be garbage collected
@@ -166,54 +167,12 @@ public class DocumentNodeStoreService {
      */
     static final long DEFAULT_BLOB_SNAPSHOT_INTERVAL = 12 * 60 * 60;
 
-    /**
-     * Name of framework property to configure Mongo Connection URI
-     */
-    private static final String FWK_PROP_URI = "oak.mongo.uri";
-
-    /**
-     * Name of framework property to configure Mongo Database name
-     * to use
-     */
-    private static final String FWK_PROP_DB = "oak.mongo.db";
-
-    /**
-     * Name of framework property to configure socket keep-alive for MongoDB
-     */
-    private static final String FWK_PROP_SO_KEEP_ALIVE = "oak.mongo.socketKeepAlive";
-
-
     // property name constants - values can come from framework properties or OSGi config
-    private static final String PROP_URI = "mongouri";
-    private static final String PROP_DB = "db";
-    static final String PROP_SO_KEEP_ALIVE = "socketKeepAlive";
-    private static final String PROP_CACHE = "cache";
-    private static final String PROP_NODE_CACHE_PERCENTAGE = "nodeCachePercentage";
-    private static final String PROP_PREV_DOC_CACHE_PERCENTAGE = "prevDocCachePercentage";
-    private static final String PROP_CHILDREN_CACHE_PERCENTAGE = "childrenCachePercentage";
-    private static final String PROP_DIFF_CACHE_PERCENTAGE = "diffCachePercentage";
-    private static final String PROP_CACHE_SEGMENT_COUNT = "cacheSegmentCount";
-    private static final String PROP_CACHE_STACK_MOVE_DISTANCE = "cacheStackMoveDistance";
-    private static final String PROP_BLOB_CACHE_SIZE = "blobCacheSize";
-    private static final String PROP_PERSISTENT_CACHE = "persistentCache";
-    private static final String PROP_JOURNAL_CACHE = "journalCache";
-    public static final String PROP_PREFETCH_EXTERNAL_CHANGES = "prefetchExternalChanges";
-    private static final String PROP_JOURNAL_GC_MAX_AGE_MILLIS = "journalGCMaxAge";
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
-    public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
-    public static final String PROP_VER_GC_CONTINUOUS = "versionGCContinuous";
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
-    public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
-    public static final String PROP_BLOB_SNAPSHOT_INTERVAL = "blobTrackSnapshotIntervalInSecs";
-    private static final String PROP_HOME = "repository.home";
-    public static final String PROP_REPLICATION_LAG = "maxReplicationLagInSecs";
     public static final String PROP_DS_TYPE = "documentStoreType";
-    private static final String PROP_BUNDLING_DISABLED = "bundlingDisabled";
-    public static final String PROP_UPDATE_LIMIT = "updateLimit";
-    public static final String PROP_ROLE = "role";
-    private static final String PROP_JOURNAL_GC_INTERVAL_MILLIS = "journalGCInterval";
 
-    private static enum DocumentStoreType {
+    private enum DocumentStoreType {
         MONGO, RDB;
 
         static DocumentStoreType fromString(String type) {
@@ -244,10 +203,15 @@ public class DocumentNodeStoreService {
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
-    private long maxReplicationLagInSecs;
 
     @Reference
     private StatisticsProvider statisticsProvider;
+
+    @Reference
+    private ConfigurationAdmin configurationAdmin;
+
+    @Reference(service = Preset.class)
+    private Preset preset;
 
     private boolean customBlobStore;
 
@@ -255,19 +219,19 @@ public class DocumentNodeStoreService {
 
     private BlobStore defaultBlobStore;
 
-    private volatile Configuration config;
+    private Configuration config;
 
     @Activate
     protected void activate(ComponentContext context, Configuration config) throws Exception {
         closer = Closer.create();
-        this.config = config;
+        this.config = DocumentNodeStoreServiceConfiguration.create(context,
+                configurationAdmin, preset.configuration, config);
         this.context = context;
         whiteboard = new OsgiWhiteboard(context.getBundleContext());
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
-        maxReplicationLagInSecs = config.maxReplicationLagInSecs();
-        customBlobStore = toBoolean(prop(CUSTOM_BLOB_STORE), false);
-        documentStoreType = DocumentStoreType.fromString(config.documentStoreType());
+        customBlobStore = this.config.customBlobStore();
+        documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
 
         registerNodeStoreIfPossible();
     }
@@ -290,109 +254,48 @@ public class DocumentNodeStoreService {
     }
 
     private void registerNodeStore() throws IOException {
-        String uri = PropertiesUtil.toString(prop(PROP_URI, FWK_PROP_URI), DEFAULT_URI);
-        String db = PropertiesUtil.toString(prop(PROP_DB, FWK_PROP_DB), DEFAULT_DB);
-        boolean soKeepAlive = PropertiesUtil.toBoolean(prop(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE), DEFAULT_SO_KEEP_ALIVE);
-
-        int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
-        int nodeCachePercentage = toInteger(prop(PROP_NODE_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
-        int prevDocCachePercentage = toInteger(prop(PROP_PREV_DOC_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
-        int childrenCachePercentage = toInteger(prop(PROP_CHILDREN_CACHE_PERCENTAGE), DEFAULT_CHILDREN_CACHE_PERCENTAGE);
-        int diffCachePercentage = toInteger(prop(PROP_DIFF_CACHE_PERCENTAGE), DEFAULT_DIFF_CACHE_PERCENTAGE);
-        int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
-        String persistentCache = getPath(PROP_PERSISTENT_CACHE, DEFAULT_PERSISTENT_CACHE);
-        String journalCache = getPath(PROP_JOURNAL_CACHE, DEFAULT_JOURNAL_CACHE);
-        int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
-        int cacheStackMoveDistance = toInteger(prop(PROP_CACHE_STACK_MOVE_DISTANCE), DEFAULT_CACHE_STACK_MOVE_DISTANCE);
-        boolean bundlingDisabled = toBoolean(prop(PROP_BUNDLING_DISABLED), DEFAULT_BUNDLING_DISABLED);
-        boolean prefetchExternalChanges = toBoolean(prop(PROP_PREFETCH_EXTERNAL_CHANGES), false);
-        int updateLimit = toInteger(prop(PROP_UPDATE_LIMIT), DocumentMK.UPDATE_LIMIT);
-        long journalGCMaxAge = toLong(context.getProperties().get(PROP_JOURNAL_GC_MAX_AGE_MILLIS), DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS);
-        DocumentMK.Builder mkBuilder =
-                new DocumentMK.Builder().
-                setStatisticsProvider(statisticsProvider).
-                memoryCacheSize(cacheSize * MB).
-                memoryCacheDistribution(
-                        nodeCachePercentage,
-                        prevDocCachePercentage,
-                        childrenCachePercentage, 
-                        diffCachePercentage).
-                setCacheSegmentCount(cacheSegmentCount).
-                setCacheStackMoveDistance(cacheStackMoveDistance).
-                setBundlingDisabled(bundlingDisabled).
-                        setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
-                setLeaseCheck(!ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED /* OAK-2739: enabled by default */).
-                setLeaseFailureHandler(new LeaseFailureHandler() {
-                    
-                    @Override
-                    public void handleLeaseFailure() {
-                        try {
-                            // plan A: try stopping oak-core
-                            log.error("handleLeaseFailure: stopping oak-core...");
-                            Bundle bundle = context.getBundleContext().getBundle();
-                            bundle.stop(Bundle.STOP_TRANSIENT);
-                            log.error("handleLeaseFailure: stopped oak-core.");
-                            // plan A worked, perfect!
-                        } catch (BundleException e) {
-                            log.error("handleLeaseFailure: exception while stopping oak-core: "+e, e);
-                            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
-                            log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
-                            context.disableComponent(DocumentNodeStoreService.class.getName());
-                            log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
-                            // plan B succeeded.
-                        }
-                    }
-                }).
-                setPrefetchExternalChanges(prefetchExternalChanges).
-                setUpdateLimit(updateLimit).
-                setJournalGCMaxAge(journalGCMaxAge).
-                setNodeCachePredicate(createCachePredicate());
-
-        if (!Strings.isNullOrEmpty(persistentCache)) {
-            mkBuilder.setPersistentCache(persistentCache);
-        }
-        if (!Strings.isNullOrEmpty(journalCache)) {
-            mkBuilder.setJournalCache(journalCache);
-        }
-
-        boolean wrappingCustomBlobStore = customBlobStore && blobStore instanceof BlobStoreWrapper;
-
-        //Set blobstore before setting the DB
-        if (customBlobStore && !wrappingCustomBlobStore) {
-            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
-                    "initialized", CUSTOM_BLOB_STORE);
-            mkBuilder.setBlobStore(blobStore);
-        }
-
+        DocumentNodeStoreBuilder<?> mkBuilder;
         if (documentStoreType == DocumentStoreType.RDB) {
+            RDBDocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder();
+            configureBuilder(builder);
             checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
             if (!customBlobStore) {
                 checkNotNull(blobDataSource, "DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE);
-                mkBuilder.setRDBConnection(dataSource, blobDataSource);
+                builder.setRDBConnection(dataSource, blobDataSource);
                 log.info("Connected to datasources {} {}", dataSource, blobDataSource);
             } else {
                 if (blobDataSource != null && blobDataSource != dataSource) {
                     log.info("Ignoring blobDataSource {} as custom blob store takes precedence.", blobDataSource);
                 }
-                mkBuilder.setRDBConnection(dataSource);
+                builder.setRDBConnection(dataSource);
                 log.info("Connected to datasource {}", dataSource);
             }
+            mkBuilder = builder;
         } else {
+            String uri = config.mongouri();
+            String db = config.db();
+            boolean soKeepAlive = config.socketKeepAlive();
+
             MongoClientURI mongoURI = new MongoClientURI(uri);
+            String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
+            String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
 
             if (log.isInfoEnabled()) {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
                                 "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
-                        mongoURI.getHosts(), db, cacheSize, persistentCache,
-                        journalCache, blobCacheSize, maxReplicationLagInSecs);
+                        mongoURI.getHosts(), db, config.cache(), persistentCache,
+                        journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs());
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
-            mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
-            mkBuilder.setSocketKeepAlive(soKeepAlive);
-            mkBuilder.setMongoDB(uri, db, blobCacheSize);
+            MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
+            configureBuilder(builder);
+            builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
+            builder.setSocketKeepAlive(soKeepAlive);
+            builder.setMongoDB(uri, db, config.blobCacheSize());
+            mkBuilder = builder;
 
             log.info("Connected to database '{}'", db);
         }
@@ -405,12 +308,10 @@ public class DocumentNodeStoreService {
         }
 
         //Set wrapping blob store after setting the DB
-        if (wrappingCustomBlobStore) {
+        if (isWrappingCustomBlobStore()) {
             ((BlobStoreWrapper) blobStore).setBlobStore(mkBuilder.getBlobStore());
             mkBuilder.setBlobStore(blobStore);
         }
-
-        mkBuilder.setExecutor(executor);
 
         // attach GCMonitor
         final GCMonitorTracker gcMonitor = new GCMonitorTracker();
@@ -427,7 +328,7 @@ public class DocumentNodeStoreService {
         mkBuilder.setGCMonitor(new DelegatingGCMonitor(
                 newArrayList(gcMonitor, loggingGCMonitor)));
 
-        nodeStore = mkBuilder.getNodeStore();
+        nodeStore = mkBuilder.build();
 
         // ensure a clusterId is initialized 
         // and expose it as 'oak.clusterid' repository descriptor
@@ -449,17 +350,14 @@ public class DocumentNodeStoreService {
             }
 
             if (blobStore instanceof BlobTrackingStore) {
-                final long trackSnapshotInterval = toLong(prop(PROP_BLOB_SNAPSHOT_INTERVAL),
-                    DEFAULT_BLOB_SNAPSHOT_INTERVAL);
-                String root = getRepositoryHome();
-
                 BlobTrackingStore trackingStore = (BlobTrackingStore) blobStore;
                 if (trackingStore.getTracker() != null) {
                     trackingStore.getTracker().close();
                 }
                 ((BlobTrackingStore) blobStore).addTracker(
-                    new BlobIdTracker(root, repoId, trackSnapshotInterval, (SharedDataStore)
-                        blobStore));
+                    new BlobIdTracker(getRepositoryHome(), repoId,
+                            config.blobTrackSnapshotIntervalInSecs(),
+                            (SharedDataStore) blobStore));
             }
         }
 
@@ -468,6 +366,7 @@ public class DocumentNodeStoreService {
         registerLastRevRecoveryJob(nodeStore);
         registerJournalGC(nodeStore);
         registerVersionGCJob(nodeStore);
+        registerDocumentStoreMetrics(mkBuilder.getDocumentStore());
 
         if (!isNodeStoreProvider()) {
             observerTracker = new ObserverTracker(nodeStore);
@@ -520,6 +419,67 @@ public class DocumentNodeStoreService {
             nodeStore, props);
     }
 
+    private void configureBuilder(DocumentNodeStoreBuilder<?> builder) {
+        String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
+        String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
+        builder.setStatisticsProvider(statisticsProvider).
+                setExecutor(executor).
+                memoryCacheSize(config.cache() * MB).
+                memoryCacheDistribution(
+                        config.nodeCachePercentage(),
+                        config.prevDocCachePercentage(),
+                        config.childrenCachePercentage(),
+                        config.diffCachePercentage()).
+                setCacheSegmentCount(config.cacheSegmentCount()).
+                setCacheStackMoveDistance(config.cacheStackMoveDistance()).
+                setBundlingDisabled(config.bundlingDisabled()).
+                setJournalPropertyHandlerFactory(journalPropertyHandlerFactory).
+                setLeaseCheck(!ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED /* OAK-2739: enabled by default */).
+                setLeaseFailureHandler(new LeaseFailureHandler() {
+
+                    @Override
+                    public void handleLeaseFailure() {
+                        try {
+                            // plan A: try stopping oak-core
+                            log.error("handleLeaseFailure: stopping oak-core...");
+                            Bundle bundle = context.getBundleContext().getBundle();
+                            bundle.stop(Bundle.STOP_TRANSIENT);
+                            log.error("handleLeaseFailure: stopped oak-core.");
+                            // plan A worked, perfect!
+                        } catch (BundleException e) {
+                            log.error("handleLeaseFailure: exception while stopping oak-core: "+e, e);
+                            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
+                            log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
+                            context.disableComponent(DocumentNodeStoreService.class.getName());
+                            log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
+                            // plan B succeeded.
+                        }
+                    }
+                }).
+                setPrefetchExternalChanges(config.prefetchExternalChanges()).
+                setUpdateLimit(config.updateLimit()).
+                setJournalGCMaxAge(config.journalGCMaxAge()).
+                setNodeCachePredicate(createCachePredicate());
+
+        if (!Strings.isNullOrEmpty(persistentCache)) {
+            builder.setPersistentCache(persistentCache);
+        }
+        if (!Strings.isNullOrEmpty(journalCache)) {
+            builder.setJournalCache(journalCache);
+        }
+
+        //Set blobstore before setting the document store
+        if (customBlobStore && !isWrappingCustomBlobStore()) {
+            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
+                    "initialized", CUSTOM_BLOB_STORE);
+            builder.setBlobStore(blobStore);
+        }
+    }
+
+    private boolean isWrappingCustomBlobStore() {
+        return customBlobStore && blobStore instanceof BlobStoreWrapper;
+    }
+
     private Predicate<String> createCachePredicate() {
         if (config.persistentCacheIncludes().length == 0) {
             return Predicates.alwaysTrue();
@@ -541,22 +501,45 @@ public class DocumentNodeStoreService {
     }
 
     private boolean isNodeStoreProvider() {
-        return prop(PROP_ROLE) != null;
+        return !Strings.isNullOrEmpty(config.role());
     }
 
     private boolean isContinuousRevisionGC() {
-        return toBoolean(prop(PROP_VER_GC_CONTINUOUS), DEFAULT_CONTINUOUS_RGC);
+        String expr = getVersionGCExpression();
+        String[] elements = expr.split("\\s");
+        // simple heuristic to determine if revision GC runs 'frequently'
+        return elements.length >= 6 && elements[1].equals("*");
+    }
+
+    private String getVersionGCExpression() {
+        String defaultExpr;
+        if (DocumentStoreType.fromString(config.documentStoreType()) == DocumentStoreType.MONGO) {
+            defaultExpr = CONTINUOUS_RGC_EXPR;
+        } else {
+            defaultExpr = "";
+        }
+        String expr = config.versionGCExpression();
+        if (Strings.isNullOrEmpty(expr)) {
+            expr = defaultExpr;
+        }
+        // validate expression
+        try {
+            if (!expr.isEmpty()) {
+                new CronExpression(expr);
+            }
+        } catch (ParseException e) {
+            log.warn("Invalid cron expression, falling back to default '" + defaultExpr + "'", e);
+            expr = defaultExpr;
+        }
+        return expr;
     }
 
     private void registerNodeStoreProvider(final NodeStore ns) {
-        Dictionary<String, Object> props = new Hashtable<String, Object>();
-        props.put(NodeStoreProvider.ROLE, prop(PROP_ROLE));
-        nodeStoreReg = context.getBundleContext().registerService(NodeStoreProvider.class.getName(), new NodeStoreProvider() {
-                    @Override
-                    public NodeStore getNodeStore() {
-                        return ns;
-                    }
-                },
+        Dictionary<String, Object> props = new Hashtable<>();
+        props.put(NodeStoreProvider.ROLE, config.role());
+        nodeStoreReg = context.getBundleContext().registerService(
+                NodeStoreProvider.class.getName(),
+                (NodeStoreProvider) () -> ns,
                 props);
         log.info("Registered NodeStoreProvider backed by DocumentNodeStore");
     }
@@ -705,37 +688,17 @@ public class DocumentNodeStoreService {
         }
     }
 
-    private void registerJMXBeans(final DocumentNodeStore store, DocumentMK.Builder mkBuilder) throws
+    private void registerJMXBeans(final DocumentNodeStore store, DocumentNodeStoreBuilder<?> mkBuilder) throws
             IOException {
-        addRegistration(
-                registerMBean(whiteboard,
-                        CacheStatsMBean.class,
-                        store.getNodeCacheStats(),
-                        CacheStatsMBean.TYPE,
-                        store.getNodeCacheStats().getName()));
-        addRegistration(
-                registerMBean(whiteboard,
-                        CacheStatsMBean.class,
-                        store.getNodeChildrenCacheStats(),
-                        CacheStatsMBean.TYPE,
-                        store.getNodeChildrenCacheStats().getName())
-        );
+        registerCacheStatsMBean(store.getNodeCacheStats());
+        registerCacheStatsMBean(store.getNodeChildrenCacheStats());
         for (CacheStats cs : store.getDiffCacheStats()) {
-            addRegistration(
-                    registerMBean(whiteboard,
-                            CacheStatsMBean.class, cs,
-                            CacheStatsMBean.TYPE, cs.getName()));
+            registerCacheStatsMBean(cs);
         }
         DocumentStore ds = store.getDocumentStore();
         if (ds.getCacheStats() != null) {
             for (CacheStats cacheStats : ds.getCacheStats()) {
-                addRegistration(
-                        registerMBean(whiteboard,
-                                CacheStatsMBean.class,
-                                cacheStats,
-                                CacheStatsMBean.TYPE,
-                                cacheStats.getName())
-                );
+                registerCacheStatsMBean(cacheStats);
             }
         }
 
@@ -756,13 +719,7 @@ public class DocumentNodeStoreService {
         );
 
         if (mkBuilder.getBlobStoreCacheStats() != null) {
-            addRegistration(
-                    registerMBean(whiteboard,
-                            CacheStatsMBean.class,
-                            mkBuilder.getBlobStoreCacheStats(),
-                            CacheStatsMBean.TYPE,
-                            mkBuilder.getBlobStoreCacheStats().getName())
-            );
+            registerCacheStatsMBean(mkBuilder.getBlobStoreCacheStats());
         }
 
         if (mkBuilder.getDocumentStoreStatsCollector() instanceof DocumentStoreStatsMBean) {
@@ -787,9 +744,8 @@ public class DocumentNodeStoreService {
             );
         }
 
-
-        final long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
-        final long blobGcMaxAgeInSecs = toLong(prop(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
+        final long versionGcMaxAgeInSecs = config.versionGcMaxAgeInSecs();
+        final long blobGcMaxAgeInSecs = config.blobGcMaxAgeInSecs();
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = store.createBlobGarbageCollector(blobGcMaxAgeInSecs, 
@@ -799,19 +755,9 @@ public class DocumentNodeStoreService {
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs);
-        Runnable cancelGC = new Runnable() {
-            @Override
-            public void run() {
-                store.getVersionGarbageCollector().cancel();
-            }
-        };
-        Supplier<String> status = new Supplier<String>() {
-            @Override
-            public String get() {
-                return store.getVersionGarbageCollector().getStatus();
-            }
-        };
+        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0);
+        Runnable cancelGC = () -> store.getVersionGarbageCollector().cancel();
+        Supplier<String> status = () -> store.getVersionGarbageCollector().getStatus();
         RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, status, executor);
         addRegistration(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
@@ -839,46 +785,55 @@ public class DocumentNodeStoreService {
         }
     }
 
+    private void registerCacheStatsMBean(CacheStats cacheStats) {
+        addRegistration(registerMBean(whiteboard, CacheStatsMBean.class,
+                cacheStats, CacheStatsMBean.TYPE, cacheStats.getName()));
+    }
+
     private void registerLastRevRecoveryJob(final DocumentNodeStore nodeStore) {
         long leaseTime = toLong(context.getProperties().get(PROP_REV_RECOVERY_INTERVAL),
                 ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
-        addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
+        addRegistration(scheduleWithFixedDelay(whiteboard,
                 new LastRevRecoveryJob(nodeStore), TimeUnit.MILLISECONDS.toSeconds(leaseTime),
                 false/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
     private void registerJournalGC(final DocumentNodeStore nodeStore) {
-        long journalGCInterval = toLong(context.getProperties().get(PROP_JOURNAL_GC_INTERVAL_MILLIS),
-                DEFAULT_JOURNAL_GC_INTERVAL_MILLIS);
-        addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
+        addRegistration(scheduleWithFixedDelay(whiteboard,
                 new JournalGCJob(nodeStore),
                 jobPropertiesFor(JournalGCJob.class),
-                TimeUnit.MILLISECONDS.toSeconds(journalGCInterval),
+                TimeUnit.MILLISECONDS.toSeconds(config.journalGCInterval()),
                 true/*runOnSingleClusterNode*/, true /*use dedicated pool*/));
     }
 
     private void registerVersionGCJob(final DocumentNodeStore nodeStore) {
-        if (isContinuousRevisionGC()) {
-            long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
-            addRegistration(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
-                    new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs),
-                    jobPropertiesFor(RevisionGCJob.class),
-                    MODIFIED_IN_SECS_RESOLUTION, true, true));
+        String expr = getVersionGCExpression();
+        if (expr.isEmpty()) {
+            return;
+        }
+        Map<String, Object> props = jobPropertiesFor(RevisionGCJob.class);
+        props.put("scheduler.expression", expr);
+        long versionGcMaxAgeInSecs = config.versionGcMaxAgeInSecs();
+        long versionGCTimeLimitInSecs = config.versionGCTimeLimitInSecs();
+        addRegistration(scheduleWithFixedDelay(whiteboard,
+                new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs,
+                        versionGCTimeLimitInSecs),
+                props, MODIFIED_IN_SECS_RESOLUTION, true, true));
+    }
+
+    private void registerDocumentStoreMetrics(DocumentStore store) {
+        if (store instanceof MongoDocumentStore) {
+            addRegistration(scheduleWithFixedDelay(whiteboard,
+                    new MongoDocumentStoreMetrics((MongoDocumentStore) store, statisticsProvider),
+                    jobPropertiesFor(MongoDocumentStoreMetrics.class),
+                    TimeUnit.MINUTES.toSeconds(1), false, true));
         }
     }
 
-    private String prop(String propName) {
-        return prop(propName, PREFIX + propName);
-    }
-
-    private String prop(String propName, String fwkPropName) {
-        return lookupFrameworkThenConfiguration(context, propName, fwkPropName);
-    }
-
-    private String getPath(String propName, String defaultValue) {
-        String path = PropertiesUtil.toString(prop(propName), defaultValue);
-        if (Strings.isNullOrEmpty(path)) {
-            return path;
+    private String resolvePath(String value, String defaultValue) {
+        String path = value;
+        if (Strings.isNullOrEmpty(value)) {
+            path = defaultValue;
         }
         if ("-".equals(path)) {
             // disable this path configuration
@@ -889,7 +844,7 @@ public class DocumentNodeStoreService {
     }
 
     private String getRepositoryHome() {
-        String repoHome = prop(PROP_HOME, PROP_HOME);
+        String repoHome = config.repository_home();
         if (Strings.isNullOrEmpty(repoHome)) {
             repoHome = DEFAULT_PROP_HOME;
         }
@@ -940,23 +895,27 @@ public class DocumentNodeStoreService {
         private static final long LOG_INTERVAL = TimeUnit.HOURS.toMillis(1);
 
         private final DocumentNodeStore nodeStore;
-        private final long versionGcMaxAgeInSecs;
+        private final long versionGCMaxAgeInSecs;
+        private final long versionGCTimeLimitInSecs;
         private volatile Object lastResult = "";
         private long lastLogTime;
         private VersionGCStats stats;
 
         RevisionGCJob(DocumentNodeStore ns,
-                      long versionGcMaxAgeInSecs) {
+                      long versionGcMaxAgeInSecs,
+                      long versionGCTimeLimitInSecs) {
             this.nodeStore = ns;
-            this.versionGcMaxAgeInSecs = versionGcMaxAgeInSecs;
+            this.versionGCMaxAgeInSecs = versionGcMaxAgeInSecs;
+            this.versionGCTimeLimitInSecs = versionGCTimeLimitInSecs;
             resetStats();
         }
 
         @Override
         public void run() {
             VersionGarbageCollector gc = nodeStore.getVersionGarbageCollector();
+            gc.setOptions(gc.getOptions().withMaxDuration(TimeUnit.SECONDS, versionGCTimeLimitInSecs));
             try {
-                VersionGCStats s = gc.gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
+                VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);
                 lastResult = s.toString();
             } catch (Exception e) {
@@ -1025,6 +984,21 @@ public class DocumentNodeStoreService {
     }
 
     private static Map<String, Object> jobPropertiesFor(Class clazz) {
-        return ImmutableMap.of("scheduler.name", clazz.getName());
+        Map<String, Object> props = new HashMap<>();
+        props.put("scheduler.name", clazz.getName());
+        return props;
+    }
+
+    @Component(
+            service = Preset.class,
+            configurationPid = Configuration.PRESET_PID)
+    public static class Preset {
+
+        Configuration configuration;
+
+        @Activate
+        void activate(Configuration configuration) {
+            this.configuration = configuration;
+        }
     }
 }

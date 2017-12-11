@@ -25,10 +25,12 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newConcurrentHashSet;
 import static com.google.common.util.concurrent.Futures.addCallback;
 import static com.google.common.util.concurrent.Futures.immediateCancelledFuture;
+import static com.google.common.util.concurrent.Futures.transform;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.String.valueOf;
 import static java.lang.System.getProperty;
+import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
@@ -53,12 +55,14 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import javax.annotation.Nonnull;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
@@ -67,6 +71,7 @@ import javax.management.ObjectName;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
@@ -136,9 +141,10 @@ public class SegmentCompactionIT {
     private final ListeningScheduledExecutorService scheduler = listeningDecorator(executor);
     private final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
     private final TestGCMonitor gcMonitor = new TestGCMonitor(fileStoreGCMonitor);
-    private final Set<ListenableScheduledFuture<?>> writers = newConcurrentHashSet();
-    private final Set<ListenableScheduledFuture<?>> readers = newConcurrentHashSet();
-    private final Set<ListenableScheduledFuture<?>> references = newConcurrentHashSet();
+    private final Set<Future<?>> writers = newConcurrentHashSet();
+    private final Set<Future<?>> readers = newConcurrentHashSet();
+    private final Set<Future<?>> references = newConcurrentHashSet();
+    private final Set<Future<?>> checkpoints = newConcurrentHashSet();
     private final SegmentCompactionITMBean segmentCompactionMBean = new SegmentCompactionITMBean();
 
     private FileStore fileStore;
@@ -162,6 +168,8 @@ public class SegmentCompactionIT {
     private volatile int addStringRatio = 20;
     private volatile int addBinaryRatio = 0;
     private volatile int compactionInterval = 2;
+    private volatile int maxCheckpoints = 2;
+    private volatile int checkpointInterval = 10;
     private volatile boolean stopping;
     private volatile Reference rootReference;
     private volatile long fileStoreSize;
@@ -198,10 +206,12 @@ public class SegmentCompactionIT {
         remove(references, count);
     }
 
-    private static void remove(Set<ListenableScheduledFuture<?>> ops, int count) {
-        Iterator<ListenableScheduledFuture<?>> it = ops.iterator();
-        while (it.hasNext() && count-- > 0) {
-            it.next().cancel(false);
+    private static void remove(Set<Future<?>> ops, int count) {
+        Iterator<Future<?>> it = ops.iterator();
+        while (it.hasNext() && count > 0) {
+            if (it.next().cancel(false)) {
+                count--;
+            }
         }
     }
 
@@ -296,6 +306,7 @@ public class SegmentCompactionIT {
         remove(writers, MAX_VALUE);
         remove(readers, MAX_VALUE);
         remove(references, MAX_VALUE);
+        remove(checkpoints, MAX_VALUE);
         scheduler.shutdown();
         if (fileStore != null) {
             fileStore.close();
@@ -306,6 +317,7 @@ public class SegmentCompactionIT {
     public void run() throws InterruptedException {
         scheduleSizeMonitor();
         scheduleCompactor();
+        scheduleCheckpoints();
         addReaders(maxReaders);
         addWriters(maxWriters);
 
@@ -407,7 +419,7 @@ public class SegmentCompactionIT {
             addCallback(futureReference, new FutureCallback<Object>() {
                 @Override
                 public void onSuccess(Object result) {
-                    references.remove(reference);
+                    references.remove(futureReference);
                     if (!futureReference.isCancelled()) {
                         scheduleReader();
                     }
@@ -416,12 +428,41 @@ public class SegmentCompactionIT {
                 @Override
                 public void onFailure(Throwable t) {
                     reference.run();
-                    references.remove(reference);
+                    references.remove(futureReference);
                     segmentCompactionMBean.error("Reference error", t);
                 }
             });
         } else {
             scheduleReader();
+        }
+    }
+
+    private synchronized void scheduleCheckpoints() {
+        while (checkpoints.size() < maxCheckpoints) {
+            Checkpoint checkpoint = new Checkpoint(nodeStore);
+            ListenableFuture<?> futureCheckpoint = transform(scheduler.schedule(
+                    checkpoint::acquire, rnd.nextInt(checkpointInterval), SECONDS),
+                (AsyncFunction<Void, Void>) __ -> scheduler.schedule(
+                    checkpoint::release, checkpointInterval, SECONDS)
+            );
+
+            checkpoints.add(futureCheckpoint);
+            addCallback(futureCheckpoint, new FutureCallback<Object>() {
+                @Override
+                public void onSuccess(Object __) {
+                    checkpoints.remove(futureCheckpoint);
+                    if (!futureCheckpoint.isCancelled()) {
+                        scheduleCheckpoints();
+                    }
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    checkpoint.cancel();
+                    checkpoints.remove(futureCheckpoint);
+                    segmentCompactionMBean.error("Checkpoint error", t);
+                }
+            });
         }
     }
 
@@ -703,6 +744,30 @@ public class SegmentCompactionIT {
         }
     }
 
+    private static class Checkpoint {
+        private final NodeStore nodeStore;
+        private volatile String checkpoint;
+        private volatile boolean cancelled;
+
+        private Checkpoint(@Nonnull NodeStore nodeStore) {
+            this.nodeStore = nodeStore;
+        }
+
+        public Void acquire() {
+            checkpoint = nodeStore.checkpoint(DAYS.toMillis(1));
+            return null;
+        }
+
+        public Void release() {
+            while (!cancelled && !nodeStore.release(checkpoint)) {}
+            return null;
+        }
+
+        public void cancel() {
+            cancelled = true;
+        }
+    }
+    
     private static class TestGCMonitor implements GCMonitor {
         private final GCMonitor delegate;
         private volatile boolean cleaned = true;
@@ -789,6 +854,38 @@ public class SegmentCompactionIT {
         @Override
         public int getCorePoolSize() {
             return executor.getCorePoolSize();
+        }
+
+        @Override
+        public void setMaxCheckpoints(int count) {
+            checkArgument(count >= 0);
+            maxCheckpoints = count;
+            if (count > checkpoints.size()) {
+                scheduleCheckpoints();
+            } else {
+                remove(checkpoints, checkpoints.size() - count);
+            }
+        }
+
+        @Override
+        public int getMaxCheckpoints() {
+            return maxCheckpoints;
+        }
+
+        @Override
+        public int getCheckpointCount() {
+            return checkpoints.size();
+        }
+
+        @Override
+        public void setCheckpointInterval(int interval) {
+            checkArgument(interval > 0);
+            checkpointInterval = interval;
+        }
+
+        @Override
+        public int getCheckpointInterval() {
+            return checkpointInterval;
         }
 
         @Override

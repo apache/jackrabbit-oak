@@ -54,11 +54,12 @@ import org.slf4j.LoggerFactory;
 public class RDBDocumentSerializer {
 
     private final DocumentStore store;
-    private final Set<String> columnProperties;
 
-    private static final String MODIFIED = "_modified";
-    private static final String MODCOUNT = "_modCount";
+    private static final String MODIFIED = NodeDocument.MODIFIED_IN_SECS;
+    private static final String MODCOUNT = NodeDocument.MOD_COUNT;
     private static final String CMODCOUNT = "_collisionsModCount";
+    private static final String SDTYPE = NodeDocument.SD_TYPE;
+    private static final String SDMAXREVTIME = NodeDocument.SD_MAX_REV_TIME_IN_SECS;
     private static final String ID = "_id";
     private static final String HASBINARY = NodeDocument.HAS_BINARY_FLAG;
     private static final String DELETEDONCE = NodeDocument.DELETED_ONCE;
@@ -69,16 +70,15 @@ public class RDBDocumentSerializer {
 
     private static final RDBJSONSupport JSON = new RDBJSONSupport(true);
 
-    public RDBDocumentSerializer(DocumentStore store, Set<String> columnProperties) {
+    public RDBDocumentSerializer(DocumentStore store) {
         this.store = store;
-        this.columnProperties = columnProperties;
     }
 
     /**
      * Serializes all non-column properties of the {@link Document} into a JSON
      * string.
      */
-    public String asString(@Nonnull Document doc) {
+    public String asString(@Nonnull Document doc, Set<String> columnProperties) {
         StringBuilder sb = new StringBuilder(32768);
         sb.append("{");
         boolean needComma = false;
@@ -100,7 +100,7 @@ public class RDBDocumentSerializer {
      * Serializes the changes in the {@link UpdateOp} into a JSON array; each
      * entry is another JSON array holding operation, key, revision, and value.
      */
-    public String asString(UpdateOp update) {
+    public String asString(UpdateOp update, Set<String> columnProperties) {
         StringBuilder sb = new StringBuilder("[");
         boolean needComma = false;
         for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
@@ -165,6 +165,14 @@ public class RDBDocumentSerializer {
         }
         if (row.deletedOnce() != null) {
             doc.put(DELETEDONCE, row.deletedOnce().booleanValue());
+        }
+        if (row.getSchemaVersion() >= 2) {
+            if (row.getSdType() != RDBRow.LONG_UNSET) {
+                doc.put(SDTYPE, row.getSdType());
+            }
+            if (row.getSdMaxRevTime() != RDBRow.LONG_UNSET) {
+                doc.put(SDMAXREVTIME, row.getSdMaxRevTime());
+            }
         }
 
         byte[] bdata = row.getBdata();

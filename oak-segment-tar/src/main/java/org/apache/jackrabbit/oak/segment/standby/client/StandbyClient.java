@@ -17,12 +17,14 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLException;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -68,82 +70,65 @@ class StandbyClient implements AutoCloseable {
 
     private final BlockingQueue<GetReferencesResponse> referencesQueue = new LinkedBlockingDeque<>();
 
-    private final boolean secure;
-
     private final int readTimeoutMs;
 
     private final String clientId;
 
-    private final NioEventLoopGroup group;
-
     private Channel channel;
 
-    StandbyClient(NioEventLoopGroup group, String clientId, boolean secure, int readTimeoutMs) {
-        this.group = group;
+    StandbyClient(String host, int port, NioEventLoopGroup group, String clientId, boolean secure, int readTimeoutMs, File spoolFolder) throws InterruptedException {
         this.clientId = clientId;
-        this.secure = secure;
         this.readTimeoutMs = readTimeoutMs;
-    }
-
-    void connect(String host, int port) throws Exception {
-
-        final SslContext sslContext;
-
-        if (secure) {
-            sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        } else {
-            sslContext = null;
-        }
 
         Bootstrap b = new Bootstrap()
-                .group(group)
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, readTimeoutMs)
-                .option(ChannelOption.TCP_NODELAY, true)
-                .option(ChannelOption.SO_REUSEADDR, true)
-                .option(ChannelOption.SO_KEEPALIVE, true)
-                .handler(new ChannelInitializer<SocketChannel>() {
+            .group(group)
+            .channel(NioSocketChannel.class)
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, readTimeoutMs)
+            .option(ChannelOption.TCP_NODELAY, true)
+            .option(ChannelOption.SO_REUSEADDR, true)
+            .option(ChannelOption.SO_KEEPALIVE, true)
+            .handler(new ChannelInitializer<SocketChannel>() {
 
-                    @Override
-                    public void initChannel(SocketChannel ch) throws Exception {
-                        ChannelPipeline p = ch.pipeline();
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    ChannelPipeline p = ch.pipeline();
 
-                        if (sslContext != null) {
-                            p.addLast(sslContext.newHandler(ch.alloc()));
-                        }
-
-                        p.addLast(new ReadTimeoutHandler(readTimeoutMs, TimeUnit.MILLISECONDS));
-
-                        // Decoders
-
-                        p.addLast(new SnappyFrameDecoder(true));
-
-                        // The frame length limits the chunk size to max. 2.2GB
-
-                        p.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4));
-                        p.addLast(new ResponseDecoder());
-
-                        // Encoders
-
-                        p.addLast(new StringEncoder(CharsetUtil.UTF_8));
-                        p.addLast(new GetHeadRequestEncoder());
-                        p.addLast(new GetSegmentRequestEncoder());
-                        p.addLast(new GetBlobRequestEncoder());
-                        p.addLast(new GetReferencesRequestEncoder());
-
-                        // Handlers
-
-                        p.addLast(new GetHeadResponseHandler(headQueue));
-                        p.addLast(new GetSegmentResponseHandler(segmentQueue));
-                        p.addLast(new GetBlobResponseHandler(blobQueue));
-                        p.addLast(new GetReferencesResponseHandler(referencesQueue));
-
-                        // Exception handler
-
-                        p.addLast(new ExceptionHandler(clientId));
+                    if (secure) {
+                        p.addLast(SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build().newHandler(ch.alloc()));
                     }
 
-                });
+                    p.addLast(new ReadTimeoutHandler(readTimeoutMs, TimeUnit.MILLISECONDS));
+
+                    // Decoders
+
+                    p.addLast(new SnappyFrameDecoder(true));
+
+                    // The frame length limits the chunk size to max. 2.2GB
+
+                    p.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4));
+                    p.addLast(new ResponseDecoder(spoolFolder));
+
+                    // Encoders
+
+                    p.addLast(new StringEncoder(CharsetUtil.UTF_8));
+                    p.addLast(new GetHeadRequestEncoder());
+                    p.addLast(new GetSegmentRequestEncoder());
+                    p.addLast(new GetBlobRequestEncoder());
+                    p.addLast(new GetReferencesRequestEncoder());
+
+                    // Handlers
+
+                    p.addLast(new GetHeadResponseHandler(headQueue));
+                    p.addLast(new GetSegmentResponseHandler(segmentQueue));
+                    p.addLast(new GetBlobResponseHandler(blobQueue));
+                    p.addLast(new GetReferencesResponseHandler(referencesQueue));
+
+                    // Exception handler
+
+                    p.addLast(new ExceptionHandler(clientId));
+                }
+
+            });
 
         channel = b.connect(host, port).sync().channel();
     }

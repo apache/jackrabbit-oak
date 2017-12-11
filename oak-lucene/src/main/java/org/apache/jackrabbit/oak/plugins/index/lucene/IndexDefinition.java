@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -590,6 +591,30 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public static void setDisableStoredIndexDefinition(boolean disableStoredIndexDefinitionDefault) {
         IndexDefinition.disableStoredIndexDefinition = disableStoredIndexDefinitionDefault;
+    }
+
+    public Set<String> getRelativeNodeNames(){
+        //Can be computed lazily as required only for oak-run indexing for now
+        Set<String> names = new HashSet<>();
+        for (IndexingRule r : definedRules) {
+            for (Aggregate.Include i : r.aggregate.getIncludes()) {
+                for (int d = 0; d < i.maxDepth(); d++) {
+                    if (!i.isPattern(d)) {
+                        names.add(i.getElementNameIfNotAPattern(d));
+                    }
+                }
+            }
+        }
+        return names;
+    }
+
+    public boolean indexesRelativeNodes(){
+        for (IndexingRule r : definedRules) {
+            if (!r.aggregate.getIncludes().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

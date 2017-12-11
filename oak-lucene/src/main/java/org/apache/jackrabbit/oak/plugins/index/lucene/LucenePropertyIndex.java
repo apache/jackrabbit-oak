@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
@@ -67,6 +68,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -76,7 +78,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -981,6 +982,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 unwrapped = true;
             }
         }
+        if (unwrapped) {
+            // if we have unwrapped "must not" conditions,
+            // then we need to unwrap "must" conditions as well
+            for (BooleanClause bc : input.getClauses()) {
+                if (bc.getOccur() == BooleanClause.Occur.MUST) {
+                    output.add(bc);
+                }
+            }
+        }
 
         return unwrapped;
     }
@@ -1640,6 +1650,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      */
     static class LucenePathCursor implements Cursor {
 
+        private static final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
+
         private final Cursor pathCursor;
         private final String pathPrefix;
         LuceneResultRow currentRow;
@@ -1652,6 +1664,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
 
+                private int readCount;
+
                 @Override
                 public boolean hasNext() {
                     return it.hasNext();
@@ -1660,6 +1674,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 @Override
                 public String next() {
                     currentRow = it.next();
+                    readCount++;
+                    if (readCount % TRAVERSING_WARNING == 0) {
+                        Cursors.checkReadLimit(readCount, settings);
+                        LOG.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
+                    }
                     return currentRow.path;
                 }
 

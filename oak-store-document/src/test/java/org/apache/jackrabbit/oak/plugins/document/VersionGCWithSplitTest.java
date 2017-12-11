@@ -208,17 +208,6 @@ public class VersionGCWithSplitTest {
             this.docStore = base;
         }
 
-        @Override
-        public <T extends Document> void update(final Collection<T> collection,
-                                                final List<String> keys,
-                                                final UpdateOp updateOp) {
-            runLocked(new Runnable() {
-                public void run() {
-                    docStore.update(collection, keys, updateOp);
-                }
-            });
-        }
-
         @Nonnull
         @Override
         public <T extends Document> T createOrUpdate(final Collection<T> collection,

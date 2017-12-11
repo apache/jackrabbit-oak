@@ -145,7 +145,6 @@ class StandbyServer implements AutoCloseable {
         b.group(bossGroup, workerGroup);
         b.channel(NioServerSocketChannel.class);
 
-        b.option(ChannelOption.TCP_NODELAY, true);
         b.option(ChannelOption.SO_REUSEADDR, true);
         b.childOption(ChannelOption.TCP_NODELAY, true);
         b.childOption(ChannelOption.SO_REUSEADDR, true);

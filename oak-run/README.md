@@ -457,9 +457,11 @@ Use the following command:
 
     $ java -jar oak-run-*.jar datastorecheck [--id] [--ref] [--consistency] \
             [--store <path>|<mongo_uri>] \
-            [--s3ds <s3ds_config>|--fds <fds_config>] \
+            [--s3ds <s3ds_config>|--fds <fds_config>|--nods] \
             [--dump <path>] \
-            [--track <DataStore local tracking path>]
+            [--repoHome <local_repository_root>]
+            [--track]
+            [--verbose]
 
 The following options are available:
 
@@ -472,21 +474,23 @@ The following options are available:
     --dump           - Path where to dump the files (Optional). Otherwise, files will be dumped in the user tmp directory.
     --s3ds           - Path to the S3DataStore configuration file
     --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
-    --track          - Path of the local reposity home folder (Optional). This will place a copy of the downloaded blob ids to be tracked.
-
+    --nods           - To check for misconfigured external references when no data store should be there (Use instead of --s3ds or --fds)
+    --repoHome       - Path of the local reposity home folder. Mandatory for --consistency & --track options 
+    --track          - Whether to force override the tracked ids (Valid only for --id & --consistency options)
+    --verbose        - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
+                       This options would typically be a slower option since, it requires the whole repo traversal.  
+                       Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
 Note:
-For using S3DataStore the following additional jars have to be downloaded
-    - [commons-logging-1.1.3.jar](http://central.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar)
-    - [aws-java-sdk-osgi-1.11.24.jar](http://central.maven.org/maven2/com/amazonaws/aws-java-sdk-osgi/1.11.24/aws-java-sdk-osgi-1.11.24.jar)
-    
+
 The command to be executed for S3DataStore
 
-    java -classpath oak-run-*.jar:aws-java-sdk-osgi-1.11.24.jar:commons-logging-1.1.3.jar \
+    java -classpath oak-run-*.jar \
         org.apache.jackrabbit.oak.run.Main \
         datastorecheck --id --ref --consistency \
         --store <path>|<mongo_uri> \
         --s3ds <s3ds_config> \
         --dump <dump_path>
+        --repoHome <repo_home>
 
 The config files should be formatted according to the OSGi configuration admin specification
 

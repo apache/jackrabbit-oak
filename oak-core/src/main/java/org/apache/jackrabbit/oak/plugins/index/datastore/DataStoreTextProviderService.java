@@ -39,7 +39,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Component(
         configurationPolicy = ConfigurationPolicy.REQUIRE,
         service = {},
-        configurationPid = "org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextProviderService")
+        name = "org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextProviderService")
 @Designate(ocd = DataStoreTextProviderService.Configuration.class)
 public class DataStoreTextProviderService {
 

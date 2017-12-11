@@ -250,6 +250,7 @@ public class BenchmarkRunner {
                     runAsUser.value(options),
                     runWithToken.value(options),
                     noIterations.value(options)),
+            new LoginWithTokensTest(numberOfUsers.value(options)),
             new LoginSystemTest(),
             new LoginImpersonateTest(),
             new LoginWithMembershipTest(
@@ -455,7 +456,8 @@ public class BenchmarkRunner {
 
             new HybridIndexTest(base.value(options), statsProvider),
             new BundlingNodeTest(),
-            new PersistentCacheTest(statsProvider)
+            new PersistentCacheTest(statsProvider),
+            new BasicWriteTest()
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));

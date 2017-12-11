@@ -72,6 +72,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -131,7 +132,7 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final FileLock lock;
 
-    private TarRevisions revisions;
+    private volatile TarRevisions revisions;
 
     /**
      * Scheduler for running <em>short</em> background operations
@@ -199,45 +200,33 @@ public class FileStore extends AbstractFileStore {
                 .withFileStoreMonitor(stats)
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
                 .build();
-        this.stats.init(this.tarFiles.size());
+        long size = this.tarFiles.size();
+        this.stats.init(size);
 
         this.snfeListener = builder.getSnfeListener();
 
-        fileStoreScheduler.scheduleAtFixedRate(
-                format("TarMK flush [%s]", directory), 5, SECONDS,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        if (shutDown.shutDownRequested()) {
-                            return;
-                        }
-                        try {
-                            flush();
-                        } catch (IOException e) {
-                            log.warn("Failed to flush the TarMK at {}",
-                                    directory, e);
-                        }
-                    }
-                });
-        fileStoreScheduler.scheduleAtFixedRate(
-                format("TarMK filer reaper [%s]", directory), 5, SECONDS,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        fileReaper.reap();
-                    }
-                });
-        fileStoreScheduler.scheduleAtFixedRate(
-                format("TarMK disk space check [%s]", directory), 1, MINUTES,
-                new Runnable() {
-                    final SegmentGCOptions gcOptions = builder.getGcOptions();
+        fileStoreScheduler.scheduleAtFixedRate(format("TarMK flush [%s]", directory), 5, SECONDS,
+                                               this::tryFlush);
 
-                    @Override
-                    public void run() {
-                        checkDiskSpace(gcOptions);
-                    }
-                });
-        log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
+        fileStoreScheduler.scheduleAtFixedRate(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
+                                               fileReaper::reap);
+
+        fileStoreScheduler.scheduleAtFixedRate(format("TarMK disk space check [%s]", directory), 1, MINUTES, () -> {
+           try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
+               if (shutDown.isShutDown()) {
+                   log.debug("Shut down in progress, skipping disk space check");
+               } else {
+                   checkDiskSpace(builder.getGcOptions());
+               }
+           }
+        });
+
+        log.info("TarMK opened at {}, mmap={}, size={} ({} bytes)",
+            directory,
+            memoryMapping,
+            humanReadableByteCount(size),
+            size
+        );
         log.debug("TAR files: {}", tarFiles);
     }
 
@@ -314,21 +303,49 @@ public class FileStore extends AbstractFileStore {
         return stats;
     }
 
+    /*
+     * Callers of this method must hold the shutdown lock
+     */
     private void doFlush() throws IOException {
         if (revisions == null) {
+            log.debug("No TarRevisions available, skipping flush");
             return;
         }
         revisions.flush(() -> {
             segmentWriter.flush();
             tarFiles.flush();
             stats.flushed();
-            return null;
         });
     }
 
+    /**
+     * Flush all pending changes
+     */
     public void flush() throws IOException {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             doFlush();
+        }
+    }
+
+    /**
+     * Try to flush all pending changes to disk if possible without waiting
+     * for a lock or other resources currently not available.
+     */
+    public void tryFlush() {
+        try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
+            if (shutDown.isShutDown()) {
+                log.debug("Shut down in progress, skipping flush");
+            } else if (revisions == null) {
+                log.debug("No TarRevisions available, skipping flush");
+            } else {
+                revisions.tryFlush(() -> {
+                    segmentWriter.flush();
+                    tarFiles.flush();
+                    stats.flushed();
+                });
+            }
+        } catch (IOException e) {
+            log.warn("Failed to flush the TarMK at {}", directory, e);
         }
     }
 
@@ -347,16 +364,6 @@ public class FileStore extends AbstractFileStore {
     public void tailGC() throws IOException {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             garbageCollector.runTail();
-        }
-    }
-
-    /**
-     * Run the compaction gain estimation process.
-     * @return
-     */
-    public GCEstimation estimateCompactionGain() {
-        try (ShutDownCloser ignored = shutDown.keepAlive()) {
-            return garbageCollector.estimateCompactionGain();
         }
     }
 
@@ -478,7 +485,7 @@ public class FileStore extends AbstractFileStore {
     public Segment readSegment(final SegmentId id) {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentCache.getSegment(id, () -> readSegmentUncached(tarFiles, id));
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | UncheckedExecutionException e) {
             SegmentNotFoundException snfe = asSegmentNotFoundException(e, id);
             snfeListener.notify(id, snfe);
             throw snfe;
@@ -607,14 +614,14 @@ public class FileStore extends AbstractFileStore {
         }
 
         synchronized void runFull() throws IOException {
-            run(this::compactFull);
+            run(true, this::compactFull);
         }
 
         synchronized void runTail() throws IOException {
-            run(this::compactTail);
+            run(false, this::compactTail);
         }
 
-        private void run(Supplier<CompactionResult> compact) throws IOException {
+        private void run(boolean full, Supplier<CompactionResult> compact) throws IOException {
             try {
                 gcListener.info("TarMK GC #{}: started", GC_COUNT.incrementAndGet());
 
@@ -635,9 +642,9 @@ public class FileStore extends AbstractFileStore {
                     gcListener.updateStatus(ESTIMATION.message());
                     
                     Stopwatch watch = Stopwatch.createStarted();
-                    GCEstimation estimate = estimateCompactionGain();
-                    sufficientEstimatedGain = estimate.gcNeeded();
-                    String gcLog = estimate.gcLog();
+                    GCEstimationResult estimation = estimateCompactionGain(full);
+                    sufficientEstimatedGain = estimation.isGcNeeded();
+                    String gcLog = estimation.getGcLog();
                     if (sufficientEstimatedGain) {
                         gcListener.info(
                                 "TarMK GC #{}: estimation completed in {} ({} ms). {}",
@@ -679,9 +686,8 @@ public class FileStore extends AbstractFileStore {
          * the passed {@code stop} signal.
          * @return compaction gain estimate
          */
-        synchronized GCEstimation estimateCompactionGain() {
-            return new SizeDeltaGcEstimation(gcOptions, gcJournal,
-                    stats.getApproximateSize());
+        GCEstimationResult estimateCompactionGain(boolean full) {
+            return new SizeDeltaGcEstimation(gcOptions.getGcSizeDeltaEstimation(), gcJournal, tarFiles.size(), full).estimate();
         }
 
         @Nonnull
@@ -820,6 +826,7 @@ public class FileStore extends AbstractFileStore {
 
                 if (success) {
                     writer.flush();
+                    flush();
                     gcListener.info("TarMK GC #{}: compaction succeeded in {} ({} ms), after {} cycles",
                             GC_COUNT, watch, watch.elapsed(MILLISECONDS), cycles);
                     return compactionSucceeded(newGeneration, after.getRecordId());
@@ -1129,7 +1136,7 @@ public class FileStore extends AbstractFileStore {
                     reason = "Not enough memory";
                     return true;
                 }
-                if (store.shutDown.shutDownRequested()) {
+                if (store.shutDown.isShutDown()) {
                     reason = "The FileStore is shutting down";
                     return true;
                 }

@@ -71,6 +71,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -136,8 +139,14 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, new LuceneIndexWriterConfig());
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
-        writer.updateDocument("/content/en", newDoc("/content/en"));
-        writer.updateDocument("/libs/config", newDoc("/libs/config"));
+        Document doc = newDoc("/content/en");
+        doc.add(new StringField("foo", "bar", Field.Store.NO));
+        writer.updateDocument("/content/en", doc);
+
+        doc = newDoc("/libs/config");
+        doc.add(new StringField("foo", "baz", Field.Store.NO));
+        writer.updateDocument("/libs/config", doc);
+
         writer.close(0);
 
         //2. Construct the readers

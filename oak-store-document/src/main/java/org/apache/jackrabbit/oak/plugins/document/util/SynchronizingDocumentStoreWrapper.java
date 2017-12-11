@@ -79,7 +79,7 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
 
     @Override
     public synchronized <T extends Document> int remove(Collection<T> collection,
-                                                        Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                                        Map<String, Long> toRemove) {
         return store.remove(collection, toRemove);
     }
 
@@ -93,12 +93,6 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
     @Override
     public synchronized <T extends Document> boolean create(final Collection<T> collection, final List<UpdateOp> updateOps) {
         return store.create(collection, updateOps);
-    }
-
-    @Override
-    public synchronized <T extends Document> void update(final Collection<T> collection, final List<String> keys,
-            final UpdateOp updateOp) {
-        store.update(collection, keys, updateOp);
     }
 
     @Override
@@ -159,6 +153,12 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
     @Override
     public synchronized Map<String, String> getMetadata() {
         return store.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public synchronized Map<String, String> getStats() {
+        return store.getStats();
     }
 
     @Override

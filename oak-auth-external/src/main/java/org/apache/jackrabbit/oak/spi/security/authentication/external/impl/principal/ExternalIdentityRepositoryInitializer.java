@@ -100,10 +100,7 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
             if (root.hasPendingChanges()) {
                 root.commit();
             }
-        } catch (RepositoryException e) {
-            log.error(errorMsg, e);
-            throw new RuntimeException(e);
-        } catch (CommitFailedException e) {
+        } catch (RepositoryException | CommitFailedException e) {
             log.error(errorMsg, e);
             throw new RuntimeException(e);
         }

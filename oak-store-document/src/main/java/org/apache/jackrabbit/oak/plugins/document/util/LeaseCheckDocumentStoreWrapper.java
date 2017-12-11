@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -30,8 +32,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
@@ -103,7 +103,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
 
     @Override
     public final <T extends Document> int remove(Collection<T> collection,
-            Map<String, Map<Key, Condition>> toRemove) {
+            Map<String, Long> toRemove) {
         performLeaseCheck();
         return delegate.remove(collection, toRemove);
     }
@@ -121,13 +121,6 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
             List<UpdateOp> updateOps) {
         performLeaseCheck();
         return delegate.create(collection, updateOps);
-    }
-
-    @Override
-    public final <T extends Document> void update(Collection<T> collection,
-            List<String> keys, UpdateOp updateOp) {
-        performLeaseCheck();
-        delegate.update(collection, keys, updateOp);
     }
 
     @Override
@@ -206,6 +199,13 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
     public final Map<String, String> getMetadata() {
         performLeaseCheck();
         return delegate.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        performLeaseCheck();
+        return delegate.getStats();
     }
 
     @Override

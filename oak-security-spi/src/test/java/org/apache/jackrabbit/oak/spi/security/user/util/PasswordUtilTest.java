@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
@@ -118,6 +120,17 @@ public class PasswordUtilTest {
     }
 
     @Test
+    public void testBuildPasswordWithConfig() throws Exception {
+        ConfigurationParameters params = ConfigurationParameters.of(
+                UserConstants.PARAM_PASSWORD_SALT_SIZE, 13,
+                UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, 13);
+
+        String hash = PasswordUtil.buildPasswordHash("pw", params);
+
+        assertTrue(PasswordUtil.isSame(hash, "pw"));
+    }
+
+    @Test
     public void testIsPlainTextPassword() throws Exception {
         for (String pw : plainPasswords) {
             assertTrue(pw + " should be plain text.", PasswordUtil.isPlainTextPassword(pw));
@@ -146,12 +159,15 @@ public class PasswordUtilTest {
         String pw = "password";
         String pwHash = PasswordUtil.buildPasswordHash(pw, "SHA-1", 4, 50);
         assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw));
+        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw.toCharArray()));
 
         pwHash = PasswordUtil.buildPasswordHash(pw, "md5", 0, 5);
         assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw));
+        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw.toCharArray()));
 
         pwHash = PasswordUtil.buildPasswordHash(pw, "md5", -1, -1);
         assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw));
+        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw.toCharArray()));
     }
 
     @Test
@@ -175,7 +191,32 @@ public class PasswordUtilTest {
 
         assertFalse(PasswordUtil.isSame(invalid, "pw"));
     }
-    
+
+    @Test
+    public void testIsSameNullHash() {
+        assertFalse(PasswordUtil.isSame(null, "pw"));
+    }
+
+    @Test
+    public void testIsSameNullPw() throws Exception {
+        assertFalse(PasswordUtil.isSame(PasswordUtil.buildPasswordHash("pw"), (String) null));
+    }
+
+    @Test
+    public void testIsSameEmpty() throws Exception  {
+        assertTrue(PasswordUtil.isSame(PasswordUtil.buildPasswordHash(""), ""));
+    }
+
+    @Test
+    public void testIsSameEmptyHash() {
+        assertFalse(PasswordUtil.isSame("", "pw"));
+    }
+
+    @Test
+    public void testIsSameEmptyPw() throws Exception {
+        assertFalse(PasswordUtil.isSame(PasswordUtil.buildPasswordHash("pw"), ""));
+    }
+
     @Test
     public void testPBKDF2WithHmacSHA1() throws Exception {
         String algo = "PBKDF2WithHmacSHA1";

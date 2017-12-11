@@ -57,7 +57,10 @@ public class ThreadDumpCommand implements Command {
         OptionSpec<Void> convertSpec = parser.accepts("convert",
                 "convert the thread dumps to the standard format");
         OptionSpec<Void> filterSpec = parser.accepts("filter",
-                "filter the thread dumps, only keep working threads");
+                "filter the thread dumps, only keep working (running), interesting threads " +
+                "(for example, threads that read from sockets are ignored, " +
+                "as they are typically waiting for input; " +
+                 "system threads such as GC are also ignored)");
         OptionSpec<Void> threadNamesSpec = parser.accepts("threadNames",
                 "create a summary of thread names");
         OptionSpec<Void> profileSpec = parser.accepts("profile",
@@ -72,7 +75,8 @@ public class ThreadDumpCommand implements Command {
                 asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
         parser.nonOptions(
-                "file or directory containing thread dumps").ofType(File.class);
+                "file or directory containing thread dumps " +
+                "(ensure it does not contain other files, such as binaries)").ofType(File.class);
         if (options.has(helpSpec)
                 || options.nonOptionArguments().isEmpty()) {
             System.out.println("Mode: " + THREADDUMP);

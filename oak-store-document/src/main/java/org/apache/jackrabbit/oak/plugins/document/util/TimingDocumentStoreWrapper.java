@@ -197,7 +197,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                           Map<String, Long> toRemove) {
         try {
             long start = now();
             int result = base.remove(collection, toRemove);
@@ -240,22 +240,6 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
                 logCommonCall(start, "create " + collection);
             }
             return result;
-        } catch (Exception e) {
-            throw convert(e);
-        }
-    }
-
-    @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        try {
-            long start = now();
-            base.update(collection, keys, updateOp);
-            updateAndLogTimes("update", start, 0, 0);
-            if (logCommonCall()) {
-                logCommonCall(start, "update " + collection);
-            }
         } catch (Exception e) {
             throw convert(e);
         }
@@ -397,6 +381,19 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     @Override
     public Map<String, String> getMetadata() {
         return base.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        try {
+            long start = now();
+            Map<String, String> result = base.getStats();
+            updateAndLogTimes("getStats", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
     }
 
     @Override

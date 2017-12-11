@@ -60,6 +60,8 @@ public class IndexDisablerTest {
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
                 asList("/oak:index/fooIndex", "/oak:index/barIndex"), Type.STRINGS);
 
+        refreshBuilder();
+
         List<String> disabledIndexes = disabler.disableOldIndexes("/oak:index/foo", builder);
         assertThat(disabledIndexes, containsInAnyOrder("/oak:index/fooIndex"));
         assertFalse(builder.getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
@@ -69,9 +71,13 @@ public class IndexDisablerTest {
         //Check no node created for non existing node
         assertFalse(rootBuilder.getChildNode("oak:index").getChildNode("barIndex").exists());
 
-        builder = builder.getNodeState().builder();
+        refreshBuilder();
         List<String> disabledIndexes2 = disabler.disableOldIndexes("/oak:index/foo", builder);
         assertTrue(disabledIndexes2.isEmpty());
+    }
+
+    private void refreshBuilder() {
+        builder = builder.getNodeState().builder();
     }
 
     /**
@@ -86,8 +92,6 @@ public class IndexDisablerTest {
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
                 asList("/oak:index/fooIndex", "/oak:index/barIndex"), Type.STRINGS);
 
-        builder = builder.getNodeState().builder();
-
         List<String> disabledIndexes = disabler.disableOldIndexes("/oak:index/foo", builder);
         assertTrue(disabledIndexes.isEmpty());
     }
@@ -97,6 +101,9 @@ public class IndexDisablerTest {
         builder.setProperty(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE, true);
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
                 asList("/oak:index/fooIndex/@bar"), Type.STRINGS);
+
+        refreshBuilder();
+
         List<String> disabledIndexes = disabler.disableOldIndexes("/oak:index/foo", builder);
         assertTrue(disabledIndexes.isEmpty());
     }
@@ -107,6 +114,9 @@ public class IndexDisablerTest {
         rootBuilder.child("oak:index").child("fooIndex");
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
                 asList("/oak:index/fooIndex/@bar"), Type.STRINGS);
+
+        refreshBuilder();
+
         List<String> disabledIndexes = disabler.disableOldIndexes("/oak:index/foo", builder);
         assertTrue(disabledIndexes.isEmpty());
     }
@@ -118,6 +128,9 @@ public class IndexDisablerTest {
         builder.setProperty(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE, true);
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
                 asList("/oak:index/fooIndex/@oak:BarType"), Type.STRINGS);
+
+        refreshBuilder();
+
         List<String> disabledIndexes = disabler.disableOldIndexes("/oak:index/foo", builder);
         assertTrue(disabledIndexes.isEmpty());
     }
@@ -130,6 +143,9 @@ public class IndexDisablerTest {
         builder.setProperty(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE, true);
         builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS,
                 asList("/oak:index/fooIndex/@oak:BarType"), Type.STRINGS);
+
+        refreshBuilder();
+
         List<String> disabledIndexes = disabler.disableOldIndexes("/oak:index/foo", builder);
         assertThat(disabledIndexes, containsInAnyOrder("/oak:index/fooIndex/@oak:BarType"));
         assertFalse(builder.getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));

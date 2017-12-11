@@ -83,7 +83,7 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
 
     @Override
     public <T extends Document> int remove(Collection<T> collection,
-                                           Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+                                           Map<String, Long> toRemove) {
         return store.remove(collection, toRemove);
     }
 
@@ -98,13 +98,6 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
     public <T extends Document> boolean create(Collection<T> collection,
                                                List<UpdateOp> updateOps) {
         return store.create(collection, updateOps);
-    }
-
-    @Override
-    public <T extends Document> void update(Collection<T> collection,
-                                            List<String> keys,
-                                            UpdateOp updateOp) {
-        store.update(collection, keys, updateOp);
     }
 
     @Override
@@ -165,6 +158,12 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
     @Override
     public Map<String, String> getMetadata() {
         return store.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        return store.getStats();
     }
 
     @Override

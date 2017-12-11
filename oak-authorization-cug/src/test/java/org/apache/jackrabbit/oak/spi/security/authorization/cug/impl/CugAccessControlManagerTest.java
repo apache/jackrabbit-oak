@@ -224,7 +224,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
                     CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS,
                     CugConstants.PARAM_CUG_ENABLED, false));
-        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, new CugSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS));
+        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, CugSecurityProvider.newTestSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS));
         AccessControlPolicy[] policies = acMgr.getEffectivePolicies(SUPPORTED_PATH);
         assertEquals(0, policies.length);
 

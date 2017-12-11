@@ -64,11 +64,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class IndexDefinitionTest {
@@ -1159,6 +1161,41 @@ public class IndexDefinitionTest {
         assertTrue(b.getConfig(JcrConstants.JCR_PRIMARYTYPE).sync);
         assertTrue(b.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
     }
+
+    @Test
+    public void relativeNodeNames_None() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.getRelativeNodeNames().isEmpty());
+        assertFalse(defn.indexesRelativeNodes());
+    }
+
+    @Test
+    public void relativeNodeNames_RelativeProp() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
+        defnb.indexRule("nt:base").property("bar").propertyIndex();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertThat(defn.getRelativeNodeNames(), containsInAnyOrder("jcr:content"));
+        assertTrue(defn.indexesRelativeNodes());
+    }
+
+    @Test
+    public void relativeNodeNames_Aggregate() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
+        defnb.aggregateRule("nt:base").include("jcr:content/metadata");
+        defnb.aggregateRule("nt:base").include("jcr:content/metadata/type/*");
+        defnb.aggregateRule("nt:base").include("*");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertThat(defn.getRelativeNodeNames(), containsInAnyOrder("jcr:content", "metadata", "type"));
+        assertTrue(defn.indexesRelativeNodes());
+    }
+
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 

@@ -26,8 +26,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.remote.content.ContentRemoteRepository;
-import org.apache.jackrabbit.oak.remote.http.RemoteServlet;
 import org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
@@ -74,9 +72,6 @@ class HttpServer {
         ContentRepository repository = jcr.createContentRepository();
         ServletHolder holder = new ServletHolder(new OakServlet(repository));
         context.addServlet(holder, path + "/*");
-
-        ServletHolder remoteServlet = new ServletHolder(new RemoteServlet(new ContentRemoteRepository(repository)));
-        context.addServlet(remoteServlet, path + "/api/*");
 
         // 2 - Webdav Server on JCR repository
         final Repository jcrRepository = jcr.createRepository();

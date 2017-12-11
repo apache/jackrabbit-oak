@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
@@ -83,27 +82,13 @@ class ForwardHandler extends ChannelInboundHandlerAdapter {
                     }
 
                 });
-        ChannelFuture f = b.connect(targetHost, targetPort);
-        if (f.awaitUninterruptibly(1, TimeUnit.SECONDS)) {
-            log.debug("Connected to remote host");
-        } else {
-            throw new Exception("Connection to remote host timed out");
-        }
-        remote = f.channel();
+        remote = b.connect(targetHost, targetPort).sync().channel();
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        if (remote.close().awaitUninterruptibly(1, TimeUnit.SECONDS)) {
-            log.debug("Connection to remote host closed");
-        } else {
-            log.debug("Closing connection to remote host timed out");
-        }
-        if (group.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS).awaitUninterruptibly(1, TimeUnit.SECONDS)) {
-            log.debug("Group shut down");
-        } else {
-            log.debug("Shutting down group timed out");
-        }
+        remote.close();
+        group.shutdownGracefully(0, 150, TimeUnit.MILLISECONDS);
     }
 
     @Override

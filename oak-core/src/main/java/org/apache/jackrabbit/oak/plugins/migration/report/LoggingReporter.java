@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.report;
 
+import com.google.common.collect.EvictingQueue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 
@@ -33,6 +34,8 @@ public class LoggingReporter extends PeriodicReporter {
     private final Logger logger;
 
     private final String verb;
+
+    private final EvictingQueue lastPaths = EvictingQueue.create(100);
 
     /**
      * Constructor that allows setting the intervals to log node and property
@@ -71,5 +74,15 @@ public class LoggingReporter extends PeriodicReporter {
     @Override
     protected void reportPeriodicProperty(final long count, @Nonnull final ReportingNodeState parent, @Nonnull final String propertyName) {
         logger.info("{} properties #{}: {}", verb, count, PathUtils.concat(parent.getPath(), propertyName));
+    }
+
+    protected boolean skipNodeState(@Nonnull final ReportingNodeState nodeState) {
+        String path = nodeState.getPath();
+        if (lastPaths.contains(path)) {
+            return true;
+        } else {
+            lastPaths.add(path);
+            return false;
+        }
     }
 }

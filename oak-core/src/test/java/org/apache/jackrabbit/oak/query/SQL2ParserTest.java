@@ -84,4 +84,39 @@ public class SQL2ParserTest {
         assertTrue(q.contains(token));
     }
 
+    @Test
+    public void testCoalesce() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([j:c/m/d:t], [j:c/j:t])='a'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/m/d:t], name()), [j:c/j:t])='a'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/m/d:t], name()), [j:c/j:t]) in ('a', 'b')");
+
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/a], [b]), COALESCE([c], [c:d])) = 'a'");
+
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[fn:coalesce(j:c/m/@d:t, j:c/@j:t) = 'a']"));
+
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[fn:coalesce(fn:coalesce(j:c/m/@d:t, fn:name()), j:c/@j:t) = 'a']"));
+
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[fn:coalesce(fn:coalesce(j:c/@a, b), fn:coalesce(c, c:d)) = 'a']"));
+    }
+
+    @Test(expected = ParseException.class)
+    public void coalesceFailsWithNoParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE()='a'");
+    }
+
+    @Test(expected = ParseException.class)
+    public void coalesceFailsWithOneParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a])='a'");
+    }
+
+    @Test(expected = ParseException.class)
+    public void coalesceFailsWithMoreThanTwoParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], [b], [c])='a'");
+    }
+
 }

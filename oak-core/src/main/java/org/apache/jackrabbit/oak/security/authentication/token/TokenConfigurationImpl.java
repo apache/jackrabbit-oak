@@ -82,6 +82,13 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         boolean tokenRefresh() default true;
 
         @AttributeDefinition(
+                name = "Token Cleanup Threshold",
+                description = "Setting this option to a value > 0 will trigger a cleanup upon token creation: " +
+                        "if the number of existing token matches/exceeds the " +
+                        "configured value an attempt is made to removed expired tokens.")
+        long tokenCleanupThreshold() default TokenProviderImpl.NO_TOKEN_CLEANUP;
+
+        @AttributeDefinition(
                 name = "Hash Algorithm",
                 description = "Name of the algorithm to hash the token.")
         String passwordHashAlgorithm() default PasswordUtil.DEFAULT_ALGORITHM;
@@ -112,7 +119,8 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     //----------------------------------------------------------------< SCR >---
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    private void activate(Map<String, Object> properties) {
+    // reference to @Configuration class needed for correct DS xml generation
+    private void activate(Configuration configuration, Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
 

@@ -27,14 +27,19 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.junit.Test;
 
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
 
 public class ExtractedTextCacheTest {
 
@@ -84,7 +89,7 @@ public class ExtractedTextCacheTest {
         cache.put(b, new ExtractedText(ExtractionResult.ERROR, "test hello"));
 
         text = cache.get("/a", "foo", b, false);
-        assertNull(text);
+        assertEquals(LuceneIndexEditor.TEXT_EXTRACTION_ERROR, text);
     }
 
     @Test
@@ -124,7 +129,7 @@ public class ExtractedTextCacheTest {
 
     @Test
     public void preExtractionAlwaysUse() throws Exception{
-        ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100, true);
+        ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100, true, null);
         PreExtractedTextProvider provider = mock(PreExtractedTextProvider.class);
 
         cache.setExtractedTextProvider(provider);
@@ -133,6 +138,51 @@ public class ExtractedTextCacheTest {
         Blob b = new IdBlob("hello", "a");
         String text = cache.get("/a", "foo", b, false);
         assertEquals("bar", text);
+    }
+
+    @Test
+    public void rememberTimeout() throws Exception{
+        ExtractedTextCache cache = new ExtractedTextCache(0, 0, false, null);
+        Blob b = new IdBlob("hello", "a");
+        cache.put(b, ExtractedText.ERROR);
+        assertNull(cache.get("/a", "foo", b, false));
+        cache.putTimeout(b, ExtractedText.ERROR);
+        assertEquals(LuceneIndexEditor.TEXT_EXTRACTION_ERROR, cache.get("/a", "foo", b, false));
+    }
+
+    @Test
+    public void process() throws Throwable {
+        ExtractedTextCache cache = new ExtractedTextCache(0, 0, false, null);
+        try {
+            cache.process("test", new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    throw new OutOfMemoryError();
+                }
+            });
+            fail();
+        } catch (OutOfMemoryError e) {
+            // expected
+        }
+        assertEquals(0, cache.getStatsMBean().getTimeoutCount());
+        cache.setExtractionTimeoutMillis(10);
+        long time = System.currentTimeMillis();
+        try {
+            cache.process("test", new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    // this happens in the background, so doesn't block the test
+                    Thread.sleep(10000);
+                    return null;
+                }
+            });
+            fail();
+        } catch (TimeoutException e) {
+            // expected
+        }
+        time = System.currentTimeMillis() - time;
+        assertTrue("" + time, time < 5000);
+        assertEquals(1, cache.getStatsMBean().getTimeoutCount());
     }
 
     private static class IdBlob extends ArrayBasedBlob {

@@ -164,7 +164,7 @@ class MutableNodeState extends AbstractNodeState {
 
     boolean isReplaced(NodeState before, String name) {
         return before.hasProperty(name)
-                && (base != before || properties.containsKey(name));
+                && (!base.equals(before) || properties.containsKey(name));
     }
 
     /**

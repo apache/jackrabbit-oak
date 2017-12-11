@@ -129,6 +129,16 @@ public abstract class AstVisitorBase implements AstVisitor {
     }
 
     /**
+     * Calls accept on the dynamic operand in the coalesce node.
+     */
+    @Override
+    public boolean visit(CoalesceImpl node) {
+        node.getOperand1().accept(this);
+        node.getOperand2().accept(this);
+        return true;
+    }
+
+    /**
      * Calls accept on the constraint in the NOT node.
      */
     @Override

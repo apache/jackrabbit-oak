@@ -174,15 +174,6 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void compact(@Nonnull File directory, @Nullable Boolean mmap, boolean force) {
-        Compact.builder()
-                .withPath(directory)
-                .withMmap(mmap)
-                .withForce(force)
-                .build()
-                .run();
-    }
-
     static void diff(File store, File out, boolean listOnly, String interval, boolean incremental, String path, boolean ignoreSNFEs) throws IOException {
         if (listOnly) {
             revisions(store, out);
@@ -216,7 +207,9 @@ final class SegmentTarUtils {
     }
 
     private static FileStore bootstrapFileStore(String path) throws IOException, InvalidFileStoreVersionException {
-        return fileStoreBuilder(new File(path)).build();
+        return fileStoreBuilder(new File(path))
+            .withStrictVersionCheck(true)
+            .build();
     }
 
     private static ReadOnlyFileStore openReadOnlyFileStore(File path, boolean memoryMapped)
@@ -234,7 +227,9 @@ final class SegmentTarUtils {
     }
 
     private static FileStore openFileStore(String directory, boolean force) throws IOException, InvalidFileStoreVersionException {
-        return newFileStoreBuilder(directory, force).build();
+        return newFileStoreBuilder(directory, force)
+            .withStrictVersionCheck(true)
+            .build();
     }
 
     private static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException, InvalidFileStoreVersionException {

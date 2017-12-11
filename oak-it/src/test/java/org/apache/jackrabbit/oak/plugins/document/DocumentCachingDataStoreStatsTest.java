@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.blob.ConsolidatedDataStoreCacheStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.ReferenceViolationException;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.After;
@@ -128,6 +129,9 @@ public class DocumentCachingDataStoreStatsTest {
         properties.put("db", MongoUtils.DB);
         properties.put("repository.home", repoHome);
         properties.put(DocumentNodeStoreService.CUSTOM_BLOB_STORE, customBlobStore);
+        MockOsgi.setConfigForPid(context.bundleContext(),
+                DocumentNodeStoreService.class.getName(), properties);
+        context.registerInjectActivateService(new DocumentNodeStoreService.Preset());
         documentNodeStoreService =
             context.registerInjectActivateService(new DocumentNodeStoreService(), properties);
     }

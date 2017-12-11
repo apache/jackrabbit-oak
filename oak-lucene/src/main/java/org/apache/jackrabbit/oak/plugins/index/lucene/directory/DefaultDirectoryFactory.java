@@ -33,6 +33,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
 public class DefaultDirectoryFactory implements DirectoryFactory {
@@ -54,7 +55,7 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
     public Directory newInstance(IndexDefinition definition, NodeBuilder builder,
                                  String dirName, boolean reindex) throws IOException {
         Directory directory = newIndexDirectory(definition, builder, dirName);
-        if (indexCopier != null) {
+        if (indexCopier != null && !(SUGGEST_DATA_CHILD_NAME.equals(dirName) && definition.getUniqueId() == null)) {
             directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);
         }
         return directory;

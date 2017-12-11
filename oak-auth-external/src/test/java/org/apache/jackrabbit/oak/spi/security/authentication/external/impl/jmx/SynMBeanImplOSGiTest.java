@@ -31,17 +31,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
-import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class SynMBeanImplOSGiTest extends ExternalLoginModuleTestBase {
-
-    @Rule
-    public final OsgiContext context = new OsgiContext();
 
     private ExternalLoginModuleFactory externalLoginModuleFactory;
 

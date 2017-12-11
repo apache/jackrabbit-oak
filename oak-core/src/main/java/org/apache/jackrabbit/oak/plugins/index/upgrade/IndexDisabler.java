@@ -107,7 +107,8 @@ public class IndexDisabler {
         }
 
         //Skip disabling for the cycle where reindexing just got completed
-        if (idxBuilder.isReplaced(DISABLE_INDEXES_ON_NEXT_CYCLE)){
+        //i.e. baseState should not have DISABLE_INDEXES_ON_NEXT_CYCLE set to false
+        if (!idxBuilder.getBaseState().getBoolean(DISABLE_INDEXES_ON_NEXT_CYCLE)){
             return emptyList();
         }
 

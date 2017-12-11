@@ -459,7 +459,7 @@ public class ExternalSort {
     }
 
     /**
-     * This merges a bunch of temporary flat files
+     * This merges a bunch of temporary flat files and deletes them on success or error.
      * 
      * @param files
      *            The {@link List} of sorted {@link File}s to be merged.
@@ -488,28 +488,33 @@ public class ExternalSort {
                                            boolean append, boolean usegzip, Function<T, String> typeToString,
                                            Function<String, T> stringToType) throws IOException {
         ArrayList<BinaryFileBuffer<T>> bfbs = new ArrayList<>();
-        for (File f : files) {
-            final int bufferSize = 2048;
-            InputStream in = new FileInputStream(f);
-            BufferedReader br;
-            if (usegzip) {
-                br = new BufferedReader(new InputStreamReader(
-                        new GZIPInputStream(in, bufferSize), cs));
-            } else {
-                br = new BufferedReader(new InputStreamReader(in,
-                        cs));
-            }
+        try {
+            for (File f : files) {
+                final int bufferSize = 2048;
+                InputStream in = new FileInputStream(f);
+                BufferedReader br;
+                if (usegzip) {
+                    br = new BufferedReader(new InputStreamReader(new GZIPInputStream(in, bufferSize), cs));
+                } else {
+                    br = new BufferedReader(new InputStreamReader(in, cs));
+                }
 
-            BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(br, stringToType);
-            bfbs.add(bfb);
+                BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(br, stringToType);
+                bfbs.add(bfb);
+            }
+            BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputfile, append), cs));
+            int rowcounter = merge(fbw, cmp, distinct, bfbs, typeToString);
+            return rowcounter;
+        } finally {
+            for (BinaryFileBuffer buffer : bfbs) {
+                try {
+                    buffer.close();
+                } catch (Exception e) {}
+            }
+            for (File f : files) {
+                f.delete();
+            }
         }
-        BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(outputfile, append), cs));
-        int rowcounter = merge(fbw, cmp, distinct, bfbs, typeToString);
-        for (File f : files) {
-            f.delete();
-        }
-        return rowcounter;
     }
 
     /**

@@ -165,6 +165,18 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
                         "background update");
     }
 
+    @Override
+    public CompositeData getBranchCommitHistory() {
+        return getTimeSeriesData(DocumentNodeStoreStats.BRANCH_COMMIT_COUNT,
+                "Branch commit count");
+    }
+
+    @Override
+    public CompositeData getMergeBranchCommitHistory() {
+        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_BRANCH_COMMIT_COUNT,
+                "Number of merged branch commits");
+    }
+
     private CompositeData getTimeSeriesData(String name, String desc) {
         return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);
     }

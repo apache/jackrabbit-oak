@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -356,16 +354,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         catch (IllegalArgumentException expected) {
             // reported by DocumentStore
         }
-
-        try {
-            UpdateOp up = new UpdateOp(id, false);
-            up.equals("foo", "bar");
-            super.ds.update(Collection.NODES, Collections.singletonList(id), up);
-            fail("conditional update should fail");
-        }
-        catch (IllegalArgumentException expected) {
-            // reported by DocumentStore
-        }
     }
 
     @Test
@@ -542,33 +530,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testRepeatingUpdatesOnSQLServer() {
-        // simulates two updates to trigger the off-by-one bug documented in OAK-3670
-        String id = this.getClass().getName() + ".testRepeatingUpdatesOnSQLServer";
-
-        // remove if present
-        NodeDocument nd = super.ds.find(Collection.NODES, id);
-        if (nd != null) {
-            super.ds.remove(Collection.NODES, id);
-        }
-
-        UpdateOp up = new UpdateOp(id, true);
-        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
-        removeMe.add(id);
-
-        up = new UpdateOp(id, false);
-        up.set("f0", generateConstantString(3000));
-        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
-
-        up = new UpdateOp(id, false);
-        up.set("f1", generateConstantString(967));
-        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
-
-        NodeDocument doc = super.ds.find(Collection.NODES, id, 0);
-        assertNotNull(doc);
-    }
-
-    @Test
     public void testModifiedMaxUpdateQuery() {
         String id = this.getClass().getName() + ".testModifiedMaxUpdate";
         // create a test node
@@ -615,32 +576,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testModifyModified() {
-        // https://issues.apache.org/jira/browse/OAK-2940
-        String id = this.getClass().getName() + ".testModifyModified";
-        // create a test node
-        UpdateOp up = new UpdateOp(id, true);
-        up.set("_modified", 1000L);
-        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-        assertTrue(success);
-        removeMe.add(id);
-
-        // update with "max" operation
-        up = new UpdateOp(id, false);
-        up.max("_modified", 2000L);
-        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
-        NodeDocument nd = super.ds.find(Collection.NODES, id, 0);
-        assertEquals(((Number)nd.get("_modified")).longValue(), 2000L);
-
-        // update with "set" operation
-        up = new UpdateOp(id, false);
-        up.set("_modified", 1500L);
-        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
-        nd = super.ds.find(Collection.NODES, id, 0);
-        assertEquals(((Number)nd.get("_modified")).longValue(), 1500L);
-    }
-
-    @Test
     public void testModifyDeletedOnce() {
         // https://issues.apache.org/jira/browse/OAK-3852
         String id = this.getClass().getName() + ".testModifyDeletedOnce";
@@ -657,15 +592,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             // RDB persistence does not distinguish null and false
             assertEquals(dovalue.booleanValue(), Boolean.FALSE);
         }
-
-        // update
-        up = new UpdateOp(id, false);
-        up.set(NodeDocument.DELETED_ONCE, Boolean.TRUE);
-        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
-        nd = super.ds.find(Collection.NODES, id, 0);
-        assertNotNull(nd);
-        assertNotNull(nd.get(NodeDocument.DELETED_ONCE));
-        assertEquals(((Boolean)nd.get(NodeDocument.DELETED_ONCE)).booleanValue(), Boolean.TRUE);
     }
 
     @Test
@@ -789,33 +715,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // id-2 should be removed
         Document d = ds.find(Collection.NODES, id + "-2");
         assertTrue(d == null);
-    }
-
-    @Test
-    public void testUpdateMultiple() {
-        String id = this.getClass().getName() + ".testUpdateMultiple";
-        // create a test node
-        super.ds.remove(Collection.NODES, id);
-        UpdateOp up = new UpdateOp(id, true);
-        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-        assertTrue(success);
-        removeMe.add(id);
-
-        // update a non-existing one and this one
-        List<String> toupdate = new ArrayList<String>();
-        toupdate.add(id + "-" + UUID.randomUUID());
-        toupdate.add(id);
-
-        UpdateOp up2 = new UpdateOp(id, false);
-        up2.set("foo", "bar");
-        ds.update(Collection.NODES, toupdate, up2);
-
-        // id should be updated
-        ds.invalidateCache();
-        Document d = ds.find(Collection.NODES, id);
-        assertNotNull(d);
-        assertEquals(id, d.getId());
-        assertEquals("bar", d.get("foo").toString());
     }
 
     @Test
@@ -1118,11 +1017,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             assertNotNull(ds.find(Collection.NODES, op.getId()));
         }
 
-        Map<String, Map<Key, Condition>> toRemove = Maps.newHashMap();
-        removeDocument(toRemove, "/foo", 100); // matches
-        removeDocument(toRemove, "/bar", 300); // modified differs
-        removeDocument(toRemove, "/qux", 100); // does not exist
-        removeDocument(toRemove, "/baz", 300); // matches
+        Map<String, Long> toRemove = Maps.newHashMap();
+        toRemove.put(Utils.getIdFromPath("/foo"), 100L); // matches
+        toRemove.put(Utils.getIdFromPath("/bar"), 300L); // modified differs
+        toRemove.put(Utils.getIdFromPath("/qux"), 100L); // does not exist
+        toRemove.put(Utils.getIdFromPath("/baz"), 300L); // matches
 
         int removed = ds.remove(Collection.NODES, toRemove);
 
@@ -1141,10 +1040,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         long modified = 1;
         removeMe.add(id);
         ds.create(Collection.NODES, Collections.singletonList(newDocument(id, modified)));
-
-        Map<Key, Condition> conditions = Collections.singletonMap(new Key(NodeDocument.MODIFIED_IN_SECS, null),
-                Condition.newEqualsCondition(modified));
-        ds.remove(Collection.NODES, Collections.singletonMap(id, conditions));
+        ds.remove(Collection.NODES, Collections.singletonMap(id, modified));
         assertNull(ds.getIfCached(Collection.NODES, id));
     }
 
@@ -1161,14 +1057,5 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         UpdateOp op = new UpdateOp(id, true);
         op.set(NodeDocument.MODIFIED_IN_SECS, modified);
         return op;
-    }
-
-    private void removeDocument(Map<String, Map<Key, Condition>> toRemove,
-                                String path,
-                                long modified) {
-        toRemove.put(Utils.getIdFromPath(path),
-                Collections.singletonMap(
-                        new Key(NodeDocument.MODIFIED_IN_SECS, null),
-                        Condition.newEqualsCondition(modified)));
     }
 }
