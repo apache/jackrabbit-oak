@@ -890,7 +890,7 @@ public class Utils {
     public static String getModuleVersion() {
         String v = MODULE_VERSION;
         if (v == null) {
-            v = OakVersion.getVersion("oak-core", Utils.class);
+            v = OakVersion.getVersion("oak-store-document", Utils.class);
             MODULE_VERSION = v;
         }
         return v;
