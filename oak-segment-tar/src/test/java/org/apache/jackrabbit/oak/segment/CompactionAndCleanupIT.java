@@ -77,6 +77,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -276,6 +277,48 @@ public class CompactionAndCleanupIT {
             assertEquals(blobSize, blob.length);
         } finally {
             fileStore.close();
+        }
+    }
+
+    @Test
+    @Ignore("OAK-7050")  // FIXME OAK-7050
+    public void cancelOfflineCompaction() throws Exception {
+        final AtomicBoolean cancelCompaction = new AtomicBoolean(true);
+        try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(defaultGCOptions().setOffline())
+                .build()) {
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            // Create ~2MB of data
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+            for (int i = 0; i < 10000; i++) {
+                NodeBuilder c = content.child("c" + i);
+                for (int j = 0; j < 1000; j++) {
+                    c.setProperty("p" + i, "v" + i);
+                }
+            }
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+            NodeState uncompactedRoot = nodeStore.getRoot();
+
+            // Keep cancelling compaction
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (cancelCompaction.get()) {
+                        fileStore.cancelGC();
+                    }
+                }
+            }).start();
+
+            fileStore.compact();
+
+            // Cancelling compaction must not corrupt the repository. See OAK-7050.
+            NodeState compactedRoot = nodeStore.getRoot();
+            assertTrue(compactedRoot.exists());
+            assertEquals(uncompactedRoot, compactedRoot);
+        } finally {
+            cancelCompaction.set(false);
         }
     }
 
