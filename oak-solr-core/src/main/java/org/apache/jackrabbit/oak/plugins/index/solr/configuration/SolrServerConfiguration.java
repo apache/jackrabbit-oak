@@ -24,7 +24,7 @@ import java.lang.reflect.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 
 /**
- * Configuration parameters for starting a {@link org.apache.solr.client.solrj.SolrServer}
+ * Configuration parameters for starting a {@link org.apache.solr.client.solrj.SolrClient}
  */
 public abstract class SolrServerConfiguration<S extends SolrServerProvider> {
 
