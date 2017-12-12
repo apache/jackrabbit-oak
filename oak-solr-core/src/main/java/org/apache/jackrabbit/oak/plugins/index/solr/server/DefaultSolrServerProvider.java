@@ -20,18 +20,19 @@ import java.io.IOException;
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 
 public class DefaultSolrServerProvider implements SolrServerProvider {
 
-    private SolrServer solrServer;
-    private SolrServer indexingSolrServer;
+    private SolrClient solrServer;
+    private SolrClient indexingSolrServer;
 
     @CheckForNull
     @Override
-    public SolrServer getSolrServer() throws Exception {
+    public SolrClient getSolrServer() throws Exception {
         if (solrServer == null) {
             solrServer = new HttpSolrServer(getUrl());
         }
@@ -40,7 +41,7 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
 
     @CheckForNull
     @Override
-    public SolrServer getIndexingSolrServer() throws Exception {
+    public SolrClient getIndexingSolrServer() throws Exception {
         if (indexingSolrServer == null) {
             indexingSolrServer = new ConcurrentUpdateSolrServer(getUrl(), 1000, 4);
         }
@@ -49,7 +50,7 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
 
     @CheckForNull
     @Override
-    public SolrServer getSearchingSolrServer() throws Exception {
+    public SolrClient getSearchingSolrServer() throws Exception {
         return getSolrServer();
     }
 
@@ -62,14 +63,14 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
     @Override
     public void close() throws IOException {
         try {
-            SolrServer solrServer = getSolrServer();
+            SolrClient solrServer = getSolrServer();
             if (solrServer != null) {
                 solrServer.shutdown();
             }
         } catch (Exception e) {
             // do nothing
         } try {
-            SolrServer indexingSolrServer = getIndexingSolrServer();
+            SolrClient indexingSolrServer = getIndexingSolrServer();
             if (indexingSolrServer != null) {
                 indexingSolrServer.shutdown();
             }

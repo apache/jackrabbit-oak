@@ -22,6 +22,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 
 /**
@@ -29,10 +30,10 @@ import org.apache.solr.client.solrj.SolrServer;
  */
 public class SolrServerRegistry {
 
-    private static final Map<String, SolrServer> searchingServerRegistry = new HashMap<String, SolrServer>();
-    private static final Map<String, SolrServer> indexingServerRegistry = new HashMap<String, SolrServer>();
+    private static final Map<String, SolrClient> searchingServerRegistry = new HashMap<String, SolrClient>();
+    private static final Map<String, SolrClient> indexingServerRegistry = new HashMap<String, SolrClient>();
 
-    public static void register(@Nonnull SolrServerConfiguration configuration, @Nonnull SolrServer solrServer,
+    public static void register(@Nonnull SolrServerConfiguration configuration, @Nonnull SolrClient solrServer,
                                 @Nonnull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
@@ -49,7 +50,7 @@ public class SolrServerRegistry {
     }
 
     @CheckForNull
-    public static SolrServer get(@Nonnull SolrServerConfiguration configuration, @Nonnull Strategy strategy) {
+    public static SolrClient get(@Nonnull SolrServerConfiguration configuration, @Nonnull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
@@ -67,7 +68,7 @@ public class SolrServerRegistry {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
-                    SolrServer removed = indexingServerRegistry.remove(configuration.toString());
+                    SolrClient removed = indexingServerRegistry.remove(configuration.toString());
                     try {
                         removed.shutdown();
                     } catch (Exception e) {
@@ -77,7 +78,7 @@ public class SolrServerRegistry {
                 break;
             case SEARCHING:
                 synchronized (searchingServerRegistry) {
-                    SolrServer removed = searchingServerRegistry.remove(configuration.toString());
+                    SolrClient removed = searchingServerRegistry.remove(configuration.toString());
                     try {
                         removed.shutdown();
                     } catch (Exception e) {

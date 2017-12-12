@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 
 import static org.junit.Assert.assertTrue;
@@ -40,7 +41,7 @@ public class TestUtils
 
     static final String SOLR_HOME_PATH = "/solr";
 
-    public static SolrServer createSolrServer() {
+    public static SolrClient createSolrServer() {
         EmbeddedSolrServerConfiguration configuration = new EmbeddedSolrServerConfiguration(
                 TestUtils.class.getResource(SOLR_HOME_PATH).getFile(), "oak");
         EmbeddedSolrServerProvider provider = new EmbeddedSolrServerProvider(configuration);
@@ -84,25 +85,25 @@ public class TestUtils
         };
     }
 
-    private final SolrServer solrServer = createSolrServer();
+    private final SolrClient solrServer = createSolrServer();
 
     private final OakSolrConfiguration configuration = getTestConfiguration();
 
     @CheckForNull
     @Override
-    public SolrServer getSolrServer() {
+    public SolrClient getSolrServer() {
         return solrServer;
     }
 
     @CheckForNull
     @Override
-    public SolrServer getIndexingSolrServer() throws Exception {
+    public SolrClient getIndexingSolrServer() throws Exception {
         return solrServer;
     }
 
     @CheckForNull
     @Override
-    public SolrServer getSearchingSolrServer() throws Exception {
+    public SolrClient getSearchingSolrServer() throws Exception {
         return solrServer;
     }
 
