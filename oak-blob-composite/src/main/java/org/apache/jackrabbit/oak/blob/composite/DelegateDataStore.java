@@ -102,7 +102,7 @@ public class DelegateDataStore {
         }
 
         public CompositeDataStoreDelegateBuilder withConfig(final Map<String, Object> config) {
-            this.config = Maps.newHashMap(config);
+            this.config = config == null ? null : Maps.newHashMap(config);
             return this;
         }
 

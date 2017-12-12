@@ -51,7 +51,12 @@ public class DelegateDataStoreTest {
         assertEquals(ds, delegate.getDataStore());
         assertEquals(role, delegate.getRole());
         if (null != config) {
-            assertEquals(config.size(), delegate.getConfig().size());
+            if (config.containsKey(DataStoreProvider.ROLE)) {
+                assertEquals(config.size(), delegate.getConfig().size());
+            }
+            else {
+                assertEquals(config.size()+1, delegate.getConfig().size());
+            }
             for (String key : config.keySet()) {
                 assertTrue(delegate.getConfig().containsKey(key));
                 assertEquals(config.get(key), delegate.getConfig().get(key));
