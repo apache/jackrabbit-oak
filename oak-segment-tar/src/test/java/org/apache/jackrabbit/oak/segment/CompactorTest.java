@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 
@@ -69,18 +69,15 @@ public class CompactorTest {
 
     @Test
     public void testCancel() throws Throwable {
-
-        // Create a Compactor that will cancel itself as soon as possible. The
-        // early cancellation is the reason why the returned SegmentNodeState
-        // doesn't have the child named "b".
-
+        // Create a Compactor that will cancel itself as soon as possible. The early
+        // cancellation is the reason why the returned SegmentNodeState is null
         NodeStore store = SegmentNodeStoreBuilders.builder(memoryStore).build();
         SegmentWriter writer = segmentWriterBuilder("c").withGeneration(1).build(memoryStore);
         Compactor compactor = new Compactor(memoryStore.getReader(), writer,
                 memoryStore.getBlobStore(), Suppliers.ofInstance(true), defaultGCOptions());
-        SegmentNodeState sns = compactor.compact(store.getRoot(),
-                addChild(store.getRoot(), "b"), store.getRoot());
-        assertFalse(sns.hasChildNode("b"));
+        SegmentNodeState compacted = compactor.compact(
+                store.getRoot(), addChild(store.getRoot(), "b"), store.getRoot());
+        assertNull(compacted);
     }
 
     private NodeState addChild(NodeState current, String name) {
