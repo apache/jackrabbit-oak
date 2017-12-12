@@ -85,7 +85,10 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
             );
             compactor.setContentEqualityCheck(true);
             SegmentNodeState after = compactor.compact(current, head, current);
-            store.getRevisions().setHead(current.getRecordId(), after.getRecordId());
+
+            if (after != null) {
+                store.getRevisions().setHead(current.getRecordId(), after.getRecordId());
+            }
         } finally {
             restore.close();
             store.close();

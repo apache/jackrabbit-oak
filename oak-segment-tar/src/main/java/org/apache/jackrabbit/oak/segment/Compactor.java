@@ -142,14 +142,6 @@ public class Compactor {
         this.binaryDedupMaxSize = gc.getBinaryDeduplicationMaxSize();
     }
 
-    private SegmentNodeBuilder process(NodeState before, NodeState after,
-            NodeState onto) throws IOException {
-        SegmentNodeBuilder builder = new SegmentNodeBuilder(
-                writer.writeNode(onto), writer);
-        new CompactDiff(builder).diff(before, after);
-        return builder;
-    }
-
     /**
      * Compact the differences between a {@code before} and a {@code after} on
      * top of an {@code onto} state.
@@ -160,16 +152,23 @@ public class Compactor {
      *            the after state
      * @param onto
      *            the onto state
-     * @return the compacted state
+     * @return the compacted state or {@code null} if compaction was cancelled
      */
     public SegmentNodeState compact(NodeState before, NodeState after,
             NodeState onto) throws IOException {
         progress.start();
-        SegmentNodeState compacted = process(before, after, onto)
-                .getNodeState();
-        writer.flush();
-        progress.stop();
-        return compacted;
+        try {
+            SegmentNodeBuilder builder = new SegmentNodeBuilder(writer.writeNode(onto), writer);
+            if (new CompactDiff(builder).diff(before, after)) {
+                SegmentNodeState compacted = builder.getNodeState();
+                writer.flush();
+                return compacted;
+            } else {
+                return null;
+            }
+        } finally {
+            progress.stop();
+        }
     }
 
     private class CompactDiff extends ApplyDiff {

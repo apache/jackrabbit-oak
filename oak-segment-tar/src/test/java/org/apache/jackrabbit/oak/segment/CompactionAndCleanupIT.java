@@ -77,7 +77,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -281,7 +280,6 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
-    @Ignore("OAK-7050")  // FIXME OAK-7050
     public void cancelOfflineCompaction() throws Exception {
         final AtomicBoolean cancelCompaction = new AtomicBoolean(true);
         try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
