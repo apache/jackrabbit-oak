@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.blob.composite;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
@@ -139,9 +140,7 @@ public class CompositeDataStoreTestUtils {
     static CompositeDataStore createEmptyCompositeDataStore(List<String> roles) {
         Map<String, Object> config = Maps.newHashMap();
 
-        for (String role : roles) {
-            config.put(role, "");
-        }
+        config.put(CompositeDataStore.ROLES, Joiner.on(",").join(roles));
 
         Properties properties = new Properties();
         properties.putAll(config);

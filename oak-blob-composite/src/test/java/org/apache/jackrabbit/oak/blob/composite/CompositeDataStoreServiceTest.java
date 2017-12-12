@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.blob.composite;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.InMemoryDataStore;
@@ -33,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertNull;
@@ -68,15 +71,28 @@ public class CompositeDataStoreServiceTest {
         };
     }
 
-    private Map<String, Object> createConfig(String role) {
+    private Map<String, Object> createDsConfig(String role) {
         Map<String, Object> config = Maps.newHashMap();
         config.put(DataStoreProvider.ROLE, role);
         return config;
     }
 
+    private Map<String, Object> createServiceConfig(String role) {
+        return createServiceConfig(Lists.newArrayList(role));
+    }
+
+    private Map<String, Object> createServiceConfig(Collection<String> roles) {
+        Map<String, Object> config = Maps.newHashMap();
+        config.put(CompositeDataStore.ROLES, Joiner.on(",").join(roles));
+        try {
+            config.put("path", folder.newFolder().getAbsolutePath());
+        }
+        catch (IOException e) { }
+        return config;
+    }
+
     private DataStoreProvider registerDataStoreProvider(final String role) {
-        Map<String, Object> dsConfig = Maps.newHashMap();
-        dsConfig.put(DataStoreProvider.ROLE, role);
+        Map<String, Object> dsConfig = createDsConfig(role);
         DataStoreProvider dsp = createDelegateDataStore(role);
         context.registerService(DataStoreProvider.class, dsp, dsConfig);
         return dsp;
@@ -84,14 +100,7 @@ public class CompositeDataStoreServiceTest {
 
     private CompositeDataStoreService registerService(final String role)
             throws IOException{
-        return registerService(role, "");
-    }
-
-    private CompositeDataStoreService registerService(final String role, final String cfgString)
-            throws IOException {
-        Map<String, Object> serviceConfig = Maps.newHashMap();
-        serviceConfig.put(role, cfgString);
-        serviceConfig.put("path", folder.newFolder().getAbsolutePath());
+        Map<String, Object> serviceConfig = createServiceConfig(role);
         CompositeDataStoreService service = new CompositeDataStoreService();
         context.registerInjectActivateService(service, serviceConfig);
         return service;
@@ -133,16 +142,13 @@ public class CompositeDataStoreServiceTest {
     }
 
     @Test
-    public void testCreateCompositeDataStoreServiceDeferredDataStoreCreationIsAdditive() throws IOException {
-        Map<String, Object> serviceConfig = Maps.newHashMap();
-        serviceConfig.put(DEFAULT_ROLE, "");
-        serviceConfig.put("path", folder.newFolder().getAbsolutePath());
-        serviceConfig.put("local2", "");
+    public void testCreateCompositeDataStoreServiceDeferredDataStoreCreationWaitsForAllDelegates() throws IOException {
+        Map<String, Object> serviceConfig = createServiceConfig(Lists.newArrayList(DEFAULT_ROLE, "local2"));
         CompositeDataStoreService service = new CompositeDataStoreService();
         context.registerInjectActivateService(service, serviceConfig);
 
         DataStoreProvider dsp1 = registerDataStoreProvider(DEFAULT_ROLE);
-        verifyServiceRegistrationState(context, true);
+        verifyServiceRegistrationState(context, false);
 
         DataStoreProvider[] providers = context.getServices(DataStoreProvider.class, null);
         assertEquals(1, providers.length);
@@ -188,6 +194,10 @@ public class CompositeDataStoreServiceTest {
     @Test
     public void testDSIsInitializedIfServiceStartsFirst() throws IOException {
         registerService(DEFAULT_ROLE);
+        CompositeDataStore cds = context.getService(CompositeDataStore.class);
+        assertNull(cds);
+        BlobStore bs = context.getService(BlobStore.class);
+        assertNull(bs);
         assertNull(context.getService(CompositeDataStore.class));
         assertNull(context.getService(BlobStore.class));
 
@@ -209,10 +219,7 @@ public class CompositeDataStoreServiceTest {
 
     @Test
     public void testCreateServiceThenMultipleDelegatesHasCorrectNumberOfRegistrations() throws IOException {
-        Map<String, Object> serviceConfig = Maps.newHashMap();
-        serviceConfig.put(DEFAULT_ROLE, "");
-        serviceConfig.put("path", folder.newFolder().getAbsolutePath());
-        serviceConfig.put("local2", "");
+        Map<String, Object> serviceConfig = createServiceConfig(Lists.newArrayList(DEFAULT_ROLE, "local2"));
         CompositeDataStoreService service = new CompositeDataStoreService();
         context.registerInjectActivateService(service, serviceConfig);
 
@@ -225,9 +232,9 @@ public class CompositeDataStoreServiceTest {
         DataStoreProvider[] providers = context.getServices(DataStoreProvider.class, null);
         assertEquals(1, providers.length);
         dataStores = context.getServices(CompositeDataStore.class, null);
-        assertEquals(1, dataStores.length);
+        assertEquals(0, dataStores.length);
         blobStores = context.getServices(BlobStore.class, null);
-        assertEquals(1, blobStores.length);
+        assertEquals(0, blobStores.length);
 
         DataStoreProvider dsp2 = registerDataStoreProvider("local2");
         providers = context.getServices(DataStoreProvider.class, null);

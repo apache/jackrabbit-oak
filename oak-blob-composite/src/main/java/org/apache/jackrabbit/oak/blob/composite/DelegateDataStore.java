@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.blob.composite;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 
@@ -54,20 +53,20 @@ public class DelegateDataStore {
         return config;
     }
 
-    public boolean applyCompositeDataStoreConfig(final String cfg) {
-        if (Strings.isNullOrEmpty(cfg)) {
-            return false;
-        }
-        boolean cfgChanged = false;
-        for (String pair : cfg.split(",")) {
-            String[] kv = pair.split(":");
-            if (2 == kv.length) {
-                cfgChanged = true;
-                config.put(kv[0].trim(), kv[1].trim().toLowerCase());
-            }
-        }
-        return cfgChanged;
-    }
+//    public boolean applyCompositeDataStoreConfig(final String cfg) {
+//        if (Strings.isNullOrEmpty(cfg)) {
+//            return false;
+//        }
+//        boolean cfgChanged = false;
+//        for (String pair : cfg.split(",")) {
+//            String[] kv = pair.split(":");
+//            if (2 == kv.length) {
+//                cfgChanged = true;
+//                config.put(kv[0].trim(), kv[1].trim().toLowerCase());
+//            }
+//        }
+//        return cfgChanged;
+//    }
 
     public boolean isReadOnly() {
         Object o = config.get(READ_ONLY);

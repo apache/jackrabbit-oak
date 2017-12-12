@@ -275,7 +275,6 @@ public class CompositeDataStoreDSTest {
 
         cds.init(homedir);
 
-        //verifyRecord(cds.getRecord(id1), extractRecordData(record1));
         verifyRecord(cds.getRecord(id2), extractRecordData(record2));
     }
 

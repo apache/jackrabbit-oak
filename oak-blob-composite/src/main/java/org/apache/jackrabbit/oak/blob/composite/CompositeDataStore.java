@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.blob.composite;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -47,6 +48,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,8 +62,11 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
 
     private static Logger LOG = LoggerFactory.getLogger(CompositeDataStore.class);
 
+    static final String ROLES = "roles";
+
     private Properties properties = new Properties();
     private Set<DataStore> initialiedDataStores = Sets.newConcurrentHashSet();
+    private Set<String> roles = Sets.newConcurrentHashSet();
     private boolean isInitialized = false;
 
     //@Reference
@@ -75,6 +80,31 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
 
     CompositeDataStore(final Properties properties) {
         this.properties = properties;
+        if (null == properties) {
+            LOG.error("No configuration provided for Composite Data Store");
+        }
+        roles = getRolesFromConfig(properties);
+    }
+
+    CompositeDataStore(final Properties properties, final Collection<String> roles) {
+        this.properties = properties;
+        this.roles = ImmutableSet.copyOf(roles);
+    }
+
+    static Set<String> getRolesFromConfig(@Nonnull final Properties properties) {
+        Set<String> uniqueRoles = Sets.newConcurrentHashSet();
+
+        String rolestr = properties.getProperty(ROLES, null);
+        if (null == rolestr) {
+            LOG.error("Configuration element \"roles\" missing from Composite Data Store configuration");
+            return uniqueRoles;
+        }
+
+        for (String role : rolestr.split(",")) {
+            uniqueRoles.add(role.trim());
+        }
+
+        return uniqueRoles;
     }
 
     @Override
@@ -110,11 +140,14 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         }
     }
 
+    ImmutableSet<String> getRoles() {
+        return ImmutableSet.copyOf(roles);
+    }
+
     boolean addDelegate(final DelegateDataStore delegate) {
         String delegateRole = delegate.getRole();
-        if (null != delegateRole && properties.containsKey(delegate.getRole())) {
+        if (null != delegateRole && roles.contains(delegate.getRole())) {
             LOG.info("Adding delegate with role \"{}\"", delegate.getRole());
-            delegate.applyCompositeDataStoreConfig((String) properties.get(delegate.getRole()));
             delegateHandler.addDelegateDataStore(delegate);
             rolesForDelegates.put(delegate.getDataStore().getDataStore(), delegateRole);
             return true;

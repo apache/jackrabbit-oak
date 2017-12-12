@@ -45,6 +45,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
@@ -92,18 +93,39 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
     }
 
     private void registerCompositeDataStore() {
-        if (delegateDataStores.isEmpty()) {
-            log.info("Composite Data Store registration is deferred until there is an active delegate data store");
-            return;
-        }
-
         if (null == dataStore) {
-            Properties properties = new Properties();
+            Properties properties = null;
+            new Properties();
             if (null != config) {
+                properties = new Properties();
                 properties.putAll(config);
             }
-            dataStore = new CompositeDataStore(properties);
+
+            if (null == properties) {
+                log.error("Composite Data Store configuration missing");
+                return;
+            }
+
+            Set<String> uniqueRoles = CompositeDataStore.getRolesFromConfig(properties);
+            if (0 == uniqueRoles.size()) {
+                log.error("No roles configured for Composite Data Store");
+                return;
+            }
+
+            if (delegateDataStores.size() != uniqueRoles.size()) {
+                log.info("Composite Data Store registration is deferred until all delegate data stores are active");
+                return;
+            }
+
+            dataStore = new CompositeDataStore(properties, uniqueRoles);
         }
+        else {
+            if (delegateDataStores.size() != dataStore.getRoles().size()) {
+                log.info("Composite Data Store registration is deferred until all delegate data stores are active");
+                return;
+            }
+        }
+
         for (DelegateDataStore delegate : delegateDataStores) {
             dataStore.addDelegate(delegate);
         }

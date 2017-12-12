@@ -111,8 +111,7 @@ public class CompositeDataStoreDelegateManagementTest {
 
 
         Map<String, Object> config = Maps.newHashMap();
-        config.put("local1", "");
-        config.put("local2", "");
+        config.put(CompositeDataStore.ROLES, "local1,local2");
         Properties properties = new Properties();
         properties.putAll(config);
 
@@ -134,7 +133,7 @@ public class CompositeDataStoreDelegateManagementTest {
                 .build();
 
         Map<String, Object> config = Maps.newHashMap();
-        config.put("thisRole", "");
+        config.put(CompositeDataStore.ROLES, "thisRole");
         Properties properties = new Properties();
         properties.putAll(config);
 
