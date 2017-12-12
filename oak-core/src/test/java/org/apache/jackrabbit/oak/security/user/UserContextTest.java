@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
@@ -184,7 +185,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testEmptyNotDefinesTree() {
-        TreeProviderService treeProvider = new TreeProviderService();
+        TreeProvider treeProvider = new TreeProviderService();
         assertFalse(ctx.definesTree(treeProvider.createReadOnlyTree(EmptyNodeState.EMPTY_NODE)));
     }
 

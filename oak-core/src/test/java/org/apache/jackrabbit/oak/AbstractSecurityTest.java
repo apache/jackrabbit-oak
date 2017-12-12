@@ -51,6 +51,8 @@ import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
@@ -83,8 +85,8 @@ public abstract class AbstractSecurityTest {
     protected Root root;
 
     protected QueryEngineSettings querySettings;
-    private final RootProviderService rootProvider = new RootProviderService(); 
-    private final TreeProviderService treeProvider = new TreeProviderService();
+    private final RootProvider rootProvider = new RootProviderService(); 
+    private final TreeProvider treeProvider = new TreeProviderService();
 
     @Before
     public void before() throws Exception {
@@ -252,11 +254,11 @@ public abstract class AbstractSecurityTest {
         return getSecurityProvider().getConfiguration(configClass);
     }
 
-    public RootProviderService getRootProvider() {
+    public RootProvider getRootProvider() {
         return rootProvider;
     }
 
-    public TreeProviderService getTreeProvider() {
+    public TreeProvider getTreeProvider() {
         return treeProvider;
     }
 }
