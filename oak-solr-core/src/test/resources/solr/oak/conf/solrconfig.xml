@@ -555,7 +555,7 @@ Lucene will flush based on whichever limit is hit first.  -->
            prepared but there is no current registered searcher to handle
            requests or to gain autowarming data from.
 
-
+        -->
 
         <!-- Use Cold Searcher
 
