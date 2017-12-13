@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -69,8 +68,8 @@ class PermissionValidator extends DefaultValidator {
                         @Nonnull NodeState rootAfter,
                         @Nonnull PermissionProvider permissionProvider,
                         @Nonnull PermissionValidatorProvider provider) {
-        this.parentBefore = TreeFactory.createReadOnlyTree(rootBefore);
-        this.parentAfter = TreeFactory.createReadOnlyTree(rootAfter);
+        this.parentBefore = provider.createReadOnlyTree(rootBefore);
+        this.parentAfter = provider.createReadOnlyTree(rootAfter);
         this.parentPermission = permissionProvider.getTreePermission(parentBefore, TreePermission.EMPTY);
 
         this.permissionProvider = permissionProvider;

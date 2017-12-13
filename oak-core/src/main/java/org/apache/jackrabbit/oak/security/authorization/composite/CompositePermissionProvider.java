@@ -16,19 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
-
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
@@ -44,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 
+import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
+
 /**
  * Permission provider implementation that aggregates a list of different
  * provider implementations. Note, that the aggregated provider implementations
@@ -57,6 +56,7 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
     private final AggregatedPermissionProvider[] pps;
     private final Context ctx;
     private final CompositionType compositionType;
+    private final RootProvider rootProvider;
 
     private final RepositoryPermission repositoryPermission;
 
@@ -65,14 +65,16 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
     private TreeTypeProvider typeProvider;
 
     CompositePermissionProvider(@Nonnull Root root, @Nonnull List<AggregatedPermissionProvider> pps,
-            @Nonnull Context acContext, @Nonnull CompositionType compositionType) {
+                                @Nonnull Context acContext, @Nonnull CompositionType compositionType,
+                                @Nonnull RootProvider rootProvider) {
         this.root = root;
         this.pps = pps.toArray(new AggregatedPermissionProvider[pps.size()]);
         this.ctx = acContext;
         this.compositionType = compositionType;
+        this.rootProvider = rootProvider;
 
         repositoryPermission = new CompositeRepositoryPermission(this.pps, this.compositionType);
-        immutableRoot = RootFactory.createReadOnlyRoot(root);
+        immutableRoot = rootProvider.createReadOnlyRoot(root);
         privilegeBitsProvider = new PrivilegeBitsProvider(immutableRoot);
         typeProvider = new TreeTypeProvider(ctx);
     }
@@ -80,7 +82,7 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
     //-------------------------------------------------< PermissionProvider >---
     @Override
     public void refresh() {
-        immutableRoot = RootFactory.createReadOnlyRoot(root);
+        immutableRoot = rootProvider.createReadOnlyRoot(root);
         privilegeBitsProvider = new PrivilegeBitsProvider(immutableRoot);
 
         for (PermissionProvider pp : pps) {
