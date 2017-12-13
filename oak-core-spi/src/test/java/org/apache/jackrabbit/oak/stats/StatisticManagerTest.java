@@ -19,9 +19,11 @@
 
 package org.apache.jackrabbit.oak.stats;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.jmx.QueryStatManagerMBean;
@@ -31,6 +33,7 @@ import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.stats.TimeSeriesMax;
 import org.junit.After;
 import org.junit.Test;
 
@@ -82,6 +85,46 @@ public class StatisticManagerTest {
 
         mgr.getMeter(Type.SESSION_WRITE_COUNTER);
         assertEquals(StatsOptions.DEFAULT, optionsPassed.get(Type.SESSION_WRITE_COUNTER.name()));
+    }
+
+    @Test
+    public void observationQueueMaxLength() {
+        AtomicLong maxQueueLength = new AtomicLong();
+        SimpleStats stats = new SimpleStats(maxQueueLength, SimpleStats.Type.COUNTER);
+        Whiteboard wb = new DefaultWhiteboard();
+        wb.register(StatisticsProvider.class, new DummyStatsProvider() {
+            @Override
+            public CounterStats getCounterStats(String name,
+                                                StatsOptions options) {
+                if (name.equals(RepositoryStats.OBSERVATION_QUEUE_MAX_LENGTH)) {
+                    return stats;
+                }
+                return super.getCounterStats(name, options);
+            }
+        }, null);
+        StatisticManager mgr = new StatisticManager(wb, executorService);
+
+        TimeSeriesMax rec = mgr.maxQueLengthRecorder();
+        List<Runnable> services = wb.track(Runnable.class).getServices();
+        assertEquals(1, services.size());
+        // this is the scheduled task registered by the StatisticsManager
+        // updating the TimeSeries every second
+        Runnable pulse = services.get(0);
+
+        // must reset the stats to 'unknown' (-1)
+        pulse.run();
+        assertEquals(-1L, maxQueueLength.get());
+
+        rec.recordValue(7);
+        rec.recordValue(5);
+        rec.recordValue(-1);
+
+        // must return the max value
+        assertEquals(7L, maxQueueLength.get());
+
+        // must reset the stats to 'unknown' (-1)
+        pulse.run();
+        assertEquals(-1L, maxQueueLength.get());
     }
 
     @After

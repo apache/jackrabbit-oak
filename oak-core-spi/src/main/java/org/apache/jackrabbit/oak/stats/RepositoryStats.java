@@ -45,6 +45,8 @@ import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 
 public class RepositoryStats extends AnnotatedStandardMBean implements RepositoryStatsMBean {
 
+    static final String OBSERVATION_QUEUE_MAX_LENGTH = "OBSERVATION_QUEUE_MAX_LENGTH";
+
     private final RepositoryStatistics repoStats;
     private final TimeSeries maxQueueLength;
 
