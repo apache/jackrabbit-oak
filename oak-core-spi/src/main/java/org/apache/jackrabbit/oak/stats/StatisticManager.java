@@ -44,6 +44,7 @@ public class StatisticManager {
     private final QueryStatImpl queryStat = new QueryStatImpl();
     private final StatisticsProvider repoStats;
     private final TimeSeriesMax maxQueueLength;
+    private final CounterStats maxQueueLengthCounter;
     private final CompositeRegistration registration;
 
     /**
@@ -65,7 +66,16 @@ public class StatisticManager {
     public StatisticManager(Whiteboard whiteboard, ScheduledExecutorService executor) {
         queryStat.setEnabled(true);
         repoStats = getStatsProvider(whiteboard, executor);
-        maxQueueLength = new TimeSeriesMax(-1);
+        maxQueueLengthCounter = repoStats.getCounterStats(
+                RepositoryStats.OBSERVATION_QUEUE_MAX_LENGTH, StatsOptions.METRICS_ONLY);
+        maxQueueLength = new TimeSeriesMax(-1) {
+            @Override
+            public void recordValue(long value) {
+                super.recordValue(value);
+                long currentValue = maxQueueLengthCounter.getCount();
+                maxQueueLengthCounter.inc(Math.max(value, currentValue) - currentValue);
+            }
+        };
         registration = new CompositeRegistration(
             registerMBean(whiteboard, QueryStatManagerMBean.class, new QueryStatManager(queryStat),
                     "QueryStat", "Oak Query Statistics"),
@@ -75,6 +85,8 @@ public class StatisticManager {
                     @Override
                     public void run() {
                         maxQueueLength.recordOneSecond();
+                        // reset counter to missing value (-1)
+                        maxQueueLengthCounter.dec(maxQueueLengthCounter.getCount() + 1);
                     }
                 }, 1));
     }
