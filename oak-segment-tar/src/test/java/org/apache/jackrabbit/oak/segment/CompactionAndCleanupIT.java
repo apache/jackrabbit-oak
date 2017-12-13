@@ -314,6 +314,44 @@ public class CompactionAndCleanupIT {
         }
     }
 
+    @Test
+    public void cancelOfflineCompaction() throws Exception {
+        final AtomicBoolean cancelCompaction = new AtomicBoolean(true);
+        try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(defaultGCOptions().setOffline())
+                .build()) {
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            // Create ~2MB of data
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+            for (int i = 0; i < 10000; i++) {
+                NodeBuilder c = content.child("c" + i);
+                for (int j = 0; j < 1000; j++) {
+                    c.setProperty("p" + i, "v" + i);
+                }
+            }
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+            NodeState uncompactedRoot = nodeStore.getRoot();
+
+            // Keep cancelling compaction
+            new Thread(() -> {
+                while (cancelCompaction.get()) {
+                    fileStore.cancelGC();
+                }
+            }).start();
+
+            fileStore.compactFull();
+
+            // Cancelling compaction must not corrupt the repository. See OAK-7050.
+            NodeState compactedRoot = nodeStore.getRoot();
+            assertTrue(compactedRoot.exists());
+            assertEquals(uncompactedRoot, compactedRoot);
+        } finally {
+            cancelCompaction.set(false);
+        }
+    }
+
     /**
      * Create a lot of data nodes (no binaries) and a few checkpoints, verify
      * that compacting checkpoints will not cause the size to explode

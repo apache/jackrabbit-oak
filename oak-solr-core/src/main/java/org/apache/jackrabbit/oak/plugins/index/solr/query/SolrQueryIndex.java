@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import javax.annotation.CheckForNull;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,6 +60,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -217,7 +219,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             String path = plan.getPlanName();
 
             OakSolrConfiguration configuration = getConfiguration(path, root);
-            SolrServer solrServer = getServer(path, root);
+            SolrClient solrServer = getServer(path, root);
             LMSEstimator estimator = getEstimator(path);
 
             AbstractIterator<SolrResultRow> iterator = getIterator(filter, plan, parent, parentDepth, configuration,
@@ -237,7 +239,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         return estimators.get(path);
     }
 
-    private SolrServer getServer(String path, NodeState root) {
+    private SolrClient getServer(String path, NodeState root) {
 
         NodeState node = root;
         for (String name : PathUtils.elements(path)) {
@@ -265,7 +267,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     private AbstractIterator<SolrResultRow> getIterator(final Filter filter, final IndexPlan plan,
                                                         final String parent, final int parentDepth,
-                                                        final OakSolrConfiguration configuration, final SolrServer solrServer,
+                                                        final OakSolrConfiguration configuration, final SolrClient solrServer,
                                                         final LMSEstimator estimator) {
         return new AbstractIterator<SolrResultRow>() {
             public Collection<FacetField> facetFields = new LinkedList<FacetField>();
@@ -457,7 +459,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     private void putSpellChecks(SpellCheckResponse spellCheckResponse,
                                 final Deque<SolrResultRow> queue,
-                                Filter filter, OakSolrConfiguration configuration, SolrServer solrServer) throws SolrServerException {
+                                Filter filter, OakSolrConfiguration configuration, SolrClient solrServer) throws IOException, SolrServerException {
         List<SpellCheckResponse.Suggestion> suggestions = spellCheckResponse.getSuggestions();
         Collection<String> alternatives = new ArrayList<String>(suggestions.size());
         for (SpellCheckResponse.Suggestion suggestion : suggestions) {
@@ -485,7 +487,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     }
 
     private void putSuggestions(Set<Map.Entry<String, Object>> suggestEntries, final Deque<SolrResultRow> queue,
-                                Filter filter, OakSolrConfiguration configuration, SolrServer solrServer) throws SolrServerException {
+                                Filter filter, OakSolrConfiguration configuration, SolrClient solrServer) throws IOException, SolrServerException {
         Collection<SimpleOrderedMap<Object>> retrievedSuggestions = new HashSet<SimpleOrderedMap<Object>>();
         for (Map.Entry<String, Object> suggester : suggestEntries) {
             SimpleOrderedMap<Object> suggestionResponses = ((SimpleOrderedMap) suggester.getValue());
@@ -547,7 +549,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
         for (String path : indexPaths) {
             OakSolrConfiguration configuration = getConfiguration(path, rootState);
-            SolrServer solrServer = getServer(path, rootState);
+            SolrClient solrServer = getServer(path, rootState);
             // only provide the plan if both valid configuration and server exist
             if (configuration != null && solrServer != null) {
                 LMSEstimator estimator = getEstimator(path);
@@ -666,13 +668,13 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         private final Cursor pathCursor;
         private final IndexPlan plan;
         private final LMSEstimator estimator;
-        private final SolrServer solrServer;
+        private final SolrClient solrServer;
         private final OakSolrConfiguration configuration;
 
         SolrResultRow currentRow;
 
         SolrRowCursor(final Iterator<SolrResultRow> it, IndexPlan plan, QueryLimits settings,
-                      LMSEstimator estimator, SolrServer solrServer, OakSolrConfiguration configuration) {
+                      LMSEstimator estimator, SolrClient solrServer, OakSolrConfiguration configuration) {
             this.estimator = estimator;
             this.solrServer = solrServer;
             this.configuration = configuration;
@@ -795,7 +797,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     countQuery.setRows(0);
                     try {
                         estimate = this.solrServer.query(countQuery).getResults().getNumFound();
-                    } catch (SolrServerException e) {
+                    } catch (IOException | SolrServerException e) {
                         log.warn("could not perform count query {}", countQuery);
                     }
                     break;

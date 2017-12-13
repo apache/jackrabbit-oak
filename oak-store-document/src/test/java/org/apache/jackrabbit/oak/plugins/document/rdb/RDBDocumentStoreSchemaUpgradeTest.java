@@ -176,7 +176,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             RDBTableMetaData meta = rdb.getTable(Collection.NODES);
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertTrue(meta.hasSplitDocs());
-            int statementsPerTable = 4;
+            int statementsPerTable = 5;
             assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(),
                     statementsPerTable * RDBDocumentStore.getTableNames().size(), logCustomizer.getLogs().size());
         } finally {

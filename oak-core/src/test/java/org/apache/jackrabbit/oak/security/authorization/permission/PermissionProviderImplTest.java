@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -42,9 +41,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.addChild;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -67,7 +66,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     public void before() throws Exception {
         super.before();
 
-        new NodeUtil(root.getTree("/")).addChild("test", JcrConstants.NT_UNSTRUCTURED);
+        addChild(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED);
         UserManager uMgr = getUserManager(root);
         adminstrators = uMgr.createGroup(ADMINISTRATOR_GROUP);
         root.commit();
@@ -209,7 +208,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
         ContentSession testSession = createTestSession();
         try {
             Root r = testSession.getLatestRoot();
-            Root immutableRoot = RootFactory.createReadOnlyRoot(r);
+            Root immutableRoot = getRootProvider().createReadOnlyRoot(r);
 
             PermissionProvider pp = createPermissionProvider(testSession) ;
             assertTrue(r.getTree("/").exists());

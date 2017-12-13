@@ -35,7 +35,7 @@
          that you fully re-index after changing this setting as it can
          affect both how text is indexed and queried.
     -->
-    <luceneMatchVersion>LUCENE_47</luceneMatchVersion>
+    <luceneMatchVersion>5.5.5</luceneMatchVersion>
 
     <!-- lib directives can be used to instruct Solr to load an Jars
        identified and use them to resolve any "plugins" specified in
@@ -956,48 +956,36 @@ current implementation relies on the updateLog feature being enabled. -->
        This handler will pick a response format to match the input
        if the 'wt' parameter is not explicit
     -->
-    <requestHandler name="/update" class="solr.UpdateRequestHandler">
-        <!-- See below for information on defining
-           updateRequestProcessorChains that can be used by name
-           on each Update Request
-        -->
-        <!--
-        <lst name="defaults">
-          <str name="update.chain">dedupe</str>
-        </lst>
-        -->
-    </requestHandler>
-
-    <!-- for back compat with clients using /update/json and /update/csv -->
-    <requestHandler name="/update/json" class="solr.JsonUpdateRequestHandler">
-        <lst name="defaults">
-            <str name="stream.contentType">application/json</str>
-        </lst>
-    </requestHandler>
-    <requestHandler name="/update/csv" class="solr.CSVRequestHandler">
-        <lst name="defaults">
-            <str name="stream.contentType">application/csv</str>
-        </lst>
-    </requestHandler>
+    <!--<requestHandler name="/update" class="solr.UpdateRequestHandler">-->
+        <!--&lt;!&ndash; See below for information on defining-->
+           <!--updateRequestProcessorChains that can be used by name-->
+           <!--on each Update Request-->
+        <!--&ndash;&gt;-->
+        <!--&lt;!&ndash;-->
+        <!--<lst name="defaults">-->
+          <!--<str name="update.chain">dedupe</str>-->
+        <!--</lst>-->
+        <!--&ndash;&gt;-->
+    <!--</requestHandler>-->
 
     <!-- Solr Cell Update Request Handler
 
        http://wiki.apache.org/solr/ExtractingRequestHandler
 
     -->
-    <requestHandler name="/update/extract"
-                    startup="lazy"
-                    class="solr.extraction.ExtractingRequestHandler">
-        <lst name="defaults">
-            <str name="lowernames">true</str>
-            <str name="uprefix">ignored_</str>
+    <!--<requestHandler name="/update/extract"-->
+                    <!--startup="lazy"-->
+                    <!--class="solr.extraction.ExtractingRequestHandler">-->
+        <!--<lst name="defaults">-->
+            <!--<str name="lowernames">true</str>-->
+            <!--<str name="uprefix">ignored_</str>-->
 
-            <!-- capture link hrefs but ignore div attributes -->
-            <str name="captureAttr">true</str>
-            <str name="fmap.a">links</str>
-            <str name="fmap.div">ignored_</str>
-        </lst>
-    </requestHandler>
+            <!--&lt;!&ndash; capture link hrefs but ignore div attributes &ndash;&gt;-->
+            <!--<str name="captureAttr">true</str>-->
+            <!--<str name="fmap.a">links</str>-->
+            <!--<str name="fmap.div">ignored_</str>-->
+        <!--</lst>-->
+    <!--</requestHandler>-->
 
 
     <!-- Field Analysis Request Handler

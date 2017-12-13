@@ -65,7 +65,6 @@ possible to tweak various system properties to get the optimal performance. Thes
 
 * `cache` - cache size for the SegmentNodeStore (default: `256`),
 * `compaction-progress-log` - how many entries should be compacted between log messages (default: `150000`),
-* `compress-interval` - number of map entries to keep until compressing this map (default: `100000`),
 * `update.limit` - threshold for the flush of a temporary transaction to disk (default: `10000`),
 * `tar.memoryMapped` - allow to use memory mapped files to reduce memory usage (default: `false`),
 

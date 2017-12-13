@@ -439,15 +439,16 @@ public class DocumentNodeStoreService {
 
                     @Override
                     public void handleLeaseFailure() {
+                        Bundle bundle = context.getBundleContext().getBundle();
+                        String bundleName = bundle.getSymbolicName();
                         try {
-                            // plan A: try stopping oak-core
-                            log.error("handleLeaseFailure: stopping oak-core...");
-                            Bundle bundle = context.getBundleContext().getBundle();
+                            // plan A: try stopping oak-store-document
+                            log.error("handleLeaseFailure: stopping {}...", bundleName);
                             bundle.stop(Bundle.STOP_TRANSIENT);
-                            log.error("handleLeaseFailure: stopped oak-core.");
+                            log.error("handleLeaseFailure: stopped {}.", bundleName);
                             // plan A worked, perfect!
                         } catch (BundleException e) {
-                            log.error("handleLeaseFailure: exception while stopping oak-core: "+e, e);
+                            log.error("handleLeaseFailure: exception while stopping " + bundleName + ": " + e, e);
                             // plan B: stop only DocumentNodeStoreService (to stop the background threads)
                             log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
                             context.disableComponent(DocumentNodeStoreService.class.getName());

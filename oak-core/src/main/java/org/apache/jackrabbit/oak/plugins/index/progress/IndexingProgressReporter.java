@@ -84,6 +84,10 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         messagePrefix = INDEX_MSG;
     }
 
+    public void setMessagePrefix(String messagePrefix) {
+        this.messagePrefix = messagePrefix;
+    }
+
     public void traversedNode(PathSource pathSource) throws CommitFailedException {
         if (++traversalCount % 10000 == 0) {
             double rate = traversalRateEstimator.getNodesTraversedPerSecond();

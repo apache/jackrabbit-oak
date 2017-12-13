@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.junit.Before;
@@ -76,7 +75,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetRegisteredPrivilegesFromEmptyRoot() throws RepositoryException {
-        Privilege[] registered = create(RootFactory.createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getRegisteredPrivileges();
+        Privilege[] registered = create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getRegisteredPrivileges();
         assertNotNull(registered);
         assertEquals(0, registered.length);
     }
@@ -125,22 +124,22 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
     @Test(expected = AccessControlException.class)
     public void testGetPrivilegeFromEmptyRoot() throws Exception {
-        create(RootFactory.createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege(PrivilegeConstants.JCR_READ);
+        create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege(PrivilegeConstants.JCR_READ);
     }
 
     @Test(expected = AccessControlException.class)
     public void testGetUnknownPrivilege() throws Exception {
-        create(RootFactory.createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege("jcr:someName");
+        create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege("jcr:someName");
     }
 
     @Test(expected = AccessControlException.class)
     public void testGetPrivilegeEmptyName() throws Exception {
-        create(RootFactory.createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege("");
+        create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege("");
     }
 
     @Test(expected = AccessControlException.class)
     public void testGetPrivilegeNullName() throws Exception {
-        create(RootFactory.createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege(null);
+        create(getRootProvider().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE)).getPrivilege(null);
     }
 
     @Test(expected = RepositoryException.class)

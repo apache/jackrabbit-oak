@@ -25,6 +25,7 @@ import java.io.Writer;
 import java.util.Collections;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Stopwatch;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -92,6 +93,7 @@ public class FlatFileNodeStoreBuilder {
 
     private File writeToStore(File dir, String fileName) throws IOException {
         File file = new File(dir, fileName);
+        Stopwatch sw = Stopwatch.createStarted();
         try (
                 Writer w = Files.newWriter(file, Charsets.UTF_8);
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore, w)
@@ -100,6 +102,7 @@ public class FlatFileNodeStoreBuilder {
                 entryWriter.write(e);
             }
         }
+        log.info("Dumped nodestates in json format in {}", sw);
         return file;
     }
 

@@ -30,7 +30,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import javax.annotation.Nonnull;
 
@@ -143,6 +146,68 @@ public enum RDBDocumentStoreDB {
             }
             return result.toString();
         }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+            Map<String, String> result = new HashMap<String, String>();
+            Connection con = null;
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
+            SortedSet<String> indexNames = Collections.emptySortedSet();
+
+            // get index names
+            try {
+                SortedSet<String> in = new TreeSet<String>();
+                con = ch.getROConnection();
+                stmt = con.prepareStatement("SELECT indexname FROM pg_indexes WHERE tablename=?");
+                stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    in.add(rs.getString(1));
+                }
+                con.commit();
+                indexNames = in;
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
+                ch.closeConnection(con);
+            }
+
+            // table data
+            try {
+                StringBuilder query = new StringBuilder("SELECT pg_total_relation_size(?), pg_table_size(?), pg_indexes_size(?)");
+                indexNames.forEach(name -> query.append(", pg_relation_size(?)"));
+                con = ch.getROConnection();
+                stmt = con.prepareStatement(query.toString());
+                int i = 1;
+                stmt.setString(i++, tableName);
+                stmt.setString(i++, tableName);
+                stmt.setString(i++, tableName);
+                for(String name : indexNames) {
+                    stmt.setString(i++, name);
+                }
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    i = 1;
+                    result.put("storageSize", rs.getString(i++));
+                    result.put("size", rs.getString(i++));
+                    result.put("totalIndexSize", rs.getString(i++));
+                    for (String name : indexNames) {
+                        result.put("indexSizes." + name, rs.getString(i++));
+                    }
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
+                ch.closeConnection(con);
+            }
+            return result;
+        }
     },
 
     DB2("DB2") {
@@ -218,6 +283,66 @@ public enum RDBDocumentStoreDB {
             }
             return result.toString();
         }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+
+            Map<String, String> result = new HashMap<String, String>();
+
+            Connection con = null;
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
+
+            // table data
+            String tableStats = System.getProperty(SYSPROP_PREFIX + ".TABLE_STATS",
+                    "card npages mpages fpages overflow pctfree avgrowsize stats_time");
+
+            try {
+                con = ch.getROConnection();
+                stmt = con.prepareStatement("SELECT * FROM syscat.tables WHERE tabschema=? and tabname=?");
+                stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
+                stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String data = extractFields(rs, tableStats);
+                    result.put("_data", data);
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
+                ch.closeConnection(con);
+            }
+
+            // index data
+            String indexStats = System.getProperty(SYSPROP_PREFIX + ".INDEX_STATS",
+                    "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time");
+
+            try {
+                con = ch.getROConnection();
+                stmt = con.prepareStatement("SELECT * FROM syscat.indexes WHERE tabschema=? and tabname=?");
+                stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
+                stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String index = rs.getString("indname");
+                    String data = extractFields(rs, indexStats);
+                    result.put("index." + index + "._data", data);
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
+                ch.closeConnection(con);
+            }
+
+            return result;
+        }
     },
 
     ORACLE("Oracle") {
@@ -272,6 +397,63 @@ public enum RDBDocumentStoreDB {
                 ch.closeConnection(con);
             }
             return result.toString();
+        }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+
+            Map<String, String> result = new HashMap<String, String>();
+
+            Connection con = null;
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
+
+            // table data
+            String tableStats = System.getProperty(SYSPROP_PREFIX + ".TABLE_STATS",
+                    "num_rows blocks avg_row_len sample_size last_analyzed");
+
+            try {
+                con = ch.getROConnection();
+                stmt = con.prepareStatement("SELECT * FROM user_tables WHERE table_name=?");
+                stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String data = extractFields(rs, tableStats);
+                    result.put("_data", data.toString());
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
+                ch.closeConnection(con);
+            }
+
+            // index data
+            String indexStats = System.getProperty(SYSPROP_PREFIX + ".INDEX_STATS",
+                    "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed");
+
+            try {
+                con = ch.getROConnection();
+                stmt = con.prepareStatement("SELECT * FROM user_indexes WHERE table_name=?");
+                stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String index = rs.getString("index_name");
+                    String data = extractFields(rs, indexStats);
+                    result.put("index." + index + "._data", data);
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
+                ch.closeConnection(con);
+            }
+
+            return result;
         }
 
         @Override
@@ -441,9 +623,10 @@ public enum RDBDocumentStoreDB {
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStoreDB.class);
 
+    private static final String SYSPROP_PREFIX = "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore";
+
     // whether to create indices
-    private static final String CREATEINDEX = System.getProperty(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CREATEINDEX", "");
+    private static final String CREATEINDEX = System.getProperty(SYSPROP_PREFIX + ".CREATEINDEX", "");
 
     public enum FETCHFIRSTSYNTAX {
         FETCHFIRST, LIMIT, TOP
@@ -543,6 +726,10 @@ public enum RDBDocumentStoreDB {
         return "";
     }
 
+    public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+        return Collections.emptyMap();
+    }
+
     public String getSmallintType() {
         return "smallint";
     }
@@ -564,6 +751,7 @@ public enum RDBDocumentStoreDB {
         } else if (level == 2) {
             String[] statements = new String[] { "alter table " + tableName + " add SDTYPE " + smallint,
                     "alter table " + tableName + " add SDMAXREVTIME " + bigint,
+                    "create index " + tableName + "_VSN on " + tableName + " (VERSION)",
                     "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)",
                     "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)", };
             return Arrays.asList(statements);
@@ -573,6 +761,21 @@ public enum RDBDocumentStoreDB {
     }
 
     protected String description;
+
+    protected String extractFields(ResultSet rs, String indexStats) throws SQLException {
+        StringBuilder data = new StringBuilder();
+        for (String f : indexStats.split(" ")) {
+            String fn = f.trim();
+            if (!fn.isEmpty()) {
+                if (data.length() != 0) {
+                    data.append(", ");
+                }
+                String v = rs.getString(fn);
+                data.append(fn).append(": ").append(v == null ? v : v.trim());
+            }
+        }
+        return data.toString();
+    }
 
     private RDBDocumentStoreDB(String description) {
         this.description = description;

@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -218,11 +219,14 @@ public class ActiveDeletedBlobCollectorFactory {
                     continue;
                 }
                 if (timestamp < before) {
+                    LineIterator blobLineIter = null;
                     try {
-                        for (String deletedBlobLine : FileUtils.readLines(deletedBlobListFile, (String) null)) {
+                        blobLineIter = FileUtils.lineIterator(deletedBlobListFile);
+                        while (blobLineIter.hasNext()) {
                             if (cancelled) {
                                 break;
                             }
+                            String deletedBlobLine = blobLineIter.next();
 
                             String[] parsedDeletedBlobIdLine = deletedBlobLine.split("\\|", 3);
                             if (parsedDeletedBlobIdLine.length != 3) {
@@ -274,6 +278,8 @@ public class ActiveDeletedBlobCollectorFactory {
                     } catch (IOException ioe) {
                         //log error and continue
                         LOG.warn("Couldn't read deleted blob list file - " + deletedBlobListFile, ioe);
+                    } finally {
+                        LineIterator.closeQuietly(blobLineIter);
                     }
 
                     // OAK-6314 revealed that blobs appended might not be immediately available. So, we'd skip

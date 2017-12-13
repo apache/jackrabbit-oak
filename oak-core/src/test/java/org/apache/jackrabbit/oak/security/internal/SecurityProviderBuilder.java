@@ -58,12 +58,15 @@ public class SecurityProviderBuilder {
             if (!(cc instanceof CompositeConfiguration)) {
                 throw new IllegalStateException();
             } else {
-                if (sc instanceof ConfigurationBase) {
-                    ((ConfigurationBase) sc).setSecurityProvider(sp);
-                }
-
                 CompositeConfiguration composite = (CompositeConfiguration) cc;
                 SecurityConfiguration defConfig = composite.getDefaultConfig();
+
+                if (sc instanceof ConfigurationBase) {
+                    ConfigurationBase cb = (ConfigurationBase) sc;
+                    cb.setSecurityProvider(sp);
+                    cb.setRootProvider(((ConfigurationBase) defConfig).getRootProvider());
+                    cb.setTreeProvider(((ConfigurationBase) defConfig).getTreeProvider());
+                }
 
                 composite.addConfiguration(sc);
                 composite.addConfiguration(defConfig);

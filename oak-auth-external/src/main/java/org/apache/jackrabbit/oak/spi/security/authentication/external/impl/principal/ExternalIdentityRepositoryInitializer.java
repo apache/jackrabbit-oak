@@ -17,32 +17,13 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkState;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Implementation of the {@code RepositoryInitializer} interface responsible for
@@ -60,8 +41,6 @@ import static com.google.common.base.Preconditions.checkState;
  */
 class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
 
-    private static final Logger log = LoggerFactory.getLogger(ExternalIdentityRepositoryInitializer.class);
-
     private final boolean enforceUniqueIds;
 
     ExternalIdentityRepositoryInitializer(boolean enforceUniqueIds) {
@@ -70,42 +49,20 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
 
     @Override
     public void initialize(@Nonnull NodeBuilder builder) {
-        NodeState base = builder.getNodeState();
-        NodeStore store = new MemoryNodeStore(base);
 
-        String errorMsg = "Failed to initialize external identity content.";
-        try {
-
-            Root root = RootFactory.createSystemRoot(store,
-                    new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
-                    null, null, null);
-
-            // create index definition for "rep:externalId" and "rep:externalPrincipalNames"
-            Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
-            checkState(rootTree.exists());
-            Tree index = TreeUtil.getOrAddChild(rootTree, IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
-
-            if (enforceUniqueIds && !index.hasChild("externalId")) {
-                Tree definition = IndexUtils.createIndexDefinition(index, "externalId", true,
-                        new String[]{ExternalIdentityConstants.REP_EXTERNAL_ID});
-                definition.setProperty("info", "Oak index assuring uniqueness of rep:externalId properties.");
-            }
-
-            if (!index.hasChild("externalPrincipalNames")) {
-                Tree definition = IndexUtils.createIndexDefinition(index, "externalPrincipalNames", false,
-                        new String[]{ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES});
-                definition.setProperty("info", "Oak index used by the principal management provided by the external authentication module.");
-            }
-
-            if (root.hasPendingChanges()) {
-                root.commit();
-            }
-        } catch (RepositoryException | CommitFailedException e) {
-            log.error(errorMsg, e);
-            throw new RuntimeException(e);
+        // create index definition for "rep:externalId" and
+        // "rep:externalPrincipalNames"
+        NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
+        if (enforceUniqueIds && !index.hasChildNode("externalId")) {
+            NodeBuilder definition = IndexUtils.createIndexDefinition(index, "externalId", true, true,
+                    ImmutableList.of(ExternalIdentityConstants.REP_EXTERNAL_ID), null);
+            definition.setProperty("info", "Oak index assuring uniqueness of rep:externalId properties.");
         }
-
-        NodeState target = store.getRoot();
-        target.compareAgainstBaseState(base, new ApplyDiff(builder));
+        if (!index.hasChildNode("externalPrincipalNames")) {
+            NodeBuilder definition = IndexUtils.createIndexDefinition(index, "externalPrincipalNames", true, false,
+                    ImmutableList.of(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES), null);
+            definition.setProperty("info",
+                    "Oak index used by the principal management provided by the external authentication module.");
+        }
     }
 }

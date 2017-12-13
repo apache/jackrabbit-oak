@@ -100,6 +100,60 @@ public class CommitRootUpdateTest {
         assertFalse(throwAfterUpdate.get());
     }
 
+    @Test
+    public void exceptionOnSingleUpdate() throws Exception {
+        final AtomicBoolean throwAfterUpdate = new AtomicBoolean(false);
+        MemoryDocumentStore store = new MemoryDocumentStore(true) {
+            @Override
+            public <T extends Document> T findAndUpdate(Collection<T> collection,
+                                                        UpdateOp update) {
+                T doc = super.findAndUpdate(collection, update);
+                if (isCommitRootUpdate(update) &&
+                        throwAfterUpdate.compareAndSet(true, false)) {
+                    throw new DocumentStoreException("communication failure");
+                }
+                return doc;
+            }
+
+            private boolean isCommitRootUpdate(UpdateOp update) {
+                boolean isCommitRootUpdate = false;
+                for (Map.Entry<Key, Operation> op : update.getChanges().entrySet()) {
+                    String name = op.getKey().getName();
+                    if (NodeDocument.isRevisionsEntry(name)) {
+                        isCommitRootUpdate = true;
+                        break;
+                    }
+                }
+                return isCommitRootUpdate;
+            }
+        };
+
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder b = ns.getRoot().builder();
+        b.child("foo");
+        merge(ns, b);
+
+        throwAfterUpdate.set(true);
+        boolean success = false;
+        Commit c = ns.newCommit(ns.getHeadRevision(), null);
+        try {
+            c.updateProperty("/foo", "p", "v");
+            c.apply();
+            success = true;
+        } finally {
+            if (success) {
+                ns.done(c, false, CommitInfo.EMPTY);
+            } else {
+                ns.canceled(c);
+            }
+        }
+
+        NodeState root = ns.getRoot();
+        assertTrue(root.getChildNode("foo").hasProperty("p"));
+        assertFalse(throwAfterUpdate.get());
+    }
+
     private NodeState merge(NodeStore store, NodeBuilder builder)
             throws Exception {
         return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
