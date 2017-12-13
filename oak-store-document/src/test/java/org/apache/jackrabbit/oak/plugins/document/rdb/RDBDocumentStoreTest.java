@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.Closeable;
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -116,6 +119,22 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             assertEquals(cnt / 2, c2);
 
             Utils.closeIfCloseable(it);
+        }
+    }
+
+    @Test
+    public void testRDBStats() {
+        if (ds instanceof RDBDocumentStore) {
+            Map<String, String> info = ds.getStats();
+            assertThat(info.keySet(), hasItem("nodes.ns"));
+            assertThat(info.keySet(), hasItem("clusterNodes.ns"));
+            assertThat(info.keySet(), hasItem("journal.ns"));
+            assertThat(info.keySet(), hasItem("settings.ns"));
+            assertThat(info.keySet(), hasItem("nodes.count"));
+            assertThat(info.keySet(), hasItem("clusterNodes.count"));
+            assertThat(info.keySet(), hasItem("journal.count"));
+            assertThat(info.keySet(), hasItem("settings.count"));
+            // info.forEach((k, v) -> System.err.println(k +": " + v));
         }
     }
 }

@@ -647,20 +647,28 @@ public class RDBDocumentStore implements DocumentStore {
      */
     static class RDBTableMetaData {
 
+        private final String catalog;
         private final String name;
         private boolean idIsBinary = false;
         private boolean hasVersion = false;
         private boolean hasSplitDocs = false;
         private int dataLimitInOctets = 16384;
+        private String schemaInfo = "";
+        private String indexInfo = "";
         private Set<String> columnOnlyProperties = Collections.unmodifiableSet(COLUMNPROPERTIES);
         private Set<String> columnProperties = Collections.unmodifiableSet(COLUMNPROPERTIES);
 
-        public RDBTableMetaData(String name) {
+        public RDBTableMetaData(@CheckForNull String catalog, @Nonnull String name) {
+            this.catalog = catalog == null ? "" : catalog;
             this.name = name;
         }
 
         public int getDataLimitInOctets() {
             return this.dataLimitInOctets;
+        }
+
+        public String getCatalog() {
+            return this.catalog;
         }
 
         public Set<String> getColumnProperties() {
@@ -671,8 +679,16 @@ public class RDBDocumentStore implements DocumentStore {
             return this.columnOnlyProperties;
         }
 
+        public String getIndexInfo() {
+            return this.indexInfo;
+        }
+
         public String getName() {
             return this.name;
+        }
+
+        public String getSchemaInfo() {
+            return this.schemaInfo;
         }
 
         public boolean isIdBinary() {
@@ -702,6 +718,14 @@ public class RDBDocumentStore implements DocumentStore {
 
         public void setDataLimitInOctets(int dataLimitInOctets) {
             this.dataLimitInOctets = dataLimitInOctets;
+        }
+
+        public void setSchemaInfo(String schemaInfo) {
+            this.schemaInfo = schemaInfo;
+        }
+
+        public void setIndexInfo(String indexInfo) {
+            this.indexInfo = indexInfo;
         }
     }
 
@@ -783,8 +807,32 @@ public class RDBDocumentStore implements DocumentStore {
     @Nonnull
     @Override
     public Map<String, String> getStats() {
-        // TODO: OAK-7029
-        return Collections.emptyMap();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        tableMeta.forEach((k, v) -> toMapBuilder(builder, k, v));
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("statistics obtained: " + builder.toString());
+        }
+        return builder.build();
+    }
+
+    private <T extends Document> void toMapBuilder(ImmutableMap.Builder<String, String> builder, Collection<T> collection, RDBTableMetaData meta) {
+        String prefix = collection.toString();
+        builder.put(prefix + ".ns", meta.getCatalog() + "." + meta.getName());
+        builder.put(prefix + ".schemaInfo", meta.getSchemaInfo());
+        builder.put(prefix + ".indexInfo", meta.getIndexInfo());
+        if (Collection.CLUSTER_NODES.equals(collection)) {
+            builder.put(prefix + ".updates", getCnStats());
+        }
+        // live data
+        Map<String, String> map = this.dbInfo.getAdditionalStatistics(this.ch, meta.getCatalog(), meta.getName());
+        map.forEach((k, v) -> builder.put(prefix + "." + k, v));
+        try {
+            long c = queryCount(collection, null, null, Collections.emptyList(), Collections.emptyList());
+            builder.put(prefix + ".count", Long.toString(c));
+        }
+        catch (DocumentStoreException ex) {
+            LOG.debug("getting entry count for " + prefix, ex);
+        }
     }
 
     // implementation
@@ -864,22 +912,30 @@ public class RDBDocumentStore implements DocumentStore {
 
     private void initialize(DataSource ds, DocumentNodeStoreBuilder<?> builder, RDBOptions options) throws Exception {
         this.stats = builder.getDocumentStoreStatsCollector();
-        this.tableMeta.put(Collection.NODES,
-                new RDBTableMetaData(createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES))));
-        this.tableMeta.put(Collection.CLUSTER_NODES,
-                new RDBTableMetaData(createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.CLUSTER_NODES))));
-        this.tableMeta.put(Collection.JOURNAL,
-                new RDBTableMetaData(createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.JOURNAL))));
-        this.tableMeta.put(Collection.SETTINGS,
-                new RDBTableMetaData(createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.SETTINGS))));
+
+        this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
         this.ch = new RDBConnectionHandler(ds);
-        this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
+        Connection con = this.ch.getRWConnection();
+        String catalog = con.getCatalog();
+        DatabaseMetaData md = con.getMetaData();
+        if (null == catalog) {
+            // Oracle
+            catalog = md.getUserName();
+        }
+
+        this.tableMeta.put(Collection.NODES,
+                new RDBTableMetaData(catalog, createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES))));
+        this.tableMeta.put(Collection.CLUSTER_NODES,
+                new RDBTableMetaData(catalog, createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.CLUSTER_NODES))));
+        this.tableMeta.put(Collection.JOURNAL,
+                new RDBTableMetaData(catalog, createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.JOURNAL))));
+        this.tableMeta.put(Collection.SETTINGS,
+                new RDBTableMetaData(catalog, createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.SETTINGS))));
+
 
         this.locks = new StripedNodeDocumentLocks();
         this.nodesCache = builder.buildNodeDocumentCache(this, locks);
-
-        Connection con = this.ch.getRWConnection();
 
         int isolation = con.getTransactionIsolation();
         String isolationDiags = RDBJDBCTools.isolationLevelToString(isolation);
@@ -890,7 +946,6 @@ public class RDBDocumentStore implements DocumentStore {
                     + " - check datasource configuration");
         }
 
-        DatabaseMetaData md = con.getMetaData();
         String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
                 md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String driverDesc = String.format("%s %s (%d.%d)", md.getDriverName(), md.getDriverVersion(), md.getDriverMajorVersion(),
@@ -926,19 +981,25 @@ public class RDBDocumentStore implements DocumentStore {
 
         List<String> tablesCreated = new ArrayList<String>();
         List<String> tablesPresent = new ArrayList<String>();
-        StringBuilder tableDiags = new StringBuilder();
         try {
             createTableFor(con, Collection.CLUSTER_NODES, this.tableMeta.get(Collection.CLUSTER_NODES), tablesCreated,
-                    tablesPresent, tableDiags, options.getInitialSchema(), options.getUpgradeToSchema());
+                    tablesPresent, options.getInitialSchema(), options.getUpgradeToSchema());
             createTableFor(con, Collection.NODES, this.tableMeta.get(Collection.NODES), tablesCreated, tablesPresent,
-                    tableDiags, options.getInitialSchema(), options.getUpgradeToSchema());
+                    options.getInitialSchema(), options.getUpgradeToSchema());
             createTableFor(con, Collection.SETTINGS, this.tableMeta.get(Collection.SETTINGS), tablesCreated, tablesPresent,
-                    tableDiags, options.getInitialSchema(), options.getUpgradeToSchema());
+                    options.getInitialSchema(), options.getUpgradeToSchema());
             createTableFor(con, Collection.JOURNAL, this.tableMeta.get(Collection.JOURNAL), tablesCreated, tablesPresent,
-                    tableDiags, options.getInitialSchema(), options.getUpgradeToSchema());
+                    options.getInitialSchema(), options.getUpgradeToSchema());
         } finally {
             con.commit();
             con.close();
+        }
+
+        StringBuilder tableDiags = new StringBuilder();
+        RDBTableMetaData nodesMeta = this.tableMeta.get(Collection.NODES);
+        tableDiags.append(nodesMeta.getSchemaInfo());
+        if (!nodesMeta.getIndexInfo().isEmpty()) {
+            tableDiags.append(" /* ").append(nodesMeta.getIndexInfo()).append(" */");
         }
 
         if (options.isDropTablesOnClose()) {
@@ -1054,9 +1115,6 @@ public class RDBDocumentStore implements DocumentStore {
                     sb.append(" ").append(index.getValue().get("type"));
                 }
             }
-            if (sb.length() != 0) {
-                sb.insert(0, "/* ").append(" */");
-            }
             return sb.toString();
         } catch (SQLException ex) {
             // well it was best-effort
@@ -1097,8 +1155,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void createTableFor(Connection con, Collection<? extends Document> col, RDBTableMetaData tmd, List<String> tablesCreated,
-            List<String> tablesPresent, StringBuilder overallDiagnostics, int initialSchema, int upgradeToSchema) throws SQLException {
-        StringBuilder diagnostics = new StringBuilder(); 
+            List<String> tablesPresent, int initialSchema, int upgradeToSchema) throws SQLException {
 
         String dbname = this.dbInfo.toString();
         if (con.getMetaData().getURL() != null) {
@@ -1153,14 +1210,10 @@ public class RDBDocumentStore implements DocumentStore {
                 LOG.info(message);
             }
 
-            if (col == Collection.NODES) {
-                String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
-                diagnostics.append(tableInfo);
-                String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
-                if (!indexInfo.isEmpty()) {
-                    diagnostics.append(" ").append(indexInfo);
-                }
-            }
+            String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
+            tmd.setSchemaInfo(tableInfo);
+            String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
+            tmd.setIndexInfo(indexInfo);
 
             closeResultSet(checkResultSet);
             boolean dbWasChanged = false;
@@ -1176,8 +1229,7 @@ public class RDBDocumentStore implements DocumentStore {
             tablesPresent.add(tableName);
 
             if (dbWasChanged) {
-                diagnostics.setLength(0);
-                getTableMetaData(con, col, tmd, diagnostics);
+                getTableMetaData(con, col, tmd);
             }
         } catch (SQLException ex) {
             // table does not appear to exist
@@ -1206,8 +1258,7 @@ public class RDBDocumentStore implements DocumentStore {
 
                 tablesCreated.add(tableName);
 
-                diagnostics.setLength(0);
-                getTableMetaData(con, col, tmd, diagnostics);
+                getTableMetaData(con, col, tmd);
             }
             catch (SQLException ex2) {
                 LOG.error("Failed to create table " + tableName + " in " + dbname, ex2);
@@ -1219,8 +1270,6 @@ public class RDBDocumentStore implements DocumentStore {
             closeStatement(checkStatement);
             closeStatement(creatStatement);
         }
-
-        overallDiagnostics.append(diagnostics);
     }
 
     private boolean upgradeTable(Connection con, String tableName, int level) throws SQLException {
@@ -1247,8 +1296,7 @@ public class RDBDocumentStore implements DocumentStore {
         return wasChanged;
     }
     
-    private static void getTableMetaData(Connection con, Collection<? extends Document> col, RDBTableMetaData tmd,
-            StringBuilder diagnostics) throws SQLException {
+    private static void getTableMetaData(Connection con, Collection<? extends Document> col, RDBTableMetaData tmd) throws SQLException {
         Statement checkStatement = null;
         ResultSet checkResultSet = null;
 
@@ -1260,14 +1308,10 @@ public class RDBDocumentStore implements DocumentStore {
             ResultSetMetaData met = checkResultSet.getMetaData();
             obtainFlagsFromResultSetMeta(met, tmd);
 
-            if (col == Collection.NODES) {
-                String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
-                diagnostics.append(tableInfo);
-                String indexInfo = dumpIndexData(con.getMetaData(), met, tmd.getName());
-                if (!indexInfo.isEmpty()) {
-                    diagnostics.append(" ").append(indexInfo);
-                }
-            }
+            String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
+            tmd.setSchemaInfo(tableInfo);
+            String indexInfo = dumpIndexData(con.getMetaData(), met, tmd.getName());
+            tmd.setIndexInfo(indexInfo);
         } finally {
             closeResultSet(checkResultSet);
             closeStatement(checkStatement);
