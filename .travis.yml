@@ -31,6 +31,12 @@ jdk:
 cache:
   directories:
     - $HOME/.m2
+addons:
+  apt:
+    sources:
+      - mongodb-3.4-trusty
+    packages:
+      - mongodb-org-server
 services:
   - mongodb
 notifications:
