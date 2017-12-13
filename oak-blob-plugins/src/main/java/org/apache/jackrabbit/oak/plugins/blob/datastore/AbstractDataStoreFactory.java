@@ -75,7 +75,8 @@ public abstract class AbstractDataStoreFactory {
             final DataStore dataStore = createDataStore(context, config);
             if (null != dataStore) {
                 Map<String, Object> props = Maps.newConcurrentMap();
-                props.put(DataStoreProvider.ROLE, role);
+                props.putAll(config);
+                props.putIfAbsent(DataStoreProvider.ROLE, role);
 
                 closer.register(asCloseable(whiteboard.register(
                         DataStoreProvider.class,
