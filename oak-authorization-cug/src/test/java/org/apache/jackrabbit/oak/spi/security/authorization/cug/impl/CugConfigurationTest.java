@@ -25,7 +25,6 @@ import javax.jcr.security.AccessControlManager;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -47,13 +46,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class CugConfigurationTest extends AbstractSecurityTest {
+public class CugConfigurationTest extends AbstractCugTest {
 
     private static CugConfiguration createConfiguration(ConfigurationParameters params) {
-        SecurityProvider sp = CugSecurityProvider.newTestSecurityProvider(ConfigurationParameters.EMPTY);
-        CugConfiguration cugConfiguration = new CugConfiguration();
-        cugConfiguration.setSecurityProvider(sp);
-        cugConfiguration.activate(params);
+        SecurityProvider sp = CugSecurityProvider.newTestSecurityProvider(ConfigurationParameters.of(AuthorizationConfiguration.NAME, params));
+        CugConfiguration cugConfiguration = CugSecurityProvider.getCugConfiguration(sp);
         return cugConfiguration;
     }
 
@@ -203,7 +200,7 @@ public class CugConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testActivate() throws Exception {
-        CugConfiguration cugConfiguration = new CugConfiguration(getSecurityProvider());
+        CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
         cugConfiguration.activate(ImmutableMap.of(
                 CugConstants.PARAM_CUG_ENABLED, false,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {"/content", "/anotherContent"}
@@ -213,7 +210,7 @@ public class CugConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testModified() throws Exception {
-        CugConfiguration cugConfiguration = new CugConfiguration(getSecurityProvider());
+        CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
         cugConfiguration.modified(ImmutableMap.of(
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/changed"}
         ));

@@ -23,11 +23,10 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
@@ -43,25 +42,25 @@ public class TopLevelPathTest extends AbstractCugTest {
 
     @Test
     public void testHasAnyNoCug() {
-        TopLevelPaths tlp = new TopLevelPaths(RootFactory.createReadOnlyRoot(root));
+        TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(root));
         assertFalse(tlp.hasAny());
         assertFalse(tlp.hasAny());
     }
 
     @Test
     public void testHasAnyWithCug() throws Exception {
-        Tree tree = new NodeUtil(root.getTree(SUPPORTED_PATH3)).addChild("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
+        Tree tree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         createCug(tree.getPath(), EveryonePrincipal.getInstance());
         root.commit();
 
-        TopLevelPaths tlp = new TopLevelPaths(RootFactory.createReadOnlyRoot(root));
+        TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(root));
         assertTrue(tlp.hasAny());
         assertTrue(tlp.hasAny());
     }
 
     @Test
     public void testContainsNoCug()  throws Exception {
-        TopLevelPaths tlp = new TopLevelPaths(RootFactory.createReadOnlyRoot(root));
+        TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(root));
         for (String p : PATHS) {
             assertFalse(tlp.contains(p));
         }
@@ -69,11 +68,12 @@ public class TopLevelPathTest extends AbstractCugTest {
 
     @Test
     public void testContainsWithCug()  throws Exception {
-        String cugPath = new NodeUtil(root.getTree(SUPPORTED_PATH3)).addChild("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree().getPath();
+        String cugPath = TreeUtil
+                .addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getPath();
         createCug(cugPath, EveryonePrincipal.getInstance());
         root.commit();
 
-        TopLevelPaths tlp = new TopLevelPaths(RootFactory.createReadOnlyRoot(root));
+        TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(root));
 
         assertTrue(tlp.contains(ROOT_PATH));
         assertTrue(tlp.contains(SUPPORTED_PATH3));
@@ -89,7 +89,7 @@ public class TopLevelPathTest extends AbstractCugTest {
         createCug(root, ROOT_PATH, EveryonePrincipal.NAME);
         root.commit();
 
-        TopLevelPaths tlp = new TopLevelPaths(RootFactory.createReadOnlyRoot(root));
+        TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(root));
 
         assertTrue(tlp.contains(ROOT_PATH));
 
@@ -101,14 +101,14 @@ public class TopLevelPathTest extends AbstractCugTest {
 
     @Test
     public void testContainsMany() throws Exception {
-        NodeUtil n = new NodeUtil(root.getTree(SUPPORTED_PATH3));
+        Tree n = root.getTree(SUPPORTED_PATH3);
         for (int i = 0; i <= TopLevelPaths.MAX_CNT; i++) {
-            Tree c = n.addChild("c" + i, NT_OAK_UNSTRUCTURED).getTree();
+            Tree c = TreeUtil.addChild(n, "c" + i, NT_OAK_UNSTRUCTURED);
             createCug(c.getPath(), EveryonePrincipal.getInstance());
         }
         root.commit();
 
-        TopLevelPaths tlp = new TopLevelPaths(RootFactory.createReadOnlyRoot(root));
+        TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(root));
         assertTrue(tlp.contains(ROOT_PATH));
         assertTrue(tlp.contains(SUPPORTED_PATH));
         assertTrue(tlp.contains(SUPPORTED_PATH2));
@@ -120,11 +120,12 @@ public class TopLevelPathTest extends AbstractCugTest {
 
     @Test
     public void testMayContainWithCug() throws Exception {
-        String cugPath = new NodeUtil(root.getTree(SUPPORTED_PATH3)).addChild("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree().getPath();
+        String cugPath = TreeUtil
+                .addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getPath();
         createCug(cugPath, EveryonePrincipal.getInstance());
         root.commit();
 
-        Root readOnlyRoot = RootFactory.createReadOnlyRoot(root);
+        Root readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
         TopLevelPaths tlp = new TopLevelPaths(readOnlyRoot);
         for (String p : PATHS) {
             assertEquals(p, Text.isDescendantOrEqual(p, cugPath), tlp.contains(p));
@@ -160,7 +161,7 @@ public class TopLevelPathTest extends AbstractCugTest {
         createCug(cugPath, EveryonePrincipal.getInstance());
         root.commit();
 
-        Root readOnlyRoot = RootFactory.createReadOnlyRoot(root);
+        Root readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
         TopLevelPaths tlp = new TopLevelPaths(readOnlyRoot);
 
         assertTrue(tlp.contains(PathUtils.ROOT_PATH));
