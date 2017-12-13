@@ -31,11 +31,12 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
@@ -46,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 
 class CugPermissionProvider implements AggregatedPermissionProvider, CugConstants {
 
@@ -69,15 +69,22 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     private ReadOnlyVersionManager versionManager;
     private TopLevelPaths topPaths;
 
+    private final RootProvider rootProvider;
+    private final TreeProvider treeProvider;
+
     CugPermissionProvider(@Nonnull Root root,
                           @Nonnull String workspaceName,
                           @Nonnull Set<Principal> principals,
                           @Nonnull Set<String> supportedPaths,
-                          @Nonnull Context ctx) {
+                          @Nonnull Context ctx,
+                          @Nonnull RootProvider rootProvider,
+                          @Nonnull TreeProvider treeProvider) {
         this.root = root;
+        this.rootProvider = rootProvider;
+        this.treeProvider = treeProvider;
         this.workspaceName = workspaceName;
 
-        immutableRoot = RootFactory.createReadOnlyRoot(root);
+        immutableRoot = rootProvider.createReadOnlyRoot(root);
         principalNames = new String[principals.size()];
         int i = 0;
         for (Principal p : principals) {
@@ -93,7 +100,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
 
     @Nonnull
     TreePermission getTreePermission(@Nonnull Tree parent, @Nonnull TreeType parentType, @Nonnull String childName, @Nonnull NodeState childState, @Nonnull AbstractTreePermission parentPermission) {
-        Tree t = TreeFactory.createReadOnlyTree(parent, childName, childState);
+        Tree t = treeProvider.createReadOnlyTree(parent, childName, childState);
         TreeType type = typeProvider.getType(t, parentType);
         return getTreePermission(t, type, parentPermission);
     }
@@ -115,7 +122,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     //-------------------------------------------------< PermissionProvider >---
     @Override
     public void refresh() {
-        immutableRoot = RootFactory.createReadOnlyRoot(root);
+        immutableRoot = rootProvider.createReadOnlyRoot(root);
         versionManager = null;
         topPaths = new TopLevelPaths(immutableRoot);
     }

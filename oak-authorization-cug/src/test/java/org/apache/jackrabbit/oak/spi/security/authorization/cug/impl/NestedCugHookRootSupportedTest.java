@@ -44,7 +44,7 @@ public class NestedCugHookRootSupportedTest extends NestedCugHookTest {
         createCug("/content2", EveryonePrincipal.getInstance());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, true, "/content", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, true, "/content", "/content2");
     }
 
     @Test
@@ -53,13 +53,13 @@ public class NestedCugHookRootSupportedTest extends NestedCugHookTest {
         createCug("/content2", EveryonePrincipal.getInstance());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content", "/content2");
 
         createCug(ROOT_PATH, EveryonePrincipal.getInstance());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false);
-        assertNestedCugs(root, ROOT_PATH, true, "/content", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, true, "/content", "/content2");
     }
 
     @Test
@@ -69,7 +69,7 @@ public class NestedCugHookRootSupportedTest extends NestedCugHookTest {
         createCug("/content2", EveryonePrincipal.getInstance());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, true, "/content", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, true, "/content", "/content2");
     }
 
     @Test
@@ -81,13 +81,13 @@ public class NestedCugHookRootSupportedTest extends NestedCugHookTest {
         root.commit();
 
         assertTrue(removeCug(ROOT_PATH, true));
-        assertNestedCugs(root, ROOT_PATH, false, "/content", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content", "/content2");
 
         assertTrue(removeCug("/content", true));
-        assertNestedCugs(root, ROOT_PATH, false, "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content2");
 
         assertTrue(removeCug("/content2", true));
-        assertNestedCugs(root, ROOT_PATH, false);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false);
     }
 
     @Test
@@ -99,13 +99,13 @@ public class NestedCugHookRootSupportedTest extends NestedCugHookTest {
         root.commit();
 
         removeCug("/content", true);
-        assertNestedCugs(root, ROOT_PATH, true, "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, true, "/content2");
 
         removeCug("/", true);
-        assertNestedCugs(root, ROOT_PATH, false, "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content2");
 
         removeCug("/content2", true);
-        assertNestedCugs(root, ROOT_PATH, false);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false);
     }
 
     @Test
@@ -117,13 +117,13 @@ public class NestedCugHookRootSupportedTest extends NestedCugHookTest {
         root.commit();
 
         assertTrue(removeCug("/content", true));
-        assertNestedCugs(root, ROOT_PATH, true, "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, true, "/content2");
 
         assertTrue(removeCug("/content2", true));
-        assertNestedCugs(root, ROOT_PATH, true);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, true);
 
         assertTrue(removeCug(ROOT_PATH, true));
-        assertNestedCugs(root, ROOT_PATH, false);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false);
     }
 
     @Test
@@ -139,6 +139,6 @@ public class NestedCugHookRootSupportedTest extends NestedCugHookTest {
         assertTrue(removeCug("/", false));
         root.commit();
 
-        assertNestedCugs(root, "/", false);
+        assertNestedCugs(root, getRootProvider(), "/", false);
     }
 }

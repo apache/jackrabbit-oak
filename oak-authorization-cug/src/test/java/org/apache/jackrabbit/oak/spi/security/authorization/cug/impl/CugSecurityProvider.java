@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
@@ -32,8 +30,23 @@ final class CugSecurityProvider {
 
     public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration) {
         CugConfiguration cugConfiguration = new CugConfiguration();
-        cugConfiguration.activate(configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY));
+
+        ConfigurationParameters params = configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY);
+        cugConfiguration.activate(params);
 
         return new SecurityProviderBuilder().with(configuration).with(cugConfiguration, AuthorizationConfiguration.class).build();
+    }
+
+    public static CugConfiguration getCugConfiguration(@Nonnull SecurityProvider securityProvider) {
+        AuthorizationConfiguration ac = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+        if (!(ac instanceof CompositeAuthorizationConfiguration)) {
+            throw new IllegalStateException();
+        }
+        for (AuthorizationConfiguration config : ((CompositeAuthorizationConfiguration) ac).getConfigurations()) {
+            if (config instanceof CugConfiguration) {
+                return (CugConfiguration) config;
+            }
+        }
+        throw new IllegalStateException();
     }
 }
