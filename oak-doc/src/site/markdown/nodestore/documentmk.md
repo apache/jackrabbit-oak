@@ -56,13 +56,27 @@ The document storage optionally uses the [persistent cache](persistent-cache.htm
 
 ## <a name="backend-implementations"></a> Backend implementations
 
-DocumentMK supports a number of backends, with a storage abstraction called `DocumentStore`:
+The DocumentNodeStore supports a number of backends, with a storage abstraction
+called `DocumentStore`:
 
-* `MongoDocumentStore`: stores documents in a MongoDB. Oak requires MongoDB 2.6.x or higher.
-* `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for testing purposes.
+* `MongoDocumentStore`: stores documents in a MongoDB.
 * `RDBDocumentStore`: stores documents in a relational data base.
+* `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for testing purposes.
 
-The remaining part of the document will focus on the `MongoDocumentStore` to explain and illustrate concepts of the DocumentMK.
+The recommended MongoDB version depends on the Oak release. Below table lists
+the recommended MongoDB version for each Oak release. More recent MongoDB
+versions may also work, but are untested.
+
+Oak Release | MongoDB version
+------------|----------------
+1.0.x | 2.6.x
+1.2.x | 3.2.x
+1.4.x | 3.2.x
+1.6.x | 3.2.x
+1.8.x | 3.4.x
+
+The remaining part of the document will focus on the `MongoDocumentStore` to
+explain and illustrate concepts of the DocumentNodeStore.
 
 ## <a name="content-model"></a> Content Model
 
@@ -78,7 +92,7 @@ MongoDB shell:
 
 ## <a name="node-content-model"></a> Node Content Model
 
-The `DocumentMK` stores each node in a separate MongoDB document and updates to
+The `DocumentNodeStore` stores each node in a separate MongoDB document and updates to
 a node are stored by adding new revision/value pairs to the document. This way
 the previous state of a node is preserved and can still be retrieved by a
 session looking at a given snapshot (revision) of the repository.
@@ -102,7 +116,7 @@ The basic MongoDB document of a node in Oak looks like this:
     }
 
 All fields in the above document are metadata and are not exposed through the
-Oak API. DocumentMK has two types of fields. Simple fields are key/value pairs
+Oak API. The DocumentNodeStore has two types of fields. Simple fields are key/value pairs
 like the `_id` or `_modified` field. Versioned fields are kept in sub-documents
 where the key is a revision paired with the value at this revision.
 
@@ -116,10 +130,10 @@ the node is later deleted, the `_deleted` sub-document will get a new field with
 the revision the node was deleted in.
 
 The sub-document `_lastRev` contains the last revision written to this node by
-each cluster node. In the above example the DocumentMK cluster node with id `1`
+each cluster node. In the above example the DocumentNodeStore cluster node with id `1`
 modified the node the last time in revision `r13f3875b5d1-0-1`, when it created
 the node. The revision key in the `_lastRev` sub-document is synthetic and the
-only information actually used by DocumentMK is the clusterId. The `_lastRev`
+only information actually used by the DocumentNodeStore is the clusterId. The `_lastRev`
 sub-document is only updated for non-branch commits or on merge, when changes
 become visible to all readers.
 
@@ -128,12 +142,13 @@ was last modified. The time resolution is five seconds. This field is also updat
 when a branch commit modifies a node.
 
 The `_modCount` field contains a modification counter, which is incremented with
-every change to the document. This field allows DocumentMK to perform conditional updates
+every change to the document. This field allows the DocumentNodeStore to perform conditional updates
 without requesting the whole document.
 
 The `_children` field is a boolean flag to indicate if this node has child nodes. By
 default a node would not have this field. If any node gets added as child of this node
-then it would be set to true. It is used to optimize access to child nodes and allows DocumentMK to omit calls to fetch child nodes for leaf nodes.
+then it would be set to true. It is used to optimize access to child nodes and allows
+the DocumentNodeStore to omit calls to fetch child nodes for leaf nodes.
 
 Finally, the `_revisions` sub-document contains commit information about changes
 marked with a revision. E.g. the single entry in the above document tells us
@@ -210,7 +225,7 @@ As seen in the examples above, a revision is a String and may look like this:
 
 ## <a name="clock-requirements"></a> Clock requirements
 
-Revisions are used by the DocumentMK to identify the sequence of changes done
+Revisions are used by the DocumentNodeStore to identify the sequence of changes done
 on items in the repository. This is also done across cluster nodes for revisions
 with different cluster node ids. This requires the system clocks on the machines
 running Oak and the backend system to approximately in sync. It is recommended
@@ -224,16 +239,16 @@ files.
 
 ## <a name="branches"></a> Branches
 
-DocumentMK implementations support branches, which allows a client to stage
-multiple commits and make them visible with a single merge call. In DocumentMK
-a branch commit looks very similar to a regular commit, but instead of setting
+The DocumentNodeStore implementation support branches, which allows a client to
+stage multiple commits and make them visible with a single merge call. A branch
+commit looks very similar to a regular commit, but instead of setting
 the value of an entry in `_revisions` to `c` (committed), it marks it with
 the base revision of the branch commit. In contrast to regular commits where
 the commit root is the common ancestor of all nodes modified in a commit, the
 commit root of a branch commit is always the root node. This is because a
 branch will likely have multiple commits and a commit root must already be
 known when the first commit happens on a branch. To make sure the following
-branch commits can use the same commit root, DocumentMK simply picks the root
+branch commits can use the same commit root, the DocumentNodeStore simply picks the root
 node, which always works in this case.
 
 A root node may look like this:
@@ -318,12 +333,12 @@ Now, the changed property is visible to readers with a revision equal or
 newer than `r13fcda91b12-0-1`.
 
 The same logic is used for changes to other nodes that belong to a branch
-commit. DocumentMK internally resolves the commit revision for a modification
+commit. The DocumentNodeStore internally resolves the commit revision for a modification
 before it decides whether a reader is able to see a given change.
 
 ## <a name="previous-documents"></a> Previous Documents
 
-Over time the size of a document grows because DocumentMK adds data to the document
+Over time the size of a document grows because the DocumentNodeStore adds data to the document
 with every modification, but never deletes anything to keep the history. Old data
 is moved when there are 1000 commits to be moved or the document is bigger than
 1 MB. A document with a reference to old data looks like this:
@@ -390,7 +405,8 @@ Refer to [Node Bundling](document/node-bundling.html)
 
 ## <a name="background-operations"></a> Background Operations
 
-Each DocumentMK instance connecting to same database in Mongo server performs certain background task.
+Each DocumentNodeStore instance connecting to same database in Mongo server
+performs certain background task.
 
 ### <a name="renew-cluster-id-lease"></a> Renew Cluster Id Lease
 
@@ -400,9 +416,9 @@ Each cluster node has a lease on the cluster node id, as described in the sectio
 
 ### <a name="background-document-split"></a> Background Document Split
 
-DocumentMK periodically checks documents for their size and if necessary splits them up and
-moves old data to a previous document. This is done in the background by each DocumentMK
-instance for the data it created.
+The DocumentNodeStore periodically checks documents for their size and if
+necessary splits them up and moves old data to a previous document. This is done
+in the background by each DocumentNodeStore instance for the data it created.
 
 ### <a name="background-writes"></a> Background Writes
 
@@ -413,8 +429,9 @@ and flushed periodically through a asynchronous job.
 
 ### <a name="bg-read"></a> Background Reads
 
-DocumentMK periodically picks up changes from other DocumentMK instances by polling the root node
-for changes of `_lastRev`. This happens once every second.
+The DocumentNodeStore periodically picks up changes from other DocumentNodeStore
+instances by polling the root node for changes of `_lastRev`. This happens once
+every second.
 
 ## <a name="pending-topics"></a> Pending Topics
 
@@ -685,13 +702,13 @@ MongoDB backend can be initiated with:
     
 This will collect changes identified as garbage, which is older than 24 hours.
 
-Starting with Oak 1.8 the DocumentNodeStoreService triggers Revision Garbage
+Starting with Oak 1.8 the DocumentNodeStoreService can trigger Revision Garbage
 Collection (RGC) automatically. The default schedule depends on the type of
-backend.That is, on RDB the service will schedule a RGC daily at 2 AM. Whereas
-on MongoDB the RGC runs every five seconds. The latter is also known as 
-`Continuous Revision Garbage Collection`. In this mode, the RGC will not log
-every run but only write an INFO message every hour summarizing the GC cycles
-for the past hour.
+backend. On RDB the service will not schedule a RGC, which is the same behavior
+as in previous Oak versions. Whereas on MongoDB the RGC runs every five seconds.
+The latter is also known as `Continuous Revision Garbage Collection`. In this
+mode, the RGC will not log every run but only write an INFO message every hour
+summarizing the GC cycles for the past hour.
 For more details, see also the [OSGi configuration][osgi-config] page. 
 
 [1]: http://docs.mongodb.org/manual/core/read-preference/
