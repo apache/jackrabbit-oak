@@ -53,7 +53,7 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
         try {
             solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "oak")).getSolrServer();
         } catch (Exception e) {
-            throw new RuntimeException();
+            throw new RuntimeException(e);
         }
         SolrServerProvider solrServerProvider = new SolrServerProvider() {
             @Override
