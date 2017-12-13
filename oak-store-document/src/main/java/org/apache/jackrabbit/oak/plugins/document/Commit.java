@@ -396,7 +396,7 @@ public class Commit {
                     createOrUpdateNode(store, commitRoot);
                 }
             }
-        } catch (DocumentStoreException e) {
+        } catch (Exception e) {
             // OAK-3084 do not roll back if already committed
             if (success) {
                 LOG.error("Exception occurred after commit. Rollback will be suppressed.", e);
@@ -409,7 +409,7 @@ public class Commit {
                     // and throw the original exception
                     LOG.warn("Rollback failed", ex);
                 }
-                throw e;
+                throw DocumentStoreException.convert(e);
             }
         } finally {
             if (success) {
@@ -448,7 +448,7 @@ public class Commit {
         NodeDocument.setRevision(commit, revision, commitValue);
         // make the update conditional on the modCount
         commit.equals(MOD_COUNT, doc.getModCount());
-        NodeDocument before = store.findAndUpdate(NODES, commit);
+        NodeDocument before = nodeStore.updateCommitRoot(commit, revision);
         if (before != null) {
             checkSplitCandidate(before);
         }
