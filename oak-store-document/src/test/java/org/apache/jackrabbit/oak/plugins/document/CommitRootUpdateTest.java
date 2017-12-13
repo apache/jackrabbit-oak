@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -101,7 +100,6 @@ public class CommitRootUpdateTest {
         assertFalse(throwAfterUpdate.get());
     }
 
-    @Ignore
     @Test
     public void exceptionOnSingleUpdate() throws Exception {
         final AtomicBoolean throwAfterUpdate = new AtomicBoolean(false);
