@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -47,7 +46,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
                                  @Nonnull PermissionValidatorProvider provider,
                                  @Nonnull MoveTracker moveTracker) {
         super(rootBefore, rootAfter, permissionProvider, provider);
-        moveCtx = new MoveContext(moveTracker, rootBefore, rootAfter);
+        moveCtx = new MoveContext(moveTracker, provider.createReadOnlyRoot(rootBefore), provider.createReadOnlyRoot(rootAfter));
     }
 
     private MoveAwarePermissionValidator(@Nullable Tree parentBefore,
@@ -115,11 +114,11 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         private final Root rootAfter;
 
         private MoveContext(@Nonnull MoveTracker moveTracker,
-                            @Nonnull NodeState before,
-                            @Nonnull NodeState after) {
+                            @Nonnull Root before,
+                            @Nonnull Root after) {
             this.moveTracker = moveTracker;
-            rootBefore = RootFactory.createReadOnlyRoot(before);
-            rootAfter = RootFactory.createReadOnlyRoot(after);
+            rootBefore = before;
+            rootAfter = after;
         }
 
         private boolean containsMove(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {

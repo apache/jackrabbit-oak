@@ -25,7 +25,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -36,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstant
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +49,11 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
 
     private final String userRootPath;
 
-    TokenValidatorProvider(@Nonnull ConfigurationParameters userConfig) {
+    private final TreeProvider treeProvider;
+
+    TokenValidatorProvider(@Nonnull ConfigurationParameters userConfig, @Nonnull TreeProvider treeProvider) {
         userRootPath = userConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+        this.treeProvider = treeProvider;
     }
 
     @Override
@@ -69,7 +72,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         private final CommitInfo commitInfo;
 
         TokenValidator(@Nonnull NodeState parentBefore, @Nonnull NodeState parentAfter, @Nonnull CommitInfo commitInfo) {
-            this(TreeFactory.createReadOnlyTree(parentBefore), TreeFactory.createReadOnlyTree(parentAfter), commitInfo);
+            this(treeProvider.createReadOnlyTree(parentBefore), treeProvider.createReadOnlyTree(parentAfter), commitInfo);
         }
 
         private TokenValidator(@Nullable Tree parentBefore, @Nonnull Tree parentAfter, @Nonnull CommitInfo commitInfo) {

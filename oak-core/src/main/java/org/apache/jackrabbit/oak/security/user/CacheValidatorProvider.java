@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -47,10 +47,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 class CacheValidatorProvider extends ValidatorProvider implements CacheConstants {
 
     private final boolean isSystem;
+    private final TreeProvider treeProvider;
 
-    CacheValidatorProvider(@Nonnull Set<Principal> principals) {
+    CacheValidatorProvider(@Nonnull Set<Principal> principals, @Nonnull TreeProvider treeProvider) {
         super();
         isSystem = principals.contains(SystemPrincipal.INSTANCE);
+        this.treeProvider = treeProvider;
     }
 
     @CheckForNull
@@ -58,7 +60,7 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         TypePredicate cachePredicate = new TypePredicate(after, NT_REP_CACHE);
         boolean isValidCommitInfo = CommitMarker.isValidCommitInfo(info);
-        return new CacheValidator(TreeFactory.createReadOnlyTree(before), TreeFactory.createReadOnlyTree(after), cachePredicate, isValidCommitInfo);
+        return new CacheValidator(treeProvider.createReadOnlyTree(before), treeProvider.createReadOnlyTree(after), cachePredicate, isValidCommitInfo);
     }
 
     //--------------------------------------------------------------------------

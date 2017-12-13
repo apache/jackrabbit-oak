@@ -20,8 +20,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -41,9 +42,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class AccessControlValidatorProvider extends ValidatorProvider {
 
     private final SecurityProvider securityProvider;
+    private final RootProvider rootProvider;
+    private final TreeProvider treeProvider;
 
-    public AccessControlValidatorProvider(@Nonnull SecurityProvider securityProvider) {
+    public AccessControlValidatorProvider(@Nonnull SecurityProvider securityProvider, @Nonnull RootProvider rootProvider, @Nonnull TreeProvider treeProvider) {
         this.securityProvider = securityProvider;
+        this.rootProvider = rootProvider;
+        this.treeProvider = treeProvider;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -53,11 +58,11 @@ public class AccessControlValidatorProvider extends ValidatorProvider {
 
         RestrictionProvider restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
 
-        Root root = RootFactory.createReadOnlyRoot(before);
+        Root root = rootProvider.createReadOnlyRoot(before);
         PrivilegeManager privilegeManager = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
         PrivilegeBitsProvider privilegeBitsProvider = new PrivilegeBitsProvider(root);
 
-        return new AccessControlValidator(after, privilegeManager, privilegeBitsProvider, restrictionProvider);
+        return new AccessControlValidator(after, privilegeManager, privilegeBitsProvider, restrictionProvider, treeProvider);
     }
 
     private <T> T getConfig(Class<T> configClass) {

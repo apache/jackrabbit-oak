@@ -40,6 +40,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
         tc = new TokenConfigurationImpl(getSecurityProvider());
+        tc.setTreeProvider(getTreeProvider());
     }
 
     @Override

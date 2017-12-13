@@ -21,13 +21,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -112,7 +110,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         super();
     }
 
-    public TokenConfigurationImpl(SecurityProvider securityProvider) {
+    public TokenConfigurationImpl(@Nonnull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
@@ -147,7 +145,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
-        ValidatorProvider vp = new TokenValidatorProvider(getSecurityProvider().getParameters(UserConfiguration.NAME));
+        ValidatorProvider vp = new TokenValidatorProvider(getSecurityProvider().getParameters(UserConfiguration.NAME), getTreeProvider());
         return ImmutableList.of(vp);
     }
 

@@ -23,9 +23,9 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -46,6 +46,12 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
 
     private static final Logger log = LoggerFactory.getLogger(PrivilegeInitializer.class);
 
+    private final RootProvider rootProvider;
+
+    PrivilegeInitializer(@Nonnull RootProvider rootProvider) {
+        this.rootProvider = rootProvider;
+    }
+
     @Override
     public void initialize(@Nonnull NodeBuilder builder) {
         NodeBuilder system = builder.child(JcrConstants.JCR_SYSTEM);
@@ -59,7 +65,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             NodeState base = squeeze(builder.getNodeState());
             NodeStore store = new MemoryNodeStore(base);
             try {
-                Root systemRoot = RootFactory.createSystemRoot(store, null, null, null, null);
+                Root systemRoot = rootProvider.createSystemRoot(store, null);
                 new PrivilegeDefinitionWriter(systemRoot).writeBuiltInDefinitions();
             } catch (RepositoryException e) {
                 log.error("Failed to register built-in privileges", e);

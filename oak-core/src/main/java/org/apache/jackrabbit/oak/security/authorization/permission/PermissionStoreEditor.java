@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -62,7 +62,8 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                           @Nonnull NodeState node, @Nonnull NodeBuilder permissionRoot,
                           @Nonnull TypePredicate isACE, @Nonnull TypePredicate isGrantACE,
                           @Nonnull PrivilegeBitsProvider bitsProvider,
-                          @Nonnull RestrictionProvider restrictionProvider) {
+                          @Nonnull RestrictionProvider restrictionProvider,
+                          @Nonnull TreeProvider treeProvider) {
         this.permissionRoot = permissionRoot;
         if (name.equals(REP_REPO_POLICY)) {
             accessControlledPath = "";
@@ -84,7 +85,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             if (isACE.apply(ace)) {
                 boolean isAllow = isGrantACE.apply(ace);
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
-                Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), TreeFactory.createReadOnlyTree(ace));
+                Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), treeProvider.createReadOnlyTree(ace));
 
                 AcEntry entry = (privilegeBits.equals(jcrAll)) ?
                         new JcrAllAcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions) :

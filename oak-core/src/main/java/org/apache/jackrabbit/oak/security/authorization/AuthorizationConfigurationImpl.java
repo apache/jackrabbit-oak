@@ -16,20 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
-
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
@@ -46,6 +42,8 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -58,8 +56,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-
-import com.google.common.collect.ImmutableList;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -67,6 +63,8 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
+
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 /**
  * Default implementation of the {@code AccessControlConfiguration}.
@@ -125,15 +123,15 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
         super();
     }
 
+    public AuthorizationConfigurationImpl(@Nonnull SecurityProvider securityProvider) {
+        super(securityProvider, securityProvider.getParameters(NAME));
+    }
+
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     // reference to @Configuration class needed for correct DS xml generation
     private void activate(Configuration configuration, Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
-    }
-
-    public AuthorizationConfigurationImpl(SecurityProvider securityProvider) {
-        super(securityProvider, securityProvider.getParameters(NAME));
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -160,7 +158,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
         return ImmutableList.of(
                 new VersionablePathHook(workspaceName),
-                new PermissionHook(workspaceName, getRestrictionProvider(), mountInfoProvider));
+                new PermissionHook(workspaceName, getRestrictionProvider(), mountInfoProvider, getRootProvider(), getTreeProvider()));
     }
 
     @Nonnull
@@ -168,8 +166,8 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     public List<ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
-                new PermissionValidatorProvider(getSecurityProvider(), workspaceName, principals, moveTracker),
-                new AccessControlValidatorProvider(getSecurityProvider()));
+                new PermissionValidatorProvider(getSecurityProvider(), workspaceName, principals, moveTracker, getRootProvider(), getTreeProvider()),
+                new AccessControlValidatorProvider(getSecurityProvider(), getRootProvider(), getTreeProvider()));
     }
 
     @Nonnull
@@ -204,10 +202,10 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
             return new MountPermissionProvider(root, workspaceName, principals, getRestrictionProvider(),
-                    getParameters(), ctx, mountInfoProvider);
+                    getParameters(), ctx, mountInfoProvider, getRootProvider());
         } else {
             return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(),
-                    getParameters(), ctx);
+                    getParameters(), ctx, getRootProvider());
         }
     }
 
