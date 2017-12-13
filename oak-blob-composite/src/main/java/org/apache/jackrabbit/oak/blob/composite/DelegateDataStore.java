@@ -53,21 +53,6 @@ public class DelegateDataStore {
         return config;
     }
 
-//    public boolean applyCompositeDataStoreConfig(final String cfg) {
-//        if (Strings.isNullOrEmpty(cfg)) {
-//            return false;
-//        }
-//        boolean cfgChanged = false;
-//        for (String pair : cfg.split(",")) {
-//            String[] kv = pair.split(":");
-//            if (2 == kv.length) {
-//                cfgChanged = true;
-//                config.put(kv[0].trim(), kv[1].trim().toLowerCase());
-//            }
-//        }
-//        return cfgChanged;
-//    }
-
     public boolean isReadOnly() {
         Object o = config.get(READ_ONLY);
         if (null == o) {
