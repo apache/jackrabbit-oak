@@ -87,7 +87,7 @@
         </fieldtype>
         <fieldtype name="spellcheck" class="solr.TextField">
             <analyzer type="index">
-                <tokenizer class="solr.ClassicTokenizerFactory"/>
+                <tokenizer class="solr.StandardTokenizerFactory"/>
                 <filter class="solr.LowerCaseFilterFactory"/>
                 <filter class="solr.ShingleFilterFactory" minShingleSize="2"  maxShingleSize="3"
                         outputUnigrams="true" outputUnigramsIfNoShingles="true" tokenSeparator=" " fillerToken="*"/>

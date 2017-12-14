@@ -64,11 +64,11 @@
         </fieldType>
         <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100">
             <analyzer type="index">
-                <tokenizer class="solr.ClassicTokenizerFactory" maxTokenLength="100000"/>
+                <tokenizer class="solr.StandardTokenizerFactory" />
                 <filter class="solr.LowerCaseFilterFactory"/>
             </analyzer>
             <analyzer type="query">
-                <tokenizer class="solr.ClassicTokenizerFactory" maxTokenLength="100000"/>
+                <tokenizer class="solr.StandardTokenizerFactory" />
                 <filter class="solr.LowerCaseFilterFactory"/>
             </analyzer>
         </fieldType>
@@ -81,7 +81,7 @@
         </fieldType>
         <fieldtype name="spellcheck" class="solr.TextField">
             <analyzer type="index">
-                <tokenizer class="solr.ClassicTokenizerFactory"/>
+                <tokenizer class="solr.StandardTokenizerFactory"/>
                 <filter class="solr.LowerCaseFilterFactory"/>
                 <filter class="solr.ShingleFilterFactory" minShingleSize="2"  maxShingleSize="3"
                         outputUnigrams="true" outputUnigramsIfNoShingles="true" tokenSeparator=" " fillerToken="*"/>
@@ -109,8 +109,6 @@
 
         <fieldtype name="binary" class="solr.BinaryField"/>
 
-        <fieldType name="currency" class="solr.CurrencyField" precisionStep="8" defaultCurrency="USD"
-                   currencyConfig="currency.xml"/>
         <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
     </types>
 
