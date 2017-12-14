@@ -294,7 +294,7 @@ public enum RDBDocumentStoreDB {
             ResultSet rs = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".TABLE_STATS",
+            String tableStats = System.getProperty(SYSPROP_PREFIX + ".DB2.TABLE_STATS",
                     "card npages mpages fpages overflow pctfree avgrowsize stats_time");
 
             try {
@@ -309,7 +309,6 @@ public enum RDBDocumentStoreDB {
                 }
                 con.commit();
             } catch (SQLException ex) {
-                ex.printStackTrace();
                 LOG.debug("while getting diagnostics", ex);
             } finally {
                 closeResultSet(rs);
@@ -318,7 +317,7 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".INDEX_STATS",
+            String indexStats = System.getProperty(SYSPROP_PREFIX + ".DB2.INDEX_STATS",
                     "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time");
 
             try {
@@ -409,7 +408,7 @@ public enum RDBDocumentStoreDB {
             ResultSet rs = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".TABLE_STATS",
+            String tableStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS",
                     "num_rows blocks avg_row_len sample_size last_analyzed");
 
             try {
@@ -431,7 +430,7 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".INDEX_STATS",
+            String indexStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.INDEX_STATS",
                     "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed");
 
             try {
@@ -543,6 +542,62 @@ public enum RDBDocumentStoreDB {
                 ch.closeConnection(con);
             }
             return result.toString();
+        }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+
+            Map<String, String> result = new HashMap<String, String>();
+
+            Connection con = null;
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
+
+            // table data
+            String tableStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
+                    "engine version row_format rows avg_row_length data_length index_length data_free collation");
+
+            try {
+                con = ch.getROConnection();
+                stmt = con.prepareStatement("show table status from " + catalog + " where name=?");
+                stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String data = extractFields(rs, tableStats);
+                    result.put("_data", data.toString());
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
+                ch.closeConnection(con);
+            }
+
+            // index data
+            String indexStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.INDEX_STATS",
+                    "column_name cardinality index_type sub_part");
+
+            try {
+                con = ch.getROConnection();
+                stmt = con.prepareStatement("show index from " + tableName + " in " + catalog);
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String index = rs.getString("key_name");
+                    String data = extractFields(rs, indexStats);
+                    result.put("index." + index + "._data", data);
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
+                ch.closeConnection(con);
+            }
+
+            return result;
         }
     },
 
