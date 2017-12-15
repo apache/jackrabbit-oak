@@ -26,6 +26,7 @@ import java.util.Collections;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Iterables;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -33,10 +34,13 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.collect.Iterables.size;
+
 public class FlatFileNodeStoreBuilder {
     private static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
     private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
     private static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
+    private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterable<NodeStateEntry> nodeStates;
     private final File workDir;
@@ -64,10 +68,27 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileStore build() throws IOException {
         //TODO Check not null blobStore
-        File flatFileStoreDir = createStoreDir();
-        File storeFile = writeToStore(flatFileStoreDir, "store.json");
-        File sortedFile = sortStoreFile(storeFile);
-        return new FlatFileStore(sortedFile, new NodeStateEntryReader(blobStore));
+        return new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore));
+    }
+
+    private File createdSortedStoreFile() throws IOException {
+        String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
+        if (sortedFilePath != null) {
+            File sortedFile = new File(sortedFilePath);
+            if (sortedFile.exists() && sortedFile.isFile() && sortedFile.canRead()) {
+                log.info("Reading from provided sorted file [{}] (via system property '{}')",
+                        sortedFile.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+                return sortedFile;
+            } else {
+                String msg = String.format("Cannot read sorted file at [%s] configured via system property '%s'",
+                        sortedFile.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+                throw new IllegalArgumentException(msg);
+            }
+        } else {
+            File flatFileStoreDir = createStoreDir();
+            File storeFile = writeToStore(flatFileStoreDir, "store.json");
+            return sortStoreFile(storeFile);
+        }
     }
 
     private File sortStoreFile(File storeFile) throws IOException {
