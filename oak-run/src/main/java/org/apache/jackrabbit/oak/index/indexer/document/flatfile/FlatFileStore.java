@@ -38,11 +38,20 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     private final File storeFile;
     private final NodeStateEntryReader entryReader;
     private final int checkChildLimit;
+    private long entryCount = -1;
 
     public FlatFileStore(File storeFile, NodeStateEntryReader entryReader, int checkChildLimit) {
         this.storeFile = storeFile;
         this.entryReader = entryReader;
         this.checkChildLimit = checkChildLimit;
+    }
+
+    public long getEntryCount() {
+        return entryCount;
+    }
+
+    public void setEntryCount(long entryCount) {
+        this.entryCount = entryCount;
     }
 
     @Override

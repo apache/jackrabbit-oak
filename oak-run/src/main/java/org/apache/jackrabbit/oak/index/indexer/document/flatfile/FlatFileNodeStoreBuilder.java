@@ -46,6 +46,7 @@ public class FlatFileNodeStoreBuilder {
     private final File workDir;
     private Iterable<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
+    private long entryCount = 0;
 
     private boolean useZip = Boolean.getBoolean(OAK_INDEXER_USE_ZIP);
     private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
@@ -68,7 +69,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileStore build() throws IOException {
         //TODO Check not null blobStore
-        return new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore), size(preferredPathElements));
+        FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore), size(preferredPathElements));
+        if (entryCount > 0) {
+            store.setEntryCount(entryCount);
+        }
+        return store;
     }
 
     private File createdSortedStoreFile() throws IOException {
@@ -121,9 +126,10 @@ public class FlatFileNodeStoreBuilder {
         ) {
             for (NodeStateEntry e : nodeStates) {
                 entryWriter.write(e);
+                entryCount++;
             }
         }
-        log.info("Dumped nodestates in json format in {}", sw);
+        log.info("Dumped {} nodestates in json format in {}",entryCount, sw);
         return file;
     }
 
