@@ -86,8 +86,8 @@ public class RDBConnectionWrapper implements Connection {
         SQLException x = null;
         try {
             connection.commit();
-            if (this.datasource.getTemporaryUpdateException() != null && !isReadOnly) {
-                throw new SQLException(this.datasource.getTemporaryUpdateException());
+            if (this.datasource.getTemporaryCommitException() != null && !isReadOnly) {
+                throw new SQLException(this.datasource.getTemporaryCommitException());
             }
         } catch (SQLException ex) {
             x = ex;
