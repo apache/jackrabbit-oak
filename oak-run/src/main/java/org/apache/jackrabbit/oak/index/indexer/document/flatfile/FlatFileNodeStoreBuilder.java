@@ -68,7 +68,7 @@ public class FlatFileNodeStoreBuilder {
     }
 
     public FlatFileStore build() throws IOException {
-        //TODO Check not null blobStore
+        log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
         FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore), size(preferredPathElements));
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
