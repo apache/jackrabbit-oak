@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.segment.file;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,21 +68,22 @@ class SizeDeltaGcEstimation implements GCEstimation {
         long gain = currentSize - previousSize;
         boolean gcNeeded = gain > delta;
         String gcInfo = format(
-            "Segmentstore size has increased since the last %s garbage collection from %s (%s bytes) to %s (%s bytes), an increase of %s (%s bytes) or %s%%. ",
+            "Segmentstore size has increased since the last %s garbage collection from %s to %s, an increase of %s or %s%%. ",
             full ? "full" : "tail",
-            humanReadableByteCount(previousSize), previousSize,
-            humanReadableByteCount(currentSize), currentSize,
-            humanReadableByteCount(gain), gain, 100 * gain / previousSize
+            newPrintableBytes(previousSize),
+            newPrintableBytes(currentSize),
+            newPrintableBytes(gain),
+            100 * gain / previousSize
         );
         if (gcNeeded) {
             gcInfo = gcInfo + format(
-                "This is greater than sizeDeltaEstimation=%s (%s bytes), so running garbage collection",
-                humanReadableByteCount(delta), delta
+                "This is greater than sizeDeltaEstimation=%s, so running garbage collection",
+                newPrintableBytes(delta)
             );
         } else {
             gcInfo = gcInfo + format(
-                "This is less than sizeDeltaEstimation=%s (%s bytes), so skipping garbage collection",
-                humanReadableByteCount(delta), delta
+                "This is less than sizeDeltaEstimation=%s, so skipping garbage collection",
+                newPrintableBytes(delta)
             );
         }
         return new GCEstimationResult(gcNeeded, gcInfo);
