@@ -64,7 +64,7 @@ public class DocumentStoreIndexer implements Closeable{
     private final IndexHelper indexHelper;
     private final List<NodeStateIndexerProvider> indexerProviders;
     private final IndexerSupport indexerSupport;
-    private IndexingProgressReporter progressReporter =
+    private final IndexingProgressReporter progressReporter =
             new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
     private final Set<String> indexerPaths = new HashSet<>();
 
@@ -110,7 +110,10 @@ public class DocumentStoreIndexer implements Closeable{
                 .build();
         closer.register(flatFileStore);
 
-        reconfigureReporter(flatFileStore);
+        progressReporter.reset();
+        if (flatFileStore.getEntryCount() > 0){
+            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> flatFileStore.getEntryCount());
+        }
 
         progressReporter.reindexingTraversalStart("/");
 
@@ -132,36 +135,15 @@ public class DocumentStoreIndexer implements Closeable{
     }
 
     private void configureEstimators() {
-        configureTraversalRateEstimator(progressReporter);
-        long nodesCount = getEstimatedDocumentCount();
-        if (nodesCount > 0) {
-            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> nodesCount);
-            log.info("Estimated number of documents in Mongo are {}", nodesCount);
-        }
-    }
-
-    private void reconfigureReporter(FlatFileStore flatFileStore) {
-        progressReporter =
-                new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
-        configureTraversalRateEstimator(progressReporter);
-        long entryCount = flatFileStore.getEntryCount();
-        if (entryCount > 0) {
-            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> entryCount);
-            log.info("Estimated number of entries in flat file store are {}", entryCount);
-        } else {
-            log.info("Number of entries in flat file store are unknown");
-        }
-
-        for (String indexerPath : indexerPaths){
-            progressReporter.registerIndex(indexerPath, true, -1);
-        }
-    }
-
-    private void configureTraversalRateEstimator(IndexingProgressReporter progressReporter) {
         StatisticsProvider statsProvider = indexHelper.getStatisticsProvider();
         if (statsProvider instanceof MetricStatisticsProvider) {
             MetricRegistry registry = ((MetricStatisticsProvider) statsProvider).getRegistry();
             progressReporter.setTraversalRateEstimator(new MetricRateEstimator("async", registry));
+        }
+        long nodesCount = getEstimatedDocumentCount();
+        if (nodesCount > 0) {
+            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> nodesCount);
+            log.info("Estimated number of documents in Mongo are {}", nodesCount);
         }
     }
 
