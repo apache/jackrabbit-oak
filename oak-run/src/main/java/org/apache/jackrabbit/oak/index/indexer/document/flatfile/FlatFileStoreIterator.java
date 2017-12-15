@@ -26,22 +26,25 @@ import java.util.ListIterator;
 import com.google.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Iterators.concat;
 import static com.google.common.collect.Iterators.singletonIterator;
 
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry> {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterator<NodeStateEntry> baseItr;
     private final LinkedList<NodeStateEntry> buffer = new LinkedList<>();
     private NodeStateEntry current;
     private final int checkChildLimit;
+    private int maxBufferSize;
 
     public FlatFileStoreIterator(Iterator<NodeStateEntry> baseItr, int checkChildLimit) {
         this.baseItr = baseItr;
         this.checkChildLimit = checkChildLimit;
     }
 
-    //TODO Track max buffer size
     int getBufferSize(){
         return buffer.size();
     }
@@ -50,10 +53,16 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     protected NodeStateEntry computeNext() {
         //TODO Add some checks on expected ordering
         current = computeNextEntry();
-        return current == null ? endOfData() : current;
+        if (current == null) {
+            log.info("Max buffer size in complete traversal is [{}]", maxBufferSize);
+            return endOfData();
+        } else {
+            return current;
+        }
     }
 
     private NodeStateEntry computeNextEntry() {
+        maxBufferSize = Math.max(maxBufferSize, buffer.size());
         if (!buffer.isEmpty()) {
             return buffer.remove();
         }
@@ -81,7 +90,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
                 //If queue is empty try to append by getting entry from base
                 if (!qitr.hasNext() && baseItr.hasNext()) {
                     qitr.add(wrap(baseItr.next()));
-                    qitr.previous(); //Move back the itr again
+                    qitr.previous(); //Move back the itr
                 }
                 if (qitr.hasNext()) {
                     return qitr.next();
