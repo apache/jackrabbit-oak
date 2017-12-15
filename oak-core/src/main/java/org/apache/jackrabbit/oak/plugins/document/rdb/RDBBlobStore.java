@@ -265,7 +265,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
             catch (SQLException ex) {
                 LOG.error("trying to update metadata", ex);
-                throw new RuntimeException("trying to update metadata", ex);
+                throw new SQLException("trying to update metadata", ex);
             }
             finally {
                 prep.close();
@@ -305,13 +305,13 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         // insert failed although record isn't there
                         String message = "insert document failed for id " + id + " with length " + data.length + " (check max size of datastore_data.data)";
                         LOG.error(message, ex);
-                        throw new RuntimeException(message, ex);
+                        throw new SQLException(message, ex);
                     }
                     else if (!Arrays.equals(data, dbdata)) {
                         // record is there but contains different data
                         String message = "DATA table already contains blob for id " + id + ", but the actual data differs (lengths: " + data.length + ", " + dbdata.length + ")";
                         LOG.error(message, ex);
-                        throw new RuntimeException(message, ex);
+                        throw new SQLException(message, ex);
                     }
                     else {
                         // just recover

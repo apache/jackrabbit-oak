@@ -189,6 +189,9 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         long start = System.nanoTime();
         SQLException x = null;
         Integer result = null;
+        if (this.datasource.getTemporaryUpdateException() != null) {
+            throw new SQLException(this.datasource.getTemporaryUpdateException());
+        }
         try {
             result = statement.executeUpdate();
             return result;
