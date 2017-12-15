@@ -55,7 +55,7 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
     private final DataSource ds;
     private boolean batchResultPrecise = true;
     private boolean failAlterTableAddColumnStatements = false; 
-    private String temporaryUpdateException = null;
+    private String temporaryCommitException = null;
 
     // Logging
 
@@ -109,12 +109,12 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
         return this.failAlterTableAddColumnStatements;
     }
 
-    public void setTemporaryUpdateException(String exmsg) {
-        this.temporaryUpdateException = exmsg;
+    public void setTemporaryCommitException(String exmsg) {
+        this.temporaryCommitException = exmsg;
     }
 
-    public String getTemporaryUpdateException() {
-        return this.temporaryUpdateException;
+    public String getTemporaryCommitException() {
+        return this.temporaryCommitException;
     }
 
     // DataSource
