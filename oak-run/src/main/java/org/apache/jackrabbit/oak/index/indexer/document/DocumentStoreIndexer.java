@@ -63,7 +63,7 @@ public class DocumentStoreIndexer implements Closeable{
     private final IndexHelper indexHelper;
     private final List<NodeStateIndexerProvider> indexerProviders;
     private final IndexerSupport indexerSupport;
-    private final IndexingProgressReporter progressReporter =
+    private IndexingProgressReporter progressReporter =
             new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
 
     public DocumentStoreIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
@@ -108,6 +108,8 @@ public class DocumentStoreIndexer implements Closeable{
                 .build();
         closer.register(flatFileStore);
 
+        reconfigureReporter(flatFileStore);
+
         progressReporter.reindexingTraversalStart("/");
 
         for (NodeStateEntry entry : flatFileStore) {
@@ -128,18 +130,41 @@ public class DocumentStoreIndexer implements Closeable{
     }
 
     private void configureEstimators() {
+        configureTraversalRateEstimator(progressReporter);
+        long nodesCount = getEstimatedDocumentCount();
+        if (nodesCount > 0) {
+            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> nodesCount);
+            log.info("Estimated number of documents in Mongo are {}", nodesCount);
+        }
+    }
+
+    private void reconfigureReporter(FlatFileStore flatFileStore) {
+        progressReporter =
+                new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+        configureTraversalRateEstimator(progressReporter);
+        long entryCount = flatFileStore.getEntryCount();
+        if (entryCount > 0) {
+            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> entryCount);
+            log.info("Estimated number of entries in flat file store are {}", entryCount);
+        } else {
+            log.info("Number of entries in flat file store are unknown");
+        }
+    }
+
+    private void configureTraversalRateEstimator(IndexingProgressReporter progressReporter) {
         StatisticsProvider statsProvider = indexHelper.getStatisticsProvider();
         if (statsProvider instanceof MetricStatisticsProvider) {
             MetricRegistry registry = ((MetricStatisticsProvider) statsProvider).getRegistry();
             progressReporter.setTraversalRateEstimator(new MetricRateEstimator("async", registry));
         }
+    }
 
+    private long getEstimatedDocumentCount(){
         MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
         if (mongoConnection != null) {
-            long nodesCount = mongoConnection.getDB().getCollection("nodes").count();
-            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> nodesCount);
-            log.info("Estimated number of documents in Mongo are {}", nodesCount);
+            return mongoConnection.getDB().getCollection("nodes").count();
         }
+        return 0;
     }
 
     @Override
