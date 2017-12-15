@@ -23,12 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
@@ -39,7 +34,7 @@ public class PathElementComparatorTest {
 
     @Test
     public void sortPathsParentChild() {
-        List<String> sorted = sortPaths(asList("/a", "/a b", "/a/bw"));
+        List<String> sorted = TestUtils.sortPaths(asList("/a", "/a b", "/a/bw"));
         assertEquals(asList("/a", "/a/bw", "/a b"), sorted);
     }
 
@@ -57,7 +52,7 @@ public class PathElementComparatorTest {
     @Test
     public void preferredElements() {
         PathElementComparator c = new PathElementComparator(singleton("jcr:content"));
-        assertEquals(asList("/a", "/a/jcr:content", "/a/b"), sortPaths(asList("/a/jcr:content", "/a/b", "/a"), c));
+        assertEquals(asList("/a", "/a/jcr:content", "/a/b"), TestUtils.sortPaths(asList("/a/jcr:content", "/a/b", "/a"), c));
 
         assertSorted(asList("/a", "/a/jcr:content", "/a/b"),c);
         assertSorted(asList("/a", "/a/jcr:content", "/a/b", "/a/b/c", "/d", "/e/f", "/g"), c);
@@ -70,23 +65,8 @@ public class PathElementComparatorTest {
     private void assertSorted(List<String> sorted, Comparator<Iterable<String>> comparator) {
         List<String> copy = new ArrayList<>(sorted);
         Collections.shuffle(copy);
-        List<String> sortedNew = sortPaths(copy, comparator);
+        List<String> sortedNew = TestUtils.sortPaths(copy, comparator);
         assertEquals(sorted, sortedNew);
-    }
-
-    static List<String> sortPaths(List<String> paths){
-        return sortPaths(paths, new PathElementComparator());
-    }
-
-    static List<String> sortPaths(List<String> paths, Set<String> preferredElements) {
-        return sortPaths(paths, new PathElementComparator(preferredElements));
-    }
-
-    static List<String> sortPaths(List<String> paths, Comparator<Iterable<String>> comparator) {
-        List<Iterable<String>> copy = paths.stream().map(p -> ImmutableList.copyOf(PathUtils.elements(p)))
-                .sorted(comparator).collect(Collectors.toList());
-        Joiner j = Joiner.on('/');
-        return copy.stream().map(e -> "/" + j.join(e)).collect(Collectors.toList());
     }
 
 }
