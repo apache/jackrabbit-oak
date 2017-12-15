@@ -37,14 +37,20 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     private final Closer closer = Closer.create();
     private final File storeFile;
     private final NodeStateEntryReader entryReader;
+    private final int checkChildLimit;
 
-    public FlatFileStore(File storeFile, NodeStateEntryReader entryReader) {
+    public FlatFileStore(File storeFile, NodeStateEntryReader entryReader, int checkChildLimit) {
         this.storeFile = storeFile;
         this.entryReader = entryReader;
+        this.checkChildLimit = checkChildLimit;
     }
 
     @Override
     public Iterator<NodeStateEntry> iterator() {
+        return new FlatFileStoreIterator(createBaseIterator(), checkChildLimit);
+    }
+
+    private Iterator<NodeStateEntry> createBaseIterator() {
         LineIterator itr = new LineIterator(createReader());
         closer.register(itr::close);
         return new AbstractIterator<NodeStateEntry>() {

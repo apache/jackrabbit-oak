@@ -68,7 +68,7 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileStore build() throws IOException {
         //TODO Check not null blobStore
-        return new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore));
+        return new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore), size(preferredPathElements));
     }
 
     private File createdSortedStoreFile() throws IOException {
