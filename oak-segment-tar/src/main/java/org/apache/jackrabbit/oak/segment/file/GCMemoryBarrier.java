@@ -84,9 +84,11 @@ public class GCMemoryBarrier implements Closeable {
             long maxMemory = usage.getMax();
             long required = maxMemory * percentage / 100;
             gcListener
-                .info("setting up a listener to cancel compaction if available memory on pool '{}' drops below {}%.",
-                    pool.getName(), percentage,
-                    newPrintableBytes(required));
+                .info(
+            "setting up a listener to cancel compaction if available memory on pool '{}' drops below {} / {}%.",
+                    pool.getName(),
+                    newPrintableBytes(required),
+                    percentage);
 
             long warningThreshold = maxMemory - required;
             long current = pool.getCollectionUsageThreshold();
