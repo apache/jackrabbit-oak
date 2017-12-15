@@ -835,8 +835,8 @@ public class FileStore extends AbstractFileStore {
         }
 
         private SegmentNodeState forceCompact(
-                @Nullable final NodeState base,
-                @Nullable final NodeState onto,
+                @Nonnull final NodeState base,
+                @Nonnull final NodeState onto,
                 @Nonnull final CheckpointCompactor compactor)
         throws InterruptedException {
             RecordId compactedId = revisions.setHead(new Function<RecordId, RecordId>() {
