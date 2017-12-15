@@ -33,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -63,9 +62,6 @@ public class CheckpointCompactor {
     private final GCMonitor gcListener;
 
     @Nonnull
-    private final AtomicLong gcCount;
-
-    @Nonnull
     private final Map<NodeState, NodeState> cpCache = newHashMap();
 
     @Nonnull
@@ -90,14 +86,12 @@ public class CheckpointCompactor {
      */
     public CheckpointCompactor(
             @Nonnull GCMonitor gcListener,
-            @Nonnull AtomicLong gcCount,
             @Nonnull SegmentReader reader,
             @Nonnull SegmentWriter writer,
             @Nullable BlobStore blobStore,
             @Nonnull Supplier<Boolean> cancel,
             @Nonnull GCNodeWriteMonitor compactionMonitor) {
         this.gcListener = gcListener;
-        this.gcCount = gcCount;
         this.compactor = new Compactor(reader, writer, blobStore, cancel, compactionMonitor);
         this.nodeWriter = (node, stableId) -> {
             RecordId nodeId = writer.writeNode(node, stableId);
@@ -204,8 +198,8 @@ public class CheckpointCompactor {
             for (ChildNodeEntry checkpoint : checkpoints) {
                 String name = checkpoint.getName();
                 NodeState node = checkpoint.getNodeState();
-                gcListener.info("TarMK GC #{}: Found checkpoint {} created at {}.",
-                        gcCount, name, new Date(node.getLong("created")));
+                gcListener.info("found checkpoint {} created at {}.",
+                    name, new Date(node.getLong("created")));
                 roots.put("checkpoints/" + name + "/root", node.getChildNode("root"));
             }
             roots.put("root", superRoot.getChildNode("root"));
@@ -245,7 +239,7 @@ public class CheckpointCompactor {
             @Nonnull NodeState onto,
             @Nonnull String path)
     throws IOException {
-        gcListener.info("TarMK GC #{}: compacting {}.", gcCount, path);
+        gcListener.info("compacting {}.", path);
         NodeState compacted = cpCache.get(after);
         if (compacted == null) {
             compacted = compactor.compact(before, after, onto);
@@ -256,7 +250,7 @@ public class CheckpointCompactor {
                 return new Result(compacted, after, compacted);
             }
         } else {
-            gcListener.info("TarMK GC #{}: Found {} in cache.", gcCount, path);
+            gcListener.info("found {} in cache.", path);
             return new Result(compacted, before, onto);
         }
     }

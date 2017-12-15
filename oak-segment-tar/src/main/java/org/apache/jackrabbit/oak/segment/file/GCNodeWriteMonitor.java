@@ -65,16 +65,12 @@ public class GCNodeWriteMonitor {
 
     private boolean running = false;
 
-    private long gcCount;
-
     public GCNodeWriteMonitor(long gcProgressLog, @Nonnull GCMonitor gcMonitor) {
         this.gcProgressLog = gcProgressLog;
         this.gcMonitor = gcMonitor;
     }
 
     /**
-     * @param gcCount
-     *            current gc run
      * @param prevSize
      *            size from latest successful compaction
      * @param prevCompactedNodes
@@ -82,16 +78,15 @@ public class GCNodeWriteMonitor {
      * @param currentSize
      *            current repository size
      */
-    public synchronized void init(long gcCount, long prevSize, long prevCompactedNodes, long currentSize) {
-        this.gcCount = gcCount;
+    public synchronized void init(long prevSize, long prevCompactedNodes, long currentSize) {
         if (prevCompactedNodes > 0) {
             estimated = (long) (((double) currentSize / prevSize) * prevCompactedNodes);
             gcMonitor.info(
-                    "TarMK GC #{}: estimated number of nodes to compact is {}, based on {} nodes compacted to {} bytes "
-                            + "on disk in previous compaction and current size of {} bytes on disk.",
-                    this.gcCount, estimated, prevCompactedNodes, prevSize, currentSize);
+                "estimated number of nodes to compact is {}, based on {} nodes compacted to {} bytes "
+                    + "on disk in previous compaction and current size of {} bytes on disk.",
+                estimated, prevCompactedNodes, prevSize, currentSize);
         } else {
-            gcMonitor.info("TarMK GC #{}: unable to estimate number of nodes for compaction, missing gc history.", gcCount);
+            gcMonitor.info("unable to estimate number of nodes for compaction, missing gc history.");
         }
         nodes = 0;
         start = System.currentTimeMillis();
@@ -101,8 +96,8 @@ public class GCNodeWriteMonitor {
     public synchronized void onNode() {
         nodes++;
         if (gcProgressLog > 0 && nodes % gcProgressLog == 0) {
-            gcMonitor.info("TarMK GC #{}: compacted {} nodes, {} properties, {} binaries in {} ms. {}",
-                    gcCount, nodes, properties, binaries, System.currentTimeMillis() - start, getPercentageDone());
+            gcMonitor.info("compacted {} nodes, {} properties, {} binaries in {} ms. {}",
+                nodes, properties, binaries, System.currentTimeMillis() - start, getPercentageDone());
         }
     }
 
