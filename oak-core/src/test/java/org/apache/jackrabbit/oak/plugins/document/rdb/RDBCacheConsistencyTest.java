@@ -70,7 +70,7 @@ public class RDBCacheConsistencyTest extends CacheConsistencyTestBase {
     public void setTemporaryUpdateException(String msg) {
         DataSource ds = dsf.getRDBDataSource();
         if (ds instanceof RDBDataSourceWrapper) {
-            ((RDBDataSourceWrapper) ds).setTemporaryUpdateException(msg);
+            ((RDBDataSourceWrapper) ds).setTemporaryCommitException(msg);
         } else {
             fail();
         }
