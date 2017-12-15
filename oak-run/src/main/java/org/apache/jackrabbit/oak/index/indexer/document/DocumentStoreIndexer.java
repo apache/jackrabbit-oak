@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -65,6 +66,7 @@ public class DocumentStoreIndexer implements Closeable{
     private final IndexerSupport indexerSupport;
     private IndexingProgressReporter progressReporter =
             new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+    private final Set<String> indexerPaths = new HashSet<>();
 
     public DocumentStoreIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
         this.indexHelper = indexHelper;
@@ -149,6 +151,10 @@ public class DocumentStoreIndexer implements Closeable{
         } else {
             log.info("Number of entries in flat file store are unknown");
         }
+
+        for (String indexerPath : indexerPaths){
+            progressReporter.registerIndex(indexerPath, true, -1);
+        }
     }
 
     private void configureTraversalRateEstimator(IndexingProgressReporter progressReporter) {
@@ -198,6 +204,7 @@ public class DocumentStoreIndexer implements Closeable{
                     indexers.add(indexer);
                     closer.register(indexer);
                     progressReporter.registerIndex(indexPath, true, -1);
+                    indexerPaths.add(indexPath);
                 }
             }
         }
