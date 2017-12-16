@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.security.MessageDigest;
@@ -28,10 +29,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStoreFriend;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.junit.After;
 import org.junit.Assert;
@@ -42,6 +43,7 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
@@ -73,12 +75,14 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     private RDBBlobStore blobStore;
     private String blobStoreName;
+    private RDBDataSourceWrapper dsw;
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStoreTest.class);
 
     public RDBBlobStoreTest(RDBBlobStoreFixture bsf) {
         blobStore = bsf.createRDBBlobStore();
         blobStoreName = bsf.getName();
+        dsw = bsf.getDataSource();
     }
 
     @Before
@@ -239,6 +243,24 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         byte[] data3 = RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest);
         if (!Arrays.equals(data, data3)) {
             throw new Exception("data mismatch");
+        }
+    }
+
+    @Test
+    public void testExceptionHandling() throws Exception {
+        // see OAK-7068
+        try {
+            int test = 1024 * 1024;
+            byte[] data = new byte[test];
+            Random r = new Random(0);
+            r.nextBytes(data);
+            byte[] digest = getDigest(data);
+            dsw.setTemporaryUpdateException("testExceptionHandling");
+            RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
+            fail("expects IOException");
+        } catch (IOException expected) {
+        } finally {
+            dsw.setTemporaryUpdateException(null);
         }
     }
 
