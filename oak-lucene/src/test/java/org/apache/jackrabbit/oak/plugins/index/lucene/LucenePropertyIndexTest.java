@@ -2418,6 +2418,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         query = "SELECT [jcr:path],[rep:excerpt] from [nt:base] WHERE CONTAINS([text], 'foo')";
         assertQuery(query, SQL2, names);
 
+        // execute the query again to assert the excerpts value of the first row
+        Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        ResultRow firstRow = result.getRows().iterator().next();
+        assertNotEquals("There is an excerpt expected for term 'foo'", "", firstRow.getValue("rep:excerpt"));
     }
 
     @Test
