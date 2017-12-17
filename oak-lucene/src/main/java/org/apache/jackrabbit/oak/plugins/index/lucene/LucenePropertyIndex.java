@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -86,6 +87,7 @@ import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.LabelAndValue;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
@@ -447,19 +449,17 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                             Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
 
-                            FieldInfos mergedFieldInfos = null;
                             if (addExcerpt) {
                                 // setup highlighter
                                 QueryScorer scorer = new QueryScorer(query);
                                 scorer.setExpandMultiTermQuery(true);
                                 highlighter.setFragmentScorer(scorer);
-                                mergedFieldInfos = MultiFields.getMergedFieldInfos(searcher.getIndexReader());
                             }
 
                             for (ScoreDoc doc : docs.scoreDocs) {
                                 String excerpt = null;
                                 if (addExcerpt) {
-                                    excerpt = getExcerpt(query, analyzer, searcher, doc, mergedFieldInfos);
+                                    excerpt = getExcerpt(query, analyzer, searcher, doc);
                                 }
 
                                 String explanation = null;
@@ -663,16 +663,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return include;
     }
 
-    private String getExcerpt(Query query, Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc,
-                              FieldInfos fieldInfos) throws IOException {
+    private String getExcerpt(Query query, Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc) throws IOException {
         StringBuilder excerpt = new StringBuilder();
         int docID = doc.doc;
-        List<String> names = new LinkedList<String>();
+        Set<String> names = new HashSet<String>();
 
         for (IndexableField field : searcher.getIndexReader().document(docID).getFields()) {
             String name = field.name();
             // postings highlighter can be used on analyzed fields with docs, freqs, positions and offsets stored.
-            if ((name.startsWith(ANALYZED_FIELD_PREFIX) || name.equals(FULLTEXT)) && fieldInfos.hasProx() && fieldInfos.hasOffsets()) {
+            if ((name.startsWith(ANALYZED_FIELD_PREFIX) || name.equals(FULLTEXT)) &&
+                    field.fieldType().indexOptions() == FieldInfo.IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS) {
                 names.add(name);
             }
         }
