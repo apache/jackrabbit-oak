@@ -166,7 +166,7 @@ public class LuceneDocumentMaker {
 
 
         if (indexingRule.isFulltextEnabled()) {
-            document.add(FieldFactory.newFulltextField(name, false));
+            document.add(newFulltextField(name));
         }
 
         if (definition.evaluatePathRestrictions()){
