@@ -103,14 +103,6 @@ public final class FieldFactory {
         return new StringField(name, value, NO);
     }
 
-    public static Field newFulltextField(String value) {
-        return newFulltextField(value, false);
-    }
-
-    public static Field newFulltextField(String name, String value) {
-        return newFulltextField(name, value, false);
-    }
-
     public static Field newFulltextField(String value, boolean stored) {
         return new TextField(FULLTEXT, value, stored ? YES : NO);
     }

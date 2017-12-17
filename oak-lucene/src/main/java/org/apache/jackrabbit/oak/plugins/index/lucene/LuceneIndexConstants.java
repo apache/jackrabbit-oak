@@ -180,6 +180,12 @@ public interface LuceneIndexConstants {
     String EVALUATE_PATH_RESTRICTION = "evaluatePathRestrictions";
 
     /**
+     * Boolean property to make the fulltext field created by properties considered for nodeScopeIndex stored.
+     * Default is false.
+     */
+    String STORE_FULLTEXT = "storeFulltext";
+
+    /**
      * Experimental config to restrict which property type gets indexed at
      * property definition level. Mostly index rule level #INCLUDE_PROPERTY_TYPES
      * should be sufficient

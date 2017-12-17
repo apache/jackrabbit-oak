@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -159,6 +160,7 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        indexDefn.setProperty(LuceneIndexConstants.STORE_FULLTEXT, true, BOOLEAN);
         useV2(indexDefn);
         //Aggregates
         newNodeAggregator(indexDefn)
@@ -364,7 +366,6 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
         assertQuery(statement, "xpath", expected);
     }
 
-    @Ignore("OAK-6597")
     @Test
     public void excerpt() throws Exception {
         setTraversalEnabled(false);
@@ -391,8 +392,7 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
             assertFalse(rows.hasNext()); // assert that there is only a single hit
 
             PropertyValue excerptValue = firstHit.getValue("rep:excerpt");
-            assertNotNull(excerptValue);
-            assertFalse("Excerpt for '" + term + "' is not supposed to be empty.", "".equals(excerptValue.getValue(STRING)));
+            assertTrue("Excerpt for '" + term + "' is not supposed to be empty.", excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
         }
     }
 

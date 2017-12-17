@@ -59,7 +59,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newAncestorsField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newDepthField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
@@ -167,7 +166,7 @@ public class LuceneDocumentMaker {
 
 
         if (indexingRule.isFulltextEnabled()) {
-            document.add(newFulltextField(name));
+            document.add(FieldFactory.newFulltextField(name, false));
         }
 
         if (definition.evaluatePathRestrictions()){
@@ -420,6 +419,14 @@ public class LuceneDocumentMaker {
         }
 
         return textExtractor.newBinary(property, state, nodePath, path);
+    }
+
+    private Field newFulltextField(String value) {
+        return FieldFactory.newFulltextField(value, definition.isStoreFullText());
+    }
+
+    private Field newFulltextField(String name, String value) {
+        return FieldFactory.newFulltextField(name, value, definition.isStoreFullText());
     }
 
     private boolean augmentCustomFields(final String path, final List<Field> fields,

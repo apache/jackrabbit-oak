@@ -137,6 +137,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.ANALYZED_FIELD_PREFIX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.FULLTEXT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.NATIVE_SORT_ORDER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
@@ -671,7 +672,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         for (IndexableField field : searcher.getIndexReader().document(docID).getFields()) {
             String name = field.name();
             // postings highlighter can be used on analyzed fields with docs, freqs, positions and offsets stored.
-            if (name.startsWith(ANALYZED_FIELD_PREFIX) && fieldInfos.hasProx() && fieldInfos.hasOffsets()) {
+            if ((name.startsWith(ANALYZED_FIELD_PREFIX) || name.equals(FULLTEXT)) && fieldInfos.hasProx() && fieldInfos.hasOffsets()) {
                 names.add(name);
             }
         }
