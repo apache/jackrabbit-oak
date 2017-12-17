@@ -74,7 +74,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,7 +159,7 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
-        indexDefn.setProperty(LuceneIndexConstants.STORE_FULLTEXT, true, BOOLEAN);
+        indexDefn.setProperty(LuceneIndexConstants.ANALYZE_FULLTEXT, true, BOOLEAN);
         useV2(indexDefn);
         //Aggregates
         newNodeAggregator(indexDefn)
@@ -369,7 +368,7 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
     @Test
     public void excerpt() throws Exception {
         setTraversalEnabled(false);
-        final String statement = "select [rep:excerpt] from [test:Page] as page where contains(*, '%s*')";
+        final String statement = "select [rep:excerpt] from [test:Page] as page where contains(*, '%s')";
 
         Tree content = root.getTree("/").addChild("content");
         Tree pageContent = createPageStructure(content, "foo");
@@ -384,7 +383,7 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
 
         root.commit();
 
-        for (String term : new String[] {"tinc", "aliq"}) {
+        for (String term : new String[] {"tincidunt", "aliquet"}) {
             Result result = executeQuery(String.format(statement, term), "JCR-SQL2", NO_BINDINGS);
             Iterator<? extends ResultRow> rows = result.getRows().iterator();
             assertTrue(rows.hasNext());

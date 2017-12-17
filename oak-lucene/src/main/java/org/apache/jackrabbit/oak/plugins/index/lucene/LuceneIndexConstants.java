@@ -183,7 +183,7 @@ public interface LuceneIndexConstants {
      * Boolean property to make the fulltext field created by properties considered for nodeScopeIndex stored.
      * Default is false.
      */
-    String STORE_FULLTEXT = "storeFulltext";
+    String ANALYZE_FULLTEXT = "analyzeFulltext";
 
     /**
      * Experimental config to restrict which property type gets indexed at

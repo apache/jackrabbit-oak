@@ -271,7 +271,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean syncPropertyIndexes;
 
-    private final boolean storeFullText;
+    private final boolean analyzeFullText;
 
     //~--------------------------------------------------------< Builder >
 
@@ -362,7 +362,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
         this.fullTextEnabled = hasFulltextEnabledIndexRule(definedIndexRules);
         this.evaluatePathRestrictions = getOptionalValue(defn, EVALUATE_PATH_RESTRICTION, false);
-        this.storeFullText = this.fullTextEnabled && getOptionalValue(defn, STORE_FULLTEXT, false);
+        this.analyzeFullText = this.fullTextEnabled && getOptionalValue(defn, ANALYZE_FULLTEXT, false);
 
         String functionName = getOptionalValue(defn, LuceneIndexConstants.FUNC_NAME, null);
         if (fullTextEnabled && functionName == null){
@@ -620,8 +620,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return false;
     }
 
-    public boolean isStoreFullText() {
-        return this.storeFullText;
+    public boolean isAnalyzeFullText() {
+        return this.analyzeFullText;
     }
 
     @Override

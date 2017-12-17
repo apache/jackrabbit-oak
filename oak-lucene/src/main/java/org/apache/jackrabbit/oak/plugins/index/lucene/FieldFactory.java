@@ -103,12 +103,16 @@ public final class FieldFactory {
         return new StringField(name, value, NO);
     }
 
-    public static Field newFulltextField(String value, boolean stored) {
-        return new TextField(FULLTEXT, value, stored ? YES : NO);
+    public static Field newFulltextField(String value, boolean storedAndTokenized) {
+        return newFulltextField(null, value, storedAndTokenized);
     }
 
-    public static Field newFulltextField(String name, String value, boolean stored) {
-        return new TextField(FieldNames.createFulltextFieldName(name), value, stored ? YES : NO);
+    public static Field newFulltextField(String name, String value, boolean storedAndTokenized) {
+        String fieldName = FieldNames.createFulltextFieldName(name);
+        if (storedAndTokenized) {
+            return new OakTextField(fieldName, value, true);
+        }
+        return new TextField(fieldName, value, NO);
     }
 
     public static Field newAncestorsField(String path){

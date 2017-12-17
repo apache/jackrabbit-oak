@@ -422,11 +422,11 @@ public class LuceneDocumentMaker {
     }
 
     private Field newFulltextField(String value) {
-        return FieldFactory.newFulltextField(value, definition.isStoreFullText());
+        return FieldFactory.newFulltextField(value, definition.isAnalyzeFullText());
     }
 
     private Field newFulltextField(String name, String value) {
-        return FieldFactory.newFulltextField(name, value, definition.isStoreFullText());
+        return FieldFactory.newFulltextField(name, value, definition.isAnalyzeFullText());
     }
 
     private boolean augmentCustomFields(final String path, final List<Field> fields,
