@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
-import javax.sql.DataSource;
-
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
@@ -31,6 +29,8 @@ public abstract class RDBBlobStoreFixture {
     public static final String TABLEPREFIX = "bstest_";
 
     public abstract RDBBlobStore createRDBBlobStore();
+
+    public abstract RDBDataSourceWrapper getDataSource();
 
     public abstract String getName();
 
@@ -67,7 +67,7 @@ public abstract class RDBBlobStoreFixture {
     private static class MyFixture extends RDBBlobStoreFixture {
 
         private String name;
-        private DataSource dataSource;
+        private RDBDataSourceWrapper dataSource;
         private RDBBlobStore bs;
         private RDBOptions options = new RDBOptions().tablePrefix(TABLEPREFIX).dropTablesOnClose(true);
 
@@ -78,6 +78,10 @@ public abstract class RDBBlobStoreFixture {
             } catch (Exception ex) {
                 LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
             }
+        }
+
+        public RDBDataSourceWrapper getDataSource() {
+            return dataSource;
         }
 
         @Override
