@@ -143,6 +143,13 @@ public interface IndexStatsMBean {
     String getTemporaryCheckpoints();
 
     /**
+     * Returns the number of executions.
+     *
+     * @return the execution count
+     */
+    long getTotalExecutionCount();
+
+    /**
      * Returns the number of executions as a {@code org.apache.jackrabbit.api.stats.TimeSeries}.
      *
      * @return the execution count time series

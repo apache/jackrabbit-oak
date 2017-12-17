@@ -464,6 +464,37 @@ public class ActiveDeletedBlobCollectorTest {
         warnLogCustomizer.finished();
     }
 
+    // OAK-6950
+    @Test
+    public void pauseMarkingDeletedBlobs() {
+        BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+        assertFalse("Active deletion should be safe by default", bdc.isMarkingForActiveDeletionUnsafe());
+
+        adbc.flagActiveDeletionUnsafe(true);
+        bdc = adbc.getBlobDeletionCallback();
+        assertTrue("Active deletion should be unsafe", bdc.isMarkingForActiveDeletionUnsafe());
+
+        adbc.flagActiveDeletionUnsafe(false);
+        bdc = adbc.getBlobDeletionCallback();
+        assertFalse("Active deletion should be safe after unpausing", bdc.isMarkingForActiveDeletionUnsafe());
+    }
+
+    // OAK-6950
+    @Test
+    public void pauseMarkingDeletedBlobsNOOP() {
+        adbc = ActiveDeletedBlobCollectorFactory.NOOP;
+        BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+        assertFalse("Active deletion should be safe by default", bdc.isMarkingForActiveDeletionUnsafe());
+
+        adbc.flagActiveDeletionUnsafe(true);
+        bdc = adbc.getBlobDeletionCallback();
+        assertTrue("Active deletion should be unsafe", bdc.isMarkingForActiveDeletionUnsafe());
+
+        adbc.flagActiveDeletionUnsafe(false);
+        bdc = adbc.getBlobDeletionCallback();
+        assertFalse("Active deletion should be safe after unpausing", bdc.isMarkingForActiveDeletionUnsafe());
+    }
+
     private void verifyBlobsDeleted(String ... blobIds) throws IOException {
         List<String> chunkIds = new ArrayList<>();
         for (String blobId : blobIds) {

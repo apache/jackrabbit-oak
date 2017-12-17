@@ -70,9 +70,15 @@ public class ActiveDeletedBlobCollectorFactory {
         void purgeBlobsDeleted(long before, GarbageCollectableBlobStore blobStore);
 
         void cancelBlobCollection();
+
+        void flagActiveDeletionUnsafe(boolean toFlag);
+
+        boolean isActiveDeletionUnsafe();
     }
 
     public static ActiveDeletedBlobCollector NOOP = new ActiveDeletedBlobCollector() {
+        private volatile boolean activeDeletionUnsafe = false;
+
         @Override
         public BlobDeletionCallback getBlobDeletionCallback() {
             return BlobDeletionCallback.NOOP;
@@ -87,6 +93,16 @@ public class ActiveDeletedBlobCollectorFactory {
         public void cancelBlobCollection() {
 
         }
+
+        @Override
+        public void flagActiveDeletionUnsafe(boolean toFlag) {
+            activeDeletionUnsafe = toFlag;
+        }
+
+        @Override
+        public boolean isActiveDeletionUnsafe() {
+            return activeDeletionUnsafe;
+        }
     };
 
     public interface BlobDeletionCallback extends IndexCommitCallback {
@@ -99,6 +115,9 @@ public class ActiveDeletedBlobCollectorFactory {
          *            blobs.
          */
         void deleted(String blobId, Iterable<String> ids);
+
+        boolean isMarkingForActiveDeletionUnsafe();
+
         BlobDeletionCallback NOOP = new BlobDeletionCallback() {
             @Override
             public void deleted(String blobId, Iterable<String> ids) {
@@ -106,6 +125,11 @@ public class ActiveDeletedBlobCollectorFactory {
 
             @Override
             public void commitProgress(IndexProgress indexProgress) {
+            }
+
+            @Override
+            public boolean isMarkingForActiveDeletionUnsafe() {
+                return ActiveDeletedBlobCollectorFactory.NOOP.isActiveDeletionUnsafe();
             }
         };
     }
@@ -144,6 +168,8 @@ public class ActiveDeletedBlobCollectorFactory {
         private final ExecutorService executorService;
 
         private volatile boolean cancelled;
+        private volatile boolean activeDeletionUnsafe = false;
+
 
         private static final String BLOB_FILE_PATTERN_PREFIX = "blobs-";
         private static final String BLOB_FILE_PATTERN_SUFFIX = ".txt";
@@ -327,6 +353,16 @@ public class ActiveDeletedBlobCollectorFactory {
             cancelled = true;
         }
 
+        @Override
+        public void flagActiveDeletionUnsafe(boolean toFlag) {
+            activeDeletionUnsafe = toFlag;
+        }
+
+        @Override
+        public boolean isActiveDeletionUnsafe() {
+            return activeDeletionUnsafe;
+        }
+
         private long readLastCheckedBlobTimestamp() {
             File blobCollectorInfoFile = new File(rootDirectory, "collection-info.txt");
             if (!blobCollectorInfoFile.exists()) {
@@ -484,6 +520,11 @@ public class ActiveDeletedBlobCollectorFactory {
                 }
 
                 deletedBlobs.clear();
+            }
+
+            @Override
+            public boolean isMarkingForActiveDeletionUnsafe() {
+                return activeDeletionUnsafe;
             }
         }
 

@@ -1133,6 +1133,23 @@ public class AsyncIndexUpdateTest {
         assertEquals(0, lastExecutionStats(async.getIndexStats().getExecutionCount()));
     }
 
+    @Test
+    public void executionCountUpdatesOnRunWithoutAnyChangeInRepo() throws Exception {
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async",
+                new MemoryNodeStore(),
+                new PropertyIndexEditorProvider(),
+                statsProvider, false);
+
+        long execCnt1 = async.getIndexStats().getTotalExecutionCount();
+        runOneCycle(async);
+        long execCnt2 = async.getIndexStats().getTotalExecutionCount();
+        runOneCycle(async);
+        long execCnt3 = async.getIndexStats().getTotalExecutionCount();
+
+        assertNotEquals("execCnt1 " + execCnt1 + " and execCnt2 " + execCnt2 + " are same", execCnt1, execCnt2);
+        assertNotEquals("execCnt2 " + execCnt2 + " and execCnt3 " + execCnt3 + " are same", execCnt2, execCnt3);
+    }
+
 
     private static long lastExecutionStats(CompositeData cd){
         //Last stat is the last entry in the array
