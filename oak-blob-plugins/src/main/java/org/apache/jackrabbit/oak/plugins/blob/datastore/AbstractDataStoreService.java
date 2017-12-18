@@ -83,8 +83,14 @@ public abstract class AbstractDataStoreService {
     }
 
     protected void deactivate() throws DataStoreException {
-        closeQuietly(closer);
-        closer = null;
+        if (null != closer) {
+            synchronized (this) {
+                if (null != closer) {
+                    closeQuietly(closer);
+                    closer = null;
+                }
+            }
+        }
     }
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
