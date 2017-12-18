@@ -49,7 +49,7 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     @Override
     protected void preCreateRepository(Jcr jcr) {
-        File f = new File("target" + File.pathSeparator + "queryjcrtest-" + System.currentTimeMillis());
+        File f = new File("target" + File.separatorChar + "queryjcrtest-" + System.currentTimeMillis());
         final SolrClient solrServer;
         try {
             solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "oak")).getSolrServer();
