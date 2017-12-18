@@ -19,6 +19,25 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.io.BaseEncoding;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.core.data.FileDataRecord;
+import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.spi.blob.CompositeDataStoreAware;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -31,34 +50,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.filefilter.FileFilterUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.FileDataRecord;
-import org.apache.jackrabbit.core.data.FileDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
  *  Oak specific extension of JR2 FileDataStore which enables
  *  provisioning the signing key via OSGi config
  */
-public class OakFileDataStore extends FileDataStore implements SharedDataStore {
+public class OakFileDataStore extends FileDataStore implements SharedDataStore, CompositeDataStoreAware {
     public static final Logger LOG = LoggerFactory.getLogger(OakFileDataStore.class);
     private static final int DEFAULT_MIN_RECORD_LENGTH = 4096;
+
+    private boolean isDelegate = false;
 
     private byte[] referenceKey;
 
@@ -262,5 +264,15 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     @Override
     public Type getType() {
         return Type.SHARED;
+    }
+
+    @Override
+    public boolean isDelegate() {
+        return isDelegate;
+    }
+
+    @Override
+    public void setIsDelegate(boolean isDelegate) {
+        this.isDelegate = isDelegate;
     }
 }
