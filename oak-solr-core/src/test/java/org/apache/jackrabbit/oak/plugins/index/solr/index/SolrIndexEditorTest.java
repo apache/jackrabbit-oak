@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 
 import javax.annotation.Nonnull;
@@ -53,12 +54,7 @@ public class SolrIndexEditorTest {
         SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration, callback);
         NodeState before = mock(NodeState.class);
         NodeState after = mock(NodeState.class);
-        Iterable properties = new Iterable<PropertyState>() {
-            @Override
-            public Iterator<PropertyState> iterator() {
-                return Arrays.asList(PropertyStates.createProperty("foo1", "bar")).iterator();
-            }
-        };
+        Iterable properties = (Iterable<PropertyState>) () -> Collections.singletonList(PropertyStates.createProperty("foo1", "bar")).iterator();
         when(after.getProperties()).thenReturn(properties);
         solrIndexEditor.leave(before, after);
         QueryResponse queryResponse = solrServer.query(new SolrQuery("foo1:*"));
@@ -73,7 +69,7 @@ public class SolrIndexEditorTest {
             @Nonnull
             @Override
             public Collection<String> getIgnoredProperties() {
-                return Arrays.asList("foo2");
+                return Collections.singletonList("foo2");
             }
             @Nonnull
             @Override
@@ -88,7 +84,7 @@ public class SolrIndexEditorTest {
         Iterable properties = new Iterable<PropertyState>() {
             @Override
             public Iterator<PropertyState> iterator() {
-                return Arrays.asList(PropertyStates.createProperty("foo2", "bar")).iterator();
+                return Collections.singletonList(PropertyStates.createProperty("foo2", "bar")).iterator();
             }
         };
         when(after.getProperties()).thenReturn(properties);
