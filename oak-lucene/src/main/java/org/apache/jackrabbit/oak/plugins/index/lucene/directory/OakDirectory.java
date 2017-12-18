@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -161,7 +162,9 @@ public class OakDirectory extends Directory {
                         //Mark the blob as deleted. Also, post index path, type of directory
                         //(:suggest, :data, etc) and filename being deleted
                         String blobId = b.getContentIdentity();
-                        if (blobId != null) {
+
+                        // OAK-7066: Also, make sure that we have at least some non-inlined chunks to delete
+                        if (blobId != null && !InMemoryDataRecord.isInstance(blobId)) {
                             blobDeletionCallback.deleted(blobId,
                                     Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
                         }
