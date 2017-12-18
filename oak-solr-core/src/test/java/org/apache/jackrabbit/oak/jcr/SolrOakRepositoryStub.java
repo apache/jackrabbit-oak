@@ -38,6 +38,8 @@ import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 
+import static org.junit.Assert.assertNotNull;
+
 public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     public SolrOakRepositoryStub(Properties settings)
@@ -47,8 +49,7 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     @Override
     protected void preCreateRepository(Jcr jcr) {
-        String path = getClass().getResource("/").getFile() + "/queryjcrtest" ;
-        File f = new File(path);
+        File f = new File("target" + File.pathSeparator + "queryjcrtest-" + System.currentTimeMillis());
         final SolrClient solrServer;
         try {
             solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "oak")).getSolrServer();
@@ -78,6 +79,7 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
             }
         };
         try {
+            assertNotNull(solrServer);
             // safely remove any previous document on the index
             solrServer.deleteByQuery("*:*");
             solrServer.commit();
