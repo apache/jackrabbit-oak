@@ -30,7 +30,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
@@ -75,6 +77,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -119,6 +123,7 @@ import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -2388,6 +2393,43 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         String propabQuery = "select * from [nt:base] where CONTAINS([jcr:content/metadata/comment], 'december')";
         assertPlanAndQuery(propabQuery, "lucene:test1(/oak:index/test1)", asList("/test"));
+    }
+
+    @Test
+    public void facetsOfResultSetThatDoesntContainDim() throws Exception {
+        // OAK-7078
+        Tree luceneIndex = createFullTextIndex(root.getTree("/"), "lucene");
+        Tree ntBaseProperties = luceneIndex
+                .getChild(LuceneIndexConstants.INDEX_RULES)
+                .getChild("nt:base")
+                .getChild(LuceneIndexConstants.PROP_NODE);
+        ntBaseProperties.setOrderableChildren(true);
+
+        Tree simpleTags = ntBaseProperties.addChild("simpleTags");
+        simpleTags.setProperty("facets", true, BOOLEAN);
+        simpleTags.setProperty("name", "simple/tags", STRING);
+        simpleTags.setProperty("propertyIndex", true, BOOLEAN);
+        simpleTags.setProperty("stored", true, BOOLEAN);
+        simpleTags.orderBefore("allProps");
+
+        root.commit();
+
+        final List<String> names = new ArrayList<>(11);
+        Tree content = root.getTree("/").addChild("content");
+        // create a document with a simple/tags property
+        Tree foo = content.addChild("foo");
+        Tree fooSimple = foo.addChild("simple");
+        foo.setProperty("text", "lorem lorem");
+        fooSimple.setProperty(MultiStringPropertyState.stringProperty("tags", Arrays.asList("tag1", "tag2")));
+        // now create a document without simple/tags property
+        Tree bar = content.addChild("bar");
+        bar.setProperty("text", "lorem ipsum");
+        names.add(bar.getPath());
+
+        root.commit();
+
+        String query = "select [rep:facet(simple/tags)] from [nt:base] where contains([text], 'ipsum')";
+        assertQuery(query, names);
     }
 
     @Test
