@@ -166,42 +166,49 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         LOG.info("Attempt to retrieve record for identifier \"{}\"", identifier);
 
         DataRecord result = null;
-        Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator(identifier);
-        if (iter.hasNext()) {
-            while (iter.hasNext()) {
-                DataStore ds = iter.next();
-                result = ds.getRecordIfStored(identifier);
-                if (null != result) {
-                    LOG.info("Matching record found in delegate role \"{}\"", rolesForDelegates.getOrDefault(ds, "<not found>"));
-                    break;
+
+        DataStoreException aggregateException = null;
+        try {
+            Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator(identifier);
+            if (iter.hasNext()) {
+                while (iter.hasNext()) {
+                    DataStore ds = iter.next();
+                    result = ds.getRecordIfStored(identifier);
+                    if (null != result) {
+                        LOG.info("Matching record found in delegate role \"{}\"", rolesForDelegates.getOrDefault(ds, "<not found>"));
+                        break;
+                    }
+                }
+            } else {
+                LOG.info("No mapping for identifier \"{}\", trying all delegates", identifier);
+                // Try one more time, this time not limiting delegates by identifier.
+                // It may be the case that the identifier is not matched to a delegate yet.
+                iter = delegateHandler.getAllDelegatesIterator();
+                while (iter.hasNext()) {
+                    DataStore ds = iter.next();
+                    result = ds.getRecordIfStored(identifier);
+                    if (null != result) {
+                        delegateHandler.mapIdentifierToDelegate(identifier, ds);
+                        LOG.info("Matching record found in delegate role \"{}\"", rolesForDelegates.getOrDefault(ds, "<not found"));
+                        break;
+                    }
                 }
             }
         }
-        else {
-            LOG.info("No mapping for identifier \"{}\", trying all delegates", identifier);
-            // Try one more time, this time not limiting delegates by identifier.
-            // It may be the case that the identifier is not matched to a delegate yet.
-            iter = delegateHandler.getAllDelegatesIterator();
-            while (iter.hasNext()) {
-                DataStore ds = iter.next();
-                result = ds.getRecordIfStored(identifier);
-                if (null != result) {
-                    delegateHandler.mapIdentifierToDelegate(identifier, ds);
-                    LOG.info("Matching record found in delegate role \"{}\"", rolesForDelegates.getOrDefault(ds, "<not found"));
-                    break;
-                }
+        catch (DataStoreException e) {
+            if (null == aggregateException) {
+                aggregateException = new DataStoreException(e);
+            }
+            else {
+                aggregateException.addSuppressed(e);
             }
         }
         if (null == result) {
-            LOG.warn("No record found matching identifier \"{}\"", identifier);
-            // Temporary code, follow the lookup path again to trace it
-            iter = delegateHandler.getAllDelegatesIterator();
-            while (iter.hasNext()) {
-                DataStore ds = iter.next();
-                result = ds.getRecordIfStored(identifier);
-                if (null != result) {
-                    break;
-                }
+            if (null != aggregateException) {
+                LOG.error("Error retrieving record [{}]", identifier, aggregateException.getSuppressed()[0]);
+            }
+            else {
+                LOG.error("Error retrieving record [{}]", identifier);
             }
         }
         return result;
