@@ -191,6 +191,7 @@ public class IndexTracker {
     }
 
     void refresh() {
+        log.info("Marked tracker to refresh upon next cycle");
         refresh = true;
     }
 
