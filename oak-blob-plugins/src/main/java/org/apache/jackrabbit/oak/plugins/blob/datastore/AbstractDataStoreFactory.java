@@ -30,6 +30,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.blob.CompositeDataStoreAware;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -69,11 +70,13 @@ public abstract class AbstractDataStoreFactory {
 
             List<String> desc = Lists.newArrayList(getDescription());
             desc.add(String.format("%s=%s", ROLE, role));
-            String[] description = desc.toArray(new String[0]);
             OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
 
             final DataStore dataStore = createDataStore(context, config);
             if (null != dataStore) {
+                if (dataStore instanceof CompositeDataStoreAware) {
+                    ((CompositeDataStoreAware)dataStore).setIsDelegate(true);
+                }
                 Map<String, Object> props = Maps.newConcurrentMap();
                 props.putAll(config);
                 props.putIfAbsent(DataStoreProvider.ROLE, role);
