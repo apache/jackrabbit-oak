@@ -18,27 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -51,10 +35,25 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.oak.spi.blob.CompositeDataStoreAware;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.util.TransientFileFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
@@ -204,7 +203,13 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                 return new FileCacheDataRecord(this, backend, dataIdentifier, rec.getLength(),
                     rec.getLastModified());
             } catch (Exception e) {
-                LOG.error("Error retrieving record [{}]", dataIdentifier, e);
+                if (this instanceof CompositeDataStoreAware &&
+                        ((CompositeDataStoreAware)this).isDelegate()) {
+                    LOG.debug("Record [{}] not found in delegate", dataIdentifier);
+                }
+                else {
+                    LOG.error("Error retrieving record [{}]", dataIdentifier, e);
+                }
             }
         }
         return null;
