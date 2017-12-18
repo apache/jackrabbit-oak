@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Assume;
@@ -133,7 +134,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
         Whiteboard wb = new DefaultWhiteboard();
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
-        wb.register(MongoDocumentStore.class, ds, emptyMap());
+        Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
         wb.register(StatisticsProvider.class, StatisticsProvider.NOOP, emptyMap());
 
         configureIndex(store);
@@ -158,6 +159,16 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         assertNotNull(getNodeDocument(ds, "/test/book.jpg"));
 
         String checkpoint = store.checkpoint(100000);
+
+        //Shut down this store and restart in readOnly mode
+        store.dispose();
+        r1.unregister();
+
+        DocumentNodeStoreBuilder<?> docBuilderRO = builderProvider.newBuilder().setReadOnlyMode()
+                .setMongoDB(connectionFactory.getConnection().getDB());
+        ds = (MongoDocumentStore) docBuilderRO.getDocumentStore();
+        store = docBuilderRO.build();
+        wb.register(MongoDocumentStore.class, ds, emptyMap());
 
         IndexHelper helper = new IndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
                 temporaryFolder.newFolder(), asList(TEST_INDEX_PATH));
