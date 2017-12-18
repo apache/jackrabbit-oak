@@ -230,7 +230,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
+    private final boolean readOnly;
+
     public MongoDocumentStore(DB db, MongoDocumentNodeStoreBuilderBase<?> builder) {
+        this.readOnly = builder.getReadOnlyMode();
         MongoStatus mongoStatus = builder.getMongoStatus();
         if (mongoStatus == null) {
             mongoStatus = new MongoStatus(db);
@@ -329,6 +332,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 mongoStatus.getVersion(), maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
                 disableIndexHint, db.getWriteConcern(),
                 mongoStatus.getServerDetails());
+    }
+
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override
