@@ -164,8 +164,14 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
     }
 
     private void unregisterCompositeDataStore() {
-        closeQuietly(closer);
-        closer = null;
+        if (null != closer) {
+            synchronized (this) {
+                if (null != closer) {
+                    closeQuietly(closer);
+                    closer = null;
+                }
+            }
+        }
     }
 
     protected void addDelegateDataStore(final DataStoreProvider ds, final Map<String, Object> config) {
