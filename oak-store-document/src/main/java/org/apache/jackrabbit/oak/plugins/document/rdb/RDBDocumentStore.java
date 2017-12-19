@@ -174,6 +174,7 @@ import com.google.common.collect.Sets;
  * <td>smallint</td>
  * <td>Split Document type.</td>
  * </tr>
+ * <tr>
  * <th>SDMAXREVTIME</th>
  * <td>bigint</td>
  * <td>Split document max revision time..</td>
