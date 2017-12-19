@@ -120,6 +120,7 @@ Task
     rows for performant VGC
     [OAK-7035] - Retire oak-remote
     [OAK-7046] - DocumentStore API: clarify key length
+    [OAK-7077] - Documentation for RDBDocumentStore statistics
 
 Test
 
