@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
@@ -77,6 +78,7 @@ import java.io.InputStream;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -2418,6 +2420,40 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         query = "SELECT [jcr:path],[rep:excerpt] from [nt:base] WHERE CONTAINS([text], 'foo')";
         assertQuery(query, SQL2, names);
 
+        // execute the query again to assert the excerpts value of the first row
+        Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Iterator<? extends ResultRow> rowsIt = result.getRows().iterator();
+        while (rowsIt.hasNext()) {
+            ResultRow row = rowsIt.next();
+            PropertyValue excerptValue = row.getValue("rep:excerpt");
+            assertFalse("There is an excerpt expected for each result row for term 'foo'", excerptValue == null || "".equals(excerptValue.getValue(STRING)));
+        }
+    }
+
+    @Test
+    public void simpleRepExcerpt() throws Exception {
+        createFullTextIndex(root.getTree("/"), "lucene");
+
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        content.setProperty("foo", "Lorem ipsum, dolor sit", STRING);
+        content.setProperty("bar", "dolor sit, luctus leo, ipsum", STRING);
+
+        root.commit();
+
+        String query = "SELECT [jcr:path],[rep:excerpt] from [nt:base] WHERE CONTAINS(*, 'ipsum')";
+
+        Result result = executeQuery(query, SQL2, NO_BINDINGS);
+        Iterator<? extends ResultRow> resultRows = result.getRows().iterator();
+        assertTrue(resultRows.hasNext());
+        ResultRow firstRow = result.getRows().iterator().next();
+        PropertyValue excerptValue = firstRow.getValue("rep:excerpt");
+        assertTrue("There is an excerpt expected for rep:excerpt",excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
+        excerptValue = firstRow.getValue("rep:excerpt(.)");
+        assertTrue("There is an excerpt expected for rep:excerpt(.)",excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
+        excerptValue = firstRow.getValue("rep:excerpt(bar)");
+        assertTrue("There is an excerpt expected for rep:excerpt(bar) ",excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
     }
 
     @Test
