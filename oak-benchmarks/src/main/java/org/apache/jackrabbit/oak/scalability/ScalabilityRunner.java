@@ -113,7 +113,30 @@ public class ScalabilityRunner {
         OptionSpec<File> csvFile =
                 parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
                         .withOptionalArg().ofType(File.class);
-        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        OptionSpec<Integer> coldSyncInterval = parser.accepts("coldSyncInterval", "interval between sync cycles in sec (Segment-Tar-Cold only)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(5);
+        OptionSpec<Boolean> coldUseDataStore = parser
+                .accepts("useDataStore",
+                        "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.TRUE);
+        OptionSpec<Boolean> coldShareDataStore = parser
+                .accepts("shareDataStore",
+                        "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
+        OptionSpec<Boolean> coldOneShotRun = parser
+                .accepts("oneShotRun",
+                        "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.TRUE);
+        OptionSpec<Boolean> coldSecure = parser
+                .accepts("secure",
+                        "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
+        
+        OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSpec<String> nonOption = parser.nonOptions();
 
         OptionSet options = parser.parse(args);
@@ -145,6 +168,10 @@ public class ScalabilityRunner {
                     base.value(options), 256, cacheSize, mmap.value(options)),
                 OakRepositoryFixture.getSegmentTarWithDataStore(base.value(options), 256, cacheSize,
                     mmap.value(options), fdsCache.value(options)),
+                OakRepositoryFixture.getSegmentTarWithColdStandby(base.value(options), 256, cacheSize,
+                        mmap.value(options), coldUseDataStore.value(options), fdsCache.value(options), 
+                        coldSyncInterval.value(options), coldShareDataStore.value(options), coldSecure.value(options), 
+                        coldOneShotRun.value(options)),
                 OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                     rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
                     dropDBAfterTest.value(options), cacheSize * MB, -1),

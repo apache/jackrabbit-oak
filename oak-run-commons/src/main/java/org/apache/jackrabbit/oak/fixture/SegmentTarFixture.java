@@ -117,6 +117,8 @@ class SegmentTarFixture extends OakFixture {
     private final boolean withColdStandby;
     private final int syncInterval;
     private final boolean shareBlobStore;
+    private final boolean oneShotRun;
+    private final boolean secure;
     
     private final File parentPath;
 
@@ -128,27 +130,30 @@ class SegmentTarFixture extends OakFixture {
     private ScheduledExecutorService[] executors;
     
     public SegmentTarFixture(SegmentTarFixtureBuilder builder) {
-        this(builder, false, -1, false);
+        this(builder, false, -1);
     }
     
     public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval) {
-        this(builder, withColdStandby, syncInterval, false);
+        this(builder, withColdStandby, syncInterval, false, false, false);
     }
     
-    public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval, boolean shareBlobStore) {
+    public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval,
+            boolean shareBlobStore, boolean oneShotRun, boolean secure) {
         super(builder.name);
         this.base = builder.base;
         this.parentPath = new File(base, unique);
-        
+
         this.maxFileSize = builder.maxFileSize;
         this.segmentCacheSize = builder.segmentCacheSize;
         this.memoryMapping = builder.memoryMapping;
         this.useBlobStore = builder.useBlobStore;
         this.dsCacheSize = builder.dsCacheSize;
-        
+
         this.withColdStandby = withColdStandby;
         this.syncInterval = syncInterval;
         this.shareBlobStore = shareBlobStore;
+        this.oneShotRun = oneShotRun;
+        this.secure = secure;
     }
 
     @Override
@@ -250,14 +255,19 @@ class SegmentTarFixture extends OakFixture {
             port = socket.getLocalPort();
         }
         
-        serverSyncs[i] = new StandbyServerSync(port, stores[i], 1 * MB);
-        clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], false, DEFAULT_TIMEOUT, false, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
+        serverSyncs[i] = new StandbyServerSync(port, stores[i], 1 * MB, secure);
+        clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], secure, DEFAULT_TIMEOUT, false, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
         
         serverSyncs[i].start();
         clientSyncs[i].start();
         
-        executors[i] = Executors.newScheduledThreadPool(1);
-        executors[i].scheduleAtFixedRate(clientSyncs[i], 0, syncInterval, TimeUnit.SECONDS);
+        if (!oneShotRun) {
+            serverSyncs[i].start();
+            clientSyncs[i].start();
+
+            executors[i] = Executors.newScheduledThreadPool(1);
+            executors[i].scheduleAtFixedRate(clientSyncs[i], 0, syncInterval, TimeUnit.SECONDS);
+        }
     }
 
     /**
@@ -285,7 +295,10 @@ class SegmentTarFixture extends OakFixture {
             
             serverSyncs = new StandbyServerSync[n];
             clientSyncs = new StandbyClientSync[n];
-            executors = new ScheduledExecutorService[n];
+            
+            if (!oneShotRun) {
+                executors = new ScheduledExecutorService[n];
+            }
         } else {
             if (useBlobStore) {
                 blobStoresLength = n;
@@ -307,8 +320,10 @@ class SegmentTarFixture extends OakFixture {
                 serverSync.close();
             }
             
-            for (ExecutorService executor : executors) {
-                executor.shutdownNow();
+            if (!oneShotRun) {
+                for (ExecutorService executor : executors) {
+                    executor.shutdownNow();
+                }
             }
         }
         

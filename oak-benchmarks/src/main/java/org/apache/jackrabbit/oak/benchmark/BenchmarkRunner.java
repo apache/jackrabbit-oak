@@ -178,10 +178,20 @@ public class BenchmarkRunner {
                         "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
+        OptionSpec<Boolean> coldOneShotRun = parser
+                .accepts("oneShotRun",
+                        "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.TRUE);
+        OptionSpec<Boolean> coldSecure = parser
+                .accepts("secure",
+                        "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
         
         OptionSpec<?> verbose = parser.accepts("verbose", "Enable verbose output");
         OptionSpec<String> nonOption = parser.nonOptions();
-        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
 
         if(options.has(help)){
@@ -218,7 +228,8 @@ public class BenchmarkRunner {
                         mmap.value(options), fdsCache.value(options)),
                 OakRepositoryFixture.getSegmentTarWithColdStandby(base.value(options), 256, cacheSize,
                         mmap.value(options), coldUseDataStore.value(options), fdsCache.value(options), 
-                        coldSyncInterval.value(options), coldShareDataStore.value(options)),
+                        coldSyncInterval.value(options), coldShareDataStore.value(options), coldSecure.value(options), 
+                        coldOneShotRun.value(options)),
                 OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), 
                         dropDBAfterTest.value(options), cacheSize * MB, vgcMaxAge.value(options)),
