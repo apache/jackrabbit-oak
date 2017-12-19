@@ -805,6 +805,31 @@ public class RDBDocumentStore implements DocumentStore {
         return metadata;
     }
 
+    /**
+     * Statistics are generated for each table. The following fields are always
+     * added:
+     * <dl>
+     * <dt><em>tableName</em>.ns</dt>
+     * <dd>fully qualified name of the database table</dd>
+     * <dt><em>tableName</em>.schemaInfo</dt>
+     * <dd>DDL information for table, as obtained during startup</dd>
+     * <dt><em>tableName</em>.indexInfo</dt>
+     * <dd>DDL information for associated indexes, as obtained during
+     * startup</dd>
+     * <dt><em>tableName</em>.count</dt>
+     * <dd>exact number of rows</dd>
+     * </dl>
+     * In addition, some statistics information for
+     * {@link Collection#CLUSTER_NODES} is added:
+     * <dl>
+     * <dt>clusterNodes.updates</dt>
+     * <dd>Writes to the table, counted by cluster node ID</dd>
+     * </dl>
+     * Finally, additional database-specific statistics may be added; see
+     * descriptions in
+     * {@link RDBDocumentStoreDB#getAdditionalStatistics(RDBConnectionHandler, String, String)}
+     * for details.
+     **/
     @Nonnull
     @Override
     public Map<String, String> getStats() {
