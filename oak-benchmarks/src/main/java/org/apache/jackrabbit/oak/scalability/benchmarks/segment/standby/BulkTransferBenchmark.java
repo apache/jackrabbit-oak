@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.standby.benchmark;
+package org.apache.jackrabbit.oak.scalability.benchmarks.segment.standby;
 
 import java.lang.management.ManagementFactory;
 import java.util.Random;

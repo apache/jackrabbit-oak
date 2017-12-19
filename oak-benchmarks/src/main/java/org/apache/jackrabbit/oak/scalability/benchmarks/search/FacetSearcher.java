@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.scalability.benchmarks;
+package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
 
 /**

@@ -16,29 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.scalability.benchmarks;
+package org.apache.jackrabbit.oak.scalability.benchmarks.search;
+
+import java.util.List;
+import java.util.Random;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
-
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
- * Searches on the NodeType 
+ * Full text query search
  *
  */
-public class NodeTypeSearcher extends SearchScalabilityBenchmark {
-    
+public class FullTextSearcher extends SearchScalabilityBenchmark {
+    private final Random random = new Random(93);
+
     @SuppressWarnings("deprecation")
     @Override
     protected Query getQuery(@Nonnull final QueryManager qm, ExecutionContext context) throws RepositoryException {
-        return qm.createQuery(
-                "/jcr:root/" + ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)) + "//element(*, "
-                        + context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP) + ")",
-                Query.XPATH);
+        @SuppressWarnings("unchecked")
+        List<String> paths = (List<String>) context.getMap().get(ScalabilityBlobSearchSuite.CTX_SEARCH_PATHS_PROP);
+        
+        return qm.createQuery("//*[jcr:contains(., '" + paths.get(random.nextInt(paths.size()))  + "File"
+                + "*"
+                + "')] ", Query.XPATH);
     }
 }
 
