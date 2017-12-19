@@ -777,6 +777,67 @@ public enum RDBDocumentStoreDB {
         return result;
     }
 
+    /**
+     * Returns additional DB-specific statistics, augmenting the return value of
+     * {@link RDBDocumentStore#getStats()}.
+     * <p>
+     * Where applicable, the following fields are returned similar to the output
+     * for MongoDB:
+     * <dl>
+     * <dt>storageSize</dt>
+     * <dd>total size of table</dd>
+     * <dt>size</dt>
+     * <dd>size of table (excl. indexes)</dd>
+     * <dt>totalIndexSize</dt>
+     * <dd>total size of all indexes</dd>
+     * <dt>indexSizes.<em>indexName</em></dt>
+     * <dd>size of individual indexes</dd>
+     * </dl>
+     * <p>
+     * Additionally, a information obtained from the databases system
+     * tables/views can be included:
+     * <dl>
+     * <dt>_data</dt>
+     * <dd>table specific data</dd>
+     * <dt><em>indexName</em>._data</dt>
+     * <dd>index specific data</dd>
+     * </dl>
+     * <p>
+     * These fields will just contain DB-specific name/value pairs obtained from
+     * the database. The exact fields to fetch are preconfigured by can be tuned
+     * using system properties, such as:
+     * 
+     * <pre>
+     * -Dorg.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.DB2.TABLE_STATS="card npages mpages fpages overflow pctfree avgrowsize stats_time"
+     * -Dorg.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.DB2.INDEX_STATS="indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time"
+     * </pre>
+     * <p>
+     * (this currently applies to DB types: {@link #DB2}, {@link #ORACLE}, and
+     * {@link #MYSQL}).
+     * <p>
+     * See links below for the definition of the individual fields:
+     * <ul>
+     * <li>{@link #POSTGRES} - <a href=
+     * "https://www.postgresql.org/docs/9.6/static/functions-admin.html#FUNCTIONS-ADMIN-DBOBJECT">PostgreSQL
+     * 9.6.6 Documentation - 9.26.7. Database Object Management Functions</a>
+     * <li>{@link #DB2} - DB2 10.5 for Linux, UNIX, and Windows: <a href=
+     * "https://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0001063.html">SYSCAT.TABLES
+     * catalog view</a>, <a href=
+     * "https://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0001047.html">SYSCAT.INDEXES
+     * catalog view</a>
+     * <li>{@link #ORACLE} - Oracle Database Online Documentation 12c Release 1
+     * (12.1): <a href=
+     * "https://docs.oracle.com/database/121/REFRN/GUID-6823CD28-0681-468E-950B-966C6F71325D.htm#REFRN20286">3.118
+     * ALL_TABLES</a>, <a href=
+     * "https://docs.oracle.com/database/121/REFRN/GUID-E39825BA-70AC-45D8-AF30-C7FF561373B6.htm#REFRN20088">2.127
+     * ALL_INDEXES</a>
+     * <li>{@link #MYSQL} - MySQL 5.7 Reference Manual: <a href=
+     * "https://dev.mysql.com/doc/refman/5.7/en/show-table-status.html">13.7.5.36
+     * SHOW TABLE STATUS Syntax</a>, <a href=
+     * "https://dev.mysql.com/doc/refman/5.7/en/show-index.html">13.7.5.22 SHOW
+     * INDEX Syntax</a>
+     * </ul>
+     */
     public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
         return "";
     }
