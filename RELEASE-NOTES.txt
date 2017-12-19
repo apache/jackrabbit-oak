@@ -78,6 +78,7 @@ Bug
     DocumentStore
     [OAK-7054] - Build failure: ClassNotFoundException:
     solr.JsonUpdateRequestHandler
+    [OAK-7070] - rep:excerpt selector broken as regression of OAK-6750
 
 Improvement
 
@@ -103,6 +104,8 @@ Improvement
     due to inlined blobs
     [OAK-7072] - Add log message upon compacted call in GCMonitor in
     Lucene indexer
+    [OAK-7080] - Segment-Tar-Cold fixture should have options for
+    secure communication and one shot runs
 
 New Feature
 
