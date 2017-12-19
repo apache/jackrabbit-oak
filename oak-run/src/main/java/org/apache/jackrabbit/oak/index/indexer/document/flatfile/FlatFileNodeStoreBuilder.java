@@ -29,6 +29,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
@@ -129,7 +130,7 @@ public class FlatFileNodeStoreBuilder {
                 entryCount++;
             }
         }
-        log.info("Dumped {} nodestates in json format in {}",entryCount, sw);
+        log.info("Dumped {} nodestates in json format in {} ({})",entryCount, sw, IOUtils.humanReadableByteCount(file.length()));
         return file;
     }
 
