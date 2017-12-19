@@ -28,6 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
 import org.apache.jackrabbit.oak.benchmark.util.Date;
@@ -55,19 +63,11 @@ import org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderBySearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.search.SplitOrderByKeysetPageSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.search.SplitOrderByOffsetPageSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.search.SplitOrderBySearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.segment.standby.StandbyBulkTransferBenchmark;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityStandbySuite;
 
 /**
  * Main class for running scalability/longevity tests.
@@ -209,7 +209,9 @@ public class ScalabilityRunner {
                                         new ConcurrentReader(),
                                         new ConcurrentWriter()),
                         new ScalabilityNodeRelationshipSuite(withStorage.value(options))
-                                .addBenchmarks(new AggregateNodeSearcher())
+                                .addBenchmarks(new AggregateNodeSearcher()),
+                        new ScalabilityStandbySuite()
+                                .addBenchmarks(new StandbyBulkTransferBenchmark())
                 };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));

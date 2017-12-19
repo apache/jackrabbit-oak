@@ -182,7 +182,7 @@ public class BenchmarkRunner {
                 .accepts("oneShotRun",
                         "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.TRUE);
+                .defaultsTo(Boolean.FALSE);
         OptionSpec<Boolean> coldSecure = parser
                 .accepts("secure",
                         "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")

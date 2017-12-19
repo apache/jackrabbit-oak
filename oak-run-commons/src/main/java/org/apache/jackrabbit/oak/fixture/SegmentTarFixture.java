@@ -46,7 +46,7 @@ import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-class SegmentTarFixture extends OakFixture {
+public class SegmentTarFixture extends OakFixture {
     /**
      * Listener instance doing nothing on a {@code SegmentNotFoundException}
      */
@@ -258,9 +258,6 @@ class SegmentTarFixture extends OakFixture {
         serverSyncs[i] = new StandbyServerSync(port, stores[i], 1 * MB, secure);
         clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], secure, DEFAULT_TIMEOUT, false, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
         
-        serverSyncs[i].start();
-        clientSyncs[i].start();
-        
         if (!oneShotRun) {
             serverSyncs[i].start();
             clientSyncs[i].start();
@@ -348,4 +345,12 @@ class SegmentTarFixture extends OakFixture {
         return stores;
     }
 
+    public StandbyServerSync[] getServerSyncs() {
+        return serverSyncs;
+    }
+
+    public StandbyClientSync[] getClientSyncs() {
+        return clientSyncs;
+    }
+    
 }
