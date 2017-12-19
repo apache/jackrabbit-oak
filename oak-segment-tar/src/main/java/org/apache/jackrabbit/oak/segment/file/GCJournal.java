@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * Persists the repository size and the reclaimed size following a cleanup
  * operation in the {@link #GC_JOURNAL gc journal} file with the format:
  * 'repoSize, reclaimedSize, timestamp, gc generation, gc full generation (since Oak 1.8),
- * number of nodes compacted, root id'.
+ * number of nodes compacted, root id (since Oak 1.8)'.
  */
 public class GCJournal {
 
@@ -211,7 +211,7 @@ public class GCJournal {
 
         @CheckForNull
         private static String parseString(String[] items, int index) {
-            if (items.length < index - 1) {
+            if (index >= items.length) {
                 return null;
             }
             return items[index];
