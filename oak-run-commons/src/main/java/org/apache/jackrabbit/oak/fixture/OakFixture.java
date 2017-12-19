@@ -323,7 +323,7 @@ public abstract class OakFixture {
 
         return new SegmentTarFixture(builder, withColdStandby, syncInterval, shareBlobStore, secure, oneShotRun);
     }
-    
+
     public static OakFixture getVanillaSegmentTar(final File base, final int maxFileSizeMB,
             final int cacheSizeMB, final boolean memoryMapping) {
 
