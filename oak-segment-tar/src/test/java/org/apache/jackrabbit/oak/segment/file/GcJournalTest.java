@@ -37,7 +37,6 @@ import java.util.List;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -106,7 +105,6 @@ public class GcJournalTest {
         assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
     }
 
-    @Ignore("OAK-7082")  // FIXME OAK-7082
     @Test
     public void testReadOak16GCLog() throws IOException {
         createOak16GCLog();
@@ -120,7 +118,6 @@ public class GcJournalTest {
         assertEquals(RecordId.NULL.toString10(), entry.getRoot());
     }
 
-    @Ignore("OAK-7082")  // FIXME OAK-7082
     @Test
     public void testUpdateOak16GCLog() throws IOException {
         createOak16GCLog();
