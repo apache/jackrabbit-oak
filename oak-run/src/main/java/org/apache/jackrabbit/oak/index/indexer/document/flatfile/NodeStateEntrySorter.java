@@ -91,7 +91,7 @@ public class NodeStateEntrySorter {
                 memory,
                 charset, //charset
                 workDir,  //temp directory where intermediate files are created
-                false,
+                true,
                 0,
                 useZip,
                 func2,
@@ -112,7 +112,7 @@ public class NodeStateEntrySorter {
                 sortedFile,
                 comparator,
                 charset,
-                false,
+                true,
                 false,
                 useZip,
                 func2,
