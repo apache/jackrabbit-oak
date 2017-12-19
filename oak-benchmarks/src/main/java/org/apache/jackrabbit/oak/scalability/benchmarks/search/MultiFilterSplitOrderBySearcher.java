@@ -16,26 +16,23 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package org.apache.jackrabbit.oak.scalability.benchmarks;
+
+package org.apache.jackrabbit.oak.scalability.benchmarks.search;
+
+import javax.annotation.Nonnull;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.query.*;
 
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
-import javax.annotation.Nonnull;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.RowIterator;
-
 /**
- * Splits the search in {@link org.apache.jackrabbit.oak.scalability.benchmarks.OrderBySearcher} to multiple
- * queries and unions the results.
- *
+ * Splits the query in {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderBySearcher}
+ * into multiple queries and unions the results.
  */
-public class SplitOrderBySearcher extends OrderBySearcher {
+public class MultiFilterSplitOrderBySearcher extends MultiFilterOrderBySearcher {
     @Override
     protected void search(QueryManager qm, ExecutionContext context)
         throws RepositoryException {
@@ -51,8 +48,8 @@ public class SplitOrderBySearcher extends OrderBySearcher {
         }
     }
 
-    protected void searchCommon(QueryManager qm, ExecutionContext context)
-        throws RepositoryException {
+    protected void searchCommon(QueryManager qm, ExecutionContext
+        context) throws RepositoryException {
         /** Execute standard query */
         Query stdQuery = getStandardQuery(qm, context);
         stdQuery.setLimit(LIMIT);
@@ -66,18 +63,19 @@ public class SplitOrderBySearcher extends OrderBySearcher {
         }
     }
 
-    protected Query getStandardQuery(@Nonnull final QueryManager qm,
-        ExecutionContext context)
+    protected Query getStandardQuery(@Nonnull final QueryManager qm, ExecutionContext context)
         throws RepositoryException {
-        // /jcr:root/LongevitySearchAssets/12345//element(*, ParentType)[(@viewed = 'true')]
+        // /jcr:root/LongevitySearchAssets/12345//element(*, ParentType)[(@viewed = 'true')] order
+        // by @viewed descending
         StringBuilder statement = new StringBuilder("/jcr:root/");
 
         statement.append(
             ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
             .append("//element(*, ")
             .append(context.getMap().get(ScalabilityNodeSuite.CTX_ACT_NODE_TYPE_PROP)).append(")");
-        statement.append("[(").append("@").append(ScalabilityNodeSuite.SORT_PROP).append("= 'true'")
-            .append(")]");
+        statement.append("[(").append("@").append(ScalabilityNodeSuite.SORT_PROP)
+            .append("= 'true'");
+        statement.append(")]");
 
         LOG.debug("{}", statement);
 
@@ -89,4 +87,3 @@ public class SplitOrderBySearcher extends OrderBySearcher {
         return " order by" + " @" + ScalabilityNodeSuite.DATE_PROP + " descending";
     }
 }
-

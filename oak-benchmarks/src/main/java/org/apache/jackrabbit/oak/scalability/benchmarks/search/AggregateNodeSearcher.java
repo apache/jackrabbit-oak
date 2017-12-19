@@ -17,7 +17,7 @@
  *  under the License.
  */
 
-package org.apache.jackrabbit.oak.scalability.benchmarks;
+package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import com.google.common.collect.Lists;
 

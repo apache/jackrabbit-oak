@@ -16,7 +16,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package org.apache.jackrabbit.oak.scalability.benchmarks;
+package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import java.util.Calendar;
 
@@ -31,32 +31,28 @@ import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
- * Searches on node with a filter property and orders the results by 2 properties 
- *
+ * Searches on path and orders the results by 2 properties
  */
-public class MultiFilterOrderBySearcher extends PaginationEnabledSearcher {
-    @SuppressWarnings("deprecation")
-    @Override
+public class OrderBySearcher extends PaginationEnabledSearcher {
+    @SuppressWarnings("deprecation") @Override
     protected Query getQuery(@Nonnull QueryManager qm, ExecutionContext context)
         throws RepositoryException {
-        // /jcr:root/LongevitySearchAssets/12345//element(*, ParentType)[(@filter = 'true' or not
-        // (@filter)] order by @viewed descending, @added descending
+        // /jcr:root/LongevitySearchAssets/12345//element(*, ParentType) order by @viewed
+        // descending, @added descending
         StringBuilder statement = new StringBuilder("/jcr:root/");
 
         statement.append(
             ((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP)))
             .append("//element(*, ")
             .append(context.getMap().get(ScalabilityNodeSuite.CTX_ACT_NODE_TYPE_PROP)).append(")");
-        statement.append("[((").append("@").append(ScalabilityNodeSuite.FILTER_PROP)
-            .append(" = 'true'").append(" or").append(" not(@")
-            .append(ScalabilityNodeSuite.FILTER_PROP).append("))");
         if (context.getMap().containsKey(KEYSET_VAL_PROP)) {
-            statement.append(" and @").append(ScalabilityNodeSuite.CTX_PAGINATION_KEY_PROP)
+            statement.append("[(").append("@").append(ScalabilityNodeSuite.CTX_PAGINATION_KEY_PROP)
                 .append(" < xs:dateTime('").append(
                 Date.convertToISO_8601_2000((Calendar) context.getMap().get(KEYSET_VAL_PROP)))
-                .append("')");
+                .append("'))]");
         }
-        statement.append(")]").append(getOrderByClause());
+
+        statement.append(getOrderByClause());
 
         LOG.debug("{}", statement);
 
