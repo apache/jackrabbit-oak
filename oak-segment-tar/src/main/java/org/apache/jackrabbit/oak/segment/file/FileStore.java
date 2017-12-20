@@ -726,7 +726,8 @@ public class FileStore extends AbstractFileStore {
                 @Nonnull GCGeneration newGeneration) {
             try {
                 PrintableStopwatch watch = PrintableStopwatch.createStarted();
-                gcListener.info("compaction started, gc options={}", gcOptions);
+                gcListener.info("compaction started, gc options={}, current generation={}, new generation={}",
+                                gcOptions, getHead().getRecordId().getSegment().getGcGeneration(), newGeneration);
                 gcListener.updateStatus(COMPACTION.message());
 
                 GCJournalEntry gcEntry = gcJournal.read();
