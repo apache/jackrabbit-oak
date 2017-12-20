@@ -31,13 +31,10 @@ import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 
 import ch.qos.logback.classic.Level;
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -63,6 +60,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.union;
@@ -208,7 +206,7 @@ public class DataStoreTrackerGCTest {
     @Test
     public void consistencyCheckNoActiveDeletion() throws Exception {
         File tmpFolder = folder.newFolder();
-        System.setProperty(StandardSystemProperty.JAVA_IO_TMPDIR.key(), tmpFolder.getAbsolutePath());
+        String previousTmp = System.setProperty(JAVA_IO_TMPDIR.key(), tmpFolder.getAbsolutePath());
 
         try {
             Cluster cluster = new Cluster("cluster1");
@@ -220,7 +218,11 @@ public class DataStoreTrackerGCTest {
             assertEquals(0, cluster.gc.checkConsistency());
             assertTrue(FileUtils.listFiles(tmpFolder, null, true).size() == 0);
         } finally {
-            System.clearProperty(StandardSystemProperty.JAVA_IO_TMPDIR.key());
+            if (previousTmp != null) {
+                System.setProperty(JAVA_IO_TMPDIR.key(), previousTmp);
+            } else {
+                System.clearProperty(JAVA_IO_TMPDIR.key());
+            }
         }
     }
 
