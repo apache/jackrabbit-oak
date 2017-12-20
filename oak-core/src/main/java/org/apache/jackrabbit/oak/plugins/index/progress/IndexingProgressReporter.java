@@ -172,6 +172,10 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
         this.nodeCountEstimator = nodeCountEstimator;
     }
 
+    public void setEstimatedCount(long estimatedCount) {
+        this.estimatedCount = estimatedCount;
+    }
+
     public void reset(){
         watch = Stopwatch.createStarted();
         traversalCount = 0;

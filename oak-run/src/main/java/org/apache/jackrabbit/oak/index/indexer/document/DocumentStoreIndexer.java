@@ -144,6 +144,7 @@ public class DocumentStoreIndexer implements Closeable{
         long nodesCount = getEstimatedDocumentCount();
         if (nodesCount > 0) {
             progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> nodesCount);
+            progressReporter.setEstimatedCount(nodesCount);
             log.info("Estimated number of documents in Mongo are {}", nodesCount);
         }
     }
