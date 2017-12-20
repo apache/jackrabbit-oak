@@ -145,7 +145,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     @Override public void remove(File recs, Options options) throws IOException {
         if (options == Options.ACTIVE_DELETION) {
-            get();
+            globalMerge();
             deleteTracker.track(recs);
         }
         store.removeRecords(recs);
