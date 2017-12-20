@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.7.13
+Release Notes -- Apache Jackrabbit Oak -- Version 1.7.14
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.7.13 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.7.14 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.6.x
 release.
@@ -15,7 +15,7 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.7.13
+Changes in Oak 1.7.14
 ---------------------
 
 Sub-task
@@ -58,6 +58,7 @@ Technical task
 
 Bug
 
+    [OAK-5877] - Oak upgrade usage note refers to oak-run
     [OAK-5896] - fix typo in Not condition handling
     [OAK-6884] - TarMK disk space check is not synchronized with
     FileStore opened state
@@ -79,12 +80,20 @@ Bug
     [OAK-7054] - Build failure: ClassNotFoundException:
     solr.JsonUpdateRequestHandler
     [OAK-7070] - rep:excerpt selector broken as regression of OAK-6750
+    [OAK-7093] - ActiveDelete synchronization with BlobTracker leaves
+    temp files
+    [OAK-7095] - NodeStoreFixtureProvider should use BlobStore from
+    DocumentNodeStore if no DataStore configured
+    [OAK-7097] - DocumentStoreIndexer should clear the index state
+    prior to indexing
 
 Improvement
 
     [OAK-4318] - Upgrade oak-solr to Solr 5.x
     [OAK-6353] - Use Document order traversal for reindexing performed
     on DocumentNodeStore setups
+    [OAK-6710] - CommitMitigated merge policy should not reduce
+    performance significantly
     [OAK-6806] - RDBDocumentStore: version GC does not scale when
     there are many docs with long paths
     [OAK-6867] - Enable index hints on UUID lookup query
@@ -106,6 +115,10 @@ Improvement
     Lucene indexer
     [OAK-7080] - Segment-Tar-Cold fixture should have options for
     secure communication and one shot runs
+    [OAK-7094] - Log cli arguments and vm arguments passed to indexer
+    command
+    [OAK-7099] - DocumentStoreIndexer should log estimate of ETA for
+    dumping phase
 
 New Feature
 
@@ -121,6 +134,7 @@ Task
     [OAK-7035] - Retire oak-remote
     [OAK-7046] - DocumentStore API: clarify key length
     [OAK-7077] - Documentation for RDBDocumentStore statistics
+    [OAK-7100] - update htmlunit test dependency
 
 Test
 
