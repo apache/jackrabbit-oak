@@ -30,6 +30,7 @@ import com.codahale.metrics.Counting;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -63,7 +64,11 @@ public class NodeStoreFixtureProvider {
 
         NodeStore store;
         if (commonOpts.isMongo() || commonOpts.isRDB()) {
-            store = DocumentFixtureProvider.configureDocumentMk(options, blobStore, wb, closer, readOnly);
+            DocumentNodeStore dns = DocumentFixtureProvider.configureDocumentMk(options, blobStore, wb, closer, readOnly);
+            store = dns;
+            if (blobStore == null) {
+                blobStore = dns.getBlobStore();
+            }
         } else if (commonOpts.isOldSegment()) {
             store = SegmentFixtureProvider.create(options, blobStore, wb, closer, readOnly);
         } else {
