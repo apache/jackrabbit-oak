@@ -303,7 +303,14 @@ When using `or` in combination with the same property, as in `a=1 or a=2`, then 
 ### Full-Text Queries
 
 The full-text syntax supported by Jackrabbit Oak is a superset of the JCR specification.
-The following syntax is supported within `contains` queries:
+
+By default (that is, using a Lucene index with `compatVersion` 2), Jackrabbit Oak uses the 
+[Apache Lucene grammar for fulltext search](https://lucene.apache.org/core/4_7_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html).
+[See also how to escape queries.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping)
+
+For older Lucene indexes (`compatVersion` 1), 
+the following syntax is supported within `contains` queries.
+This is a subset of the Apache Lucene syntax:
 
     FullTextSearch ::= Or
     Or ::= And { ' OR ' And }* 
