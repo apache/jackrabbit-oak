@@ -40,6 +40,7 @@ import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
 public class NodeStateEntrySorter {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -169,10 +170,6 @@ public class NodeStateEntrySorter {
         String extension = FilenameUtils.getExtension(file.getName());
         String baseName = FilenameUtils.getBaseName(file.getName());
         return new File(file.getParentFile(), baseName + "-sorted." + extension);
-    }
-
-    private static long sizeOf(List<File> sortedFiles) {
-        return sortedFiles.stream().mapToLong(File::length).sum();
     }
 
     /**

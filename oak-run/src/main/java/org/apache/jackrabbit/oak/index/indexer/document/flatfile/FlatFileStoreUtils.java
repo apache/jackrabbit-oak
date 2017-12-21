@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.List;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -62,5 +63,9 @@ class FlatFileStoreUtils {
             };
         }
         return new BufferedWriter(new OutputStreamWriter(out, UTF_8));
+    }
+
+    public static long sizeOf(List<File> sortedFiles) {
+        return sortedFiles.stream().mapToLong(File::length).sum();
     }
 }
