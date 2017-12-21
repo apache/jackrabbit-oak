@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.Writer;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -34,10 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 
-public class NodeStateEntryWriter implements Closeable{
+public class NodeStateEntryWriter {
     private static final String OAK_CHILD_ORDER = ":childOrder";
     private static final String DELIMITER = "|";
-    private final Writer writer;
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
 
@@ -45,22 +40,17 @@ public class NodeStateEntryWriter implements Closeable{
     //1. Compression
     //2. Dictionary for properties
 
-    public NodeStateEntryWriter(BlobStore blobStore, Writer writer) {
-        this.writer = writer;
+    public NodeStateEntryWriter(BlobStore blobStore) {
         this.serializer = new JsonSerializer(jw, new BlobIdSerializer(blobStore));
     }
 
-    public void write(NodeStateEntry e) throws IOException {
+    public String toString(NodeStateEntry e) {
         String text = asText(e.getNodeState());
-        writer.append(e.getPath())
+        StringBuilder sb = new StringBuilder(text.length() + e.getPath().length() + 1);
+        sb.append(e.getPath())
                 .append(DELIMITER)
-                .append(text)
-                .append(LINE_SEPARATOR.value());
-    }
-
-    @Override
-    public void close() throws IOException {
-        writer.flush();
+                .append(text);
+        return sb.toString();
     }
 
     private String asText(NodeState nodeState) {
