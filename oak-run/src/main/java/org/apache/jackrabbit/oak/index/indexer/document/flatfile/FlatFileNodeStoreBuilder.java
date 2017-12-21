@@ -34,7 +34,7 @@ import static com.google.common.collect.Iterables.size;
 
 public class FlatFileNodeStoreBuilder {
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
-    private static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverWithSortStrategy";
+    private static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
     private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
     static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
@@ -48,8 +48,7 @@ public class FlatFileNodeStoreBuilder {
     private long entryCount = 0;
 
     private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    //TODO Switch the default
-    private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false"));
+    private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
 
     public FlatFileNodeStoreBuilder(Iterable<NodeStateEntry> nodeStates, File workDir) {
         this.nodeStates = nodeStates;
