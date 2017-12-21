@@ -72,11 +72,17 @@ public class RDBCacheConsistency2Test extends AbstractRDBConnectionTest {
     @Test
     public void cacheUpdate() throws Exception {
         Revision r = newRevision();
+        List<UpdateOp> ops = Lists.newArrayList();
+        List<String> ids = Lists.newArrayList();
         for (int i = 0; i < NUM_NODES; i++) {
             String id = Utils.getIdFromPath("/node-" + i);
+            ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
             NodeDocument.setLastRev(op, r);
+            ops.add(op);
         }
+        ds.remove(NODES, ids);
+        ds.create(NODES, ops);
 
         for (int i = 0; i < 1000; i++) {
             Thread q = new Thread(new Runnable() {
