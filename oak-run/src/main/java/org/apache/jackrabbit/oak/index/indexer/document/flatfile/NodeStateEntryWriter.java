@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 
 public class NodeStateEntryWriter {
     private static final String OAK_CHILD_ORDER = ":childOrder";
