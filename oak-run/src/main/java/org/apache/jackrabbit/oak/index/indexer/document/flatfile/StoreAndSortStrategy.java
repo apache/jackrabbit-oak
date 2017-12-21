@@ -25,12 +25,12 @@ import java.io.IOException;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 class StoreAndSortStrategy {
     private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
@@ -45,6 +45,7 @@ class StoreAndSortStrategy {
     private long entryCount;
     private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
     private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, 3);
+    private long textSize;
 
 
     public StoreAndSortStrategy(Iterable<NodeStateEntry> nodeStates, PathElementComparator comparator,
@@ -57,7 +58,7 @@ class StoreAndSortStrategy {
     }
 
     public File createSortedStoreFile() throws IOException {
-        File storeFile = writeToStore(storeDir, "store.json");
+        File storeFile = writeToStore(storeDir, getStoreFileName());
         return sortStoreFile(storeFile);
     }
 
@@ -76,6 +77,7 @@ class StoreAndSortStrategy {
         sorter.setUseZip(compressionEnabled);
         sorter.setMaxMemoryInGB(maxMemory);
         sorter.setDeleteOriginal(deleteOriginal);
+        sorter.setActualFileSize(textSize);
         sorter.sort();
         return sorter.getSortedFile();
     }
@@ -84,19 +86,25 @@ class StoreAndSortStrategy {
         entryCount = 0;
         File file = new File(dir, fileName);
         Stopwatch sw = Stopwatch.createStarted();
-        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, false)) {
+        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, compressionEnabled)) {
             for (NodeStateEntry e : nodeStates) {
                 String line = entryWriter.toString(e);
                 w.append(line).append(LINE_SEPARATOR.value());
+                textSize += line.length() + LINE_SEPARATOR.value().length();
                 entryCount++;
             }
         }
-        log.info("Dumped {} nodestates in json format in {} ({})",entryCount, sw, IOUtils.humanReadableByteCount(file.length()));
+        String sizeStr = compressionEnabled ? String.format("compressed/%s actual size", humanReadableByteCount(textSize)) : "";
+        log.info("Dumped {} nodestates in json format in {} ({} {})",entryCount, sw, humanReadableByteCount(file.length()), sizeStr);
         return file;
     }
 
     private void logFlags() {
         log.info("Delete original dump from traversal : {} ({})", deleteOriginal, OAK_INDEXER_DELETE_ORIGINAL);
         log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemory, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
+    }
+
+    private String getStoreFileName() {
+        return compressionEnabled ? "store.json.zip" : "store.json";
     }
 }

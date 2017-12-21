@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.collect.Iterables.size;
 
 public class FlatFileNodeStoreBuilder {
-    private static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
+    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
     private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterable<NodeStateEntry> nodeStates;
@@ -44,7 +44,7 @@ public class FlatFileNodeStoreBuilder {
     private NodeStateEntryWriter entryWriter;
     private long entryCount = 0;
 
-    private boolean useZip = Boolean.getBoolean(OAK_INDEXER_USE_ZIP);
+    private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
 
     public FlatFileNodeStoreBuilder(Iterable<NodeStateEntry> nodeStates, File workDir) {
         this.nodeStates = nodeStates;
@@ -66,7 +66,7 @@ public class FlatFileNodeStoreBuilder {
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
         FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
-                size(preferredPathElements), false);
+                size(preferredPathElements), useZip);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }

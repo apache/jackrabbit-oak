@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -125,6 +126,13 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         List<LocalIndexDir> idxDirs = idxRoot.getAllLocalIndexes();
 
         assertEquals(1, idxDirs.size());
+    }
+
+    @Test
+    public void indexMongoRepo_WithCompressionDisabled() throws Exception{
+        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "false");
+        indexMongoRepo();
+        System.clearProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP);
     }
 
     @Test
