@@ -36,13 +36,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.ImmutableList.copyOf;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 
 public class NodeStateEntrySorter {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -91,9 +88,9 @@ public class NodeStateEntrySorter {
         log.info("Sorting with memory {} (estimated {})", humanReadableByteCount(memory), humanReadableByteCount(estimatedMemory));
         Stopwatch w = Stopwatch.createStarted();
 
-        Comparator<NodeStateEntryHolder> comparator = Comparator.naturalOrder();
-        Function<String, NodeStateEntryHolder> func1 = (line) -> line == null ? null : new NodeStateEntryHolder(line, pathComparator);
-        Function<NodeStateEntryHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
+        Comparator<NodeStateEntryHolder> comparator = (e1, e2) -> pathComparator.compare(e1.pathElements, e2.pathElements);
+        Function<String, NodeStateEntryHolder> func1 = (line) -> line == null ? null : new NodeStateEntryHolder(line);
+        Function<NodeStateEntryHolder, String> func2 = holder -> holder == null ? null : holder.line;
 
         List<File> sortedFiles = sortInBatch(memory, comparator, func1, func2);
 
@@ -192,27 +189,6 @@ public class NodeStateEntrySorter {
         long allocatedMemory = r.totalMemory() - r.freeMemory();
         long presFreeMemory = r.maxMemory() - allocatedMemory;
         return presFreeMemory;
-    }
-
-    static class NodeStateEntryHolder implements Comparable<NodeStateEntryHolder> {
-        final String line;
-        final List<String> pathElements;
-        final Comparator<Iterable<String>> comparator;
-
-        public NodeStateEntryHolder(String line, Comparator<Iterable<String>> comparator) {
-            this.line = line;
-            this.comparator = comparator;
-            this.pathElements = copyOf(elements(getPath(line)));
-        }
-
-        public String getLine() {
-            return line;
-        }
-
-        @Override
-        public int compareTo(NodeStateEntryHolder o) {
-            return comparator.compare(this.pathElements, o.pathElements);
-        }
     }
 
 }
