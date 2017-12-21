@@ -54,6 +54,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
 class TraverseWithSortStrategy implements SortStrategy {
@@ -105,7 +106,7 @@ class TraverseWithSortStrategy implements SortStrategy {
 
     private File sortStoreFile() throws IOException {
         Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, getSortedStoreFileName());
+        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
         try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
             Function<String, NodeStateEntryHolder> func1 = (line) -> line == null ? null : new NodeStateEntryHolder(line);
             Function<NodeStateEntryHolder, String> func2 = holder -> holder == null ? null : holder.line;
@@ -121,10 +122,6 @@ class TraverseWithSortStrategy implements SortStrategy {
         }
         log.info("Merging of sorted files completed in {}", w);
         return sortedFile;
-    }
-
-    private String getSortedStoreFileName() {
-        return compressionEnabled ? "store-sorted.json.zip" : "store-sorted.json";
     }
 
     private void writeToSortedFiles() throws IOException {

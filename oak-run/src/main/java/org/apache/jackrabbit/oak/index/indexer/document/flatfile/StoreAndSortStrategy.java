@@ -33,6 +33,7 @@ import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 class StoreAndSortStrategy implements SortStrategy {
     private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
@@ -73,7 +74,7 @@ class StoreAndSortStrategy implements SortStrategy {
     private File sortStoreFile(File storeFile) throws IOException {
         File sortWorkDir = new File(storeFile.getParent(), "sort-work-dir");
         FileUtils.forceMkdir(sortWorkDir);
-        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName());
+        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(compressionEnabled));
         NodeStateEntrySorter sorter =
                 new NodeStateEntrySorter(comparator, storeFile, sortWorkDir, sortedFile);
 
@@ -111,10 +112,6 @@ class StoreAndSortStrategy implements SortStrategy {
     }
 
     private String getStoreFileName() {
-        return compressionEnabled ? "store.json.zip" : "store.json";
-    }
-
-    private String getSortedStoreFileName() {
-        return compressionEnabled ? "store-sorted.json.zip" : "store-sorted.json";
+        return compressionEnabled ? "store.json.gz" : "store.json";
     }
 }
