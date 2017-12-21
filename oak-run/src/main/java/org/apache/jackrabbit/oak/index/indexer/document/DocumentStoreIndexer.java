@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -118,6 +119,7 @@ public class DocumentStoreIndexer implements Closeable{
 
         progressReporter.reindexingTraversalStart("/");
 
+        Stopwatch indexerWatch = Stopwatch.createStarted();
         for (NodeStateEntry entry : flatFileStore) {
             reportDocumentRead(entry.getPath());
             indexer.index(entry);
@@ -125,6 +127,7 @@ public class DocumentStoreIndexer implements Closeable{
 
         progressReporter.reindexingTraversalEnd();
         progressReporter.logReport();
+        log.info("Completed the indexing in {}", indexerWatch);
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
