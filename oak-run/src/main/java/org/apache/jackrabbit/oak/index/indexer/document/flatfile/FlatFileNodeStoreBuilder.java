@@ -19,15 +19,13 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.Collections;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -71,7 +69,8 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileStore build() throws IOException {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
-        FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore), size(preferredPathElements));
+        FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
+                size(preferredPathElements), false);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }
@@ -123,7 +122,7 @@ public class FlatFileNodeStoreBuilder {
         File file = new File(dir, fileName);
         Stopwatch sw = Stopwatch.createStarted();
         NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-        try (Writer w = Files.newWriter(file, Charsets.UTF_8)) {
+        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, false)) {
             for (NodeStateEntry e : nodeStates) {
                 String line = entryWriter.toString(e);
                 w.append(line).append(LINE_SEPARATOR.value());

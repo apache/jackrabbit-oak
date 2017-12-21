@@ -21,29 +21,29 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.Reader;
 import java.util.Iterator;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.io.Closer;
-import com.google.common.io.Files;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 
 public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     private final Closer closer = Closer.create();
     private final File storeFile;
     private final NodeStateEntryReader entryReader;
     private final int checkChildLimit;
+    private final boolean compressionEnabled;
     private long entryCount = -1;
 
-    public FlatFileStore(File storeFile, NodeStateEntryReader entryReader, int checkChildLimit) {
+    public FlatFileStore(File storeFile, NodeStateEntryReader entryReader, int checkChildLimit, boolean compressionEnabled) {
         this.storeFile = storeFile;
         this.entryReader = entryReader;
         this.checkChildLimit = checkChildLimit;
+        this.compressionEnabled = compressionEnabled;
     }
 
     public long getEntryCount() {
@@ -60,7 +60,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     }
 
     private Iterator<NodeStateEntry> createBaseIterator() {
-        LineIterator itr = new LineIterator(createReader());
+        LineIterator itr = new LineIterator(createReader(storeFile, compressionEnabled));
         closer.register(itr::close);
         return new AbstractIterator<NodeStateEntry>() {
             @Override
@@ -83,13 +83,5 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     @Override
     public void close() throws IOException {
         closer.close();
-    }
-
-    private Reader createReader() {
-        try {
-            return Files.newReader(storeFile, Charsets.UTF_8);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException("Error opening file " + storeFile, e);
-        }
     }
 }
