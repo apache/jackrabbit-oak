@@ -69,8 +69,9 @@ class StoreAndSortStrategy {
     private File sortStoreFile(File storeFile) throws IOException {
         File sortWorkDir = new File(storeFile.getParent(), "sort-work-dir");
         FileUtils.forceMkdir(sortWorkDir);
+        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName());
         NodeStateEntrySorter sorter =
-                new NodeStateEntrySorter(comparator, storeFile, sortWorkDir);
+                new NodeStateEntrySorter(comparator, storeFile, sortWorkDir, sortedFile);
 
         logFlags();
 
@@ -106,5 +107,9 @@ class StoreAndSortStrategy {
 
     private String getStoreFileName() {
         return compressionEnabled ? "store.json.zip" : "store.json";
+    }
+
+    private String getSortedStoreFileName() {
+        return compressionEnabled ? "store-sorted.json.zip" : "store-sorted.json";
     }
 }
