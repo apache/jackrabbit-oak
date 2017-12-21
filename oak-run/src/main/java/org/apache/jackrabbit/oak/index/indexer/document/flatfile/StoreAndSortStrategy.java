@@ -31,10 +31,12 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 
-class StoreAndSortStrategy {
+class StoreAndSortStrategy implements SortStrategy {
     private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
-    private static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
+    private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterable<NodeStateEntry> nodeStates;
@@ -44,7 +46,7 @@ class StoreAndSortStrategy {
     private final boolean compressionEnabled;
     private long entryCount;
     private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
-    private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, 3);
+    private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private long textSize;
 
 
@@ -57,11 +59,13 @@ class StoreAndSortStrategy {
         this.compressionEnabled = compressionEnabled;
     }
 
+    @Override
     public File createSortedStoreFile() throws IOException {
         File storeFile = writeToStore(storeDir, getStoreFileName());
         return sortStoreFile(storeFile);
     }
 
+    @Override
     public long getEntryCount() {
         return entryCount;
     }
@@ -90,8 +94,9 @@ class StoreAndSortStrategy {
         try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, compressionEnabled)) {
             for (NodeStateEntry e : nodeStates) {
                 String line = entryWriter.toString(e);
-                w.append(line).append(LINE_SEPARATOR.value());
-                textSize += line.length() + LINE_SEPARATOR.value().length();
+                w.append(line);
+                w.newLine();
+                textSize += line.length() + LINE_SEP_LENGTH;
                 entryCount++;
             }
         }
