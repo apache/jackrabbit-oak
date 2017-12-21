@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.util.List;
+
+import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -34,6 +37,7 @@ public class NodeStateEntryWriter {
     private static final String DELIMITER = "|";
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
+    private final Joiner pathJoiner = Joiner.on('/');
 
     //TODO Possible optimizations
     //1. Compression
@@ -44,19 +48,27 @@ public class NodeStateEntryWriter {
     }
 
     public String toString(NodeStateEntry e) {
-        String text = asText(e.getNodeState());
-        StringBuilder sb = new StringBuilder(text.length() + e.getPath().length() + 1);
-        sb.append(e.getPath())
+        return toString(e.getPath(), asJson(e.getNodeState()));
+    }
+
+    public String toString(String path, String nodeStateAsJson) {
+        StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + path.length() + 1);
+        sb.append(path)
                 .append(DELIMITER)
-                .append(text);
+                .append(nodeStateAsJson);
         return sb.toString();
     }
 
-    private String asText(NodeState nodeState) {
-        return asJson(nodeState);
+    public String toString(List<String> pathElements, String nodeStateAsJson) {
+        int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
+        StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
+        sb.append('/');
+        pathJoiner.appendTo(sb, pathElements);
+        sb.append(DELIMITER).append(nodeStateAsJson);
+        return sb.toString();
     }
 
-    private String asJson(NodeState nodeState) {
+    public String asJson(NodeState nodeState) {
         jw.resetWriter();
         jw.object();
         for (PropertyState ps : nodeState.getProperties()) {
