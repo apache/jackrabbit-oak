@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static com.google.common.collect.Iterables.size;
 
 public class FlatFileNodeStoreBuilder {
@@ -121,12 +122,11 @@ public class FlatFileNodeStoreBuilder {
     private File writeToStore(File dir, String fileName) throws IOException {
         File file = new File(dir, fileName);
         Stopwatch sw = Stopwatch.createStarted();
-        try (
-                Writer w = Files.newWriter(file, Charsets.UTF_8);
-                NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore, w)
-        ) {
+        NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
+        try (Writer w = Files.newWriter(file, Charsets.UTF_8)) {
             for (NodeStateEntry e : nodeStates) {
-                entryWriter.write(e);
+                String line = entryWriter.toString(e);
+                w.append(line).append(LINE_SEPARATOR.value());
                 entryCount++;
             }
         }
