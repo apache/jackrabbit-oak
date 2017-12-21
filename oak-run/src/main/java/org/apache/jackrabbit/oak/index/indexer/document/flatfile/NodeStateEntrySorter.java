@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -38,6 +40,8 @@ import static com.google.common.collect.ImmutableList.copyOf;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 
 public class NodeStateEntrySorter {
@@ -51,6 +55,7 @@ public class NodeStateEntrySorter {
     private boolean useZip;
     private boolean deleteOriginal;
     private long maxMemory = ONE_GB * 5;
+    private long actualFileSize;
 
     public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile, File workDir) {
         this(pathComparator, nodeStateFile, workDir, getSortedFileName(nodeStateFile));
@@ -75,6 +80,11 @@ public class NodeStateEntrySorter {
         this.maxMemory = maxMemoryInGb * ONE_GB;
     }
 
+    public void setActualFileSize(long actualFileSize) {
+        this.actualFileSize = actualFileSize;
+    }
+
+
     public void sort() throws IOException {
         long estimatedMemory = estimateAvailableMemory();
         long memory = Math.min(estimatedMemory, maxMemory);
@@ -85,18 +95,7 @@ public class NodeStateEntrySorter {
         Function<String, NodeStateEntryHolder> func1 = (line) -> line == null ? null : new NodeStateEntryHolder(line, pathComparator);
         Function<NodeStateEntryHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
 
-        List<File> sortedFiles = ExternalSort.sortInBatch(nodeStateFile,
-                comparator, //Comparator to use
-                DEFAULTMAXTEMPFILES,
-                memory,
-                charset, //charset
-                workDir,  //temp directory where intermediate files are created
-                true,
-                0,
-                useZip,
-                func2,
-                func1
-        );
+        List<File> sortedFiles = sortInBatch(memory, comparator, func1, func2);
 
         log.info("Batch sorting done in {} with {} files of size {} to merge", w, sortedFiles.size(),
                 humanReadableByteCount(sizeOf(sortedFiles)));
@@ -108,20 +107,61 @@ public class NodeStateEntrySorter {
 
         Stopwatch w2 = Stopwatch.createStarted();
 
-        ExternalSort.mergeSortedFiles(sortedFiles,
-                sortedFile,
-                comparator,
-                charset,
-                true,
-                false,
-                useZip,
-                func2,
-                func1
-
-        );
+        mergeSortedFiles(comparator, func1, func2, sortedFiles);
 
         log.info("Merging of sorted files completed in {}", w2);
         log.info("Sorting completed in {}", w);
+    }
+
+    private void mergeSortedFiles(Comparator<NodeStateEntryHolder> comparator, Function<String, NodeStateEntryHolder> func1,
+                                  Function<NodeStateEntryHolder, String> func2, List<File> sortedFiles) throws IOException {
+        try(BufferedWriter writer = createWriter(sortedFile, useZip)) {
+            ExternalSort.mergeSortedFiles(sortedFiles,
+                    writer,
+                    comparator,
+                    charset,
+                    true, //distinct
+                    useZip, //useZip
+                    func2,
+                    func1
+
+            );
+        }
+    }
+
+    private List<File> sortInBatch(long memory, Comparator<NodeStateEntryHolder> comparator,
+                                   Function<String, NodeStateEntryHolder> func1,
+                                   Function<NodeStateEntryHolder, String> func2) throws IOException {
+        if (useZip) {
+            try (BufferedReader reader = createReader(nodeStateFile, useZip)) {
+                return ExternalSort.sortInBatch(reader,
+                        actualFileSize,
+                        comparator, //Comparator to use
+                        DEFAULTMAXTEMPFILES,
+                        memory,
+                        charset, //charset
+                        workDir,  //temp directory where intermediate files are created
+                        true, //distinct
+                        0,
+                        useZip, //useZip
+                        func2,
+                        func1
+                );
+            }
+        } else {
+            return ExternalSort.sortInBatch(nodeStateFile,
+                    comparator, //Comparator to use
+                    DEFAULTMAXTEMPFILES,
+                    memory,
+                    charset, //charset
+                    workDir,  //temp directory where intermediate files are created
+                    true,
+                    0,
+                    useZip,
+                    func2,
+                    func1
+            );
+        }
     }
 
     public File getSortedFile() {
