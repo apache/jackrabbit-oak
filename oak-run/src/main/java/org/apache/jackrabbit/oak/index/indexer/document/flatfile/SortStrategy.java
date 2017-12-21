@@ -19,22 +19,12 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
 
-import static com.google.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
+public interface SortStrategy {
 
-class NodeStateEntryHolder {
-    final String line;
-    final List<String> pathElements;
+    File createSortedStoreFile() throws IOException;
 
-    public NodeStateEntryHolder(String line) {
-        this(getPath(line), line);
-    }
-
-    public NodeStateEntryHolder(String path, String line) {
-        this.pathElements = copyOf(elements(path));
-        this.line = line;
-    }
+    long getEntryCount();
 }

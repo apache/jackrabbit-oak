@@ -34,7 +34,10 @@ import static com.google.common.collect.Iterables.size;
 
 public class FlatFileNodeStoreBuilder {
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
+    private static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverWithSortStrategy";
     private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
+    static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
+    static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterable<NodeStateEntry> nodeStates;
     private final File workDir;
@@ -45,6 +48,8 @@ public class FlatFileNodeStoreBuilder {
     private long entryCount = 0;
 
     private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    //TODO Switch the default
+    private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false"));
 
     public FlatFileNodeStoreBuilder(Iterable<NodeStateEntry> nodeStates, File workDir) {
         this.nodeStates = nodeStates;
@@ -88,16 +93,29 @@ public class FlatFileNodeStoreBuilder {
             }
         } else {
             File flatFileStoreDir = createStoreDir();
-            StoreAndSortStrategy strategy = new StoreAndSortStrategy(nodeStates, comparator,
-                    entryWriter, flatFileStoreDir, useZip);
+            SortStrategy strategy = createSortStrategy(flatFileStoreDir);
             entryCount = strategy.getEntryCount();
             return strategy.createSortedStoreFile();
+        }
+    }
+
+    private SortStrategy createSortStrategy(File dir){
+        if (useTraverseWithSort) {
+            log.info("Using TraverseWithSortStrategy");
+            return new TraverseWithSortStrategy(nodeStates, comparator, entryWriter, dir, useZip);
+        } else {
+            log.info("Using StoreAndSortStrategy");
+            return new StoreAndSortStrategy(nodeStates, comparator, entryWriter, dir, useZip);
         }
     }
 
     private void logFlags() {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
         log.info("Compression enabled while sorting : {} ({})", useZip, OAK_INDEXER_USE_ZIP);
+
+        String strategy = useTraverseWithSort ?
+                TraverseWithSortStrategy.class.getSimpleName() : StoreAndSortStrategy.class.getSimpleName();
+        log.info("Sort strategy : {} ({})", strategy, OAK_INDEXER_TRAVERSE_WITH_SORT);
     }
 
     private File createStoreDir() throws IOException {
