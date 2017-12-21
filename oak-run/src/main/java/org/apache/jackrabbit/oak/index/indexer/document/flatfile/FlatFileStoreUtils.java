@@ -68,4 +68,8 @@ class FlatFileStoreUtils {
     public static long sizeOf(List<File> sortedFiles) {
         return sortedFiles.stream().mapToLong(File::length).sum();
     }
+
+    public static String getSortedStoreFileName(boolean compressionEnabled){
+        return compressionEnabled ? "store-sorted.json.gz" : "store-sorted.json";
+    }
 }
