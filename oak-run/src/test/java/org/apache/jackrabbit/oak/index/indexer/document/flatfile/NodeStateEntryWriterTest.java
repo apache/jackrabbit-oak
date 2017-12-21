@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -29,6 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
+import static com.google.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -95,6 +99,46 @@ public class NodeStateEntryWriterTest {
         NodeStateEntry r1 = nr.read(line);
         assertTrue(r1.getNodeState().hasProperty(":hidden"));
         assertFalse(r1.getNodeState().hasProperty(":childOrder"));
+    }
+
+    @Test
+    public void pathElements(){
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+        NodeBuilder b1 = EMPTY_NODE.builder();
+        b1.setProperty("foo", "bar");
+
+        NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a/b/c/d");
+
+        String json = nw.asJson(e1.getNodeState());
+        List<String> pathElements = copyOf(elements(e1.getPath()));
+
+        String line = nw.toString(pathElements, json);
+
+        NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
+        NodeStateEntry r1 = nr.read(line);
+        assertTrue(r1.getNodeState().hasProperty("foo"));
+        assertEquals("/a/b/c/d", r1.getPath());
+
+    }
+
+    @Test
+    public void pathElements_root(){
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+        NodeBuilder b1 = EMPTY_NODE.builder();
+        b1.setProperty("foo", "bar");
+
+        NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/");
+
+        String json = nw.asJson(e1.getNodeState());
+        List<String> pathElements = copyOf(elements(e1.getPath()));
+
+        String line = nw.toString(pathElements, json);
+
+        NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
+        NodeStateEntry r1 = nr.read(line);
+        assertTrue(r1.getNodeState().hasProperty("foo"));
+        assertEquals("/", r1.getPath());
+
     }
 
 }
