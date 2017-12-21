@@ -93,8 +93,9 @@ public class FlatFileNodeStoreBuilder {
         } else {
             File flatFileStoreDir = createStoreDir();
             SortStrategy strategy = createSortStrategy(flatFileStoreDir);
+            File result = strategy.createSortedStoreFile();
             entryCount = strategy.getEntryCount();
-            return strategy.createSortedStoreFile();
+            return result;
         }
     }
 
