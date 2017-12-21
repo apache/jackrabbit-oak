@@ -95,6 +95,11 @@ public class ExternalSort {
     public static long estimateBestSizeOfBlocks(File filetobesorted,
             int maxtmpfiles, long maxMemory) {
         long sizeoffile = filetobesorted.length() * 2;
+        return estimateBestSizeOfBlocks(sizeoffile, maxtmpfiles, maxMemory);
+
+    }
+
+    private static long estimateBestSizeOfBlocks(long sizeoffile, int maxtmpfiles, long maxMemory) {
         /**
          * We multiply by two because later on someone insisted on counting the memory usage as 2
          * bytes per character. By this model, loading a file with 1 character will use 2 bytes.
@@ -198,7 +203,7 @@ public class ExternalSort {
      * This will simply load the file by blocks of lines, then sort them in-memory, and write the
      * result to temporary files that have to be merged later. You can specify a bound on the number
      * of temporary files that will be created.
-     * 
+     *
      * @param file
      *            some flat file
      * @param cmp
@@ -226,12 +231,62 @@ public class ExternalSort {
                                              boolean distinct, int numHeader, boolean usegzip,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
-        List<File> files = new ArrayList<File>();
-        BufferedReader fbr = new BufferedReader(new InputStreamReader(
-                new FileInputStream(file), cs));
         // in bytes
         long blocksize = estimateBestSizeOfBlocks(file, maxtmpfiles, maxMemory);
+        try (BufferedReader fbr = new BufferedReader(new InputStreamReader(
+                new FileInputStream(file), cs))) {
+            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, usegzip, typeToString, stringToType);
+        }
+    }
 
+    public static <T> List<File> sortInBatch(BufferedReader fbr, long actualFileSize, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, boolean usegzip,
+                                             Function<T, String> typeToString, Function<String, T> stringToType)
+            throws IOException {
+        // in bytes
+        long blocksize = estimateBestSizeOfBlocks(actualFileSize, maxtmpfiles, maxMemory);
+        try {
+            return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, usegzip, typeToString, stringToType);
+        } finally {
+            fbr.close();
+        }
+    }
+
+    /**
+     * This will simply load the file by blocks of lines, then sort them in-memory, and write the
+     * result to temporary files that have to be merged later. You can specify a bound on the number
+     * of temporary files that will be created.
+     * 
+     *
+     * @param fbr
+     *            buffered read for file to be sorted
+     * @param cmp
+     *            string comparator
+     * @param maxtmpfiles
+     *            maximal number of temporary files
+     * @param cs
+     *            character set to use (can use Charset.defaultCharset())
+     * @param tmpdirectory
+     *            location of the temporary files (set to null for default location)
+     * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded.
+     * @param numHeader
+     *            number of lines to preclude before sorting starts
+     * @param usegzip use gzip compression for the temporary files
+     * @param typeToString
+     *            function to map string to custom type. User for coverting line to custom type for the
+     *            purpose of sorting
+     * @param stringToType
+     *          function to map custom type to string. Used for storing sorted content back to file
+     * @return a list of temporary flat files
+     */
+    private static <T> List<File> sortInBatch(BufferedReader fbr, long blocksize, Comparator<T> cmp,
+                                             Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, boolean usegzip,
+                                             Function<T, String> typeToString, Function<String, T> stringToType)
+            throws IOException {
+        List<File> files = new ArrayList<File>();
         try {
             List<T> tmplist = new ArrayList<>();
             String line = "";
@@ -460,7 +515,7 @@ public class ExternalSort {
 
     /**
      * This merges a bunch of temporary flat files and deletes them on success or error.
-     * 
+     *
      * @param files
      *            The {@link List} of sorted {@link File}s to be merged.
      * @param outputfile
@@ -487,6 +542,48 @@ public class ExternalSort {
                                            final Comparator<T> cmp, Charset cs, boolean distinct,
                                            boolean append, boolean usegzip, Function<T, String> typeToString,
                                            Function<String, T> stringToType) throws IOException {
+        boolean success = false;
+        try (BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputfile, append), cs))){
+            int result = mergeSortedFiles(files, fbw, cmp, cs, distinct, usegzip, typeToString, stringToType);
+            success = true;
+            return result;
+        } finally {
+            if (!success) {
+                for (File f : files) {
+                    if (f.exists()) {
+                        f.delete();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * This merges a bunch of temporary flat files and deletes them on success or error.
+     * 
+     * @param files
+     *            The {@link List} of sorted {@link File}s to be merged.
+     * @param fbw
+     *            Buffered writer used to store the sorted content
+     * @param cmp
+     *            The {@link Comparator} to use to compare {@link String}s.
+     * @param cs
+     *            The {@link Charset} to be used for the byte to character conversion.
+     * @param distinct
+     *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
+     * @param usegzip
+     *            assumes we used gzip compression for temporary files
+     * @param typeToString
+     *            function to map string to custom type. User for coverting line to custom type for the
+     *            purpose of sorting
+     * @param stringToType
+     *          function to map custom type to string. Used for storing sorted content back to file
+     * @since v0.1.4
+     */
+    public static <T> int mergeSortedFiles(List<File> files,
+                                           BufferedWriter fbw, final Comparator<T> cmp, Charset cs, boolean distinct,
+                                           boolean usegzip, Function<T, String> typeToString,
+                                           Function<String, T> stringToType) throws IOException {
         ArrayList<BinaryFileBuffer<T>> bfbs = new ArrayList<>();
         try {
             for (File f : files) {
@@ -502,7 +599,6 @@ public class ExternalSort {
                 BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(br, stringToType);
                 bfbs.add(bfb);
             }
-            BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputfile, append), cs));
             int rowcounter = merge(fbw, cmp, distinct, bfbs, typeToString);
             return rowcounter;
         } finally {
