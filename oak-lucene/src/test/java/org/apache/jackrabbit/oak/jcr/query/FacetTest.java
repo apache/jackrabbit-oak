@@ -26,7 +26,6 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
