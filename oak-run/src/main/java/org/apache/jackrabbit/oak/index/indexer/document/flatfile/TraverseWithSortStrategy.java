@@ -228,6 +228,11 @@ class TraverseWithSortStrategy implements SortStrategy {
         MemoryUsage usage = pool.getCollectionUsage();
         long maxMemory = usage.getMax();
         long warningThreshold = minMemory * ONE_GB;
+        if (warningThreshold > maxMemory) {
+            log.warn("Configured minimum memory {} GB more than available memory ({})." +
+                    "Overriding configuration accordingly.", minMemory, humanReadableByteCount(maxMemory));
+            warningThreshold = maxMemory;
+        }
         log.info("Setting up a listener to monitor pool '{}' and trigger batch save " +
                 "if memory drop below {} GB (max {})", pool.getName(), minMemory, humanReadableByteCount(maxMemory));
         pool.setCollectionUsageThreshold(warningThreshold);
