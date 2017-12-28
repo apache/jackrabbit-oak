@@ -493,61 +493,64 @@ public class RDBDocumentStore implements DocumentStore {
                 missingDocs.add(op.getId());
             }
         }
-        for (T doc : readDocumentsUncached(collection, missingDocs).values()) {
-            oldDocs.put(doc.getId(), doc);
-            if (collection == Collection.NODES) {
-                nodesCache.putIfAbsent((NodeDocument) doc);
-            }
+        oldDocs.putAll(readDocumentsUncached(collection, missingDocs));
+
+        CacheChangesTracker tracker = null;
+        if (collection == Collection.NODES) {
+            tracker = nodesCache.registerTracker(Sets.union(oldDocs.keySet(), missingDocs));
         }
 
-        List<T> docsToUpdate = new ArrayList<T>(updates.size());
-        Set<String> keysToUpdate = new HashSet<String>();
-        for (UpdateOp update : updates) {
-            String id = update.getId();
-            T modifiedDoc = collection.newDocument(this);
-            if (oldDocs.containsKey(id)) {
-                oldDocs.get(id).deepCopy(modifiedDoc);
-            }
-            UpdateUtils.applyChanges(modifiedDoc, update);
-            docsToUpdate.add(modifiedDoc);
-            keysToUpdate.add(id);
-        }
-
-        Connection connection = null;
-        RDBTableMetaData tmd = getTable(collection);
         try {
-            connection = this.ch.getRWConnection();
-            Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
-            connection.commit();
+            List<T> docsToUpdate = new ArrayList<T>(updates.size());
+            Set<String> keysToUpdate = new HashSet<String>();
+            for (UpdateOp update : updates) {
+                String id = update.getId();
+                T modifiedDoc = collection.newDocument(this);
+                if (oldDocs.containsKey(id)) {
+                    oldDocs.get(id).deepCopy(modifiedDoc);
+                }
+                UpdateUtils.applyChanges(modifiedDoc, update);
+                docsToUpdate.add(modifiedDoc);
+                keysToUpdate.add(id);
+            }
 
-            Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
-            oldDocs.keySet().removeAll(failedUpdates);
+            Connection connection = null;
+            RDBTableMetaData tmd = getTable(collection);
+            try {
+                connection = this.ch.getRWConnection();
+                Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
+                connection.commit();
 
-            if (collection == Collection.NODES) {
-                for (T doc : docsToUpdate) {
-                    String id = doc.getId();
-                    if (successfulUpdates.contains(id)) {
-                        if (oldDocs.containsKey(id)) {
-                            nodesCache.replaceCachedDocument((NodeDocument) oldDocs.get(id), (NodeDocument) doc);
-                        } else {
-                            nodesCache.putIfAbsent((NodeDocument) doc);
+                Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
+                oldDocs.keySet().removeAll(failedUpdates);
+
+                if (collection == Collection.NODES) {
+                    List<NodeDocument> docsToCache = new ArrayList<>();
+                    for (T doc : docsToUpdate) {
+                        if (successfulUpdates.contains(doc.getId())) {
+                            docsToCache.add((NodeDocument) doc);
                         }
                     }
+                    nodesCache.putNonConflictingDocs(tracker, docsToCache);
                 }
-            }
 
-            Map<UpdateOp, T> result = new HashMap<UpdateOp, T>();
-            for (UpdateOp op : updates) {
-                if (successfulUpdates.contains(op.getId())) {
-                    result.put(op, oldDocs.get(op.getId()));
+                Map<UpdateOp, T> result = new HashMap<UpdateOp, T>();
+                for (UpdateOp op : updates) {
+                    if (successfulUpdates.contains(op.getId())) {
+                        result.put(op, oldDocs.get(op.getId()));
+                    }
                 }
+                return result;
+            } catch (SQLException ex) {
+                this.ch.rollbackConnection(connection);
+                throw handleException("update failed for: " + keysToUpdate, ex, collection, keysToUpdate);
+            } finally {
+                this.ch.closeConnection(connection);
             }
-            return result;
-        } catch (SQLException ex) {
-            this.ch.rollbackConnection(connection);
-            throw handleException("update failed for: " + keysToUpdate, ex, collection, keysToUpdate);
         } finally {
-            this.ch.closeConnection(connection);
+            if (tracker != null) {
+                tracker.close();
+            }
         }
     }
 
