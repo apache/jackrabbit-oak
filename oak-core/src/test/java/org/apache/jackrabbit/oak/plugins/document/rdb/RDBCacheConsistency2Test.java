@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyLowerLimit;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperLimit;
+import static org.junit.Assert.assertEquals;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sql.DataSource;
-
-import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractRDBConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -32,17 +36,11 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyLowerLimit;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperLimit;
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.Lists;
 import static org.junit.Assert.assertTrue;
 
-@Ignore("OAK-7101")
 public class RDBCacheConsistency2Test extends AbstractRDBConnectionTest {
 
     private static final long CACHE_SIZE = 128 * 1024;

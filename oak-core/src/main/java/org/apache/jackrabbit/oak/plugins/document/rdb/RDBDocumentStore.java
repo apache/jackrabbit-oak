@@ -1019,6 +1019,9 @@ public class RDBDocumentStore implements DocumentStore {
                     throw new DocumentStoreException("Can't insert the document: " + doc.getId());
                 }
                 if (collection == Collection.NODES) {
+                    for (QueryContext qc : qmap.values()) {
+                        qc.addKey(doc.getId());
+                    }
                     nodesCache.putIfAbsent((NodeDocument) doc);
                 }
                 return oldDoc;
@@ -1093,6 +1096,9 @@ public class RDBDocumentStore implements DocumentStore {
                         }
                     } else {
                         if (collection == Collection.NODES) {
+                            for (QueryContext qc : qmap.values()) {
+                                qc.addKey(doc.getId());
+                            }
                             nodesCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) doc);
                         }
                     }
