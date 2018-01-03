@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +30,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.serialization.ValidatingObjectInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,12 +62,13 @@ public class DataStoreCacheUpgradeUtils {
 
             InputStream fis = null;
             try {
-                fis = new BufferedInputStream(new FileInputStream(path));
-                ObjectInput input = new ObjectInputStream(fis);
+                fis = (new FileInputStream(path));
+                ValidatingObjectInputStream input = new ValidatingObjectInputStream(fis);
+                input.accept(HashMap.class, Map.class, Number.class, Long.class, String.class);
                 asyncUploadMap = (Map<String, Long>) input.readObject();
             } catch (Exception e) {
-                LOG.warn("Error in reading pending uploads map [{}] from location [{}]", UPLOAD_MAP,
-                    homeDir);
+                LOG.error("Error in reading pending uploads map [{}] from location [{}]", UPLOAD_MAP,
+                    homeDir, e);
             } finally {
                 IOUtils.closeQuietly(fis);
             }
