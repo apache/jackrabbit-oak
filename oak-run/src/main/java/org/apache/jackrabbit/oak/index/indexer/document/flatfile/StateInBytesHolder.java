@@ -21,20 +21,41 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.StringUtils;
+
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 
-class NodeStateEntryHolder {
-    final String line;
-    final List<String> pathElements;
+class StateInBytesHolder implements NodeStateHolder {
+    private final List<String> pathElements;
+    private final byte[] content;
 
-    public NodeStateEntryHolder(String line) {
-        this(getPath(line), line);
+    public StateInBytesHolder(String path, String line) {
+        this.pathElements = copyOf(elements(path));
+        this.content = line.getBytes(UTF_8);
     }
 
-    public NodeStateEntryHolder(String path, String line) {
-        this.pathElements = copyOf(elements(path));
-        this.line = line;
+    @Override
+    public List<String> getPathElements() {
+        return pathElements;
+    }
+
+    /**
+     * Line here does not include the path
+     */
+    @Override
+    public String getLine() {
+        return new String(content, UTF_8);
+    }
+
+    @Override
+    public int getMemorySize() {
+        int memoryUsed = 0;
+        for (String e : pathElements) {
+            memoryUsed += StringUtils.estimateMemoryUsage(e);
+        }
+        memoryUsed += content.length;
+        return memoryUsed;
     }
 }

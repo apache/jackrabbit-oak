@@ -89,9 +89,9 @@ public class NodeStateEntrySorter {
         log.info("Sorting with memory {} (estimated {})", humanReadableByteCount(memory), humanReadableByteCount(estimatedMemory));
         Stopwatch w = Stopwatch.createStarted();
 
-        Comparator<NodeStateEntryHolder> comparator = (e1, e2) -> pathComparator.compare(e1.pathElements, e2.pathElements);
-        Function<String, NodeStateEntryHolder> func1 = (line) -> line == null ? null : new NodeStateEntryHolder(line);
-        Function<NodeStateEntryHolder, String> func2 = holder -> holder == null ? null : holder.line;
+        Comparator<NodeStateHolder> comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
+        Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
 
         List<File> sortedFiles = sortInBatch(memory, comparator, func1, func2);
 
@@ -111,8 +111,8 @@ public class NodeStateEntrySorter {
         log.info("Sorting completed in {}", w);
     }
 
-    private void mergeSortedFiles(Comparator<NodeStateEntryHolder> comparator, Function<String, NodeStateEntryHolder> func1,
-                                  Function<NodeStateEntryHolder, String> func2, List<File> sortedFiles) throws IOException {
+    private void mergeSortedFiles(Comparator<NodeStateHolder> comparator, Function<String, NodeStateHolder> func1,
+                                  Function<NodeStateHolder, String> func2, List<File> sortedFiles) throws IOException {
         try(BufferedWriter writer = createWriter(sortedFile, useZip)) {
             ExternalSort.mergeSortedFiles(sortedFiles,
                     writer,
@@ -127,9 +127,9 @@ public class NodeStateEntrySorter {
         }
     }
 
-    private List<File> sortInBatch(long memory, Comparator<NodeStateEntryHolder> comparator,
-                                   Function<String, NodeStateEntryHolder> func1,
-                                   Function<NodeStateEntryHolder, String> func2) throws IOException {
+    private List<File> sortInBatch(long memory, Comparator<NodeStateHolder> comparator,
+                                   Function<String, NodeStateHolder> func1,
+                                   Function<NodeStateHolder, String> func2) throws IOException {
         if (useZip) {
             try (BufferedReader reader = createReader(nodeStateFile, useZip)) {
                 return ExternalSort.sortInBatch(reader,
