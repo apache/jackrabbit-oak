@@ -39,7 +39,6 @@ import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.slf4j.Logger;
@@ -66,7 +65,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private final File storeDir;
     private final boolean compressionEnabled;
     private final Charset charset = UTF_8;
-    private final Comparator<NodeStateEntryHolder> comparator;
+    private final Comparator<NodeStateHolder> comparator;
     private NotificationEmitter emitter;
     private MemoryListener listener;
     private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
@@ -78,7 +77,7 @@ class TraverseWithSortStrategy implements SortStrategy {
     private long memoryUsed;
     private File sortWorkDir;
     private List<File> sortedFiles = new ArrayList<>();
-    private ArrayList<NodeStateEntryHolder> entryBatch = new ArrayList<>();
+    private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
 
 
     TraverseWithSortStrategy(Iterable<NodeStateEntry> nodeStates, PathElementComparator pathComparator,
@@ -87,7 +86,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
         this.compressionEnabled = compressionEnabled;
-        this.comparator = (e1, e2) -> pathComparator.compare(e1.pathElements, e2.pathElements);
+        this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
     }
 
     @Override
@@ -105,11 +104,12 @@ class TraverseWithSortStrategy implements SortStrategy {
     }
 
     private File sortStoreFile() throws IOException {
+        log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
         File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
         try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
-            Function<String, NodeStateEntryHolder> func1 = (line) -> line == null ? null : new NodeStateEntryHolder(line);
-            Function<NodeStateEntryHolder, String> func2 = holder -> holder == null ? null : holder.line;
+            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
+            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFiles,
                     writer,
                     comparator,
@@ -152,7 +152,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         String jsonText = entryWriter.asJson(e.getNodeState());
         //Here logic differs from NodeStateEntrySorter in sense that
         //Holder line consist only of json and not 'path|json'
-        NodeStateEntryHolder h = new NodeStateEntryHolder(e.getPath(), jsonText);
+        NodeStateHolder h = new StateInBytesHolder(e.getPath(), jsonText);
         entryBatch.add(h);
         updateMemoryUsed(h);
 
@@ -173,9 +173,9 @@ class TraverseWithSortStrategy implements SortStrategy {
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
         try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled)) {
-            for (NodeStateEntryHolder h : entryBatch) {
+            for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
-                String text = entryWriter.toString(h.pathElements, h.line);
+                String text = entryWriter.toString(h.getPathElements(), h.getLine());
                 writer.write(text);
                 writer.newLine();
                 textSize += text.length() + 1;
@@ -193,11 +193,8 @@ class TraverseWithSortStrategy implements SortStrategy {
         return !sufficientMemory.get();
     }
 
-    private void updateMemoryUsed(NodeStateEntryHolder h) {
-        for (String e : h.pathElements) {
-            memoryUsed += StringUtils.estimateMemoryUsage(e);
-        }
-        memoryUsed += StringUtils.estimateMemoryUsage(h.line);
+    private void updateMemoryUsed(NodeStateHolder h) {
+        memoryUsed += h.getMemorySize();
     }
 
     private static File createdSortWorkDir(File storeDir) throws IOException {
