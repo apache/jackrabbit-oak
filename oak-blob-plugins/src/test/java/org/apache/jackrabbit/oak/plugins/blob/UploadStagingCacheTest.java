@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,10 +32,13 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ch.qos.logback.classic.Level;
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closeables;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.Futures;
@@ -44,7 +48,9 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
@@ -55,10 +61,12 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -631,6 +639,26 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertCacheStats(stagingCache, 0, 0, 2, 2);
     }
 
+    @Test
+    public void testUpgradeCompromisedSerializedMap() throws IOException {
+        // Close the init setup
+        closer.close();
+
+        // Create pre-upgrade load
+        File home = folder.newFolder();
+        File pendingUploadsFile = new File(home, DataStoreCacheUpgradeUtils.UPLOAD_MAP);
+        createGibberishLoad(home, pendingUploadsFile);
+
+        LogCustomizer lc = LogCustomizer.forLogger(DataStoreCacheUpgradeUtils.class.getName())
+            .filter(Level.WARN)
+            .enable(Level.WARN)
+            .create();
+        lc.starting();
+        // Start
+        init(2, new TestStagingUploader(folder.newFolder()), home);
+        assertThat(lc.getLogs().toString(), containsString("Error in reading pending uploads map"));
+    }
+
     /** -------------------- Helper methods ----------------------------------------------------**/
 
     private void createUpgradeLoad(File home, File pendingUploadFile) throws IOException {
@@ -640,6 +668,17 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         Map<String, Long> pendingUploads = Maps.newHashMap();
         pendingUploads.put(name, System.currentTimeMillis());
         serializeMap(pendingUploads, pendingUploadFile);
+    }
+
+
+    private void createGibberishLoad(File home, File pendingUploadFile) throws IOException {
+        BufferedWriter writer = null;
+        try {
+            writer = Files.newWriter(pendingUploadFile, Charsets.UTF_8);
+            FileIOUtils.writeAsLine(writer, "jerhgiuheirghoeoorqehgsjlwjpfkkwpkf", false);
+        } finally {
+            Closeables.close(writer, true);
+        }
     }
 
     private void assertUpgrade(File pendingUploadFile) throws IOException {
