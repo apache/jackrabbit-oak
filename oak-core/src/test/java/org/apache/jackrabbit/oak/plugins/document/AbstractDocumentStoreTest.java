@@ -43,11 +43,15 @@ public abstract class AbstractDocumentStoreTest {
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
         this.dsf = dsf;
-        this.ds = dsf.createDocumentStore(1);
+        this.ds = dsf.createDocumentStore(getBuilder().setClusterId(1));
         this.dsname = dsf.getName();
         this.rdbDataSource = dsf.getRDBDataSource();
     }
 
+    public DocumentMK.Builder getBuilder() {
+        return new DocumentMK.Builder();
+    }
+    
     @After
     public void cleanUp() throws Exception {
         removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
