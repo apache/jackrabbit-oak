@@ -1693,13 +1693,12 @@ public class RDBDocumentStore implements DocumentStore {
             if (lastmodified == row.getModified() && lastmodified >= 1) {
                 if (modCount <= cachedModCount) {
                     // we can use the cached document
-                    Lock lock = locks.acquire(row.getId());
+                    Lock lock = locks.acquire(id);
                     try {
                         if (qp.mayUpdate(id)) {
                             inCache.markUpToDate(now);
                         }
-                    }
-                    finally {
+                    } finally {
                         lock.unlock();
                     }
                     return castAsT(inCache);
@@ -1710,11 +1709,15 @@ public class RDBDocumentStore implements DocumentStore {
         NodeDocument fresh = (NodeDocument) convertFromDBObject(collection, row);
         fresh.seal();
 
-        if (!qp.mayUpdate(id)) {
-            return castAsT(fresh);
+        Lock lock = locks.acquire(id);
+        try {
+            if (qp.mayUpdate(id)) {
+                nodesCache.putIfNewer(fresh);
+            }
+        } finally {
+            lock.unlock();
         }
 
-        nodesCache.putIfNewer(fresh);
         return castAsT(fresh);
     }
 
