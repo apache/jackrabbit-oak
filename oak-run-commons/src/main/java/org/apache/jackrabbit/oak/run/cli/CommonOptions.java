@@ -30,7 +30,7 @@ import joptsimple.OptionSpec;
 import static java.util.Arrays.asList;
 
 public class CommonOptions implements OptionsBean {
-    public static final String DEFAULT_CONNECTION_STRING = "{<path-to-repository> | <mongodb-uri>} | <rdb-uri>}";
+    public static final String DEFAULT_CONNECTION_STRING = "{<path-to-repository> | <mongodb-uri>} | <rdb-uri> | memory}";
     private final OptionSpec<Void> help;
     private final OptionSpec<Void> readWriteOption;
     private final OptionSpec<String> nonOption;
@@ -77,6 +77,10 @@ public class CommonOptions implements OptionsBean {
 
     public boolean isDocument(){
         return isMongo() || isRDB();
+    }
+
+    public boolean isMemory(){
+        return getStoreArg().equalsIgnoreCase("memory");
     }
 
     public boolean isMetricsEnabled() {
