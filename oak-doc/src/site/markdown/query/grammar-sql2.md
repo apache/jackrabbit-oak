@@ -37,11 +37,165 @@ SELECT [ DISTINCT ] { * | { <a href="#column">column</a> [ , ... ] } }
 DISTINCT ensures each row is only returned once.
 
 UNION combines the result of this query with the results of another query,
-where UNION ALL does not remove duplicate.
+where UNION ALL does not remove duplicates.
 
 ORDER BY may use an index.
 If there is no index for the given sort order, 
 then the result is fully read in memory and sorted before returning the first row.
+
+<h3 id="column">Column</h3>
+
+<h4>
+{ [ selectorName . ] propertyName
+<br/> | selectorName . *
+<br/> | EXCERPT([selectorName])
+<br/> | rep:spellcheck()
+<br/> } [ AS aliasName ]
+</h4>
+
+
+<h3 id="selector">Selector</h3>
+
+<h4>
+nodeTypeName [ AS selectorName ]
+</h4>
+
+The nodetype name can be either a primary nodetype or a mixin nodetype.
+
+
+
+<h3 id="join">Join</h3>
+
+<h4>
+{ INNER | { LEFT | RIGHT } OUTER } JOIN rightSelector ON
+<br/> { selectorName . propertyName = joinSelectorName . joinPropertyName }
+<br/> | { ISSAMENODE( selectorName , joinSelectorName [ , selectorPathName ] ) }
+<br/> | { ISCHILDNODE( childSelectorName , parentSelectorName ) }
+<br/> | { ISDESCENDANTNODE( descendantSelectorName , ancestorSelectorName ) }
+</h4>
+
+An inner join only returns entries if nodes are found on both the left and right selector.
+A left outer join will return entries that don't have matching nodes on the right selector.
+A right outer join will return entries that don't have matching nodes on the left selector.
+For outer joins, all the properties of the selector that doesn't have a matching node are null.
+
+
+<h3 id="constraint">Constraint</h3>
+
+<h4>
+andCondition [ { OR andCondition } [...] ]
+</h4>
+
+OR conditions of the form "X = 1 OR X = 2" are automatically converted to "X IN(1, 2)".
+
+OR conditions of the form "X = 1 OR Y = 2" are more complicated.
+Oak will try two options: first, what is the expected cost to use a UNION query
+(one query with X = 1, and a second query with Y = 2).
+If using UNION results in a lower estimated cost, then UNION is used.
+This can be the case, for example, if there are two distinct indexes,
+one on X and another on Y.
+
+
+<h3 id="andCondition">And Condition</h3>
+
+<h4>
+condition [ { AND condition } [...] ]
+</h4>
+
+A special case (not found in relational databases) is
+AND conditions of the form "X = 1 AND X = 2".
+They will match nodes with multi-valued properties, 
+where the property value contains both 1 and 2.
+
+<h3 id="condition">Condition</h3>
+
+<h4>
+comparison
+<br/> inComparison
+<br/> | NOT constraint
+<br/> | ( constraint )
+<br/> | [ selectorName . ] propertyName IS [ NOT ] NULL
+<br/> | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , fulltextSearchExpression )
+<br/> | { ISSAMENODE | ISCHILDNODE | ISDESCENDANTNODE } (  [ selectorName , ] pathString )
+<br/> | SIMILAR ( [ selectorName . ] { propertyName | * } , staticOperand )
+<br/> | NATIVE ( [ selectorName , ] language , staticOperand )
+<br/> | SPELLCHECK ( [ selectorName , ] staticOperand )
+<br/> | SUGGEST ( [ selectorName , ] staticOperand )
+</h4>
+
+
+<h3 id="comparison">Comparison</h3>
+
+<h4>
+dynamicOperand { = | &lt;&gt; | &lt; | &lt;= | &gt; | &gt;= | LIKE } staticOperand
+</h4>
+
+
+<h3 id="inComparison">In Comparison</h3>
+
+<h4>
+dynamicOperand IN ( staticOperand [, ...] )
+</h4>
+
+
+<h3 id="staticOperand">Static Operand</h3>
+
+<h4>
+literal
+<br/> | $ bindVariableName
+<br/> | CAST ( literal AS { 
+<br/>&nbsp;&nbsp; STRING 
+<br/>&nbsp;&nbsp; | BINARY 
+<br/>&nbsp;&nbsp; | DATE 
+<br/>&nbsp;&nbsp; | LONG 
+<br/>&nbsp;&nbsp; | DOUBLE 
+<br/>&nbsp;&nbsp; | DECIMAL 
+<br/>&nbsp;&nbsp; | BOOLEAN 
+<br/>&nbsp;&nbsp; | NAME 
+<br/>&nbsp;&nbsp; | PATH 
+<br/>&nbsp;&nbsp; | REFERENCE 
+<br/>&nbsp;&nbsp; | WEAKREFERENCE 
+<br/>&nbsp;&nbsp; | URI } )
+</h4>
+
+
+<h3 id="ordering">Ordering</h3>
+
+<h4>
+dynamicOperand [ ASC | DESC ]
+</h4>
+
+Ordering by an indexed property will use that index if possible.
+If there is no index that can be used for the given sort order,
+then the result is fully read in memory and sorted there.
+
+As a special case, sorting by "jcr:score" in descending order is ignored 
+(removed from the list), as this is what the fulltext index does anyway
+(and if no fulltext index is used, then the score doesn't apply).
+If for some reason you want to enforce sorting by "jcr:score", then
+you can use the workaround to order by "LOWER([jcr:score]) DESC".
+
+<h3 id="dynamicOperand">Dynamic Operand</h3>
+
+<h4>
+[ selectorName . ] propertyName
+<br/>  | LENGTH( dynamicOperand  )
+<br/>  | { NAME | LOCALNAME | SCORE } ( [ selectorName ] )
+<br/>  | { LOWER | UPPER } ( dynamicOperand )
+<br/>  | COALESCE ( dynamicOperand1, dynamicOperand2 )
+<br/>  | PROPERTY ( propertyName, type )
+</h4>
+
+The selector name is only needed if the query contains multiple selectors.
+
+COALESCE: this returns the first operand if it is not null,
+and the second operand otherwise.
+`@since Oak 1.8`
+
+PROPERTY: This feature is rarely used. 
+It allows to filter for all properties with a given type.
+Example: the condition `PROPERTY(*, Reference) = $uuid` will search for any property of type
+`Reference`.
 
 <h3 id="options">Options</h3>
 
