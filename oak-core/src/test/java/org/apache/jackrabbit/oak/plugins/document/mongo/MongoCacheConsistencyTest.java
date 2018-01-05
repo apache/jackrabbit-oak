@@ -99,7 +99,7 @@ public class MongoCacheConsistencyTest extends CacheConsistencyTestBase {
             }
 
             @Override
-            public DocumentStore createDocumentStore(int clusterId) {
+            public DocumentStore createDocumentStore(DocumentMK.Builder builder) {
                 return store;
             }
         };
