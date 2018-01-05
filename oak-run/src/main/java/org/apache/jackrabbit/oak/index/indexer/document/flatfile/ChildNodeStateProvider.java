@@ -39,6 +39,7 @@ import static com.google.common.collect.Iterators.transform;
 import static java.util.Collections.emptyIterator;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 class ChildNodeStateProvider {
@@ -94,15 +95,19 @@ class ChildNodeStateProvider {
                 "Did not found path [%s] in leftover iterator. Possibly node state accessed " +
                         "after main iterator has moved past it", path);
 
-        return new AbstractIterator<NodeStateEntry>() {
+        //Prepare an iterator to fetch all child node paths i.e. immediate and there children
+        Iterator<NodeStateEntry> itr = new AbstractIterator<NodeStateEntry>() {
             @Override
             protected NodeStateEntry computeNext() {
-                if (pitr.hasNext() && isImmediateChild(pitr.peek().getPath())) {
+                if (pitr.hasNext() && isAncestor(path, pitr.peek().getPath())) {
                     return pitr.next();
                 }
                 return endOfData();
             }
         };
+
+        //Filter out non immediate children
+        return Iterators.filter(itr, (e) -> isImmediateChild(e.getPath()));
     }
 
     private static String name(NodeStateEntry p) {

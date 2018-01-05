@@ -81,12 +81,12 @@ public class ChildNodeStateProviderTest {
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", 100);
 
         assertEquals(singletonList("b"), copyOf(childNames(p.children())));
-        assertEquals(3, citr.getCount());
+        assertEquals(5, citr.getCount());
 
         citr.reset();
         p = new ChildNodeStateProvider(citr, "/a/b", 100);
         assertEquals(singletonList("c"), copyOf(childNames(p.children())));
-        assertEquals(4, citr.getCount());
+        assertEquals(5, citr.getCount());
 
         p = new ChildNodeStateProvider(citr, "/a/b/c", 100);
         assertEquals(singletonList("d"), copyOf(childNames(p.children())));
@@ -126,6 +126,17 @@ public class ChildNodeStateProviderTest {
 
         assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
         assertEquals(5, citr.getCount());
+    }
+
+    @Test
+    public void childNames2() {
+        Set<String> preferred = ImmutableSet.of("jcr:content");
+        CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
+                "/a/c", "/a/c/status","/a/d", "/e", "/e/f"));
+        ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", 100);
+
+        assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
+        assertEquals(7, citr.getCount());
     }
 
     @Test
