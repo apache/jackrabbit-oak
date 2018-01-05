@@ -62,7 +62,10 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     }
 
     private NodeStateEntry computeNextEntry() {
-        maxBufferSize = Math.max(maxBufferSize, buffer.size());
+        if (buffer.size() > maxBufferSize) {
+            maxBufferSize = buffer.size();
+            log.info("Max buffer size changed {} for path {}", maxBufferSize, current.getPath());
+        }
         if (!buffer.isEmpty()) {
             return buffer.remove();
         }
