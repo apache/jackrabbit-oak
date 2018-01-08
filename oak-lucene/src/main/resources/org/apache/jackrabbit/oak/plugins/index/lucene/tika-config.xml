@@ -47,4 +47,5 @@
       <mime>image/x-xcf</mime>
     </parser>
   </parsers>
+  <service-loader initializableProblemHandler="ignore" dynamic="true"/>
 </properties>
