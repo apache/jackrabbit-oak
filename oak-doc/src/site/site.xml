@@ -79,6 +79,7 @@ under the License.
       <item href="participating.html" name="Participating" />
       <item href="developing-with-git.html" name="Developing with Git" />
       <item href="diagnostic-builds.html" name="Cutting diagnostic builds" />
+      <item href="branching.html" name="Branching off a new stable" />
       <item href="attribution.html" name="Attribution" />
       <item href="release-schedule.html" name="Release Schedule" />
     </menu>
