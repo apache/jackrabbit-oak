@@ -807,6 +807,8 @@ Bug
     pool listener with heap less than 2GB
     [OAK-7111] - Constraint violation message is imprecise when an
     unexpected child node is found
+    [OAK-7119] - Restrict de-serialization mechanism for older serialized cache
+    map in DataStoreCacheUtils to the classes required
     [OAK-7123] - ChildNodeStateProvider does not return all immediate
     children
 
