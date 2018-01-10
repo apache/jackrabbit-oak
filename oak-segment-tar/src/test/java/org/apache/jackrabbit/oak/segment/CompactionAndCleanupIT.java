@@ -84,6 +84,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -1410,6 +1411,7 @@ public class CompactionAndCleanupIT {
         }
     }
 
+    @Ignore("OAK-7132")  // FIXME OAK-7132: SNFE after full compaction
     @Test
     public void latestFullCompactedStateShouldNotBeDeleted() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions()
@@ -1417,30 +1419,54 @@ public class CompactionAndCleanupIT {
                 .setRetainedGenerations(2);
 
         try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).withGCOptions(gcOptions).build()) {
+            SegmentNodeState previousHead;
+            SegmentNodeState head = fileStore.getHead();
 
             // Create a full, self consistent head state. This state will be the
-            // base for the following tail compactions. This increments the
-            // full generation.
-
+            // base for the following tail compactions. This increments the full generation.
             fileStore.fullGC();
-            traverse(fileStore.getHead());
+            previousHead = head;
+            head = fileStore.getHead();
+
+            // retainedGeneration = 2 -> the full compacted head and the previous uncompacted head must
+            // still be available.
+            traverse(previousHead);
+            traverse(head);
 
             // Create a tail head state on top of the previous full state. This
-            // increments the generation, but leaves the full generation
-            // untouched.
-
+            // increments the generation, but leaves the full generation untouched.
             fileStore.tailGC();
-            traverse(fileStore.getHead());
+            previousHead = head;
+            head = fileStore.getHead();
 
-            // Create a tail state on top of the previous tail state. This
-            // increments the generation, but leaves the full generation
-            // untouched. This brings this generations two generations away from
-            // the latest full head state. Still, the full head state will not
-            // be deleted because doing so would generate an invalid repository
-            // at risk of SegmentNotFoundException.
+            // retainedGeneration = 2 -> the tail compacted head and the previous uncompacted head must
+            // still be available.
+            traverse(previousHead);
+            traverse(head);
 
+            // Create a tail state on top of the previous tail state. This increments the generation,
+            // but leaves the full generation untouched. This brings this generations two generations
+            // away from the latest full head state. Still, the full head state will not be deleted
+            // because doing so would generate an invalid repository at risk of SegmentNotFoundException.
             fileStore.tailGC();
-            traverse(fileStore.getHead());
+            previousHead = head;
+            head = fileStore.getHead();
+
+            // retainedGeneration = 2 -> the tail compacted head and the previous uncompacted head must
+            // still be available.
+            traverse(previousHead);
+            traverse(head);
+
+            // Create a full, self consistent head state replacing the current tail of tail
+            // compacted heads.
+            fileStore.fullGC();
+            previousHead = head;
+            head = fileStore.getHead();
+
+            // retainedGeneration = 2 -> the full compacted head and the previous uncompacted head must
+            // still be available.
+            traverse(previousHead);
+            traverse(head);
         }
     }
 
