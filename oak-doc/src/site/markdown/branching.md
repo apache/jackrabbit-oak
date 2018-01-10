@@ -55,6 +55,13 @@ Re-execute the first command **without** the `-DdryRun=true`
 
 Now you can checkout the branch and proceed with the release as normal.
 
+## 4. Final Checks and leftovers
+
+`release:branch` will leave behind the `oak-doc`'s pom. You'll have to 
+manually update the version referring to the new `oak-parent`. 
+See [r1820738](http://svn.apache.org/viewvc?view=revision&revision=1820738)
+for an example.
+
 ## References
 
 - http://maven.apache.org/maven-release/maven-release-plugin/branch-mojo.html
