@@ -34,6 +34,8 @@ import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertNotNull;
@@ -58,6 +60,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -85,6 +88,7 @@ import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -141,6 +145,9 @@ public class SegmentCompactionIT {
     private final ListeningScheduledExecutorService scheduler = listeningDecorator(executor);
     private final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
     private final TestGCMonitor gcMonitor = new TestGCMonitor(fileStoreGCMonitor);
+    private final SegmentGCOptions gcOptions = defaultGCOptions()
+                .setEstimationDisabled(true)
+                .setForceTimeout(3600);
     private final Set<Future<?>> writers = newConcurrentHashSet();
     private final Set<Future<?>> readers = newConcurrentHashSet();
     private final Set<Future<?>> references = newConcurrentHashSet();
@@ -167,7 +174,9 @@ public class SegmentCompactionIT {
     private volatile int nodeAddRatio = 40;
     private volatile int addStringRatio = 20;
     private volatile int addBinaryRatio = 0;
+    private final AtomicInteger compactionCount = new AtomicInteger();
     private volatile int compactionInterval = 2;
+    private volatile int fullCompactionCycle = 4;
     private volatile int maxCheckpoints = 2;
     private volatile int checkpointInterval = 10;
     private volatile boolean stopping;
@@ -237,9 +246,6 @@ public class SegmentCompactionIT {
 
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         MetricStatisticsProvider statisticsProvider = new MetricStatisticsProvider(mBeanServer, executor);
-        SegmentGCOptions gcOptions = defaultGCOptions()
-                .setEstimationDisabled(true)
-                .setForceTimeout(3600);
         FileStoreBuilder builder = fileStoreBuilder(folder.getRoot());
         fileStore = builder
                 .withMemoryMapping(true)
@@ -338,12 +344,16 @@ public class SegmentCompactionIT {
     }
 
     private synchronized void scheduleCompactor() {
-        LOG.info("Scheduling compaction after {} minutes", compactionInterval);
         compactor.cancel(false);
-        compactor = scheduler.schedule((new Compactor(fileStore, gcMonitor)), compactionInterval, MINUTES);
+        GCType gcType = compactionCount.get() % fullCompactionCycle == 0 ? FULL : TAIL;
+        LOG.info("Scheduling {} compaction after {} minutes", gcType, compactionInterval);
+        compactor = scheduler.schedule(
+                (new Compactor(fileStore, gcMonitor, gcOptions, gcType)),
+                compactionInterval, MINUTES);
         addCallback(compactor, new FutureCallback<Object>() {
             @Override
             public void onSuccess(Object result) {
+                compactionCount.incrementAndGet();
                 scheduleCompactor();
             }
 
@@ -702,10 +712,14 @@ public class SegmentCompactionIT {
     private class Compactor implements Runnable {
         private final FileStore fileStore;
         private final TestGCMonitor gcMonitor;
+        private final SegmentGCOptions gcOptions;
+        private final GCType gcType;
 
-        Compactor(FileStore fileStore, TestGCMonitor gcMonitor) {
+        Compactor(FileStore fileStore, TestGCMonitor gcMonitor, SegmentGCOptions gcOptions, GCType gcType) {
             this.fileStore = fileStore;
             this.gcMonitor = gcMonitor;
+            this.gcOptions = gcOptions;
+            this.gcType = gcType;
         }
 
         private <T> T run(Callable<T> thunk) throws Exception {
@@ -731,6 +745,7 @@ public class SegmentCompactionIT {
                         @Override
                         public Void call() throws Exception {
                             gcMonitor.resetCleaned();
+                            gcOptions.setGCType(gcType);
                             fileStore.getGCRunner().run();
                             return null;
                         }
@@ -899,6 +914,24 @@ public class SegmentCompactionIT {
         @Override
         public int getCompactionInterval() {
             return compactionInterval;
+        }
+
+        @Override
+        public void setFullCompactionCycle(int n) {
+            if (fullCompactionCycle != n) {
+                fullCompactionCycle = n;
+                scheduleCompactor();
+            }
+        }
+
+        @Override
+        public int getFullCompactionCycle() {
+            return fullCompactionCycle;
+        }
+
+        @Override
+        public int getCompactionCount() {
+            return compactionCount.get();
         }
 
         @Override
