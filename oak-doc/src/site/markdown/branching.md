@@ -59,8 +59,7 @@ Now you can checkout the branch and proceed with the release as normal.
 
 `release:branch` will leave behind the `oak-doc`'s pom. You'll have to 
 manually update the version referring to the new `oak-parent`. 
-See [r1820738](http://svn.apache.org/viewvc?view=revision&revision=1820738)
-for an example.
+See [r1820738](http://svn.apache.org/r1820738) for an example.
 
 ## References
 
