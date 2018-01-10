@@ -14,53 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document.rdb;
+package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyLowerLimit;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperLimit;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.sql.DataSource;
-
-import org.apache.jackrabbit.oak.plugins.document.AbstractRDBConnectionTest;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-public class RDBCacheConsistency2Test extends AbstractRDBConnectionTest {
+public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
 
-    private static final long CACHE_SIZE = 128 * 1024;
+    public ConcurrentQueryAndUpdate2IT(DocumentStoreFixture dsf) {
+        super(dsf);
+    }
+
+    private static final long CACHE_SIZE = 64 * 1024;
 
     private static final int NUM_NODES = 50;
-
-    private DocumentStore ds;
 
     private AtomicLong counter = new AtomicLong();
 
     @Override
-    protected DocumentMK.Builder newBuilder(DataSource db) throws Exception {
-        String prefix = "T" + Long.toHexString(System.currentTimeMillis());
-        RDBOptions opt = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
-        return new DocumentMK.Builder().clock(getTestClock())
-                .memoryCacheSize(CACHE_SIZE).setLeaseCheck(false)
-                .setRDBConnection(dataSource, opt);
-    }
-
-    @Before
-    public void before() {
-        ds = mk.getDocumentStore();
+    public DocumentMK.Builder getBuilder() {
+        DocumentMK.Builder defaultBuilder = super.getBuilder();
+        return defaultBuilder.memoryCacheSize(CACHE_SIZE);
     }
 
     /**
@@ -80,7 +67,7 @@ public class RDBCacheConsistency2Test extends AbstractRDBConnectionTest {
             ops.add(op);
         }
         ds.remove(NODES, ids);
-        ds.create(NODES, ops);
+        assertTrue(ds.create(NODES, ops));
 
         for (int i = 0; i < 1000; i++) {
             Thread q = new Thread(new Runnable() {
@@ -114,6 +101,10 @@ public class RDBCacheConsistency2Test extends AbstractRDBConnectionTest {
     }
 
     private void queryDocuments() {
+        try {
+            Thread.sleep(0, ThreadLocalRandom.current().nextInt(1000, 10000));
+        } catch (InterruptedException ignore) {
+        }
         ds.query(NODES, getKeyLowerLimit("/"), getKeyUpperLimit("/"), 100);
     }
 
