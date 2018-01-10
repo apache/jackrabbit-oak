@@ -882,16 +882,13 @@ public final class DocumentNodeStore
      * {@link #done(Commit, boolean, CommitInfo)} or {@link #canceled(Commit)},
      * depending on the result of the commit.
      *
-     * @param base the base revision for the commit or <code>null</code> if the
-     *             commit should use the current head revision as base.
+     * @param base the base revision for the commit.
      * @param numBranchCommits the number of branch commits to merge.
      * @return a new merge commit.
      */
     @Nonnull
-    MergeCommit newMergeCommit(@Nullable RevisionVector base, int numBranchCommits) {
-        if (base == null) {
-            base = getHeadRevision();
-        }
+    private MergeCommit newMergeCommit(@Nonnull RevisionVector base, int numBranchCommits) {
+        checkNotNull(base);
         backgroundOperationLock.readLock().lock();
         boolean success = false;
         MergeCommit c;
