@@ -39,11 +39,9 @@ import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilderBase;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
@@ -55,9 +53,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A JSON-based wrapper around the NodeStore implementation that stores the
  * data in a {@link DocumentStore}. It is used for testing purpose only.
- * @deprecated Use {@link DocumentNodeStore} instead.
  */
-@Deprecated
 public class DocumentMK {
 
     static final Logger LOG = LoggerFactory.getLogger(DocumentMK.class);
@@ -117,14 +113,6 @@ public class DocumentMK {
 
     public String getHeadRevision() throws DocumentStoreException {
         return nodeStore.getHeadRevision().toString();
-    }
-
-    public String checkpoint(long lifetime) throws DocumentStoreException {
-        try {
-            return nodeStore.checkpoint(lifetime);
-        } catch (DocumentStoreException e) {
-            throw new DocumentStoreException(e);
-        }
     }
 
     public String diff(String fromRevisionId,
@@ -477,12 +465,7 @@ public class DocumentMK {
 
     /**
      * A builder for a DocumentMK instance.
-     * @deprecated Use {@link DocumentNodeStoreBuilder} instead or one of the
-     *  backend implementation specific variants {@link MongoDocumentNodeStoreBuilder}
-     *  or {@link RDBDocumentNodeStoreBuilder}.
-     *
      */
-    @Deprecated
     public static class Builder extends MongoDocumentNodeStoreBuilderBase<Builder> {
         public static final long DEFAULT_MEMORY_CACHE_SIZE = DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
         public static final int DEFAULT_NODE_CACHE_PERCENTAGE = DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
