@@ -88,6 +88,10 @@ public class OakFongo extends Fongo {
                                                    List<?> writeRequests,
                                                    WriteConcern aWriteConcern) {}
 
+    protected void beforeFind(DBObject query, DBObject projection) {}
+
+    protected void afterFind(DBCursor cursor) {}
+
     protected void afterExecuteBulkWriteOperation(BulkWriteResult result) {}
     private class OakFongoDB extends FongoDB {
 
@@ -204,6 +208,14 @@ public class OakFongo extends Fongo {
             beforeExecuteBulkWriteOperation(ordered, bypassDocumentValidation, writeRequests, aWriteConcern);
             BulkWriteResult result = super.executeBulkWriteOperation(ordered, bypassDocumentValidation, writeRequests, aWriteConcern);
             afterExecuteBulkWriteOperation(result);
+            return result;
+        }
+
+        @Override
+        public DBCursor find(DBObject query, DBObject projection) {
+            beforeFind(query, projection);
+            DBCursor result = super.find(query, projection);
+            afterFind(result);
             return result;
         }
     }
