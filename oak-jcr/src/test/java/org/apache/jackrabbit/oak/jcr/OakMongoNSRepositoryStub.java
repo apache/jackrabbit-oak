@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 /**
  * A repository stub using the DocumentNodeStore.
  */
-public class OakMongoNSRepositoryStub extends OakRepositoryStub {
+public class OakMongoNSRepositoryStub extends BaseRepositoryStub {
 
     static {
         MongoConnection c = MongoUtils.getConnection();

@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 /**
  * A repository stub implementation for Oak Segment Tar
  */
-public class OakSegmentTarRepositoryStub extends OakRepositoryStub {
+public class OakSegmentTarRepositoryStub extends BaseRepositoryStub {
 
     private final FileStore store;
 
