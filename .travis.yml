@@ -15,16 +15,17 @@
 
 sudo: false
 env:
-  - MODULE=oak-jcr
-  - MODULE=oak-store-document
-  - MODULE=oak-it
-  - MODULE=oak-lucene
-  - MODULE=oak-run
-  - MODULE=oak-it-osgi
-  - MODULE=oak-pojosr
-  - MODULE=oak-upgrade
+  - MODULE=oak-jcr PROFILE="-PintegrationTesting" UT="-Dsurefire.skip.ut=true"
+  - MODULE=oak-jcr PROFILE="" UT=""
+  - MODULE=oak-store-document PROFILE="-PintegrationTesting" UT=""
+  - MODULE=oak-it PROFILE="-PintegrationTesting" UT=""
+  - MODULE=oak-lucene PROFILE="-PintegrationTesting" UT=""
+  - MODULE=oak-run PROFILE="-PintegrationTesting" UT=""
+  - MODULE=oak-it-osgi PROFILE="-PintegrationTesting" UT=""
+  - MODULE=oak-pojosr PROFILE="-PintegrationTesting" UT=""
+  - MODULE=oak-upgrade PROFILE="-PintegrationTesting" UT=""
 install:  mvn --batch-mode -DskipTests -Dbaseline.skip=true install -pl :${MODULE} -am -nsu
-script:   mvn --batch-mode clean verify -Dbaseline.skip=true -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
+script:   mvn --batch-mode clean verify -Dbaseline.skip=true ${UT} ${PROFILE} -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
 language: java
 jdk:
   - oraclejdk8
