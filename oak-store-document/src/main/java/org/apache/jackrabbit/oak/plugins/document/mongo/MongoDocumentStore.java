@@ -490,7 +490,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         } catch (RuntimeException e) {
             t = e;
         }
-        throw new DocumentStoreException("Failed to load document with " + key, t);
+        throw handleException(t, collection, key);
     }
 
     /**
@@ -526,7 +526,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             }
         }
         if (ex != null) {
-            throw ex;
+            throw handleException(ex, collection, key);
         } else {
             // impossible to get here
             throw new IllegalStateException();
@@ -581,19 +581,23 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                                               String indexedProperty,
                                               long startValue,
                                               int limit) {
-        return queryInternal(collection, fromKey, toKey, indexedProperty,
-                startValue, limit, maxQueryTimeMS);
+        try {
+            return queryInternal(collection, fromKey, toKey, indexedProperty,
+                    startValue, limit, maxQueryTimeMS);
+        } catch (MongoException e) {
+            throw handleException(e, collection, Lists.newArrayList(fromKey, toKey));
+        }
     }
 
     @SuppressWarnings("unchecked")
     @Nonnull
-    <T extends Document> List<T> queryInternal(Collection<T> collection,
-                                                       String fromKey,
-                                                       String toKey,
-                                                       String indexedProperty,
-                                                       long startValue,
-                                                       int limit,
-                                                       long maxQueryTime) {
+    protected <T extends Document> List<T> queryInternal(Collection<T> collection,
+                                                         String fromKey,
+                                                         String toKey,
+                                                         String indexedProperty,
+                                                         long startValue,
+                                                         int limit,
+                                                         long maxQueryTime) {
         log("query", fromKey, toKey, indexedProperty, startValue, limit);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
@@ -1700,7 +1704,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
     }
 
-    private <T extends Document> DocumentStoreException handleException(Exception ex,
+    private <T extends Document> DocumentStoreException handleException(Throwable ex,
                                                                         Collection<T> collection,
                                                                         Iterable<String> ids) {
         if (collection == Collection.NODES) {
@@ -1711,7 +1715,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return DocumentStoreException.convert(ex, ids);
     }
 
-    private <T extends Document> DocumentStoreException handleException(Exception ex,
+    private <T extends Document> DocumentStoreException handleException(Throwable ex,
                                                                         Collection<T> collection,
                                                                         String id) {
         return handleException(ex, collection, Collections.singleton(id));
