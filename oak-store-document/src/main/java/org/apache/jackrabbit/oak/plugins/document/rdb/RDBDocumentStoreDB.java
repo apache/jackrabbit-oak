@@ -674,6 +674,80 @@ public enum RDBDocumentStoreDB {
             }
             return result.toString();
         }
+
+        private long parseSize(String readable) {
+            try {
+                if (readable != null && readable.endsWith(" KB")) {
+                    return 1024 * Long.parseLong(readable.substring(0, readable.length() - 3));
+                } else {
+                    return -1;
+                }
+            } catch (NumberFormatException ex) {
+                return -1;
+            }
+        }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+            Map<String, String> result = new HashMap<String, String>();
+            Connection con = null;
+
+            // table data
+            try {
+                con = ch.getROConnection();
+                try (PreparedStatement stmt = con.prepareStatement("exec sp_spaceused ?")) {
+                    stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            long treserved = parseSize(rs.getString("reserved"));
+                            long tdata = parseSize(rs.getString("data"));
+                            long tindexSize = parseSize(rs.getString("index_size"));
+                            long tunused = parseSize(rs.getString("unused"));
+                            if (treserved >= 0 && tdata >= 0 && tindexSize >= 0 && tunused >= 0) {
+                                result.put("storageSize", Long.toString(treserved + tdata + tindexSize + tunused));
+                                result.put("size", Long.toString(treserved + tdata + tunused));
+                                result.put("totalIndexSize", Long.toString(tindexSize));
+                            }
+                            String data = extractFields(rs, "rows reserved data index_size unused");
+                            result.put("_data", data);
+                        }
+                    }
+                    con.commit();
+                }
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                ch.closeConnection(con);
+            }
+
+            // index data
+            try {
+                con = ch.getROConnection();
+                try (PreparedStatement stmt = con.prepareStatement(
+                        "SELECT i.[name] AS name, SUM(s.[row_count]) as rows, SUM(s.[used_page_count] * 8) as usedKB, SUM(s.[reserved_page_count] * 8) as reservedKB "
+                                + "FROM sys.dm_db_partition_stats AS s "
+                                + "INNER JOIN sys.indexes AS i ON s.[object_id] = i.[object_id] "
+                                + "    AND s.[index_id] = i.[index_id] WHERE i.[object_id]=OBJECT_ID(?) " + "GROUP BY i.[name]")) {
+                    stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String index = rs.getString("name");
+                            String data = extractFields(rs, "rows usedKB reservedKB");
+                            result.put("index." + index + "._data", data);
+                        }
+                    }
+                    con.commit();
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                ch.closeConnection(con);
+            }
+
+            return result;
+        }
     };
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStoreDB.class);
@@ -836,6 +910,11 @@ public enum RDBDocumentStoreDB {
      * SHOW TABLE STATUS Syntax</a>, <a href=
      * "https://dev.mysql.com/doc/refman/5.7/en/show-index.html">13.7.5.22 SHOW
      * INDEX Syntax</a>
+     * <li>{@link #MSSQL} - Developer Reference for SQL Server: <a href=
+     * "https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-db-partition-stats-transact-sql">sys.dm_db_partition_stats
+     * (Transact-SQL)</a>, <a href=
+     * "https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-spaceused-transact-sql">sp_spaceused
+     * (Transact-SQL)</a>
      * </ul>
      */
     public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
