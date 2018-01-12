@@ -32,7 +32,7 @@ public interface NodeStateIndexer extends Closeable{
 
     boolean shouldInclude(NodeDocument doc);
 
-    void index(NodeStateEntry entry) throws IOException, CommitFailedException;
+    boolean index(NodeStateEntry entry) throws IOException, CommitFailedException;
 
     boolean indexesRelativeNodes();
 
