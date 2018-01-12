@@ -151,27 +151,25 @@ public enum RDBDocumentStoreDB {
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
             Map<String, String> result = new HashMap<String, String>();
             Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
             SortedSet<String> indexNames = Collections.emptySortedSet();
 
             // get index names
             try {
                 SortedSet<String> in = new TreeSet<String>();
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT indexname FROM pg_indexes WHERE tablename=?");
-                stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    in.add(rs.getString(1));
+                try (PreparedStatement stmt = con.prepareStatement("SELECT indexname FROM pg_indexes WHERE tablename=?")) {
+                    stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            in.add(rs.getString(1));
+                        }
+                    }
                 }
                 con.commit();
                 indexNames = in;
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -180,30 +178,30 @@ public enum RDBDocumentStoreDB {
                 StringBuilder query = new StringBuilder("SELECT pg_total_relation_size(?), pg_table_size(?), pg_indexes_size(?)");
                 indexNames.forEach(name -> query.append(", pg_relation_size(?)"));
                 con = ch.getROConnection();
-                stmt = con.prepareStatement(query.toString());
-                int i = 1;
-                stmt.setString(i++, tableName);
-                stmt.setString(i++, tableName);
-                stmt.setString(i++, tableName);
-                for(String name : indexNames) {
-                    stmt.setString(i++, name);
-                }
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    i = 1;
-                    result.put("storageSize", rs.getString(i++));
-                    result.put("size", rs.getString(i++));
-                    result.put("totalIndexSize", rs.getString(i++));
+                try (PreparedStatement stmt = con.prepareStatement(query.toString())) {
+                    int i = 1;
+                    stmt.setString(i++, tableName);
+                    stmt.setString(i++, tableName);
+                    stmt.setString(i++, tableName);
                     for (String name : indexNames) {
-                        result.put("indexSizes." + name, rs.getString(i++));
+                        stmt.setString(i++, name);
+                    }
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            i = 1;
+                            result.put("storageSize", rs.getString(i++));
+                            result.put("size", rs.getString(i++));
+                            result.put("totalIndexSize", rs.getString(i++));
+                            for (String name : indexNames) {
+                                result.put("indexSizes." + name, rs.getString(i++));
+                            }
+                        }
                     }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result;
@@ -290,8 +288,6 @@ public enum RDBDocumentStoreDB {
             Map<String, String> result = new HashMap<String, String>();
 
             Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
 
             // table data
             String tableStats = System.getProperty(SYSPROP_PREFIX + ".DB2.TABLE_STATS",
@@ -299,20 +295,20 @@ public enum RDBDocumentStoreDB {
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT * FROM syscat.tables WHERE tabschema=? and tabname=?");
-                stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
-                stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String data = extractFields(rs, tableStats);
-                    result.put("_data", data);
+                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM syscat.tables WHERE tabschema=? and tabname=?")) {
+                    stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
+                    stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String data = extractFields(rs, tableStats);
+                            result.put("_data", data);
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -322,21 +318,22 @@ public enum RDBDocumentStoreDB {
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT * FROM syscat.indexes WHERE tabschema=? and tabname=?");
-                stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
-                stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String index = rs.getString("indname");
-                    String data = extractFields(rs, indexStats);
-                    result.put("index." + index + "._data", data);
+                try (PreparedStatement stmt = con
+                        .prepareStatement("SELECT * FROM syscat.indexes WHERE tabschema=? and tabname=?")) {
+                    stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
+                    stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String index = rs.getString("indname");
+                            String data = extractFields(rs, indexStats);
+                            result.put("index." + index + "._data", data);
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -404,8 +401,6 @@ public enum RDBDocumentStoreDB {
             Map<String, String> result = new HashMap<String, String>();
 
             Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
 
             // table data
             String tableStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS",
@@ -413,19 +408,19 @@ public enum RDBDocumentStoreDB {
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT * FROM user_tables WHERE table_name=?");
-                stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String data = extractFields(rs, tableStats);
-                    result.put("_data", data.toString());
+                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM user_tables WHERE table_name=?")) {
+                    stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String data = extractFields(rs, tableStats);
+                            result.put("_data", data.toString());
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -435,20 +430,20 @@ public enum RDBDocumentStoreDB {
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT * FROM user_indexes WHERE table_name=?");
-                stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String index = rs.getString("index_name");
-                    String data = extractFields(rs, indexStats);
-                    result.put("index." + index + "._data", data);
+                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM user_indexes WHERE table_name=?")) {
+                    stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String index = rs.getString("index_name");
+                            String data = extractFields(rs, indexStats);
+                            result.put("index." + index + "._data", data);
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -550,8 +545,6 @@ public enum RDBDocumentStoreDB {
             Map<String, String> result = new HashMap<String, String>();
 
             Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
 
             // table data
             String tableStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
@@ -559,19 +552,19 @@ public enum RDBDocumentStoreDB {
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("show table status from " + catalog + " where name=?");
-                stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String data = extractFields(rs, tableStats);
-                    result.put("_data", data.toString());
+                try (PreparedStatement stmt = con.prepareStatement("show table status from " + catalog + " where name=?")) {
+                    stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String data = extractFields(rs, tableStats);
+                            result.put("_data", data.toString());
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -581,19 +574,19 @@ public enum RDBDocumentStoreDB {
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("show index from " + tableName + " in " + catalog);
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String index = rs.getString("key_name");
-                    String data = extractFields(rs, indexStats);
-                    result.put("index." + index + "._data", data);
+                try (PreparedStatement stmt = con.prepareStatement("show index from " + tableName + " in " + catalog)) {
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String index = rs.getString("key_name");
+                            String data = extractFields(rs, indexStats);
+                            result.put("index." + index + "._data", data);
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
