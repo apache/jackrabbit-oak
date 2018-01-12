@@ -278,10 +278,12 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         }
 
         @Override
-        public void index(NodeStateEntry entry) throws IOException, CommitFailedException {
+        public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
             if (p.test(entry.getPath())) {
                 paths.add(entry.getPath());
+                return true;
             }
+            return false;
         }
 
         @Override
