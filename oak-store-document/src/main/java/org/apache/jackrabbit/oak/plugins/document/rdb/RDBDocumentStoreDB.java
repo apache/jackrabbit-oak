@@ -73,6 +73,56 @@ public enum RDBDocumentStoreDB {
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 11, description);
         }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+            Map<String, String> result = new HashMap<String, String>();
+            Connection con = null;
+
+            try {
+                con = ch.getROConnection();
+                try (PreparedStatement stmt = con.prepareStatement("SELECT T.* FROM TABLE (SYSCS_DIAG.SPACE_TABLE(?,?)) AS T")) {
+                    stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
+                    stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        long totalSize = 0;
+                        long totalIndexSize = 0;
+                        int nindexes = 0;
+                        while (rs.next()) {
+                            String conglomerateName = rs.getString("CONGLOMERATENAME");
+                            int isIndex = rs.getInt("ISINDEX");
+                            long numAllocatedPages = rs.getLong("NUMALLOCATEDPAGES");
+                            long numFreePages = rs.getLong("NUMFREEPAGES");
+                            long numUnfilledPages = rs.getLong("NUMUNFILLEDPAGES");
+                            int pageSize = rs.getInt("PAGESIZE");
+                            String raw = "NUMALLOCATEDPAGES=" + numAllocatedPages + ", NUMFREEPAGES=" + numFreePages
+                                    + ", NUMUNFILLEDPAGES=" + numUnfilledPages + ", PAGESIZE=" + pageSize;
+                            long size = pageSize * (numAllocatedPages + numFreePages);
+                            if (isIndex == 0) {
+                                result.put("_data", raw);
+                                result.put("storageSize", Long.toString(size));
+                            } else {
+                                result.put(conglomerateName + "._data", raw);
+                                result.put("indexSizes." + conglomerateName, Long.toString(size));
+                                totalIndexSize += size;
+                                nindexes += 1;
+                            }
+                            totalSize += pageSize * (numAllocatedPages + numFreePages);
+                        }
+                        result.put("totalSize", Long.toString(totalSize));
+                        result.put("totalIndexSize", Long.toString(totalIndexSize));
+                        result.put("nindexes", Long.toString(nindexes));
+                    }
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                ch.closeConnection(con);
+            }
+
+            return result;
+        }
     },
 
     POSTGRES("PostgreSQL") {
@@ -908,6 +958,8 @@ public enum RDBDocumentStoreDB {
      * (Transact-SQL)</a>, <a href=
      * "https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-spaceused-transact-sql">sp_spaceused
      * (Transact-SQL)</a>
+     * <li>{@link #DERBY} - Derby Reference Manual: <a href=
+     * "http://db.apache.org/derby/docs/10.14/ref/rrefsyscsdiagspacetable.html">SYSCS_DIAG.SPACE_TABLE diagnostic table function</a>
      * </ul>
      */
     public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
