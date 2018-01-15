@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -72,7 +74,8 @@ public class S3DataStoreFactory implements BlobStoreFactory {
     public BlobStore create(Closer closer) throws IOException {
         S3DataStore delegate = createDS(directory, props);
         // Initialize a default stats provider
-        StatisticsProvider statsProvider = new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor());
+        final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
         delegate.setStatisticsProvider(statsProvider);
         // Reduce staging purge interval to 60 seconds
         delegate.setStagingPurgeInterval(60);
@@ -83,6 +86,19 @@ public class S3DataStoreFactory implements BlobStoreFactory {
             throw new IOException(e);
         }
         closer.register(asCloseable(delegate));
+        closer.register(new Closeable() {
+            @Override
+            public void close() throws IOException {
+                executor.shutdown();
+                try {
+                    if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                        throw new IOException("Can't shut down the executor");
+                    }
+                } catch (InterruptedException e) {
+                    throw new IOException(e);
+                }
+            }
+        });
         if (ignoreMissingBlobs) {
             return new SafeDataStoreBlobStore(delegate);
         } else {
