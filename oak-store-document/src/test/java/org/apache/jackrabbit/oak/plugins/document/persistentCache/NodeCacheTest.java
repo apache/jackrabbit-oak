@@ -43,14 +43,18 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Counting;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -142,6 +146,34 @@ public class NodeCacheTest {
         assertNotContains(nodeCache, "/b/c2");
         assertContains(nodeCache, "/a");
         assertContains(nodeCache, "/a/c1");
+    }
+
+    // OAK-7153
+    @Ignore
+    @Test
+    public void persistentCacheAccessForIncludedPathOnly() throws Exception {
+        PathFilter pf = new PathFilter(singletonList("/a"), emptyList());
+        Predicate<String> p = path -> pf.filter(path) == PathFilter.Result.INCLUDE;
+        initializeNodeStore(false, b -> b.setNodeCachePredicate(p));
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("x");
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // clean caches
+        ns.getNodeCache().invalidateAll();
+        ns.getNodeChildrenCache().invalidateAll();
+
+        MeterStats stats = statsProvider.getMeter("PersistentCache.NodeCache.node.REQUESTS", StatsOptions.DEFAULT);
+        // hasChildNode() is not cached and will cause a request
+        // to the persistent cache
+        long requests = stats.getCount() + 1;
+        ns.getRoot().hasChildNode("a");
+        assertEquals(requests, stats.getCount());
+
+        // next call must not cause request to persistent cache
+        // because path is not included
+        ns.getRoot().hasChildNode("b");
+        assertEquals(requests, stats.getCount());
     }
 
     private void initializeNodeStore(boolean asyncCache) {
