@@ -124,6 +124,7 @@ public class CacheMap<K, V> {
             }
             try {
                 map.clear();
+                return;
             } catch (Exception e) {
                 reopen(i, e);
             }
