@@ -26,14 +26,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataIdentifierCreationResult;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataIdentifierFactory;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
@@ -46,7 +45,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Iterator;
@@ -69,7 +67,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     private Set<String> roles = Sets.newConcurrentHashSet();
     private boolean isInitialized = false;
 
-    //@Reference
+    @Reference
     DelegateHandler delegateHandler = new IntelligentDelegateHandler();
 
     private String path;
@@ -167,7 +165,6 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
 
         DataRecord result = null;
 
-        DataStoreException aggregateException = null;
         try {
             Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator(identifier);
             if (iter.hasNext()) {
@@ -196,20 +193,11 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
             }
         }
         catch (DataStoreException e) {
-            if (null == aggregateException) {
-                aggregateException = new DataStoreException(e);
-            }
-            else {
-                aggregateException.addSuppressed(e);
-            }
+            LOG.error("Error retrieving record [{}]", identifier, e);
+            return null;
         }
         if (null == result) {
-            if (null != aggregateException) {
-                LOG.error("Error retrieving record [{}]", identifier, aggregateException.getSuppressed()[0]);
-            }
-            else {
-                LOG.error("Error retrieving record [{}]", identifier);
-            }
+            LOG.error("Error retrieving record [{}]", identifier);
         }
         return result;
     }
@@ -293,15 +281,8 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
      */
     @Override
     public DataRecord addRecord(InputStream stream, BlobOptions options) throws DataStoreException {
-        DataIdentifierCreationResult result;
-        try {
-            result = DataIdentifierFactory.createIdentifier(stream, tmp);
-        }
-        catch (NoSuchAlgorithmException nsae) {
-            throw new DataStoreException("Unable to create identifier from blob stream", nsae);
-        }
-        catch (IOException ioe) {
-            throw new DataStoreException("Unable to save blob stream to temporary file", ioe);
+        if (null == stream) {
+            throw new IllegalArgumentException("stream");
         }
 
         // NOTE:  There is discussion going on as to whether we should update the last modified
@@ -325,63 +306,37 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         // -MR
 
         DataStore selectedDataStore = null;
-        Iterator<DataStore> iter = delegateHandler.getWritableDelegatesIterator(result.getIdentifier());
+        Iterator<DataStore> iter = delegateHandler.getWritableDelegatesIterator();
         if (iter.hasNext()) {
             selectedDataStore = iter.next();
         }
-        else {
-            iter = delegateHandler.getWritableDelegatesIterator();
-            if (iter.hasNext()) {
-                selectedDataStore = iter.next();
-            }
-        }
 
         if (null != selectedDataStore) {
-            return writeRecord(selectedDataStore,
-                    result.getIdentifier(),
-                    result.getTmpFile(),
-                    options);
+            return writeRecord(selectedDataStore, stream, options);
         }
         else {
-            LOG.warn("Unable to find a suitable delegate data store for identifier {} in addRecord", result.getIdentifier());
+            LOG.warn("Unable to find a suitable delegate data store in addRecord");
         }
         return null;
     }
 
-    private DataRecord writeRecord(DataStore dataStore, DataIdentifier identifier, File tmpFile, BlobOptions options) throws DataStoreException {
-        DataRecord result = null;
+    private DataRecord writeRecord(DataStore dataStore, InputStream stream, BlobOptions options) throws DataStoreException {
+        DataRecord record;
         try {
-//            if (!(dataStore instanceof CompositeDataStoreAware)) {
-//                LOG.warn("Inefficient blob store delegation:  {} using delegate {} which is not an instance of {}",
-//                        this.getClass().getSimpleName(),
-//                        dataStore.getClass().getSimpleName(),
-//                        CompositeDataStoreAware.class.getSimpleName());
-//                LOG.warn("Consider rewriting {} to implement {}",
-//                        dataStore.getClass().getSimpleName(),
-//                        CompositeDataStoreAware.class.getSimpleName());
-//                if (dataStore instanceof TypedDataStore) {
-//                    result = ((TypedDataStore) dataStore).addRecord(new FileInputStream(tmpFile), options);
-//                }
-//                else {
-                    result = dataStore.addRecord(new FileInputStream(tmpFile));
-//                }
-//            }
-//            else if (dataStore instanceof TypedDataStore) {
-//                result = ((CompositeDataStoreAware) dataStore).addRecord(identifier, tmpFile, options);
-//            }
-//            else {
-//                result = ((CompositeDataStoreAware) dataStore).addRecord(identifier, tmpFile);
-//            }
-
-            if (null != result) {
-                delegateHandler.mapIdentifierToDelegate(identifier, dataStore);
+            if (dataStore instanceof TypedDataStore) {
+                record = ((TypedDataStore) dataStore).addRecord(stream, options);
+            } else {
+                record = dataStore.addRecord(stream);
+            }
+            if (null != record) {
+                delegateHandler.mapIdentifierToDelegate(record.getIdentifier(), dataStore);
             }
         }
         catch (Exception e) {
-            LOG.error("Error adding record");
+            LOG.error("Error adding record", e);
             throw new DataStoreException("Error adding record", e);
         }
-        return result;
+        return record;
     }
 
     @Override

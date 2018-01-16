@@ -28,6 +28,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -160,6 +161,15 @@ public class CompositeDataStoreDSTest {
         assertEquals(3, verifyRecordCount(cds));
     }
 
+    // This test was written with possible future functionality in mind, where there may be
+    // multiple delegate data stores that can be written to, and we should select the one
+    // that already contains a matching data identifier for the record.
+    // This functionality requires pre-reading the stream to compute the identifier before
+    // handing the stream off to the delegate data store, which is additional complexity not
+    // required for the first composite data store use case which is 1 read-only and 1
+    // writable delegate.
+    // -MR
+    @Ignore
     @Test
     public void testAddRecordAddsToDelegateWithMatchingId() throws RepositoryException, IOException {
         CompositeDataStore cds = createEmptyCompositeDataStore(twoRoles);
@@ -205,7 +215,7 @@ public class CompositeDataStoreDSTest {
             cds.addRecord(null);
             fail();
         }
-        catch (NullPointerException e) { }
+        catch (IllegalArgumentException e) { }
     }
 
     @Test

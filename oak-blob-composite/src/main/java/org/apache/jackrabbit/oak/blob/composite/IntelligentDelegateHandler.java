@@ -24,6 +24,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
@@ -44,7 +45,7 @@ public class IntelligentDelegateHandler implements DelegateHandler {
     private List<DataStore> nonFilteredWritableDataStores = Lists.newArrayList();
     private List<DataStore> nonFilteredReadOnlyDataStores = Lists.newArrayList();
 
-    //@Reference
+    @Reference
     private DelegateMinRecordLengthSelector minRecordLengthSelector = new GuaranteedMinRecordLengthSelector();
 
     @Override

@@ -54,7 +54,8 @@ public class CompositeDataStoreServiceTest {
     @Before
     public void setup() {
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-//        context.registerService(DelegateHandler.class, new IntelligentDelegateHandler());
+        context.registerService(DelegateMinRecordLengthSelector.class, new GuaranteedMinRecordLengthSelector());
+        context.registerService(DelegateHandler.class, new IntelligentDelegateHandler());
     }
 
     private DataStoreProvider createDelegateDataStore(final String role) {
