@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -241,14 +242,18 @@ public class SegmentTarFixture extends OakFixture {
                 builder.withBlobStore(blobStoreFixtures[n + i].setUp());
             }
         }
-        
+
+        SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions()
+            .setRetainedGenerations(1);
+
         stores[n + i] = builder
-                .withMaxFileSize(maxFileSize)
-                .withStatisticsProvider(statsProvider)
-                .withSegmentCacheSize(segmentCacheSize)
-                .withMemoryMapping(memoryMapping)
-                .withSnfeListener(IGNORE_SNFE)
-                .build();
+            .withGCOptions(gcOptions)
+            .withMaxFileSize(maxFileSize)
+            .withStatisticsProvider(statsProvider)
+            .withSegmentCacheSize(segmentCacheSize)
+            .withMemoryMapping(memoryMapping)
+            .withSnfeListener(IGNORE_SNFE)
+            .build();
         
         int port = 0;
         try (ServerSocket socket = new ServerSocket(0)) {
