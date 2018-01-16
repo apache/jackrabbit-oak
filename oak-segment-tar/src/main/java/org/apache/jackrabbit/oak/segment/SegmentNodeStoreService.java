@@ -441,11 +441,13 @@ public class SegmentNodeStoreService {
             );
         }
         SegmentGCOptions gcOptions = new SegmentGCOptions(configuration.getPauseCompaction(), configuration.getRetryCount(), configuration.getForceCompactionTimeout())
-                .setRetainedGenerations(configuration.getRetainedGenerations())
                 .setGcSizeDeltaEstimation(configuration.getSizeDeltaEstimation())
                 .setMemoryThreshold(configuration.getMemoryThreshold())
                 .setEstimationDisabled(configuration.getDisableEstimation())
                 .setGCLogInterval(configuration.getGCProcessLog());
+        if (configuration.isStandbyInstance()) {
+            gcOptions.setRetainedGenerations(1);
+        }
 
         // Build the FileStore
         FileStoreBuilder builder = fileStoreBuilder(configuration.getSegmentDirectory())
