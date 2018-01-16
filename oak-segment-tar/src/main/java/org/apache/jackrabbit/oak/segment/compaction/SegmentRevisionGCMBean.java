@@ -20,18 +20,23 @@
 package org.apache.jackrabbit.oak.segment.compaction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentRevisionGCMBean
         extends AnnotatedStandardMBean
         implements SegmentRevisionGC {
+
+    private static final Logger log = LoggerFactory.getLogger(SegmentRevisionGCMBean.class);
 
     @Nonnull
     private final FileStore fileStore;
@@ -91,7 +96,14 @@ public class SegmentRevisionGCMBean
 
     @Override
     public void setRetainedGenerations(int retainedGenerations) {
-        gcOptions.setRetainedGenerations(retainedGenerations);
+        if (retainedGenerations != RETAINED_GENERATIONS_DEFAULT) {
+            log.warn(
+                "The number of retained generations defaults to {} and can't be " +
+                    "changed. This configuration option is considered deprecated " +
+                    "and will be removed in the future.",
+                RETAINED_GENERATIONS_DEFAULT
+            );
+        }
     }
 
     @Override
