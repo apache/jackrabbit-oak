@@ -178,8 +178,13 @@ public class ThreadDumpCommand implements Command {
             if (file.getName().endsWith(".gz")) {
                 System.out.println("Extracting " + file.getAbsolutePath());
                 InputStream fileStream = new FileInputStream(file);
-                InputStream gzipStream = new GZIPInputStream(fileStream);
-                reader = new InputStreamReader(gzipStream);
+                try {
+                    InputStream gzipStream = new GZIPInputStream(fileStream);
+                    reader = new InputStreamReader(gzipStream);
+                } catch (EOFException e) {
+                    fileStream.close();
+                    return 0;
+                }
             } else {
                 System.out.println("Reading " + file.getAbsolutePath());
                 reader = new FileReader(file);
