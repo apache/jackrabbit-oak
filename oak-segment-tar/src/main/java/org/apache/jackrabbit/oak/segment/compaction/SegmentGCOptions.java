@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -196,7 +194,6 @@ public class SegmentGCOptions {
 
     /**
      * Number of segment generations to retain.
-     * @see #setRetainedGenerations(int)
      * @return  number of gc generations.
      */
     public int getRetainedGenerations() {
@@ -213,8 +210,6 @@ public class SegmentGCOptions {
      * @throws IllegalArgumentException if {@code retainGenerations < 2}
      */
     public SegmentGCOptions setRetainedGenerations(int retainedGenerations) {
-        checkArgument(retainedGenerations > 1,
-                "RetainedGenerations must not be below 2. Got %s", retainedGenerations);
         this.retainedGenerations = retainedGenerations;
         return this;
     }
