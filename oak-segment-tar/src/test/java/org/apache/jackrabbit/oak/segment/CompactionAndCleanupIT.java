@@ -84,7 +84,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -1411,7 +1410,6 @@ public class CompactionAndCleanupIT {
         }
     }
 
-    @Ignore("OAK-7132")  // FIXME OAK-7132: SNFE after full compaction
     @Test
     public void latestFullCompactedStateShouldNotBeDeleted() throws Exception {
         SegmentGCOptions gcOptions = defaultGCOptions()
