@@ -23,8 +23,10 @@ import static com.google.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.query.SimpleExcerptProvider.highlight;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Map;
 import java.util.Random;
 
+import com.google.common.collect.Maps;
 import org.junit.Test;
 
 public class SimpleExcerptProviderTest {
@@ -56,6 +58,52 @@ public class SimpleExcerptProviderTest {
         String set = "abc*\'\"<> ";
         for (int i = 0; i < 10000; i++) {
             highlight(sb(randomString(r, set)), of(randomString(r, set)));
+        }
+    }
+
+    @Test
+    public void hightlightCompleteWordOnly() {
+        String[] whitespaces = new String[] {" ", "\t"};
+        Map<String, String> simpleCheck = Maps.newHashMap(); // highlight "of"
+
+        // simple ones
+        simpleCheck.put("official conflict of interest",
+                "<div><span>official conflict <strong>of</strong> interest</span></div>");
+        simpleCheck.put("of to new city",
+                "<div><span><strong>of</strong> to new city</span></div>");
+        simpleCheck.put("out of the roof",
+                "<div><span>out <strong>of</strong> the roof</span></div>");
+        simpleCheck.put("well this is of",
+                "<div><span>well this is <strong>of</strong></span></div>");
+
+        for (Map.Entry<String, String> simple : simpleCheck.entrySet()) {
+            String text = simple.getKey();
+            String expect = simple.getValue();
+            for (String whitespace : whitespaces) {
+                text = text.replaceAll(" ", whitespace);
+                expect = expect.replaceAll(" ", whitespace);
+                assertEquals("highlighting '" + text + "' for 'of' (whitespace - '" + whitespace + "')",
+                        expect, highlight(sb(text), of("of")));
+            }
+        }
+
+        Map<String, String> wildcardCheck = Maps.newHashMap(); // highlight "of*"
+        wildcardCheck.put("office room",
+                "<div><span><strong>office</strong> room</span></div>");
+        wildcardCheck.put("office room off",
+                "<div><span><strong>office</strong> room <strong>off</strong></span></div>");
+        wildcardCheck.put("big office room",
+                "<div><span>big <strong>office</strong> room</span></div>");
+
+        for (Map.Entry<String, String> wildcard : wildcardCheck.entrySet()) {
+            String text = wildcard.getKey();
+            String expect = wildcard.getValue();
+            for (String whitespace : whitespaces) {
+                text = text.replaceAll(" ", whitespace);
+                expect = expect.replaceAll(" ", whitespace);
+                assertEquals("highlighting '" + text + "' for 'of*' (whitespace - '" + whitespace + "')",
+                        expect, highlight(sb(text), of("of*")));
+            }
         }
     }
 
