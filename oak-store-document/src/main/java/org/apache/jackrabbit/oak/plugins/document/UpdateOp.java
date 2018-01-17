@@ -247,7 +247,7 @@ public final class UpdateOp {
     }
 
     /**
-     * Checks if the named key exists or is absent in the MongoDB document. This
+     * Checks if the named key exists or is absent in the document. This
      * method can be used to make a conditional update.
      *
      * @param property the property name
@@ -261,6 +261,21 @@ public final class UpdateOp {
         }
         Condition c = exists ? Condition.EXISTS : Condition.MISSING;
         getOrCreateConditions().put(new Key(property, checkNotNull(revision)), c);
+    }
+
+    /**
+     * Checks if the named key exists or is absent in the document. This
+     * method can be used to make a conditional update.
+     *
+     * @param property the property name
+     * @param revision the revision
+     */
+    void contains(@Nonnull String property, boolean exists) {
+        if (isNew) {
+            throw new IllegalStateException("Cannot use contaons() on new document");
+        }
+        Condition c = exists ? Condition.EXISTS : Condition.MISSING;
+        getOrCreateConditions().put(new Key(property, null), c);
     }
 
     /**
@@ -463,19 +478,19 @@ public final class UpdateOp {
     public static final class Condition {
 
         /**
-         * Check if a sub-key exists in a map.
+         * Check if a map entry exists in a map.
          */
         public static final Condition EXISTS = new Condition(Type.EXISTS, true);
 
         /**
-         * Check if a sub-key is missing in a map.
+         * Check if a map entry is missing in a map.
          */
         public static final Condition MISSING = new Condition(Type.EXISTS, false);
 
         public enum Type {
 
             /**
-             * Checks if the sub-key is present in a map or not.
+             * Checks if the map entry is present in a map or not.
              */
             EXISTS,
 
