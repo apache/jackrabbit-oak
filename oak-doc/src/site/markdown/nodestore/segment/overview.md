@@ -30,10 +30,12 @@
             * [Was estimation cancelled?](#was-estimation-cancelled)
             * [When did estimation complete?](#when-did-estimation-complete)
             * [When did compaction start?](#when-did-compaction-start)
+            * [What is the compaction type?](#what-is-the-compaction-type) 
             * [Is compaction disabled?](#is-compaction-disabled)
             * [Was compaction cancelled?](#was-compaction-cancelled)
             * [When did compaction complete?](#when-did-compaction-complete)
             * [How does compaction work with concurrent writes?](#how-does-compaction-works-with-concurrent-writes)
+            * [How does compaction deal with checkpoints?](#how-does-compaction-deal-with-checkpoints)
             * [When did clean-up start?](#when-did-cleanup-start)
             * [Was cleanup cancelled?](#was-cleanup-cancelled)
             * [When did cleanup complete?](#when-did-cleanup-complete)
@@ -105,15 +107,12 @@ If there is not enough garbage to justify the creation of a new generation, the 
 If the output of this phase reports that the amount of garbage is beyond a certain threshold, the system creates a new generation and goes on with the next phase.
 
 Compaction executes after a new generation is created.
-The purpose of compaction is to identify data that is currently used by the user.
-Once the system has a clear picture of which pieces of data the user is currently using, everything is copied to the new generation.
-This phase might be very time consuming depending on the size of the repository.
-The bigger the repository, the more has to be copied to the new generation.
+The purpose of compaction is to create a compact representation of the current generation. For this the current generation is copied to the new generation leaving out anything from the current generation that is not reachable anymore. Starting with Oak 1.8 compaction can operate in either of two modes: full compaction and tail compaction. Full compaction copies all revisions pertaining to the current generation to the new generation. In contrast tail compaction only copies the most recent ones. The two compaction modes differ in usage of system resources and how much time they consume. While full compaction is more thorough overall, it usually requires much more time, disk spice and disk IO than tail compaction.
 
 Cleanup is the last phase of garbage collection and kicks in as soon as compaction is done.
 Once relevant data is safe in the new generation, old and unused data from a previous generation can be removed.
 This phase locates outdated pieces of data from one of the oldest generations and removes it from the system.
-This is the only phase where data is actually deleted and disk space is finally freed.
+This is the only phase where data is actually deleted and disk space is finally freed. The amount of freed disk space depends on the preceding compaction operation. In general cleanup can free less space after a tail compaction than after a full compaction. However, this only becomes effective a further garbage collection cycle due to the system always retaining a total of two generations. 
 
 ### <a name="offline-garbage-collection"/> Offline Garbage Collection
 
@@ -127,7 +126,7 @@ In such a case, the human operator has to take offline - hence the name - the sy
 Since offline garbage collection requires human intervention to run, the estimation phase is not executed at all.
 The human operator who decides to run offline garbage collection does so because he or she decided that the garbage in the repository is exceeding some arbitrary threshold.
 Since the decision comes from a human operator, offline garbage collection is not in charge of implementing heuristics to decide if and when garbage collection should be run.
-The offline garbage collection process consist of the compaction and cleanup phases only.
+The offline garbage collection process consist of the compaction and cleanup phases only. It always employs full compaction with the subsequent cleanup retaining a single generation. 
 
 The main drawback of offline garbage collection is that the process has to take exclusive control of the repository.
 Nevertheless, this is also a strength.
@@ -224,6 +223,20 @@ TarMK GC #2: compaction started, gc options=SegmentGCOptions{paused=false, estim
 
 The message includes a dump of the garbage collection options that are used during the compaction phase.
 
+##### <a name="what-is-the-compaction-type"/> What is the compaction type?
+
+The type of the compaction phase is determined by the configuration. A log message indicates which compaction type is used.
+
+```
+TarMK GC #2: running ${MODE} compaction
+```
+
+Here ${MODE} is either `full` or `tail`. Under some circumstances (e.g. on the very first garbage collection run) when a tail compaction is scheduled to run the system needs to fall back to a full compaction. This is indicated in the log via the following message:
+
+```
+TarMK GC #2: no base state available, running full compaction instead
+```
+
 ##### <a name="is-compaction-disabled"/> Is compaction disabled?
 
 The compaction phase can be skipped by pausing the garbage collection process. If compaction is paused, the following message is printed.
@@ -275,6 +288,18 @@ There is also a special message that is printed if the thread running the compac
 
 ```
 TarMK GC #2: compaction interrupted
+```
+
+##### <a name="how-does-compaction-deal-with-checkpoints"/> How does compaction deal with checkpoints?
+
+Since checkpoints share a lot of common data between themselves and between the actual content compaction handles them individually deduplicating as much content as possible. The following messages will be printed to the log during the process.
+
+```
+TarMK GC #2: Found checkpoint 4b2ee46a-d7cf-45e7-93c3-799d538f85e6 created at Wed Nov 29 15:31:43 CET 2017.
+TarMK GC #2: Found checkpoint 5c45ca7b-5863-4679-a7c5-6056a999a6cd created at Wed Nov 29 15:31:43 CET 2017.
+TarMK GC #2: compacting checkpoints/4b2ee46a-d7cf-45e7-93c3-799d538f85e6/root.
+TarMK GC #2: compacting checkpoints/5c45ca7b-5863-4679-a7c5-6056a999a6cd/root.
+TarMK GC #2: compacting root.
 ```
 
 ##### <a name="how-does-compaction-works-with-concurrent-writes"/> How does compaction work with concurrent writes?
@@ -392,15 +417,6 @@ TarMK GC #1: current repository size is 89.3 GB (89260786688 bytes)
 ```
 
 After that, the cleanup phase will iterate through every TAR file and figure out which segments are still in use and which ones can be reclaimed.
-Cleanup will print a sequence of messages like the following.
-
-```
-data00000a.tar: size of bulk references/reclaim set 0/6
-```
-
-The first part of the message is the TAR file analyzed last.
-The two numbers at the end give an idea of how many references to segments are being (transitively) followed and how many of them point to bulk segments that can be removed.
-
 After the cleanup phase scanned the repository, TAR files are purged of unused segments.
 In some cases, a TAR file would end up containing no segments at all.
 In this case, the TAR file is marked for deletion and the following message is printed.
