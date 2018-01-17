@@ -47,7 +47,6 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -149,7 +148,6 @@ public class NodeCacheTest {
     }
 
     // OAK-7153
-    @Ignore
     @Test
     public void persistentCacheAccessForIncludedPathOnly() throws Exception {
         PathFilter pf = new PathFilter(singletonList("/a"), emptyList());
