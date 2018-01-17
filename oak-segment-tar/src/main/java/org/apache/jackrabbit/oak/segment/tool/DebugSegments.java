@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Print debugging information about segments, node records and node record
  * ranges.
  */
-public class DebugSegments implements Runnable {
+public class DebugSegments {
 
     private static final Pattern SEGMENT_REGEX = Pattern.compile("([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
 
@@ -112,7 +112,7 @@ public class DebugSegments implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public DebugSegments build() {
             checkNotNull(path);
             checkArgument(!segments.isEmpty());
             return new DebugSegments(this);
@@ -129,12 +129,13 @@ public class DebugSegments implements Runnable {
         this.segments = new ArrayList<>(builder.segments);
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             debugSegments(store);
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 

@@ -17,10 +17,17 @@
 
 package org.apache.jackrabbit.oak.run;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.tool.DebugSegments;
+import org.apache.jackrabbit.oak.segment.tool.DebugStore;
+import org.apache.jackrabbit.oak.segment.tool.DebugTars;
 
 class DebugCommand implements Command {
 
@@ -35,9 +42,71 @@ class DebugCommand implements Command {
             System.exit(1);
         }
 
-        String[] nonOptionsArray = options.valuesOf(nonOptions).toArray(new String[0]);
+        System.exit(debug(options.valuesOf(nonOptions)));
+    }
 
-        SegmentTarUtils.debug(nonOptionsArray);
+    private static int debug(List<String> args) {
+        File file = new File(args.get(0));
+
+        List<String> tars = new ArrayList<>();
+        List<String> segs = new ArrayList<>();
+
+        for (int i = 1; i < args.size(); i++) {
+            if (args.get(i).endsWith(".tar")) {
+                tars.add(args.get(i));
+            } else {
+                segs.add(args.get(i));
+            }
+        }
+
+        int returnCode = 0;
+
+        if (tars.size() > 0) {
+            if (debugTars(file, tars) != 0) {
+                returnCode = 1;
+            }
+        }
+
+        if (segs.size() > 0) {
+            if (debugSegments(file, segs) != 0) {
+                returnCode = 1;
+            }
+        }
+
+        if (tars.isEmpty() && segs.isEmpty()) {
+            if (debugStore(file) != 0) {
+                returnCode = 1;
+            }
+        }
+
+        return returnCode;
+    }
+
+    private static int debugTars(File store, List<String> tars) {
+        DebugTars.Builder builder = DebugTars.builder().withPath(store);
+
+        for (String tar : tars) {
+            builder.withTar(tar);
+        }
+
+        return builder.build().run();
+    }
+
+    private static int debugSegments(File store, List<String> segments) {
+        DebugSegments.Builder builder = DebugSegments.builder().withPath(store);
+
+        for (String segment : segments) {
+            builder.withSegment(segment);
+        }
+
+        return builder.build().run();
+    }
+
+    private static int debugStore(File store) {
+        return DebugStore.builder()
+            .withPath(store)
+            .build()
+            .run();
     }
 
 }

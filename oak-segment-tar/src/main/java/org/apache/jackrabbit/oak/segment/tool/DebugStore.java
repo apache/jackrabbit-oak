@@ -35,19 +35,16 @@ import java.util.UUID;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
-
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 
 /**
  * Print debugging information about a segment store.
  */
-public class DebugStore implements Runnable {
+public class DebugStore {
 
     /**
      * Create a builder for the {@link DebugStore} command.
@@ -85,7 +82,7 @@ public class DebugStore implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public DebugStore build() {
             checkNotNull(path);
             return new DebugStore(this);
         }
@@ -98,12 +95,13 @@ public class DebugStore implements Runnable {
         this.path = builder.path;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             debugFileStore(store);
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 
@@ -177,15 +175,10 @@ public class DebugStore implements Runnable {
     private static void analyseSegment(final Segment segment, final RecordUsageAnalyser analyser) {
         final List<RecordId> ids = newArrayList();
 
-        segment.forEachRecord(new RecordConsumer() {
-
-            @Override
-            public void consume(int number, RecordType type, int offset) {
-                if (type == NODE) {
-                    ids.add(new RecordId(segment.getSegmentId(), number));
-                }
+        segment.forEachRecord((number, type, offset) -> {
+            if (type == NODE) {
+                ids.add(new RecordId(segment.getSegmentId(), number));
             }
-
         });
 
         for (RecordId id : ids) {
@@ -193,7 +186,7 @@ public class DebugStore implements Runnable {
                 analyser.analyseNode(id);
             } catch (Exception e) {
                 System.err.format("Error while processing node at %s", id);
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
         }
     }
