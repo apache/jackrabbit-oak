@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Print information about one or more TAR files from an existing segment store.
  */
-public class DebugTars implements Runnable {
+public class DebugTars {
 
     /**
      * Create a builder for the {@link DebugTars} command.
@@ -106,7 +106,7 @@ public class DebugTars implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public DebugTars build() {
             checkNotNull(path);
             checkArgument(!tars.isEmpty());
             return new DebugTars(this);
@@ -126,12 +126,13 @@ public class DebugTars implements Runnable {
         this.maxCharDisplay = builder.maxCharDisplay;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             debugTarFiles(store);
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 
@@ -179,8 +180,8 @@ public class DebugTars implements Runnable {
                 System.out.println("" + entry.getKey() + '=' + entry.getValue());
             }
         } catch (IOException e) {
-            System.out.println("Error getting tar graph:");
-            e.printStackTrace();
+            System.err.println("Error getting tar graph:");
+            e.printStackTrace(System.err);
         }
     }
 
