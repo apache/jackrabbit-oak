@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory.HistoryEle
  * Prints the revision history of an existing segment store. Optionally, it can
  * narrow to the output to the history of a single node.
  */
-public class History implements Runnable {
+public class History {
 
     /**
      * Create a builder for the {@link History} command.
@@ -110,9 +110,9 @@ public class History implements Runnable {
         /**
          * Create an executable version of the {@link History} command.
          *
-         * @return an instance of {@link Runnable}.
+         * @return an instance of {@link History}.
          */
-        public Runnable build() {
+        public History build() {
             checkNotNull(path);
             checkNotNull(journal);
             checkNotNull(node);
@@ -136,12 +136,13 @@ public class History implements Runnable {
         this.depth = builder.depth;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try {
             run(new RevisionHistory(path).getHistory(journal, node));
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 

@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.tool.Backup;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.apache.jackrabbit.oak.segment.tool.Diff;
-import org.apache.jackrabbit.oak.segment.tool.History;
 import org.apache.jackrabbit.oak.segment.tool.Restore;
 import org.apache.jackrabbit.oak.segment.tool.Revisions;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -85,17 +84,7 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void history(File directory, File journal, String path, int depth) {
-        History.builder()
-                .withPath(directory)
-                .withJournal(journal)
-                .withNode(path)
-                .withDepth(depth)
-                .build()
-                .run();
-    }
-
-    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, Set<String> filterPaths, boolean ioStatistics, 
+    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, Set<String> filterPaths, boolean ioStatistics,
             PrintWriter outWriter, PrintWriter errWriter) {
         Check.builder()
                 .withPath(dir)
