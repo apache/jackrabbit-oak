@@ -301,7 +301,13 @@ public class Statement {
                 // no change
                 return this;
             }
-            return new UnionStatement(s1b, s2b);
+            UnionStatement union = new UnionStatement(s1b, s2b);
+            union.explain = explain;
+            union.measure = measure;
+            union.orderList = orderList;
+            union.queryOptions = queryOptions;
+            union.xpathQuery = xpathQuery;
+            return union;
         }
         
         @Override
