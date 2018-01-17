@@ -16,6 +16,21 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
+import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
+import static com.google.common.base.Stopwatch.createStarted;
+import static com.google.common.io.Closeables.close;
+import static java.io.File.createTempFile;
+import static java.util.Arrays.asList;
+import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.commons.io.FileUtils.listFiles;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
@@ -72,21 +87,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
-import static com.google.common.base.Stopwatch.createStarted;
-import static com.google.common.io.Closeables.close;
-import static java.io.File.createTempFile;
-import static java.util.Arrays.asList;
-import static org.apache.commons.io.FileUtils.forceDelete;
-import static org.apache.commons.io.FileUtils.listFiles;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-
 /**
  * Command to check data store consistency and also optionally retrieve ids
  * and references.
@@ -108,6 +108,10 @@ public class DataStoreCheckCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
+        System.exit(checkDataStore(args));
+    }
+
+    static int checkDataStore(String... args) {
         OptionParser parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
 
@@ -116,8 +120,7 @@ public class DataStoreCheckCommand implements Command {
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
                 + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose]";
 
-        Closer closer = Closer.create();
-        try {
+        try (Closer closer = Closer.create()) {
             // Options for operations requested
             OptionSpecBuilder idOp = parser.accepts("id", "Get ids");
             OptionSpecBuilder refOp = parser.accepts("ref", "Get references");
@@ -158,12 +161,12 @@ public class DataStoreCheckCommand implements Command {
                 System.err.println();
                 System.err.println("Options :");
                 parser.printHelpOn(System.err);
-                return;
+                return 1;
             }
 
             if (options.has(help)) {
                 parser.printHelpOn(System.out);
-                return;
+                return 0;
             }
 
             String dumpPath = JAVA_IO_TMPDIR.value();
@@ -206,7 +209,7 @@ public class DataStoreCheckCommand implements Command {
             if (blobStore == null) {
                 System.err.println("Operation not defined for SegmentNodeStore without external datastore");
                 parser.printHelpOn(System.err);
-                return;
+                return 1;
             }
 
             FileRegister register = new FileRegister(options);
@@ -257,10 +260,11 @@ public class DataStoreCheckCommand implements Command {
                 checkConsistency(register.get(idOp), register.get(refOp),
                     register.createFile(consistencyOp, dumpPath), options.valueOf(repoHome), dsType);
             }
+
+            return 0;
         } catch (Throwable t) {
-            t.printStackTrace();
-        } finally {
-            closer.close();
+            t.printStackTrace(System.err);
+            return 1;
         }
     }
 
