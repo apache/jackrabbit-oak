@@ -112,17 +112,19 @@ public class UpdateUtils {
             Object value = doc.get(k.getName());
             Revision r = k.getRevision();
             if (c.type == Condition.Type.EXISTS) {
-                if (r == null) {
-                    throw new IllegalStateException("EXISTS must not contain null revision");
-                }
+                boolean checkForExistence = Boolean.TRUE.equals(c.value);
                 if (value == null) {
-                    if (Boolean.TRUE.equals(c.value)) {
+                    if (checkForExistence) {
                         return false;
                     }
                 } else {
-                    if (value instanceof Map) {
+                    if (r == null) {
+                        if (!checkForExistence) {
+                            return false;
+                        }
+                    } else if (value instanceof Map) {
                         Map<?, ?> map = (Map<?, ?>) value;
-                        if (Boolean.TRUE.equals(c.value)) {
+                        if (checkForExistence) {
                             if (!map.containsKey(r)) {
                                 return false;
                             }
