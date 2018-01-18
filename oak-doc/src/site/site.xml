@@ -52,6 +52,8 @@ under the License.
       <item href="plugins/blobstore.html" name="Blob Storage" />
       <item href="query/query.html" name="Query" collapse="false">
         <item href="query/query-engine.html" name="Query Engine" />
+        <item href="query/grammar-xpath.html" name="XPath Grammar" />
+        <item href="query/grammar-sql2.html" name="SQL-2 Grammar" />
         <item href="query/query-troubleshooting.html" name="Troubleshooting" />
         <item href="query/indexing.html" name="Indexing" />
         <item href="query/lucene.html" name="Lucene Index" />
