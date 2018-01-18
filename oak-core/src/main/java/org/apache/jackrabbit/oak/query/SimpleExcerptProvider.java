@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.query;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
@@ -35,7 +34,7 @@ import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
-import static java.lang.Character.isWhitespace;
+import static java.lang.Character.isLetterOrDigit;
 import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
 
 /**
@@ -243,7 +242,7 @@ class SimpleExcerptProvider {
             if (isLike) {
                 int nextSpace = endIndex;
 
-                while (nextSpace < text.length() && !isWhitespace(text.charAt(nextSpace))) {
+                while (nextSpace < text.length() && !isDelimeter(text.codePointAt(nextSpace))) {
                     nextSpace++;
                 }
 
@@ -255,9 +254,9 @@ class SimpleExcerptProvider {
             }
 
             boolean isStartOk = (index == 0) || //allow for highlighting for token at the beginning
-                    isWhitespace(text.charAt(index-1)); //else token must follow a space
+                    isDelimeter(text.codePointAt(index - 1)); //else token must follow a delimeter
             boolean isEndOk = (endIndex == text.length()) || //token is at the end of string
-                    isWhitespace(text.charAt(endIndex)); //else token must precede a space
+                    isDelimeter(text.codePointAt(endIndex)); //else token must precede a delimeter
 
             if (isStartOk && isEndOk) {
                 while (index < endIndex) {
@@ -267,6 +266,10 @@ class SimpleExcerptProvider {
                 index = endIndex;
             }
         }
+    }
+
+    static boolean isDelimeter(int codePoint) {
+        return !isLetterOrDigit(codePoint);
     }
 
     static PropertyValue getExcerpt(PropertyValue value) {

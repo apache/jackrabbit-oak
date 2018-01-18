@@ -63,7 +63,8 @@ public class SimpleExcerptProviderTest {
 
     @Test
     public void hightlightCompleteWordOnly() {
-        String[] whitespaces = new String[] {" ", "\t"};
+        // using 2 non-simple spaces as mentioned in http://jkorpela.fi/chars/spaces.html
+        String[] delimiters = new String[] {" ", "\t", "\n", ":", "\u1680", "\u00A0"};
         Map<String, String> simpleCheck = Maps.newHashMap(); // highlight "of"
 
         // simple ones
@@ -77,12 +78,10 @@ public class SimpleExcerptProviderTest {
                 "<div><span>well this is <strong>of</strong></span></div>");
 
         for (Map.Entry<String, String> simple : simpleCheck.entrySet()) {
-            String text = simple.getKey();
-            String expect = simple.getValue();
-            for (String whitespace : whitespaces) {
-                text = text.replaceAll(" ", whitespace);
-                expect = expect.replaceAll(" ", whitespace);
-                assertEquals("highlighting '" + text + "' for 'of' (whitespace - '" + whitespace + "')",
+            for (String delimiter : delimiters) {
+                String text = simple.getKey().replaceAll(" ", delimiter);
+                String expect = simple.getValue().replaceAll(" ", delimiter);
+                assertEquals("highlighting '" + text + "' for 'of' (delimiter - '" + delimiter + "')",
                         expect, highlight(sb(text), of("of")));
             }
         }
@@ -96,15 +95,25 @@ public class SimpleExcerptProviderTest {
                 "<div><span>big <strong>office</strong> room</span></div>");
 
         for (Map.Entry<String, String> wildcard : wildcardCheck.entrySet()) {
-            String text = wildcard.getKey();
-            String expect = wildcard.getValue();
-            for (String whitespace : whitespaces) {
-                text = text.replaceAll(" ", whitespace);
-                expect = expect.replaceAll(" ", whitespace);
-                assertEquals("highlighting '" + text + "' for 'of*' (whitespace - '" + whitespace + "')",
+            for (String delimiter : delimiters) {
+                String text = wildcard.getKey().replaceAll(" ", delimiter);
+                String expect = wildcard.getValue().replaceAll(" ", delimiter);
+                assertEquals("highlighting '" + text + "' for 'of*' (delimiter - '" + delimiter + "')",
                         expect, highlight(sb(text), of("of*")));
             }
         }
+    }
+
+    @Test
+    public void multipleSearchTokens() {
+        String text = "To be, or not to be. That is the question!";
+        String expected = "<div><span>To <strong>be</strong>, " +
+                "or not to <strong>be</strong>. " +
+                "That is the <strong>question</strong>!</span></div>";
+
+        assertEquals(expected, highlight(sb(text), of("question", "be")));
+        assertEquals(expected, highlight(sb(text), of("quest*", "be")));
+        assertEquals(expected, highlight(sb(text), of("quest*", "b*")));
     }
 
     private static String randomString(Random r, String set) {
