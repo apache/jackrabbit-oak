@@ -18,11 +18,22 @@
 ## Oak SQL-2 Query Grammar
 
 * [Query](#query)
+* [Column](#column)
+* [Selector](#selector)
+* [Join](#join)
+* [Constraint](#constraint)
+* [And Condition](#andCondition)
+* [Condition](#condition)
+* [Comparison](#comparison)
+* [In Comparison](#inComparison)
+* [Static Operand](#staticOperand)
+* [Ordering](#ordering)
+* [Dynamic Operand](#dynamicOperand)
 * [Options](#options)
 * [Explain](#explain)
 * [Measure](#measure)
 
-
+<hr />
 <h3 id="query">Query</h3>
 
 <h4>
@@ -43,6 +54,7 @@ ORDER BY may use an index.
 If there is no index for the given sort order, 
 then the result is fully read in memory and sorted before returning the first row.
 
+<hr />
 <h3 id="column">Column</h3>
 
 <h4>
@@ -53,7 +65,7 @@ then the result is fully read in memory and sorted before returning the first ro
 <br/> } [ AS aliasName ]
 </h4>
 
-
+<hr />
 <h3 id="selector">Selector</h3>
 
 <h4>
@@ -62,12 +74,11 @@ nodeTypeName [ AS selectorName ]
 
 The nodetype name can be either a primary nodetype or a mixin nodetype.
 
-
-
+<hr />
 <h3 id="join">Join</h3>
 
 <h4>
-{ INNER | { LEFT | RIGHT } OUTER } JOIN rightSelector ON
+{ INNER | { LEFT | RIGHT } OUTER } JOIN <a href="#selector">rightSelector</a> ON
 <br/> { selectorName . propertyName = joinSelectorName . joinPropertyName }
 <br/> | { ISSAMENODE( selectorName , joinSelectorName [ , selectorPathName ] ) }
 <br/> | { ISCHILDNODE( childSelectorName , parentSelectorName ) }
@@ -79,14 +90,15 @@ A left outer join will return entries that don't have matching nodes on the righ
 A right outer join will return entries that don't have matching nodes on the left selector.
 For outer joins, all the properties of the selector that doesn't have a matching node are null.
 
-
+<hr />
 <h3 id="constraint">Constraint</h3>
 
 <h4>
-andCondition [ { OR andCondition } [...] ]
+<a href="#andCondition">andCondition</a> [ { OR <a href="#andCondition">andCondition</a> } [...] ]
 </h4>
 
-OR conditions of the form "X = 1 OR X = 2" are automatically converted to "X IN(1, 2)".
+OR conditions of the form "X = 1 OR X = 2" are automatically converted to "X IN(1, 2)",
+and can use the same an index.
 
 OR conditions of the form "X = 1 OR Y = 2" are more complicated.
 Oak will try two options: first, what is the expected cost to use a UNION query
@@ -95,11 +107,11 @@ If using UNION results in a lower estimated cost, then UNION is used.
 This can be the case, for example, if there are two distinct indexes,
 one on X and another on Y.
 
-
+<hr />
 <h3 id="andCondition">And Condition</h3>
 
 <h4>
-condition [ { AND condition } [...] ]
+<a href="#condition">condition</a> [ { AND <a href="#condition">condition</a> } [...] ]
 </h4>
 
 A special case (not found in relational databases) is
@@ -107,15 +119,16 @@ AND conditions of the form "X = 1 AND X = 2".
 They will match nodes with multi-valued properties, 
 where the property value contains both 1 and 2.
 
+<hr />
 <h3 id="condition">Condition</h3>
 
 <h4>
-comparison
-<br/> inComparison
-<br/> | NOT constraint
-<br/> | ( constraint )
+<a href="#comparison">comparison</a>
+<br/> <a href="#inComparison">inComparison</a>
+<br/> | NOT <a href="#constraint">constraint</a>
+<br/> | ( <a href="#constraint">constraint</a> )
 <br/> | [ selectorName . ] propertyName IS [ NOT ] NULL
-<br/> | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , fulltextSearchExpression )
+<br/> | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , staticOperand )
 <br/> | { ISSAMENODE | ISCHILDNODE | ISDESCENDANTNODE } (  [ selectorName , ] pathString )
 <br/> | SIMILAR ( [ selectorName . ] { propertyName | * } , staticOperand )
 <br/> | NATIVE ( [ selectorName , ] language , staticOperand )
@@ -123,21 +136,42 @@ comparison
 <br/> | SUGGEST ( [ selectorName , ] staticOperand )
 </h4>
 
+NOT conditions can not typically use an index.
 
+CONTAINS: see <a href="query-engine.html#Full-Text_Queries">Full-Text Queries</a>.
+
+SIMILAR: see <a href="query-engine.html#Similarity_Queries">Similarity Queries</a>.
+
+NATIVE: see <a href="query-engine.html#Native_Queries">Native Queries</a>.
+
+SPELLCHECK: see <a href="query-engine.html#Spellchecking">Spellchecking</a>.
+
+SUGGEST: see <a href="query-engine.html#Suggestions">Suggestions</a>.
+
+<hr />
 <h3 id="comparison">Comparison</h3>
 
 <h4>
-dynamicOperand { = | &lt;&gt; | &lt; | &lt;= | &gt; | &gt;= | LIKE } staticOperand
+<a href="#dynamicOperand">dynamicOperand</a> 
+{ = | &lt;&gt; | &lt; | &lt;= | &gt; | &gt;= | LIKE } 
+<a href="#staticOperand">staticOperand</a>
 </h4>
 
+LIKE: when comparing with LIKE, the wildcards characters are _ (any one character) 
+and % (any characters). An index is used, 
+except if the operand starts with a wildcard. 
+To search for the characters % and _, the characters need to be escaped using \ (backslash).
 
+Comparison using &lt;, &gt;, &gt;=, and &lt;= can use an index if the property in the index is ordered.
+
+<hr />
 <h3 id="inComparison">In Comparison</h3>
 
 <h4>
-dynamicOperand IN ( staticOperand [, ...] )
+<a href="#dynamicOperand">dynamicOperand</a> IN ( <a href="#staticOperand">staticOperand</a> [, ...] )
 </h4>
 
-
+<hr />
 <h3 id="staticOperand">Static Operand</h3>
 
 <h4>
@@ -158,11 +192,18 @@ literal
 <br/>&nbsp;&nbsp; | URI } )
 </h4>
 
+A string (text) literal starts and ends with a single quote. 
+Two single quotes can be used to create a single quote inside a string.
 
+Example:
+
+'John''s car'
+
+<hr />
 <h3 id="ordering">Ordering</h3>
 
 <h4>
-dynamicOperand [ ASC | DESC ]
+<a href="#dynamicOperand">dynamicOperand</a> [ ASC | DESC ]
 </h4>
 
 Ordering by an indexed property will use that index if possible.
@@ -175,6 +216,7 @@ As a special case, sorting by "jcr:score" in descending order is ignored
 If for some reason you want to enforce sorting by "jcr:score", then
 you can use the workaround to order by "LOWER([jcr:score]) DESC".
 
+<hr />
 <h3 id="dynamicOperand">Dynamic Operand</h3>
 
 <h4>
@@ -197,6 +239,7 @@ It allows to filter for all properties with a given type.
 Example: the condition `PROPERTY(*, Reference) = $uuid` will search for any property of type
 `Reference`.
 
+<hr />
 <h3 id="options">Options</h3>
 
 <h4>
@@ -218,6 +261,7 @@ INDEX TAG: by default, queries will use the index with the lowest expected cost 
 To only consider some of the indexes, add tags (a multi-valued String property) to the index(es) of choice,
 and specify this tag in the query.
 
+<hr />
 <h3 id="explain">Explain Query</h3>
 
 <h4>
@@ -242,7 +286,7 @@ Result:
 This means the property index named "uuid" is used for this query.
 The expected cost (roughly the number of uncached I/O operations) is 2.
 
-
+<hr />
 <h3 id="measure">Measure</h3>
 
 <h4>

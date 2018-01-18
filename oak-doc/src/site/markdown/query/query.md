@@ -24,6 +24,8 @@ the repository will be traversed. That is, the query will still work
 but probably be very slow.
 
 * [The Query Engine](./query-engine.html)
+* [XPath Grammar](./grammar-xpath.html)
+* [SQL-2 Grammar](./query-sql2.html)
 * [Troubleshooting](./query-troubleshooting.html)
 * [Flags](./flags.html)
 
