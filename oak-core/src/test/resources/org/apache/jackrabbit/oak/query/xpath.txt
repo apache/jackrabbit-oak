@@ -24,6 +24,58 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# OAK-7131
+
+xpath2sql /jcr:root/content[@a=1 or @b=2] order by @foo option(traversal ok)
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where issamenode(a, '/content')
+  and [a] = 1
+  union select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where issamenode(a, '/content')
+  and [b] = 2
+  order by [foo] option(traversal OK)
+  /* xpath ... */
+
+xpath2sql /jcr:root/(content | dam)[@a=1 or @b=2] order by @foo
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where issamenode(a, '/content')
+  and [a] = 1
+  union select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where issamenode(a, '/content')
+  and [b] = 2
+  /* xpath ... */
+  union select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where issamenode(a, '/dam')
+  and [a] = 1
+  union select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where issamenode(a, '/dam')
+  and [b] = 2
+  /* xpath ... */
+  order by [foo]
+
+xpath2sql //(element(*, type1) | element(*, type2))[@a='b' or @c='d'] order by @foo option(traversal OK)
+select [jcr:path], [jcr:score], *
+  from [type1] as a
+  where [a] = 'b'
+  union select [jcr:path], [jcr:score], *
+  from [type1] as a
+  where [c] = 'd'
+  /* xpath ... */
+  union select [jcr:path], [jcr:score], *
+  from [type2] as a
+  where [a] = 'b'
+  union select [jcr:path], [jcr:score], *
+  from [type2] as a
+  where [c] = 'd'
+  /* xpath ... */
+  order by [foo] option(traversal OK)
+
 # OAK-6792
 
 xpath2sql /jcr:root//*/(rep:facet(jcr:data/jcr:createdBy))
@@ -46,11 +98,19 @@ explain select [jcr:path], [jcr:score], *
   from [acme:Asset] as a
   where isdescendantnode(a, '/content/activities')
   /* xpath ... */
- 
+  union select [jcr:path], [jcr:score], *
+  from [acme:Asset] as a
+  where isdescendantnode(a, '/content/people')
+  /* xpath ... */
+
 xpath2sql explain measure /jcr:root/content/(activities|people)//element(*, acme:Asset)
 explain measure select [jcr:path], [jcr:score], *
   from [acme:Asset] as a
   where isdescendantnode(a, '/content/activities')
+  /* xpath ... */
+  union select [jcr:path], [jcr:score], *
+  from [acme:Asset] as a
+  where isdescendantnode(a, '/content/people')
   /* xpath ... */
 
 # OAK-937
