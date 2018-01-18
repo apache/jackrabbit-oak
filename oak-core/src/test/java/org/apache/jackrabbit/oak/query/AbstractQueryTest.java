@@ -523,10 +523,22 @@ public abstract class AbstractQueryTest {
     }
     
     static String formatSQL(String sql) {
+        int start = 0;
+        while (true) {
+            int index = sql.indexOf("/* ", start);
+            if (index < 0) {
+                break;
+            }
+            int end = sql.indexOf(" */", index);
+            sql = sql.substring(0, index).trim() + "\n  /* xpath ... " + sql.substring(end).trim();
+            sql = sql.trim();
+            start = index + 7;
+        }
+        
         // the "(?s)" is enabling the "dot all" flag
         // keep /* xpath ... */ to ensure the xpath comment
         // is really there (and at the right position)
-        sql = sql.replaceAll("(?s) /\\* .* \\*/", "\n  /* xpath ... */").trim();
+//        sql = sql.replaceAll("(?s) /\\* [^\\*]* \\*/", "\n  /* xpath ... */").trim();
         sql = sql.replaceAll(" union select ", "\n  union select ");
         sql = sql.replaceAll(" from ", "\n  from ");
         sql = sql.replaceAll(" where ", "\n  where ");
