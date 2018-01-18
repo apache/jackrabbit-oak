@@ -192,7 +192,7 @@ public abstract class AbstractJournalTest {
 
     protected final class TestBuilder extends DocumentMK.Builder {
         CountingDocumentStore actualStore;
-        CountingTieredDiffCache actualDiffCache;
+        CountingDiffCache actualDiffCache;
 
         @Override
         public DocumentStore getDocumentStore() {
@@ -205,7 +205,7 @@ public abstract class AbstractJournalTest {
         @Override
         public DiffCache getDiffCache() {
             if (actualDiffCache==null) {
-                actualDiffCache = new CountingTieredDiffCache(this);
+                actualDiffCache = new CountingDiffCache(this);
             }
             return actualDiffCache;
         }

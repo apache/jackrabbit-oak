@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class CountingTieredDiffCache extends TieredDiffCache {
+public class CountingDiffCache extends MemoryDiffCache {
 
     class CountingLoader implements Loader {
 
@@ -39,7 +39,7 @@ public class CountingTieredDiffCache extends TieredDiffCache {
 
     private int loadCount;
 
-    public CountingTieredDiffCache(DocumentMK.Builder builder) {
+    public CountingDiffCache(DocumentMK.Builder builder) {
         super(builder);
     }
 

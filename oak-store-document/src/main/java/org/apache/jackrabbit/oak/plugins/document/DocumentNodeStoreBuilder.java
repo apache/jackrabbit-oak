@@ -273,11 +273,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return diffCache;
     }
 
-    public T setDiffCache(DiffCache diffCache) {
-        this.diffCache = diffCache;
-        return thisBuilder();
-    }
-
     /**
      * Set the blob store to use. By default an in-memory store is used.
      *
