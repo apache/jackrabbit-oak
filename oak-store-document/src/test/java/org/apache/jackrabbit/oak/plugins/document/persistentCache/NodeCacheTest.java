@@ -29,24 +29,29 @@ import com.google.common.base.Predicate;
 import com.google.common.cache.RemovalCause;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Counting;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -64,6 +69,8 @@ public class NodeCacheTest {
     public final TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
+    private DocumentStore store;
     private DocumentNodeStore ns;
     private NodeCache<PathRev, DocumentNodeState> nodeCache;
     private NodeCache<PathRev, DocumentNodeState.Children> nodeChildren;
@@ -174,12 +181,46 @@ public class NodeCacheTest {
         assertEquals(requests, stats.getCount());
     }
 
+    @Ignore
+    @Test
+    public void localDiffCache() throws Exception {
+        initializeNodeStore(false);
+        // initialize a second cluster node using the same document store
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
+                .setDocumentStore(store).setAsyncDelay(0).build();
+        // sync the two cluster nodes
+        ns2.runBackgroundOperations();
+        ns.runBackgroundOperations();
+
+        MeterStats stats = statsProvider.getMeter("PersistentCache.NodeCache.local_diff.REQUESTS", StatsOptions.DEFAULT);
+
+        NodeState r1 = ns.getRoot();
+
+        // external change from first cluster node POV
+        NodeBuilder builder = ns2.getRoot().builder();
+        builder.child("x");
+        ns2.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // sync
+        ns2.runBackgroundOperations();
+        ns.runBackgroundOperations();
+
+        long requests = stats.getCount();
+        // diff for external change
+        NodeState r2 = ns.getRoot();
+        JsopDiff.diffToJsop(r1, r2);
+        // must not use local_diff persistent cache
+        assertEquals(requests, stats.getCount());
+    }
+
     private void initializeNodeStore(boolean asyncCache) {
         initializeNodeStore(asyncCache, b -> {});
     }
 
     private void initializeNodeStore(boolean asyncCache, Consumer<DocumentMK.Builder> processor) {
+        store = new MemoryDocumentStore();
         DocumentMK.Builder builder = builderProvider.newBuilder()
+                .setDocumentStore(store)
                 .setAsyncDelay(0)
                 .setStatisticsProvider(statsProvider);
 
