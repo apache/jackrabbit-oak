@@ -429,6 +429,11 @@ public class RevisionVectorTest {
         assertEquals(2, rv.getDimensions());
         rv = rv.remove(1);
         assertEquals(1, rv.getDimensions());
+    }
 
+    @Test
+    public void emptyAsFromString() {
+        RevisionVector empty = new RevisionVector();
+        assertEquals(empty, RevisionVector.fromString(empty.asString()));
     }
 }
