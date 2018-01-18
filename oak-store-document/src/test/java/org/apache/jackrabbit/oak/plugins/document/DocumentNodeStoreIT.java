@@ -57,13 +57,12 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
                 // do not dispose yet
             }
         };
-        DocumentNodeStore ns1 = new DocumentMK.Builder()
+        // use a builder with a no-op diff cache to simulate a
+        // cache miss when the diff is made later in the test
+        DocumentNodeStore ns1 = new TestBuilder()
                 .setDocumentStore(docStore).setClusterId(1)
                 .setAsyncDelay(0).clock(clock)
-                        // use a no-op diff cache to simulate a cache miss
-                        // when the diff is made later in the test
-                .setDiffCache(AmnesiaDiffCache.INSTANCE)
-                .getNodeStore();
+                .build();
         NodeBuilder builder1 = ns1.getRoot().builder();
         builder1.child("node");
         removeMe.add(getIdFromPath("/node"));
@@ -114,5 +113,13 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
 
         ns1.dispose();
         ns2.dispose();
+    }
+
+    private class TestBuilder extends DocumentNodeStoreBuilder<TestBuilder> {
+
+        @Override
+        public DiffCache getDiffCache() {
+            return AmnesiaDiffCache.INSTANCE;
+        }
     }
 }

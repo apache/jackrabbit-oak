@@ -220,12 +220,12 @@ public class JournalTest extends AbstractJournalTest {
         DocumentMK mk1 = createMK(1, 0);
         DocumentNodeStore ns1 = mk1.getNodeStore();
         CountingDocumentStore countingDocStore1 = builder.actualStore;
-        CountingTieredDiffCache countingDiffCache1 = builder.actualDiffCache;
+        CountingDiffCache countingDiffCache1 = builder.actualDiffCache;
 
         DocumentMK mk2 = createMK(2, 0);
         DocumentNodeStore ns2 = mk2.getNodeStore();
         CountingDocumentStore countingDocStore2 = builder.actualStore;
-        CountingTieredDiffCache countingDiffCache2 = builder.actualDiffCache;
+        CountingDiffCache countingDiffCache2 = builder.actualDiffCache;
 
         final DiffingObserver observer = new DiffingObserver(false);
         ns1.addObserver(observer);
