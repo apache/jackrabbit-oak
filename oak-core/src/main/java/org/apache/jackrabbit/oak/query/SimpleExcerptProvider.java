@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
+import static java.lang.Character.isLetterOrDigit;
 import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
 
 /**
@@ -239,17 +240,36 @@ class SimpleExcerptProvider {
             }
             int endIndex = index + token.length();
             if (isLike) {
-                int nextSpace = text.indexOf(" ", endIndex);
-                if (nextSpace != -1) {
+                int nextSpace = endIndex;
+
+                while (nextSpace < text.length() && !isDelimeter(text.codePointAt(nextSpace))) {
+                    nextSpace++;
+                }
+
+                if (nextSpace != text.length()) {
                     endIndex = nextSpace;
                 } else {
                     endIndex = text.length();
                 }
             }
-            while (index < endIndex) {
-                highlightBits.set(index++);
+
+            boolean isStartOk = (index == 0) || //allow for highlighting for token at the beginning
+                    isDelimeter(text.codePointAt(index - 1)); //else token must follow a delimeter
+            boolean isEndOk = (endIndex == text.length()) || //token is at the end of string
+                    isDelimeter(text.codePointAt(endIndex)); //else token must precede a delimeter
+
+            if (isStartOk && isEndOk) {
+                while (index < endIndex) {
+                    highlightBits.set(index++);
+                }
+            } else {
+                index = endIndex;
             }
         }
+    }
+
+    static boolean isDelimeter(int codePoint) {
+        return !isLetterOrDigit(codePoint);
     }
 
     static PropertyValue getExcerpt(PropertyValue value) {
