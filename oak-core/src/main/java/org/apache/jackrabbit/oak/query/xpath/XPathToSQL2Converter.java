@@ -230,9 +230,25 @@ public class XPathToSQL2Converter {
                             read(")");
                         }
                     } else if ("rep:excerpt".equals(identifier)) {
-                        readOpenDotClose(false);
-                        rewindSelector();
-                        Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                        Expression.Property p;
+
+                        if (readIf(".")) {
+                            rewindSelector();
+                            p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                        } else {
+                            // this will also deal with relative properties
+                            Expression e = parseExpression();
+                            if (!(e instanceof Expression.Property)) {
+                                throw getSyntaxError();
+                            }
+                            Expression.Property prop = (Expression.Property) e;
+                            String property = prop.getColumnAliasName();
+                            rewindSelector();
+                            p = new Expression.Property(currentSelector,
+                                    "rep:excerpt(" + property + ")", false);
+                        }
+                        read(")");
+
                         statement.addSelectColumn(p);
                     } else {
                         throw getSyntaxError();
@@ -253,8 +269,24 @@ public class XPathToSQL2Converter {
                         Expression.Property p = readProperty();
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:excerpt")) {
-                        readOpenDotClose(true);
-                        Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                        Expression.Property p;
+
+                        read("(");
+                        if (readIf(".")) {
+                            p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                        } else {
+                            // this will also deal with relative properties
+                            Expression e = parseExpression();
+                            if (!(e instanceof Expression.Property)) {
+                                throw getSyntaxError();
+                            }
+                            Expression.Property prop = (Expression.Property) e;
+                            String property = prop.getColumnAliasName();
+                            p = new Expression.Property(currentSelector,
+                                    "rep:excerpt(" + property + ")", false);
+                        }
+                        read(")");
+
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:spellcheck")) {
                         // only rep:spellcheck() is currently supported
