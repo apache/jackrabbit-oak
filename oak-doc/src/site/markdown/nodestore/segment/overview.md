@@ -561,11 +561,54 @@ This option is optional and is disabled by default.
 ### <a name="compact"/> Compact
 
 ```
-java -jar oak-run.jar compact PATH
+java -jar oak-run.jar compact [--force] [--mmap] PATH
 ```
 
-The `compact` command performs offline compaction on the Segment Store at `PATH`. 
+The `compact` command performs offline compaction of the Segment Store at `PATH`. 
 `PATH` must be a valid path to an existing Segment Store. 
+
+If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non 
+matching Segment Store version. *CAUTION*: this will upgrade the Segment Store to the 
+latest version, which is incompatible with older versions. *There is no way to downgrade 
+an accidentally upgraded Segment Store*.  
+
+The optional `--mmap [Boolean]` argument can be used to control the file access mode. Set
+to `true` for memory mapped access and `false` for file access. If not specified, memory 
+mapped access is used on 64 bit systems and file access is used on 32 bit systems. On
+Windows, regular file access is always enforced and this option is ignored.
+
+To enable logging during offline compaction a Logback configuration file has to be injected 
+via the `logback.configurationFile` property. In addition the `compaction-progress-log`
+property controls the number of compacted nodes that will be logged. The default value is 150000.
+
+##### Example
+
+The following command uses `logback-compaction.xml` to configure Logback logging compaction
+progress every 1000 nodes to the console.
+
+```
+java -Dlogback.configurationFile=logback-compaction.xml -Dcompaction-progress-log=1000 -jar oak-run.jar compact /path/to/segmenstore
+```
+
+logback-compaction.xml:
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+  
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  
+  <logger name="org.apache.jackrabbit.oak.segment.file.FileStore" level="INFO"/>
+  
+  <root level="warn">
+    <appender-ref ref="console" />
+  </root>
+</configuration> 
+```
 
 ### <a name="debug"/> Debug
 
