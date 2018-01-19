@@ -23,25 +23,7 @@
     * [Estimation, Compaction and Cleanup](#estimation-compaction-cleanup)
     * [Offline Garbage Collection](#offline-garbage-collection)
     * [Online Garbage Collection](#online-garbage-collection)
-        * [Monitoring the log](#monitoring-the-log)
-            * [When did garbage collection start?](#when-did-garbage-collection-start)
-            * [When did estimation start?](#when-did-estimation-start)
-            * [Is estimation disabled?](#is-estimation-disabled)
-            * [Was estimation cancelled?](#was-estimation-cancelled)
-            * [When did estimation complete?](#when-did-estimation-complete)
-            * [When did compaction start?](#when-did-compaction-start)
-            * [What is the compaction type?](#what-is-the-compaction-type) 
-            * [Is compaction disabled?](#is-compaction-disabled)
-            * [Was compaction cancelled?](#was-compaction-cancelled)
-            * [When did compaction complete?](#when-did-compaction-complete)
-            * [How does compaction work with concurrent writes?](#how-does-compaction-works-with-concurrent-writes)
-            * [How does compaction deal with checkpoints?](#how-does-compaction-deal-with-checkpoints)
-            * [When did clean-up start?](#when-did-cleanup-start)
-            * [Was cleanup cancelled?](#was-cleanup-cancelled)
-            * [When did cleanup complete?](#when-did-cleanup-complete)
-            * [What happened during cleanup?](#what-happened-during-cleanup)
-        * [Monitoring via JMX](#monitoring-via-jmx)
-            * [SegmentRevisionGarbageCollection](#SegmentRevisionGarbageCollection)
+* [Monitoring](#monitoring)            
 * [Tools](#tools)
     * [Backup](#backup)
     * [Restore](#restore)
@@ -437,13 +419,170 @@ Removed files data00000a.tar,data00001a.tar,data00002a.tar
 The output of this message can vary.
 It depends on the amount of segments that were cleaned up, on how many TAR files were emptied and on how often the background activity removes unused files.
 
-#### <a name="monitoring-via-jmx"/> Monitoring via JMX
+#### <a name="monitoring"/> Monitoring
 
 The Segment Store exposes certain pieces of information via JMX.
 This allows clients to easily access some statistics about the Segment Store, and connect the Segment Store to whatever monitoring infrastructure is in place.
 Moreover, JMX can be useful to execute some low-level operations in a manual fashion.
 
-##### <a name="SegmentRevisionGarbageCollection"/> SegmentRevisionGarbageCollection
+* Each session exposes an [SessionMBean](#SessionMBean) instance, which contains counters like the number and rate of reads and writes to the session.
+* The [RepositoryStatsMBean](#RepositoryStatsMBean) exposes endpoints to monitor the number of open sessions, the session login rate, the overall read and write load across all sessions, the overall read and write timings across all sessions and overall load and timings for queries and observation.
+* The [SegmentNodeStoreStatsMBean](#SegmentNodeStoreStatsMBean) exposes endpoints to monitor commits: number and rate, number of queued commits and queuing times.
+* The [FileStoreStatsMBean](#FileStoreStatsMBean) exposes endpoints reflecting the amount of data written to disk, the number of tar files on disk and the total footprint on disk.
+* The [SegmentRevisionGarbageCollection](#SegmentRevisionGarbageCollection) MBean tracks statistics about garbage collection.  
+
+##### <a name="SessionMBean"/> SessionMBean
+Each session exposes an `SessionMBean` instance, which contains counters like the number and rate of reads and writes to the session:
+
+* **getInitStackTrace (string)**
+A stack trace from where the session was acquired.
+
+* **AuthInfo (AuthInfo)**
+The `AuthInfo` instance for the user associated with the session.
+
+* **LoginTimeStamp (string)**
+The time stamp from when the session was acquired.
+
+* **LastReadAccess (string)**
+The time stamp from the last read access
+
+* **ReadCount (long)**
+The number of read accesses on this session
+
+* **ReadRate (double)**
+The read rate in number of reads per second on this session
+
+* **LastWriteAccess (string)**
+The time stamp from the last write access
+
+* **WriteCount (long)**
+The number of write accesses on this session
+
+* **WriteRate (double)**
+The write rate in number of writes per second on this session
+
+* **LastRefresh (string)**
+The time stamp from the last refresh on this session
+
+* **RefreshStrategy (string)**
+The refresh strategy of the session
+
+* **RefreshPending (boolean)**
+A boolean indicating whether the session will be refreshed on next access.
+
+* **RefreshCount (long)**
+The number of refresh operations on this session
+
+* **RefreshRate (double)**
+The refresh rate in number of refreshes per second on this session
+
+* **LastSave (string)**
+The time stamp from the last save on this session
+
+* **SaveCount (long)**
+The number of save operations on this session
+
+* **SaveRate (double)**
+The save rate in number of saves per second on this session
+
+* **SessionAttributes (string[])**
+The attributes associated with the session
+
+* **LastFailedSave (string)**
+The stack trace of the last exception that occurred during a save operation
+
+* **refresh**
+Refresh this session.
+
+##### <a name="RepositoryStatsMBean"/> RepositoryStatsMBean
+The `RepositoryStatsMBean` exposes endpoints to monitor the number of open sessions, the session login rate, the overall read and write load across all sessions, the overall read and write timings across all sessions and overall load and timings for queries and observation.
+
+* **SessionCount (CompositeData)**
+Number of currently logged in sessions.
+
+* **SessionLogin (CompositeData)**
+Number of calls sessions that have been logged in.
+
+* **SessionReadCount (CompositeData)**
+Number of read accesses through any session.
+
+* **SessionReadDuration (CompositeData)**
+Total time spent reading from sessions in nano seconds.
+
+* **SessionReadAverage (CompositeData)**
+Average time spent reading from sessions in nano seconds. This is the sum of all read durations divided by the number of reads in the respective time period.
+
+* **SessionWriteCount (CompositeData)**
+Number of write accesses through any session.
+
+* **SessionWriteDuration (CompositeData)**
+Total time spent writing to sessions in nano seconds.
+
+* **SessionWriteAverage (CompositeData)**
+Average time spent writing to sessions in nano seconds. This is the sum of all write durations divided by the number of writes in the respective time period.
+
+* **QueryCount()**
+Number of queries executed.
+
+* **QueryDuration (CompositeData)**
+Total time spent evaluating queries in milli seconds.
+
+* **QueryAverage (CompositeData)**
+Average time spent evaluating queries in milli seconds. This is the sum of all query durations divided by the number of queries in the respective time period.
+
+* **ObservationEventCount (CompositeData)**
+Total number of observation {@code Event} instances delivered to all observation listeners.
+
+* **ObservationEventDuration (CompositeData)**
+Total time spent processing observation events by all observation listeners in nano seconds.
+
+* **ObservationEventAverage**
+Average time spent processing observation events by all observation listeners in nano seconds. This is the sum of all observation durations divided by the number of observation events in the respective time period.
+
+* **ObservationQueueMaxLength (CompositeData)**
+Maximum length of observation queue in the respective time period.
+
+
+##### <a name="SegmentNodeStoreStatsMBean"/> SegmentNodeStoreStatsMBean
+The `SegmentNodeStoreStatsMBean` exposes endpoints to monitor commits: number and rate, number of queued commits and queuing times.
+
+* **CommitsCount (CompositeData)**
+Time series of the number of commits
+    
+* **QueuingCommitsCount (CompositeData)**
+Time series of the number of commits queuing
+    
+* **CommitTimes (CompositeData)**
+Time series of the commit times
+    
+* **QueuingTimes (CompositeData)**
+Time series of the commit queuing times
+
+##### <a name="FileStoreStatsMBean"/> FileStoreStatsMBean
+The `FileStoreStatsMBean` exposes endpoints reflecting the amount of data written to disk, the number of tar files on disk and the total footprint on disk.
+
+* **ApproximateSize (long)**
+An approximate disk footprint of the Segment Store.
+
+* **TarFileCount (int)**
+The number of tar files of the Segment Store.
+
+* **WriteStats (CompositeData)**
+Time series of the writes to repository
+
+* **RepositorySize (CompositeData)**
+Time series of the writes to repository
+
+* **StoreInfoAsString (string)**
+A human readable descriptive representation of the values exposed by this MBean.
+    
+* **JournalWriteStatsAsCount (long)**
+Number of writes to the journal of this Segment Store.
+    
+* **JournalWriteStatsAsCompositeData (CompositeData)**
+Time series of the writes to the journal of this Segment Store.
+
+##### <a name="SegmentRevisionGarbageCollection"/> SegmentRevisionGarbageCollection MBean
 
 The `SegmentRevisionGarbageCollection` MBean tracks statistics about garbage collection.
 Some of the statistics are specific to specific phases of the garbage collection process, others are more widely applicable.
