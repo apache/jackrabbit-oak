@@ -389,8 +389,10 @@ public class SelectorImpl extends SourceImpl {
         for (ColumnImpl c : query.getColumns()) {
             if (c.getSelector().equals(this)) {
                 String columnName = c.getColumnName();
-                if (columnName.equals(QueryConstants.REP_EXCERPT) || columnName.equals(QueryConstants.OAK_SCORE_EXPLANATION)) {
+                if (columnName.equals(QueryConstants.OAK_SCORE_EXPLANATION)) {
                     f.restrictProperty(columnName, Operator.NOT_EQUAL, null);
+                } else if (columnName.startsWith(QueryConstants.REP_EXCERPT)) {
+                    f.restrictProperty(QueryConstants.REP_EXCERPT, Operator.EQUAL, PropertyValues.newString(columnName));
                 } else if (columnName.startsWith(QueryConstants.REP_FACET)) {
                     f.restrictProperty(QueryConstants.REP_FACET, Operator.EQUAL, PropertyValues.newString(columnName));
                 }
@@ -638,6 +640,7 @@ public class SelectorImpl extends SourceImpl {
             return PropertyValues.create(s);
         }
         boolean relative = !oakPropertyName.startsWith(QueryConstants.REP_FACET + "(")
+                && !oakPropertyName.startsWith(QueryConstants.REP_EXCERPT + "(")
                 && oakPropertyName.indexOf('/') >= 0;
         Tree t = currentTree();
         if (relative) {
@@ -673,8 +676,9 @@ public class SelectorImpl extends SourceImpl {
             result = PropertyValues.newString(local);
         } else if (oakPropertyName.equals(QueryConstants.JCR_SCORE)) {
             result = currentRow.getValue(QueryConstants.JCR_SCORE);
-        } else if (oakPropertyName.equals(QueryConstants.REP_EXCERPT)) {
-            result = currentRow.getValue(QueryConstants.REP_EXCERPT);
+        } else if (oakPropertyName.equals(QueryConstants.REP_EXCERPT)
+                || oakPropertyName.startsWith(QueryConstants.REP_EXCERPT + "(")) {
+            result = currentRow.getValue(oakPropertyName);
         } else if (oakPropertyName.equals(QueryConstants.OAK_SCORE_EXPLANATION)) {
             result = currentRow.getValue(QueryConstants.OAK_SCORE_EXPLANATION);
         } else if (oakPropertyName.equals(QueryConstants.REP_SPELLCHECK)) {

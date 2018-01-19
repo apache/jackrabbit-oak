@@ -33,12 +33,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Chars;
@@ -138,11 +141,13 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.ANALYZED_FIELD_PREFIX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.NATIVE_SORT_ORDER;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCERPT_NODE_FIELD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_EXCERPT;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 import static org.apache.lucene.search.BooleanClause.Occur.*;
@@ -350,7 +355,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return endOfData();
             }
 
-            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt,  Facets facets,
+            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,  Facets facets,
                                                  String explanation) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 //TODO Look into usage of field cache for retrieving the path
@@ -381,7 +386,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                     boolean shouldIncludeForHierarchy = shouldInclude(path, plan);
                     LOG.trace("Matched path {}; shouldIncludeForHierarchy: {}", path, shouldIncludeForHierarchy);
-                    return shouldIncludeForHierarchy? new LuceneResultRow(path, doc.score, excerpt, facets, explanation)
+                    return shouldIncludeForHierarchy? new LuceneResultRow(path, doc.score, excerpts, facets, explanation)
                             : null;
                 }
                 return null;
@@ -438,10 +443,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             Facets facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
                             PERF_LOGGER.end(f, -1, "facets retrieved");
 
-                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryConstants.REP_EXCERPT);
-                            boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
+                            Set<String> excerptFields = Sets.newHashSet();
+                            for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                                if (QueryConstants.REP_EXCERPT.equals(pr.propertyName)) {
+                                    String value = pr.first.getValue(Type.STRING);
+                                    excerptFields.add(value);
+                                }
+                            }
+                            boolean addExcerpt = excerptFields.size() > 0;
 
-                            restriction = filter.getPropertyRestriction(QueryConstants.OAK_SCORE_EXPLANATION);
+                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryConstants.OAK_SCORE_EXPLANATION);
                             boolean addExplain = restriction != null && restriction.isNotNullRestriction();
 
                             Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
@@ -456,9 +467,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             }
 
                             for (ScoreDoc doc : docs.scoreDocs) {
-                                String excerpt = null;
+                                Map<String, String> excerpts = null;
                                 if (addExcerpt) {
-                                    excerpt = getExcerpt(query, analyzer, searcher, doc, mergedFieldInfos);
+                                    excerpts = getExcerpt(query, excerptFields, analyzer, searcher, doc, mergedFieldInfos);
                                 }
 
                                 String explanation = null;
@@ -466,7 +477,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                     explanation = searcher.explain(query, doc.doc).toString();
                                 }
 
-                                LuceneResultRow row = convertToRow(doc, searcher, excerpt, facets, explanation);
+                                LuceneResultRow row = convertToRow(doc, searcher, excerpts, facets, explanation);
                                 if (row != null) {
                                     queue.add(row);
                                 }
@@ -662,9 +673,32 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return include;
     }
 
-    private String getExcerpt(Query query, Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc,
-                              FieldInfos fieldInfos) throws IOException {
-        StringBuilder excerpt = new StringBuilder();
+    private Map<String, String> getExcerpt(Query query, Set<String> excerptFields,
+                              Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc, FieldInfos fieldInfos)
+            throws IOException {
+        Set<String> excerptFieldNames = Sets.newHashSet();
+        Map<String, String> fieldNameToColumnNameMap = Maps.newHashMap();
+        Map<String, String> columnNameToExcerpts = Maps.newHashMap();
+        Set<String> nodeExcerptColumns = Sets.newHashSet();
+
+        excerptFields.forEach(columnName -> {
+            String fieldName;
+            if (REP_EXCERPT.equals(columnName)) {
+                fieldName = EXCERPT_NODE_FIELD_NAME;
+            } else {
+                fieldName = columnName.substring(REP_EXCERPT.length() + 1, columnName.length() - 1);
+            }
+
+            if (!EXCERPT_NODE_FIELD_NAME.equals(fieldName)) {
+                excerptFieldNames.add(fieldName);
+                fieldNameToColumnNameMap.put(fieldName, columnName);
+            } else {
+                nodeExcerptColumns.add(columnName);
+            }
+        });
+
+        final boolean requireNodeLevelExcerpt = nodeExcerptColumns.size() > 0;
+
         int docID = doc.doc;
         List<String> names = new LinkedList<String>();
 
@@ -674,6 +708,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             if (name.startsWith(ANALYZED_FIELD_PREFIX) && fieldInfos.hasProx() && fieldInfos.hasOffsets()) {
                 names.add(name);
             }
+        }
+
+        if (!requireNodeLevelExcerpt) {
+            names.retainAll(excerptFieldNames);
         }
 
         if (names.size() > 0) {
@@ -687,10 +725,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 for (Map.Entry<String, String[]> entry : stringMap.entrySet()) {
                     String value = Arrays.toString(entry.getValue());
                     if (value.contains("<b>")) {
-                        if (excerpt.length() > 0) {
-                            excerpt.append("...");
-                        }
-                        excerpt.append(value);
+                        String fieldName = entry.getKey();
+                        String columnName = fieldNameToColumnNameMap.get(fieldName);
+
+                        columnNameToExcerpts.put(columnName, value);
                     }
                 }
             } catch (Exception e) {
@@ -699,8 +737,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
 
         // fallback if no excerpt could be retrieved using postings highlighter
-        if (excerpt.length() == 0) {
-
+        if (columnNameToExcerpts.size() == 0) {
             for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields()) {
                 String name = field.name();
                 // only full text or analyzed fields
@@ -712,12 +749,21 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         TextFragment[] textFragments = highlighter.getBestTextFragments(tokenStream, text, true, 1);
                         if (textFragments != null && textFragments.length > 0) {
                             for (TextFragment fragment : textFragments) {
-                                if (excerpt.length() > 0) {
-                                    excerpt.append("...");
+                                String columnName = null;
+                                if (name.startsWith(FieldNames.ANALYZED_FIELD_PREFIX)) {
+                                    columnName = fieldNameToColumnNameMap.get(name.substring(FieldNames.ANALYZED_FIELD_PREFIX.length()));
                                 }
-                                excerpt.append(fragment.toString());
+                                if (columnName == null && requireNodeLevelExcerpt) {
+                                    columnName = name;
+                                }
+
+                                if (columnName != null) {
+                                    columnNameToExcerpts.put(columnName, fragment.toString());
+                                }
                             }
-                            break;
+                            if (excerptFieldNames.size() == 0) {
+                                break;
+                            }
                         }
                     } catch (InvalidTokenOffsetsException e) {
                         LOG.error("higlighting failed", e);
@@ -725,7 +771,18 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
             }
         }
-        return excerpt.toString();
+
+        if (requireNodeLevelExcerpt) {
+            String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
+
+            nodeExcerptColumns.forEach( nodeExcerptColumnName -> {
+                columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt);
+            });
+        }
+
+        columnNameToExcerpts.keySet().retainAll(excerptFields);
+
+        return columnNameToExcerpts;
     }
 
     @Override
@@ -1610,13 +1667,13 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         final double score;
         final String suggestion;
         final boolean isVirutal;
-        final String excerpt;
+        final Map<String, String> excerpts;
         final String explanation;
         final Facets facets;
 
-        LuceneResultRow(String path, double score, String excerpt, Facets facets, String explanation) {
+        LuceneResultRow(String path, double score, Map<String, String> excerpts, Facets facets, String explanation) {
             this.explanation = explanation;
-            this.excerpt = excerpt;
+            this.excerpts = excerpts;
             this.facets = facets;
             this.isVirutal = false;
             this.path = path;
@@ -1629,7 +1686,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             this.path = "/";
             this.score = weight;
             this.suggestion = suggestion;
-            this.excerpt = null;
+            this.excerpts = null;
             this.facets = null;
             this.explanation = null;
         }
@@ -1741,8 +1798,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     if (QueryConstants.OAK_SCORE_EXPLANATION.equals(columnName)) {
                         return PropertyValues.newString(currentRow.explanation);
                     }
-                    if (QueryConstants.REP_EXCERPT.equals(columnName)) {
-                        return PropertyValues.newString(currentRow.excerpt);
+                    if (columnName.startsWith(QueryConstants.REP_EXCERPT)) {
+                        String excerpt = currentRow.excerpts.get(columnName);
+                        if (excerpt != null) {
+                            return PropertyValues.newString(excerpt);
+                        }
                     }
                     if (columnName.startsWith(QueryConstants.REP_FACET)) {
                         String facetFieldName = FacetHelper.parseFacetField(columnName);
