@@ -466,13 +466,17 @@ This parameter is used only if compaction is configured to take exclusive contro
 * **RetainedGenerations (int)**
 How many generations should be preserved when cleaning up the Segment Store.
 When the cleanup phase runs, only the latest `RetainedGenerations` generations are kept intact.
-Older generations will be deleted.
+Older generations will be deleted. *Deprecated*: as of Oak 1.8 this value is fixed to 2 generations and cannot be modified.
 * **GcSizeDeltaEstimation (long)**
 The size (in bytes) of new content added to the repository since the end of the last garbage collection that would trigger another garbage collection run.
 This parameter influences the behaviour of the estimation phase.
 * **EstimationDisabled (boolean)**
 Determines if the estimation phase is disabled.
 If this parameter is set to `true`, the estimation phase will be skipped and compaction will run unconditionally.
+* **GCType ("FULL" or "TAIL")**
+Determines the type of the garbage collection that should run when invoking the `startRevisionGC` operation.
+* **RevisionGCProgressLog (long)**
+The number of processed nodes after which a progress message is logged. `-1` indicates no logging.
 * **MemoryThreshold (int)**
 A number between `0` and `100` that represents the percentage of heap memory that should always be free during compaction.
 If the amount of free memory falls below the provided percentage, compaction will be interrupted.
@@ -494,6 +498,14 @@ The last log message produced during garbage collection.
 * **Status (string)**
 The current status of the garbage collection process.
 This property can assume the values `idle`, `estimation`, `compaction`, `compaction-retry-N` (where `N` is the number of the current retry iteration), `compaction-force-compact` and `cleanup`.
+* **RevisionGCRunning (boolean)**
+Indicates whether online revision garbage collection is currently running.
+* **CompactedNodes (long)**
+The number of compacted nodes during the previous garbage collection
+* **EstimatedCompactableNodes (long)**
+The estimated number of nodes to compact during the next garbage collection. `-1` indicates an estimated value is not available.
+* **EstimatedRevisionGCCompletion (int)**
+Estimated percentage completed for the current garbage collection run. `-1` indicates an estimated percentage is not available.
 
 The `SegmentRevisionGarbageCollection` MBean also exposes the following management operations.
 
