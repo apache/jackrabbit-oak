@@ -76,6 +76,85 @@ select [jcr:path], [jcr:score], *
   /* xpath ... */
   order by [foo] option(traversal OK)
 
+# OAK-7151
+xpath2sql //*[@a='b']/rep:excerpt(.)
+select [jcr:path], [jcr:score], [rep:excerpt]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(.))
+select [jcr:path], [jcr:score], [rep:excerpt]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/rep:excerpt(@a)
+select [jcr:path], [jcr:score], [rep:excerpt(a)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(@a))
+select [jcr:path], [jcr:score], [rep:excerpt(a)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/rep:excerpt(a/@b)
+select [jcr:path], [jcr:score], [rep:excerpt(a/b)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(a/@b))
+select [jcr:path], [jcr:score], [rep:excerpt(a/b)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/rep:excerpt(a/b/@c)
+select [jcr:path], [jcr:score], [rep:excerpt(a/b/c)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(a/b/@c))
+select [jcr:path], [jcr:score], [rep:excerpt(a/b/c)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(@a) | rep:excerpt(@b))
+select [jcr:path], [jcr:score], [rep:excerpt(a)], [rep:excerpt(b)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(@a) | rep:excerpt(@b) | rep:excerpt(@c))
+select [jcr:path], [jcr:score], [rep:excerpt(a)], [rep:excerpt(b)], [rep:excerpt(c)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(rel/@a) | rep:excerpt(rel/@b))
+select [jcr:path], [jcr:score], [rep:excerpt(rel/a)], [rep:excerpt(rel/b)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(.) | rep:excerpt(@a))
+select [jcr:path], [jcr:score], [rep:excerpt], [rep:excerpt(a)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
+xpath2sql //*[@a='b']/(rep:excerpt(.) | rep:excerpt(rel/@a) | rep:excerpt(rel/@b))
+select [jcr:path], [jcr:score], [rep:excerpt], [rep:excerpt(rel/a)], [rep:excerpt(rel/b)]
+  from [nt:base] as a
+  where [a] = 'b'
+  /* xpath ... */
+
 # OAK-6792
 
 xpath2sql /jcr:root//*/(rep:facet(jcr:data/jcr:createdBy))
