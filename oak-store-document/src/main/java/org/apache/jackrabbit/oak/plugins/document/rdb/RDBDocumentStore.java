@@ -486,6 +486,24 @@ public class RDBDocumentStore implements DocumentStore {
         return result;
     }
 
+    @CheckForNull
+    private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection, Set<String> keys) {
+        if (collection == Collection.NODES) {
+            return this.nodesCache.registerTracker(keys);
+        } else {
+            return null;
+        }
+    }
+
+    @CheckForNull
+    private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection, String fromKey, String toKey) {
+        if (collection == Collection.NODES) {
+            return this.nodesCache.registerTracker(fromKey, toKey);
+        } else {
+            return null;
+        }
+    }
+
     private <T extends Document> Map<UpdateOp, T> bulkUpdate(Collection<T> collection, List<UpdateOp> updates, Map<String, T> oldDocs, boolean upsert) {
         Set<String> missingDocs = new HashSet<String>();
         for (UpdateOp op : updates) {
@@ -495,12 +513,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
         oldDocs.putAll(readDocumentsUncached(collection, missingDocs));
 
-        CacheChangesTracker tracker = null;
-        if (collection == Collection.NODES) {
-            tracker = nodesCache.registerTracker(Sets.union(oldDocs.keySet(), missingDocs));
-        }
-
-        try {
+        try (CacheChangesTracker tracker = obtainTracker(collection, Sets.union(oldDocs.keySet(), missingDocs) )) {
             List<T> docsToUpdate = new ArrayList<T>(updates.size());
             Set<String> keysToUpdate = new HashSet<String>();
             for (UpdateOp update : updates) {
@@ -546,10 +559,6 @@ public class RDBDocumentStore implements DocumentStore {
                 throw handleException("update failed for: " + keysToUpdate, ex, collection, keysToUpdate);
             } finally {
                 this.ch.closeConnection(connection);
-            }
-        } finally {
-            if (tracker != null) {
-                tracker.close();
             }
         }
     }
@@ -1601,11 +1610,8 @@ public class RDBDocumentStore implements DocumentStore {
 
         final Stopwatch watch = startWatch();
         int resultSize = 0;
-        CacheChangesTracker tracker = null;
-        try {
-            if (collection == Collection.NODES) {
-                tracker = nodesCache.registerTracker(fromKey, toKey);
-            }
+
+        try (CacheChangesTracker tracker = obtainTracker(collection, fromKey, toKey)) {
             long now = System.currentTimeMillis();
             connection = this.ch.getROConnection();
             String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
@@ -1664,9 +1670,6 @@ public class RDBDocumentStore implements DocumentStore {
             LOG.error("SQL exception on query", ex);
             throw new DocumentStoreException(ex);
         } finally {
-            if (tracker != null) {
-                tracker.close();
-            }
             this.ch.closeConnection(connection);
             stats.doneQuery(watch.elapsed(TimeUnit.NANOSECONDS), collection, fromKey, toKey,
                     !conditions.isEmpty(), resultSize, -1, false);
