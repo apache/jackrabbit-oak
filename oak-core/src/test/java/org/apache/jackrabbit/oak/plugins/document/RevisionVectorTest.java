@@ -382,4 +382,10 @@ public class RevisionVectorTest {
         rv = rv.update(r12);
         assertEquals(new RevisionVector(br11, r12), rv.asBranchRevision(1));
     }
+
+    @Test
+    public void emptyAsFromString() {
+        RevisionVector empty = new RevisionVector();
+        assertEquals(empty, RevisionVector.fromString(empty.asString()));
+    }
 }
