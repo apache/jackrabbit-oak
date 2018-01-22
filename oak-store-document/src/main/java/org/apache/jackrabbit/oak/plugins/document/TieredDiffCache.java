@@ -19,9 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
+
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLocalChange;
 
 /**
  * Implements a tiered diff cache which consists of a {@link LocalDiffCache} and
@@ -29,10 +34,19 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
  */
 class TieredDiffCache extends DiffCache {
 
+    /**
+     * A small cache of local diff cache misses to prevent repeated calls with
+     * the same revision vector range.
+     */
+    private Cache<RevisionsKey, RevisionsKey> localDiffMisses
+            = CacheBuilder.newBuilder().maximumSize(128).build();
+
+    private final int clusterId;
     private final DiffCache localCache;
     private final DiffCache memoryCache;
 
-    TieredDiffCache(DocumentNodeStoreBuilder<?> builder) {
+    TieredDiffCache(DocumentNodeStoreBuilder<?> builder, int clusterId) {
+        this.clusterId = clusterId;
         this.localCache = new LocalDiffCache(builder);
         this.memoryCache = new MemoryDiffCache(builder);
     }
@@ -42,10 +56,21 @@ class TieredDiffCache extends DiffCache {
                              @Nonnull RevisionVector to,
                              @Nonnull String path,
                              @Nullable Loader loader) {
-        // check local first without loader
-        String changes = localCache.getChanges(from, to, path, null);
-        if (changes != null) {
-            return changes;
+        // do not check local cache when changes are external
+        if (isLocalChange(from, to, clusterId)) {
+            // do not read from the localCache when there was a previous miss
+            // with the same key
+            RevisionsKey k = new RevisionsKey(from, to);
+            if (localDiffMisses.getIfPresent(k) == null) {
+                // check local without loader and fallback to
+                // memory cache when there is a cache miss
+                String changes = localCache.getChanges(from, to, path, null);
+                if (changes != null) {
+                    return changes;
+                }
+                // remember cache miss
+                localDiffMisses.put(k, k);
+            }
         }
         return memoryCache.getChanges(from, to, path, loader);
     }

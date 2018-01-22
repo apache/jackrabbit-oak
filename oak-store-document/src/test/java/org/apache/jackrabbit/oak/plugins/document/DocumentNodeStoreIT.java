@@ -118,7 +118,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
     private class TestBuilder extends DocumentNodeStoreBuilder<TestBuilder> {
 
         @Override
-        public DiffCache getDiffCache() {
+        public DiffCache getDiffCache(int clusterId) {
             return AmnesiaDiffCache.INSTANCE;
         }
     }

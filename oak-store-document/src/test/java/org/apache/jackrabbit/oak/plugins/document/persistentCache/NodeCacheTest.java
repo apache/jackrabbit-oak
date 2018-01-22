@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -181,7 +180,6 @@ public class NodeCacheTest {
         assertEquals(requests, stats.getCount());
     }
 
-    @Ignore
     @Test
     public void localDiffCache() throws Exception {
         initializeNodeStore(false);

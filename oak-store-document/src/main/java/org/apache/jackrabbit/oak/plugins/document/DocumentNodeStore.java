@@ -600,7 +600,7 @@ public final class DocumentNodeStore
         nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "Document-NodeChildren",
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
-        diffCache = builder.getDiffCache();
+        diffCache = builder.getDiffCache(this.clusterId);
         checkpoints = new Checkpoints(this);
 
         // check if root node exists
