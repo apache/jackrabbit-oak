@@ -343,6 +343,9 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @throws IllegalArgumentException if the string is malformed
      */
     public static RevisionVector fromString(String s) {
+        if (s.isEmpty()) {
+            return EMPTY;
+        }
         List<Revision> revisions = Lists.newArrayListWithCapacity(3);
         for (String str : s.split(",")) {
             revisions.add(Revision.fromString(str));
