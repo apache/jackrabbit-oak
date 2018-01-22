@@ -85,6 +85,22 @@ public interface SegmentCompactionMBean {
     int getCompactionInterval();
 
     /**
+     * Set the full compaction cycle
+     * @param n  every n-th compaction is a full compaction.
+     */
+    void setFullCompactionCycle(int n);
+
+    /**
+     * @return  the full compaction cycle
+     */
+    int getFullCompactionCycle();
+
+    /**
+     * @return  the number of successfully completed compaction runs.
+     */
+    int getCompactionCount();
+
+    /**
      * @return  Time stamp from when compaction last ran.
      */
     String getLastCompaction();
