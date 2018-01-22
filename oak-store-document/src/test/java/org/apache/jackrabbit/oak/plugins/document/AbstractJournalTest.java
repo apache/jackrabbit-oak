@@ -203,7 +203,7 @@ public abstract class AbstractJournalTest {
         }
 
         @Override
-        public DiffCache getDiffCache() {
+        public DiffCache getDiffCache(int clusterId) {
             if (actualDiffCache==null) {
                 actualDiffCache = new CountingDiffCache(this);
             }
