@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,7 +35,6 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -197,7 +197,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 globalMerge();
                 return store.getRecords();
             }
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         } catch (IOException e) {
             LOG.error("Error in retrieving blob records iterator", e);
             throw e;
