@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -26,7 +27,6 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -310,7 +310,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @Test
     public void testFindPrincipalsByHintTypeNotGroup() {
         Iterator<? extends Principal> iter = principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_NOT_GROUP);
-        assertSame(Iterators.emptyIterator(), iter);
+        assertSame(Collections.emptyIterator(), iter);
     }
 
     @Test
@@ -356,7 +356,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @Test
     public void testFindPrincipalsByTypeNotGroup() {
         Iterator<? extends Principal> iter = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
-        assertSame(Iterators.emptyIterator(), iter);
+        assertSame(Collections.emptyIterator(), iter);
     }
 
     @Test
