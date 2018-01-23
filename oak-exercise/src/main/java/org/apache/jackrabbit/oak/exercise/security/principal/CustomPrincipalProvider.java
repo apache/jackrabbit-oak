@@ -68,13 +68,13 @@ class CustomPrincipalProvider implements PrincipalProvider {
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
         // EXERCISE
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
     }
 
     @Nonnull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         // EXERCISE
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
     }
 }
