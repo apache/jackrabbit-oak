@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
@@ -753,7 +754,7 @@ public class VersionGarbageCollector {
         private Iterator<String> previousDocIdsFor(NodeDocument doc) {
             Map<Revision, Range> prevRanges = doc.getPreviousRanges(true);
             if (prevRanges.isEmpty()) {
-                return Iterators.emptyIterator();
+                return Collections.emptyIterator();
             } else if (all(prevRanges.values(), FIRST_LEVEL)) {
                 // all previous document ids can be constructed from the
                 // previous ranges map. this works for first level previous
