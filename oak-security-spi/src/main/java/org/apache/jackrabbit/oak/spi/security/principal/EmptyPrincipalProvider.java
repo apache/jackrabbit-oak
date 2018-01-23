@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 
 /**
  * Implementation of the {@code PrincipalProvider} interface that never
@@ -56,12 +56,12 @@ public final class EmptyPrincipalProvider implements PrincipalProvider {
     @Nonnull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
     }
 
     @Nonnull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
     }
 }
