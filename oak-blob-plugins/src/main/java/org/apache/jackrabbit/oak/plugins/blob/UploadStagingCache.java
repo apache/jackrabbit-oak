@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -36,7 +37,6 @@ import javax.annotation.Nullable;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.cache.Weigher;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
@@ -212,7 +212,7 @@ public class UploadStagingCache implements Closeable {
             }
 
             @Override protected Iterator<String> getAllIdentifiers() {
-                return Iterators.emptyIterator();
+                return Collections.emptyIterator();
             }
 
             @Nullable @Override public File getIfPresent(String key) {
