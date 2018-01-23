@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getNames;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -1286,7 +1287,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Nonnull
     private Iterator<String> getMixinTypeNames(@Nonnull Tree tree) throws RepositoryException {
-        Iterator<String> mixinNames = Iterators.emptyIterator();
+        Iterator<String> mixinNames = Collections.emptyIterator();
         if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadProperty(tree, JcrConstants.JCR_MIXINTYPES)) {
             mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
         } else if (tree.getStatus() != Status.NEW) {
