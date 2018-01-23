@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -30,7 +31,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -594,7 +594,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private final EntryPredicate predicate;
 
         // the ordered permission entries at a given path in the hierarchy
-        private Iterator<PermissionEntry> nextEntries = Iterators.emptyIterator();
+        private Iterator<PermissionEntry> nextEntries = Collections.emptyIterator();
 
         private TreePermissionImpl tp;
 

@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -67,7 +67,7 @@ public class PermissionEntryProviderImplTest {
         // test that PermissionEntryProviderImpl.existingNames nevertheless is
         // properly filled with all principal names for which permission entries exist
         assertEquals(principalNames, existingNamesField.get(provider));
-        assertNotSame(Iterators.emptyIterator(), provider.getEntryIterator(new EntryPredicate()));
+        assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(new EntryPredicate()));
     }
 
     /**
@@ -90,7 +90,7 @@ public class PermissionEntryProviderImplTest {
         Set<String> existingNames = getExistingNames(provider);
 
         assertEquals(principalNames, existingNames);
-        assertNotSame(Iterators.emptyIterator(), provider.getEntryIterator(new EntryPredicate()));
+        assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(new EntryPredicate()));
     }
 
     /**
