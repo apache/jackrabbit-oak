@@ -163,7 +163,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             }
         }
 
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
     }
 
     @Nonnull
@@ -333,7 +333,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             if (result != null) {
                 return Iterators.asEnumeration(new MemberIterator(result));
             } else {
-                return Iterators.asEnumeration(Iterators.<Principal>emptyIterator());
+                return Iterators.asEnumeration(Collections.<Principal>emptyIterator());
             }
         }
     }
@@ -358,7 +358,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         private final String queryString;
         private final Iterator<? extends ResultRow> rows;
 
-        private Iterator<String> propValues = Iterators.emptyIterator();
+        private Iterator<String> propValues = Collections.emptyIterator();
 
         private GroupPrincipalIterator(@Nullable String queryString, @Nonnull Result queryResult) {
             this.queryString = queryString;
@@ -371,7 +371,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 if (rows.hasNext()) {
                     propValues = rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator();
                 } else {
-                    propValues = Iterators.emptyIterator();
+                    propValues = Collections.emptyIterator();
                 }
             }
             while (propValues.hasNext()) {
