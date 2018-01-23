@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.Iterators.emptyIterator;
 import static com.google.common.collect.Iterators.filter;
 import static com.google.common.collect.Iterators.singletonIterator;
 import static com.google.common.collect.Iterators.transform;
@@ -280,7 +279,7 @@ public class IdentifierManager {
                                 return singletonIterator(PathUtils.concat(rowPath, propertyName));
                             }
                     }
-                    return emptyIterator();
+                    return Collections.emptyIterator();
                 }
             }
         };
