@@ -280,6 +280,7 @@ public class BenchmarkRunner {
             new ReadPropertyTest(),
             GetNodeTest.withAdmin(),
             GetNodeTest.withAnonymous(),
+            new GetMixinNodeTypesTest(),
             new GetDeepNodeTest(),
             new SetPropertyTest(),
             new SetMultiPropertyTest(),
