@@ -39,6 +39,7 @@ import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.TieredMergePolicy;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -65,6 +66,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -1196,6 +1199,15 @@ public class IndexDefinitionTest {
         assertTrue(defn.indexesRelativeNodes());
     }
 
+    @Ignore("OAK-7198")
+    @Test
+    public void regexAllProps() {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("nt:base").property("all", LuceneIndexConstants.REGEX_ALL_PROPS, true);
+        
+        IndexDefinition def = IndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        assertThat(def.getRelativeNodeNames(), is(empty()));
+    }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
