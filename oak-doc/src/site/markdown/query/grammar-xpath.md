@@ -40,16 +40,31 @@
 <br/> [ <a href="#options">queryOptions</a> ]
 </h4>
 
+The "/jcr:root" means the root node. 
+It is recommended that all XPath queries start with this term.
+
 "order by" may use an index.
 If there is no index for the given sort order, 
 then the result is fully read in memory and sorted before returning the first row.
 
-The column list only needs to contain non-standard columns,
-such as "rep:excerpt" or "rep:spellcheck".
-All properties of the node are returned in any case.
+The column list is usually not needed, as all properties of the nodes are returned in any case.
+It is only needed if non-standard (computed) columns such as 
+"rep:excerpt" or "rep:spellcheck" are needed.
 
-The "/jcr:root" means the root node. 
-It is recommended that all XPath queries start with this term.
+Examples:
+
+Get all nodes of node type sling:Folder with the property sling:resourceType set to 'x':
+
+    /jcr:root//element(*, sling:Folder)[@sling:resourceType='x']
+
+Get all workflow nodes with status 'active', sorted by starting time:
+
+    /jcr:root//element(*, acme:Workflow)[@status='active'] order by @startTime descending
+
+Get all nodes below /etc that have the property type set to 'report'; fail the query if there is no index:
+
+    /jcr:root/etc//*[@type='report'] option(traversal fail)
+
 
 <hr />
 <h3 id="filter">Filter</h3>
@@ -57,10 +72,80 @@ It is recommended that all XPath queries start with this term.
 <h4>
 / <a href="#filter">directChildNodeFilter</a>
 <br/> | // <a href="#filter">descendantNodeFilter</a>
-<br/> | element( [ * | nodeName ] [, nodeType] )
 <br/> | *
+<br/> | element( [ * | nodeName ] [, nodeType] )
+<br/> | text()
 <br/> | '[' <a href="#constraint">constraint</a> ']'
 </h4>
+
+A single slash means filtering on a specific child node,
+while two slashes means filtering on a descendant node.
+
+"*" means any node name, and any node type.
+
+"text()" is a shortcut for "jcr:xmltext". 
+It is supported only for compatibility.
+
+Examples:
+
+Only direct child nodes of /content/dam:
+
+    /content/dam/*
+
+All descendant nodes of /content/dam:
+
+    /content/dam//*
+
+All nodes named "profile" that have a parent node which is the direct child node of /user/home:
+
+    /user/home/*/profile
+
+All nodes named "profile" that have a parent node which is a descendant of /user/home:
+
+    /user/home//*/profile
+
+All descendant nodes of /content that are of type oak:QueryIndexDefinition:
+
+    /content//element(*, oak:QueryIndexDefinition)
+
+All descendant nodes of /content that are of type oak:QueryIndexDefinition and are named "lucene":
+
+    /content//element(lucene, oak:QueryIndexDefinition)
+
+All nodes named "analyzers" that have a parent node with the property "type" set to "lucene":
+
+    /oak:index/[@type = 'lucene']/analyzers
+
+
+<hr />
+<h3 id="column">Column</h3>
+
+<h4>
+rep:excerpt( [. | [ relativePath / ] @propertyName ]  )
+<br/> | rep:spellcheck()
+<br/> | rep:suggest( [.] )
+<br/> | rep:facet ( [ relativePath / ] @propertyName )
+</h4>
+
+"rep:excerpt": include the spellcheck column in the result.
+Since Oak version 1.8.1, optionally a property name can be specified.
+See also <a href="lucene.html#Property_Definitions">useInExcerpt</a>.
+
+"rep:spellcheck": Include the spellcheck in the result.
+See <a href="query-engine.html#Spellchecking">Spellchecking</a>.
+
+"rep:suggest": include suggestions in the result.
+See <a href="query-engine.html#Suggestions">Suggestions</a>.
+
+"rep:facet": include facets in the result.
+See <a href="query-engine.html#Facets">Facets</a>.
+
+Examples:
+
+    /jcr:root/content//*[rep:suggest('in ')]/(rep:suggest())
+
+    /jcr:root/content//*[jcr:contains(@jcr:title, 'oak')]/(rep:facet(@tags))
+
 
 <hr />
 <h3 id="constraint">Constraint</h3>
@@ -75,6 +160,15 @@ It is recommended that all XPath queries start with this term.
 Oak will convert them to a "union" query
 (one query with @x = 1, and a second query with @y = 2).
 
+Examples:
+
+Include the nodes that have the property 'hidden' set to 'hidden-folder',
+or don't have the property set:
+
+    /jcr:root/content/dam/*[@hidden='hidden-folder' or not(@hidden)]
+    
+
+
 <hr />
 <h3 id="andCondition">And Condition</h3>
 
@@ -87,13 +181,18 @@ A special case (not found in relational databases) is
 They will match nodes with multi-valued properties, 
 where the property value contains both 1 and 2.
 
+Examples:
+
+    /jcr:root/home//element(*, rep:Authorizable)[@rep:principalName!='Joe' and @rep:principalName!='Steve']
+
+
 <hr />
 <h3 id="condition">Condition</h3>
 
 <h4>
 <a href="#comparison">comparison</a>
 <br/> <a href="#inComparison">inComparison</a>
-<br/> | [ fn:not (<a href="#constraint">constraint</a>)
+<br/> | [ [ fn:not | not ] (<a href="#constraint">constraint</a>)
 <br/> | ( <a href="#constraint">constraint</a> )
 <br/> | jcr:contains( [ { property | . } , ] fulltextSearchExpression )
 <br/> | jcr:like( dynamicOperand , staticOperand )
@@ -120,32 +219,53 @@ To search for the characters % and _, the characters need to be escaped using \ 
 
 "rep:suggest": see <a href="query-engine.html#Suggestions">Suggestions</a>.
 
+Examples:
+
+    /jcr:root/var/eventing//element(*, slingevent:Job)[@event.job.topic = 'abc' and not(@slingevent:finishedState)]
+
+    /jcr:root/content//element(*, cq:Page)[@offTime > xs:dateTime('2020-12-01T20:00:00.000') or @onTime > xs:dateTime('2020-12-01T20:00:00.000')]
+
+
 <hr />
 <h3 id="comparison">Comparison</h3>
 
 <h4>
 <a href="#dynamicOperand">dynamicOperand</a> 
-{ = | &lt;&gt; | &lt; | &lt;= | &gt; | &gt;= } 
+{ = | &lt;&gt; | != | &lt; | &lt;= | &gt; | &gt;= } 
 <a href="#staticOperand">staticOperand</a>
 </h4>
 
 Comparison using &lt;, &gt;, &gt;=, and &lt;= can use an index if the property in the index is ordered.
 
+Examples:
+
+    @jcr:primaryType != 'nt:base'
+    @offTime > xs:dateTime('2020-12-01T20:00:00.000')
+
+
 <hr />
 <h3 id="staticOperand">Static Operand</h3>
 
 <h4>
-literal
+textLiteral
 <br/> | $ bindVariableName
+<br/> | [ + | - ] numberLiteral
+<br/> | true [ () ]
+<br/> | false [ () ]
 <br/> | xs:dateTime ( literal )
 </h4>
 
 A string (text) literal starts and ends with a single quote. 
 Two single quotes can be used to create a single quote inside a string.
 
-Example:
+Examples:
 
-'John''s car'
+    'John''s car'
+    true()
+    false
+    1000
+    -30.3
+    xs:dateTime('2020-12-01T20:00:00.000')
 
 <hr />
 <h3 id="ordering">Ordering</h3>
@@ -164,6 +284,11 @@ As a special case, sorting by "jcr:score" in descending order is ignored
 If for some reason you want to enforce sorting by "jcr:score", then
 you can use the workaround to order by "fn:lowercase(@jcr:score) descending".
 
+Examples:
+
+    order by @jcr:created descending
+
+
 <hr />
 <h3 id="dynamicOperand">Dynamic Operand</h3>
 
@@ -181,6 +306,19 @@ The selector name is only needed if the query contains multiple selectors.
 "fn:coalesce": this returns the first operand if it is not null,
 and the second operand otherwise.
 `@since Oak 1.8`
+
+Examples:
+
+    @type
+    ./@jcr:primaryType
+    items/type/@metaType
+    items/type/*
+    fn:string-length(@title)
+    fn:name()
+    jcr:score ()
+    fn:lower-case(@lastName)
+    fn:coalesce(@lastName, @name)
+
 
 <hr />
 <h3 id="options">Options</h3>
@@ -203,6 +341,11 @@ The traversal option can be used to change the behavior of the given query:
 "index tag": by default, queries will use the index with the lowest expected cost (as in relational databases).
 To only consider some of the indexes, add tags (a multi-valued String property) to the index(es) of choice,
 and specify this tag in the query.
+
+Examples:
+
+    option(traversal fail)
+
 
 <hr />
 <h3 id="explain">Explain Query</h3>
