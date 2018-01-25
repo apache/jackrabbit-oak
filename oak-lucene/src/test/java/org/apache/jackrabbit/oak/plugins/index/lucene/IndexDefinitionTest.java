@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.List;
 
 import javax.jcr.PropertyType;
 
@@ -1203,9 +1204,30 @@ public class IndexDefinitionTest {
     @Test
     public void regexAllProps() {
         IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("nt:base").property("p");
         builder.indexRule("nt:base").property("all", LuceneIndexConstants.REGEX_ALL_PROPS, true);
-        
+
         IndexDefinition def = IndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        IndexingRule rule = def.getApplicableIndexingRule(root);
+        assertNotNull(rule);
+
+        PropertyDefinition pd = rule.getConfig("p");
+        assertNotNull(pd);
+        assertFalse(pd.isRegexp);
+        assertFalse(pd.relative);
+        assertEquals(0, pd.ancestors.length);
+
+        pd = rule.getConfig("all");
+        assertNotNull(pd);
+        assertTrue(pd.isRegexp);
+        assertFalse(pd.relative);
+        assertEquals(0, pd.ancestors.length);
+
+        assertThat(rule.getAggregate().getIncludes(), is(empty()));
+        assertFalse(rule.getAggregate().hasNodeAggregates());
+        List<Aggregate.Matcher> matchers = rule.getAggregate()
+                .createMatchers(new TestRoot("/"));
+        assertThat(matchers, is(empty()));
         assertThat(def.getRelativeNodeNames(), is(empty()));
     }
 
@@ -1232,4 +1254,21 @@ public class IndexDefinitionTest {
         return builder;
     }
 
+    private static class TestRoot implements Aggregate.AggregateRoot {
+
+        private final String path;
+
+        public TestRoot(String path) {
+            this.path = path;
+        }
+
+        @Override
+        public void markDirty() {
+        }
+
+        @Override
+        public String getPath() {
+            return path;
+        }
+    }
 }
