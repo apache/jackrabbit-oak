@@ -55,7 +55,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 /**
  * TODO document
  */
-public class IndexUtils {
+public final class IndexUtils {
 
     private IndexUtils() {
     }
