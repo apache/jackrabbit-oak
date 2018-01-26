@@ -289,10 +289,9 @@ public class ValidNamesTest extends AbstractRepositoryTest {
         nameTest("foo\u00a0bar");
     }
 
-    // OAK-4587
     @Test
     public void testEnclosedIdeographicSpace() {
-        unsupportedNameTest("foo\u3000bar", RepositoryException.class);
+        nameTest("foo\u3000bar");
     }
 
     @Test

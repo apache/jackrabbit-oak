@@ -60,19 +60,26 @@ public class Namespaces implements NamespaceConstants {
     private static final Map<String, String> ENCODED_URIS = newConcurrentMap();
 
     /**
-     * By default node names with non space whitespace chars are not allowed.
+     * By default, item names with non space whitespace chars are not allowed.
      * However initial Oak release did allowed that and this flag is provided
      * to revert back to old behaviour if required for some case temporarily
      */
     private static final boolean allowOtherWhitespaceChars = Boolean.getBoolean("oak.allowOtherWhitespaceChars");
 
     /**
-     * By default node names with control characters are not allowed.
+     * By default, item names with control characters are not allowed.
      * Oak releases prior to 1.10 allowed these (in conflict with the JCR
      * specification), so if required the check can be turned off.
      * See OAK-7208.
      */
     private static final boolean allowOtherControlChars = Boolean.getBoolean("oak.allowOtherControlChars");
+
+    /**
+     * By default, item names with non-ASCII whitespace characters are allowed.
+     * Oak releases prior to 1.10 disallowed these, so if required the check can
+     * be turned on again. See OAK-4857.
+     */
+    private static final boolean disallowNonASCIIWhitespaceChars = Boolean.getBoolean("oak.disallowNonASCIIWhitespaceChars");
 
     private Namespaces() {
     }
@@ -259,8 +266,18 @@ public class Namespaces implements NamespaceConstants {
         }
 
         for (int i = 0; i < local.length(); i++) {
+
             char ch = local.charAt(i);
-            boolean spaceChar = allowOtherWhitespaceChars ? Character.isSpaceChar(ch) : Character.isWhitespace(ch);
+
+            boolean spaceChar;
+            if (disallowNonASCIIWhitespaceChars) {
+                // behavior before OAK-4857 was fixed
+                spaceChar = allowOtherWhitespaceChars ? Character.isSpaceChar(ch) : Character.isWhitespace(ch);
+            } else {
+                // disallow just leading and trailing ' ', plus CR, LF and TAB
+                spaceChar = ch == ' ' || ch == 0x9 || ch == 0xa || ch == 0xd;
+            }
+
             if (spaceChar) {
                 if (i == 0) {
                     return false; // leading whitespace
