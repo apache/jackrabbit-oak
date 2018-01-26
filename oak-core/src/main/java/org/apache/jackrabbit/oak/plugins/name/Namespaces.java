@@ -66,6 +66,14 @@ public class Namespaces implements NamespaceConstants {
      */
     private static final boolean allowOtherWhitespaceChars = Boolean.getBoolean("oak.allowOtherWhitespaceChars");
 
+    /**
+     * By default node names with control characters are not allowed.
+     * Oak releases prior to 1.10 allowed these (in conflict with the JCR
+     * specification), so if required the check can be turned off.
+     * See OAK-7208.
+     */
+    private static final boolean allowOtherControlChars = Boolean.getBoolean("oak.allowOtherControlChars");
+
     private Namespaces() {
     }
 
@@ -261,8 +269,11 @@ public class Namespaces implements NamespaceConstants {
                 } else if (ch != ' ') {
                     return false; // only spaces are allowed as whitespace
                 }
-            } else if ("/:[]|*".indexOf(ch) != -1) { // TODO: XMLChar check
+            } else if ("/:[]|*".indexOf(ch) != -1) { // TODO: XMLChar check for unpaired surrogates
                 return false; // invalid name character
+            } else if (!allowOtherControlChars && ch >= 0 && ch < 32 && (ch != 9 && ch != 0xa && ch != 0xd)) {
+                // https://www.w3.org/TR/xml/#NT-Char - disallowed control chars
+                return false;
             }
         }
 

@@ -275,6 +275,16 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void testEnclosedNonXMLChars() {
+        // see https://www.w3.org/TR/xml/#NT-Char
+        for (int c = 0; c < 32; c++) {
+            if (!(c == 0x9 || c == 0xa || c == 0xd)) {
+                unsupportedNameTest("foo" + ((char) c) + "bar", RepositoryException.class);
+            }
+        }
+    }
+
+    @Test
     public void testEnclosedNonBreakingSpace() {
         nameTest("foo\u00a0bar");
     }
