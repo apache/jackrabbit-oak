@@ -487,7 +487,7 @@ facets can be retrieved on properties (backed by a proper
 field in Lucene / Solr) using the following snippet:
 
     String sql2 = "select [jcr:path], [rep:facet(tags)] from [nt:base] " +
-                    "where contains([jcr:title], 'oak');
+                    "where contains([jcr:title], 'oak')");
     Query q = qm.createQuery(sql2, Query.JCR_SQL2);
     QueryResult result = q.execute();
     FacetResult facetResult = new FacetResult(result);

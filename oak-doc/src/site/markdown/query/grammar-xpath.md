@@ -19,6 +19,7 @@
 
 * [Query](#query)
 * [Filter](#filter)
+* [Column](#column)
 * [Constraint](#constraint)
 * [And Condition](#andCondition)
 * [Condition](#condition)
@@ -43,6 +44,9 @@
 The "/jcr:root" means the root node. 
 It is recommended that all XPath queries start with this term.
 
+All queries should have a path restriction 
+(even if it's just, for example, "/content"), as this allows to shrink indexes.
+
 "order by" may use an index.
 If there is no index for the given sort order, 
 then the result is fully read in memory and sorted before returning the first row.
@@ -53,15 +57,15 @@ It is only needed if non-standard (computed) columns such as
 
 Examples:
 
-Get all nodes of node type sling:Folder with the property sling:resourceType set to 'x':
+Get all nodes of node type 'sling:Folder' with the property 'sling:resourceType' set to 'x':
 
-    /jcr:root//element(*, sling:Folder)[@sling:resourceType='x']
+    /jcr:root/content//element(*, sling:Folder)[@sling:resourceType='x']
 
-Get all workflow nodes with status 'active', sorted by starting time:
+Get all index definition nodes of type 'lucene', sorted by reindex count, descending:
 
-    /jcr:root//element(*, acme:Workflow)[@status='active'] order by @startTime descending
+    /jcr:root/oak:index/element(*, oak:QueryIndexDefinition)[@type='lucene'] order by @reindexCount descending
 
-Get all nodes below /etc that have the property type set to 'report'; fail the query if there is no index:
+Get all nodes below /etc that have the property type set to 'report'; fail the query if there is no index that can be used:
 
     /jcr:root/etc//*[@type='report'] option(traversal fail)
 
@@ -76,6 +80,7 @@ Get all nodes below /etc that have the property type set to 'report'; fail the q
 <br/> | element( [ * | nodeName ] [, nodeType] )
 <br/> | text()
 <br/> | '[' <a href="#constraint">constraint</a> ']'
+<br/> | ( filter '|' unionFilter [...] )
 </h4>
 
 A single slash means filtering on a specific child node,
@@ -86,35 +91,43 @@ while two slashes means filtering on a descendant node.
 "text()" is a shortcut for "jcr:xmltext". 
 It is supported only for compatibility.
 
+Queries using the construct `(filter1 | filter2)' are converted to union,
+that is, one query is generated for each filter, and the result of both
+queries is combined.
+
 Examples:
 
 Only direct child nodes of /content/dam:
 
-    /content/dam/*
+    /jcr:root/content/dam/*
 
-All descendant nodes of /content/dam:
+All descendant nodes of /content/oak:index:
 
-    /content/dam//*
+    /jcr:root/content/oak:index//*
 
-All nodes named "profile" that have a parent node which is the direct child node of /user/home:
+All nodes named "rep:policy" that have a parent node which is the direct child node of /home/users:
 
-    /user/home/*/profile
+    /jcr:root/home/users/*/rep:policy
 
-All nodes named "profile" that have a parent node which is a descendant of /user/home:
+All nodes named "profile" that have a parent node which is a descendant of /home/users:
 
-    /user/home//*/profile
+    /jcr:root/home/users//*/profile
 
 All descendant nodes of /content that are of type oak:QueryIndexDefinition:
 
-    /content//element(*, oak:QueryIndexDefinition)
+    /jcr:root/content//element(*, oak:QueryIndexDefinition)
 
 All descendant nodes of /content that are of type oak:QueryIndexDefinition and are named "lucene":
 
-    /content//element(lucene, oak:QueryIndexDefinition)
+    /jcr:root/content//element(lucene, oak:QueryIndexDefinition)
 
-All nodes named "analyzers" that have a parent node with the property "type" set to "lucene":
+All nodes named "indexRules" that have a parent node with the property "type" set to "lucene":
 
-    /oak:index/[@type = 'lucene']/analyzers
+    /jcr:root/oak:index/*[@type = 'lucene']/indexRules
+    
+The paths '/libs' and '/etc' should be searched:
+
+    /jcr:root/(libs | etc)//*[@jcr:uuid and @jcr:mimeType = 'text/css']
 
 
 <hr />
@@ -166,7 +179,6 @@ Include the nodes that have the property 'hidden' set to 'hidden-folder',
 or don't have the property set:
 
     /jcr:root/content/dam/*[@hidden='hidden-folder' or not(@hidden)]
-    
 
 
 <hr />
@@ -183,7 +195,7 @@ where the property value contains both 1 and 2.
 
 Examples:
 
-    /jcr:root/home//element(*, rep:Authorizable)[@rep:principalName!='Joe' and @rep:principalName!='Steve']
+    /jcr:root/home//element(*, rep:Authorizable)[@rep:principalName != 'Joe' and @rep:principalName != 'Steve']
 
 
 <hr />
@@ -202,7 +214,14 @@ Examples:
 <br/> | rep:suggest ( staticOperand )
 </h4>
 
-"fn:not" conditions can not typically use an index.
+"fn:not": this is used for both "is not null", and for nested conditions.
+For example "fn:not(@status)" means nodes where this property is not set.
+In this case, and index can be used, but it is relatively expensive to index
+all nodes that don't have a certain property. It is recommended to only index
+this if there are relatively view nodes with this nodetype. See also
+<a href="lucene.html">nullCheckEnabled</a>.
+Nested conditions, for example "fn:not(@status = 'x' and @color = 'red')", 
+can not typically use an index.
 
 "jcr:contains": see <a href="query-engine.html#Full-Text_Queries">Full-Text Queries</a>.
 
@@ -301,7 +320,9 @@ Examples:
 <br/>  | fn:coalesce ( dynamicOperand1, dynamicOperand2 )
 </h4>
 
-The selector name is only needed if the query contains multiple selectors.
+The "*" stands for any property.
+
+"jcr:score()" is the score returned by the index.
 
 "fn:coalesce": this returns the first operand if it is not null,
 and the second operand otherwise.
@@ -312,7 +333,7 @@ Examples:
     @type
     ./@jcr:primaryType
     items/type/@metaType
-    items/type/*
+    indexRules/nt:base/*
     fn:string-length(@title)
     fn:name()
     jcr:score ()
