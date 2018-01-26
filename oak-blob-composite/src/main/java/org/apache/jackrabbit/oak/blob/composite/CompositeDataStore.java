@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
@@ -42,7 +44,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
@@ -52,9 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
-import static org.apache.jackrabbit.oak.spi.blob.DataStoreReference.getIdentifierFromReference;
-import static org.apache.jackrabbit.oak.spi.blob.DataStoreReference.getReferenceFromIdentifier;
 
 public class CompositeDataStore implements DataStore, SharedDataStore, TypedDataStore, MultiDataStoreAware {
 
@@ -222,12 +221,21 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
 
     @Override
     public DataRecord getRecordFromReference(String reference) throws DataStoreException {
-        DataIdentifier referenceIdentifier = getIdentifierFromReference(reference);
-        if (null != referenceIdentifier) {
-            if (reference.equals(getReferenceFromIdentifier(referenceIdentifier, getReferenceKey()))) {
-                return getRecordIfStored(referenceIdentifier);
+        Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator();
+        while (iter.hasNext()) {
+            DataStore ds = iter.next();
+            DataRecord rec = ds.getRecordFromReference(reference);
+            if (null != rec) {
+                return rec;
             }
         }
+//        DataIdentifier referenceIdentifier = getIdentifierFromReference(reference);
+//        if (null != referenceIdentifier) {
+//            String computedReference = getReferenceFromIdentifier(referenceIdentifier, getReferenceKey());
+//            if (reference.equals(computedReference)) {
+//                return getRecordIfStored(referenceIdentifier);
+//            }
+//        }
         return null;
     }
 
@@ -452,8 +460,21 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         }
         while (iter.hasNext()) {
             DataStore ds = iter.next();
+            boolean deleted = false;
             if (ds instanceof MultiDataStoreAware) {
                 ((MultiDataStoreAware) ds).deleteRecord(identifier);
+                deleted = true;
+            }
+            else if (ds instanceof DataStoreBlobStore) {
+                try {
+                    ((DataStoreBlobStore) ds).deleteChunks(Lists.newArrayList(identifier.toString()), 0L);
+                    deleted = true;
+                }
+                catch (Exception e) {
+                    throw new DataStoreException(e);
+                }
+            }
+            if (deleted) {
                 delegateHandler.unmapIdentifierFromDelegates(identifier);
             }
         }
@@ -466,16 +487,39 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         if (null == stream) {
             throw new IllegalArgumentException("Input stream must not be null");
         }
+
+        File tmpFile = null;
+        try {
+            tmpFile = File.createTempFile("compositeds-temp", null);
+            try (FileOutputStream out = new FileOutputStream(tmpFile)) {
+                IOUtils.copy(stream, out);
+            }
+            addMetadataRecord(tmpFile, name);
+        }
+        catch (IOException e) {
+            throw new DataStoreException(e);
+        }
+        finally {
+            if (null != tmpFile) {
+                tmpFile.delete();
+            }
+        }
+    }
+
+    @Override
+    public void addMetadataRecord(@Nonnull File f, @Nonnull String name) throws DataStoreException {
         if (Strings.isNullOrEmpty(name)) {
             throw new IllegalArgumentException("A name is required");
         }
+
         Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator();
         DataStoreException aggregateException = null;
         while (iter.hasNext()) {
             DataStore ds = iter.next();
             if (ds instanceof SharedDataStore) {
                 try {
-                    ((SharedDataStore) ds).addMetadataRecord(stream, name);
+                    String cdsName = String.format("%s-compositeds-%s", name, rolesForDelegates.get(ds));
+                    ((SharedDataStore) ds).addMetadataRecord(f, cdsName);
                 }
                 catch (DataStoreException dse) {
                     if (null == aggregateException) {
@@ -494,22 +538,13 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     }
 
     @Override
-    public void addMetadataRecord(File f, String name) throws DataStoreException {
-        try {
-            addMetadataRecord(new FileInputStream(f), name);
-        }
-        catch (IOException e) {
-            throw new DataStoreException(e);
-        }
-    }
-
-    @Override
     public DataRecord getMetadataRecord(String name) {
         Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator();
         while (iter.hasNext()) {
             DataStore ds = iter.next();
             if (ds instanceof SharedDataStore) {
-                DataRecord result = ((SharedDataStore) ds).getMetadataRecord(name);
+                String cdsName = String.format("%s-compositeds-%s", name, rolesForDelegates.get(ds));
+                DataRecord result = ((SharedDataStore) ds).getMetadataRecord(cdsName);
                 if (null != result) {
                     return result;
                 }
@@ -538,7 +573,8 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         while (iter.hasNext()) {
             DataStore ds = iter.next();
             if (ds instanceof SharedDataStore) {
-                result = result || ((SharedDataStore) ds).deleteMetadataRecord(name);
+                String cdsName = String.format("%s-compositeds-%s", name, rolesForDelegates.get(ds));
+                result = result || ((SharedDataStore) ds).deleteMetadataRecord(cdsName);
             }
         }
         return result;
