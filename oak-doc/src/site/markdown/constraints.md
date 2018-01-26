@@ -35,7 +35,7 @@ On top of that, Oak implements several *additional* restrictions (as per
 
 - The space character (U+0020) is disallowed at the beginning and the end of
 a (local) name (see [JCR v2.0 Specification, Section 5.2.2.1](https://docs.adobe.com/content/docs/en/spec/jcr/2.0/5_Reading.html#5.2.2.1%20Name%20Patterns) for motivation).
-- Other [Whitespace characters](https://docs.oracle.com/javase/8/docs/api/java/lang/Character.html#isWhitespace-char-) are disallowed (but see [OAK-4857](https://issues.apache.org/jira/browse/OAK-4857)).
+- Other ASCII whitespace characters (CR, LF, TAB) are always disallowed (before OAK 1.10, more were disallowed, see [OAK-4857](https://issues.apache.org/jira/browse/OAK-4857)).
 
 Finally, the chosen persistence implementation might restrict node names even further, for instance:
 
