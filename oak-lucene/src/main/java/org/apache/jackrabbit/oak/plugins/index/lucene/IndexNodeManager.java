@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -35,6 +37,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ReaderRefreshPolicy;
@@ -68,14 +71,25 @@ public class IndexNodeManager {
         IndexDefinition definition = new IndexDefinition(root, defnNodeState, indexPath);
         List<LuceneIndexReader> readers = readerFactory.createReaders(definition, defnNodeState, indexPath);
         NRTIndex nrtIndex = nrtFactory != null ? nrtFactory.createIndex(definition) : null;
-        if (!readers.isEmpty() || (nrtIndex != null && !hasAsyncIndexerRun(root))){
+        if (!readers.isEmpty() || (nrtIndex != null && !hasAsyncIndexerRun(root, indexPath, defnNodeState))){
             return new IndexNodeManager(PathUtils.getName(indexPath), definition, readers, nrtIndex);
         }
         return null;
     }
 
-    static boolean hasAsyncIndexerRun(NodeState root) {
-        return root.hasChildNode(ASYNC);
+    static boolean hasAsyncIndexerRun(NodeState root, String indexPath, NodeState defnNodeState) {
+        boolean hasAsyncNode = root.hasChildNode(ASYNC);
+
+        String asyncLaneName = getAsyncLaneName(defnNodeState, indexPath, defnNodeState.getProperty(ASYNC_PROPERTY_NAME));
+
+        if (asyncLaneName != null) {
+            return hasAsyncNode && root.getChildNode(ASYNC).hasProperty(asyncLaneName);
+        } else {
+            // useful only for tests - basically non-async index defs which don't rely on /:async
+            // hence either readers are there (and this method doesn't come into play during open)
+            // OR there is no cycle (where we return false correctly)
+            return  false;
+        }
     }
 
     private static final Logger log = LoggerFactory.getLogger(IndexNodeManager.class);
