@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -77,10 +78,12 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.BUNDLOR;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_BUNDLED_CHILD;
+import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_NON_BUNDLED_CHILD;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -102,6 +105,7 @@ public class DocumentBundlingTest {
         store = builderProvider
                 .newBuilder()
                 .setDocumentStore(ds)
+                .setAsyncDelay(0)
                 .memoryCacheSize(0)
                 .getNodeStore();
         NodeState registryState = BundledTypesRegistry.builder()
@@ -442,6 +446,37 @@ public class DocumentBundlingTest {
         ds.reset();
         assertEquals(1, Iterables.size(getLatestNode("test/book.jpg/jcr:content/metadata").getChildNodeNames()));
         assertEquals(1, ds.queryPaths.size());
+    }
+
+    @Ignore("OAK-7213")
+    @Test
+    public void hasChildren_BundledRoot_NoNonBundledChild() throws Exception {
+        createTestNode("/test/book.jpg", createChild(newNode("app:Asset")).getNodeState());
+
+        ds.reset();
+        NodeState book = getLatestNode("test/book.jpg");
+        assertEquals(0, Iterables.size(book.getChildNodeNames()));
+        assertEquals(0, book.getChildNodeCount(100));
+        assertThat(ds.queryPaths, is(empty()));
+
+        ds.reset();
+        assertFalse(book.getChildNode("foo").exists());
+        assertThat(ds.findPaths, is(empty()));
+
+        NodeBuilder builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content");
+        merge(builder);
+
+        book = getLatestNode("test/book.jpg");
+        ds.reset();
+        assertEquals(1, Iterables.size(book.getChildNodeNames()));
+        assertEquals(1, book.getChildNodeCount(100));
+        assertThat(ds.queryPaths, is(empty()));
+
+        ds.reset();
+        assertFalse(book.getChildNode("foo").exists());
+        assertThat(ds.findPaths, is(empty()));
+        assertFalse(hasNodeProperty("/test/book.jpg", META_PROP_NON_BUNDLED_CHILD));
     }
 
     @Test
@@ -950,6 +985,15 @@ public class DocumentBundlingTest {
     private static class RecordingDocumentStore extends MemoryDocumentStore {
         final List<String> queryPaths = new ArrayList<>();
         final List<String> findPaths = new ArrayList<>();
+
+        @Override
+        public <T extends Document> T find(Collection<T> collection,
+                                           String key) {
+            if (collection == Collection.NODES){
+                findPaths.add(Utils.getPathFromId(key));
+            }
+            return super.find(collection, key);
+        }
 
         @Override
         public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
