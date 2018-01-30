@@ -502,6 +502,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             } else {
                 return null;
             }
+        } else if (bundlingContext.hasOnlyBundledChildren()) {
+            return null;
         }
 
         return store.getNode(concat(getPath(), childNodeName), lastRevision);
