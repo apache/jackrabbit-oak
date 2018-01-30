@@ -469,6 +469,7 @@ public class BenchmarkRunner {
             new HybridIndexTest(base.value(options), statsProvider),
             new BundlingNodeTest(),
             new PersistentCacheTest(statsProvider),
+            new StringWriteTest(),
             new BasicWriteTest()
         };
 
