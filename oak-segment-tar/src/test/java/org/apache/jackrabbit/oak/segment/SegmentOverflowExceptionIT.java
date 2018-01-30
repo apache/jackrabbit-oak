@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  *
  *<p>If you only want to run this test:<br>
- * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting -Dit.test=SegmentOverflowExceptionIT}
+ * {@code mvn verify -DfailIfNoTests=false -DskipTests -PintegrationTesting -Dtest=SegmentOverflowExceptionIT}
  * </p>
  */
 public class SegmentOverflowExceptionIT {
