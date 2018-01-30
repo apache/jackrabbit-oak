@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -448,7 +447,6 @@ public class DocumentBundlingTest {
         assertEquals(1, ds.queryPaths.size());
     }
 
-    @Ignore("OAK-7213")
     @Test
     public void hasChildren_BundledRoot_NoNonBundledChild() throws Exception {
         createTestNode("/test/book.jpg", createChild(newNode("app:Asset")).getNodeState());
