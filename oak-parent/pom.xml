@@ -52,15 +52,9 @@
     <lucene.version>4.7.1</lucene.version>
     <solr.version>5.5.5</solr.version>
     <mongo.driver.version>3.4.0</mongo.driver.version>
-    <!-- Note that we're using SLF4J API version 1.7 when compiling     -->
-    <!-- core Oak components but more recent SLF4J and Logback versions -->
-    <!-- when compiling and running test cases and the oak-run jar.     -->
-    <!-- This way it's possible to use Oak also in environments that    -->
-    <!-- only provide SLF4J version 1.7, while still using a more       -->
-    <!-- recent version (if required) when we are in control the runtime environment. -->
-    <slf4j.api.version>1.7.6</slf4j.api.version>
-    <slf4j.version>1.7.6</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.1.0</logback.version>
+    <slf4j.api.version>1.7.25</slf4j.api.version>
+    <slf4j.version>1.7.25</slf4j.version> <!-- sync with logback version -->
+    <logback.version>1.2.3</logback.version>
     <h2.version>1.4.194</h2.version>
     <tika.version>1.17</tika.version>
     <guava.version>15.0</guava.version>
