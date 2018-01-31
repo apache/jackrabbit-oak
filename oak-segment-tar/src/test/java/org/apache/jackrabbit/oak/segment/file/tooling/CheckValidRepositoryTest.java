@@ -21,13 +21,13 @@ package org.apache.jackrabbit.oak.segment.file.tooling;
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 /**
  * Tests for {@link CheckCommand} assuming a consistent repository.
@@ -50,6 +50,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
         .withCheckBinaries(true)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withFilterPaths(filterPaths)
         .withIOStatistics(true)
         .withOutWriter(outWriter)
@@ -60,7 +62,7 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions", "Checked 7 nodes and 21 properties",
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 1 revisions and 0 checkpoints", "Checked 7 nodes and 21 properties",
                 "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
@@ -86,6 +88,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
         .withCheckBinaries(true)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withFilterPaths(filterPaths)
         .withIOStatistics(true)
         .withOutWriter(outWriter)
@@ -118,6 +122,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withFilterPaths(filterPaths)
         .withIOStatistics(true)
         .withOutWriter(outWriter)
@@ -151,6 +157,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withFilterPaths(filterPaths)
         .withIOStatistics(true)
         .withOutWriter(outWriter)
@@ -182,6 +190,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withFilterPaths(filterPaths)
         .withIOStatistics(true)
         .withOutWriter(outWriter)
@@ -217,6 +227,8 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         .withDebugInterval(Long.MAX_VALUE)
         .withFilterPaths(filterPaths)
         .withCheckBinaries(true)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withIOStatistics(true)
         .withOutWriter(outWriter)
         .withErrWriter(errWriter)
