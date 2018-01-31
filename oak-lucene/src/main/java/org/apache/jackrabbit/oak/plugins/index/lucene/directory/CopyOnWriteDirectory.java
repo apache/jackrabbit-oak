@@ -385,7 +385,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     }
 
     private class COWRemoteFileReference extends COWFileReference {
-        private boolean validLocalCopyPresent;
         private final long length;
 
         public COWRemoteFileReference(String name) throws IOException {
@@ -400,8 +399,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         @Override
         public IndexInput openInput(IOContext context) throws IOException {
-            checkIfLocalValid();
-            if (validLocalCopyPresent && !IndexCopier.REMOTE_ONLY.contains(name)) {
+            if (checkIfLocalValid() && !IndexCopier.REMOTE_ONLY.contains(name)) {
                 indexCopier.readFromLocal(false);
                 return local.openInput(name, context);
             }
@@ -424,9 +422,23 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             addDeleteTask(name);
         }
 
-        private void checkIfLocalValid() throws IOException {
-            validLocalCopyPresent = local.fileExists(name)
-                    && local.fileLength(name) == remote.fileLength(name);
+        private boolean checkIfLocalValid() throws IOException {
+            boolean validLocalCopyPresent = local.fileExists(name);
+
+            if (validLocalCopyPresent) {
+                long localFileLength = local.fileLength(name);
+                long remoteFileLength = remote.fileLength(name);
+                 validLocalCopyPresent = localFileLength == remoteFileLength;
+
+                 if (!validLocalCopyPresent) {
+                     log.warn("COWRemoteFileReference::file ({}) differs in length. local: {}; remote: {}, init-remote-length",
+                             localFileLength, remoteFileLength, length);
+                 }
+            } else {
+                log.warn("COWRemoteFileReference::local file ({}) doesn't exist", name);
+            }
+
+            return validLocalCopyPresent;
         }
     }
 
