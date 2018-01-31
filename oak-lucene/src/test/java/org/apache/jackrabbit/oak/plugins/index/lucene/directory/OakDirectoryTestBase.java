@@ -27,10 +27,13 @@ import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNIQUE_KEY;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNSAFE_FOR_ACTIVE_DELETION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.UNIQUE_KEY_SIZE;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -48,11 +51,16 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
+import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -505,6 +513,11 @@ abstract public class OakDirectoryTestBase {
                         @Override
                         public void commitProgress(IndexProgress indexProgress) {
                         }
+
+                        @Override
+                        public boolean isMarkingForActiveDeletionUnsafe() {
+                            return false;
+                        }
                     })
                 .build();
 
@@ -517,6 +530,206 @@ abstract public class OakDirectoryTestBase {
         dir.deleteFile("file2");
 
         dir.close();
+    }
+
+    // OAK-7066
+    @Test
+    public void dontMarkInlinedBlobsFromDataStoreAsDeleted() throws Exception {
+        IndexDefinition def = new IndexDefinition(root, builder.getNodeState(), "/foo");
+
+        final Set<String> deletedFiles = newHashSet();
+
+        FileDataStore fds = new FileDataStore();
+        fds.setMinRecordLength(48);
+        fds.init(new File(tempFolder.getRoot(), "fdsRoot").getAbsolutePath());
+        DataStoreBlobStore dsbs = new DataStoreBlobStore(fds);
+        BlobFactory factory = in -> new BlobStoreBlob(dsbs, dsbs.writeBlob(in));
+
+        OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
+                .with(factory).
+                        with(
+                                new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                                    @Override
+                                    public void deleted(String blobId, Iterable<String> ids) {
+                                        deletedFiles.add(Iterables.getLast(ids));
+                                    }
+
+                                    @Override
+                                    public void commitProgress(IndexProgress indexProgress) {
+                                    }
+
+                                    @Override
+                                    public boolean isMarkingForActiveDeletionUnsafe() {
+                                        return false;
+                                    }
+                                })
+                .build();
+
+        writeFile(dir, "file1", 25);
+        writeFile(dir, "file2", 50);
+
+        dir.deleteFile("file1");
+
+        dir.deleteFile("file2");
+
+        dir.close();
+
+        assertFalse("file1 must be reported as deleted", deletedFiles.contains("file1"));
+        assertTrue("file2 must be reported as deleted", deletedFiles.contains("file2"));
+    }
+
+    // OAK-7066
+    @Test
+    public void markAllBlobsFromBlobStoreAsDeleted() throws Exception {
+        IndexDefinition def = new IndexDefinition(root, builder.getNodeState(), "/foo");
+
+        final Set<String> deletedFiles = newHashSet();
+
+        MemoryBlobStore bs = new MemoryBlobStore();
+        bs.setBlockSizeMin(48);
+        BlobFactory factory = in -> new BlobStoreBlob(bs, bs.writeBlob(in));
+
+        OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
+                .with(factory).
+                        with(
+                                new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                                    @Override
+                                    public void deleted(String blobId, Iterable<String> ids) {
+                                        deletedFiles.add(Iterables.getLast(ids));
+                                    }
+
+                                    @Override
+                                    public void commitProgress(IndexProgress indexProgress) {
+                                    }
+
+                                    @Override
+                                    public boolean isMarkingForActiveDeletionUnsafe() {
+                                        return false;
+                                    }
+                                })
+                .build();
+
+        writeFile(dir, "file1", 25);
+        writeFile(dir, "file2", 50);
+
+        dir.deleteFile("file1");
+
+        dir.deleteFile("file2");
+
+        dir.close();
+
+        assertTrue("file1 must be reported as deleted", deletedFiles.contains("file1"));
+        assertTrue("file2 must be reported as deleted", deletedFiles.contains("file2"));
+    }
+
+    // OAK-6950
+    @Test
+    public void blobsCreatedWhenActiveDeletionIsUnsafe() throws Exception {
+        final int fileSize = 1;
+
+        IndexDefinition def = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        BlobFactory factory = in -> {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            IOUtils.copy(in, out);
+            byte[] data = out.toByteArray();
+            return new ArrayBasedBlob(data);
+        };
+
+        final AtomicBoolean markingForceActiveDeletionUnsafe = new AtomicBoolean();
+        OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
+                .with(factory).
+                        with(
+                                new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                                    @Override
+                                    public void deleted(String blobId, Iterable<String> ids) {
+                                    }
+
+                                    @Override
+                                    public void commitProgress(IndexProgress indexProgress) {
+                                    }
+
+                                    @Override
+                                    public boolean isMarkingForActiveDeletionUnsafe() {
+                                        return markingForceActiveDeletionUnsafe.get();
+                                    }
+                                })
+                .build();
+
+        // file1 created before marking was flagged as unsafe
+        writeFile(dir, "file1", fileSize);
+
+        markingForceActiveDeletionUnsafe.set(true);
+
+        // file2 created after marking was flagged as unsafe
+        writeFile(dir, "file2", fileSize);
+        dir.close();
+
+        NodeBuilder dataBuilder = builder.getChildNode(INDEX_DATA_CHILD_NAME);
+
+        assertNull("file1 must not get flagged to be unsafe to be actively deleted",
+                dataBuilder.getChildNode("file1").getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION));
+        assertTrue("file2 must get flagged to be unsafe to be actively deleted",
+                dataBuilder.getChildNode("file2").getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION).getValue(Type.BOOLEAN));
+    }
+
+    // OAK-6950
+    @Test
+    public void dontReportFilesMarkedUnsafeForActiveDeletion() throws Exception {
+        AtomicInteger blobIdSuffix = new AtomicInteger();
+        IndexDefinition def = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        BlobFactory factory = in -> {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            IOUtils.copy(in, out);
+            byte[] data = out.toByteArray();
+            return new ArrayBasedBlob(data) {
+                @Override
+                public String getContentIdentity() {
+                    return Long.toString(length() - UNIQUE_KEY_SIZE) + "-id-" + blobIdSuffix.get();
+                }
+            };
+        };
+
+        final AtomicBoolean markingForceActiveDeletionUnsafe = new AtomicBoolean();
+        final Set<String> deletedBlobs = Sets.newHashSet();
+        OakDirectory dir = getOakDirectoryBuilder(builder, def).setReadOnly(false)
+            .with(factory).
+                    with(
+                        new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
+                            @Override
+                            public void deleted(String blobId, Iterable<String> ids) {
+                                deletedBlobs.add(blobId);
+                            }
+
+                            @Override
+                            public void commitProgress(IndexProgress indexProgress) {
+                            }
+
+                            @Override
+                            public boolean isMarkingForActiveDeletionUnsafe() {
+                                return markingForceActiveDeletionUnsafe.get();
+                            }
+                        })
+                .build();
+
+        // file1 created before marking was flagged as unsafe
+        blobIdSuffix.set(1);
+        writeFile(dir, "file1", fileSize);
+
+        markingForceActiveDeletionUnsafe.set(true);
+
+        // file2 created after marking was flagged as unsafe
+        blobIdSuffix.set(1);
+        writeFile(dir, "file2", fileSize);
+
+        dir.deleteFile("file1");
+        dir.deleteFile("file2");
+
+        dir.close();
+
+        deletedBlobs.forEach(deletedBlob -> {
+            assertTrue("Deleted blob id " + deletedBlob + " must belong to file1",
+                    deletedBlob.endsWith("-id-1"));
+        });
     }
 
     @Test

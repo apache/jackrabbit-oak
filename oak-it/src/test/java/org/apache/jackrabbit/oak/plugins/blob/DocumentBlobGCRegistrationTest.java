@@ -55,7 +55,10 @@ public class DocumentBlobGCRegistrationTest extends AbstractBlobGCRegistrationTe
         properties.put("repository.home", repoHome);
         properties.put("mongouri", MongoUtils.URL);
         properties.put("db", MongoUtils.DB);
-        service = context.registerInjectActivateService(new DocumentNodeStoreService(), properties);
+        MockOsgi.setConfigForPid(context.bundleContext(),
+                DocumentNodeStoreService.class.getName(), properties);
+        context.registerInjectActivateService(new DocumentNodeStoreService.Preset());
+        service = context.registerInjectActivateService(new DocumentNodeStoreService());
     }
 
     @Override

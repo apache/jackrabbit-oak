@@ -18,15 +18,13 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Provides a validator for user and group management.
@@ -34,11 +32,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 class UserValidatorProvider extends ValidatorProvider {
 
     private final ConfigurationParameters config;
+    private final RootProvider rootProvider;
+    private final TreeProvider treeProvider;
 
     private MembershipProvider membershipProvider;
 
-    UserValidatorProvider(ConfigurationParameters config) {
-        this.config = checkNotNull(config);
+    UserValidatorProvider(@Nonnull ConfigurationParameters config, @Nonnull RootProvider rootProvider, @Nonnull TreeProvider treeProvider) {
+        this.config = config;
+        this.rootProvider = rootProvider;
+        this.treeProvider = treeProvider;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -46,8 +48,8 @@ class UserValidatorProvider extends ValidatorProvider {
     @Override @Nonnull
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
-        membershipProvider = new MembershipProvider(RootFactory.createReadOnlyRoot(after), config);
-        return new UserValidator(TreeFactory.createReadOnlyTree(before), TreeFactory.createReadOnlyTree(after), this);
+        membershipProvider = new MembershipProvider(rootProvider.createReadOnlyRoot(after), config);
+        return new UserValidator(treeProvider.createReadOnlyTree(before), treeProvider.createReadOnlyTree(after), this);
     }
 
     //-----------------------------------------------------------< internal >---

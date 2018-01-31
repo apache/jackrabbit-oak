@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
@@ -28,7 +27,6 @@ import javax.jcr.security.Privilege;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -36,9 +34,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
-import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
@@ -48,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -70,11 +68,12 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     private final TypePredicate isRepoAccessControllable;
     private final TypePredicate isAccessControllable;
 
-    AccessControlValidator(NodeState parentAfter,
-                           PrivilegeManager privilegeManager,
-                           PrivilegeBitsProvider privilegeBitsProvider,
-                           RestrictionProvider restrictionProvider) {
-        this.parentAfter = TreeFactory.createReadOnlyTree(parentAfter);
+    AccessControlValidator(@Nonnull NodeState parentAfter,
+                           @Nonnull PrivilegeManager privilegeManager,
+                           @Nonnull PrivilegeBitsProvider privilegeBitsProvider,
+                           @Nonnull RestrictionProvider restrictionProvider,
+                           @Nonnull TreeProvider treeProvider) {
+        this.parentAfter = treeProvider.createReadOnlyTree(parentAfter);
         this.privilegeBitsProvider = privilegeBitsProvider;
         this.privilegeManager = privilegeManager;
         this.restrictionProvider = restrictionProvider;

@@ -107,9 +107,10 @@ public class OakRepositoryFixture implements RepositoryFixture {
     }
     
     public static RepositoryFixture getSegmentTarWithColdStandby(File base, int maxFileSizeMB, int cacheSizeMB,
-            boolean memoryMapping, boolean useBlobStore, int dsCacheInMB, int syncInterval, boolean shareBlobStore) {
+            boolean memoryMapping, boolean useBlobStore, int dsCacheInMB, int syncInterval, boolean shareBlobStore, 
+            boolean secure, boolean oneShotRun) {
         return new OakRepositoryFixture(OakFixture.getSegmentTarWithColdStandby(base, maxFileSizeMB, cacheSizeMB,
-                memoryMapping, useBlobStore, dsCacheInMB, syncInterval, shareBlobStore));
+                memoryMapping, useBlobStore, dsCacheInMB, syncInterval, shareBlobStore, secure, oneShotRun));
     }
 
     public static RepositoryFixture getCompositeStore(File base, int maxFileSizeMB, int cacheSizeMB,

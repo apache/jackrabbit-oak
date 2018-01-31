@@ -40,6 +40,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
@@ -48,6 +49,7 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -58,6 +60,7 @@ import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.lineBreakAwareComparator;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
@@ -88,6 +91,23 @@ public class FileIOUtilsTest {
         Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
 
         assertEquals(added, retrieved);
+    }
+
+    @Test
+    public void writeCustomReadOrgStrings() throws Exception {
+        Set<String> added = newHashSet("a-", "z-", "e-", "b-");
+        Set<String> actual = newHashSet("a", "z", "e", "b");
+
+        File f = folder.newFile();
+        int count = writeStrings(added.iterator(), f, false, new Function<String, String>() {
+            @Nullable @Override public String apply(@Nullable String input) {
+                return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
+            }
+        }, null, null);
+        assertEquals(added.size(), count);
+
+        Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
+        assertEquals(actual, retrieved);
     }
 
     @Test
@@ -253,6 +273,22 @@ public class FileIOUtilsTest {
     }
 
     @Test
+    public void appendTestFileDeleteOnError() throws IOException {
+        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        File f2 = assertWrite(added2.iterator(), false, added2.size());
+
+        Set<String> added3 = newHashSet("t", "y", "8", "9");
+        File f3 = assertWrite(added3.iterator(), false, added3.size());
+
+        try {
+            append(newArrayList(f2, f3), null, true);
+        } catch (Exception e) {
+        }
+        assertTrue(!f2.exists());
+        assertTrue(!f3.exists());
+    }
+
+    @Test
     public void appendRandomizedTest() throws Exception {
         Set<String> added1 = newHashSet();
         for (int i = 0; i < 100; i++) {
@@ -280,6 +316,22 @@ public class FileIOUtilsTest {
         append(newArrayList(f1), f2, true);
 
         assertEquals(union(added1, added2), readStringsAsSet(new FileInputStream(f2), true));
+    }
+
+    @Test
+    public void mergeWithErrorsTest() throws IOException {
+        Set<String> added2 = newHashSet("2", "3", "5", "6");
+        File f2 = assertWrite(added2.iterator(), false, added2.size());
+
+        Set<String> added3 = newHashSet("t", "y", "8", "9");
+        File f3 = assertWrite(added3.iterator(), false, added3.size());
+
+        try {
+            merge(newArrayList(f2, f3), null);
+        } catch(Exception e) {}
+
+        assertTrue(!f2.exists());
+        assertTrue(!f3.exists());
     }
 
     @Test

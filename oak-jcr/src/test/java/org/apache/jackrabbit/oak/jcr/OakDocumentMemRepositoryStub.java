@@ -27,7 +27,7 @@ import org.apache.jackrabbit.test.RepositoryStubException;
 /**
  * A repository stub using the DocumentNodeStore with an in-memory DocumentStore.
  */
-public class OakDocumentMemRepositoryStub extends OakRepositoryStub {
+public class OakDocumentMemRepositoryStub extends BaseRepositoryStub {
 
     private final Repository repository;
 

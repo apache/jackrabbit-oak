@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.List;
 
 import javax.jcr.PropertyType;
 
@@ -39,6 +40,7 @@ import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.TieredMergePolicy;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -64,11 +66,15 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class IndexDefinitionTest {
@@ -1160,6 +1166,71 @@ public class IndexDefinitionTest {
         assertTrue(b.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
     }
 
+    @Test
+    public void relativeNodeNames_None() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.getRelativeNodeNames().isEmpty());
+        assertFalse(defn.indexesRelativeNodes());
+    }
+
+    @Test
+    public void relativeNodeNames_RelativeProp() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
+        defnb.indexRule("nt:base").property("bar").propertyIndex();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertThat(defn.getRelativeNodeNames(), containsInAnyOrder("jcr:content"));
+        assertTrue(defn.indexesRelativeNodes());
+    }
+
+    @Test
+    public void relativeNodeNames_Aggregate() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
+        defnb.aggregateRule("nt:base").include("jcr:content/metadata");
+        defnb.aggregateRule("nt:base").include("jcr:content/metadata/type/*");
+        defnb.aggregateRule("nt:base").include("*");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertThat(defn.getRelativeNodeNames(), containsInAnyOrder("jcr:content", "metadata", "type"));
+        assertTrue(defn.indexesRelativeNodes());
+    }
+
+    @Ignore("OAK-7198")
+    @Test
+    public void regexAllProps() {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("nt:base").property("p");
+        builder.indexRule("nt:base").property("all", LuceneIndexConstants.REGEX_ALL_PROPS, true);
+
+        IndexDefinition def = IndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        IndexingRule rule = def.getApplicableIndexingRule(root);
+        assertNotNull(rule);
+
+        PropertyDefinition pd = rule.getConfig("p");
+        assertNotNull(pd);
+        assertFalse(pd.isRegexp);
+        assertFalse(pd.relative);
+        assertEquals(0, pd.ancestors.length);
+
+        pd = rule.getConfig("all");
+        assertNotNull(pd);
+        assertTrue(pd.isRegexp);
+        assertFalse(pd.relative);
+        assertEquals(0, pd.ancestors.length);
+
+        assertThat(rule.getAggregate().getIncludes(), is(empty()));
+        assertFalse(rule.getAggregate().hasNodeAggregates());
+        List<Aggregate.Matcher> matchers = rule.getAggregate()
+                .createMatchers(new TestRoot("/"));
+        assertThat(matchers, is(empty()));
+        assertThat(def.getRelativeNodeNames(), is(empty()));
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
@@ -1183,4 +1254,21 @@ public class IndexDefinitionTest {
         return builder;
     }
 
+    private static class TestRoot implements Aggregate.AggregateRoot {
+
+        private final String path;
+
+        public TestRoot(String path) {
+            this.path = path;
+        }
+
+        @Override
+        public void markDirty() {
+        }
+
+        @Override
+        public String getPath() {
+            return path;
+        }
+    }
 }

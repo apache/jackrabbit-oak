@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.run;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -34,6 +33,8 @@ import com.mongodb.MongoURI;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 
 /**
  * OFFLINE utility to delete the clusterId stored as hidden
@@ -97,9 +98,9 @@ class ResetClusterIdCommand implements Command {
             if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
                 MongoClientURI uri = new MongoClientURI(source);
                 MongoClient client = new MongoClient(uri);
-                final DocumentNodeStore dns = new DocumentMK.Builder()
+                final DocumentNodeStore dns = newMongoDocumentNodeStoreBuilder()
                         .setMongoDB(client.getDB(uri.getDatabase()))
-                        .getNodeStore();
+                        .build();
                 closer.register(Utils.asCloseable(dns));
                 store = dns;
             } else {

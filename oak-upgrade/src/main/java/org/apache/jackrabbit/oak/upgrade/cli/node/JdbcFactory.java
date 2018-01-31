@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -31,7 +31,9 @@ import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.IOException;
 
-public class JdbcFactory implements NodeStoreFactory {
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+
+public class JdbcFactory extends DocumentFactory {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcFactory.class);
 
@@ -59,7 +61,7 @@ public class JdbcFactory implements NodeStoreFactory {
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
         System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
-        DocumentMK.Builder builder = MongoFactory.getBuilder(cacheSize);
+        RDBDocumentNodeStoreBuilder builder = baseConfiguration(newRDBDocumentNodeStoreBuilder(), cacheSize);
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
         }
@@ -69,12 +71,12 @@ public class JdbcFactory implements NodeStoreFactory {
         }
         log.info("Initialized DocumentNodeStore on RDB with Cache size : {} MB, Fast migration : {}", cacheSize,
                 builder.isDisableBranches());
-        DocumentNodeStore documentNodeStore = builder.getNodeStore();
+        DocumentNodeStore documentNodeStore = builder.build();
 
         // TODO probably we should disable all observers, see OAK-5651
         documentNodeStore.getBundlingConfigHandler().unregisterObserver();
 
-        closer.register(MongoFactory.asCloseable(documentNodeStore));
+        closer.register(documentNodeStore::dispose);
         return documentNodeStore;
     }
 

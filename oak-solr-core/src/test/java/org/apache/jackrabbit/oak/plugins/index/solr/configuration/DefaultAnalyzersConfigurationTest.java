@@ -56,53 +56,53 @@ public class DefaultAnalyzersConfigurationTest {
     public void setUp() throws Exception {
         this.exactPathAnalyzer = new Analyzer() {
             @Override
-            protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-                Tokenizer source = new KeywordTokenizer(reader);
+            protected TokenStreamComponents createComponents(String fieldName) {
+                Tokenizer source = new KeywordTokenizer();
                 return new TokenStreamComponents(source);
             }
         };
         this.parentPathIndexingAnalyzer = new Analyzer() {
             @Override
-            protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-                Tokenizer source = new KeywordTokenizer(reader);
+            protected TokenStreamComponents createComponents(String fieldName) {
+                Tokenizer source = new KeywordTokenizer();
                 return new TokenStreamComponents(source);
             }
         };
         this.parentPathSearchingAnalyzer = new Analyzer() {
             @Override
-            protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-                Tokenizer source = new KeywordTokenizer(reader);
-                TokenStream filter = new ReverseStringFilter(Version.LUCENE_47, source);
+            protected TokenStreamComponents createComponents(String fieldName) {
+                Tokenizer source = new KeywordTokenizer();
+                TokenStream filter = new ReverseStringFilter(source);
                 filter = new PatternReplaceFilter(filter, Pattern.compile("[^\\/]+\\/"), "", false);
-                filter = new ReverseStringFilter(Version.LUCENE_47, filter);
+                filter = new ReverseStringFilter(filter);
                 return new TokenStreamComponents(source, filter);
             }
         };
 
         this.directChildrenPathIndexingAnalyzer = new Analyzer() {
             @Override
-            protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-                Tokenizer source = new KeywordTokenizer(reader);
-                TokenStream filter = new ReverseStringFilter(Version.LUCENE_47, source);
-                filter = new LengthFilter(Version.LUCENE_47, filter, 2, Integer.MAX_VALUE);
+            protected TokenStreamComponents createComponents(String fieldName) {
+                Tokenizer source = new KeywordTokenizer();
+                TokenStream filter = new ReverseStringFilter(source);
+                filter = new LengthFilter(filter, 2, Integer.MAX_VALUE);
                 filter = new PatternReplaceFilter(filter, Pattern.compile("([^\\/]+)(\\/)"), "$2", false);
                 filter = new PatternReplaceFilter(filter, Pattern.compile("(\\/)(.+)"), "$2", false);
-                filter = new ReverseStringFilter(Version.LUCENE_47, filter);
+                filter = new ReverseStringFilter(filter);
                 return new TokenStreamComponents(source, filter);
             }
         };
         this.directChildrenPathSearchingAnalyzer = new Analyzer() {
             @Override
-            protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-                Tokenizer source = new KeywordTokenizer(reader);
+            protected TokenStreamComponents createComponents(String fieldName) {
+                Tokenizer source = new KeywordTokenizer();
                 return new TokenStreamComponents(source);
             }
         };
 
         this.allChildrenPathIndexingAnalyzer = new Analyzer() {
             @Override
-            protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-                Tokenizer source = new PathHierarchyTokenizer(reader);
+            protected TokenStreamComponents createComponents(String fieldName) {
+                Tokenizer source = new PathHierarchyTokenizer();
                 TokenStream filter = new PatternCaptureGroupTokenFilter(source, false, Pattern.compile("((\\/).*)"));
                 filter = new RemoveDuplicatesTokenFilter(filter);
                 return new TokenStreamComponents(source, filter);
@@ -110,8 +110,8 @@ public class DefaultAnalyzersConfigurationTest {
         };
         this.allChildrenPathSearchingAnalyzer = new Analyzer() {
             @Override
-            protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-                Tokenizer source = new KeywordTokenizer(reader);
+            protected TokenStreamComponents createComponents(String fieldName) {
+                Tokenizer source = new KeywordTokenizer();
                 return new TokenStreamComponents(source);
             }
         };

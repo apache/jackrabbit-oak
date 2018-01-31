@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
@@ -259,7 +260,7 @@ public class VersionGarbageCollector {
         final Stopwatch deleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch sortDocIds = Stopwatch.createUnstarted();
         final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
-        long collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed, collectAndDeleteSplitDocsElapsed,
+        long activeElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed, collectAndDeleteSplitDocsElapsed,
                 deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed;
 
         @Override
@@ -303,7 +304,7 @@ public class VersionGarbageCollector {
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", iterationCount=" + iterationCount +
-                    ", timeActive=" + df.format(active.elapsed(MICROSECONDS), MICROSECONDS) +
+                    ", timeActive=" + df.format(activeElapsed, MICROSECONDS) +
                     ", " + timings + "}";
         }
 
@@ -320,6 +321,7 @@ public class VersionGarbageCollector {
             this.updateResurrectedGCCount += run.updateResurrectedGCCount;
             if (run.iterationCount > 0) {
                 // run is cumulative with times in elapsed fields
+                this.activeElapsed += run.activeElapsed;
                 this.collectDeletedDocsElapsed += run.collectDeletedDocsElapsed;
                 this.checkDeletedDocsElapsed += run.checkDeletedDocsElapsed;
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocsElapsed;
@@ -329,6 +331,7 @@ public class VersionGarbageCollector {
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocumentsElapsed;
             } else {
                 // single run -> read from stop watches
+                this.activeElapsed += run.active.elapsed(MICROSECONDS);
                 this.collectDeletedDocsElapsed += run.collectDeletedDocs.elapsed(MICROSECONDS);
                 this.checkDeletedDocsElapsed += run.checkDeletedDocs.elapsed(MICROSECONDS);
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocs.elapsed(MICROSECONDS);
@@ -751,7 +754,7 @@ public class VersionGarbageCollector {
         private Iterator<String> previousDocIdsFor(NodeDocument doc) {
             Map<Revision, Range> prevRanges = doc.getPreviousRanges(true);
             if (prevRanges.isEmpty()) {
-                return Iterators.emptyIterator();
+                return Collections.emptyIterator();
             } else if (all(prevRanges.values(), FIRST_LEVEL)) {
                 // all previous document ids can be constructed from the
                 // previous ranges map. this works for first level previous

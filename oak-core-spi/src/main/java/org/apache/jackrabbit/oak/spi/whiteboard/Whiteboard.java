@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.Map;
 
+import org.osgi.annotation.versioning.ProviderType;
+
+@ProviderType
 public interface Whiteboard {
 
     /**

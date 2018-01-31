@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -37,6 +39,33 @@ public class ConfigurationBaseTest {
         base.setSecurityProvider(securityProvider);
 
         assertSame(securityProvider, base.getSecurityProvider());
+    }
+
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetRootProvider() {
+        base.getRootProvider();
+    }
+
+    @Test
+    public void testSetRootProvider() {
+        RootProvider rootProvider = Mockito.mock(RootProvider.class);
+        base.setRootProvider(rootProvider);
+
+        assertSame(rootProvider, base.getRootProvider());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testTreeProvider() {
+        base.getTreeProvider();
+    }
+
+    @Test
+    public void testSetTreeProvider() {
+        TreeProvider treeProvider = Mockito.mock(TreeProvider.class);
+        base.setTreeProvider(treeProvider);
+
+        assertSame(treeProvider, base.getTreeProvider());
     }
 
     @Test

@@ -476,7 +476,7 @@ public class TypeEditor extends DefaultEditor {
                 NodeBuilder childBuilder = builder.getChildNode(name);
                 TypeEditor editor = new TypeEditor(this, name, primary, mixins, childBuilder, false);
                 if (!effective.isValidChildNode(name, editor.getEffective())) {
-                    constraintViolation(25, "Unexpected child node " + names + " found in a new node");
+                    constraintViolation(25, "Unexpected child node " + name + " found in a new node");
                 }
             }
         }

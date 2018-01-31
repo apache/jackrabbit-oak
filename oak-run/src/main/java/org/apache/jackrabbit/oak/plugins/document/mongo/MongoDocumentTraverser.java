@@ -28,31 +28,27 @@ import com.mongodb.DBCursor;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.cache.CacheChangesTracker;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 
-import static java.util.Collections.singletonList;
+import static com.google.common.base.Preconditions.checkState;
 
 public class MongoDocumentTraverser {
     private final MongoDocumentStore mongoStore;
+    private boolean disableReadOnlyCheck;
 
     public MongoDocumentTraverser(MongoDocumentStore mongoStore) {
         this.mongoStore = mongoStore;
     }
 
     public <T extends Document> CloseableIterable<T> getAllDocuments(Collection<T> collection, Predicate<String> filter) {
-        //TODO Handle readOnly
-        boolean readOnly = true;
+        if (!disableReadOnlyCheck) {
+            checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
+        }
+
         DBCollection dbCollection = mongoStore.getDBCollection(collection);
         Closer closer = Closer.create();
-        CacheChangesTracker cacheChangesTracker;
-        if (collection == Collection.NODES && !readOnly) {
-            cacheChangesTracker = getNodeDocCache().registerTracker(NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE);
-            closer.register(cacheChangesTracker::close);
-        } else {
-            cacheChangesTracker = null;
-        }
+
 
         DBCursor cursor = dbCollection.find();
         //TODO This may lead to reads being routed to secondary depending on MongoURI
@@ -68,14 +64,18 @@ public class MongoDocumentTraverser {
                     //TODO Review the cache update approach where tracker has to track *all* docs
                     if (collection == Collection.NODES) {
                         NodeDocument nodeDoc = (NodeDocument) doc;
-                        if (readOnly) {
-                            getNodeDocCache().put(nodeDoc);
-                        }
-                        getNodeDocCache().putNonConflictingDocs(cacheChangesTracker, singletonList(nodeDoc));
+                        getNodeDocCache().put(nodeDoc);
                     }
                     return doc;
                 });
         return CloseableIterable.wrap(result, closer);
+    }
+
+    /**
+     * For testing only
+     */
+    void disableReadOnlyCheck() {
+        this.disableReadOnlyCheck = true;
     }
 
     private NodeDocumentCache getNodeDocCache() {

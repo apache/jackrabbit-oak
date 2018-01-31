@@ -24,8 +24,9 @@ import javax.sql.DataSource;
 
 import com.mongodb.MongoClientURI;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -79,12 +80,12 @@ class UnlockUpgradeCommand implements Command {
                     System.err.println("Database missing in MongoDB URI: " + clientURI.getURI());
                 } else {
                     MongoConnection mongo = new MongoConnection(clientURI.getURI());
-                    store = new MongoDocumentStore(mongo.getDB(), new DocumentMK.Builder());
+                    store = new MongoDocumentStore(mongo.getDB(), new MongoDocumentNodeStoreBuilder());
                 }
             } else if (uri.startsWith("jdbc")) {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(uri,
                         rdbjdbcuser.value(options), rdbjdbcpasswd.value(options));
-                store = new RDBDocumentStore(ds, new DocumentMK.Builder());
+                store = new RDBDocumentStore(ds, new DocumentNodeStoreBuilder());
             } else {
                 System.err.println("Unrecognized URI: " + uri);
             }

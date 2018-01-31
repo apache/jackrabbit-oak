@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.commons.io.IOUtils;
@@ -47,8 +48,10 @@ public class GetBlobRequestHandlerTest {
         assertEquals("clientId", response.getClientId());
         assertEquals("blobId", response.getBlobId());
         assertEquals(blobData.length, response.getLength());
-        byte[] receivedData = IOUtils.toByteArray(response.getInputStream());
-        assertArrayEquals(blobData, receivedData);
+        try (InputStream is = response.getInputStream()) {
+            byte[] receivedData = IOUtils.toByteArray(is);
+            assertArrayEquals(blobData, receivedData);
+        }
     }
 
     @Test

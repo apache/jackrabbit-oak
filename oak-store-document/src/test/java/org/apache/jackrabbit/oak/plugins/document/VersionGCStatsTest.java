@@ -60,6 +60,7 @@ public class VersionGCStatsTest {
     public void addRun() {
         VersionGCStats cumulative = new VersionGCStats();
         cumulative.addRun(stats);
+        assertEquals(stats.active.elapsed(MICROSECONDS), cumulative.activeElapsed);
         assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS), cumulative.collectDeletedDocsElapsed);
         assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS), cumulative.checkDeletedDocsElapsed);
         assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS), cumulative.deleteDeletedDocsElapsed);
@@ -75,6 +76,7 @@ public class VersionGCStatsTest {
         // double stats by adding to itself
         cumulative.addRun(cumulative);
         // now the stats must have doubled
+        assertEquals(stats.active.elapsed(MICROSECONDS) * 2, cumulative.activeElapsed);
         assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedDocsElapsed);
         assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.checkDeletedDocsElapsed);
         assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteDeletedDocsElapsed);

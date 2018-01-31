@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -68,7 +67,7 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
     @Nonnull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
-        return new PrivilegeInitializer();
+        return new PrivilegeInitializer(getRootProvider());
     }
 
     @Nonnull
@@ -80,7 +79,7 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
-        return Collections.singletonList(new PrivilegeValidatorProvider());
+        return Collections.singletonList(new PrivilegeValidatorProvider(getRootProvider()));
     }
 
     @Nonnull

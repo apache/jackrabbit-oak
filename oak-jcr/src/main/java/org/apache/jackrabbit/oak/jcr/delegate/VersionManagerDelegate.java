@@ -45,7 +45,7 @@ import static org.apache.jackrabbit.oak.spi.version.VersionConstants.RESTORE_PRE
 /**
  * {@code VersionManagerDelegate}...
  */
-public class VersionManagerDelegate {
+public final class VersionManagerDelegate {
 
     private final SessionDelegate sessionDelegate;
 

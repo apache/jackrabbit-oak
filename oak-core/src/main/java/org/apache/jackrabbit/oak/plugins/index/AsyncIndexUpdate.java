@@ -1150,6 +1150,11 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         @Override
+        public long getTotalExecutionCount() {
+            return execStats.getExecutionCounter().getCount();
+        }
+
+        @Override
         public CompositeData getExecutionCount() {
             return execStats.getExecutionCount();
         }

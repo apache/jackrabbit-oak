@@ -24,12 +24,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
@@ -42,12 +37,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.tool.Backup;
 import org.apache.jackrabbit.oak.segment.tool.Check;
-import org.apache.jackrabbit.oak.segment.tool.Compact;
-import org.apache.jackrabbit.oak.segment.tool.DebugSegments;
-import org.apache.jackrabbit.oak.segment.tool.DebugStore;
-import org.apache.jackrabbit.oak.segment.tool.DebugTars;
 import org.apache.jackrabbit.oak.segment.tool.Diff;
-import org.apache.jackrabbit.oak.segment.tool.History;
 import org.apache.jackrabbit.oak.segment.tool.Restore;
 import org.apache.jackrabbit.oak.segment.tool.Revisions;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -94,72 +84,7 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void debug(String... args) {
-        File file = new File(args[0]);
-
-        List<String> tars = new ArrayList<>();
-        List<String> segs = new ArrayList<>();
-
-        for (int i = 1; i < args.length; i++) {
-            if (args[i].endsWith(".tar")) {
-                tars.add(args[i]);
-            } else {
-                segs.add(args[i]);
-            }
-        }
-
-        if (tars.size() > 0) {
-            debugTars(file, tars);
-        }
-
-        if (segs.size() > 0) {
-            debugSegments(file, segs);
-        }
-
-        if (tars.isEmpty() && segs.isEmpty()) {
-            debugStore(file);
-        }
-    }
-
-    private static void debugTars(File store, List<String> tars) {
-        DebugTars.Builder builder = DebugTars.builder().withPath(store);
-
-        for (String tar : tars) {
-            builder.withTar(tar);
-        }
-
-        builder.build().run();
-    }
-
-    private static void debugSegments(File store, List<String> segments) {
-        DebugSegments.Builder builder = DebugSegments.builder().withPath(store);
-
-        for (String segment : segments) {
-            builder.withSegment(segment);
-        }
-
-        builder.build().run();
-    }
-
-    private static void debugStore(File store) {
-        DebugStore.builder()
-                .withPath(store)
-                .build()
-                .run();
-        ;
-    }
-
-    static void history(File directory, File journal, String path, int depth) {
-        History.builder()
-                .withPath(directory)
-                .withJournal(journal)
-                .withNode(path)
-                .withDepth(depth)
-                .build()
-                .run();
-    }
-
-    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, Set<String> filterPaths, boolean ioStatistics, 
+    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, Set<String> filterPaths, boolean ioStatistics,
             PrintWriter outWriter, PrintWriter errWriter) {
         Check.builder()
                 .withPath(dir)
@@ -170,16 +95,6 @@ final class SegmentTarUtils {
                 .withIOStatistics(ioStatistics)
                 .withOutWriter(outWriter)
                 .withErrWriter(errWriter)
-                .build()
-                .run();
-    }
-
-    static void compact(@Nonnull File directory, @Nullable Boolean mmap, boolean force) throws IOException, InvalidFileStoreVersionException {
-        Compact.builder()
-                .withPath(directory)
-                .withMmap(mmap)
-                .withForce(force)
-                .withSegmentCacheSize(TAR_SEGMENT_CACHE_SIZE)
                 .build()
                 .run();
     }
@@ -217,7 +132,9 @@ final class SegmentTarUtils {
     }
 
     private static FileStore bootstrapFileStore(String path) throws IOException, InvalidFileStoreVersionException {
-        return fileStoreBuilder(new File(path)).build();
+        return fileStoreBuilder(new File(path))
+            .withStrictVersionCheck(true)
+            .build();
     }
 
     private static ReadOnlyFileStore openReadOnlyFileStore(File path, boolean memoryMapped)
@@ -235,7 +152,9 @@ final class SegmentTarUtils {
     }
 
     private static FileStore openFileStore(String directory, boolean force) throws IOException, InvalidFileStoreVersionException {
-        return newFileStoreBuilder(directory, force).build();
+        return newFileStoreBuilder(directory, force)
+            .withStrictVersionCheck(true)
+            .build();
     }
 
     private static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException, InvalidFileStoreVersionException {

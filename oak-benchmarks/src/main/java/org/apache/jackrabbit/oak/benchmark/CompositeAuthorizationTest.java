@@ -37,8 +37,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -79,7 +80,7 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    return new Jcr(oak).with(new TmpSecurityProvider(cnt));
+                    return new Jcr(oak).with(newTestSecurityProvider(cnt));
                 }
             });
         } else {
@@ -87,22 +88,22 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
         }
     }
 
-    private static final class TmpSecurityProvider extends SecurityProviderImpl {
+    private static SecurityProvider newTestSecurityProvider(int cnt) {
+        SecurityProvider delegate = new SecurityProviderBuilder().build();
 
-        private TmpSecurityProvider(int cnt) {
-            super();
-
-            AuthorizationConfiguration authorizationConfiguration = getConfiguration(AuthorizationConfiguration.class);
-            if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
-                throw new IllegalStateException();
-            } else {
-                final AuthorizationConfiguration defConfig = checkNotNull(((CompositeAuthorizationConfiguration) authorizationConfiguration).getDefaultConfig());
-                for (int i = 0; i < cnt; i++) {
-                    bindAuthorizationConfiguration(new TmpAuthorizationConfig(defConfig));
-                }
-                bindAuthorizationConfiguration(defConfig);
+        AuthorizationConfiguration authorizationConfiguration = delegate
+                .getConfiguration(AuthorizationConfiguration.class);
+        if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
+            throw new IllegalStateException();
+        } else {
+            CompositeAuthorizationConfiguration composite = (CompositeAuthorizationConfiguration) authorizationConfiguration;
+            final AuthorizationConfiguration defConfig = checkNotNull(composite.getDefaultConfig());
+            for (int i = 0; i < cnt; i++) {
+                composite.addConfiguration(new TmpAuthorizationConfig(defConfig));
             }
+            composite.addConfiguration(defConfig);
         }
+        return delegate;
     }
 
     private static final class TmpAuthorizationConfig implements AuthorizationConfiguration {

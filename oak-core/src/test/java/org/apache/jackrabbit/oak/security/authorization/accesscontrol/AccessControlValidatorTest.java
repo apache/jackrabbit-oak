@@ -89,6 +89,10 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         return new NodeUtil(root.getTree(testPath));
     }
 
+    private AccessControlValidatorProvider createValidatorProvider() {
+        return new AccessControlValidatorProvider(getSecurityProvider(), getRootProvider(), getTreeProvider());
+    }
+
     private NodeUtil createAcl() throws AccessDeniedException {
         NodeUtil testRoot = getTestRoot();
         testRoot.setNames(JcrConstants.JCR_MIXINTYPES, MIX_REP_ACCESS_CONTROLLABLE);
@@ -406,7 +410,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @Test
     public void hiddenNodeAdded() throws CommitFailedException {
-        AccessControlValidatorProvider provider = new AccessControlValidatorProvider(getSecurityProvider());
+        AccessControlValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeState root = store.getRoot();
         NodeBuilder builder = root.builder();
@@ -425,7 +429,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @Test
     public void hiddenNodeChanged() throws CommitFailedException {
-        AccessControlValidatorProvider provider = new AccessControlValidatorProvider(getSecurityProvider());
+        AccessControlValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden");
@@ -447,7 +451,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @Test
     public void hiddenNodeDeleted() throws CommitFailedException {
-        AccessControlValidatorProvider provider = new AccessControlValidatorProvider(getSecurityProvider());
+        AccessControlValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden");

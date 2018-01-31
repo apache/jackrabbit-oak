@@ -28,6 +28,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+
+import com.google.common.base.StandardSystemProperty;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.Oak;
@@ -36,6 +38,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -44,7 +47,7 @@ import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-class SegmentTarFixture extends OakFixture {
+public class SegmentTarFixture extends OakFixture {
     /**
      * Listener instance doing nothing on a {@code SegmentNotFoundException}
      */
@@ -115,6 +118,8 @@ class SegmentTarFixture extends OakFixture {
     private final boolean withColdStandby;
     private final int syncInterval;
     private final boolean shareBlobStore;
+    private final boolean oneShotRun;
+    private final boolean secure;
     
     private final File parentPath;
 
@@ -126,27 +131,30 @@ class SegmentTarFixture extends OakFixture {
     private ScheduledExecutorService[] executors;
     
     public SegmentTarFixture(SegmentTarFixtureBuilder builder) {
-        this(builder, false, -1, false);
+        this(builder, false, -1);
     }
     
     public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval) {
-        this(builder, withColdStandby, syncInterval, false);
+        this(builder, withColdStandby, syncInterval, false, false, false);
     }
     
-    public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval, boolean shareBlobStore) {
+    public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval,
+            boolean shareBlobStore, boolean oneShotRun, boolean secure) {
         super(builder.name);
         this.base = builder.base;
         this.parentPath = new File(base, unique);
-        
+
         this.maxFileSize = builder.maxFileSize;
         this.segmentCacheSize = builder.segmentCacheSize;
         this.memoryMapping = builder.memoryMapping;
         this.useBlobStore = builder.useBlobStore;
         this.dsCacheSize = builder.dsCacheSize;
-        
+
         this.withColdStandby = withColdStandby;
         this.syncInterval = syncInterval;
         this.shareBlobStore = shareBlobStore;
+        this.oneShotRun = oneShotRun;
+        this.secure = secure;
     }
 
     @Override
@@ -193,6 +201,7 @@ class SegmentTarFixture extends OakFixture {
                     .withStatisticsProvider(statsProvider)
                     .withSegmentCacheSize(segmentCacheSize)
                     .withMemoryMapping(memoryMapping)
+                    .withStrictVersionCheck(true)
                     .build();
             
             if (withColdStandby) {
@@ -233,28 +242,34 @@ class SegmentTarFixture extends OakFixture {
                 builder.withBlobStore(blobStoreFixtures[n + i].setUp());
             }
         }
-        
+
+        SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions()
+            .setRetainedGenerations(1);
+
         stores[n + i] = builder
-                .withMaxFileSize(maxFileSize)
-                .withStatisticsProvider(statsProvider)
-                .withSegmentCacheSize(segmentCacheSize)
-                .withMemoryMapping(memoryMapping)
-                .withSnfeListener(IGNORE_SNFE)
-                .build();
+            .withGCOptions(gcOptions)
+            .withMaxFileSize(maxFileSize)
+            .withStatisticsProvider(statsProvider)
+            .withSegmentCacheSize(segmentCacheSize)
+            .withMemoryMapping(memoryMapping)
+            .withSnfeListener(IGNORE_SNFE)
+            .build();
         
         int port = 0;
         try (ServerSocket socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
         }
         
-        serverSyncs[i] = new StandbyServerSync(port, stores[i], 1 * MB);
-        clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], false, DEFAULT_TIMEOUT, false);
+        serverSyncs[i] = new StandbyServerSync(port, stores[i], 1 * MB, secure);
+        clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], secure, DEFAULT_TIMEOUT, false, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
         
-        serverSyncs[i].start();
-        clientSyncs[i].start();
-        
-        executors[i] = Executors.newScheduledThreadPool(1);
-        executors[i].scheduleAtFixedRate(clientSyncs[i], 0, syncInterval, TimeUnit.SECONDS);
+        if (!oneShotRun) {
+            serverSyncs[i].start();
+            clientSyncs[i].start();
+
+            executors[i] = Executors.newScheduledThreadPool(1);
+            executors[i].scheduleAtFixedRate(clientSyncs[i], 0, syncInterval, TimeUnit.SECONDS);
+        }
     }
 
     /**
@@ -282,7 +297,10 @@ class SegmentTarFixture extends OakFixture {
             
             serverSyncs = new StandbyServerSync[n];
             clientSyncs = new StandbyClientSync[n];
-            executors = new ScheduledExecutorService[n];
+            
+            if (!oneShotRun) {
+                executors = new ScheduledExecutorService[n];
+            }
         } else {
             if (useBlobStore) {
                 blobStoresLength = n;
@@ -304,8 +322,10 @@ class SegmentTarFixture extends OakFixture {
                 serverSync.close();
             }
             
-            for (ExecutorService executor : executors) {
-                executor.shutdownNow();
+            if (!oneShotRun) {
+                for (ExecutorService executor : executors) {
+                    executor.shutdownNow();
+                }
             }
         }
         
@@ -330,4 +350,12 @@ class SegmentTarFixture extends OakFixture {
         return stores;
     }
 
+    public StandbyServerSync[] getServerSyncs() {
+        return serverSyncs;
+    }
+
+    public StandbyClientSync[] getClientSyncs() {
+        return clientSyncs;
+    }
+    
 }

@@ -60,6 +60,10 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         userPath = getTestUser().getPath();
     }
 
+    private UserValidatorProvider createValidatorProvider() {
+        return new UserValidatorProvider(getConfig(), getRootProvider(), getTreeProvider());
+    }
+
     @Test
     public void removePassword() throws Exception {
         try {
@@ -341,7 +345,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test
     public void hiddenNodeAdded() throws CommitFailedException {
-        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        UserValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeState root = store.getRoot();
         NodeBuilder builder = root.builder();
@@ -361,7 +365,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test
     public void hiddenNodeChanged() throws CommitFailedException {
-        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        UserValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden");
@@ -384,7 +388,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test
     public void hiddenNodeDeleted() throws CommitFailedException {
-        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        UserValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden");

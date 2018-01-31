@@ -115,7 +115,7 @@ public class GcJournalTest {
         assertEquals(1493819563098L, entry.getTs());
         assertEquals(newGCGeneration(1, 1, false), entry.getGcGeneration());
         assertEquals(42, entry.getNodes());
-        assertEquals("ddf1d9d3-d391-483d-ac96-5d7b63947d56:2657", entry.getRoot());
+        assertEquals(RecordId.NULL.toString10(), entry.getRoot());
     }
 
     @Test
@@ -133,7 +133,7 @@ public class GcJournalTest {
         assertEquals(1493819563098L, entry.getTs());
         assertEquals(newGCGeneration(1, 1, false), entry.getGcGeneration());
         assertEquals(42, entry.getNodes());
-        assertEquals("ddf1d9d3-d391-483d-ac96-5d7b63947d56:2657", entry.getRoot());
+        assertEquals(RecordId.NULL.toString10(), entry.getRoot());
 
         entry = entries.get(1);
         assertEquals(300, entry.getRepoSize());

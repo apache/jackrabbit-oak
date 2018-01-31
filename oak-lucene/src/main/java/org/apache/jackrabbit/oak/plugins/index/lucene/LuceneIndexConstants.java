@@ -141,6 +141,8 @@ public interface LuceneIndexConstants {
 
     String PROP_USE_IN_EXCERPT = "useInExcerpt";
 
+    String EXCERPT_NODE_FIELD_NAME = ".";
+
     String PROP_NODE_SCOPE_INDEX = "nodeScopeIndex";
 
     String PROP_PROPERTY_INDEX = "propertyIndex";

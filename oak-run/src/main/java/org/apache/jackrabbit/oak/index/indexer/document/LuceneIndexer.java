@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -53,7 +54,7 @@ public class LuceneIndexer implements NodeStateIndexer {
 
     @Override
     public boolean shouldInclude(String path) {
-        return definition.getPathFilter().filter(path) != PathFilter.Result.EXCLUDE;
+        return getFilterResult(path) != PathFilter.Result.EXCLUDE;
     }
 
     @Override
@@ -63,11 +64,15 @@ public class LuceneIndexer implements NodeStateIndexer {
     }
 
     @Override
-    public void index(NodeStateEntry entry) throws IOException, CommitFailedException {
+    public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
+        if (getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
+            return false;
+        }
+
         IndexingRule indexingRule = definition.getApplicableIndexingRule(entry.getNodeState());
 
         if (indexingRule == null) {
-            return;
+            return false;
         }
 
         LuceneDocumentMaker maker = newDocumentMaker(indexingRule, entry.getPath());
@@ -75,12 +80,29 @@ public class LuceneIndexer implements NodeStateIndexer {
         if (doc != null) {
             writeToIndex(doc, entry.getPath());
             progressReporter.indexUpdate(definition.getIndexPath());
+            return true;
         }
+
+        return false;
+    }
+
+    @Override
+    public boolean indexesRelativeNodes() {
+        return definition.indexesRelativeNodes();
+    }
+
+    @Override
+    public Set<String> getRelativeIndexedNodeNames() {
+        return definition.getRelativeNodeNames();
     }
 
     @Override
     public void close() throws IOException {
         indexWriter.close(System.currentTimeMillis());
+    }
+
+    private PathFilter.Result getFilterResult(String path) {
+        return definition.getPathFilter().filter(path);
     }
 
     private void writeToIndex(Document doc, String path) throws IOException {

@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
@@ -183,7 +182,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
                 put(TEST_A_B_C_PATH,  new String[] {Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
                 build();
 
-        readOnlyRoot = RootFactory.createReadOnlyRoot(root);
+        readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
     }
 
     @Override
@@ -255,7 +254,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         return new CompositePermissionProvider(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), CompositionType.AND);
+                config.getContext(), CompositionType.AND, getRootProvider());
     }
 
     CompositePermissionProvider createPermissionProviderOR(Principal... principals) {
@@ -266,7 +265,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         return new CompositePermissionProvider(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), CompositionType.OR);
+                config.getContext(), CompositionType.OR, getRootProvider());
     }
 
     @Test

@@ -26,6 +26,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -83,6 +84,8 @@ public class PrincipalManagerTest extends AbstractJCRTest {
         Principal principal = principalMgr.getEveryone();
         assertTrue(principal != null);
         assertTrue(isGroup(principal));
+        assertEquals(EveryonePrincipal.getInstance(), principal);
+        assertFalse(principal instanceof ItemBasedPrincipal);
     }
 
     /**

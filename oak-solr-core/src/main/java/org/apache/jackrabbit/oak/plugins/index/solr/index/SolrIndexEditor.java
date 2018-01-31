@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.tika.metadata.Metadata;
@@ -70,7 +70,7 @@ class SolrIndexEditor implements IndexEditor {
      */
     private String path;
 
-    private final SolrServer solrServer;
+    private final SolrClient solrServer;
 
     private final OakSolrConfiguration configuration;
 
@@ -81,7 +81,7 @@ class SolrIndexEditor implements IndexEditor {
     private static final Parser parser = new AutoDetectParser();
 
     SolrIndexEditor(
-            SolrServer solrServer,
+            SolrClient solrServer,
             OakSolrConfiguration configuration,
             IndexUpdateCallback callback) {
         this.parent = null;
@@ -141,7 +141,7 @@ class SolrIndexEditor implements IndexEditor {
         }
     }
 
-    private void commitByPolicy(SolrServer solrServer, OakSolrConfiguration.CommitPolicy commitPolicy) throws IOException, SolrServerException {
+    private void commitByPolicy(SolrClient solrServer, OakSolrConfiguration.CommitPolicy commitPolicy) throws IOException, SolrServerException {
         switch (commitPolicy) {
             case HARD: {
                 solrServer.commit();

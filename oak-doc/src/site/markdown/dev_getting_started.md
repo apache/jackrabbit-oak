@@ -86,6 +86,7 @@ The build consists of the following components:
   - oak-store-spi     - Oak NodeStore and Commit SPI 
   - oak-segment-tar   - TarMK API and nodestore implementation
   - oak-store-document - Oak DocumentNodeStore implementation on MongoDB and RDB
+  - oak-store-composite - CompositeNodeStore implementation
 
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak and sidegrading Oak to Oak
    
@@ -98,7 +99,6 @@ The build consists of the following components:
   
   - oak-http          - HTTP binding for Oak
   - oak-pojosr  
-  - oak-remote 
   
   - [oak-exercise][3] - Oak training material
   - oak-examples      - Oak examples (webapp and standalone)
@@ -113,6 +113,7 @@ The following components have been moved to the Jackrabbit Attic:
   - oak-mk            - MicroKernel implementation (see OAK-2702)
   - oak-mk-remote     - MicroKernel remoting  (see [OAK-2693][2])
   - oak-it/mk         - integration tests for MicroKernel
+  - oak-remote        - Oak Remote API (see OAK-7035)
 
 
 

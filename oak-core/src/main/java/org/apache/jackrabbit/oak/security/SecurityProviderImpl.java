@@ -16,15 +16,30 @@
  */
 package org.apache.jackrabbit.oak.security;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.security.authorization.restriction.WhiteboardRestrictionProvider;
 import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableNodeName;
+import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
+import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -40,21 +55,12 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableActionProvider;
-import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
-import org.apache.jackrabbit.oak.security.authorization.restriction.WhiteboardRestrictionProvider;
-import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.osgi.framework.BundleContext;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Deprecated
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     private volatile AuthenticationConfiguration authenticationConfiguration;
@@ -78,6 +84,9 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     private Whiteboard whiteboard;
 
+    private final RootProvider rootProvider = new RootProviderService();
+    private final TreeProvider treeProvider = new TreeProviderService();
+
     /**
      * Default constructor used in OSGi environments.
      */
@@ -95,13 +104,14 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         checkNotNull(configuration);
         this.configuration = configuration;
 
-        authenticationConfiguration = new AuthenticationConfigurationImpl(this);
-        userConfiguration = new UserConfigurationImpl(this);
-        privilegeConfiguration = new PrivilegeConfigurationImpl();
+        authenticationConfiguration = initDefaultConfiguration(new AuthenticationConfigurationImpl(this));
 
-        authorizationConfiguration.setDefaultConfig(new AuthorizationConfigurationImpl(this));
-        principalConfiguration.setDefaultConfig(new PrincipalConfigurationImpl(this));
-        tokenConfiguration.setDefaultConfig(new TokenConfigurationImpl(this));
+        userConfiguration = initDefaultConfiguration(new UserConfigurationImpl(this));
+        privilegeConfiguration = initDefaultConfiguration(new PrivilegeConfigurationImpl());
+
+        initCompositeConfiguration(authorizationConfiguration, new AuthorizationConfigurationImpl(this));
+        initCompositeConfiguration(principalConfiguration, new PrincipalConfigurationImpl(this));
+        initCompositeConfiguration(tokenConfiguration, new TokenConfigurationImpl(this));
     }
 
     @Override
@@ -213,7 +223,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     //------------------------------------------------------------< private >---
     private void initializeConfigurations() {
         initConfiguration(authorizationConfiguration, ConfigurationParameters.of(
-                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
+                        AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
         );
 
         Map<String, Object> userMap = ImmutableMap.<String,Object>of(
@@ -227,12 +237,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     }
 
     private <T extends SecurityConfiguration> T initConfiguration(@Nonnull T config) {
-        if (config instanceof ConfigurationBase) {
-            ConfigurationBase cfg = (ConfigurationBase) config;
-            cfg.setSecurityProvider(this);
-            cfg.setParameters(ConfigurationParameters.of(ConfigurationParameters.EMPTY, cfg.getParameters()));
-        }
-        return config;
+        return initConfiguration(config, ConfigurationParameters.EMPTY);
     }
 
     private <T extends SecurityConfiguration> T initConfiguration(@Nonnull T config, @Nonnull ConfigurationParameters params) {
@@ -240,6 +245,24 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             ConfigurationBase cfg = (ConfigurationBase) config;
             cfg.setSecurityProvider(this);
             cfg.setParameters(ConfigurationParameters.of(params, cfg.getParameters()));
+            cfg.setRootProvider(rootProvider);
+            cfg.setTreeProvider(treeProvider);
+        }
+        return config;
+    }
+
+    private CompositeConfiguration initCompositeConfiguration(@Nonnull CompositeConfiguration composite, @Nonnull SecurityConfiguration defaultConfig) {
+        composite.setRootProvider(rootProvider);
+        composite.setTreeProvider(treeProvider);
+        composite.setDefaultConfig(initDefaultConfiguration(defaultConfig));
+        return composite;
+    }
+
+    private <T extends SecurityConfiguration> T initDefaultConfiguration(@Nonnull T config) {
+        if (config instanceof ConfigurationBase) {
+            ConfigurationBase cfg = (ConfigurationBase) config;
+            cfg.setRootProvider(rootProvider);
+            cfg.setTreeProvider(treeProvider);
         }
         return config;
     }

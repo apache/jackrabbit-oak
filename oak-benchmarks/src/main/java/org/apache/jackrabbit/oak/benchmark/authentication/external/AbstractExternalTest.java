@@ -43,8 +43,7 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -71,7 +70,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -97,7 +95,7 @@ abstract class AbstractExternalTest extends AbstractTest {
     private final ExternalPrincipalConfiguration externalPrincipalConfiguration = new ExternalPrincipalConfiguration();
 
     private ContentRepository contentRepository;
-    private final SecurityProvider securityProvider = new TestSecurityProvider(ConfigurationParameters.EMPTY);
+    private final SecurityProvider securityProvider = newTestSecurityProvider(externalPrincipalConfiguration);
 
     final DefaultSyncConfig syncConfig = new DefaultSyncConfig();
     final SyncHandler syncHandler = new DefaultSyncHandler(syncConfig);
@@ -236,18 +234,21 @@ abstract class AbstractExternalTest extends AbstractTest {
         }
     }
 
-    private final class TestSecurityProvider extends SecurityProviderImpl {
-        public TestSecurityProvider(@Nonnull ConfigurationParameters configuration) {
-            super(configuration);
-            PrincipalConfiguration principalConfiguration = getConfiguration(PrincipalConfiguration.class);
-            if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
-                throw new IllegalStateException();
-            } else {
-                PrincipalConfiguration defConfig = checkNotNull(((CompositePrincipalConfiguration) principalConfiguration).getDefaultConfig());
-                bindPrincipalConfiguration(externalPrincipalConfiguration);
-                bindPrincipalConfiguration(defConfig);
-            }
+    private static SecurityProvider newTestSecurityProvider(
+            ExternalPrincipalConfiguration externalPrincipalConfiguration) {
+        SecurityProvider delegate = new SecurityProviderBuilder().build();
+
+        PrincipalConfiguration principalConfiguration = delegate.getConfiguration(PrincipalConfiguration.class);
+        if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
+            throw new IllegalStateException();
+        } else {
+            externalPrincipalConfiguration.setSecurityProvider(delegate);
+            CompositePrincipalConfiguration composite = (CompositePrincipalConfiguration) principalConfiguration;
+            PrincipalConfiguration defConfig = composite.getDefaultConfig();
+            composite.addConfiguration(externalPrincipalConfiguration);
+            composite.addConfiguration(defConfig);
         }
+        return delegate;
     }
 
     class TestIdentityProvider implements ExternalIdentityProvider {

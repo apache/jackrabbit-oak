@@ -28,7 +28,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.osgi.annotation.versioning.ProviderType;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -37,7 +36,9 @@ import com.google.common.collect.ObjectArrays;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.CompositeWorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.osgi.annotation.versioning.ProviderType;
 import org.osgi.framework.Constants;
 
 /**
@@ -77,6 +79,10 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     private final CompositeContext ctx = new CompositeContext();
 
     private SecurityProvider securityProvider;
+
+    private RootProvider rootProvider;
+
+    private TreeProvider treeProvider;
 
     private T defaultConfig;
 
@@ -153,6 +159,30 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         return securityProvider;
     }
 
+    public void setRootProvider(@Nonnull RootProvider rootProvider) {
+        this.rootProvider = rootProvider;
+    }
+
+    @Nonnull
+    protected RootProvider getRootProvider() {
+        if (rootProvider == null) {
+            throw new IllegalStateException("RootProvider missing.");
+        }
+        return rootProvider;
+    }
+
+    public void setTreeProvider(@Nonnull TreeProvider treeProvider) {
+        this.treeProvider = treeProvider;
+    }
+
+    @Nonnull
+    protected TreeProvider getTreeProvider() {
+        if (treeProvider == null) {
+            throw new IllegalStateException("TreeProvider missing.");
+        }
+        return treeProvider;
+    }
+
     //----------------------------------------------< SecurityConfiguration >---
     @Nonnull
     @Override
@@ -208,12 +238,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull final String workspaceName, @Nonnull final Set<Principal> principals, @Nonnull final MoveTracker moveTracker) {
-        Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ValidatorProvider>>() {
-            @Override
-            public List<? extends ValidatorProvider> apply(T securityConfiguration) {
-                return securityConfiguration.getValidators(workspaceName, principals, moveTracker);
-            }
-        }));
+        Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getValidators(workspaceName, principals, moveTracker)));
         return ImmutableList.copyOf(t);
     }
 

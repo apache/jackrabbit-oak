@@ -22,7 +22,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -67,6 +68,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
     private final MountInfoProvider mountInfoProvider;
+    private final RootProvider rootProvider;
+    private final TreeProvider treeProvider;
 
     private NodeBuilder permissionStore;
     private PrivilegeBitsProvider bitsProvider;
@@ -78,10 +81,14 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private Map<String, PermissionStoreEditor> modified = new HashMap<String, PermissionStoreEditor>();
     private Map<String, PermissionStoreEditor> deleted = new HashMap<String, PermissionStoreEditor>();
 
-    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider, MountInfoProvider mountInfoProvider) {
+    public PermissionHook(@Nonnull String workspaceName, @Nonnull RestrictionProvider restrictionProvider,
+                          @Nonnull MountInfoProvider mountInfoProvider, @Nonnull RootProvider rootProvider,
+                          @Nonnull TreeProvider treeProvider) {
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
         this.mountInfoProvider = mountInfoProvider;
+        this.rootProvider = rootProvider;
+        this.treeProvider = treeProvider;
     }
 
     //---------------------------------------------------------< CommitHook >---
@@ -93,7 +100,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         NodeBuilder rootAfter = after.builder();
 
         permissionStore = getPermissionStore(rootAfter);
-        bitsProvider = new PrivilegeBitsProvider(RootFactory.createReadOnlyRoot(after));
+        bitsProvider = new PrivilegeBitsProvider(rootProvider.createReadOnlyRoot(after));
 
         isACL = new TypePredicate(after, NT_REP_ACL);
         isACE = new TypePredicate(after, NT_REP_ACE);
@@ -209,7 +216,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
 
         private PermissionStoreEditor createPermissionStoreEditor(@Nonnull String nodeName, @Nonnull NodeState nodeState) {
-            return new PermissionStoreEditor(parentPath, nodeName, nodeState, getPermissionRoot(parentPath), isACE, isGrantACE, bitsProvider, restrictionProvider);
+            return new PermissionStoreEditor(parentPath, nodeName, nodeState, getPermissionRoot(parentPath), isACE, isGrantACE, bitsProvider, restrictionProvider, treeProvider);
         }
     }
 }

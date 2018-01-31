@@ -35,6 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -73,6 +75,11 @@ public class MongoDBExceptionTest {
                                         boolean multi,
                                         WriteConcern concern,
                                         DBEncoder encoder) {
+                maybeThrow();
+            }
+
+            @Override
+            protected void beforeFind(DBObject query, DBObject projection) {
                 maybeThrow();
             }
 
@@ -123,6 +130,30 @@ public class MongoDBExceptionTest {
             assertTrue(e.getMessage().contains(exceptionMsg));
             assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
                     e.getMessage().contains(id));
+        }
+
+        exceptionMsg = "find failed";
+        try {
+            store.find(Collection.NODES, id);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(id));
+        }
+
+        String fromKey = Utils.getKeyLowerLimit("/foo");
+        String toKey = Utils.getKeyUpperLimit("/foo");
+        exceptionMsg = "query failed";
+        try {
+            store.query(Collection.NODES, fromKey, toKey, 100);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString(exceptionMsg));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(fromKey));
+            assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
+                    e.getMessage().contains(toKey));
         }
     }
 }

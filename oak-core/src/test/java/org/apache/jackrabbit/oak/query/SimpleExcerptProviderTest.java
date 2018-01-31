@@ -23,8 +23,10 @@ import static com.google.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.query.SimpleExcerptProvider.highlight;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Map;
 import java.util.Random;
 
+import com.google.common.collect.Maps;
 import org.junit.Test;
 
 public class SimpleExcerptProviderTest {
@@ -57,6 +59,61 @@ public class SimpleExcerptProviderTest {
         for (int i = 0; i < 10000; i++) {
             highlight(sb(randomString(r, set)), of(randomString(r, set)));
         }
+    }
+
+    @Test
+    public void hightlightCompleteWordOnly() {
+        // using 2 non-simple spaces as mentioned in http://jkorpela.fi/chars/spaces.html
+        String[] delimiters = new String[] {" ", "\t", "\n", ":", "\u1680", "\u00A0"};
+        Map<String, String> simpleCheck = Maps.newHashMap(); // highlight "of"
+
+        // simple ones
+        simpleCheck.put("official conflict of interest",
+                "<div><span>official conflict <strong>of</strong> interest</span></div>");
+        simpleCheck.put("of to new city",
+                "<div><span><strong>of</strong> to new city</span></div>");
+        simpleCheck.put("out of the roof",
+                "<div><span>out <strong>of</strong> the roof</span></div>");
+        simpleCheck.put("well this is of",
+                "<div><span>well this is <strong>of</strong></span></div>");
+
+        for (Map.Entry<String, String> simple : simpleCheck.entrySet()) {
+            for (String delimiter : delimiters) {
+                String text = simple.getKey().replaceAll(" ", delimiter);
+                String expect = simple.getValue().replaceAll(" ", delimiter);
+                assertEquals("highlighting '" + text + "' for 'of' (delimiter - '" + delimiter + "')",
+                        expect, highlight(sb(text), of("of")));
+            }
+        }
+
+        Map<String, String> wildcardCheck = Maps.newHashMap(); // highlight "of*"
+        wildcardCheck.put("office room",
+                "<div><span><strong>office</strong> room</span></div>");
+        wildcardCheck.put("office room off",
+                "<div><span><strong>office</strong> room <strong>off</strong></span></div>");
+        wildcardCheck.put("big office room",
+                "<div><span>big <strong>office</strong> room</span></div>");
+
+        for (Map.Entry<String, String> wildcard : wildcardCheck.entrySet()) {
+            for (String delimiter : delimiters) {
+                String text = wildcard.getKey().replaceAll(" ", delimiter);
+                String expect = wildcard.getValue().replaceAll(" ", delimiter);
+                assertEquals("highlighting '" + text + "' for 'of*' (delimiter - '" + delimiter + "')",
+                        expect, highlight(sb(text), of("of*")));
+            }
+        }
+    }
+
+    @Test
+    public void multipleSearchTokens() {
+        String text = "To be, or not to be. That is the question!";
+        String expected = "<div><span>To <strong>be</strong>, " +
+                "or not to <strong>be</strong>. " +
+                "That is the <strong>question</strong>!</span></div>";
+
+        assertEquals(expected, highlight(sb(text), of("question", "be")));
+        assertEquals(expected, highlight(sb(text), of("quest*", "be")));
+        assertEquals(expected, highlight(sb(text), of("quest*", "b*")));
     }
 
     private static String randomString(Random r, String set) {

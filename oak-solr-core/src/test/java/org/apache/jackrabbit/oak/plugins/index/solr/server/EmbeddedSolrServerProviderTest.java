@@ -16,7 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.net.URI;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.junit.Test;
@@ -31,9 +37,11 @@ public class EmbeddedSolrServerProviderTest {
 
     @Test
     public void testEmbeddedSolrServerInitialization() throws Exception {
-        EmbeddedSolrServerConfiguration solrServerConfiguration = new EmbeddedSolrServerConfiguration(getClass().getResource("/solr").getFile(), "oak");
+        URI uri = getClass().getResource("/solr").toURI();
+        File file = new File(uri);
+        EmbeddedSolrServerConfiguration solrServerConfiguration = new EmbeddedSolrServerConfiguration(file.getAbsolutePath(), "oak");
         EmbeddedSolrServerProvider embeddedSolrServerProvider = new EmbeddedSolrServerProvider(solrServerConfiguration);
-        SolrServer solrServer = embeddedSolrServerProvider.getSolrServer();
+        SolrClient solrServer = embeddedSolrServerProvider.getSolrServer();
         assertNotNull(solrServer);
         SolrPingResponse ping = solrServer.ping();
         assertNotNull(ping);

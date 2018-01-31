@@ -298,4 +298,24 @@ public class UtilsTest {
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MAX_ID_VALUE));
         assertFalse(Utils.isIdFromLongPath(":"));
     }
+
+    @Test
+    public void isLocalChange() {
+        RevisionVector empty = new RevisionVector();
+        Revision r11 = Revision.fromString("r1-0-1");
+        Revision r21 = Revision.fromString("r2-0-1");
+        Revision r12 = Revision.fromString("r1-0-2");
+        Revision r22 = Revision.fromString("r2-0-2");
+
+        assertFalse(Utils.isLocalChange(empty, empty, 1));
+        assertTrue(Utils.isLocalChange(empty, new RevisionVector(r11), 1));
+        assertFalse(Utils.isLocalChange(empty, new RevisionVector(r11), 0));
+        assertFalse(Utils.isLocalChange(new RevisionVector(r11), new RevisionVector(r11), 1));
+        assertTrue(Utils.isLocalChange(new RevisionVector(r11), new RevisionVector(r21), 1));
+        assertFalse(Utils.isLocalChange(new RevisionVector(r11), new RevisionVector(r11, r12), 1));
+        assertFalse(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r11, r12), 1));
+        assertFalse(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r11, r22), 1));
+        assertFalse(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r21, r22), 1));
+        assertTrue(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r21, r12), 1));
+    }
 }

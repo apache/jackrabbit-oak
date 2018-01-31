@@ -84,6 +84,22 @@ public abstract class Collection<T extends Document> {
         }
     };
 
+    /**
+     * The 'blobs' collection contains data from the blob store. The method
+     * {@link #newDocument(DocumentStore)} always throws an
+     * {@link UnsupportedOperationException} because blobs are not stored as
+     * {@link Document}s.
+     */
+    public static final Collection<Document> BLOBS =
+            new Collection<Document>("blobs") {
+        @Nonnull
+        @Override
+        public Document newDocument(DocumentStore store) {
+            throw new UnsupportedOperationException();
+        }
+    };
+
+
     private final String name;
 
     public Collection(String name) {

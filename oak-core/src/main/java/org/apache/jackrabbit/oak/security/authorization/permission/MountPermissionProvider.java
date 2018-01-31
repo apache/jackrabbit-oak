@@ -26,6 +26,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -48,9 +49,11 @@ public class MountPermissionProvider extends PermissionProviderImpl {
     private final MountInfoProvider mountInfoProvider;
 
     public MountPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
-            @Nonnull Set<Principal> principals, @Nonnull RestrictionProvider restrictionProvider,
-            @Nonnull ConfigurationParameters options, @Nonnull Context ctx, MountInfoProvider mountInfoProvider) {
-        super(root, workspaceName, principals, restrictionProvider, options, ctx);
+                                   @Nonnull Set<Principal> principals, @Nonnull RestrictionProvider restrictionProvider,
+                                   @Nonnull ConfigurationParameters options, @Nonnull Context ctx,
+                                   @Nonnull MountInfoProvider mountInfoProvider,
+                                   @Nonnull RootProvider rootProvider) {
+        super(root, workspaceName, principals, restrictionProvider, options, ctx, rootProvider);
         this.mountInfoProvider = mountInfoProvider;
     }
 

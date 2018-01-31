@@ -21,14 +21,18 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -87,6 +91,8 @@ public class IndexCommand implements Command {
         //directory might be used by NodeStore for cache stuff like persistentCache
         setupDirectories(indexOpts);
         setupLogging(indexOpts);
+
+        logCliArgs(args);
 
         boolean success = false;
         try {
@@ -360,6 +366,13 @@ public class IndexCommand implements Command {
         return ISO8601.format(Calendar.getInstance());
     }
 
+    private static void logCliArgs(String[] args) {
+        log.info("Command line arguments used for indexing [{}]", Joiner.on(' ').join(args));
+        List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+        if (!inputArgs.isEmpty()) {
+            log.info("System properties and vm options passed {}", inputArgs);
+        }
+    }
 
     static Path getPath(File file) {
         return file.toPath().normalize().toAbsolutePath();

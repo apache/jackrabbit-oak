@@ -314,6 +314,44 @@ public class CompactionAndCleanupIT {
         }
     }
 
+    @Test
+    public void cancelOfflineCompaction() throws Exception {
+        final AtomicBoolean cancelCompaction = new AtomicBoolean(true);
+        try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder())
+                .withGCOptions(defaultGCOptions().setOffline())
+                .build()) {
+            SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            // Create ~2MB of data
+            NodeBuilder extra = nodeStore.getRoot().builder();
+            NodeBuilder content = extra.child("content");
+            for (int i = 0; i < 10000; i++) {
+                NodeBuilder c = content.child("c" + i);
+                for (int j = 0; j < 1000; j++) {
+                    c.setProperty("p" + i, "v" + i);
+                }
+            }
+            nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+            NodeState uncompactedRoot = nodeStore.getRoot();
+
+            // Keep cancelling compaction
+            new Thread(() -> {
+                while (cancelCompaction.get()) {
+                    fileStore.cancelGC();
+                }
+            }).start();
+
+            fileStore.compactFull();
+
+            // Cancelling compaction must not corrupt the repository. See OAK-7050.
+            NodeState compactedRoot = nodeStore.getRoot();
+            assertTrue(compactedRoot.exists());
+            assertEquals(uncompactedRoot, compactedRoot);
+        } finally {
+            cancelCompaction.set(false);
+        }
+    }
+
     /**
      * Create a lot of data nodes (no binaries) and a few checkpoints, verify
      * that compacting checkpoints will not cause the size to explode
@@ -1379,30 +1417,54 @@ public class CompactionAndCleanupIT {
                 .setRetainedGenerations(2);
 
         try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).withGCOptions(gcOptions).build()) {
+            SegmentNodeState previousHead;
+            SegmentNodeState head = fileStore.getHead();
 
             // Create a full, self consistent head state. This state will be the
-            // base for the following tail compactions. This increments the
-            // full generation.
-
+            // base for the following tail compactions. This increments the full generation.
             fileStore.fullGC();
-            traverse(fileStore.getHead());
+            previousHead = head;
+            head = fileStore.getHead();
+
+            // retainedGeneration = 2 -> the full compacted head and the previous uncompacted head must
+            // still be available.
+            traverse(previousHead);
+            traverse(head);
 
             // Create a tail head state on top of the previous full state. This
-            // increments the generation, but leaves the full generation
-            // untouched.
-
+            // increments the generation, but leaves the full generation untouched.
             fileStore.tailGC();
-            traverse(fileStore.getHead());
+            previousHead = head;
+            head = fileStore.getHead();
 
-            // Create a tail state on top of the previous tail state. This
-            // increments the generation, but leaves the full generation
-            // untouched. This brings this generations two generations away from
-            // the latest full head state. Still, the full head state will not
-            // be deleted because doing so would generate an invalid repository
-            // at risk of SegmentNotFoundException.
+            // retainedGeneration = 2 -> the tail compacted head and the previous uncompacted head must
+            // still be available.
+            traverse(previousHead);
+            traverse(head);
 
+            // Create a tail state on top of the previous tail state. This increments the generation,
+            // but leaves the full generation untouched. This brings this generations two generations
+            // away from the latest full head state. Still, the full head state will not be deleted
+            // because doing so would generate an invalid repository at risk of SegmentNotFoundException.
             fileStore.tailGC();
-            traverse(fileStore.getHead());
+            previousHead = head;
+            head = fileStore.getHead();
+
+            // retainedGeneration = 2 -> the tail compacted head and the previous uncompacted head must
+            // still be available.
+            traverse(previousHead);
+            traverse(head);
+
+            // Create a full, self consistent head state replacing the current tail of tail
+            // compacted heads.
+            fileStore.fullGC();
+            previousHead = head;
+            head = fileStore.getHead();
+
+            // retainedGeneration = 2 -> the full compacted head and the previous uncompacted head must
+            // still be available.
+            traverse(previousHead);
+            traverse(head);
         }
     }
 

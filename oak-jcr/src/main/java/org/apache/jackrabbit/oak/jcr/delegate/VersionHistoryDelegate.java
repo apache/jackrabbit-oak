@@ -177,7 +177,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
         NodeDelegate versionable = sessionDelegate.getNodeByIdentifier(id);
         if (versionable == null
                 || versionable.getPropertyOrNull(JCR_BASEVERSION) == null) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
         Deque<VersionDelegate> linearVersions = new ArrayDeque<VersionDelegate>();
         VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);

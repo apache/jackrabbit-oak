@@ -68,10 +68,6 @@ public class DocumentNodeStoreHelper {
         System.out.println("Collected in " + sw.stop());
     }
 
-    public static VersionGCSupport createVersionGCSupport(DocumentMK.Builder builder) {
-        return builder.createVersionGCSupport();
-    }
-
     public static VersionGarbageCollector createVersionGC(
             DocumentNodeStore nodeStore, VersionGCSupport gcSupport) {
         return new VersionGarbageCollector(nodeStore, gcSupport);

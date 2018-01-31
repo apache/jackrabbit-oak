@@ -108,8 +108,23 @@ public final class GCGeneration {
         return new GCGeneration(generation, fullGeneration, false);
     }
 
+    /**
+     * Compare this generation with {@code gcGeneration}
+     * @param gcGeneration  the generation this generation is compared against.
+     * @return  Number of generations between this generation and {@code gcGeneration}
+     */
     public int compareWith(@Nonnull GCGeneration gcGeneration) {
         return generation - checkNotNull(gcGeneration).generation;
+    }
+
+    /**
+     * Compare this full generation the full generation of {@code gcGeneration}
+     * @param gcGeneration  the generation this generation is compared against.
+     * @return  Number of generations between the full generations of this generation
+     *          and {@code gcGeneration}
+     */
+    public int compareFullGenerationWith(@Nonnull GCGeneration gcGeneration) {
+        return fullGeneration - checkNotNull(gcGeneration).fullGeneration;
     }
 
     @Override

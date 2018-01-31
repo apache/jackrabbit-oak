@@ -29,6 +29,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Factory to obtain {@code Tree} objects from {@code NodeState}s
  * and {@code NodeBuilder}s.
+ *
+ * @deprecated Please use {@code TreeProvider} instead
  */
 public final class TreeFactory {
 

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -24,7 +25,6 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -47,7 +47,7 @@ class GroupPredicate implements Predicate<Authorizable> {
         if (group != null) {
             membersIterator = (declaredMembersOnly) ? group.getDeclaredMembers() : group.getMembers();
         } else {
-            membersIterator = Iterators.emptyIterator();
+            membersIterator = Collections.emptyIterator();
         }
     }
 

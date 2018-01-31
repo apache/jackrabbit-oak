@@ -32,8 +32,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
@@ -125,7 +124,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,6 +156,12 @@ public final class DocumentNodeStore
             DocumentBundlor.META_PROP_NON_BUNDLED_CHILD,
             DocumentBundlor.META_PROP_BUNDLED_CHILD
     );
+
+    /**
+     * Enable fast diff operations.
+     */
+    private static final boolean FAST_DIFF = Boolean.parseBoolean(
+            System.getProperty("oak.documentMK.fastDiff", "true"));
 
     /**
      * Feature flag to enable concurrent add/remove operations of hidden empty
@@ -507,7 +512,7 @@ public final class DocumentNodeStore
 
     private final Predicate<String> nodeCachePredicate;
 
-    public DocumentNodeStore(DocumentMK.Builder builder) {
+    public DocumentNodeStore(DocumentNodeStoreBuilder<?> builder) {
         this.nodeCachePredicate = builder.getNodeCachePredicate();
         this.updateLimit = builder.getUpdateLimit();
         this.commitValueResolver = new CommitValueResolver(builder.getCommitValueCacheSize(),
@@ -595,7 +600,7 @@ public final class DocumentNodeStore
         nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "Document-NodeChildren",
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
-        diffCache = builder.getDiffCache();
+        diffCache = builder.getDiffCache(this.clusterId);
         checkpoints = new Checkpoints(this);
 
         // check if root node exists
@@ -877,16 +882,13 @@ public final class DocumentNodeStore
      * {@link #done(Commit, boolean, CommitInfo)} or {@link #canceled(Commit)},
      * depending on the result of the commit.
      *
-     * @param base the base revision for the commit or <code>null</code> if the
-     *             commit should use the current head revision as base.
+     * @param base the base revision for the commit.
      * @param numBranchCommits the number of branch commits to merge.
      * @return a new merge commit.
      */
     @Nonnull
-    MergeCommit newMergeCommit(@Nullable RevisionVector base, int numBranchCommits) {
-        if (base == null) {
-            base = getHeadRevision();
-        }
+    private MergeCommit newMergeCommit(@Nonnull RevisionVector base, int numBranchCommits) {
+        checkNotNull(base);
         backgroundOperationLock.readLock().lock();
         boolean success = false;
         MergeCommit c;
@@ -2995,7 +2997,7 @@ public final class DocumentNodeStore
         return mbean;
     }
 
-    private DocumentNodeStoreMBean createMBean(DocumentMK.Builder builder) {
+    private DocumentNodeStoreMBean createMBean(DocumentNodeStoreBuilder<?> builder) {
         try {
             return new DocumentNodeStoreMBeanImpl(this,
                     builder.getStatisticsProvider().getStats(),

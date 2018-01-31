@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -124,7 +123,7 @@ public class NoCugTest extends AbstractCugTest {
 
     @Test
     public void testHiddenProperty() {
-        Root immutableRoot = RootFactory.createReadOnlyRoot(root);
+        Root immutableRoot = getRootProvider().createReadOnlyRoot(root);
         assertFalse(immutableRoot.getTree(PathUtils.ROOT_PATH).hasProperty(HIDDEN_NESTED_CUGS));
     }
 }

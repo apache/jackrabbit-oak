@@ -77,25 +77,48 @@ public class SizeDeltaGCEstimationTest {
     }
 
     @Test
-    public void testFullGCNeeded() throws Exception {
+    public void testFullGCNeededBecauseOfSize1() throws Exception {
         journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
-        journal.persist(110, 1100, newGCGeneration(2, 1, true), 1000, "id");
-        journal.persist(120, 1200, newGCGeneration(3, 1, true), 1000, "id");
-        journal.persist(130, 1000, newGCGeneration(4, 2, true), 1000, "id");
-        journal.persist(100, 1010, newGCGeneration(5, 2, true), 1000, "id");
-        journal.persist(110, 1020, newGCGeneration(6, 2, true), 1000, "id");
+        journal.persist(110, 1100, newGCGeneration(2, 2, true), 1000, "id");
+        journal.persist(120, 1200, newGCGeneration(3, 3, true), 1000, "id");
+        journal.persist(130, 1000, newGCGeneration(4, 4, true), 1000, "id");
+        journal.persist(100, 1010, newGCGeneration(5, 5, true), 1000, "id");
+        journal.persist(110, 1020, newGCGeneration(6, 6, true), 1000, "id");
         assertTrue(new SizeDeltaGcEstimation(100, journal, 1300, true).estimate().isGcNeeded());
     }
 
     @Test
-    public void testFullGCSkipped() throws Exception {
+    public void testFullGCNeededBecauseOfSize2() throws Exception {
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
+        assertTrue(new SizeDeltaGcEstimation(10, journal, 1030, true).estimate().isGcNeeded());
+    }
+
+    @Test
+    public void testFullGCSkippedBecauseOfSize1() throws Exception {
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
+        journal.persist(110, 1100, newGCGeneration(2, 2, true), 1000, "id");
+        journal.persist(120, 1200, newGCGeneration(3, 3, true), 1000, "id");
+        journal.persist(130, 1000, newGCGeneration(4, 4, true), 1000, "id");
+        journal.persist(100, 1010, newGCGeneration(5, 5, true), 1000, "id");
+        journal.persist(110, 1020, newGCGeneration(6, 6, true), 1000, "id");
+        assertFalse(new SizeDeltaGcEstimation(100, journal, 1030, true).estimate().isGcNeeded());
+    }
+
+    @Test
+    public void testFullGCSkippedBecauseOfSize2() throws Exception {
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
+        assertFalse(new SizeDeltaGcEstimation(100, journal, 1030, true).estimate().isGcNeeded());
+    }
+
+    @Test
+    public void testFullGCNeededBecauseOfPreviousTail() throws Exception {
         journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
         journal.persist(110, 1100, newGCGeneration(2, 1, true), 1000, "id");
         journal.persist(120, 1200, newGCGeneration(3, 1, true), 1000, "id");
         journal.persist(130, 1000, newGCGeneration(4, 2, true), 1000, "id");
         journal.persist(100, 1010, newGCGeneration(5, 2, true), 1000, "id");
         journal.persist(110, 1020, newGCGeneration(6, 2, true), 1000, "id");
-        assertFalse(new SizeDeltaGcEstimation(100, journal, 1030, true).estimate().isGcNeeded());
+        assertTrue(new SizeDeltaGcEstimation(100, journal, 1030, true).estimate().isGcNeeded());
     }
 
 }

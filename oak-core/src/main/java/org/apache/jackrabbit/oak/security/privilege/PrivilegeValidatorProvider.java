@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.privilege;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -36,6 +36,12 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
  */
 class PrivilegeValidatorProvider extends ValidatorProvider {
 
+    private final RootProvider rootProvider;
+
+    PrivilegeValidatorProvider(@Nonnull RootProvider rootProvider) {
+        this.rootProvider = rootProvider;
+    }
+
     @Nonnull
     @Override
     public Validator getRootValidator(
@@ -45,6 +51,6 @@ class PrivilegeValidatorProvider extends ValidatorProvider {
     }
 
     private Root createRoot(NodeState nodeState) {
-        return RootFactory.createReadOnlyRoot(nodeState);
+        return rootProvider.createReadOnlyRoot(nodeState);
     }
 }

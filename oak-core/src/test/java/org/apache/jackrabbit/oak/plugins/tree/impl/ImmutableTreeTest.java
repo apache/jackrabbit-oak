@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -291,7 +290,7 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     public void testGetTypeForImmutableTree() {
         TreeTypeProvider typeProvider = new TreeTypeProvider(getConfig(AuthorizationConfiguration.class).getContext());
         for (String path : new String[] {"/", "/testPath"}) {
-            Tree t = RootFactory.createReadOnlyRoot(root).getTree(path);
+            Tree t = getRootProvider().createReadOnlyRoot(root).getTree(path);
             assertEquals(TreeType.DEFAULT, typeProvider.getType(t));
             // also for repeated calls
             assertEquals(TreeType.DEFAULT, typeProvider.getType(t));
@@ -306,7 +305,7 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
     public void testGetTypeForImmutableTreeWithParent() {
         TreeTypeProvider typeProvider = new TreeTypeProvider(getConfig(AuthorizationConfiguration.class).getContext());
 
-        Tree t = RootFactory.createReadOnlyRoot(root).getTree("/:hidden/testPath");
+        Tree t = getRootProvider().createReadOnlyRoot(root).getTree("/:hidden/testPath");
         assertEquals(TreeType.HIDDEN, typeProvider.getType(t, TreeType.HIDDEN));
 
         // the type of an immutable tree is set after the first call irrespective of the passed parent type.

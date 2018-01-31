@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import java.util.Objects;
+
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class NodeStateEntry {
@@ -35,6 +37,26 @@ public class NodeStateEntry {
     }
 
     public String getPath() {
+        return path;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        NodeStateEntry that = (NodeStateEntry) o;
+        return Objects.equals(nodeState, that.nodeState) &&
+                Objects.equals(path, that.path);
+    }
+
+    @Override
+    public int hashCode() {
+        //AbstractNodeState#hashCode
+        return 0;
+    }
+
+    @Override
+    public String toString() {
         return path;
     }
 }

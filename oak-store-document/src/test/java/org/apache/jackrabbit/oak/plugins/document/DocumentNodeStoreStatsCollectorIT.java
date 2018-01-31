@@ -30,12 +30,14 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class DocumentNodeStoreStatsCollectorIT {
@@ -51,6 +53,7 @@ public class DocumentNodeStoreStatsCollectorIT {
         nodeStore = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setNodeStoreStatsCollector(statsCollector)
+                .setUpdateLimit(10)
                 .getNodeStore();
         // do not retry failed merges
         nodeStore.setMaxBackOffMillis(0);
@@ -104,4 +107,16 @@ public class DocumentNodeStoreStatsCollectorIT {
         verify(statsCollector).failedMerge(anyInt(), anyLong(), eq(false), eq(true));
     }
 
+    @Test
+    public void branchCommit() throws Exception {
+        int updateLimit = nodeStore.getUpdateLimit();
+        NodeBuilder nb = nodeStore.getRoot().builder();
+        for (int i = 0; i < updateLimit; i++) {
+            nb.child("node-" + i).setProperty("p", "v");
+        }
+        merge(nodeStore, nb);
+
+        verify(statsCollector, times(2)).doneBranchCommit();
+        verify(statsCollector).doneMergeBranch(2);
+    }
 }

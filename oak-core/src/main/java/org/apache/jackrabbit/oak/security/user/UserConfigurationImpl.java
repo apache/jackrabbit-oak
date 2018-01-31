@@ -206,7 +206,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
-        return ImmutableList.of(new UserValidatorProvider(getParameters()), new CacheValidatorProvider(principals));
+        return ImmutableList.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
     }
 
     @Nonnull

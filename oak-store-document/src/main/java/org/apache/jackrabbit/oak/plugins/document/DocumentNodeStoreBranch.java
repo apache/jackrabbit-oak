@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -452,7 +452,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      *         as the base of this branch</li>
      *     <li>{@link Persisted} on {@link #setRoot(NodeState)} if the number of
      *         changes counted from the base to the new root reaches
-     *         {@link DocumentMK.Builder#getUpdateLimit()}.</li>
+     *         {@link DocumentNodeStoreBuilder#getUpdateLimit()}.</li>
      *     <li>{@link Merged} on {@link BranchState#merge(CommitHook, CommitInfo, boolean)}</li>
      * </ul>
      */
@@ -548,6 +548,11 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         /** Root state of the transient head, top of persisted branch. */
         private DocumentNodeState head;
 
+        /**
+         * Number of commits on this persisted branch.
+         */
+        private int numCommits;
+
         @Override
         public String toString() {
             return "Persisted[" + base + ", " + head + ']';
@@ -606,11 +611,12 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                     public DocumentNodeState call() throws Exception {
                         checkForConflicts();
                         NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
-                        head = DocumentNodeStoreBranch.this.persist(toCommit, head, info);
+                        persistTransientHead(toCommit);
                         return store.getRoot(store.merge(head.getRootRevision(), info));
                     }
                 });
                 branchState = new Merged(base);
+                store.getStatsCollector().doneMergeBranch(numCommits);
                 success = true;
                 return newRoot;
             } catch (CommitFailedException e) {
@@ -632,6 +638,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         private void persistTransientHead(NodeState newHead) {
             head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY);
+            numCommits++;
+            store.getStatsCollector().doneBranchCommit();
         }
 
         private void resetBranch(DocumentNodeState branchHead, DocumentNodeState ancestor) {

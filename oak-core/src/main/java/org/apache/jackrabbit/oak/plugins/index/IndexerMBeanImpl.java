@@ -44,6 +44,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.NOOP_LOCK;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(service = {})
@@ -65,8 +66,15 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
 
     @Override
     public boolean importIndex(String indexDirPath) throws IOException, CommitFailedException {
+        return importIndex(indexDirPath, false);
+    }
+
+    @Override
+    public boolean importIndex(String indexDirPath, boolean ignoreLocalLock) throws IOException, CommitFailedException {
+
         try {
-            IndexImporter importer = new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock());
+            IndexImporter importer =
+                    new IndexImporter(nodeStore, new File(indexDirPath), editorProvider, createLock(ignoreLocalLock));
             providerTracker.getServices().forEach(importer::addImporterProvider);
             importer.importIndex();
         } catch (IOException | CommitFailedException | RuntimeException e) {
@@ -76,11 +84,14 @@ public class IndexerMBeanImpl extends AnnotatedStandardMBean implements IndexerM
         return true;
     }
 
-    private AsyncIndexerLock createLock() {
+    private AsyncIndexerLock createLock(boolean ignoreLocalLock) {
         if (nodeStore instanceof Clusterable) {
             return new ClusterNodeStoreLock(nodeStore);
+        } else if (!ignoreLocalLock) {
+            return new AbortingIndexerLock(asyncIndexInfoService);
+        } else {
+            return NOOP_LOCK;
         }
-        return new AbortingIndexerLock(asyncIndexInfoService);
     }
 
 

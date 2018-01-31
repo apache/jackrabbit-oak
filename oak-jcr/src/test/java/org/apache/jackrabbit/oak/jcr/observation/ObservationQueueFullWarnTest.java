@@ -258,41 +258,41 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         final AtomicLong counter = new AtomicLong(0);
         final AtomicLong localCounter = new AtomicLong(0);
         final AtomicBoolean hasRecievedInit = new AtomicBoolean();
-        EventListener listeners = new EventListener() {
-
-            @Override
-            public void onEvent(EventIterator events) {
-                try {
-                    if (hasRecievedInit.get()) {
-                        semaphore.acquire();
-                        long numEvents = events.getSize();
-                        counter.addAndGet(numEvents);
-                        System.out.println("GOT: " + numEvents + " - COUNTER: " + counter.get());
-                        while (events.hasNext()) {
-                            Event e = events.nextEvent();
-                            System.out.println(" - " + e);
-                            if (PathUtils.getName(e.getPath()).startsWith("local")) {
-                                if (e instanceof JackrabbitEvent && !((JackrabbitEvent) e).isExternal()) {
-                                    localCounter.incrementAndGet();
-                                }
-                            }
-                        }
-                    } else {
-                        // we should get only "init" as the relevant message we're waiting for
-                        // as other would be dispatched once we've got init
-                        while (events.hasNext()) {
-                            Event e = events.nextEvent();
-                            System.out.println(" - " + e);
-                            if (PathUtils.getName(e.getPath()).equals("init")) {
-                                hasRecievedInit.set(true);
+        final AtomicBoolean hasReceivedTestMessage = new AtomicBoolean();
+        EventListener listeners = events -> {
+            try {
+                if (hasRecievedInit.get()) {
+                    LOG.info("Have received an event. We shall wait for our turn to process it. Current counter: "
+                            + counter.get());
+                    hasReceivedTestMessage.set(true);
+                    semaphore.acquire();
+                    long numEvents = events.getSize();
+                    counter.addAndGet(numEvents);
+                    LOG.info("GOT: " + numEvents + " - COUNTER: " + counter.get());
+                    while (events.hasNext()) {
+                        Event e = events.nextEvent();
+                        LOG.info(" - " + e);
+                        if (PathUtils.getName(e.getPath()).startsWith("local")) {
+                            if (e instanceof JackrabbitEvent && !((JackrabbitEvent) e).isExternal()) {
+                                localCounter.incrementAndGet();
                             }
                         }
                     }
-                } catch (InterruptedException e) {
-                    throw new Error(e);
-                } catch (RepositoryException e) {
-                    throw new Error(e);
+                } else {
+                    // we should get only "init" as the relevant message we're waiting for
+                    // as other would be dispatched once we've got init
+                    while (events.hasNext()) {
+                        Event e = events.nextEvent();
+                        LOG.info(" - " + e);
+                        if (PathUtils.getName(e.getPath()).equals("init")) {
+                            hasRecievedInit.set(true);
+                        }
+                    }
                 }
+            } catch (InterruptedException e) {
+                throw new Error(e);
+            } catch (RepositoryException e) {
+                throw new Error(e);
             }
         };
         Session session = getAdminSession();
@@ -315,12 +315,7 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         session.getNode("/testNode").setProperty("init", 1);
         session.save();
 
-        boolean initNotTimeOut = waitFor(5000, new Condition() {
-            @Override
-            public boolean evaluate() {
-                return hasRecievedInit.get();
-            }
-        });
+        boolean initNotTimeOut = waitFor(5000, hasRecievedInit::get);
         assertTrue("Listener didn't receive 'init' even within time-out", initNotTimeOut);
 
 
@@ -331,23 +326,28 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         for(int i=0; i<OBS_QUEUE_LENGTH + 1; i++, propCounter++) {
             root = session.getNode("/");
             root.getNode("testNode").setProperty("local" + propCounter, propCounter);
-            System.out.println("storing: /testNode/local" + propCounter);
+            LOG.info("storing: /testNode/local" + propCounter);
             session.save();
+
+            if (!hasReceivedTestMessage.get()) {
+                // we need to wait for observation logic to send one event across
+                // before we continue
+                boolean firstEventReceiptNotTimedOut = waitFor(1000, hasReceivedTestMessage::get);
+                assertTrue("First useful event didn't get dispatched in time", firstEventReceiptNotTimedOut);
+            }
         }
 
         // release the listener to consume 6 events
         semaphore.release(OBS_QUEUE_LENGTH+1);
 
-        boolean notTimedOut = waitFor(2000, new Condition() {
-            @Override
-            public boolean evaluate() {
-                return (OBS_QUEUE_LENGTH+1)==counter.get();
-            }
-        });
+        boolean notTimedOut = waitFor(2000, () -> (OBS_QUEUE_LENGTH+1)==counter.get());
         assertTrue("Listener didn't process " + (OBS_QUEUE_LENGTH+1) + " events within time-out", notTimedOut);
         assertEquals("Just filled queue must not convert local->external", OBS_QUEUE_LENGTH+1, localCounter.get());
 
         counter.set(0);
+
+        // reset receipt of useful event
+        hasReceivedTestMessage.set(false);
 
         // send out 7 events (or in general: queue length + 2):
         // event #0 will get delivered but stalls at the listener (queue empty though)
@@ -356,32 +356,29 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
         for(int i=0; i<OBS_QUEUE_LENGTH + 2; i++, propCounter++) {
             root = session.getNode("/");
             root.getNode("testNode").setProperty("p" + propCounter, propCounter);
-            System.out.println("storing: /testNode/p" + propCounter);
+            LOG.info("storing: /testNode/p" + propCounter);
             session.save();
+
+            if (!hasReceivedTestMessage.get()) {
+                // we need to wait for observation logic to send one event across
+                // before we continue
+                boolean firstEventReceiptNotTimedOut = waitFor(1000, hasReceivedTestMessage::get);
+                assertTrue("First useful event didn't get dispatched in time", firstEventReceiptNotTimedOut);
+            }
         }
 
         // release the listener
         semaphore.release(100); // ensure acquire will no longer block during this test -> pass 100
 
-        notTimedOut = waitFor(2000, new Condition() {
-            @Override
-            public boolean evaluate() {
-                return (OBS_QUEUE_LENGTH+2)==counter.get();
-            }
-        });
+        notTimedOut = waitFor(2000, () -> (OBS_QUEUE_LENGTH+2)==counter.get());
         assertTrue("Listener didn't process " + (OBS_QUEUE_LENGTH+2) + " events within time-out", notTimedOut);
 
         root = session.getNode("/");
         root.getNode("testNode").setProperty("p" + propCounter, propCounter);
-        System.out.println("storing: /testNode/p" + propCounter);
+        LOG.info("storing: /testNode/p" + propCounter);
         session.save();
 
-        notTimedOut = waitFor(1000, new Condition() {
-            @Override
-            public boolean evaluate() {
-                return (OBS_QUEUE_LENGTH+3)==counter.get();
-            }
-        });
+        notTimedOut = waitFor(1000, () -> (OBS_QUEUE_LENGTH+3)==counter.get());
         assertTrue("Listener didn't process " + (OBS_QUEUE_LENGTH+3) + " events within time-out", notTimedOut);
     }
 }

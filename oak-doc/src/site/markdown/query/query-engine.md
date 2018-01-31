@@ -229,7 +229,10 @@ and then restart the application:
 
 #### Quoting
 
-The query parser is now generally more strict about invalid syntax.
+[Special characters in queries need to be escaped.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping)
+
+However, compared to Jackrabbit 2.x,
+the query parser is now generally more strict about invalid syntax.
 The following query used to work in Jackrabbit 2.x, but not in Oak,
 because multiple way to quote the path are used at the same time:
 
@@ -300,7 +303,14 @@ When using `or` in combination with the same property, as in `a=1 or a=2`, then 
 ### Full-Text Queries
 
 The full-text syntax supported by Jackrabbit Oak is a superset of the JCR specification.
-The following syntax is supported within `contains` queries:
+
+By default (that is, using a Lucene index with `compatVersion` 2), Jackrabbit Oak uses the 
+[Apache Lucene grammar for fulltext search](https://lucene.apache.org/core/4_7_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html).
+[See also how to escape queries.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping)
+
+For older Lucene indexes (`compatVersion` 1), 
+the following syntax is supported within `contains` queries.
+This is a subset of the Apache Lucene syntax:
 
     FullTextSearch ::= Or
     Or ::= And { ' OR ' And }* 
@@ -477,7 +487,7 @@ facets can be retrieved on properties (backed by a proper
 field in Lucene / Solr) using the following snippet:
 
     String sql2 = "select [jcr:path], [rep:facet(tags)] from [nt:base] " +
-                    "where contains([jcr:title], 'oak');
+                    "where contains([jcr:title], 'oak')");
     Query q = qm.createQuery(sql2, Query.JCR_SQL2);
     QueryResult result = q.execute();
     FacetResult facetResult = new FacetResult(result);

@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -108,16 +108,32 @@ abstract class AbstractLoginTest extends AbstractTest {
         }
     }
 
+    protected boolean customConfigurationParameters() {
+        return noIterations != -1 || expiration > 0;
+    }
+
+    protected ConfigurationParameters prepare(ConfigurationParameters conf) {
+        return conf;
+    }
+
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
-        if (noIterations != -1 || expiration > 0) {
+        if (customConfigurationParameters()) {
             if (fixture instanceof OakRepositoryFixture) {
                 return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                     @Override
                     public Jcr customize(Oak oak) {
                         ConfigurationParameters conf;
-                        ConfigurationParameters iterations = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, noIterations);
-                        ConfigurationParameters cache = ConfigurationParameters.of("cacheExpiration", expiration);
+                        ConfigurationParameters iterations = ConfigurationParameters.EMPTY;
+                        if (noIterations != DEFAULT_ITERATIONS) {
+                            iterations = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS,
+                                    noIterations);
+                        }
+                        ConfigurationParameters cache = ConfigurationParameters.EMPTY;
+                        if (expiration > 0) {
+                            cache = ConfigurationParameters.of("cacheExpiration", expiration);
+                        }
+
                         if (runWithToken) {
                             conf = ConfigurationParameters.of(
                                     TokenConfiguration.NAME, iterations,
@@ -126,7 +142,8 @@ abstract class AbstractLoginTest extends AbstractTest {
                             conf = ConfigurationParameters.of(
                                     UserConfiguration.NAME, ConfigurationParameters.of(iterations, cache));
                         }
-                        SecurityProvider sp = new SecurityProviderImpl(conf);
+                        conf = prepare(conf);
+                        SecurityProvider sp = new SecurityProviderBuilder().with(conf).build();
                         return new Jcr(oak).with(sp);
                     }
                 });

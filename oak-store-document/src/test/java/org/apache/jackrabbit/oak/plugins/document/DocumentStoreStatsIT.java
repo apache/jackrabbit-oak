@@ -89,6 +89,14 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void findMissing() throws Exception {
+        String id = testName.getMethodName();
+
+        ds.find(Collection.NODES, id);
+        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(false), eq(false));
+    }
+
+    @Test
     public void query() throws Exception{
         // create ten documents
         String base = testName.getMethodName();

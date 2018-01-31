@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.8-SNAPSHOT</version>
+    <version>1.10-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -31,16 +31,17 @@
   <name>Oak Runnable Jar</name>
 
   <properties>
-    <jetty.version>8.1.2.v20120308</jetty.version>
+    <jetty.version>8.2.0.v20160908</jetty.version>
     <groovy.version>2.4.7</groovy.version>
     <!--
       Size History:
+      + 48 MB Transitive dependencies needed for aws-java-sdk (OAK-6899)
       + 47 MB release profile build slightly bigger jar (OAK-6252)
       + 46 MB re-introduced the ServerCommand and required dependencies (OAK-6252)
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>47000000</max.jar.size>
+    <max.jar.size>48000000</max.jar.size>
   </properties>
 
   <build>
@@ -258,11 +259,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-remote</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-server</artifactId>
       <version>${jackrabbit.version}</version>
     </dependency>
@@ -356,7 +352,21 @@
       <artifactId>gson</artifactId>
       <version>2.8.0</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore-osgi</artifactId>
+      <version>4.4.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient-osgi</artifactId>
+      <version>4.5.2</version>
+    </dependency>
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+      <version>2.8.1</version>
+    </dependency>
     <!-- Findbugs annotations -->
     <dependency>
       <groupId>com.google.code.findbugs</groupId>

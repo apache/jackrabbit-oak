@@ -61,14 +61,14 @@ import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.UpperCase;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.ReadOnlyRepositoryTestBase;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
  * Tests the QueryObjectModelFactory and other QOM classes.
  */
-public class QomTest extends AbstractRepositoryTest {
+public class QomTest extends ReadOnlyRepositoryTestBase {
 
     private ValueFactory vf;
     private QueryObjectModelFactory f;

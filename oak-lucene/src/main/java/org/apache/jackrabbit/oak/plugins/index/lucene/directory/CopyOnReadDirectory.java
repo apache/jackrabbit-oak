@@ -27,12 +27,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
@@ -56,6 +58,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
     private final Directory local;
     private final String indexPath;
     private final Executor executor;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
     /**
@@ -267,6 +270,9 @@ public class CopyOnReadDirectory extends FilterDirectory {
      */
     @Override
     public void close() throws IOException {
+        if (!closed.compareAndSet(false, true)){
+            return;
+        }
         //Always remove old index file on close as it ensures that
         //no other IndexSearcher are opened with previous revision of Index due to
         //way IndexTracker closes IndexNode. At max there would be only two IndexNode

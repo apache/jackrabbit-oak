@@ -32,6 +32,8 @@ public interface DocumentStoreStatsMBean {
 
     long getNodesFindQueryCount();
 
+    long getNodesFindMissingCount();
+
     long getNodesReadByQueryCount();
 
     long getNodesCreateCount();
@@ -51,6 +53,8 @@ public interface DocumentStoreStatsMBean {
     CompositeData getFindNodesFromPrimaryHistory();
 
     CompositeData getFindNodesFromSlaveHistory();
+
+    CompositeData getFindNodesMissingHistory();
 
     CompositeData getQueryNodesFromSlaveHistory();
 

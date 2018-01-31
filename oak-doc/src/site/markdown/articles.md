@@ -20,6 +20,7 @@
 This page contains links to the latest articles and presentations on Jackrabbit Oak. 
 It is meant as an entry point for any newcommer to Jackrabbit Oak
 
+* Valentin Olteanu, Michael Duerig, [TarMK: Facts and Figures](https://adapt.to/2017/en/schedule/tarmk--facts-and-figures.html)
 * Michael Duerig, [Into the tar pit: a TarMK deep dive](https://adapt.to/2016/en/schedule/into-the-tar-pit--a-tarmk-deep-dive.html) (September 2016) adaptTo() 2016
 * Michael Duerig, [Avoiding and dealing with conflicting updates in Oak](https://adapt.to/2015/en/schedule/avoiding-and-dealing-with-conflicting-updates-in-oak.html) (September 2015) adaptTo() 2015
 * Davide Giannella, [Scaling the query with Oak](https://adapt.to/2015/en/schedule/scaling-the-query-with-oak.html) (September 2015) adaptTo() 2015

@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 /**
  * A repository stub implementation for the RDB document store.
  */
-public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
+public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
     protected static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE");
 

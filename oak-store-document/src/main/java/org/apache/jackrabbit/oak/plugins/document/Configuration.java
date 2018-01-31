@@ -23,14 +23,17 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CACHE_SEGMENT_COUNT;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CACHE_STACK_MOVE_DISTANCE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_SEGMENT_COUNT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_STACK_MOVE_DISTANCE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_DIFF_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
 
 @ObjectClassDefinition(
+        pid = {PID},
         name = "Apache Jackrabbit Oak Document NodeStore Service",
         description = "NodeStore implementation based on Document model. For configuration option refer " +
                 "to http://jackrabbit.apache.org/oak/docs/osgi_config.html#DocumentNodeStore. Note that for system " +
@@ -38,6 +41,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
                 "should be done via file system based config file and this view should ONLY be used to determine which " +
                 "options are supported")
 @interface Configuration {
+
+    String PID = "org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService";
+
+    String PRESET_PID = PID + "Preset";
+
     @AttributeDefinition(
             name = "Mongo URI",
             description = "Mongo connection URI used to connect to Mongo. Refer to " +
@@ -121,7 +129,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
             name = "Custom BlobStore",
             description = "Boolean value indicating that a custom BlobStore is to be used. " +
                     "By default, for MongoDB, MongoBlobStore is used; for RDB, RDBBlobStore is used.")
-    boolean customBlobStore() default false;
+    boolean customBlobStore() default DocumentNodeStoreService.DEFAULT_CUSTOM_BLOB_STORE;
 
 
     @AttributeDefinition(
@@ -141,7 +149,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
             name = "Pre-fetch external changes",
             description = "Boolean value indicating if external changes should " +
                     "be pre-fetched in a background thread.")
-    boolean prefetchExternalChanges() default false;
+    boolean prefetchExternalChanges() default DocumentNodeStoreService.DEFAULT_PREFETCH_EXTERNAL_CHANGES;
 
     @AttributeDefinition(
             name = "NodeStoreProvider role",
@@ -168,7 +176,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
                     "expression triggers a GC run every night at 2 AM: '" +
                     DocumentNodeStoreService.CLASSIC_RGC_EXPR + "'."
     )
-    String versionGCExpression() default "";
+    String versionGCExpression() default DocumentNodeStoreService.DEFAULT_VER_GC_EXPRESSION;
 
     @AttributeDefinition(
             name = "Time limit for a Version GC run (in sec)",
@@ -225,7 +233,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
             name = "DocumentNodeStore update.limit",
             description = "Number of content updates that need to happen before " +
                     "the updates are automatically purged to the private branch.")
-    int updateLimit();
+    int updateLimit() default DEFAULT_UPDATE_LIMIT;
 
     @AttributeDefinition(
             name = "Persistent Cache Includes",

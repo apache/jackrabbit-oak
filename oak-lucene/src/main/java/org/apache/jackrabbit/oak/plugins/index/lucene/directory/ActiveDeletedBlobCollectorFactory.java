@@ -22,11 +22,12 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.benchmark.PerfLogger;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker.Options;
@@ -69,9 +70,15 @@ public class ActiveDeletedBlobCollectorFactory {
         void purgeBlobsDeleted(long before, GarbageCollectableBlobStore blobStore);
 
         void cancelBlobCollection();
+
+        void flagActiveDeletionUnsafe(boolean toFlag);
+
+        boolean isActiveDeletionUnsafe();
     }
 
     public static ActiveDeletedBlobCollector NOOP = new ActiveDeletedBlobCollector() {
+        private volatile boolean activeDeletionUnsafe = false;
+
         @Override
         public BlobDeletionCallback getBlobDeletionCallback() {
             return BlobDeletionCallback.NOOP;
@@ -86,6 +93,16 @@ public class ActiveDeletedBlobCollectorFactory {
         public void cancelBlobCollection() {
 
         }
+
+        @Override
+        public void flagActiveDeletionUnsafe(boolean toFlag) {
+            activeDeletionUnsafe = toFlag;
+        }
+
+        @Override
+        public boolean isActiveDeletionUnsafe() {
+            return activeDeletionUnsafe;
+        }
     };
 
     public interface BlobDeletionCallback extends IndexCommitCallback {
@@ -98,6 +115,9 @@ public class ActiveDeletedBlobCollectorFactory {
          *            blobs.
          */
         void deleted(String blobId, Iterable<String> ids);
+
+        boolean isMarkingForActiveDeletionUnsafe();
+
         BlobDeletionCallback NOOP = new BlobDeletionCallback() {
             @Override
             public void deleted(String blobId, Iterable<String> ids) {
@@ -105,6 +125,11 @@ public class ActiveDeletedBlobCollectorFactory {
 
             @Override
             public void commitProgress(IndexProgress indexProgress) {
+            }
+
+            @Override
+            public boolean isMarkingForActiveDeletionUnsafe() {
+                return ActiveDeletedBlobCollectorFactory.NOOP.isActiveDeletionUnsafe();
             }
         };
     }
@@ -143,6 +168,8 @@ public class ActiveDeletedBlobCollectorFactory {
         private final ExecutorService executorService;
 
         private volatile boolean cancelled;
+        private volatile boolean activeDeletionUnsafe = false;
+
 
         private static final String BLOB_FILE_PATTERN_PREFIX = "blobs-";
         private static final String BLOB_FILE_PATTERN_SUFFIX = ".txt";
@@ -218,11 +245,14 @@ public class ActiveDeletedBlobCollectorFactory {
                     continue;
                 }
                 if (timestamp < before) {
+                    LineIterator blobLineIter = null;
                     try {
-                        for (String deletedBlobLine : FileUtils.readLines(deletedBlobListFile, (String) null)) {
+                        blobLineIter = FileUtils.lineIterator(deletedBlobListFile);
+                        while (blobLineIter.hasNext()) {
                             if (cancelled) {
                                 break;
                             }
+                            String deletedBlobLine = blobLineIter.next();
 
                             String[] parsedDeletedBlobIdLine = deletedBlobLine.split("\\|", 3);
                             if (parsedDeletedBlobIdLine.length != 3) {
@@ -274,6 +304,8 @@ public class ActiveDeletedBlobCollectorFactory {
                     } catch (IOException ioe) {
                         //log error and continue
                         LOG.warn("Couldn't read deleted blob list file - " + deletedBlobListFile, ioe);
+                    } finally {
+                        LineIterator.closeQuietly(blobLineIter);
                     }
 
                     // OAK-6314 revealed that blobs appended might not be immediately available. So, we'd skip
@@ -319,6 +351,16 @@ public class ActiveDeletedBlobCollectorFactory {
         @Override
         public void cancelBlobCollection() {
             cancelled = true;
+        }
+
+        @Override
+        public void flagActiveDeletionUnsafe(boolean toFlag) {
+            activeDeletionUnsafe = toFlag;
+        }
+
+        @Override
+        public boolean isActiveDeletionUnsafe() {
+            return activeDeletionUnsafe;
         }
 
         private long readLastCheckedBlobTimestamp() {
@@ -478,6 +520,11 @@ public class ActiveDeletedBlobCollectorFactory {
                 }
 
                 deletedBlobs.clear();
+            }
+
+            @Override
+            public boolean isMarkingForActiveDeletionUnsafe() {
+                return activeDeletionUnsafe;
             }
         }
 

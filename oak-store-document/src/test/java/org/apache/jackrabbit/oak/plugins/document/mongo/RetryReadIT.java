@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -30,7 +34,10 @@ import com.mongodb.DB;
 import com.mongodb.MongoException;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -69,6 +76,29 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
         }
     }
 
+    @Test
+    public void retryQuery() {
+        String fromKey = Utils.getKeyLowerLimit("/foo");
+        String toKey = Utils.getKeyUpperLimit("/foo");
+        // must survive two consecutive failures. -> 2 retries
+        store.failRead = 2;
+        List<NodeDocument> docs = store.query(NODES, fromKey, toKey, 100);
+        assertThat(docs, is(empty()));
+
+        fromKey = Utils.getKeyLowerLimit("/bar");
+        toKey = Utils.getKeyUpperLimit("/bar");
+        // must fail with three consecutive failures
+        store.failRead = 3;
+        try {
+            store.query(NODES, fromKey, toKey, 100);
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            // expected
+        } finally {
+            store.failRead = 0;
+        }
+    }
+
     private static class TestStore extends MongoDocumentStore {
 
         private int failRead = 0;
@@ -81,12 +111,29 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
         protected <T extends Document> T findUncached(Collection<T> collection,
                                                       String key,
                                                       DocumentReadPreference docReadPref) {
+            maybeFail();
+            return super.findUncached(collection, key, docReadPref);
+        }
+
+        @Nonnull
+        @Override
+        protected <T extends Document> List<T> queryInternal(Collection<T> collection,
+                                                             String fromKey,
+                                                             String toKey,
+                                                             String indexedProperty,
+                                                             long startValue,
+                                                             int limit,
+                                                             long maxQueryTime) {
+            maybeFail();
+            return super.queryInternal(collection, fromKey, toKey,
+                    indexedProperty, startValue, limit, maxQueryTime);
+        }
+
+        private void maybeFail() {
             if (failRead > 0) {
                 failRead--;
                 throw new MongoException("read failed");
             }
-            return super.findUncached(collection, key, docReadPref);
         }
     }
-
 }

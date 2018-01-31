@@ -38,8 +38,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * <p>
  * The key is the id of a document. Keys are opaque strings. All characters are
  * allowed. Leading and trailing whitespace is allowed. For keys, the maximum
- * length is 512 bytes in the UTF-8 representation (in the latest Unicode
- * version).
+ * length is 512 bytes in the UTF-8 representation.
  */
 public interface DocumentStore {
 
@@ -421,6 +420,19 @@ public interface DocumentStore {
      * @return description of the underlying storage.
      */
     Map<String, String> getMetadata();
+
+    /**
+     * Returns statistics about the underlying storage. The information and
+     * keys returned by this method are implementation specific, may change
+     * between releases or may even depend on deployment aspects. E.g. depending
+     * on access rights, the method may return more or less information from
+     * the underlying store. This method should only be used for informational
+     * or debug purposes.
+     *
+     * @return statistics about this document store.
+     */
+    @Nonnull
+    Map<String, String> getStats();
 
     /**
      * @return the estimated time difference in milliseconds between the local

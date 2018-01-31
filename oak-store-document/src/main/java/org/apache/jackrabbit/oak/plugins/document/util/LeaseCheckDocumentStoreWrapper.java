@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -197,6 +199,13 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
     public final Map<String, String> getMetadata() {
         performLeaseCheck();
         return delegate.getMetadata();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getStats() {
+        performLeaseCheck();
+        return delegate.getStats();
     }
 
     @Override

@@ -39,9 +39,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class SegmentTarCheckpoints extends Checkpoints {
 
+    private static FileStore newFileStore(File path) throws IOException, InvalidFileStoreVersionException {
+        return fileStoreBuilder(path).withStrictVersionCheck(true).build();
+    }
+
     static Checkpoints create(File path, Closer closer) throws IOException {
         try {
-            return new SegmentTarCheckpoints(closer.register(fileStoreBuilder(path).build()));
+            return new SegmentTarCheckpoints(closer.register(newFileStore(path)));
         } catch (InvalidFileStoreVersionException e) {
             throw new IllegalStateException(e);
         }

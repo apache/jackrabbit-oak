@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.namepath;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * {@code PathMapper} instances provide methods for mapping paths from their JCR
  * string representation to their Oak representation and vice versa.
@@ -27,6 +29,7 @@ import javax.annotation.Nonnull;
  * names of the respective items in the {@link org.apache.jackrabbit.oak.api.Tree}
  * separated by forward slashes.
  */
+@ProviderType
 public interface PathMapper {
 
     /**
