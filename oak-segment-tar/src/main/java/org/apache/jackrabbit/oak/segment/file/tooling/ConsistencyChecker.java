@@ -216,7 +216,7 @@ public class ConsistencyChecker implements Closeable {
                                     NodeState root = sns.retrieve(checkpoint);
 
                                     if (root == null) {
-                                        checker.print("Checkpoint {0} not found in this revision!", checkpoint);
+                                        checker.printError("Checkpoint {0} not found in this revision!", checkpoint);
                                         overallValid = false;
                                     } else {
                                         overallValid = overallValid && checker.checkPathsAtRoot(pathList, root,

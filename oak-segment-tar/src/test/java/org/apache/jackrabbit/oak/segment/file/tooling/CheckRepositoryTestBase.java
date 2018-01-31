@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,10 +28,13 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -57,6 +62,8 @@ public class CheckRepositoryTestBase {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    
+    protected Set<String> checkpoints = new LinkedHashSet<>();
 
     @Before
     public void setup() throws Exception {
@@ -66,7 +73,7 @@ public class CheckRepositoryTestBase {
     protected void addValidRevision() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
                 .withSegmentCacheSize(64).build();
-
+        
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         NodeBuilder builder = nodeStore.getRoot().builder();
 
@@ -79,6 +86,13 @@ public class CheckRepositoryTestBase {
         addChildWithProperties(nodeStore, builder, "f", 6);
 
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        // add checkpoints
+        String cp1 = nodeStore.checkpoint(10_000);
+        String cp2 = nodeStore.checkpoint(10_000);
+        checkpoints.add(cp1);
+        checkpoints.add(cp2);
+        
         fileStore.close();
     }
 
@@ -99,59 +113,88 @@ public class CheckRepositoryTestBase {
 
         // get record number to corrupt (NODE record for "z")
         SegmentNodeState child = (SegmentNodeState) after.getChildNode("z");
-        int zRecordNumber = child.getRecordId().getRecordNumber();
+        RecordId zRecordId = child.getRecordId();
         
         // get record number to corrupt (NODE record for "a")
         child = (SegmentNodeState) after.getChildNode("a");
-        int aRecordNumber = child.getRecordId().getRecordNumber();
+        RecordId aRecordId = child.getRecordId();
         
         fileStore.close();
 
-        corruptRecord(zRecordNumber);
-        corruptRecord(aRecordNumber);
+        corruptRecord(zRecordId, "data00001a.tar");
+        corruptRecord(aRecordId, "data00001a.tar");
     }
+    
+    protected void corruptPathFromCheckpoint() throws InvalidFileStoreVersionException, IOException {
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
+                .withSegmentCacheSize(64).build();
 
-    private void corruptRecord(int recordNumber) throws FileNotFoundException, IOException {
-        //since the filestore was closed after writing the first revision, we're always dealing with the 2nd tar file
-        RandomAccessFile file = new RandomAccessFile(new File(temporaryFolder.getRoot(),"data00001a.tar"), "rw");
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        SegmentNodeState cp1 = (SegmentNodeState) nodeStore.retrieve(checkpoints.iterator().next());
+        RecordId bRecordId = ((SegmentNodeState) cp1.getChildNode("b")).getRecordId();
+        fileStore.close();
+        
+        corruptRecord(bRecordId, "data00000a.tar");
+    }
+    
+    private void corruptRecord(RecordId recordId, String tarFileName) throws FileNotFoundException, IOException {
+        RandomAccessFile file = new RandomAccessFile(new File(temporaryFolder.getRoot(), tarFileName), "rw");
+        
+        String segmentName = recordId.getSegmentId().toString();
+        String crtEntryName = "";
+        int entrySize = 0;
+        long filePointer = 0;
+        
+        while(!crtEntryName.equals(segmentName)) {
+            filePointer = file.getFilePointer();
+            // read entry header
+            ByteBuffer entryHeader = ByteBuffer.allocate(HEADER_SIZE);
+            file.readFully(entryHeader.array());
 
-        // read segment header
-        ByteBuffer header = ByteBuffer.allocate(HEADER_SIZE);
-        file.readFully(header.array());
+            // read entry size from header
+            byte[] crtEntryNameBytes = new byte[100];
+            System.arraycopy(entryHeader.array(), 0, crtEntryNameBytes, 0, 100);
+            crtEntryName = new String(crtEntryNameBytes, 0, 100, UTF_8);
+            crtEntryName = crtEntryName.substring(0, crtEntryName.indexOf('.'));
 
-        // read segment size from header
-        byte[] segmentSizeBytes = new byte[11];
-        System.arraycopy(header.array(), 124, segmentSizeBytes, 0, 11);
-        int size = Integer.parseInt(new String(segmentSizeBytes, Charset.forName("UTF-8")), 8);
+            byte[] entrySizeBytes = new byte[11];
+            System.arraycopy(entryHeader.array(), 124, entrySizeBytes, 0, 11);
+            entrySize = Integer.parseInt(new String(entrySizeBytes, Charset.forName("UTF-8")), 8);
 
+            if (!crtEntryName.equals(segmentName)) {
+                file.skipBytes(entrySize);
+                file.skipBytes(HEADER_SIZE - (entrySize % HEADER_SIZE));
+            }
+        };
+        
         // read actual segment
-        ByteBuffer segmentBytes = ByteBuffer.allocate(size);
+        ByteBuffer segmentBytes = ByteBuffer.allocate(entrySize);
         file.readFully(segmentBytes.array());
 
         int segmentRefs = segmentBytes.getInt(14);
 
         // read the header for our record 
-        int skip = 32 + segmentRefs * 16 + recordNumber * 9;
+        int skip = 32 + segmentRefs * 16 + recordId.getRecordNumber() * 9;
         int number = segmentBytes.getInt(skip);
         byte type = segmentBytes.get(skip + 4);
         int offset = segmentBytes.getInt(skip + 4 + 1);
 
-        Assert.assertEquals(recordNumber, number);
+        Assert.assertEquals(recordId.getRecordNumber(), number);
         Assert.assertEquals(RecordType.NODE.ordinal(), type);
         
         // read the offset of previous record to derive length of our record
-        int prevSkip = 32 + segmentRefs * 16 + (recordNumber - 1) * 9;
+        int prevSkip = 32 + segmentRefs * 16 + (recordId.getRecordNumber() - 1) * 9;
         int prevOffset = segmentBytes.getInt(prevSkip + 4 + 1);
         
         int length = prevOffset - offset;
         
-        int realOffset = size - (MAX_SEGMENT_SIZE - offset);
+        int realOffset = entrySize - (MAX_SEGMENT_SIZE - offset);
         
         // write random bytes inside the NODE record to corrupt it
         Random r = new Random(10);
         byte[] bogusData = new byte[length];
         r.nextBytes(bogusData);
-        file.seek(HEADER_SIZE + realOffset);
+        file.seek(filePointer + HEADER_SIZE + realOffset);
         file.write(bogusData);
         
         file.close();
