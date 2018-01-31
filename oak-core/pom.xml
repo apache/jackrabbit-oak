@@ -44,7 +44,7 @@
             </Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package>
-              com.mongodb*;resolution:=optional,
+              com.mongodb*;version="[2.12, 3)";resolution:=optional,
               org.apache.commons.dbcp.*;resolution:=optional,
               *
             </Import-Package>
