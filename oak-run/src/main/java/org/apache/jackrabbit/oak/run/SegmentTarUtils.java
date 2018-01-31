@@ -24,6 +24,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.io.Closer;
@@ -37,7 +39,11 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.tool.Backup;
 import org.apache.jackrabbit.oak.segment.tool.Check;
+import org.apache.jackrabbit.oak.segment.tool.DebugSegments;
+import org.apache.jackrabbit.oak.segment.tool.DebugStore;
+import org.apache.jackrabbit.oak.segment.tool.DebugTars;
 import org.apache.jackrabbit.oak.segment.tool.Diff;
+import org.apache.jackrabbit.oak.segment.tool.History;
 import org.apache.jackrabbit.oak.segment.tool.Restore;
 import org.apache.jackrabbit.oak.segment.tool.Revisions;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -84,13 +90,80 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, Set<String> filterPaths, boolean ioStatistics,
-            PrintWriter outWriter, PrintWriter errWriter) {
+    static void debug(String... args) {
+        File file = new File(args[0]);
+
+        List<String> tars = new ArrayList<>();
+        List<String> segs = new ArrayList<>();
+
+        for (int i = 1; i < args.length; i++) {
+            if (args[i].endsWith(".tar")) {
+                tars.add(args[i]);
+            } else {
+                segs.add(args[i]);
+            }
+        }
+
+        if (tars.size() > 0) {
+            debugTars(file, tars);
+        }
+
+        if (segs.size() > 0) {
+            debugSegments(file, segs);
+        }
+
+        if (tars.isEmpty() && segs.isEmpty()) {
+            debugStore(file);
+        }
+    }
+
+    private static void debugTars(File store, List<String> tars) {
+        DebugTars.Builder builder = DebugTars.builder().withPath(store);
+
+        for (String tar : tars) {
+            builder.withTar(tar);
+        }
+
+        builder.build().run();
+    }
+
+    private static void debugSegments(File store, List<String> segments) {
+        DebugSegments.Builder builder = DebugSegments.builder().withPath(store);
+
+        for (String segment : segments) {
+            builder.withSegment(segment);
+        }
+
+        builder.build().run();
+    }
+
+    private static void debugStore(File store) {
+        DebugStore.builder()
+                .withPath(store)
+                .build()
+                .run();
+        ;
+    }
+
+    static void history(File directory, File journal, String path, int depth) {
+        History.builder()
+                .withPath(directory)
+                .withJournal(journal)
+                .withNode(path)
+                .withDepth(depth)
+                .build()
+                .run();
+    }
+
+    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, boolean checkHead, Set<String> checkpoints, 
+            Set<String> filterPaths, boolean ioStatistics, PrintWriter outWriter, PrintWriter errWriter) {
         Check.builder()
                 .withPath(dir)
                 .withJournal(journalFileName)
                 .withDebugInterval(debugLevel)
                 .withCheckBinaries(checkBinaries)
+                .withCheckHead(checkHead)
+                .withCheckpoints(checkpoints)
                 .withFilterPaths(filterPaths)
                 .withIOStatistics(ioStatistics)
                 .withOutWriter(outWriter)
