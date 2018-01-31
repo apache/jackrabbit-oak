@@ -26,6 +26,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -104,7 +105,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         public long getNumEntries(String principalName, long max) {
             long num = 0;
             for (PermissionStoreImpl store : stores) {
-                num += store.getNumEntries(principalName, max);
+                num = LongUtils.safeAdd(num, store.getNumEntries(principalName, max));
                 if (num >= max) {
                     break;
                 }
