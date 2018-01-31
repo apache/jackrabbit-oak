@@ -475,6 +475,7 @@ public class DocumentBundlingTest {
         assertFalse(book.getChildNode("foo").exists());
         assertThat(ds.findPaths, is(empty()));
         assertFalse(hasNodeProperty("/test/book.jpg", META_PROP_NON_BUNDLED_CHILD));
+        assertFalse(hasNodeProperty("/test/book.jpg", "_children"));
     }
 
     @Test
