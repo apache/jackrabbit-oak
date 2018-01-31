@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.file.tooling;
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -56,6 +57,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withCheckBinaries(true)
         .withFilterPaths(filterPaths)
         .withOutWriter(outWriter)
@@ -89,6 +92,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
         .withCheckBinaries(true)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withFilterPaths(filterPaths)
         .withOutWriter(outWriter)
         .withErrWriter(errWriter)
@@ -121,6 +126,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
         .withCheckBinaries(true)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withFilterPaths(filterPaths)
         .withOutWriter(outWriter)
         .withErrWriter(errWriter)
