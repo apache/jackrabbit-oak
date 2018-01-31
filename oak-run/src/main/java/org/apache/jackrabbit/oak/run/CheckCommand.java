@@ -48,6 +48,10 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<String> filter = parser.accepts(
                 "filter", "comma separated content paths to be checked")
                 .withRequiredArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("/");
+        OptionSpec<?> head = parser.accepts("head", "checks only latest /root (i.e without checkpoints)");
+        ArgumentAcceptingOptionSpec<String> cp = parser.accepts(
+                "checkpoints", "checks only specified checkpoints (comma separated); leave empty to check all")
+                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("/checkpoints");
         OptionSpec<?> ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
 
         OptionSet options = parser.parse(args);
@@ -63,13 +67,20 @@ class CheckCommand implements Command {
         String journalFileName = journal.value(options);
         long debugLevel = notify.value(options);
         Set<String> filterPaths = new LinkedHashSet<String>(filter.values(options));
+        Set<String> checkpoints = new LinkedHashSet<>();
+        if (options.has(cp) || !options.has(head)) {
+            checkpoints.addAll(cp.values(options));
+        }
 
         if (options.has(deep)) {
             printUsage(parser, err, "The --deep option was deprecated! Please do not use it in the future!"
                     , "A deep scan of the content tree, traversing every node, will be performed by default.");
         }
         
-        SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), filterPaths, options.has(ioStatistics), out, err);
+        boolean checkHead = !options.has(cp) || options.has(head);
+        
+        SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), checkHead, checkpoints, filterPaths, 
+                options.has(ioStatistics), out, err);
     }
 
     private void printUsage(OptionParser parser, PrintWriter err, String... messages) throws IOException {
