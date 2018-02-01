@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static java.text.DateFormat.getDateTimeInstance;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -37,24 +36,30 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -64,6 +69,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * reporting that latest consistent revision.
  */
 public class ConsistencyChecker implements Closeable {
+
+    private static final String CHECKPOINT_INDENT = "  ";
+
+    private static final String NO_INDENT = "";
 
     private static class StatisticsIOMonitor extends IOMonitorAdapter {
 
@@ -95,6 +104,8 @@ public class ConsistencyChecker implements Closeable {
     private int nodeCount;
     
     private int propertyCount;
+    
+    private int checkCount;
 
     /**
      * Run a full traversal consistency check.
@@ -104,18 +115,23 @@ public class ConsistencyChecker implements Closeable {
      * @param debugInterval    number of seconds between printing progress information to
      *                         the console during the full traversal phase.
      * @param checkBinaries    if {@code true} full content of binary properties will be scanned
+     * @param checkHead        if {@code true} will check the head
+     * @param checkpoints      collection of checkpoints to be checked 
      * @param filterPaths      collection of repository paths to be checked                         
      * @param ioStatistics     if {@code true} prints I/O statistics gathered while consistency 
      *                         check was performed
      * @param outWriter        text output stream writer
      * @param errWriter        text error stream writer                        
      * @throws IOException
+     * @throws InvalidFileStoreVersionException
      */
     public static void checkConsistency(
             File directory,
             String journalFileName,
             long debugInterval,
             boolean checkBinaries,
+            boolean checkHead,
+            Set<String> checkpoints,
             Set<String> filterPaths,
             boolean ioStatistics,
             PrintWriter outWriter,
@@ -125,55 +141,122 @@ public class ConsistencyChecker implements Closeable {
                 JournalReader journal = new JournalReader(new File(directory, journalFileName));
                 ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval, ioStatistics, outWriter, errWriter)
         ) {
-            Map<String, JournalEntry> pathToJournalEntry = newHashMap();
-            Map<String, Set<String>> pathToCorruptPaths = newHashMap();
-            for (String path : filterPaths) {
-                pathToCorruptPaths.put(path, new HashSet<String>());
+            Set<String> checkpointsSet = Sets.newLinkedHashSet();
+            List<PathToCheck> headPaths = new ArrayList<>();
+            Map<String, List<PathToCheck>> checkpointPaths = new HashMap<>();
+            
+            int revisionCount = 0;
+            
+            if (!checkpoints.isEmpty()) {
+                checkpointsSet.addAll(checkpoints);
+
+                if (checkpointsSet.remove("/checkpoints")) {
+                    checkpointsSet = Sets
+                            .newLinkedHashSet(SegmentNodeStoreBuilders.builder(checker.store).build().checkpoints());
+                }
             }
             
-            int count = 0;
-            int revisionCount = 0;
+            for (String path : filterPaths) {
+                if (checkHead) {
+                    headPaths.add(new PathToCheck(path, null));
+                    checker.checkCount++;
+                }
+                
+                for (String checkpoint : checkpointsSet) {
+                    List<PathToCheck> pathList = checkpointPaths.get(checkpoint);
+                    if (pathList == null) {
+                        pathList = new ArrayList<>();
+                        checkpointPaths.put(checkpoint, pathList);
+                    }
 
-            while (journal.hasNext() && count < filterPaths.size()) {
+                    pathList.add(new PathToCheck(path, checkpoint));
+                    checker.checkCount++;
+                }
+            }
+
+            int initialCount = checker.checkCount;
+            JournalEntry lastValidJournalEntry = null;
+            
+            while (journal.hasNext() && checker.checkCount > 0) {
                 JournalEntry journalEntry = journal.next();
-                checker.print("Checking revision {0}", journalEntry.getRevision());
+                String revision = journalEntry.getRevision();
                 
                 try {
                     revisionCount++;
+                    checker.store.setRevision(revision);
+                    boolean overallValid = true;
                     
-                    for (String path : filterPaths) {
-                        if (pathToJournalEntry.get(path) == null) {
-                            
-                            Set<String> corruptPaths = pathToCorruptPaths.get(path);
-                            String corruptPath = checker.checkPathAtRevision(journalEntry.getRevision(), corruptPaths, path, checkBinaries);
+                    SegmentNodeStore sns = SegmentNodeStoreBuilders.builder(checker.store).build();
+                    
+                    checker.print("\nChecking revision {0}", revision);
 
-                            if (corruptPath == null) {
-                                checker.print("Path {0} is consistent", path);
-                                pathToJournalEntry.put(path, journalEntry);
-                                count++;
-                            } else {
-                                corruptPaths.add(corruptPath);
+                    if (checkHead) {
+                        boolean mustCheck = headPaths.stream().anyMatch(p -> p.journalEntry == null);
+                        
+                        if (mustCheck) {
+                            checker.print("\nChecking head\n");
+                            NodeState root = sns.getRoot();
+                            overallValid = overallValid && checker.checkPathsAtRoot(headPaths, root, journalEntry, checkBinaries);
+                        }
+                    }
+                    
+                    if (!checkpointsSet.isEmpty()) {
+                        Map<String, Boolean> checkpointsToCheck = checkpointPaths.entrySet().stream().collect(Collectors.toMap(
+                                Map.Entry::getKey, e -> e.getValue().stream().anyMatch(p -> p.journalEntry == null)));
+                        boolean mustCheck = checkpointsToCheck.values().stream().anyMatch(v -> v == true);
+                        
+                        if (mustCheck) {
+                            checker.print("\nChecking checkpoints");
+
+                            for (String checkpoint : checkpointsSet) {
+                                if (checkpointsToCheck.get(checkpoint)) {
+                                    checker.print("\nChecking checkpoint {0}", checkpoint);
+
+                                    List<PathToCheck> pathList = checkpointPaths.get(checkpoint);
+                                    NodeState root = sns.retrieve(checkpoint);
+
+                                    if (root == null) {
+                                        checker.printError("Checkpoint {0} not found in this revision!", checkpoint);
+                                        overallValid = false;
+                                    } else {
+                                        overallValid = overallValid && checker.checkPathsAtRoot(pathList, root,
+                                                journalEntry, checkBinaries);
+                                    }
+                                }
                             }
                         }
                     }
+                    
+                    if (overallValid) {
+                        lastValidJournalEntry = journalEntry;
+                    }
                 } catch (IllegalArgumentException e) {
-                    checker.printError("Skipping invalid record id {0}", journalEntry.getRevision());
+                    checker.printError("Skipping invalid record id {0}", revision);
                 }
             }
             
-            checker.print("Searched through {0} revisions", revisionCount);
+            checker.print("\nSearched through {0} revisions and {1} checkpoints", revisionCount, checkpointsSet.size());
             
-            if (count == 0) {
+            if (initialCount == checker.checkCount) {
                 checker.print("No good revision found");
             } else {
-                for (String path : filterPaths) {
-                    JournalEntry journalEntry = pathToJournalEntry.get(path);
-                    String revision = journalEntry != null ? journalEntry.getRevision() : null;
-                    long timestamp = journalEntry != null ? journalEntry.getTimestamp() : -1L;
-                    
-                    checker.print("Latest good revision for path {0} is {1} from {2}", path,
-                            toString(revision), toString(timestamp));
+                if (checkHead) {
+                    checker.print("\nHead");
+                    checker.printResults(headPaths, NO_INDENT);
                 }
+                
+                if (!checkpointsSet.isEmpty()) {
+                    checker.print("\nCheckpoints");
+                    
+                    for (String checkpoint : checkpointsSet) {
+                        List<PathToCheck> pathList = checkpointPaths.get(checkpoint);
+                        checker.print("- {0}", checkpoint);
+                        checker.printResults(pathList, CHECKPOINT_INDENT);
+                    }
+                }
+                
+                checker.print("\nOverall");
+                checker.printOverallResults(lastValidJournalEntry);
             }
 
             if (ioStatistics) {
@@ -192,6 +275,23 @@ public class ConsistencyChecker implements Closeable {
                 );
             }
         }
+    }
+
+    private void printResults(List<PathToCheck> pathList, String indent) {
+        for (PathToCheck ptc : pathList) {
+            String revision = ptc.journalEntry != null ? ptc.journalEntry.getRevision() : null;
+            long timestamp = ptc.journalEntry != null ? ptc.journalEntry.getTimestamp() : -1L;
+            
+            print("{0}Latest good revision for path {1} is {2} from {3}", indent, ptc.path,
+                    toString(revision), toString(timestamp));
+        }
+    }
+    
+    private void printOverallResults(JournalEntry journalEntry) {
+        String revision = journalEntry != null ? journalEntry.getRevision() : null;
+        long timestamp = journalEntry != null ? journalEntry.getTimestamp() : -1L;
+        
+        print("Latest good revision for paths and checkpoints checked is {0} from {1}", toString(revision), toString(timestamp));
     }
 
     private static String toString(String revision) {
@@ -234,26 +334,50 @@ public class ConsistencyChecker implements Closeable {
         this.errWriter = errWriter;
     }
 
-
     /**
-     * Checks the consistency of the supplied {@code paths} at the given {@code revision}, 
-     * starting first with already known {@code corruptPaths}.
+     * Checks for consistency a list of paths, relative to the same root.
      * 
-     * @param revision      revision to be checked
-     * @param corruptPaths  already known corrupt paths from previous revisions
-     * @param path          path on which to run consistency check, 
-     *                      provided there are no corrupt paths.
-     * @param checkBinaries if {@code true} full content of binary properties will be scanned
-     * @return              {@code null}, if the content tree rooted at path is consistent 
-     *                      in this revision or the path of the first inconsistency otherwise.  
+     * @param paths             paths to check
+     * @param root              root relative to which the paths are retrieved
+     * @param journalEntry      entry containing the current revision checked
+     * @param checkBinaries     if {@code true} full content of binary properties will be scanned
+     * @return                  {@code true}, if the whole list of paths is consistent
      */
-    public String checkPathAtRevision(String revision, Set<String> corruptPaths, String path, boolean checkBinaries) {
-        String result = null;
+    private boolean checkPathsAtRoot(List<PathToCheck> paths, NodeState root, JournalEntry journalEntry,
+            boolean checkBinaries) {
+        boolean result = true;
         
-        store.setRevision(revision);
-        NodeState root = SegmentNodeStoreBuilders.builder(store).build().getRoot();
+        for (PathToCheck ptc : paths) {
+            if (ptc.journalEntry == null) {
+                String corruptPath = checkPathAtRoot(ptc, root, checkBinaries);
 
-        for (String corruptPath : corruptPaths) {
+                if (corruptPath == null) {
+                    print("Path {0} is consistent", ptc.path);
+                    ptc.journalEntry = journalEntry;
+                    checkCount--;
+                } else {
+                    result = false;
+                    ptc.corruptPaths.add(corruptPath);
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Checks the consistency of the supplied {@code ptc} relative to the given {@code root}. 
+     * 
+     * @param ptc           path to check, provided there are no corrupt paths.
+     * @param root          root relative to which the path is retrieved
+     * @param checkBinaries if {@code true} full content of binary properties will be scanned
+     * @return              {@code null}, if the content tree rooted at path (possibly under a checkpoint) 
+     *                      is consistent in this revision or the path of the first inconsistency otherwise.  
+     */
+    private String checkPathAtRoot(PathToCheck ptc, NodeState root, boolean checkBinaries) {
+        String result = null;
+
+        for (String corruptPath : ptc.corruptPaths) {
             try {
                 NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, corruptPath);
                 result = checkNode(wrapper.node, wrapper.path, checkBinaries);
@@ -269,17 +393,17 @@ public class ConsistencyChecker implements Closeable {
         nodeCount = 0;
         propertyCount = 0;
 
-        print("Checking {0}", path);
+        print("Checking {0}", ptc.path);
         
         try {        
-            NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, path);
+            NodeWrapper wrapper = NodeWrapper.deriveTraversableNodeOnPath(root, ptc.path);
             result = checkNodeAndDescendants(wrapper.node, wrapper.path, checkBinaries);
             print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
             
             return result;
         } catch (IllegalArgumentException e) {
-            printError("Path {0} not found", path);
-            return path;
+            printError("Path {0} not found", ptc.path);
+            return ptc.path;
         } 
     }
     
@@ -380,6 +504,40 @@ public class ConsistencyChecker implements Closeable {
             }
         }
     }
+    
+    static class PathToCheck {
+        final String path;
+        final String checkpoint;
+        
+        JournalEntry journalEntry;
+        Set<String> corruptPaths = new LinkedHashSet<>();
+        
+        PathToCheck(String path, String checkpoint) {
+            this.path = path;
+            this.checkpoint = checkpoint;
+        }
+        
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((checkpoint == null) ? 0 : checkpoint.hashCode());
+            result = prime * result + ((path == null) ? 0 : path.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            } else if (object instanceof PathToCheck) {
+                PathToCheck that = (PathToCheck) object;
+                return path.equals(that.path) && checkpoint.equals(that.checkpoint);
+            } else {
+                return false;
+            }
+        }
+    }
 
     private boolean traverse(Blob blob, boolean checkBinaries) throws IOException {
         if (checkBinaries && !isExternal(blob)) {
@@ -425,8 +583,8 @@ public class ConsistencyChecker implements Closeable {
         outWriter.println(MessageFormat.format(format, arg1, arg2));
     }
     
-    private void print(String format, Object arg1, Object arg2, Object arg3) {
-        outWriter.println(MessageFormat.format(format, arg1, arg2, arg3));
+    private void print(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+        outWriter.println(MessageFormat.format(format, arg1, arg2, arg3, arg4));
     }
     
     private void printError(String format, Object arg) {

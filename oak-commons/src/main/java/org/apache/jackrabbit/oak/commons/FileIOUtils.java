@@ -52,7 +52,6 @@ import static com.google.common.io.Files.asByteSink;
 import static com.google.common.io.Files.move;
 import static com.google.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
-import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.io.IOUtils.copyLarge;
@@ -314,6 +313,26 @@ public final class FileIOUtils {
                 return unescapeLineBreaks(input);
             }
         });
+    }
+
+    /**
+     *
+     * Copy the input stream to the given file. Delete the file in case of exception.
+     *
+     * @param source the input stream source
+     * @param destination the file to write to
+     * @throws IOException
+     */
+    public static void copyInputStreamToFile(final InputStream source, final File destination) throws IOException {
+        boolean success = false;
+        try {
+            FileUtils.copyInputStreamToFile(source, destination);
+            success = true;
+        } finally {
+            if (!success) {
+                forceDelete(destination);
+            }
+        }
     }
 
     /**
