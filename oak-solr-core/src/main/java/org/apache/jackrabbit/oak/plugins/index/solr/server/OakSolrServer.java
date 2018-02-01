@@ -22,6 +22,7 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -47,10 +48,10 @@ public class OakSolrServer extends SolrServer {
     }
 
     @Override
-    public NamedList<Object> request(SolrRequest request) throws SolrServerException, IOException {
+    public NamedList<Object> request(SolrRequest request, String collection) throws SolrServerException, IOException {
         try {
 
-            SolrServer server = getServer(request);
+            SolrClient server = getServer(request);
             return server.request(request);
 
         } catch (Exception e) {
@@ -58,10 +59,10 @@ public class OakSolrServer extends SolrServer {
         }
     }
 
-    private synchronized SolrServer getServer(SolrRequest request) throws Exception {
+    private synchronized SolrClient getServer(SolrRequest request) throws Exception {
         boolean isIndex = request.getPath().contains("/update");
         SolrServerRegistry.Strategy strategy = isIndex ? SolrServerRegistry.Strategy.INDEXING : SolrServerRegistry.Strategy.SEARCHING;
-        SolrServer solrServer = SolrServerRegistry.get(solrServerConfiguration, strategy);
+        SolrClient solrServer = SolrServerRegistry.get(solrServerConfiguration, strategy);
         if (solrServer == null) {
             if (solrServerConfiguration instanceof EmbeddedSolrServerConfiguration) {
                 solrServer = solrServerProvider.getSolrServer();

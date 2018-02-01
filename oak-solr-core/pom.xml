@@ -100,6 +100,25 @@
 
 
     <dependencies>
+        <!--  Added first to ensure older Lucene brought in by oak-jcr does not get selected in Eclipse -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-test-framework</artifactId>
+            <version>${solr.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${solr.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+            <version>${solr.version}</version>
+            <scope>test</scope>
+        </dependency>    
         <!-- TEST -->
         <dependency>
             <groupId>junit</groupId>
@@ -170,19 +189,19 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-test-framework</artifactId>
-            <version>${lucene.version}</version>
+            <version>${solr.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
-            <version>${lucene.version}</version>
+            <version>${solr.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analyzers-common</artifactId>
-            <version>${lucene.version}</version>
+            <version>${solr.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -243,7 +262,7 @@
         <dependency>
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-core</artifactId>
-            <version>${lucene.version}</version>
+            <version>${solr.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -255,7 +274,7 @@
         <dependency>
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-solrj</artifactId>
-            <version>${lucene.version}</version>
+            <version>${solr.version}</version>
             <scope>provided</scope>
         </dependency>
 

@@ -16,19 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
-import java.io.File;
-import java.io.IOException;
 import javax.annotation.CheckForNull;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.CloudSolrServer;
-import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrServer;
-import org.apache.solr.client.solrj.impl.HttpSolrServer;
-import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.request.CollectionAdminRequest;
+import org.apache.solr.client.solrj.response.CollectionAdminResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
-import org.apache.solr.cloud.ZkController;
 import org.apache.solr.common.cloud.SolrZkClient;
 import org.apache.solr.common.cloud.ZkStateReader;
 import org.slf4j.Logger;
@@ -49,9 +57,9 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     @CheckForNull
     @Override
-    public SolrServer getSolrServer() throws Exception {
+    public SolrClient getSolrServer() throws Exception {
 
-        SolrServer solrServer = null;
+        SolrClient solrServer = null;
         if (remoteSolrServerConfiguration.getSolrZkHost() != null && remoteSolrServerConfiguration.getSolrZkHost().length() > 0) {
             try {
                 solrServer = initializeWithCloudSolrServer();
@@ -76,39 +84,51 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     @CheckForNull
     @Override
-    public SolrServer getIndexingSolrServer() throws Exception {
-        SolrServer server = getSolrServer();
+    public SolrClient getIndexingSolrServer() throws Exception {
+        SolrClient server = getSolrServer();
 
-        if (server instanceof HttpSolrServer) {
-            String url = ((HttpSolrServer) server).getBaseURL();
-            server = new ConcurrentUpdateSolrServer(url, 1000, Runtime.getRuntime().availableProcessors());
+        if (server instanceof HttpSolrClient) {
+            String url = ((HttpSolrClient) server).getBaseURL();
+            ConcurrentUpdateSolrClient concurrentUpdateSolrServer = new ConcurrentUpdateSolrClient(url, 1000,
+                    Runtime.getRuntime().availableProcessors());
+            concurrentUpdateSolrServer.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
+            concurrentUpdateSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
+            concurrentUpdateSolrServer.blockUntilFinished();
+            server = concurrentUpdateSolrServer;
         }
         return server;
     }
 
     @CheckForNull
     @Override
-    public SolrServer getSearchingSolrServer() throws Exception {
+    public SolrClient getSearchingSolrServer() throws Exception {
         return getSolrServer();
     }
 
-    private SolrServer initializeWithExistingHttpServer() throws IOException, SolrServerException {
+    private SolrClient initializeWithExistingHttpServer() throws IOException, SolrServerException {
         // try basic Solr HTTP client
-        HttpSolrServer httpSolrServer = new HttpSolrServer(remoteSolrServerConfiguration.getSolrHttpUrls()[0]);
+        HttpSolrClient httpSolrServer = new HttpSolrClient(remoteSolrServerConfiguration.getSolrHttpUrls()[0]);
+        httpSolrServer.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
+        httpSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
         SolrPingResponse ping = httpSolrServer.ping();
         if (ping != null && 0 == ping.getStatus()) {
             return httpSolrServer;
         } else {
+            httpSolrServer.close();
             throw new IOException("the found HTTP Solr server is not alive");
         }
 
     }
 
-    private SolrServer initializeWithCloudSolrServer() throws IOException {
+    private SolrClient initializeWithCloudSolrServer() throws IOException {
         // try SolrCloud client
-        CloudSolrServer cloudSolrServer = new CloudSolrServer(remoteSolrServerConfiguration.getSolrZkHost());
-        cloudSolrServer.setZkConnectTimeout(100);
+        CloudSolrClient cloudSolrServer = new CloudSolrClient(remoteSolrServerConfiguration.getSolrZkHost());
+        cloudSolrServer.setIdField(OakSolrConfigurationDefaults.PATH_FIELD_NAME);
+        cloudSolrServer.setZkConnectTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
+        cloudSolrServer.setZkClientTimeout(remoteSolrServerConfiguration.getSocketTimeout());
+
         if (connectToZK(cloudSolrServer)) {
+            log.debug("CloudSolrServer connected");
             cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
 
             // create specified collection if it doesn't exists
@@ -119,9 +139,9 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
                     log.warn("could not create the collection on {}", remoteSolrServerConfiguration.getSolrZkHost(), t);
                 }
             }
-
             cloudSolrServer.setDefaultCollection(remoteSolrServerConfiguration.getSolrCollection());
 
+            log.debug("waiting for CloudSolrServer to come alive");
             // SolrCloud may need some time to sync on collection creation (to spread it over the shards / replicas)
             int i = 0;
             while (i < 3) {
@@ -130,6 +150,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
                     if (ping != null && 0 == ping.getStatus()) {
                         return cloudSolrServer;
                     } else {
+                        cloudSolrServer.close();
                         throw new IOException("the found SolrCloud server is not alive");
                     }
                 } catch (Exception e) {
@@ -145,14 +166,17 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
                 }
                 i++;
             }
+            cloudSolrServer.close();
             throw new IOException("the found SolrCloud server is not alive");
         } else {
+            cloudSolrServer.close();
             throw new IOException("could not connect to Zookeeper hosted at " + remoteSolrServerConfiguration.getSolrZkHost());
         }
 
     }
 
-    private boolean connectToZK(CloudSolrServer cloudSolrServer) {
+    private boolean connectToZK(CloudSolrClient cloudSolrServer) {
+        log.debug("connecting to {}", cloudSolrServer.getZkHost());
         boolean connected = false;
         for (int i = 0; i < 3; i++) {
             try {
@@ -171,32 +195,59 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         return connected;
     }
 
-    private void createCollectionIfNeeded(CloudSolrServer cloudSolrServer) throws SolrServerException {
+    private void createCollectionIfNeeded(CloudSolrClient cloudSolrServer) throws SolrServerException {
         String solrCollection = remoteSolrServerConfiguration.getSolrCollection();
+        ZkStateReader zkStateReader = cloudSolrServer.getZkStateReader();
+        SolrZkClient zkClient = zkStateReader.getZkClient();
+        log.debug("creating {} collection if needed", solrCollection);
         try {
-            ZkStateReader zkStateReader = cloudSolrServer.getZkStateReader();
-            SolrZkClient zkClient = zkStateReader.getZkClient();
-            if (zkClient.isConnected() && !zkClient.exists("/configs/" + solrCollection, false)) {
+            if (zkClient.isConnected() && !zkClient.exists("/configs/" + solrCollection, true)) {
                 String solrConfDir = remoteSolrServerConfiguration.getSolrConfDir();
-                File dir;
+                Path dir;
                 if (solrConfDir != null && solrConfDir.length() > 0) {
-                    dir = new File(solrConfDir);
+                    log.info("uploading config from {}", solrConfDir);
+                    dir = Paths.get(solrConfDir);
                 } else {
-                    dir = new File(getClass().getResource("/solr/oak/conf").getFile());
+                    Path tempDirectory = Files.createTempDirectory("oak-solr-conf");
+
+                    copy("schema", tempDirectory);
+                    copy("solrconfig", tempDirectory);
+
+                    log.info("uploading config from {}", tempDirectory);
+                    dir = tempDirectory;
                 }
-                ZkController.uploadConfigDir(zkClient, dir, solrCollection);
-                UpdateRequest req = new UpdateRequest("/admin/collections");
-                req.setParam("action", "CREATE");
-                req.setParam("numShards", String.valueOf(remoteSolrServerConfiguration.getSolrShardsNo()));
-                req.setParam("replicationFactor", String.valueOf(remoteSolrServerConfiguration.getSolrReplicationFactor()));
-                req.setParam("collection.configName", solrCollection);
-                req.setParam("name", solrCollection);
+                log.debug("uploading config from {}", dir);
+                cloudSolrServer.uploadConfig(dir, solrCollection);
+
+                log.debug("creating collection {}", solrCollection);
+
+                CollectionAdminRequest.Create req = new CollectionAdminRequest.Create();
+                CollectionAdminResponse response = req.setCollectionName(solrCollection)
+                        .setReplicationFactor(remoteSolrServerConfiguration.getSolrReplicationFactor())
+                        .setConfigName(solrCollection)
+                        .setNumShards(remoteSolrServerConfiguration.getSolrShardsNo())
+                        .process(cloudSolrServer);
+
+                log.info("collection creation response {}", response);
+
                 cloudSolrServer.request(req);
             }
         } catch (Exception e) {
             log.warn("could not create collection {}", solrCollection);
             throw new SolrServerException(e);
         }
+    }
+
+    private void copy(String name, Path tempDirectory) throws IOException {
+        InputStream inputStream = getClass().getResourceAsStream("/solr/oak/conf/" + name + ".xml");
+        File dir = tempDirectory.toFile();
+        File newFile = new File(dir, name+".xml");
+        assert newFile.createNewFile();
+        FileOutputStream outputStream = new FileOutputStream(newFile);
+        IOUtils.copy(inputStream, outputStream);
+        inputStream.close();
+        outputStream.flush();
+        outputStream.close();
     }
 
     @Override
