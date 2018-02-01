@@ -94,7 +94,7 @@ public class AbstractDataStoreCacheTest {
 
 
     static class TestCacheLoader<S, I> extends CacheLoader<String, FileInputStream> {
-        private final File root;
+        protected final File root;
 
         public TestCacheLoader(File dir) {
             this.root = new File(dir, "datastore");
@@ -114,6 +114,46 @@ public class AbstractDataStoreCacheTest {
 
         @Override public FileInputStream load(@Nonnull String key) throws Exception {
             return FileUtils.openInputStream(getFile(key, root));
+        }
+    }
+
+
+    /**
+     * Throws error after reading partially defined by max
+     */
+    private static class ErrorInputStream extends FileInputStream {
+        private long bytesread;
+        private long max;
+
+        ErrorInputStream(File file, long max) throws FileNotFoundException {
+            super(file);
+            this.max = max;
+        }
+
+        @Override
+        public int read(byte b[]) throws IOException {
+            bytesread += b.length;
+            if (bytesread > max) {
+                throw new IOException("Disconnected");
+            }
+            return super.read(b);
+        }
+    }
+
+
+    /**
+     * Test loader which uses the ErrorInputStream for load
+     */
+    static class TestErrorCacheLoader<S, I> extends TestCacheLoader<String, FileInputStream> {
+        private long max;
+
+        public TestErrorCacheLoader(File dir, long max) {
+            super(dir);
+            this.max = max;
+        }
+
+        @Override public FileInputStream load(@Nonnull String key) throws Exception {
+            return new ErrorInputStream(getFile(key, root), max);
         }
     }
 
