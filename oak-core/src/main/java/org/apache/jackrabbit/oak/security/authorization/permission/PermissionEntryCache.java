@@ -95,15 +95,6 @@ class PermissionEntryCache {
         }
     }
 
-    long getNumEntries(@Nonnull PermissionStore store,
-                       @Nonnull String principalName,
-                       long max) {
-        PrincipalPermissionEntries ppe = entries.get(principalName);
-        return ppe == null
-                ? store.getNumEntries(principalName, max)
-                : ppe.getEntries().size();
-    }
-
     void flush(@Nonnull Set<String> principalNames) {
         entries.keySet().removeAll(principalNames);
     }
