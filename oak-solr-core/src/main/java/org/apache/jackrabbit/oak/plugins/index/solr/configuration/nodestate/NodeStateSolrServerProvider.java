@@ -21,6 +21,7 @@ import java.io.IOException;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 
 /**
@@ -46,19 +47,19 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
     }
 
     @Override
-    public SolrServer getSolrServer() throws Exception {
+    public SolrClient getSolrServer() throws Exception {
         checkProviderInitialization();
         return provider.getSolrServer();
     }
 
     @Override
-    public SolrServer getIndexingSolrServer() throws Exception {
+    public SolrClient getIndexingSolrServer() throws Exception {
         checkProviderInitialization();
         return provider.getIndexingSolrServer();
     }
 
     @Override
-    public SolrServer getSearchingSolrServer() throws Exception {
+    public SolrClient getSearchingSolrServer() throws Exception {
         checkProviderInitialization();
         return provider.getSearchingSolrServer();
     }

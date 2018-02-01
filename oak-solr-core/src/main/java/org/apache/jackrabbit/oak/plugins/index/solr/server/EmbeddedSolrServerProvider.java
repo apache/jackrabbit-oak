@@ -28,7 +28,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
@@ -50,7 +50,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         this.solrServerConfiguration = solrServerConfiguration;
     }
 
-    private SolrServer createSolrServer() throws Exception {
+    private SolrClient createSolrServer() throws Exception {
 
         log.info("creating new embedded solr server with config: {}", solrServerConfiguration);
 
@@ -75,7 +75,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                     if (log.isInfoEnabled()) {
                         log.info("Jetty runner instantiated");
                     }
-                    jettySolrRunner.start(true);
+                    jettySolrRunner.start();
                     if (log.isInfoEnabled()) {
                         log.info("Jetty runner started");
                     }
@@ -168,7 +168,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
             out.close();
 
             String coreConfDir = solrCoreDir + "/conf/";
-            copy("/solr/oak/conf/currency.xml", coreConfDir);
             copy("/solr/oak/conf/schema.xml", coreConfDir);
             copy("/solr/oak/conf/solrconfig.xml", coreConfDir);
         } else if (!solrCorePathFile.isDirectory()) {
@@ -184,22 +183,26 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                     return "write.lock".equals(name);
                 }
             });
-            log.debug("found {} lock files", locks.length);
-            // remove eventaul previous lock files (e.g. due to ungraceful shutdown)
-            if (locks.length > 0) {
-                for (File f : locks) {
-                    FileUtils.forceDelete(f);
-                    log.debug("deleted {}", f.getAbsolutePath());
+            if (locks != null) {
+                log.debug("found {} lock files", locks.length);
+                // remove eventaul previous lock files (e.g. due to ungraceful shutdown)
+                if (locks.length > 0) {
+                    for (File f : locks) {
+                        FileUtils.forceDelete(f);
+                        log.debug("deleted {}", f.getAbsolutePath());
+                    }
                 }
             }
         }
 
         // check if the a core with the given coreName exists
         String[] files = solrHomePathFile.list();
-        Arrays.sort(files);
-        if (Arrays.binarySearch(files, coreName) < 0) {
-            throw new IOException("could not find a directory with the coreName '" + coreName
-                    + "' in the solrHomePath '" + solrHomePath + "'");
+        if (files != null) {
+            Arrays.sort(files);
+            if (Arrays.binarySearch(files, coreName) < 0) {
+                throw new IOException("could not find a directory with the coreName '" + coreName
+                        + "' in the solrHomePath '" + solrHomePath + "'");
+            }
         }
     }
 
@@ -235,19 +238,19 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     @CheckForNull
     @Override
-    public SolrServer getSolrServer() throws Exception {
+    public SolrClient getSolrServer() throws Exception {
         return createSolrServer();
     }
 
     @CheckForNull
     @Override
-    public SolrServer getIndexingSolrServer() throws Exception {
+    public SolrClient getIndexingSolrServer() throws Exception {
         return getSolrServer();
     }
 
     @CheckForNull
     @Override
-    public SolrServer getSearchingSolrServer() throws Exception {
+    public SolrClient getSearchingSolrServer() throws Exception {
         return getSolrServer();
     }
 

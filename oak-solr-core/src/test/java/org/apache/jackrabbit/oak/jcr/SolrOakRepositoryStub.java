@@ -35,7 +35,10 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
+
+import static org.junit.Assert.assertNotNull;
 
 public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
@@ -46,13 +49,12 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     @Override
     protected void preCreateRepository(Jcr jcr) {
-        String path = getClass().getResource("/").getFile() + "/queryjcrtest" ;
-        File f = new File(path);
-        final SolrServer solrServer;
+        File f = new File("target" + File.separatorChar + "queryjcrtest-" + System.currentTimeMillis());
+        final SolrClient solrServer;
         try {
             solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "oak")).getSolrServer();
         } catch (Exception e) {
-            throw new RuntimeException();
+            throw new RuntimeException(e);
         }
         SolrServerProvider solrServerProvider = new SolrServerProvider() {
             @Override
@@ -62,21 +64,22 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
             @CheckForNull
             @Override
-            public SolrServer getSolrServer() throws Exception {
+            public SolrClient getSolrServer() throws Exception {
                 return solrServer;
             }
 
             @Override
-            public SolrServer getIndexingSolrServer() throws Exception {
+            public SolrClient getIndexingSolrServer() throws Exception {
                 return solrServer;
             }
 
             @Override
-            public SolrServer getSearchingSolrServer() throws Exception {
+            public SolrClient getSearchingSolrServer() throws Exception {
                 return solrServer;
             }
         };
         try {
+            assertNotNull(solrServer);
             // safely remove any previous document on the index
             solrServer.deleteByQuery("*:*");
             solrServer.commit();
