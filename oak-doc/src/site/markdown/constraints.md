@@ -41,3 +41,18 @@ Finally, the chosen persistence implementation might restrict node names even fu
 
 - in the "Document NodeStore", the UTF-8 representation of local names can not exceed ~150 bytes.
 
+## Invalid Java Strings
+
+Due to the way Java represents characters in strings, not every String is a valid sequence of
+Unicode code points. This is because *two* characters are needed to represent Unicode
+"suuplementary characters". If these "surrogate" characters do not appear as a wellformed
+pair, the Java string can not be serialized to a sequence of Unicode characters, nor to
+a byte sequence (using UTF-8 character encoding).
+
+The system behaviour for these strings is currently undefined. This means that they
+might get rejected, that they might get accepted but information is lost when they
+are stored, or they might be stored and retrieved faithfully.
+
+See [OAK-5505](https://issues.apache.org/jira/browse/OAK-5506) fur further information.
+
+
