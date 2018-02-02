@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * Collect and print the revisions of a segment store.
  */
-public class Revisions implements Runnable {
+public class Revisions {
 
     /**
      * Create a builder for the {@link Revisions} command.
@@ -80,7 +80,7 @@ public class Revisions implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public Revisions build() {
             checkNotNull(path);
             checkNotNull(out);
             return new Revisions(this);
@@ -97,12 +97,13 @@ public class Revisions implements Runnable {
         this.out = builder.out;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try {
             listRevisions();
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 

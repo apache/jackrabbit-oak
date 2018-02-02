@@ -63,23 +63,25 @@ class FileStoreDiffCommand implements Command {
         String path = pathO.value(options);
         boolean ignoreSNFEs = options.has(ignoreSNFEsO);
 
+        int statusCode;
         if (listOnly) {
-            Revisions.builder()
-                    .withPath(store)
-                    .withOutput(out)
-                    .build()
-                    .run();
+            statusCode = Revisions.builder()
+                .withPath(store)
+                .withOutput(out)
+                .build()
+                .run();
         } else {
-            Diff.builder()
-                    .withPath(store)
-                    .withOutput(out)
-                    .withInterval(interval)
-                    .withIncremental(incremental)
-                    .withFilter(path)
-                    .withIgnoreMissingSegments(ignoreSNFEs)
-                    .build()
-                    .run();
+            statusCode = Diff.builder()
+                .withPath(store)
+                .withOutput(out)
+                .withInterval(interval)
+                .withIncremental(incremental)
+                .withFilter(path)
+                .withIgnoreMissingSegments(ignoreSNFEs)
+                .build()
+                .run();
         }
+        System.exit(statusCode);
     }
 
     private File defaultOutFile() {
