@@ -45,7 +45,7 @@ Finally, the chosen persistence implementation might restrict node names even fu
 
 Due to the way Java represents characters in strings, not every String is a valid sequence of
 Unicode code points. This is because *two* characters are needed to represent Unicode
-"suuplementary characters". If these "surrogate" characters do not appear as a wellformed
+"supplementary characters". If these "surrogate" characters do not appear as a well formed
 pair, the Java string can not be serialized to a sequence of Unicode characters, nor to
 a byte sequence (using UTF-8 character encoding).
 
