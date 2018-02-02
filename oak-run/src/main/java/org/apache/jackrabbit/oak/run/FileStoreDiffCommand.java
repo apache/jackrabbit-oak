@@ -25,6 +25,8 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.tool.Diff;
+import org.apache.jackrabbit.oak.segment.tool.Revisions;
 
 class FileStoreDiffCommand implements Command {
 
@@ -61,7 +63,23 @@ class FileStoreDiffCommand implements Command {
         String path = pathO.value(options);
         boolean ignoreSNFEs = options.has(ignoreSNFEsO);
 
-        SegmentTarUtils.diff(store, out, listOnly, interval, incremental, path, ignoreSNFEs);
+        if (listOnly) {
+            Revisions.builder()
+                    .withPath(store)
+                    .withOutput(out)
+                    .build()
+                    .run();
+        } else {
+            Diff.builder()
+                    .withPath(store)
+                    .withOutput(out)
+                    .withInterval(interval)
+                    .withIncremental(incremental)
+                    .withFilter(path)
+                    .withIgnoreMissingSegments(ignoreSNFEs)
+                    .build()
+                    .run();
+        }
     }
 
     private File defaultOutFile() {

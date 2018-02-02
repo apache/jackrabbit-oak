@@ -21,6 +21,7 @@ import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.Closeable;
 import java.io.File;
@@ -53,6 +54,9 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.cli.DummyDataStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -149,11 +153,11 @@ class Utils {
         }
     }
 
-    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException {
+    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException, InvalidFileStoreVersionException {
         return bootstrapNodeStore(new NodeStoreOptions(h).parse(args), closer);
     }
 
-    public static NodeStore bootstrapNodeStore(NodeStoreOptions options, Closer closer) throws IOException {
+    public static NodeStore bootstrapNodeStore(NodeStoreOptions options, Closer closer) throws IOException, InvalidFileStoreVersionException {
         String src = options.getStoreArg();
         if (src == null || src.length() == 0) {
             options.printHelpOn(System.err);
@@ -169,7 +173,11 @@ class Utils {
             }
         }
 
-        return SegmentTarUtils.bootstrapNodeStore(src, closer);
+        FileStore fileStore = fileStoreBuilder(new File(src))
+            .withStrictVersionCheck(true)
+            .build();
+        closer.register(fileStore);
+        return SegmentNodeStoreBuilders.builder(fileStore).build();
     }
 
     @CheckForNull

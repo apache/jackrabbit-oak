@@ -22,6 +22,7 @@ import java.io.File;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.tool.Restore;
 
 class RestoreCommand implements Command {
 
@@ -38,7 +39,11 @@ class RestoreCommand implements Command {
         File target = new File(options.nonOptionArguments().get(0).toString());
         File source = new File(options.nonOptionArguments().get(1).toString());
 
-        SegmentTarUtils.restore(source, target);
+        Restore.builder()
+                .withSource(source)
+                .withTarget(target)
+                .build()
+                .run();
     }
 
 }
