@@ -30,6 +30,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.tool.Check;
 
 class CheckCommand implements Command {
 
@@ -78,9 +79,21 @@ class CheckCommand implements Command {
         }
         
         boolean checkHead = !options.has(cp) || options.has(head);
-        
-        SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), checkHead, checkpoints, filterPaths, 
-                options.has(ioStatistics), out, err);
+
+        int statusCode = Check.builder()
+            .withPath(dir)
+            .withJournal(journalFileName)
+            .withDebugInterval(debugLevel)
+            .withCheckBinaries(options.has(bin))
+            .withCheckHead(checkHead)
+            .withCheckpoints(checkpoints)
+            .withFilterPaths(filterPaths)
+            .withIOStatistics(options.has(ioStatistics))
+            .withOutWriter(out)
+            .withErrWriter(err)
+            .build()
+            .run();
+        System.exit(statusCode);
     }
 
     private void printUsage(OptionParser parser, PrintWriter err, String... messages) throws IOException {
