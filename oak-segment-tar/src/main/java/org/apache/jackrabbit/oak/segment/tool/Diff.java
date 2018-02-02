@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Shows the differences between two head states.
  */
-public class Diff implements Runnable {
+public class Diff {
 
     /**
      * Create a builder for the {@link Diff} command.
@@ -160,7 +160,7 @@ public class Diff implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public Diff build() {
             checkNotNull(path);
             checkNotNull(interval);
             checkNotNull(out);
@@ -191,12 +191,13 @@ public class Diff implements Runnable {
         this.ignoreMissingSegments = builder.ignoreMissingSegments;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try {
             diff();
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 
