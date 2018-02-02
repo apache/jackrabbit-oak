@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 /**
  * Perform a backup of a segment store into a specified folder.
  */
-public class Backup implements Runnable {
+public class Backup {
 
     /**
      * Create a builder for the {@link Backup} command.
@@ -103,7 +103,7 @@ public class Backup implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public Backup build() {
             checkNotNull(source);
             checkNotNull(target);
             return new Backup(this);
@@ -126,12 +126,13 @@ public class Backup implements Runnable {
         this.fileStoreBackup = builder.fileStoreBackup;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try (ReadOnlyFileStore fs = newFileStore()) {
             fileStoreBackup.backup(fs.getReader(), fs.getRevisions(), target);
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 

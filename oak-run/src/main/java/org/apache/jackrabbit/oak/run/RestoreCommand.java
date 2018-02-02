@@ -39,11 +39,12 @@ class RestoreCommand implements Command {
         File target = new File(options.nonOptionArguments().get(0).toString());
         File source = new File(options.nonOptionArguments().get(1).toString());
 
-        Restore.builder()
-                .withSource(source)
-                .withTarget(target)
-                .build()
-                .run();
+        int statusCode = Restore.builder()
+            .withSource(source)
+            .withTarget(target)
+            .build()
+            .run();
+        System.exit(statusCode);
     }
 
 }
