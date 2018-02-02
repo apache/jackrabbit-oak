@@ -39,11 +39,12 @@ class BackupCommand implements Command {
         File source = new File(options.nonOptionArguments().get(0).toString());
         File target = new File(options.nonOptionArguments().get(1).toString());
 
-        Backup.builder()
-                .withSource(source)
-                .withTarget(target)
-                .build()
-                .run();
+        int statusCode = Backup.builder()
+            .withSource(source)
+            .withTarget(target)
+            .build()
+            .run();
+        System.exit(statusCode);
     }
 
 }
