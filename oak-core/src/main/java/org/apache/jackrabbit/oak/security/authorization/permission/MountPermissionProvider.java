@@ -23,7 +23,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.LongUtils;
@@ -33,8 +35,6 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-
-import com.google.common.collect.ImmutableSet;
 
 public class MountPermissionProvider extends PermissionProviderImpl {
 
@@ -79,20 +79,22 @@ public class MountPermissionProvider extends PermissionProviderImpl {
             this.stores = stores;
         }
 
+        @CheckForNull
         @Override
-        public Collection<PermissionEntry> load(Collection<PermissionEntry> entries, String principalName,
-                String path) {
+        public Collection<PermissionEntry> load(@Nullable Collection<PermissionEntry> entries, @Nonnull String principalName,
+                @Nonnull String path) {
             for (PermissionStoreImpl store : stores) {
                 Collection<PermissionEntry> col = store.load(null, principalName, path);
                 if (col != null && !col.isEmpty()) {
                     return col;
                 }
             }
-            return ImmutableSet.of();
+            return null;
         }
 
+        @Nonnull
         @Override
-        public PrincipalPermissionEntries load(String principalName) {
+        public PrincipalPermissionEntries load(@Nonnull String principalName) {
             PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
             for (PermissionStoreImpl store : stores) {
                 ppe.getEntries().putAll(store.load(principalName).getEntries());
@@ -102,7 +104,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         }
 
         @Override
-        public long getNumEntries(String principalName, long max) {
+        public long getNumEntries(@Nonnull String principalName, long max) {
             long num = 0;
             for (PermissionStoreImpl store : stores) {
                 num = LongUtils.safeAdd(num, store.getNumEntries(principalName, max));
@@ -114,7 +116,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         }
 
         @Override
-        public void flush(Root root) {
+        public void flush(@Nonnull Root root) {
             for (PermissionStoreImpl store : stores) {
                 store.flush(root);
             }
