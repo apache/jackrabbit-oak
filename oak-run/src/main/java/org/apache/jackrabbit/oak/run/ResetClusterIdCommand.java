@@ -20,6 +20,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -35,6 +37,9 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
+import java.io.File;
 
 /**
  * OFFLINE utility to delete the clusterId stored as hidden
@@ -104,7 +109,11 @@ class ResetClusterIdCommand implements Command {
                 closer.register(Utils.asCloseable(dns));
                 store = dns;
             } else {
-                store = SegmentTarUtils.bootstrapNodeStore(source, closer);
+                FileStore fileStore = fileStoreBuilder(new File(source))
+                    .withStrictVersionCheck(true)
+                    .build();
+                closer.register(fileStore);
+                store = SegmentNodeStoreBuilders.builder(fileStore).build();
             }
             
             deleteClusterId(store);

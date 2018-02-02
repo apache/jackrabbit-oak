@@ -18,12 +18,10 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
-import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -31,8 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.junit.Assert;
-
-import com.google.common.collect.Iterators;
 
 public class MountPermissionProviderRandomTestIT extends AbstractPermissionRandomTestIT {
 
@@ -56,10 +52,7 @@ public class MountPermissionProviderRandomTestIT extends AbstractPermissionRando
     protected PermissionProvider candidatePermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
             @Nonnull Set<Principal> principals) {
         SecurityProvider sp = new SecurityProviderBuilder().build();
-        AuthorizationConfiguration acConfig = sp.getConfiguration(AuthorizationConfiguration.class);
-        Assert.assertTrue(acConfig instanceof CompositeAuthorizationConfiguration);
-        ((AuthorizationConfigurationImpl) ((CompositeAuthorizationConfiguration) acConfig).getDefaultConfig())
-                .bindMountInfoProvider(mountInfoProvider);
+        AuthorizationConfiguration acConfig = MountUtils.bindMountInfoProvider(sp, mountInfoProvider);
         PermissionProvider composite = acConfig.getPermissionProvider(root, workspaceName, principals);
         Assert.assertTrue(composite instanceof MountPermissionProvider);
         return composite;

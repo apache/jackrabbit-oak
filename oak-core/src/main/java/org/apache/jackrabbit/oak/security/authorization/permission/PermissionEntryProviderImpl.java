@@ -75,7 +75,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         long cnt = 0;
         existingNames.clear();
         for (String name : principalNames) {
-            long n = cache.getNumEntries(store, name, maxSize);
+            long n = store.getNumEntries(name, maxSize);
             /*
             if cache.getNumEntries (n) returns a number bigger than 0, we
             remember this principal name int the 'existingNames' set

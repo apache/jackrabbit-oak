@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.backup.impl.FileStoreRestoreImpl;
 /**
  * Restore a backup of a segment store into an existing segment store.
  */
-public class Restore implements Runnable {
+public class Restore {
 
     /**
      * Create a builder for the {@link Restore} command.
@@ -80,7 +80,7 @@ public class Restore implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public Restore build() {
             checkNotNull(source);
             checkNotNull(target);
             return new Restore(this);
@@ -100,12 +100,13 @@ public class Restore implements Runnable {
         this.fileStoreRestore = builder.fileStoreRestore;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try {
             fileStoreRestore.restore(source, target);
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 
