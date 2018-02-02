@@ -16,7 +16,6 @@ import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
-import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -26,11 +25,9 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -53,7 +50,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalTime;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -209,182 +205,292 @@ public class CompositeDataStoreRORWIT {
     }
 
     @Test
-    public void testDSGCManually() throws Exception {
-        File otherBlobDir = folder.newFolder();
-        DataStoreBlobStore otherBlobStore = createBlobStore(otherBlobDir);
-        FileStore otherFileStore = createFileStore(otherBlobStore, otherBlobDir);
-        SegmentNodeStore otherNodeStore = createNodeStore(otherFileStore);
-        // My version
-        PrimaryRepo pr = PrimaryRepo.builder(folder).build();
-
-        // Put stuff in
-        int numBlobs = 10;
-        NodeBuilder a = otherNodeStore.getRoot().builder();
-        List<Integer> processed = Lists.newArrayList();
-
-        for (int i = 0; i < numBlobs; i++) {
-            SegmentBlob b = (SegmentBlob) otherNodeStore.createBlob(randomStream(BLOB_SIZE));
-            a.child("c" + i).setProperty("x", b);
-        }
-
-        otherNodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        // My version
-        pr.addSubTree("P_del1", "first", numBlobs);
-
-
-        // Delete some of the stuff
-        int maxDeleted  = 5;
-        Random rand = new Random();
-        for (int i = 0; i < maxDeleted; i++) {
-            int n = rand.nextInt(numBlobs);
-            if (!processed.contains(n)) {
-                processed.add(n);
-            }
-        }
-        for (int id : processed) {
-            a.child("c" + id).remove();
-        }
-        otherNodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        // My version
-        //for (int id : processed) {
-        //    assertTrue(pr.deleteNode("content", id));
-        //}
-        Map<String, Map<Integer, String>> deletedNodes =
-                deleteRandomNodesFromRepo(pr, Lists.newArrayList("P_del1"), numBlobs);
-
-        log.info("Deleted nodes : {}", processed.size());
-
-        // Sleep a little to make eligible for cleanup
-        TimeUnit.MILLISECONDS.sleep(5);
-
-        // Ensure cleanup is efficient by surpassing the number of
-        // retained generations
-        for (int k = 0; k < gcOptions.getRetainedGenerations(); k++) {
-            otherFileStore.compactFull();
-        }
-        otherFileStore.cleanup();
-
-        // Now try gc
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        String repoId = null;
-        if (SharedDataStoreUtils.isShared(otherBlobStore)) {
-            repoId = ClusterRepositoryInfo.getOrCreateId(otherNodeStore);
-            otherBlobStore.addMetadataRecord(
-                    new ByteArrayInputStream(new byte[0]),
-                    REPOSITORY.getNameFromId(repoId));
-        }
-        MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
-                new SegmentBlobReferenceRetriever(otherFileStore),
-                (GarbageCollectableBlobStore) otherFileStore.getBlobStore(),
-                executor,
-                otherBlobDir.getAbsolutePath(),
-                2048,
-                0,
-                repoId
-        );
-        gc.collectGarbage(false);
-        // My version
-        pr.sweep(0);
-
-        Set<String> existingAfterGC = Sets.newHashSet();
-        Iterator<String> cur = otherBlobStore.getAllChunkIds(0);
-        while (cur.hasNext()) {
-            existingAfterGC.add(cur.next());
-        }
-        // My version
-        Set<String> myExistingAfterGC = pr.getAllChunkIds();
-
-        assertEquals(numBlobs - processed.size(), existingAfterGC.size());
-
-        // My version
-        assertEquals(numBlobs - deletedNodes.get("P_del1").keySet().size(), myExistingAfterGC.size());
-    }
-
-    @Test
     public void testDSGC() throws Exception {
-        // Set up the "production" node store and file data store
-        // Prepopulate the production node store with several sets of blobs
-        //  - Set P_perm1 - will never be deleted
-        //  - Set P_del1 - will be deleted on production
-        //  - Set P_shared1 - will be deleted on staging
-        int childNodeCount = 2;
+        // Step 1:  Set up the primary repo and secondary repo as shown.
+        // Primary repo creates four trees of 10 nodes, each with a different purpose:
+        //  - P_perm1 - Nothing deleted by either repository.
+        //  - P_del1 - Nodes will be deleted via primary repo (details below).
+        //  - S_del1 - Nodes will be deleted via secondary repo (details below).
+        //  - P_shared1 - Nodes will be deleted from both repos (details below).
+        // Secondary repo is cloned from primary.
+        //
+        //        PrimaryRepo  SecondaryRepo
+        //             |             |
+        //             +-- P_perm1 --+
+        //             |             |
+        //             +-- P_del1  --+
+        //             |             |
+        //             +-- S_del1  --+
+        //             |             |
+        //             +- P_shared1 -+
+
+        int childNodeCount = 10;
         String iterationFlag = "first";
+
         PrimaryRepo primaryRepo = PrimaryRepo.builder(folder).build();
-//        primaryRepo.addSubTree("P_perm1", iterationFlag, childNodeCount);
-        //primaryRepo.addSubTree("P_del1", iterationFlag, childNodeCount);
-        //primaryRepo.addSubTree("P_shared1", iterationFlag, childNodeCount);
+        primaryRepo.addSubTree("P_perm1", iterationFlag, childNodeCount);
+        primaryRepo.addSubTree("P_del1", iterationFlag, childNodeCount);
+        primaryRepo.addSubTree("S_del1", iterationFlag, childNodeCount);
+//        primaryRepo.addSubTree("P_shared1", iterationFlag, childNodeCount);
 
-        // Clone "staging" node store from production node store
-        // Prepopulate the staging node store with several sets of blobs
-        //  - Set S_perm1 - will never be deleted
-        //  - Set S_del1 - will be deleted (from staging)
-        //  - Set P_shared1 - the same set that was included in production,
-        //    to be deleted by staging
-        iterationFlag = "second";
         SecondaryRepo secondaryRepo = SecondaryRepo.builder(folder, primaryRepo).build();
-        //secondaryRepo.addSubTree("S_perm1", iterationFlag, childNodeCount);
-        secondaryRepo.addSubTree("S_del1", iterationFlag, childNodeCount);
 
-        // Add to production:
-        //  - Set P_perm2 - will not be deleted
-        //  - Set P_del2 - will be deleted by production
-        //  - Set P_shared2 - overlaps staging, part of which will be deleted by production
-        //iterationFlag = "third";
-        //primaryRepo.addSubTree("P_perm2", iterationFlag, childNodeCount);
-//        primaryRepo.addSubTree("P_del2", iterationFlag, childNodeCount);
+
+        // Step 2:  Create additional trees (10 blobs each) in both repos that are NOT shared.
+        // On primary:
+        //  - P_perm2 - Nothing will be deleted.
+        //  - P_del2 - Nodes will be deleted via primary repo (details below).
+        //  - P_shared2 - Tree with common name in both repos, but not actually "shared".
+        //                Some common nodes will be deleted via both, some only from one or the other.
+        //                Details below.
+        // On secondary:
+        //  - S_perm2 - Nothing will be deleted.
+        //  - S_del2 - Nodes will be deleted via secondary repo (details below).
+        //  - P_shared2 - Tree with common name as primary as mentioned above.
+        //
+        //        PrimaryRepo  SecondaryRepo
+        //             |             |
+        //             +-- P_perm1 --+
+        //             |             |
+        //             +-- P_del1  --+
+        //             |             |
+        //             +-- S_del1  --+
+        //             |             |
+        //             +- P_shared1 -+
+        //             |             |
+        //    P_perm2 -+             +- S_perm2
+        //             |             |
+        //     P_del2 -+             +- S_del2
+        //             |             |
+        //  P_shared2 -+             +- P_shared2
+
+        iterationFlag = "second";
+
+        primaryRepo.addSubTree("P_perm2", iterationFlag, childNodeCount);
+        primaryRepo.addSubTree("P_del2", iterationFlag, childNodeCount);
 //        primaryRepo.addSubTree("P_shared2", iterationFlag, childNodeCount);
-        // Add to staging:
-        //  - Set S_perm2 - will not be deleted
-        //  - Set S_del2 - will be deleted by staging
-        //  - Set P_shared2 - production, part of which will be deleted by staging
-        //secondaryRepo.addSubTree("S_perm2", iterationFlag, childNodeCount);
-        //secondaryRepo.addSubTree("S_del2", iterationFlag, childNodeCount);
-        //secondaryRepo.addSubTree("P_shared2", iterationFlag, childNodeCount);
 
-        //Set<String> prBefore = primaryRepo.getAllChunkIds();
-        Set<String> srBefore = secondaryRepo.getAllChunkIds();
-        // Delete some number of blobs, remembering which are deleted:
-        //  - From P_del1 via production
-        //  - From S_del1 via staging
-        //  - From P_shared1 via staging
-        //  - From P_del2 via production
-        //  - From P_shared2 via production
-        //  - From S_del2 via staging
-        //  - From P_shared2 via staging
-//        Map<String, Map<Integer, String>> primaryRepoDeletedNodes =
-//                deleteRandomNodesFromRepo(
-//                        primaryRepo,
-//                        Lists.newArrayList("P_del1"), // , "P_del2", "P_shared2"),
-//                        childNodeCount
-//                );
-        Map<String, Map<Integer, String>> secondaryRepoDeletedNodes =
-                deleteRandomNodesFromRepo(
-                        secondaryRepo,
-                        Lists.newArrayList("S_del1"), //, "S_del2"), // , "P_shared1", "P_shared2"),
-                        childNodeCount
-                );
+        secondaryRepo.addSubTree("S_perm2", iterationFlag, childNodeCount);
+        secondaryRepo.addSubTree("S_del2", iterationFlag, childNodeCount);
+//        secondaryRepo.addSubTree("P_shared2", iterationFlag, childNodeCount);
+
+
+        // Step 3:  Delete the nodes as specified:
+        //  - P_perm1 - Nothing deleted by either repository.
+        //  - P_del1 - 4 nodes will be deleted via primary repo.
+        //  - S_del1 - 6 nodes will be deleted via secondary repo.
+        //  - P_shared1 - Nodes will be deleted from both repos:
+        //    - 3 deleted from primary only
+        //    - 4 deleted from secondary only
+        //    - 2 deleted from both
+        //  - P_perm2 - Nothing will be deleted.
+        //  - P_del2 - 4 nodes will be deleted via primary repo.
+        //  - P_shared2 - Nodes deleted as follows:
+        //    - 3 deleted from primary only
+        //    - 4 deleted from secondary only
+        //    - 2 deleted from both
+        //  - S_perm2 - Nothing will be deleted.
+        //  - S_del2 - 6 nodes will be deleted via secondary repo.
+        //
+        //        PrimaryRepo  SecondaryRepo
+        //             |             |
+        //             +-- P_perm1 --+
+        //             |             |
+        //             | -4          |
+        //             +-- P_del1  --+
+        //             |             |
+        //             |          -6 |
+        //             +-- S_del1  --+
+        //             |             |
+        //             | -3  -2   -4 |
+        //             +- P_shared1 -+
+        //             |             |
+        //    P_perm2 -+             +- S_perm2
+        //             |             |
+        //          -4 |             | -6
+        //     P_del2 -+             +- S_del2
+        //          -3 |     -2      | -4
+        //  P_shared2 -+             +- P_shared2
+
+        int prDel1DeleteCount = 4;
+        int srDel1DeleteCount = 6;
+        int prShared1DeleteCountFromPrimary = 3;
+        int srShared1DeleteCountFromSecondary = 4;
+        int prShared1DeleteCountFromBoth = 2;
+        int prDel2DeleteCount = 4;
+        int prShared2DeleteCountFromPrimary = 3;
+        int srShared2DeleteCountFromSecondary = 4;
+        int prShared2DeleteCountFromBoth = 2;
+        int srDel2DeleteCount = 6;
+
+        Map<String, Integer> prExpectedBlobCounts = Maps.newHashMap();  // Counts of blobs expected from primary repo view.
+        Map<String, Integer> prExpectedNodeCounts = Maps.newHashMap();  // Counts of nodes expected from primary repo view.
+        prExpectedNodeCounts.put("P_perm1", childNodeCount);
+        prExpectedBlobCounts.put("P_perm1", childNodeCount);
+        prExpectedNodeCounts.put("P_del1", childNodeCount-prDel1DeleteCount); // 6
+        prExpectedBlobCounts.put("P_del1", childNodeCount);
+        prExpectedNodeCounts.put("S_del1", childNodeCount);
+        prExpectedBlobCounts.put("S_del1", childNodeCount);
+//        prExpectedNodeCounts.put("P_shared1", childNodeCount-prShared1DeleteCountFromBoth-prShared1DeleteCountFromPrimary); // 5
+//        prExpectedBlobCounts.put("P_shared1", childNodeCount-prShared1DeleteCountFromBoth); // 8
+        prExpectedNodeCounts.put("P_perm2", childNodeCount);
+        prExpectedBlobCounts.put("P_perm2", childNodeCount);
+        prExpectedNodeCounts.put("P_del2", childNodeCount-prDel2DeleteCount); // 6
+        prExpectedBlobCounts.put("P_del2", childNodeCount-prDel2DeleteCount); // 6
+//        prExpectedNodeCounts.put("P_shared2", childNodeCount-prShared2DeleteCountFromBoth-prShared2DeleteCountFromPrimary); // 5
+//        prExpectedBlobCounts.put("P_shared2", childNodeCount-prShared2DeleteCountFromBoth-prShared2DeleteCountFromPrimary); // 5
+
+        Map<String, Integer> srExpectedBlobCounts = Maps.newHashMap();  // Counts of blobs expected from secondary repo view.
+        Map<String, Integer> srExpectedNodeCounts = Maps.newHashMap();  // Counts of nodes expected from secondary repo view.
+        srExpectedNodeCounts.put("P_perm1", childNodeCount);
+        srExpectedBlobCounts.put("P_perm1", childNodeCount);
+        srExpectedNodeCounts.put("P_del1", childNodeCount);
+        srExpectedBlobCounts.put("P_del1", childNodeCount);
+        srExpectedNodeCounts.put("S_del1", childNodeCount-srDel1DeleteCount);  // 4
+        srExpectedBlobCounts.put("S_del1", childNodeCount);
+//        srExpectedNodeCounts.put("P_shared1", childNodeCount-prShared1DeleteCountFromBoth-srShared1DeleteCountFromSecondary);  // 4
+//        srExpectedBlobCounts.put("P_shared1", childNodeCount-prShared1DeleteCountFromBoth);  // 8
+        srExpectedNodeCounts.put("S_perm2", childNodeCount);
+        srExpectedBlobCounts.put("S_perm2", childNodeCount);
+        srExpectedNodeCounts.put("S_del2", childNodeCount-srDel2DeleteCount);  // 4
+        srExpectedBlobCounts.put("S_del2", childNodeCount-srDel2DeleteCount);  // 4
+//        srExpectedNodeCounts.put("P_shared2", childNodeCount-prShared2DeleteCountFromBoth-srShared2DeleteCountFromSecondary);  // 4
+//        srExpectedBlobCounts.put("P_shared2", childNodeCount-prShared2DeleteCountFromBoth-srShared2DeleteCountFromSecondary);  // 4
+
+        // Delete some number of blobs, remembering which are deleted
+        Map<String, Map<Integer, String>> primaryRepoDeletedNodes = Maps.newHashMap();
+        primaryRepoDeletedNodes.put("P_del1",
+                deleteRandomNodesFromRepo(primaryRepo, "P_del1", childNodeCount, prDel1DeleteCount));
+//        primaryRepoDeletedNodes.put("P_shared1",
+//                deleteRandomNodesFromRepo(primaryRepo, "P_shared1", childNodeCount,
+//                        prShared1DeleteCountFromPrimary+prShared1DeleteCountFromBoth));
+        primaryRepoDeletedNodes.put("P_del2",
+                deleteRandomNodesFromRepo(primaryRepo, "P_del2", childNodeCount, prDel2DeleteCount));
+//        primaryRepoDeletedNodes.put("P_shared2",
+//                deleteRandomNodesFromRepo(primaryRepo, "P_shared2", childNodeCount,
+//                        prShared2DeleteCountFromPrimary+prShared2DeleteCountFromBoth));
+
+        int sharedDelCtr = 0;
+//        for (int nodeNum : primaryRepoDeletedNodes.get("P_shared1").keySet()) {
+//            secondaryRepo.deleteNode("P_shared1", nodeNum);
+//            if (++sharedDelCtr == prShared1DeleteCountFromBoth) {
+//                break;
+//            }
+//        }
+//        sharedDelCtr = 0;
+//        for (int nodeNum : primaryRepoDeletedNodes.get("P_shared2").keySet()) {
+//            secondaryRepo.deleteNode("P_shared2", nodeNum);
+//            if (++sharedDelCtr == prShared2DeleteCountFromBoth) {
+//                break;
+//            }
+//        }
+
+        Map<String, Map<Integer, String>> secondaryRepoDeletedNodes = Maps.newHashMap();
+        secondaryRepoDeletedNodes.put("S_del1",
+                deleteRandomNodesFromRepo(secondaryRepo, "S_del1", childNodeCount, srDel1DeleteCount));
+//        secondaryRepoDeletedNodes.put("P_shared1",
+//                deleteRandomNodesFromRepo(secondaryRepo, "P_shared1",
+//                        childNodeCount-prShared1DeleteCountFromBoth,
+//                        srShared1DeleteCountFromSecondary));
+        secondaryRepoDeletedNodes.put("S_del2",
+                deleteRandomNodesFromRepo(secondaryRepo, "S_del2", childNodeCount, srDel2DeleteCount));
+//        secondaryRepoDeletedNodes.put("P_shared2",
+//                deleteRandomNodesFromRepo(secondaryRepo, "P_shared2",
+//                        childNodeCount-prShared2DeleteCountFromBoth,
+//                        srShared2DeleteCountFromSecondary));
+
+
+        // Step 4:  Run GC on both repos.
+
         TimeUnit.MILLISECONDS.sleep(5); // Make eligible for GC
 
         // Invoke DGSC
-        //primaryRepo.mark(0L);
-        //secondaryRepo.mark(0L);
-        //primaryRepo.sweep(0L);
-        secondaryRepo.sweep(0L);
+        primaryRepo.mark();
+        secondaryRepo.mark();
+        primaryRepo.sweep();
+        secondaryRepo.sweep();
 
-        //Set<String> prAfter = primaryRepo.getAllChunkIds();
-        Set<String> srAfter = secondaryRepo.getAllChunkIds();
 
-//        int prExpectedDeletedNodeCount = 0;
-//        for (String subTreeName : primaryRepoDeletedNodes.keySet()) {
-//            prExpectedDeletedNodeCount += primaryRepoDeletedNodes.get(subTreeName).keySet().size();
-//        }
-//        assertEquals(prExpectedDeletedNodeCount, prBefore.size() - prAfter.size());
+        // Step 5:  Inspect the results.
+        //
+        // Reading from primary - Primary deleted a total of 18 nodes and should see 18 fewer nodes.  Not
+        // all the blobs will be deleted however.  Details:
+        //  - P_perm1 should have 10 nodes and 10 blobs.  (-0)
+        //  - P_del1 should have 6 nodes and 10 blobs.  (-4)
+        //    - GC did not collect the deleted blobs because they are still referenced by secondary.
+        //  - S_del1 should have 10 nodes and 10 blobs.  (-0)
+        //    - GC did not collect the deleted blobs because they are still referenced by primary.
+        //  - P_shared1 should have 5 nodes and 8 blobs.  (-5)
+        //    - GC did not collect 2 blobs because they are still referenced by secondary.
+        //  - P_perm2 should have 10 nodes and 10 blobs.  (-0)
+        //  - P_del2 should have 6 nodes and 6 blobs.  (-4)
+        //  - P_shared2 should have 5 nodes and 5 blobs.  (-5)
+        // End state for primary repo:  52 nodes, 59 blobs
+        //
+        // Reading from secondary - Secondary deleted a total of 24 nodes and should see 24 fewer nodes.  Not
+        // all the blobs will be deleted however.  Details:
+        //  - P_perm1 should have 10 nodes and 10 blobs.  (-0)
+        //  - P_del1 should have 10 nodes and 10 blobs.  (-0)
+        //  - S_del1 should have 4 nodes and 10 blobs.  (-6)
+        //  - P_shared1 should have 4 nodes and 8 blobs.  (-6)
+        //  - S_perm2 should have 10 nodes and 10 blobs.
+        //  - S_del2 should have 4 nodes and 4 blobs.  (-6)
+        //  - P_shared2 should have 4 nodes and 4 blobs.  (-6)
+        // End state for secondary repo:  46 nodes, 56 blobs
+        //
+        //        PrimaryRepo  SecondaryRepo
+        //             |             |
+        //             +-- P_perm1 --+
+        //             | 10n     10n |
+        //             | 10b     10b |
+        //             |             |
+        //             +-- P_del1  --+
+        //             | 6n      10b |
+        //             | 10b     10b |
+        //             |             |
+        //             +-- S_del1  --+
+        //             | 10n      4n |
+        //             | 10b     10b |
+        //             |             |
+        //             +- P_shared1 -+
+        //             | 5n       4n |
+        //             | 8b       8b |
+        //             |             |
+        //    P_perm2 -+             +- S_perm2
+        //         10n |             | 10n
+        //         10b |             | 10b
+        //             |             |
+        //     P_del2 -+             +- S_del2
+        //          6n |             | 4n
+        //          6b |             | 4b
+        //             |             |
+        //  P_shared2 -+             +- P_shared2
+        //          5n |             | 4n
+        //          5b |             | 4b
 
-        int srExpectedDeletedNodeCount = 0;
-        for (String subTreeName : secondaryRepoDeletedNodes.keySet()) {
-            srExpectedDeletedNodeCount += secondaryRepoDeletedNodes.get(subTreeName).keySet().size();
-        }
-        assertEquals(srExpectedDeletedNodeCount, srBefore.size() - srAfter.size());
+
+        int prActualBlobCount = primaryRepo.getAllChunkIds().size();
+        int prExpectedBlobCount = prExpectedBlobCounts.values().stream().mapToInt(Integer::intValue).sum();
+        assertEquals(prExpectedBlobCount, prActualBlobCount);
+
+        long prActualNodeCount = primaryRepo.countLeaves();
+        int prExpectedNodeCount = prExpectedNodeCounts.values().stream().mapToInt(Integer::intValue).sum();
+        assertEquals(prExpectedNodeCount, prActualNodeCount);
+
+        // getAllChunkIds returns a count of all the blobs in the store (raw file count).
+        // So the actual count from the composite data store's point of view is a complete count of all
+        // blobs in both primary and secondary repos.  So we have to count them both.
+        int srActualBlobCount = secondaryRepo.getAllChunkIds().size() - prActualBlobCount;
+        int srExpectedBlobCount = srExpectedBlobCounts.values().stream().mapToInt(Integer::intValue).sum();
+//        int srExpectedBlobCount = Sets.union(
+//                Sets.newHashSet(srExpectedBlobCounts.values()),
+//                Sets.newHashSet(prExpectedBlobCounts.values()))
+//                .stream().mapToInt(Integer::intValue).sum();
+        assertEquals(srExpectedBlobCount, srActualBlobCount);
+
+        long srActualNodeCount = secondaryRepo.countLeaves();
+        int srExpectedNodeCount = srExpectedNodeCounts.values().stream().mapToInt(Integer::intValue).sum();
+        assertEquals(srExpectedNodeCount, srActualNodeCount);
 
         // Verify:
         //  - Every blob in P_perm1 remains.
@@ -434,6 +540,7 @@ public class CompositeDataStoreRORWIT {
         private DataStoreBlobStore blobStore;
         private File blobDir;
 
+        private String repositoryId;
         private MarkSweepGarbageCollector garbageCollector = null;
         private ThreadPoolExecutor executor = null;
 
@@ -448,11 +555,30 @@ public class CompositeDataStoreRORWIT {
             }
         };
 
-        public OakRepo(SegmentNodeStore nodeStore, FileStore fileStore, DataStoreBlobStore blobStore, File blobDir) {
+        public OakRepo(SegmentNodeStore nodeStore, FileStore fileStore, DataStoreBlobStore blobStore, File blobDir)
+                throws IOException, DataStoreException {
             this.nodeStore = nodeStore;
             this.fileStore = fileStore;
             this.blobStore = blobStore;
             this.blobDir = blobDir;
+
+            assertTrue(SharedDataStoreUtils.isShared(blobStore));
+            repositoryId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
+            blobStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+                    REPOSITORY.getNameFromId(repositoryId));
+            if (null == executor) {
+                executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+            }
+            garbageCollector = new MarkSweepGarbageCollector(
+                    new SegmentBlobReferenceRetriever(fileStore),
+                    blobStore,
+                    executor,
+                    blobDir.getAbsolutePath(),
+                    2048,
+                    0,
+                    repositoryId
+            );
+
         }
 
         protected SegmentNodeStore getNodeStore() {
@@ -542,6 +668,24 @@ public class CompositeDataStoreRORWIT {
                     nodeStore.getRoot().getChildNode(CONTENT_ROOT).getChildNode(subTreeName),
                     reference);
             assertNull(nodeWithBlob);
+        }
+
+        public long countLeaves() {
+            NodeState contentRoot = nodeStore.getRoot().getChildNode(CONTENT_ROOT);
+            long leafCount = 0;
+            for (String childNodeName : contentRoot.getChildNodeNames()) {
+                leafCount += countLeaves(childNodeName);
+            }
+            return leafCount;
+        }
+
+        public long countLeaves(String subTreeName) {
+            NodeState subTreeNode = nodeStore.getRoot().getChildNode(CONTENT_ROOT).getChildNode(subTreeName);
+            long leafCount = 0;
+            if (subTreeNode.exists()) {
+                leafCount = subTreeNode.getChildNodeCount(Long.MAX_VALUE);
+            }
+            return leafCount;
         }
 
         protected void mergeAndWait(NodeStore nodeStore, NodeBuilder nb) throws CommitFailedException {
@@ -637,17 +781,14 @@ public class CompositeDataStoreRORWIT {
             return chunks;
         }
 
-        public void mark(long gcMaxAge) throws Exception {
-            MarkSweepGarbageCollector gc = getGarbageCollector(gcMaxAge);
-            gc.collectGarbage(true);
+        public void mark() throws Exception {
+            garbageCollector.collectGarbage(true);
         }
 
-        public void sweep(long gcMaxAge) throws Exception {
-            MarkSweepGarbageCollector gc = getGarbageCollector(gcMaxAge);
-
+        public void sweep() throws Exception {
             doFileStoreCompaction();
 
-            gc.collectGarbage(false);
+            garbageCollector.collectGarbage(false);
         }
 
         protected abstract void doFileStoreCompaction() throws Exception;
@@ -661,7 +802,8 @@ public class CompositeDataStoreRORWIT {
     }
 
     static class PrimaryRepo extends OakRepo {
-        private PrimaryRepo(SegmentNodeStore nodeStore, FileStore fileStore, DataStoreBlobStore blobStore, File blobDir) {
+        private PrimaryRepo(SegmentNodeStore nodeStore, FileStore fileStore, DataStoreBlobStore blobStore, File blobDir)
+                throws IOException, DataStoreException {
             super(nodeStore, fileStore, blobStore, blobDir);
         }
 
@@ -1025,32 +1167,32 @@ public class CompositeDataStoreRORWIT {
         return true;
     }
 
-    private static Map<String, Map<Integer, String>> deleteRandomNodesFromRepo(OakRepo repo, List<String> subTrees, int nodesPerSubtree) throws CommitFailedException {
-        Map<String, Map<Integer, String>> deletedNodes = Maps.newHashMap();
+    private static Map<Integer, String> deleteRandomNodesFromRepo(
+            OakRepo repo,
+            String subTreeName,
+            int nodesPerSubtree,
+            int numberOfNodesToDelete)
+            throws CommitFailedException {
+        Map<Integer, String> deletedNodes = Maps.newHashMap();
         Random r = new Random(LocalTime.now().toNanoOfDay());
-        for (String subTreeName : subTrees) {
-            int numberOfNodesToDelete = r.nextInt(Integer.max(nodesPerSubtree/2, 1))+1;
-            Set<Integer> alreadyDeletedNodeNumbers = Sets.newHashSet();
-            for (int i=0; i<numberOfNodesToDelete; i++) {
-                int nodeNumber;
-                do {
-                    nodeNumber = r.nextInt(nodesPerSubtree);
-                }
-                while (alreadyDeletedNodeNumbers.contains(nodeNumber));
-                alreadyDeletedNodeNumbers.add(nodeNumber);
-
-                NodeState node = repo.getNode(subTreeName, nodeNumber);
-                PropertyState prop = node.getProperty(CONTENT_BINARY_PROP);
-                Blob b = prop.getValue(Type.BINARY);
-                String blobId = identifierFromBlob(b);
-                assertTrue(repo.deleteNode(subTreeName, nodeNumber));
-                if (! deletedNodes.containsKey(subTreeName)) {
-                    deletedNodes.put(subTreeName, Maps.newHashMap());
-                }
-                Map<Integer, String> deletedNodeNumbers = deletedNodes.get(subTreeName);
-                deletedNodeNumbers.put(i, blobId);
-                deletedNodes.put(subTreeName, deletedNodeNumbers);
+        Set<Integer> alreadyDeletedNodeNumbers = Sets.newHashSet();
+        while (numberOfNodesToDelete > deletedNodes.size()) {
+            int nodeNumber;
+            do {
+                nodeNumber = r.nextInt(nodesPerSubtree);
             }
+            while (alreadyDeletedNodeNumbers.contains(nodeNumber));
+            alreadyDeletedNodeNumbers.add(nodeNumber);
+
+            NodeState node = repo.getNode(subTreeName, nodeNumber);
+            if (! node.exists()) {
+                continue;
+            }
+            PropertyState prop = node.getProperty(CONTENT_BINARY_PROP);
+            Blob b = prop.getValue(Type.BINARY);
+            String blobId = identifierFromBlob(b);
+            assertTrue(repo.deleteNode(subTreeName, nodeNumber));
+            deletedNodes.put(nodeNumber, blobId);
         }
         return deletedNodes;
     }
