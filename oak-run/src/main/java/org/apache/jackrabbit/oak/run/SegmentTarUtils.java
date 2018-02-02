@@ -23,10 +23,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
@@ -38,7 +36,6 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.tool.Backup;
-import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.apache.jackrabbit.oak.segment.tool.DebugSegments;
 import org.apache.jackrabbit.oak.segment.tool.DebugStore;
 import org.apache.jackrabbit.oak.segment.tool.DebugTars;
@@ -151,23 +148,6 @@ final class SegmentTarUtils {
                 .withJournal(journal)
                 .withNode(path)
                 .withDepth(depth)
-                .build()
-                .run();
-    }
-
-    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, boolean checkHead, Set<String> checkpoints, 
-            Set<String> filterPaths, boolean ioStatistics, PrintWriter outWriter, PrintWriter errWriter) {
-        Check.builder()
-                .withPath(dir)
-                .withJournal(journalFileName)
-                .withDebugInterval(debugLevel)
-                .withCheckBinaries(checkBinaries)
-                .withCheckHead(checkHead)
-                .withCheckpoints(checkpoints)
-                .withFilterPaths(filterPaths)
-                .withIOStatistics(ioStatistics)
-                .withOutWriter(outWriter)
-                .withErrWriter(errWriter)
                 .build()
                 .run();
     }
