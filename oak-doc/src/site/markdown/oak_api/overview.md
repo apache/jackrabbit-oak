@@ -43,7 +43,6 @@ Oak API
 - [ContentSession]
 - [Root]
 - [Tree]
-- [NodeState]
 - [PropertyState]
 
 #### Values
@@ -68,7 +67,6 @@ Oak API
 [Root]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Root.html
 [Tree]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Tree.html
 [PropertyState]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/PropertyState.html
-[NodeState]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/NodeState.html
 [PropertyValue]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/PropertyValue.html
 [Type]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Type.html
 [Blob]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Blob.html
