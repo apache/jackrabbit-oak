@@ -40,7 +40,7 @@ The `<backup>` option is the target directory.
 
 To list the checkpoints of a repository, use:
 
-    java -mx4g -jar oak-run-*.jar checkpoint <repository>
+    java -mx4g -jar oak-run-*.jar checkpoints <repository>
 
 When using the (default) Tar storage, the `<repository>` setting is the path to the directory
 that contains the segment  (data*.tar) files.
@@ -51,7 +51,7 @@ The oak-run compact operation may be used to perform an offline compaction:
 
     java -mx4g -jar oak-run-*.jar compact <repository>
 
-It makes sense to find and remove the old checkpoints, using the `checkpoint`
+It makes sense to find and remove the old checkpoints, using the `checkpoints`
 command described above.
 
 #### Index Management
@@ -60,7 +60,7 @@ The oak-run index operation is used to [manage indexes](./query/index-management
 
 #### System properties supported by the oak-run
 
-When performing operations on the SegmentNodeStore (eg. backup, checkpoint, compact), it's
+When performing operations on the SegmentNodeStore (eg. backup, checkpoints, compact), it's
 possible to tweak various system properties to get the optimal performance. These are:
 
 * `cache` - cache size for the SegmentNodeStore (default: `256`),
@@ -70,7 +70,7 @@ possible to tweak various system properties to get the optimal performance. Thes
 
 Example:
 
-    java -Dtar.memoryMapped=true -mx4g -jar oak-run-*.jar checkpoint <repository>
+    java -Dtar.memoryMapped=true -mx4g -jar oak-run-*.jar checkpoints <repository>
 
 #### Analyzing Thread Dumps ####
 
