@@ -994,7 +994,7 @@ public class RDBDocumentStore implements DocumentStore {
                 .put("db", md.getDatabaseProductName())
                 .put("version", md.getDatabaseProductVersion())
                 .put("driver", md.getDriverName())
-                .put("version", md.getDriverVersion())
+                .put("driverVersion", md.getDriverVersion())
                 .build();
         String versionDiags = dbInfo.checkVersion(md);
         if (!versionDiags.isEmpty()) {
