@@ -231,6 +231,7 @@ A staged Maven repository is available for review at:
 
 The command for running automated checks against this release candidate is:
 
+    # run in SVN checkout of https://dist.apache.org/repos/dist/dev/jackrabbit
     $ sh check-release.sh oak ${project.version} ${checksum}
 
 Please vote on releasing this package as Apache Jackrabbit Oak ${project.version}.
@@ -240,6 +241,21 @@ least three +1 Jackrabbit PMC votes are cast.
     [ ] +1 Release this package as Apache Jackrabbit Oak ${project.version}
     [ ] -1 Do not release this package because...${line.separator}
                     </echo>
+                    <echo file="${basedir}/target/announcement.txt">
+From: ${username}@apache.org
+To: announce@apache.org, announce@jackrabbit.apache.org, users@jackrabbit.apache.org, dev@jackrabbit.apache.org, oak-dev@jackrabbit.apache.org
+Subject: [ANNOUNCE] Apache Jackrabbit Oak ${project.version} released
+
+The Apache Jackrabbit community is pleased to announce the release of
+Apache Jackrabbit Oak ${project.version}. The release is available for download at:
+
+     http://jackrabbit.apache.org/downloads.html
+
+See the full release notes below for details about this release:&#10;&#10;
+                    </echo>
+                    <concat destfile="${basedir}/target/announcement.txt" append="true">
+                      <filelist files="RELEASE-NOTES.txt"/>
+                    </concat>
                     <echo />
                     <echo>
 The release candidate has been prepared in:
@@ -256,6 +272,10 @@ Please deploy it to https://dist.apache.org/repos/dist/dev/jackrabbit/oak/:
 A release vote template has been generated for you:
 
     file://${basedir}/target/vote.txt
+
+An announcement mail template can be found at:
+
+    file://${basedir}/target/announcement.txt
                     </echo>
                     <echo />
                   </tasks>
