@@ -53,6 +53,10 @@ public class Check implements Runnable {
 
         private boolean checkBinaries;
         
+        private boolean checkHead;
+        
+        private Set<String> checkpoints;
+        
         private Set<String> filterPaths;
 
         private boolean ioStatistics;
@@ -112,6 +116,30 @@ public class Check implements Runnable {
          */
         public Builder withCheckBinaries(boolean checkBinaries) {
             this.checkBinaries = checkBinaries;
+            return this;
+        }
+        
+        /**
+         * Instruct the command to check head state.
+         * This parameter is not required and defaults to {@code true}.
+         * @param checkHead if {@code true}, will check the head state.
+         * @return this builder.
+         */
+        public Builder withCheckHead(boolean checkHead) {
+            this.checkHead = checkHead;
+            return this;
+        }
+        
+        /**
+         * Instruct the command to check specified checkpoints.
+         * This parameter is not required and defaults to "/checkpoints", 
+         * i.e. will check all checkpoints when not explicitly overridden.
+         * 
+         * @param checkpoints   checkpoints to be checked
+         * @return this builder.
+         */
+        public Builder withCheckpoints(Set<String> checkpoints) {
+            this.checkpoints = checkpoints;
             return this;
         }
         
@@ -185,6 +213,10 @@ public class Check implements Runnable {
 
     private final boolean checkBinaries;
     
+    private final boolean checkHead;
+    
+    private final Set<String> checkpoints;
+    
     private final Set<String> filterPaths;
 
     private final boolean ioStatistics;
@@ -197,7 +229,9 @@ public class Check implements Runnable {
         this.path = builder.path;
         this.journal = builder.journal;
         this.debugInterval = builder.debugInterval;
+        this.checkHead = builder.checkHead;
         this.checkBinaries = builder.checkBinaries;
+        this.checkpoints = builder.checkpoints;
         this.filterPaths = builder.filterPaths;
         this.ioStatistics = builder.ioStatistics;
         this.outWriter = builder.outWriter;
@@ -207,7 +241,8 @@ public class Check implements Runnable {
     @Override
     public void run() {
         try {
-            ConsistencyChecker.checkConsistency(path, journal, debugInterval, checkBinaries, filterPaths, ioStatistics, outWriter, errWriter);
+            ConsistencyChecker.checkConsistency(path, journal, debugInterval, checkBinaries, checkHead, checkpoints, filterPaths, 
+                    ioStatistics, outWriter, errWriter);
         } catch (Exception e) {
             e.printStackTrace();
         }

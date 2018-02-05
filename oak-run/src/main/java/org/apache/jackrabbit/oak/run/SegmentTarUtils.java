@@ -84,13 +84,15 @@ final class SegmentTarUtils {
                 .run();
     }
 
-    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, Set<String> filterPaths, boolean ioStatistics,
-            PrintWriter outWriter, PrintWriter errWriter) {
+    static void check(File dir, String journalFileName, long debugLevel, boolean checkBinaries, boolean checkHead, Set<String> checkpoints,
+            Set<String> filterPaths, boolean ioStatistics, PrintWriter outWriter, PrintWriter errWriter) {
         Check.builder()
                 .withPath(dir)
                 .withJournal(journalFileName)
                 .withDebugInterval(debugLevel)
                 .withCheckBinaries(checkBinaries)
+                .withCheckHead(checkHead)
+                .withCheckpoints(checkpoints)
                 .withFilterPaths(filterPaths)
                 .withIOStatistics(ioStatistics)
                 .withOutWriter(outWriter)

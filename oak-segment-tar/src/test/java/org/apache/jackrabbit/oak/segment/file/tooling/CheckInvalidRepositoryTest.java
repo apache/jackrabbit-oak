@@ -21,14 +21,14 @@ package org.apache.jackrabbit.oak.segment.file.tooling;
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 /**
  * Tests for {@link CheckCommand} assuming an invalid repository.
@@ -56,6 +56,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
+        .withCheckHead(true)
+        .withCheckpoints(checkpoints)
         .withCheckBinaries(true)
         .withFilterPaths(filterPaths)
         .withOutWriter(outWriter)
@@ -89,6 +91,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
         .withCheckBinaries(true)
+        .withCheckHead(true)
+        .withCheckpoints(checkpoints)
         .withFilterPaths(filterPaths)
         .withOutWriter(outWriter)
         .withErrWriter(errWriter)
@@ -98,7 +102,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         outWriter.close();
         errWriter.close();
         
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("No good revision found"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints", "No good revision found"));
         assertExpectedOutput(strErr.toString(),
                 Lists.newArrayList(
                         "Error while traversing /z: java.lang.IllegalArgumentException: Segment reference out of bounds",
@@ -121,6 +125,8 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         .withJournal("journal.log")
         .withDebugInterval(Long.MAX_VALUE)
         .withCheckBinaries(true)
+        .withCheckHead(true)
+        .withCheckpoints(new HashSet<String>())
         .withFilterPaths(filterPaths)
         .withOutWriter(outWriter)
         .withErrWriter(errWriter)
@@ -134,5 +140,74 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
                 "Searched through 2 revisions"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(
                 "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
+    }
+    
+    @Test
+    public void testCorruptHeadWithValidCheckpoints() {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+        
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+        
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/");
+        
+        Check.builder()
+        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+        .withJournal("journal.log")
+        .withDebugInterval(Long.MAX_VALUE)
+        .withCheckBinaries(true)
+        .withCheckHead(true)
+        .withCheckpoints(checkpoints)
+        .withFilterPaths(filterPaths)
+        .withOutWriter(outWriter)
+        .withErrWriter(errWriter)
+        .build()
+        .run();
+        
+        outWriter.close();
+        errWriter.close();
+        
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints",
+                "Checked 7 nodes and 21 properties", "Path / is consistent", "Searched through 2 revisions and 2 checkpoints"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList(
+                "Error while traversing /a: java.lang.IllegalArgumentException: Segment reference out of bounds"));
+    }
+    
+    @Test
+    public void testCorruptPathInCp1NoValidRevision() throws Exception {
+        corruptPathFromCheckpoint();
+        
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+        
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+        
+        Set<String> filterPaths = new LinkedHashSet<>();
+        filterPaths.add("/b");
+        
+        Set<String> cps = new HashSet<>();
+        cps.add(checkpoints.iterator().next());
+        
+        Check.builder()
+        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+        .withJournal("journal.log")
+        .withDebugInterval(Long.MAX_VALUE)
+        .withCheckBinaries(true)
+        .withCheckpoints(cps)
+        .withFilterPaths(filterPaths)
+        .withOutWriter(outWriter)
+        .withErrWriter(errWriter)
+        .build()
+        .run();
+        
+        outWriter.close();
+        errWriter.close();
+        
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 2 revisions and 1 checkpoints", "No good revision found"));
+        assertExpectedOutput(strErr.toString(), Lists.newArrayList(
+                "Error while traversing /b: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 }
