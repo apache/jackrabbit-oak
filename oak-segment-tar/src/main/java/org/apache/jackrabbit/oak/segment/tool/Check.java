@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
 /**
  * Perform a consistency check on an existing segment store.
  */
-public class Check implements Runnable {
+public class Check {
 
     /**
      * Create a builder for the {@link Check} command.
@@ -197,7 +197,7 @@ public class Check implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public Check build() {
             checkNotNull(path);
             checkNotNull(journal);
             return new Check(this);
@@ -238,13 +238,24 @@ public class Check implements Runnable {
         this.errWriter = builder.errWriter;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try {
-            ConsistencyChecker.checkConsistency(path, journal, debugInterval, checkBinaries, checkHead, checkpoints, filterPaths, 
-                    ioStatistics, outWriter, errWriter);
+            ConsistencyChecker.checkConsistency(
+                path,
+                journal,
+                debugInterval,
+                checkBinaries,
+                checkHead,
+                checkpoints,
+                filterPaths,
+                ioStatistics,
+                outWriter,
+                errWriter
+            );
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(errWriter);
+            return 1;
         }
     }
 
