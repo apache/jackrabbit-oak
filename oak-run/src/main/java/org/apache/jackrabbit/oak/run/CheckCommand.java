@@ -51,8 +51,8 @@ class CheckCommand implements Command {
                 .withRequiredArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("/");
         OptionSpec<?> head = parser.accepts("head", "checks only latest /root (i.e without checkpoints)");
         ArgumentAcceptingOptionSpec<String> cp = parser.accepts(
-                "checkpoints", "checks only specified checkpoints (comma separated); leave empty to check all")
-                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("/checkpoints");
+                "checkpoints", "checks only specified checkpoints (comma separated); use --checkpoints all to check all checkpoints")
+                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("all");
         OptionSpec<?> ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
 
         OptionSet options = parser.parse(args);

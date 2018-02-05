@@ -150,7 +150,7 @@ public class ConsistencyChecker implements Closeable {
             if (!checkpoints.isEmpty()) {
                 checkpointsSet.addAll(checkpoints);
 
-                if (checkpointsSet.remove("/checkpoints")) {
+                if (checkpointsSet.remove("all")) {
                     checkpointsSet = Sets
                             .newLinkedHashSet(SegmentNodeStoreBuilders.builder(checker.store).build().checkpoints());
                 }
