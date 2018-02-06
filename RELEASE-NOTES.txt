@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.2
 
 Introduction
 ------------
@@ -7,68 +7,37 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.1 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.2 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.1
+Changes in Oak 1.8.2
 ---------------------
-
-Technical task
-
-    [OAK-7060] - RDBDocumentStore.getStats() for SQLServer
-    [OAK-7137] - Upgrade to scr bnd plugin that places the metatype
-    files in the correct location
-    [OAK-7138] - Move metatype files in source control to correct
-    location
-    [OAK-7141] - Remove unused metatype.properties
-    [OAK-7142] - RDBDocumentStoreDB: use try-with-resources in new
-    code introduced for getStats()
 
 Bug
 
-    [OAK-4401] - Excerpt Highlighting for a property is not correct
-    [OAK-7131] - xpath to sql2 conversion drops order by clause for
-    some cases
-    [OAK-7132] - SNFE after full compaction
-    [OAK-7136] - Stop storing metatype.properties files under
-    OSGI-INF/metatype
-    [OAK-7147] - Oak run LuceneIndexer indexes excluded parent nodes
-    [OAK-7152] - CacheMap.clear() never returns
     [OAK-7162] - Race condition on revisions head between compaction
     and scheduler could result in skipped commit
-    [OAK-7168] - The debug command returns a zero exit code on error
-    [OAK-7169] - The datastorecheck returns a zero exit code on error
-    [OAK-7171] - The history command returns a zero exit code on error
     [OAK-7174] - The check command returns a zero exit code on error
-    [OAK-7176] - RevisionVector from empty string throws
-    StringIndexOutOfBoundsException
+    [OAK-7223] - Files could be kept partially in case of
+    disconnection from backends
+    [OAK-7227] - MountPermissionProvider getNumEntries prone to
+    overflow
+    [OAK-7241] - oak-run documentation typo for "checkpoints" command
+    [OAK-7244] - RDBDocumentStore: fix typo in metadata
 
 Improvement
 
-    [OAK-6031] - Add TarFiles to the architecture diagram
-    [OAK-7157] - Minimize the amount of generations retained by the
-    Cold Standby
-    [OAK-7158] - Users shouldn't be able to change the number of
-    retained generations
+    [OAK-6373] - oak-run check should also check checkpoints
+    [OAK-7222] - Log a warn when CoW opens input from remote due to
+    size mismatch
 
 Task
 
-    [OAK-7075] - Document oak-run compact arguments and system
-    properties
-    [OAK-7126] - make RDBCacheConsistency2Test store-agnostic
-    [OAK-7130] - Update README.md with Java 8 requirement
-    [OAK-7172] - Document TarMK specific MBeans
-    [OAK-7173] - Update documentation for oak-run check
-
-Documentation
-
-    [OAK-6941] - Compatibility matrix for oak-run compact
-    [OAK-6964] - Document tail compaction
-    [OAK-7112] - Update documentation for cold standby
+    [OAK-7189] - Improve code coverage for InitialContentMigrator
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.8.x release.
