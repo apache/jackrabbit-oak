@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -49,7 +50,6 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -398,6 +398,32 @@ public class FileIOUtilsTest {
         assertTrue(!f.exists());
     }
 
+    @Test
+    public void copyStreamToFile() throws Exception {
+        Set<String> added = newHashSet("a", "z", "e", "b");
+        File f = assertWrite(added.iterator(), false, added.size());
+
+        File f2 = folder.newFile();
+        FileIOUtils.copyInputStreamToFile(new FileInputStream(f), f2);
+        assertEquals(added, readStringsAsSet(new FileInputStream(f), false));
+        assertTrue(f.exists());
+    }
+
+    @Test
+    public void copyStreamToFileNoPartialCreation() throws Exception {
+        File f = folder.newFile();
+        FileIOUtils.copyInputStreamToFile(randomStream(12, 8192), f);
+
+        File f2 = folder.newFile();
+        try {
+            FileIOUtils.copyInputStreamToFile(new ErrorInputStream(f, 4096), f2);
+            Assert.fail("Should have failed with IOException");
+        } catch (Exception e) {}
+
+        assertTrue(f.exists());
+        assertTrue(!f2.exists());
+    }
+
     private static List<String> getLineBreakStrings() {
         return newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
             "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
@@ -452,5 +478,27 @@ public class FileIOUtilsTest {
         byte[] data = new byte[size];
         r.nextBytes(data);
         return new ByteArrayInputStream(data);
+    }
+
+    /**
+     * Throws error after reading partially defined by max
+     */
+    private static class ErrorInputStream extends FileInputStream {
+        private long bytesread;
+        private long max;
+
+        ErrorInputStream(File file, long max) throws FileNotFoundException {
+            super(file);
+            this.max = max;
+        }
+
+        @Override
+        public int read(byte b[]) throws IOException {
+            bytesread += b.length;
+            if (bytesread > max) {
+                throw new IOException("Disconnected");
+            }
+            return super.read(b);
+        }
     }
 }
