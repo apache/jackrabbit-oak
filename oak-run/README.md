@@ -23,7 +23,6 @@ The following runmodes are currently available:
     * revisions       : Revision GC on a DocumentMK
     * server          : Run the Oak Server.
     * tarmkdiff       : Show changes between revisions on TarMk
-    * tarmkrecovery   : Lists candidates for head journal entries
     * tika            : Performs text extraction
     * unlockUpgrade   : Unlock a DocumentMK upgrade to a newer version
     * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak.
@@ -435,18 +434,6 @@ Oak TarMK Revision Diff
 =======================
 
 See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#diff).
-
-<a name="tarmkrecovery"></a>
-Oak TarMK Revision Recovery
----------------------------
-
-Lists candidates for head journal entries. Uses a read-only store, so no updates will be performed on target repository.
-
-    $ java -jar oak-run-*.jar tarmkrecovery path/to/repository [--version-v10]
-
-The following options are available:
-
-    --version-v10           - Uses V10 version repository reading (see OAK-2527)
 
 Oak DataStore Check
 -------------------
