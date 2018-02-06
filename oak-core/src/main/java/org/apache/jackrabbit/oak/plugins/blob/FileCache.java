@@ -51,8 +51,8 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.copyInputStreamToFile;
 
 /**
  */
@@ -137,6 +137,9 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                             is = loader.load(key);
                             copyInputStreamToFile(is, cachedFile);
                             threw = false;
+                        } catch (Exception e) {
+                            LOG.warn("Error reading object for id [{}] from backend", key, e);
+                            throw e;
                         } finally {
                             Closeables.close(is, threw);
                         }
