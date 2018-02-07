@@ -59,6 +59,11 @@ public abstract class ProxyNodeStore implements NodeStore {
     }
 
     @Override
+    public Blob createExternalBlob() throws IOException {
+        return getNodeStore().createExternalBlob();
+    }
+
+    @Override
     public Blob getBlob(@Nonnull String reference) {
         return getNodeStore().getBlob(reference);
     }

@@ -249,6 +249,11 @@ public class CompositeNodeStore implements NodeStore, Observable {
     }
 
     @Override
+    public Blob createExternalBlob() throws IOException {
+        return ctx.createExternalBlob();
+    }
+
+    @Override
     public Blob getBlob(String reference) {
         for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
             Blob found = nodeStore.getNodeStore().getBlob(reference);

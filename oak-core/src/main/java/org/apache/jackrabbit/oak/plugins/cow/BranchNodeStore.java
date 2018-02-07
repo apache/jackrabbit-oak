@@ -109,6 +109,11 @@ public class BranchNodeStore implements NodeStore, Observable {
     }
 
     @Override
+    public Blob createExternalBlob() {
+        return memoryNodeStore.createExternalBlob();
+    }
+
+    @Override
     public Blob getBlob(@Nonnull String reference) {
         return memoryNodeStore.getBlob(reference);
     }

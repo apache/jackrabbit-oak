@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.PropertyOperation;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ExternalBinaryImpl;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -284,7 +285,13 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Binary getBinary() throws RepositoryException {
-        return getValue().getBinary();
+        Binary binary = getValue().getBinary();
+        if (binary instanceof ExternalBinaryImpl) {
+            ExternalBinaryImpl externalBinary = (ExternalBinaryImpl) binary;
+            // pass through necessary context for making access control checks
+            externalBinary.setJCRContext(getParent().getPath(), sessionContext.getAccessControlManager());
+        }
+        return binary;
     }
 
     @Override

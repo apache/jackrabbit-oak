@@ -103,6 +103,8 @@ public interface NodeStore {
     @Nonnull
     Blob createBlob(InputStream inputStream) throws IOException;
 
+    Blob createExternalBlob() throws IOException;
+
     /**
      * Get a blob by its reference.
      * @param reference  reference to the blob
@@ -188,5 +190,4 @@ public interface NodeStore {
      * @return {@code true} if the checkpoint was successfully removed, or if it doesn't exist
      */
     boolean release(@Nonnull String checkpoint);
-
 }

@@ -15,6 +15,8 @@
    limitations under the License.
   -->
 <configuration>
+    <!-- disable logback status output filling up stdout before tests run -->
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
 
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -29,15 +31,16 @@
         </encoder>
     </appender>
 
+    <logger name="com.amazonaws.http" level="DEBUG"/>
+    <logger name="sun.net.www.protocol.http.HttpURLConnection" level="DEBUG"/>
+
     <logger name="org.apache.jackrabbit.test.api" level="DEBUG"/>
     <logger name="com.mongodb.tcp" level="ERROR"/>
     <logger name="org.apache.jackrabbit.oak.jcr.operations" level="INFO"/>
     <logger name="org.apache.jackrabbit.oak.security.authentication" level="WARN"/>
 
     <root level="INFO">
-        <!--
         <appender-ref ref="console"/>
-        -->
         <appender-ref ref="file"/>
     </root>
 

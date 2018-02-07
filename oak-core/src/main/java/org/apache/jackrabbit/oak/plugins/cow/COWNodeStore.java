@@ -150,6 +150,11 @@ public class COWNodeStore implements NodeStore, Observable {
     }
 
     @Override
+    public Blob createExternalBlob() throws IOException {
+        return getNodeStore().createExternalBlob();
+    }
+
+    @Override
     public Blob getBlob(@Nonnull String reference) {
         return getNodeStore().getBlob(reference);
     }

@@ -157,6 +157,8 @@ public interface Root {
     @Nonnull
     Blob createBlob(@Nonnull InputStream stream) throws IOException;
 
+    Blob createExternalBlob() throws IOException;
+
     /**
      * Get a blob by its reference.
      * @param reference  reference to the blob

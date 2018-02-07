@@ -102,6 +102,11 @@ class UpgradeRoot implements Root {
     }
 
     @Override
+    public Blob createExternalBlob() throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Blob getBlob(@Nonnull String reference) {
         throw new UnsupportedOperationException();
     }

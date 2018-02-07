@@ -327,6 +327,11 @@ class MutableRoot implements Root {
     }
 
     @Override
+    public Blob createExternalBlob() throws IOException {
+        return store.createExternalBlob();
+    }
+
+    @Override
     public Blob getBlob(@Nonnull String reference) {
         return store.getBlob(reference);
     }

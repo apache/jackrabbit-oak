@@ -32,6 +32,7 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.ReferenceBinary;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.binary.ExternalBinaryValueFactory;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
@@ -64,7 +66,7 @@ import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
 /**
  * Implementation of {@link ValueFactory} interface.
  */
-public class ValueFactoryImpl implements ValueFactory {
+public class ValueFactoryImpl implements ValueFactory, ExternalBinaryValueFactory {
     private static final PerfLogger binOpsLogger = new PerfLogger(
             LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
     private final Root root;
@@ -300,6 +302,22 @@ public class ValueFactoryImpl implements ValueFactory {
 
     private ValueImpl createBinaryValue(Blob blob) throws RepositoryException {
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
+    }
+
+    @Override
+    public Binary createNewExternalBinary() throws RepositoryException {
+        try {
+            Blob externalBlob = root.createExternalBlob();
+            if (externalBlob == null) {
+                return null;
+            }
+            // note we are NOT creating a ExternalBinaryImpl here on purpose, the API requires
+            // the user to fetch the binary after the session.save() again to retrieve a possible
+            // ExternalBinary, after all permission & commit evaluation
+            return new BinaryImpl(createBinaryValue(externalBlob));
+        } catch (IOException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     //------------------------------------------------------------< ErrorValue >---

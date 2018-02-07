@@ -18,17 +18,17 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.util.Properties;
 
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.ExternalDataStore;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore {
+public class S3DataStore extends AbstractSharedCachingDataStore implements ExternalDataStore {
 
     protected Properties properties;
 
@@ -66,5 +66,10 @@ public class S3DataStore extends AbstractSharedCachingDataStore {
 
     public void setMinRecordLength(int minRecordLength) {
         this.minRecordLength = minRecordLength;
+    }
+
+    @Override
+    public String getPutURL(DataIdentifier identifier) {
+        return ((S3Backend) getBackend()).createPresignedPutURL(identifier);
     }
 }

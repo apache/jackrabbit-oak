@@ -154,6 +154,10 @@ class CompositionContext {
         return globalStore.getNodeStore().createBlob(inputStream);
     }
 
+    public Blob createExternalBlob() throws IOException {
+        return globalStore.getNodeStore().createExternalBlob();
+    }
+
     boolean belongsToStore(final MountedNodeStore mountedNodeStore, final String parentPath, final String childName) {
         return getOwningStore(PathUtils.concat(parentPath, childName)) == mountedNodeStore;
     }
@@ -194,5 +198,4 @@ class CompositionContext {
     CompositeNodeStoreMonitor getNodeBuilderMonitor() {
         return nodeBuilderMonitor;
     }
-
 }

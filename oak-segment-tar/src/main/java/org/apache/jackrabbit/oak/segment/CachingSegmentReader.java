@@ -29,6 +29,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.ExternalBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -142,6 +143,13 @@ public class CachingSegmentReader implements SegmentReader {
     @Nonnull
     @Override
     public SegmentBlob readBlob(@Nonnull RecordId id) {
+        if (blobStore instanceof ExternalBlobStore) {
+            ExternalBlobStore extBlobStore = (ExternalBlobStore) blobStore;
+            String blobId = SegmentBlob.readBlobId(id.getSegment(), id.getRecordNumber());
+            if (extBlobStore.isExternalBlob(blobId)) {
+                return new SegmentExternalBlob(extBlobStore, id);
+            }
+        }
         return new SegmentBlob(blobStore, id);
     }
 

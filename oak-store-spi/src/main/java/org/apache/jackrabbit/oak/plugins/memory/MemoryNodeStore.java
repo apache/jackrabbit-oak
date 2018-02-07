@@ -191,6 +191,12 @@ public class MemoryNodeStore implements NodeStore, Observable {
     }
 
     @Override
+    public Blob createExternalBlob() {
+        // no external blobs supported with memory storage
+        return null;
+    }
+
+    @Override
     public Blob getBlob(@Nonnull String reference) {
         return null;
     }

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
@@ -135,6 +136,11 @@ public final class ImmutableRoot implements Root, ReadOnly {
 
     @Override @Nonnull
     public Blob createBlob(@Nonnull InputStream stream) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Blob createExternalBlob() throws IOException {
         throw new UnsupportedOperationException();
     }
 

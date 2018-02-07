@@ -324,6 +324,11 @@ public class DelegateeTest extends AbstractJmxTest {
             return base.createBlob(stream);
         }
 
+        @Override
+        public Blob createExternalBlob() throws IOException {
+            return base.createExternalBlob();
+        }
+
         @CheckForNull
         @Override
         public Blob getBlob(@Nonnull String reference) {
