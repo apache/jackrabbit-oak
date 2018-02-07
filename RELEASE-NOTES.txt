@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.8
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.9
 
 Introduction
 ------------
@@ -7,45 +7,34 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.8 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.9 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.8
+Changes in Oak 1.6.9
 ---------------------
-
-Technical task
-
-    [OAK-7068] - RDBBlobStore may wrap SQLExceptions into
-    RuntimeExceptions
-    [OAK-7069] - RDBDataSourceWrapper: properly name
-    setTemporaryUpdateException
 
 Bug
 
-    [OAK-6047] - incorrect metatype annotations
-    [OAK-7007] - Test failure: FacetTest.testFacetsNA()
-    [OAK-7050] - Offline compaction corrupts repository
-    [OAK-7070] - rep:excerpt selector broken as regression of OAK-6750
-    [OAK-7078] - NullPointerException in
-    FilteredSortedSetDocValuesFacetCounts during query evaluation
-    [OAK-7101] - Stale documents in RDBDocumentStore cache
-    [OAK-7119] - Restrict de-serialization mechanism for older
-    serialized cache map in DataStoreCacheUtils to the classes
-    required
+    [OAK-4401] - Excerpt Highlighting for a property is not correct
+    [OAK-7131] - xpath to sql2 conversion drops order by clause for
+    some cases
+    [OAK-7152] - CacheMap.clear() never returns
+    [OAK-7176] - RevisionVector from empty string throws
+    StringIndexOutOfBoundsException
+    [OAK-7223] - Files could be kept partially in case of
+    disconnection from backends
 
 Improvement
 
-    [OAK-7121] - DocumentStore testing: allow config of
-    DocumentMK.Builder in AbstractDocumentStoreTest
+    [OAK-4318] - Upgrade oak-solr to Solr 5.x
 
 Task
 
-    [OAK-6952] - add SHA512 checksums to releases
-    [OAK-7120] - Use specific MongoDB version on travis-ci
+    [OAK-7126] - make RDBCacheConsistency2Test store-agnostic
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
