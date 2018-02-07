@@ -698,13 +698,13 @@ This tool is the counterpart of `backup`.
 ### <a name="check"/> Check
 
 ```
-java -jar oak-run.jar check PATH [--journal JOURNAL] [--notify SECS] [--bin] [--filter PATH1[,PATH2,..,PATHn]] [--io-stats]
+java -jar oak-run.jar check PATH [--journal JOURNAL] [--notify SECS] [--bin] [--head] [--checkpoints all | cp1[,cp2,..,cpn]]  [--filter PATH1[,PATH2,..,PATHn]] [--io-stats]
 ```
 
 The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
 The algorithm implemented by this tool traverses every revision in the journal, from the most recent to the oldest.
-For every revision, the actual nodes and properties are traversed, verifying that every piece of data is reachable and undamaged.
-A deep scan of the content tree, traversing every node, will be performed by default.
+For every revision, the actual nodes and properties are traversed, verifying that every piece of data is reachable and undamaged. Moreover, if `--head` and `--checkpoints` options are used, the scope of the traversal can be limited to head state and/or a subset of checkpoints.
+A deep scan of the content tree, traversing every node and every property will be performed by default. The default scope includes head state and all checkpoints.
   
 If the `--journal` option is specified, the tool will use the journal file at `JOURNAL` instead of picking up the one contained in `PATH`. 
 `JOURNAL` must be a path to a valid journal file for the Segment Store. 
@@ -717,9 +717,18 @@ If the `--bin` option is specified, the tool will scan the full content of binar
 If not specified, the binary properties will not be traversed.
 The `--bin` option has no effect on binary properties stored in an external Blob Store.
 
+If the `--head` option is specified, the tool will scan **only** the head state, ignoring any available checkpoints.
+
+If the `--checkpoints` option is specified, the tool will scan **only** the specified checkpoints, ignoring the head state. At least one argument is expected with this option; multiple arguments need to be comma-separated.
+The checkpoints will be traversed in the same order as they were specified. In order to scan all checkpoints, the correct argument for this option is `all` (i.e. `--checkpoints all`).
+
+As mentioned in the paragraph above, by default, both head state and all checkpoints will be checked. In other words, this is equivalent to having both options, `--head` and `--checkpoints all`, specified.
+
 If the `--filter` option is specified, the tool will traverse only the absolute paths specified as arguments.
 At least one argument is expected with this option; multiple arguments need to be comma-separated.
-The paths will be traversed in the same order as they were specified.
+The paths will be traversed in the same order as they were specified. 
+
+The filtering applies to both head state and/or checkpoints, depending on the scope of the scan. For example, `--head --filter PATH1` will limit the traversal to `PATH1` under head state, `--checkpoints cp1 --filter PATH2` will limit the traversal to `PATH2` under `cp1`, while `--filter PATH3` will limit it to `PATH3`, **for both head state and all checkpoints**.
 If the option is not specified, the full traversal of the repository (rooted at `/`) will be performed.
 
 If the `--io-stats` option is specified, the tool will print some statistics about the I/O operations performed during the execution of the check command.
