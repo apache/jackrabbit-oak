@@ -364,7 +364,8 @@ public class BenchmarkRunner {
             new ReadWithMembershipTest(
                     itemsToRead.value(options),
                     report.value(options),
-                    numberOfGroups.value(options)),
+                    numberOfGroups.value(options),
+                    numberOfInitialAce.value(options)),
             new ConcurrentTraversalTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),

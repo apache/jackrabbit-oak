@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.InputStream;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,14 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
+
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.util.Text;
 
 /**
  * Randomly read 1000 items from the deep tree.
@@ -168,6 +176,38 @@ public class ReadDeepTreeTest extends AbstractTest {
         } else {
             return loginAnonymous();
         }
+    }
+
+    protected void addPolicy(AccessControlManager acMgr, Node node, Privilege[] privileges, List<Principal> principals) throws RepositoryException {
+        addPolicy(acMgr, node, privileges, principals.toArray(new Principal[principals.size()]));
+    }
+
+    protected void addPolicy(AccessControlManager acMgr, Node node, Privilege[] privileges, Principal... principals) throws RepositoryException {
+        String path = getAccessControllablePath(node);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(node.getSession(), path);
+        if (acl != null) {
+            for (Principal principal : principals) {
+                acl.addAccessControlEntry(principal, privileges);
+            }
+            acMgr.setPolicy(path, acl);
+            node.getSession().save();
+        }
+    }
+
+    protected static String getAccessControllablePath(Node node) throws RepositoryException {
+        String path = node.getPath();
+        int level = 0;
+        if (node.isNodeType(AccessControlConstants.NT_REP_POLICY)) {
+            level = 1;
+        } else if (node.isNodeType(AccessControlConstants.NT_REP_ACE)) {
+            level = 2;
+        } else if (node.isNodeType(AccessControlConstants.NT_REP_RESTRICTIONS)) {
+            level = 3;
+        }
+        if (level > 0) {
+            path = Text.getRelativeParent(path, level);
+        }
+        return path;
     }
 
 }
