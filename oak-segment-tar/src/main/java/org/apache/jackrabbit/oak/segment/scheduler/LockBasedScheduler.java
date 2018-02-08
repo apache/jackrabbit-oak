@@ -267,7 +267,6 @@ public class LockBasedScheduler implements Scheduler {
                 if (revisions.setHead(before.getRecordId(), after.getRecordId())) {
                     head.set(after);
                     contentChanged(after.getChildNode(ROOT), commit.info());
-                    refreshHead(true);
                     
                     return head.get().getChildNode(ROOT);
                 } 
