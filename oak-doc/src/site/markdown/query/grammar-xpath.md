@@ -140,9 +140,9 @@ rep:excerpt( [. | [ relativePath / ] @propertyName ]  )
 <br/> | rep:facet ( [ relativePath / ] @propertyName )
 </h4>
 
-"rep:excerpt": include the spellcheck column in the result.
+"rep:excerpt": include the excerpt in the result.
 Since Oak version 1.8.1, optionally a property name can be specified.
-See also <a href="lucene.html#Property_Definitions">useInExcerpt</a>.
+See <a href="query-engine.html#Excerpts_and_Highlighting">Excerpts and Highlighting</a>.
 
 "rep:spellcheck": Include the spellcheck in the result.
 See <a href="query-engine.html#Spellchecking">Spellchecking</a>.
@@ -154,6 +154,10 @@ See <a href="query-engine.html#Suggestions">Suggestions</a>.
 See <a href="query-engine.html#Facets">Facets</a>.
 
 Examples:
+
+    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt())
+
+    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt(@jcr:title) | rep:excerpt())
 
     /jcr:root/content//*[rep:suggest('in ')]/(rep:suggest())
 

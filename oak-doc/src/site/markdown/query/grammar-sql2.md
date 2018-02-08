@@ -76,6 +76,9 @@ Examples:
 
 It is recommended to enclose property names in square brackets.
 
+For the "excerpt" property, 
+see <a href="query-engine.html#Excerpts_and_Highlighting">Excerpts and Highlighting</a>.
+
 Not listed above are "special" properties such as "[jcr:path]" (the path), "[jcr:score]" (the score),
 "[rep:suggest()]".
 
