@@ -42,6 +42,7 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.Privilege;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.binary.ExternalBinary;
@@ -63,33 +64,42 @@ import org.junit.rules.TemporaryFolder;
 
 public class ExternalBinaryIT {
 
+    private static final int MB = 1024 * 1024;
+    private static final int SECONDS = 1000;
+
     @Rule
-    public TemporaryFolder folder = new TemporaryFolder(new File("target")) {
-        @Override
-        protected void after() {
-            //delete();
-        }
-    };
-    
-    private File dataStoreDir;
-    private Properties s3Props;
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    private Repository repository;
 
     @Before
     public void setUp() throws Exception {
-        dataStoreDir = folder.newFolder();
-        s3Props = new Properties();
-        s3Props.load(new FileReader(System.getProperty("s3.config", "s3.properties")));
+        repository = new Jcr(
+            new Oak(
+                buildNodeStoreWithS3()
+            )
+        ).createRepository();
     }
 
     protected NodeStore buildNodeStoreWithS3() throws IOException {
+        // create a SegmentNodeStore with
+        // - segments in memory
+        // - S3 data store as blob store
         return SegmentNodeStoreBuilders.builder(new MemoryStore() {
             @CheckForNull
             @Override
             public BlobStore getBlobStore() {
                 try {
+                    // read S3 config file
+                    Properties s3Props = new Properties();
+                    s3Props.load(new FileReader(System.getProperty("s3.config", "s3.properties")));
+
+                    // create S3 DS
                     S3DataStore s3 = new S3DataStore();
                     s3.setProperties(s3Props);
-                    s3.init(dataStoreDir.getAbsolutePath());
+
+                    // init with a new folder inside a temporary one
+                    s3.init(folder.newFolder().getAbsolutePath());
                     return new DataStoreBlobStore(s3);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -99,25 +109,41 @@ public class ExternalBinaryIT {
         }).build();
     }
 
-    protected Session createAdminSession(Repository repository) throws RepositoryException {
+    protected Session createAdminSession() throws RepositoryException {
         return repository.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
     }
 
-    protected Session createAnonymousSession(Repository repository) throws RepositoryException {
-        Session admin = createAdminSession(repository);
+    /** Create an anonymous session and ensure anonymous has read permission at the root */
+    protected Session createAnonymousSession() throws RepositoryException {
+        Session admin = createAdminSession();
         AccessControlUtils.addAccessControlEntry(admin, "/", EveryonePrincipal.getInstance(), new String[] {Privilege.JCR_READ}, true);
         admin.save();
         return repository.login(new GuestCredentials());
     }
 
+    // disabled, just a comparison playground for current blob behavior
+    //@Test
+    public void testReferenceBinary() throws Exception {
+        Session session = createAdminSession();
+        Node file = session.getRootNode().addNode("file");
+        file.setProperty("binary", session.getValueFactory().createBinary(getTestInputStream(2 * MB)));
+        session.save();
+
+        waitForS3Uploads();
+
+        Binary binary = file.getProperty("binary").getBinary();
+        if (binary instanceof ReferenceBinary) {
+            ReferenceBinary referenceBinary = (ReferenceBinary) binary;
+            String ref = referenceBinary.getReference();
+            System.out.println("Ref: " + ref);
+            String blobId = ref.substring(0, ref.indexOf(':'));
+            System.out.println("blobId: " + blobId);
+        }
+    }
+
     @Test
     public void testExternalBinary() throws Exception {
-        Repository repository = new Jcr(
-            new Oak(
-                buildNodeStoreWithS3()
-            )
-        ).createRepository();
-        Session session = createAdminSession(repository);
+        Session session = createAdminSession();
         Node file = session.getRootNode().addNode("file");
 
         ValueFactory valueFactory = session.getValueFactory();
@@ -140,7 +166,7 @@ public class ExternalBinaryIT {
             System.out.println(">>> NO external binary support");
             // TODO: normally, a client would set an empty binary here and overwrite with an inputstream in a future, 2nd request
             // generate 2 MB of meaning less bytes
-            placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * 1024 * 1024));
+            placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * MB));
         }
         Value binaryValue = valueFactory.createValue(placeholderBinary);
         file.setProperty("binary", binaryValue);
@@ -156,7 +182,7 @@ public class ExternalBinaryIT {
             Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
         }
 
-        Session anonymousSession = createAnonymousSession(repository);
+        Session anonymousSession = createAnonymousSession();
         Binary anonBinary = anonymousSession.getNode("/file").getProperty("binary").getBinary();
         if (anonBinary instanceof ExternalBinary) {
             ExternalBinary extAnonBinary = (ExternalBinary) anonBinary;
@@ -167,8 +193,12 @@ public class ExternalBinaryIT {
             }
         }
 
+        waitForS3Uploads();
+    }
+
+    private void waitForS3Uploads() throws InterruptedException {
         // let s3 upload threads finish
-        Thread.sleep(5 * 1000);
+        Thread.sleep(5 * SECONDS);
     }
 
     private static InputStream getTestInputStream(String content) {
