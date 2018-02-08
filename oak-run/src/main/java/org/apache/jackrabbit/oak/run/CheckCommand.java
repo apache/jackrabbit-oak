@@ -40,8 +40,6 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<String> journal = parser.accepts(
                 "journal", "journal file")
                 .withRequiredArg().ofType(String.class).defaultsTo("journal.log");
-        OptionSpec<?> deep = parser.accepts(
-                "deep", "<deprecated> enable deep consistency checking.");
         ArgumentAcceptingOptionSpec<Long> notify = parser.accepts(
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
@@ -73,11 +71,6 @@ class CheckCommand implements Command {
             checkpoints.addAll(cp.values(options));
         }
 
-        if (options.has(deep)) {
-            printUsage(parser, err, "The --deep option was deprecated! Please do not use it in the future!"
-                    , "A deep scan of the content tree, traversing every node, will be performed by default.");
-        }
-        
         boolean checkHead = !options.has(cp) || options.has(head);
 
         int statusCode = Check.builder()
