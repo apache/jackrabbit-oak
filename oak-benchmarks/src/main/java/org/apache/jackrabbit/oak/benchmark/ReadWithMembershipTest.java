@@ -16,8 +16,12 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.security.Principal;
 import java.util.UUID;
+import javax.jcr.Item;
+import javax.jcr.Node;
 import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
@@ -41,11 +45,13 @@ public class ReadWithMembershipTest extends ReadDeepTreeTest {
 
     private final String userId;
     private final int membershipSize;
+    private final int numberOfAces;
 
-    protected ReadWithMembershipTest(int itemsToRead, boolean doReport, int membershipSize) {
+    protected ReadWithMembershipTest(int itemsToRead, boolean doReport, int membershipSize, int numberOfAces) {
         super(false, itemsToRead, doReport, false);
         userId = "user-" + UUID.randomUUID();
         this.membershipSize = membershipSize;
+        this.numberOfAces = numberOfAces;
     }
 
     @Override
@@ -59,12 +65,20 @@ public class ReadWithMembershipTest extends ReadDeepTreeTest {
             Group g = userManager.createGroup("group" + i);
             g.addMember(user);
 
-            AccessControlUtils.addAccessControlEntry(adminSession, g.getPath(), g.getPrincipal(), new String[] {PrivilegeConstants.JCR_READ}, true);
-            AccessControlUtils.addAccessControlEntry(adminSession, testRoot.getPath(), g.getPrincipal(), new String[] {PrivilegeConstants.JCR_READ}, true);
-
+            setupACEs(g.getPrincipal());
         }
         adminSession.save();
+    }
 
+    private void setupACEs(Principal principal) throws RepositoryException {
+        int size = allPaths.size();
+        for (int i = 0; i < numberOfAces; i++) {
+            int index = (int) Math.floor(size * Math.random());
+            Item item = adminSession.getItem(allPaths.get(index));
+            Node n = (item.isNode()) ? (Node) item : item.getParent();
+            String path = getAccessControllablePath(n);
+            AccessControlUtils.addAccessControlEntry(adminSession, path, principal, new String[] {PrivilegeConstants.JCR_READ}, true);
+        }
     }
 
     @Override
