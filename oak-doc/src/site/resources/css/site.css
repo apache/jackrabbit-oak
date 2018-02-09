@@ -28,7 +28,9 @@ pre {
     div[id="bodyColumn"] h1 > a[name],
     div[id="bodyColumn"] h2 > a[name],
     div[id="bodyColumn"] h3 > a[name],
-    div[id="bodyColumn"] h4 > a[name] {
+    div[id="bodyColumn"] h4 > a[name],
+    div[id="bodyColumn"] h5 > a[name],
+    div[id="bodyColumn"] h6 > a[name] {
         visibility: hidden;
         content: "";
         display: block;
