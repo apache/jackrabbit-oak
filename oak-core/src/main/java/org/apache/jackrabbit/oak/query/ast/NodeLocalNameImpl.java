@@ -143,7 +143,7 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
             return null;
         }
         return new OrderEntry(
-                QueryConstants.RESTRICTION_LOCAL_NAME, 
+                QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(s),
             Type.STRING, 
             o.isDescending() ? 
             OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
