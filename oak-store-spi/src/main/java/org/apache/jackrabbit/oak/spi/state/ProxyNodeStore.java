@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
@@ -59,8 +60,8 @@ public abstract class ProxyNodeStore implements NodeStore {
     }
 
     @Override
-    public Blob createExternalBlob() throws IOException {
-        return getNodeStore().createExternalBlob();
+    public URLWritableBlob createURLWritableBlob() throws IOException {
+        return getNodeStore().createURLWritableBlob();
     }
 
     @Override

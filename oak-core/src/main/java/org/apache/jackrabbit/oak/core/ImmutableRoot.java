@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
@@ -140,7 +141,7 @@ public final class ImmutableRoot implements Root, ReadOnly {
     }
 
     @Override
-    public Blob createExternalBlob() throws IOException {
+    public URLWritableBlob createURLWritableBlob() throws IOException {
         throw new UnsupportedOperationException();
     }
 

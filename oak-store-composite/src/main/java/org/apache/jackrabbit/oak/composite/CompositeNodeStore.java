@@ -24,6 +24,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -249,8 +250,8 @@ public class CompositeNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public Blob createExternalBlob() throws IOException {
-        return ctx.createExternalBlob();
+    public URLWritableBlob createURLWritableBlob() throws IOException {
+        return ctx.createURLWritableBlob();
     }
 
     @Override

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
@@ -254,6 +255,8 @@ class MutableRoot implements Root {
             permissionProvider.get().refresh();
         }
         moveTracker.clear();
+        // TODO: tell all tracked external blobs they are committed and can provide getWriteURL()
+        //       for a limited time, say 10 minutes
     }
 
     @Override
@@ -327,8 +330,8 @@ class MutableRoot implements Root {
     }
 
     @Override
-    public Blob createExternalBlob() throws IOException {
-        return store.createExternalBlob();
+    public URLWritableBlob createURLWritableBlob() throws IOException {
+        return store.createURLWritableBlob();
     }
 
     @Override

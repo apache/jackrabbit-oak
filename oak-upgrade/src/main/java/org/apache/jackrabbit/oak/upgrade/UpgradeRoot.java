@@ -102,7 +102,7 @@ class UpgradeRoot implements Root {
     }
 
     @Override
-    public Blob createExternalBlob() throws IOException {
+    public Blob createURLWritableBlob() throws IOException {
         throw new UnsupportedOperationException();
     }
 

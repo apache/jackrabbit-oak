@@ -18,21 +18,24 @@
 
 package org.apache.jackrabbit.oak.api.binary;
 
-import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 
 public interface URLWritableBinaryValueFactory {
 
     /**
-     * Creates a new URL accessible binary as a placeholder, if supported.
+     * Creates a new URLWritableBinary for uploading to the binary content through a URL instead of
+     * an InputStream passed through the JCR API, if supported.
      *
-     * This allows upload or download of the binary stream directly to cloud storage such as S3 after the
-     * session has been persisted.
+     * A typical use case is if the repository is backed by a binary cloud storage such as S3, where
+     * the binary can be uploaded to S3 directly.
      *
-     * If the underlying data store does not support this, {@code null}
+     * Note that the write URL of the binary can only be retrieved after it has been set as a binary
+     * Property on a Node and after the session has been successfully persisted.
+     *
+     * If the underlying data store does not support this feature, {@code null}
      * is returned and the binary has to be passed in directly using InputStream as in JCR 2.0.
      *
-     * @return a new external Binary placeholder or {@code null} if external binaries are not supported
+     * @return a new URLWritableBinary or {@code null} if external binaries are not supported
      */
-    Binary createURLWritableBinary() throws RepositoryException;
+    URLWritableBinary createURLWritableBinary() throws RepositoryException;
 }

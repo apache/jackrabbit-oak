@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
+import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -304,16 +306,14 @@ public class ValueFactoryImpl implements ValueFactory, URLWritableBinaryValueFac
     }
 
     @Override
-    public Binary createURLWritableBinary() throws RepositoryException {
+    public URLWritableBinary createURLWritableBinary() throws RepositoryException {
         try {
-            Blob externalBlob = root.createExternalBlob();
+            URLWritableBlob externalBlob = root.createURLWritableBlob();
             if (externalBlob == null) {
+                // not supported
                 return null;
             }
-            // note we are NOT creating a ExternalBinaryImpl here on purpose, the API requires
-            // the user to fetch the binary after the session.save() again to retrieve a possible
-            // ExternalBinary, after all permission & commit evaluation
-            return new BinaryImpl(createBinaryValue(externalBlob));
+            return new URLWritableBinaryImpl(new ValueImpl(BinaryPropertyState.binaryProperty("", externalBlob), namePathMapper), externalBlob);
         } catch (IOException e) {
             throw new RepositoryException(e);
         }

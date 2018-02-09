@@ -25,6 +25,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
@@ -103,7 +104,7 @@ public interface NodeStore {
     @Nonnull
     Blob createBlob(InputStream inputStream) throws IOException;
 
-    Blob createExternalBlob() throws IOException;
+    URLWritableBlob createURLWritableBlob() throws IOException;
 
     /**
      * Get a blob by its reference.

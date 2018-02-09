@@ -325,8 +325,8 @@ public class DelegateeTest extends AbstractJmxTest {
         }
 
         @Override
-        public Blob createExternalBlob() throws IOException {
-            return base.createExternalBlob();
+        public Blob createURLWritableBlob() throws IOException {
+            return base.createURLWritableBlob();
         }
 
         @CheckForNull

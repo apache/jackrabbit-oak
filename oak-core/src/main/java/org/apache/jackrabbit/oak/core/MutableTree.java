@@ -224,6 +224,8 @@ final class MutableTree extends AbstractMutableTree {
     public void setProperty(@Nonnull PropertyState property) {
         beforeWrite();
         super.setProperty(property);
+        // TODO: check if this is an external blob
+        //       call root.trackExternalBlob(blob)
         root.updated();
     }
 

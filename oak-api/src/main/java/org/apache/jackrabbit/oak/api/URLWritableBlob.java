@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.api;
 import java.net.URL;
 import javax.annotation.Nullable;
 
-public interface URLWritableBlob {
+public interface URLWritableBlob extends Blob {
 
     @Nullable
     URL getWriteURL();

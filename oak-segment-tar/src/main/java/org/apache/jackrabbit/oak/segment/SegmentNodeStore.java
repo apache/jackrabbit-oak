@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.segment.scheduler.Commit;
 import org.apache.jackrabbit.oak.segment.scheduler.LockBasedScheduler;
@@ -233,7 +234,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public Blob createExternalBlob() throws IOException {
+    public URLWritableBlob createURLWritableBlob() throws IOException {
         if (blobStore == null || !(blobStore instanceof URLWritableBlobStore)) {
             // SegmentNodeStore itself cannot provide (true) external binaries
             return null;
@@ -243,7 +244,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
         if (blobId == null) {
             return null;
         }
-        return new SegmentBlob(blobStore, writer.writeBlobId(blobId));
+        // TODO: writer.writeBlobId is WRONG HERE
+        return new SegmentURLWritableBlob(urlWritableBlobStore, writer.writeBlobId(blobId));
     }
 
     @Override
