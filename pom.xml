@@ -117,6 +117,7 @@
       <id>doc</id>
       <modules>
         <module>oak-doc</module>
+        <module>oak-doc-railroad-macro</module>
       </modules>
     </profile>
     <profile>

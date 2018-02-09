@@ -14,32 +14,40 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+#set($h1 = '#')
+#set($h2 = '##')
+#set($h3 = '###')
+#set($h4 = '####')
 
-## Oak XPath Query Grammar
+#set($xpath-grammar = ${project.basedir} + '/src/site/resources/grammar/xpath.csv')
 
-* [Query](#query)
-* [Filter](#filter)
-* [Column](#column)
-* [Constraint](#constraint)
-* [And Condition](#andCondition)
-* [Condition](#condition)
-* [Comparison](#comparison)
-* [Static Operand](#staticOperand)
-* [Ordering](#ordering)
-* [Dynamic Operand](#dynamicOperand)
-* [Options](#options)
-* [Explain](#explain)
-* [Measure](#measure)
+#macro( railroad_link $topic )
+<!-- MACRO{railroad|file=$xpath-grammar|topic=$topic|renderLink=true} -->
+#end
 
-<hr />
-<h3 id="query">Query</h3>
+#macro( render $topic )
+<!-- MACRO{railroad|file=$xpath-grammar|topic=$topic} -->
+#end
 
-<h4>
-/jcr:root { <a href="#filter">filter</a> [ ... ] } }
-<br/> [ ( <a href="#column">column</a> [ | ... ] } ) ]
-<br/> [ order by { <a href="#ordering">ordering</a> [ , ... ] } ]
-<br/> [ <a href="#options">queryOptions</a> ]
-</h4>
+$h2 Oak XPath Query Grammar - ${project.name}
+
+* #railroad_link( 'Query' )
+* #railroad_link( 'Filter' )
+* #railroad_link( 'Column' )
+* #railroad_link( 'Constraint' )
+* #railroad_link( 'And Condition' )
+* #railroad_link( 'Condition' )
+* #railroad_link( 'Comparison' )
+* #railroad_link( 'Static Operand' )
+* #railroad_link( 'Ordering' )
+* #railroad_link( 'Dynamic Operand' )
+* #railroad_link( 'Options' )
+* #railroad_link( 'Explain' )
+* #railroad_link( 'Measure' )
+
+---
+
+#render( 'Query' )
 
 The "/jcr:root" means the root node. 
 It is recommended that all XPath queries start with this term.
@@ -70,18 +78,9 @@ Get all nodes below /etc that have the property type set to 'report'; fail the q
     /jcr:root/etc//*[@type='report'] option(traversal fail)
 
 
-<hr />
-<h3 id="filter">Filter</h3>
+---
 
-<h4>
-/ <a href="#filter">directChildNodeFilter</a>
-<br/> | // <a href="#filter">descendantNodeFilter</a>
-<br/> | *
-<br/> | element( [ * | nodeName ] [, nodeType] )
-<br/> | text()
-<br/> | '[' <a href="#constraint">constraint</a> ']'
-<br/> | ( filter '|' unionFilter [...] )
-</h4>
+#render( 'Filter' )
 
 A single slash means filtering on a specific child node,
 while two slashes means filtering on a descendant node.
@@ -130,15 +129,9 @@ The paths '/libs' and '/etc' should be searched:
     /jcr:root/(libs | etc)//*[@jcr:uuid and @jcr:mimeType = 'text/css']
 
 
-<hr />
-<h3 id="column">Column</h3>
+---
 
-<h4>
-rep:excerpt( [. | [ relativePath / ] @propertyName ]  )
-<br/> | rep:spellcheck()
-<br/> | rep:suggest( [.] )
-<br/> | rep:facet ( [ relativePath / ] @propertyName )
-</h4>
+#render( 'Column' )
 
 "rep:excerpt": include the excerpt in the result.
 Since Oak version 1.8.1, optionally a property name can be specified.
@@ -164,12 +157,9 @@ Examples:
     /jcr:root/content//*[jcr:contains(@jcr:title, 'oak')]/(rep:facet(@tags))
 
 
-<hr />
-<h3 id="constraint">Constraint</h3>
+---
 
-<h4>
-<a href="#andCondition">andCondition</a> [ { or <a href="#andCondition">andCondition</a> } [...] ]
-</h4>
+#render( 'Constraint' )
 
 "or" conditions of the form "@x = 1 or @x = 2" can use the same index.
 
@@ -185,12 +175,9 @@ or don't have the property set:
     /jcr:root/content/dam/*[@hidden='hidden-folder' or not(@hidden)]
 
 
-<hr />
-<h3 id="andCondition">And Condition</h3>
+---
 
-<h4>
-<a href="#condition">condition</a> [ { and <a href="#condition">condition</a> } [...] ]
-</h4>
+#render( 'And Condition' )
 
 A special case (not found in relational databases) is
 "and" conditions of the form "@x = 1 and @x = 2".
@@ -202,21 +189,9 @@ Examples:
     /jcr:root/home//element(*, rep:Authorizable)[@rep:principalName != 'Joe' and @rep:principalName != 'Steve']
 
 
-<hr />
-<h3 id="condition">Condition</h3>
+---
 
-<h4>
-<a href="#comparison">comparison</a>
-<br/> <a href="#inComparison">inComparison</a>
-<br/> | [ [ fn:not | not ] (<a href="#constraint">constraint</a>)
-<br/> | ( <a href="#constraint">constraint</a> )
-<br/> | jcr:contains( [ { property | . } , ] fulltextSearchExpression )
-<br/> | jcr:like( dynamicOperand , staticOperand )
-<br/> | rep:similar ( propertyName , staticOperand )
-<br/> | rep:native ( language , staticOperand )
-<br/> | rep:spellcheck ( staticOperand )
-<br/> | rep:suggest ( staticOperand )
-</h4>
+#render( 'Condition' )
 
 "fn:not": this is used for both "is not null", and for nested conditions.
 For example "fn:not(@status)" means nodes where this property is not set.
@@ -249,14 +224,9 @@ Examples:
     /jcr:root/content//element(*, cq:Page)[@offTime > xs:dateTime('2020-12-01T20:00:00.000') or @onTime > xs:dateTime('2020-12-01T20:00:00.000')]
 
 
-<hr />
-<h3 id="comparison">Comparison</h3>
+---
 
-<h4>
-<a href="#dynamicOperand">dynamicOperand</a> 
-{ = | &lt;&gt; | != | &lt; | &lt;= | &gt; | &gt;= } 
-<a href="#staticOperand">staticOperand</a>
-</h4>
+#render( 'Comparison' )
 
 Comparison using &lt;, &gt;, &gt;=, and &lt;= can use an index if the property in the index is ordered.
 
@@ -266,17 +236,9 @@ Examples:
     @offTime > xs:dateTime('2020-12-01T20:00:00.000')
 
 
-<hr />
-<h3 id="staticOperand">Static Operand</h3>
+---
 
-<h4>
-textLiteral
-<br/> | $ bindVariableName
-<br/> | [ + | - ] numberLiteral
-<br/> | true [ () ]
-<br/> | false [ () ]
-<br/> | xs:dateTime ( literal )
-</h4>
+#render( 'Static Operand' )
 
 A string (text) literal starts and ends with a single quote. 
 Two single quotes can be used to create a single quote inside a string.
@@ -290,12 +252,9 @@ Examples:
     -30.3
     xs:dateTime('2020-12-01T20:00:00.000')
 
-<hr />
-<h3 id="ordering">Ordering</h3>
+---
 
-<h4>
-<a href="#dynamicOperand">dynamicOperand</a> [ ascending | descending ]
-</h4>
+#render( 'Ordering' )
 
 Ordering by an indexed property will use that index if possible.
 If there is no index that can be used for the given sort order,
@@ -312,17 +271,9 @@ Examples:
     order by @jcr:created descending
 
 
-<hr />
-<h3 id="dynamicOperand">Dynamic Operand</h3>
+---
 
-<h4>
-[ relativePath / ] { @propertyName | * }
-<br/>  | fn:string-length ( dynamicOperand  )
-<br/>  | { fn:name | fn:local-name } ( [ . ] )
-<br/>  | jcr:score ( )
-<br/>  | { fn:lower-case | fn:upper-case } ( dynamicOperand )
-<br/>  | fn:coalesce ( dynamicOperand1, dynamicOperand2 )
-</h4>
+#render( 'Dynamic Operand' )
 
 The "*" stands for any property.
 
@@ -345,15 +296,9 @@ Examples:
     fn:coalesce(@lastName, @name)
 
 
-<hr />
-<h3 id="options">Options</h3>
+---
 
-<h4>
-option( { 
-<br/>&nbsp;&nbsp; traversal { ok | warn | fail | default } | 
-<br/>&nbsp;&nbsp; index tag tagName 
-<br/> } [ , ... ] )
-</h4>
+#render( 'Options' )
 
 "traversal": by default, queries without index will log a warning,
 except if the configuration option `QueryEngineSettings.failTraversal` is changed
@@ -372,12 +317,9 @@ Examples:
     option(traversal fail)
 
 
-<hr />
-<h3 id="explain">Explain Query</h3>
+---
 
-<h4>
-explain [measure] { <a href="#query">query</a> }
-</h4>
+#render( 'Explain' )
 
 Does not run the query, but only computes and returns the query plan.
 With "explain measure", the expected cost is calculated as well.
@@ -396,12 +338,9 @@ Result:
 This means the property index named "uuid" is used for this query.
 The expected cost (roughly the number of uncached I/O operations) is 2.
 
-<hr />
-<h3 id="measure">Measure</h3>
+---
 
-<h4>
-measure { <a href="#query">query</a> }
-</h4>
+#render( 'Measure' )
 
 Runs the query, but instead of returning the result, returns the number of rows traversed.
 The query result has two columns, one called 'selector' and one called 'scanCount'.
