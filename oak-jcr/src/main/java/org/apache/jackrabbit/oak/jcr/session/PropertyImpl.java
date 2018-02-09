@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.PropertyOperation;
-import org.apache.jackrabbit.oak.plugins.value.jcr.URLAccessBinaryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.URLWritableBinaryImpl;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -286,10 +286,10 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Nonnull
     public Binary getBinary() throws RepositoryException {
         Binary binary = getValue().getBinary();
-        if (binary instanceof URLAccessBinaryImpl) {
-            URLAccessBinaryImpl urlAccessBinary = (URLAccessBinaryImpl) binary;
+        if (binary instanceof URLWritableBinaryImpl) {
+            URLWritableBinaryImpl urlWritableBinary = (URLWritableBinaryImpl) binary;
             // pass through necessary context for making access control checks
-            urlAccessBinary.setJCRContext(getParent().getPath(), sessionContext.getAccessControlManager());
+            urlWritableBinary.setJCRContext(getParent().getPath(), sessionContext.getAccessControlManager());
         }
         return binary;
     }

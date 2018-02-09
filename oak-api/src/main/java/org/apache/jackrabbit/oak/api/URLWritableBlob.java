@@ -16,15 +16,12 @@
  * from Adobe Systems Incorporated.
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.api.binary;
+package org.apache.jackrabbit.oak.api;
 
-import javax.jcr.AccessDeniedException;
-import javax.jcr.Binary;
-import javax.jcr.RepositoryException;
+import javax.annotation.Nullable;
 
-public interface URLAccessBinary extends Binary {
+public interface URLWritableBlob {
 
-    String getPutURL() throws AccessDeniedException, RepositoryException;
-
-    //String getGetURL();
+    @Nullable
+    String getPutURL();
 }

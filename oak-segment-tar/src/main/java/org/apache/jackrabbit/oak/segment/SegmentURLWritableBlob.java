@@ -20,21 +20,21 @@ package org.apache.jackrabbit.oak.segment;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.URLAccessBlob;
-import org.apache.jackrabbit.oak.spi.blob.URLAccessBlobStore;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
 
-public class SegmentURLAccessBlob extends SegmentBlob implements URLAccessBlob {
+public class SegmentURLWritableBlob extends SegmentBlob implements URLWritableBlob {
 
-    private final URLAccessBlobStore urlAccessBlobStore;
+    private final URLWritableBlobStore urlWritableBlobStore;
 
-    SegmentURLAccessBlob(@Nonnull URLAccessBlobStore urlAccessBlobStore,
-                         @Nonnull RecordId id) {
-        super(urlAccessBlobStore, id);
-        this.urlAccessBlobStore = urlAccessBlobStore;
+    SegmentURLWritableBlob(@Nonnull URLWritableBlobStore urlWritableBlobStore,
+                           @Nonnull RecordId id) {
+        super(urlWritableBlobStore, id);
+        this.urlWritableBlobStore = urlWritableBlobStore;
     }
 
     @Override
     public String getPutURL() {
-        return urlAccessBlobStore.getPutURL(getBlobId());
+        return urlWritableBlobStore.getPutURL(getBlobId());
     }
 }

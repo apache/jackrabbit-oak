@@ -18,21 +18,13 @@
 
 package org.apache.jackrabbit.oak.api.binary;
 
+import javax.annotation.Nullable;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 
-public interface URLAccessBinaryValueFactory {
+public interface URLWritableBinary extends Binary {
 
-    /**
-     * Creates a new URL accessible binary as a placeholder, if supported.
-     *
-     * This allows upload or download of the binary stream directly to cloud storage such as S3 after the
-     * session has been persisted.
-     *
-     * If the underlying data store does not support this, {@code null}
-     * is returned and the binary has to be passed in directly using InputStream as in JCR 2.0.
-     *
-     * @return a new external Binary placeholder or {@code null} if external binaries are not supported
-     */
-    Binary createNewExternalBinary() throws RepositoryException;
+    @Nullable
+    String getPutURL() throws AccessDeniedException, RepositoryException;
 }

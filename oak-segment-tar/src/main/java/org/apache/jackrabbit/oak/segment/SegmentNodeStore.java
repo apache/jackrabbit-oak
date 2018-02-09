@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.segment.scheduler.Commit;
 import org.apache.jackrabbit.oak.segment.scheduler.LockBasedScheduler;
 import org.apache.jackrabbit.oak.segment.scheduler.Scheduler;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLAccessBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
@@ -234,12 +234,12 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override
     public Blob createExternalBlob() throws IOException {
-        if (blobStore == null || !(blobStore instanceof URLAccessBlobStore)) {
+        if (blobStore == null || !(blobStore instanceof URLWritableBlobStore)) {
             // SegmentNodeStore itself cannot provide (true) external binaries
             return null;
         }
-        URLAccessBlobStore urlAccessBlobStore = (URLAccessBlobStore) blobStore;
-        String blobId = urlAccessBlobStore.createExternalBlobId();
+        URLWritableBlobStore urlWritableBlobStore = (URLWritableBlobStore) blobStore;
+        String blobId = urlWritableBlobStore.createURLWritableBlobId();
         if (blobId == null) {
             return null;
         }

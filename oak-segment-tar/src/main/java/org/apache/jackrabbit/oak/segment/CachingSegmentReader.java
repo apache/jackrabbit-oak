@@ -29,7 +29,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLAccessBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -143,11 +143,11 @@ public class CachingSegmentReader implements SegmentReader {
     @Nonnull
     @Override
     public SegmentBlob readBlob(@Nonnull RecordId id) {
-        if (blobStore instanceof URLAccessBlobStore) {
-            URLAccessBlobStore extBlobStore = (URLAccessBlobStore) blobStore;
+        if (blobStore instanceof URLWritableBlobStore) {
+            URLWritableBlobStore urlWritableBlobStore = (URLWritableBlobStore) blobStore;
             String blobId = SegmentBlob.readBlobId(id.getSegment(), id.getRecordNumber());
-            if (extBlobStore.isExternalBlob(blobId)) {
-                return new SegmentURLAccessBlob(extBlobStore, id);
+            if (urlWritableBlobStore.isURLWritableBlob(blobId)) {
+                return new SegmentURLWritableBlob(urlWritableBlobStore, id);
             }
         }
         return new SegmentBlob(blobStore, id);

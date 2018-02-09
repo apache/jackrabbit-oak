@@ -64,8 +64,8 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLAccessBlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLAccessDataStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore
-    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, URLAccessBlobStore {
+    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, URLWritableBlobStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final DataStore delegate;
@@ -659,8 +659,8 @@ public class DataStoreBlobStore
     private static final String CLOUD_BLOB_PREFIX = "cloud/";
 
     @Override
-    public String createExternalBlobId() throws IOException {
-        if (delegate instanceof URLAccessDataStore) {
+    public String createURLWritableBlobId() throws IOException {
+        if (delegate instanceof URLWritableDataStore) {
             // a random UUID instead of a content hash for a new external binary
             String extBlobId = CLOUD_BLOB_PREFIX + UUID.randomUUID().toString();
             log.info("created new external blob id: {}", extBlobId);
@@ -670,16 +670,16 @@ public class DataStoreBlobStore
     }
 
     @Override
-    public boolean isExternalBlob(String blobId) {
+    public boolean isURLWritableBlob(String blobId) {
         return blobId != null && blobId.startsWith(CLOUD_BLOB_PREFIX);
     }
 
     @Override
     public String getPutURL(String blobId) {
-        if (delegate instanceof URLAccessDataStore && isExternalBlob(blobId)) {
-            URLAccessDataStore extDataStore = (URLAccessDataStore) delegate;
+        if (delegate instanceof URLWritableDataStore && isURLWritableBlob(blobId)) {
+            URLWritableDataStore urlWritableDataStore = (URLWritableDataStore) delegate;
             String id = blobId.substring(CLOUD_BLOB_PREFIX.length());
-            return extDataStore.getPutURL(new DataIdentifier(id));
+            return urlWritableDataStore.getPutURL(new DataIdentifier(id));
         }
         return null;
     }

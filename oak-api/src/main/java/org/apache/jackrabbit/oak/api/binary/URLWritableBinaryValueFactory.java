@@ -16,11 +16,23 @@
  * from Adobe Systems Incorporated.
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.spi.blob;
+package org.apache.jackrabbit.oak.api.binary;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
+import javax.jcr.Binary;
+import javax.jcr.RepositoryException;
 
-public interface URLAccessDataStore {
+public interface URLWritableBinaryValueFactory {
 
-    String getPutURL(DataIdentifier identifier);
+    /**
+     * Creates a new URL accessible binary as a placeholder, if supported.
+     *
+     * This allows upload or download of the binary stream directly to cloud storage such as S3 after the
+     * session has been persisted.
+     *
+     * If the underlying data store does not support this, {@code null}
+     * is returned and the binary has to be passed in directly using InputStream as in JCR 2.0.
+     *
+     * @return a new external Binary placeholder or {@code null} if external binaries are not supported
+     */
+    Binary createURLWritableBinary() throws RepositoryException;
 }

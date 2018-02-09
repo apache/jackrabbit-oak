@@ -23,18 +23,18 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.oak.api.URLAccessBlob;
-import org.apache.jackrabbit.oak.api.binary.URLAccessBinary;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
+import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 
-public class URLAccessBinaryImpl extends BinaryImpl implements URLAccessBinary {
+public class URLWritableBinaryImpl extends BinaryImpl implements URLWritableBinary {
 
-    private final URLAccessBlob urlAccessBlob;
+    private final URLWritableBlob urlWritableBlob;
     private String nodePath;
     private AccessControlManager accessControlManager;
 
-    URLAccessBinaryImpl(ValueImpl value, URLAccessBlob urlAccessBlob) {
+    URLWritableBinaryImpl(ValueImpl value, URLWritableBlob urlWritableBlob) {
         super(value);
-        this.urlAccessBlob = urlAccessBlob;
+        this.urlWritableBlob = urlWritableBlob;
     }
 
     @Override
@@ -48,7 +48,7 @@ public class URLAccessBinaryImpl extends BinaryImpl implements URLAccessBinary {
                 throw new AccessDeniedException("Cannot write binary");
             }
         }
-        return urlAccessBlob.getPutURL();
+        return urlWritableBlob.getPutURL();
     }
 
     public void setJCRContext(String nodePath, AccessControlManager accessControlManager) {

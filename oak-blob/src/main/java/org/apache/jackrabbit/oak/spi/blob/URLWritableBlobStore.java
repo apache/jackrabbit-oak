@@ -16,8 +16,15 @@
  * from Adobe Systems Incorporated.
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.spi.blob;
 
-public interface URLAccessBlob {
-    String getPutURL();
+import java.io.IOException;
+
+public interface URLWritableBlobStore extends BlobStore {
+
+    String createURLWritableBlobId() throws IOException;
+
+    boolean isURLWritableBlob(String blobId);
+
+    String getPutURL(String blobId);
 }

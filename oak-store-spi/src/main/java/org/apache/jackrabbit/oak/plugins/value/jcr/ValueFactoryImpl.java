@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.binary.URLAccessBinaryValueFactory;
+import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
@@ -65,7 +65,7 @@ import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
 /**
  * Implementation of {@link ValueFactory} interface.
  */
-public class ValueFactoryImpl implements ValueFactory, URLAccessBinaryValueFactory {
+public class ValueFactoryImpl implements ValueFactory, URLWritableBinaryValueFactory {
     private static final PerfLogger binOpsLogger = new PerfLogger(
             LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
     private final Root root;
@@ -304,7 +304,7 @@ public class ValueFactoryImpl implements ValueFactory, URLAccessBinaryValueFacto
     }
 
     @Override
-    public Binary createNewExternalBinary() throws RepositoryException {
+    public Binary createURLWritableBinary() throws RepositoryException {
         try {
             Blob externalBlob = root.createExternalBlob();
             if (externalBlob == null) {

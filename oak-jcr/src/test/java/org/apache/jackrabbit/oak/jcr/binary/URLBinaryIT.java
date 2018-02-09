@@ -19,21 +19,12 @@
 package org.apache.jackrabbit.oak.jcr.binary;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import javax.annotation.CheckForNull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.Node;
@@ -42,41 +33,24 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.oak.api.binary.URLAccessBinary;
-import org.apache.jackrabbit.oak.api.binary.URLAccessBinaryValueFactory;
-import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
+import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runners.Parameterized;
 
-public class URLAccessBinaryIT extends AbstractRepositoryTest {
+/**
+ * Integration test for URLWritableBinary and URLReadableBinary, that requires a fully working data store
+ * (such as S3) for each {@link AbstractURLBinaryIT#dataStoreFixtures() configured fixture}.
+ * Data store must be configured through s3.properties.
+ */
+public class URLBinaryIT extends AbstractURLBinaryIT {
 
-    private static final int MB = 1024 * 1024;
-    private static final int SECONDS = 1000;
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<?> fixture() {
-        // could add Azure Blob store as another test case here later
-        return Collections.singletonList(new S3DataStoreWithMemorySegmentFixture());
-    }
-
-    public URLAccessBinaryIT(NodeStoreFixture fixture) {
+    public URLBinaryIT(NodeStoreFixture fixture) {
         super(fixture);
     }
-
-    // --------------------------------------------------------------------------------------------------
 
     // TODO: one test for each requirement
     // F1 - basic test
@@ -105,26 +79,26 @@ public class URLAccessBinaryIT extends AbstractRepositoryTest {
     @Test
     public void testWritePermissionRequired() throws Exception {
         // 1. create URL access binary
-        addURLAccessBinary(getAdminSession(), "/file");
+        addNtFileWithURLWritableBinary(getAdminSession(), "/file");
 
         // 2. then get existing url access binary using read-only session
-        URLAccessBinary URLAccessBinary = (URLAccessBinary) getBinary(createAnonymousSession(), "/file");
+        URLWritableBinary urlWritableBinary = (URLWritableBinary) getBinary(createAnonymousSession(), "/file");
         try {
             // 3. ensure trying to get writeable URL fails
-            URLAccessBinary.getPutURL();
+            urlWritableBinary.getPutURL();
             fail("did not throw AccessDeniedException when session does not have write permissions on the property");
         } catch (AccessDeniedException ignored) {
         }
     }
 
     @Test
-    public void testURLAccessBinary() throws Exception {
+    public void testURLWritableBinary() throws Exception {
         // 1. check if url access binary is supported? no => 2, yes => 3
         // 2. no support: create structure with no/empty binary prop, overwrite later in 2nd request with InputStream
-        // 3. state intention for an URLAccessBinary, so oak knows it needs to generate a unique UUID and no content hash
+        // 3. state intention for an URLWritableBinary, so oak knows it needs to generate a unique UUID and no content hash
         // 4. save() session (acl checks only happen fully upon save())
-        // 5. retrieve URLAccessBinary again, now put-enabled due to ACL checks in 4.
-        // 6. get Put URL from URLAccessBinary
+        // 5. retrieve URLWritableBinary again, now put-enabled due to ACL checks in 4.
+        // 6. get Put URL from URLWritableBinary
 
         Session session = createAdminSession();
         Node file = getOrCreateNtFile(session, "/file");
@@ -132,10 +106,10 @@ public class URLAccessBinaryIT extends AbstractRepositoryTest {
         ValueFactory valueFactory = session.getValueFactory();
 
         Binary placeholderBinary = null;
-        if (valueFactory instanceof URLAccessBinaryValueFactory) {
+        if (valueFactory instanceof URLWritableBinaryValueFactory) {
             System.out.println(">>> YES url binary support [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅]");
             // might return null if url access binaries are not configured
-            placeholderBinary = ((URLAccessBinaryValueFactory) valueFactory).createNewExternalBinary();
+            placeholderBinary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
         }
         if (placeholderBinary == null) {
             // fallback
@@ -150,25 +124,25 @@ public class URLAccessBinaryIT extends AbstractRepositoryTest {
 
         // have to retrieve the persisted binary again to get access to the the URL
         Binary binary = getBinary(session, "/file");
-        if (binary instanceof URLAccessBinary) {
-            URLAccessBinary urlAccessBinary = (URLAccessBinary) binary;
-            String putURL = urlAccessBinary.getPutURL();
+        if (binary instanceof URLWritableBinary) {
+            URLWritableBinary urlWritableBinary = (URLWritableBinary) binary;
+            String putURL = urlWritableBinary.getPutURL();
             assertNotNull(putURL);
             System.out.println("- uploading binary via PUT to " + putURL);
             int code = httpPut(new URL(putURL), getTestInputStream("hello world"));
             Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
         }
+    }
 
-        Session anonymousSession = createAnonymousSession();
-        Binary anonBinary = getOrCreateNtFile(anonymousSession, "/file").getProperty(JcrConstants.JCR_DATA).getBinary();
-        if (anonBinary instanceof URLAccessBinary) {
-            URLAccessBinary extAnonBinary = (URLAccessBinary) anonBinary;
-            try {
-                extAnonBinary.getPutURL();
-                fail("did not throw AccessDeniedException when session does not have write permissions on the property");
-            } catch (AccessDeniedException ignored) {
-            }
-        }
+    @Test
+    public void testDisabledURLWritableBinary() throws Exception {
+        // disable in datastore config by setting expiry to zero
+        getDataStore().setURLWritableBinaryExpiryTime(0);
+
+        URLWritableBinary binary = addNtFileWithURLWritableBinary(getAdminSession(), "/file");
+        // TODO: we might want to not return a URLWritableBinary in the first place if it's disabled
+        assertNotNull(binary);
+        assertNull(binary.getPutURL());
     }
 
     // disabled, just a comparison playground for current blob behavior
@@ -179,7 +153,7 @@ public class URLAccessBinaryIT extends AbstractRepositoryTest {
         file.setProperty("binary", session.getValueFactory().createBinary(getTestInputStream(2 * MB)));
         session.save();
 
-        waitForS3Uploads();
+        waitForUploads();
 
         Binary binary = file.getProperty("binary").getBinary();
         if (binary instanceof ReferenceBinary) {
@@ -193,86 +167,12 @@ public class URLAccessBinaryIT extends AbstractRepositoryTest {
 
     // -----------------------------------------------------------------< helpers >--------------
 
-    // for this integration test create a SegmentNodeStore with
-    // - segments in memory
-    // - S3 data store as blob store
-    // - S3 configuration from "s3.properties" file or "-Ds3.config=<filename>" system property
-    private static class S3DataStoreWithMemorySegmentFixture extends NodeStoreFixture {
-
-        // track create temp folder(s) to delete them in dispose()
-        private Map<NodeStore, File> tempFolders = new HashMap<>();
-
-        @Override
-        public NodeStore createNodeStore() {
-            try {
-                // create inside maven's "target" folder
-                File dataStoreFolder = createTempFolder(new File("target"));
-
-                SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore() {
-                    @CheckForNull
-                    @Override
-                    public BlobStore getBlobStore() {
-                        try {
-                            // read S3 config file
-                            Properties s3Props = new Properties();
-                            s3Props.load(new FileReader(System.getProperty("s3.config", "s3.properties")));
-
-                            // create S3 DS
-                            S3DataStore s3 = new S3DataStore();
-                            s3.setProperties(s3Props);
-
-                            // init with a new folder inside a temporary one
-                            s3.init(dataStoreFolder.getAbsolutePath());
-
-                            return new DataStoreBlobStore(s3);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            return null;
-                        }
-                    }
-
-                }).build();
-
-                tempFolders.put(nodeStore, dataStoreFolder);
-
-                return nodeStore;
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
-            }
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-            for (File folder : tempFolders.values()) {
-                try {
-                    FileUtils.deleteDirectory(folder);
-                } catch (IOException e) {
-                    System.out.println("Could not cleanup temp folder after test: " + e.getMessage());
-                }
-            }
-        }
-
-        // for nice Junit parameterized test labels
-        @Override
-        public String toString() {
-            return getClass().getSimpleName();
-        }
-
-        private File createTempFolder(File parent) throws IOException {
-            File tempFolder = File.createTempFile("junit", "", parent);
-            tempFolder.delete();
-            tempFolder.mkdir();
-            return tempFolder;
-        }
-    }
-
-    private Binary createBinary() throws RepositoryException {
+    private Binary createURLWritableBinary() throws RepositoryException {
         Session session = getAdminSession();
 
         ValueFactory valueFactory = session.getValueFactory();
-        if (valueFactory instanceof URLAccessBinaryValueFactory) {
-            return ((URLAccessBinaryValueFactory) valueFactory).createNewExternalBinary();
+        if (valueFactory instanceof URLWritableBinaryValueFactory) {
+            return ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
         }
         return null;
     }
@@ -293,22 +193,17 @@ public class URLAccessBinaryIT extends AbstractRepositoryTest {
     }
 
     /** Creates an nt:file with an url access binary at the given path and saves the session. */
-    private URLAccessBinary addURLAccessBinary(Session session, String path) throws RepositoryException {
+    private URLWritableBinary addNtFileWithURLWritableBinary(Session session, String path) throws RepositoryException {
         Node resource = getOrCreateNtFile(session, path);
-        Binary binary = createBinary();
+        Binary binary = createURLWritableBinary();
         resource.setProperty(JcrConstants.JCR_DATA, binary);
         session.save();
 
         Binary binary2 = resource.getProperty(JcrConstants.JCR_DATA).getBinary();
-        if (binary instanceof URLAccessBinary) {
-            return (URLAccessBinary) binary2;
+        if (binary2 instanceof URLWritableBinary) {
+            return (URLWritableBinary) binary2;
         }
         return null;
-    }
-
-    private void waitForS3Uploads() throws InterruptedException {
-        // let s3 upload threads finish
-        Thread.sleep(5 * SECONDS);
     }
 
     private static InputStream getTestInputStream(String content) {
@@ -328,15 +223,5 @@ public class URLAccessBinaryIT extends AbstractRepositoryTest {
         blob[1] = 2;
         blob[2] = 3;
         return new ByteArrayInputStream(blob);
-    }
-
-    private static int httpPut(URL url, InputStream in) throws IOException  {
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setDoOutput(true);
-        connection.setRequestMethod("PUT");
-        OutputStream putStream = connection.getOutputStream();
-        IOUtils.copy(in, putStream);
-        putStream.close();
-        return connection.getResponseCode();
     }
 }

@@ -21,16 +21,18 @@ import java.util.Properties;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.URLAccessDataStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
 
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements URLAccessDataStore {
+public class S3DataStore extends AbstractSharedCachingDataStore implements URLWritableDataStore {
 
     protected Properties properties;
+
+    private S3Backend s3Backend;
 
     /**
      * The minimum size of an object that should be stored in this data store.
@@ -39,11 +41,11 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLAc
 
     @Override
     protected AbstractSharedBackend createBackend() {
-        S3Backend backend = new S3Backend();
+        s3Backend = new S3Backend();
         if(properties != null){
-            backend.setProperties(properties);
+            s3Backend.setProperties(properties);
         }
-        return backend;
+        return s3Backend;
     }
 
     /**------------------------------------------- Getters & Setters-----------------------------**/
@@ -69,7 +71,17 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLAc
     }
 
     @Override
+    public void setURLWritableBinaryExpiryTime(int seconds) {
+        if (s3Backend != null) {
+            s3Backend.setURLWritableBinaryExpiryTime(seconds);
+        }
+    }
+
+    @Override
     public String getPutURL(DataIdentifier identifier) {
-        return ((S3Backend) getBackend()).createPresignedPutURL(identifier);
+        if (s3Backend == null) {
+            return null;
+        }
+        return s3Backend.createPresignedPutURL(identifier);
     }
 }

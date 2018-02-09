@@ -18,13 +18,14 @@
 
 package org.apache.jackrabbit.oak.spi.blob;
 
-import java.io.IOException;
+import javax.annotation.Nullable;
 
-public interface URLAccessBlobStore extends BlobStore {
+import org.apache.jackrabbit.core.data.DataIdentifier;
 
-    String createExternalBlobId() throws IOException;
+public interface URLWritableDataStore {
 
-    boolean isExternalBlob(String blobId);
+    void setURLWritableBinaryExpiryTime(int seconds);
 
-    String getPutURL(String blobId);
+    @Nullable
+    String getPutURL(DataIdentifier identifier);
 }

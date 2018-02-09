@@ -103,6 +103,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     private S3RequestDecorator s3ReqDecorator;
 
+    // 0 = off by default
     private int presignedPutExpirySeconds = 0;
 
     public void init() throws DataStoreException {
@@ -172,7 +173,7 @@ public class S3Backend extends AbstractSharedBackend {
 
             String putExpiry = properties.getProperty(S3Constants.PRESIGNED_PUT_EXPIRY_SEC);
             if (putExpiry != null) {
-                presignedPutExpirySeconds = Integer.parseInt(putExpiry);
+                setURLWritableBinaryExpiryTime(Integer.parseInt(putExpiry));
             }
 
             LOG.debug("S3 Backend initialized in [{}] ms",
@@ -615,6 +616,10 @@ public class S3Backend extends AbstractSharedBackend {
 
             return null;
         }
+    }
+
+    public void setURLWritableBinaryExpiryTime(int seconds) {
+        this.presignedPutExpirySeconds = seconds;
     }
 
     /**
