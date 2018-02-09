@@ -22,3 +22,19 @@ tt {
 pre {
 	font-size: 12px;
 }
+
+/* fluido skin moves to small-screen-statically-positioned top-nav below 980px */
+@media(min-width:980px) {
+    div[id="bodyColumn"] h1 > a[name],
+    div[id="bodyColumn"] h2 > a[name],
+    div[id="bodyColumn"] h3 > a[name],
+    div[id="bodyColumn"] h4 > a[name] {
+        visibility: hidden;
+        content: "";
+        display: block;
+
+        /* 42px is how layout showed as top-nav height.*/
+        margin: -42px 0 0 0;
+        height: 42px;
+    }
+}
