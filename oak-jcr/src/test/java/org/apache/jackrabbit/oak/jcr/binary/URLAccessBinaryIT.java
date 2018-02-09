@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -150,8 +151,9 @@ public class URLAccessBinaryIT extends AbstractRepositoryTest {
         // have to retrieve the persisted binary again to get access to the the URL
         Binary binary = getBinary(session, "/file");
         if (binary instanceof URLAccessBinary) {
-            URLAccessBinary URLAccessBinary = (URLAccessBinary) binary;
-            String putURL = URLAccessBinary.getPutURL();
+            URLAccessBinary urlAccessBinary = (URLAccessBinary) binary;
+            String putURL = urlAccessBinary.getPutURL();
+            assertNotNull(putURL);
             System.out.println("- uploading binary via PUT to " + putURL);
             int code = httpPut(new URL(putURL), getTestInputStream("hello world"));
             Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);

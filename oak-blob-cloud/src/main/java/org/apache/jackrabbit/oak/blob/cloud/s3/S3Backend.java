@@ -103,6 +103,8 @@ public class S3Backend extends AbstractSharedBackend {
 
     private S3RequestDecorator s3ReqDecorator;
 
+    private int presignedPutExpirySeconds = 0;
+
     public void init() throws DataStoreException {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
@@ -167,6 +169,12 @@ public class S3Backend extends AbstractSharedBackend {
             if (renameKeyBool) {
                 renameKeys();
             }
+
+            String putExpiry = properties.getProperty(S3Constants.PRESIGNED_PUT_EXPIRY_SEC);
+            if (putExpiry != null) {
+                presignedPutExpirySeconds = Integer.parseInt(putExpiry);
+            }
+
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
@@ -579,47 +587,34 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     public String createPresignedPutURL(DataIdentifier identifier) {
+        if (presignedPutExpirySeconds <= 0) {
+            // feature disabled
+            return null;
+        }
+
+        final String key = identifier.toString();
+
         try {
-            System.out.println("Generating pre-signed URL.");
-            java.util.Date expiration = new java.util.Date();
-            long milliSeconds = expiration.getTime();
-            milliSeconds += 1000 * 60 * 60; // Add 1 hour.
-            expiration.setTime(milliSeconds);
+            final Date expiration = new Date();
+            expiration.setTime(expiration.getTime() + presignedPutExpirySeconds * 1000);
 
-            // TODO: use s3datastore key format? custom prefix
-//            String key = getKeyName(identifier);
-            String key = identifier.toString();
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key);
+            request.setMethod(HttpMethod.PUT);
+            request.setExpiration(expiration);
 
-            GeneratePresignedUrlRequest generatePresignedUrlRequest =
-                new GeneratePresignedUrlRequest(bucket, key);
-            generatePresignedUrlRequest.setMethod(HttpMethod.PUT);
-            generatePresignedUrlRequest.setExpiration(expiration);
+            URL url = s3service.generatePresignedUrl(request);
 
-            URL url = s3service.generatePresignedUrl(generatePresignedUrlRequest);
-
-            System.out.println("Pre-Signed URL = " + url.toString());
+            LOG.debug("Presigned URL for key {}: {}", key, url.toString());
 
             return url.toString();
 
-        } catch (AmazonServiceException exception) {
-            System.out.println("Caught an AmazonServiceException, " +
-                "which means your request made it " +
-                "to Amazon S3, but was rejected with an error response " +
-                "for some reason.");
-            System.out.println("Error Message: " + exception.getMessage());
-            System.out.println("HTTP  Code: "    + exception.getStatusCode());
-            System.out.println("AWS Error Code:" + exception.getErrorCode());
-            System.out.println("Error Type:    " + exception.getErrorType());
-            System.out.println("Request ID:    " + exception.getRequestId());
-        } catch (AmazonClientException ace) {
-            System.out.println("Caught an AmazonClientException, " +
-                "which means the client encountered " +
-                "an internal error while trying to communicate" +
-                " with S3, " +
-                "such as not being able to access the network.");
-            System.out.println("Error Message: " + ace.getMessage());
+        } catch (AmazonServiceException e) {
+            LOG.error("AWS request to create presigned S3 PUT URL failed. " +
+                      "Key: {}, Error: {}, HTTP Code: {}, AWS Error Code: {}, Error Type: {}, Request ID: {}",
+                      key, e.getMessage(), e.getStatusCode(), e.getErrorCode(), e.getErrorType(), e.getRequestId());
+
+            return null;
         }
-        return null;
     }
 
     /**

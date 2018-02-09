@@ -112,6 +112,8 @@ public final class S3Constants {
      */
     public static final String PROXY_PORT = "proxyPort";
 
+    public static final String PRESIGNED_PUT_EXPIRY_SEC = "presignedPutExpirySeconds";
+
     /**
      * private constructor so that class cannot initialized from outside.
      */
