@@ -25,4 +25,11 @@ public interface URLWritableBlob extends Blob {
 
     @Nullable
     URL getWriteURL();
+
+    /**
+     * Called when the tree was committed and the blob is referenced at least once in a property.
+     * Implementations must generated the write URL inside this method and start any expiry
+     * time at this point.
+     */
+    void commit();
 }

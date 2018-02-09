@@ -285,13 +285,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Binary getBinary() throws RepositoryException {
-        Binary binary = getValue().getBinary();
-        if (binary instanceof URLWritableBinaryImpl) {
-            URLWritableBinaryImpl urlWritableBinary = (URLWritableBinaryImpl) binary;
-            // pass through necessary context for making access control checks
-            urlWritableBinary.setJCRContext(getParent().getPath(), sessionContext.getAccessControlManager());
-        }
-        return binary;
+        return getValue().getBinary();
     }
 
     @Override

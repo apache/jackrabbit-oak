@@ -25,7 +25,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 
 public interface URLWritableDataStore {
 
-    void setURLWritableBinaryExpiryTime(int seconds);
+    void setURLWritableBinaryExpirySeconds(int seconds);
 
     @Nullable
     URL getWriteURL(DataIdentifier identifier);

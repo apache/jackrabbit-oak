@@ -72,9 +72,9 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
-    public void setURLWritableBinaryExpiryTime(int seconds) {
+    public void setURLWritableBinaryExpirySeconds(int seconds) {
         if (s3Backend != null) {
-            s3Backend.setURLWritableBinaryExpiryTime(seconds);
+            s3Backend.setURLWritableBinaryExpirySeconds(seconds);
         }
     }
 

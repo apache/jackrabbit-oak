@@ -30,8 +30,6 @@ import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 public class URLWritableBinaryImpl extends BinaryImpl implements URLWritableBinary {
 
     private final URLWritableBlob urlWritableBlob;
-    private String nodePath;
-    private AccessControlManager accessControlManager;
 
     URLWritableBinaryImpl(ValueImpl value, URLWritableBlob urlWritableBlob) {
         super(value);
@@ -39,21 +37,8 @@ public class URLWritableBinaryImpl extends BinaryImpl implements URLWritableBina
     }
 
     @Override
-    public URL getWriteURL() throws AccessDeniedException, RepositoryException {
-        // check if user can write to binary
-        if (accessControlManager != null) {
-            boolean canWrite = accessControlManager.hasPrivileges(nodePath, new Privilege[] {
-                accessControlManager.privilegeFromName(Privilege.JCR_MODIFY_PROPERTIES)
-            });
-            if (!canWrite) {
-                throw new AccessDeniedException("Cannot write binary");
-            }
-        }
+    public URL getWriteURL() throws RepositoryException {
         return urlWritableBlob.getWriteURL();
     }
 
-    public void setJCRContext(String nodePath, AccessControlManager accessControlManager) {
-        this.nodePath = nodePath;
-        this.accessControlManager = accessControlManager;
-    }
 }

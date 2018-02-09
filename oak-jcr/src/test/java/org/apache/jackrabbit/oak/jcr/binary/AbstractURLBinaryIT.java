@@ -18,11 +18,13 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Collections;
@@ -175,6 +177,25 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         Thread.sleep(5 * SECONDS);
     }
 
+    protected static InputStream getTestInputStream(String content) {
+        try {
+            return new ByteArrayInputStream(content.getBytes("utf-8"));
+        } catch (UnsupportedEncodingException unexpected) {
+            unexpected.printStackTrace();
+            // return empty stream
+            return new ByteArrayInputStream(new byte[0]);
+        }
+    }
+
+    protected static InputStream getTestInputStream(int size) {
+        byte[] blob = new byte[size];
+        // magic bytes so it's not just all zeros
+        blob[0] = 1;
+        blob[1] = 2;
+        blob[2] = 3;
+        return new ByteArrayInputStream(blob);
+    }
+
     protected static int httpPut(URL url, InputStream in) throws IOException  {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setDoOutput(true);
@@ -183,5 +204,9 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         IOUtils.copy(in, putStream);
         putStream.close();
         return connection.getResponseCode();
+    }
+
+    protected static int httpPutTestStream(URL url) throws IOException {
+        return httpPut(url, getTestInputStream("hello world"));
     }
 }

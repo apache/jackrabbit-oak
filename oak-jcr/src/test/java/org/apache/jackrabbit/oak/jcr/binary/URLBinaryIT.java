@@ -18,19 +18,17 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.URL;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -53,7 +51,6 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     }
 
     // TODO: one test for each requirement
-    // F1 - basic test
     // F2 - CDN & transfer accelerators
     // F3 - chunked upload
     // F4 - S3 and Azure => through parametrization using S3 and Azure fixtures
@@ -61,8 +58,6 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // F6/F7 - no additional final request, notification API via SQS
 
     // A1 - get put url, change it and try uploading somewhere else in S3
-    // A2 - configure short expiry time, wait, ensure upload fails after expired
-    // A3 - covered by A2
     // A4 - no test, SHOULD requirement only, hard to test
     // A5 - get S3 URL (how?) and try an upload
     // A7 - only get write access after all AC checks/session.save() => like A6 but test before save
@@ -74,43 +69,63 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // D5 - support dangling ref => get binary before upload, catch expected exception etc.
     // DX - get existing regular binary and try to overwrite it (doesn't work)
 
+    // F1 - basic test
+    @Test
+    public void testURLWritableBinary() throws Exception {
+        Node file = getOrCreateNtFile(getAdminSession(), "/file");
+
+        ValueFactory valueFactory = getAdminSession().getValueFactory();
+        assertTrue(valueFactory instanceof URLWritableBinaryValueFactory);
+
+        URLWritableBinary binary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
+        assertNotNull(binary);
+
+        // ensure not accessible before setting a property
+        assertNull(binary.getWriteURL());
+
+        file.setProperty(JcrConstants.JCR_DATA, binary);
+
+        // ensure not accessible before successful save
+        assertNull(binary.getWriteURL());
+
+        getAdminSession().save();
+
+        URL url = binary.getWriteURL();
+        assertNotNull(url);
+
+        System.out.println("- uploading binary via PUT to " + url);
+        int code = httpPutTestStream(url);
+
+        Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
+    }
+
     // A6 - Client MUST only get permission to add a blob referenced in a JCR binary property
     //      where the user has JCR set_property permission.
     @Test
-    public void testWritePermissionRequired() throws Exception {
+    public void testReadingBinaryDoesNotReturnURLWritableBinary() throws Exception {
         // 1. create URL access binary
-        addNtFileWithURLWritableBinary(getAdminSession(), "/file");
+        saveFileWithURLWritableBinary(getAdminSession(), "/file");
 
         // 2. then get existing url access binary using read-only session
-        URLWritableBinary urlWritableBinary = (URLWritableBinary) getBinary(createAnonymousSession(), "/file");
-        try {
-            // 3. ensure trying to get writeable URL fails
-            urlWritableBinary.getWriteURL();
-            fail("did not throw AccessDeniedException when session does not have write permissions on the property");
-        } catch (AccessDeniedException ignored) {
-        }
+        Binary binary = getBinary(createAnonymousSession(), "/file");
+
+        // 3. ensure we do not get a writable binary
+        assertFalse(binary instanceof URLWritableBinary);
     }
 
+    // A2 - disable write URLs entirely
     @Test
-    public void testURLWritableBinary() throws Exception {
-        // 1. check if url access binary is supported? no => 2, yes => 3
-        // 2. no support: create structure with no/empty binary prop, overwrite later in 2nd request with InputStream
-        // 3. state intention for an URLWritableBinary, so oak knows it needs to generate a unique UUID and no content hash
-        // 4. save() session (acl checks only happen fully upon save())
-        // 5. retrieve URLWritableBinary again, now put-enabled due to ACL checks in 4.
-        // 6. get Put URL from URLWritableBinary
+    public void testDisabledURLWritableBinary() throws Exception {
+        // disable in data store config by setting expiry to zero
+        getDataStore().setURLWritableBinaryExpirySeconds(0);
 
-        Session session = createAdminSession();
-        Node file = getOrCreateNtFile(session, "/file");
+        URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), "/file");
+        // TODO: we might want to not return a URLWritableBinary in the first place if it's disabled
+        assertNotNull(binary);
+        assertNull(binary.getWriteURL());
 
-        ValueFactory valueFactory = session.getValueFactory();
-
-        Binary placeholderBinary = null;
-        if (valueFactory instanceof URLWritableBinaryValueFactory) {
-            System.out.println(">>> YES url binary support [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅]");
-            // might return null if url access binaries are not configured
-            placeholderBinary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
-        }
+        // TODO: extra test, showing alternative input stream code working if disabled
+/*
         if (placeholderBinary == null) {
             // fallback
             System.out.println(">>> NO url binary support");
@@ -118,33 +133,23 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
             // generate 2 MB of meaningless bytes
             placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * MB));
         }
-        Value binaryValue = valueFactory.createValue(placeholderBinary);
-        file.setProperty(JcrConstants.JCR_DATA, binaryValue);
-        session.save();
-
-        // have to retrieve the persisted binary again to get access to the the URL
-        Binary binary = getBinary(session, "/file");
-        if (binary instanceof URLWritableBinary) {
-            URLWritableBinary urlWritableBinary = (URLWritableBinary) binary;
-            URL putURL = urlWritableBinary.getWriteURL();
-            assertNotNull(putURL);
-
-            System.out.println("- uploading binary via PUT to " + putURL);
-            int code = httpPut(putURL, getTestInputStream("hello world"));
-
-            Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
-        }
+*/
     }
 
+    // A2/A3 - configure short expiry time, wait, ensure upload fails after expired
     @Test
-    public void testDisabledURLWritableBinary() throws Exception {
-        // disable in datastore config by setting expiry to zero
-        getDataStore().setURLWritableBinaryExpiryTime(0);
+    public void testExpiryOfURLWritableBinary() throws Exception {
+        // short timeout
+        getDataStore().setURLWritableBinaryExpirySeconds(1);
 
-        URLWritableBinary binary = addNtFileWithURLWritableBinary(getAdminSession(), "/file");
-        // TODO: we might want to not return a URLWritableBinary in the first place if it's disabled
-        assertNotNull(binary);
-        assertNull(binary.getWriteURL());
+        URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), "/file");
+        URL url = binary.getWriteURL();
+
+        // wait to pass timeout
+        Thread.sleep(2 * SECONDS);
+
+        // ensure PUT fails with 403 or anything 400+
+        assertTrue(httpPutTestStream(url) > HttpURLConnection.HTTP_BAD_REQUEST);
     }
 
     // disabled, just a comparison playground for current blob behavior
@@ -169,16 +174,6 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
     // -----------------------------------------------------------------< helpers >--------------
 
-    private Binary createURLWritableBinary() throws RepositoryException {
-        Session session = getAdminSession();
-
-        ValueFactory valueFactory = session.getValueFactory();
-        if (valueFactory instanceof URLWritableBinaryValueFactory) {
-            return ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
-        }
-        return null;
-    }
-
     private Node getOrCreateNtFile(Session session, String path) throws RepositoryException {
         if (session.nodeExists(path + "/" + JcrConstants.JCR_CONTENT)) {
             return session.getNode(path + "/" + JcrConstants.JCR_CONTENT);
@@ -195,35 +190,17 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     }
 
     /** Creates an nt:file with an url access binary at the given path and saves the session. */
-    private URLWritableBinary addNtFileWithURLWritableBinary(Session session, String path) throws RepositoryException {
+    private URLWritableBinary saveFileWithURLWritableBinary(Session session, String path) throws RepositoryException {
         Node resource = getOrCreateNtFile(session, path);
-        Binary binary = createURLWritableBinary();
+
+        ValueFactory valueFactory = session.getValueFactory();
+        assertTrue(valueFactory instanceof URLWritableBinaryValueFactory);
+
+        URLWritableBinary binary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
+        assertNotNull("URLWritableBinary not supported", binary);
         resource.setProperty(JcrConstants.JCR_DATA, binary);
         session.save();
 
-        Binary binary2 = resource.getProperty(JcrConstants.JCR_DATA).getBinary();
-        if (binary2 instanceof URLWritableBinary) {
-            return (URLWritableBinary) binary2;
-        }
-        return null;
-    }
-
-    private static InputStream getTestInputStream(String content) {
-        try {
-            return new ByteArrayInputStream(content.getBytes("utf-8"));
-        } catch (UnsupportedEncodingException unexpected) {
-            unexpected.printStackTrace();
-            // return empty stream
-            return new ByteArrayInputStream(new byte[0]);
-        }
-    }
-
-    private static InputStream getTestInputStream(int size) {
-        byte[] blob = new byte[size];
-        // magic bytes so it's not just all zeros
-        blob[0] = 1;
-        blob[1] = 2;
-        blob[2] = 3;
-        return new ByteArrayInputStream(blob);
+        return binary;
     }
 }

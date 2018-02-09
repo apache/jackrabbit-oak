@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
 
 public class SegmentURLWritableBlob extends SegmentBlob implements URLWritableBlob {
 
+    private URL writeURL;
+
     private final URLWritableBlobStore urlWritableBlobStore;
 
     SegmentURLWritableBlob(@Nonnull URLWritableBlobStore urlWritableBlobStore,
@@ -36,6 +38,13 @@ public class SegmentURLWritableBlob extends SegmentBlob implements URLWritableBl
 
     @Override
     public URL getWriteURL() {
-        return urlWritableBlobStore.getWriteURL(getBlobId());
+        return writeURL;
+    }
+
+    @Override
+    public void commit() {
+        if (writeURL == null) {
+            writeURL = urlWritableBlobStore.getWriteURL(getBlobId());
+        }
     }
 }

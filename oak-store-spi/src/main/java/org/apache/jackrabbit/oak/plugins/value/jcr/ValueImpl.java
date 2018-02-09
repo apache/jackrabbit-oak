@@ -302,13 +302,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
      */
     @Override
     public Binary getBinary() throws RepositoryException {
-        // TODO: this comes at a small cost, we have to read the blob id here already, not lazily within BinaryImpl methods
-        Blob blob = getBlob();
-        if (blob instanceof URLWritableBlob) {
-            return new URLWritableBinaryImpl(this, (URLWritableBlob) blob);
-        } else {
-            return new BinaryImpl(this);
-        }
+        return new BinaryImpl(this);
     }
 
     @Override

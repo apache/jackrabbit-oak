@@ -27,5 +27,5 @@ import javax.jcr.RepositoryException;
 public interface URLWritableBinary extends Binary {
 
     @Nullable
-    URL getWriteURL() throws AccessDeniedException, RepositoryException;
+    URL getWriteURL() throws RepositoryException;
 }

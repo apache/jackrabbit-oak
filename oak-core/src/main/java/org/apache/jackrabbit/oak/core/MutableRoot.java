@@ -28,8 +28,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
@@ -118,6 +120,8 @@ class MutableRoot implements Root {
      * diff is compiled.
      */
     private final MoveTracker moveTracker = new MoveTracker();
+
+    private Set<URLWritableBlob> addedURLWritableBlobs = new HashSet<>();
 
     /**
      * Number of {@link #updated} occurred.
@@ -255,8 +259,10 @@ class MutableRoot implements Root {
             permissionProvider.get().refresh();
         }
         moveTracker.clear();
-        // TODO: tell all tracked external blobs they are committed and can provide getWriteURL()
-        //       for a limited time, say 10 minutes
+
+        for (URLWritableBlob blob : addedURLWritableBlobs) {
+            blob.commit();
+        }
     }
 
     @Override
@@ -330,13 +336,17 @@ class MutableRoot implements Root {
     }
 
     @Override
+    public Blob getBlob(@Nonnull String reference) {
+        return store.getBlob(reference);
+    }
+
+    @Override
     public URLWritableBlob createURLWritableBlob() throws IOException {
         return store.createURLWritableBlob();
     }
 
-    @Override
-    public Blob getBlob(@Nonnull String reference) {
-        return store.getBlob(reference);
+    public void trackURLWritableBlob(URLWritableBlob urlWritableBlob) {
+        addedURLWritableBlobs.add(urlWritableBlob);
     }
 
     //-----------------------------------------------------------< internal >---

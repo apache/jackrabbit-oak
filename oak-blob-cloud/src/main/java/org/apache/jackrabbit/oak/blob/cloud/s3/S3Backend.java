@@ -173,7 +173,7 @@ public class S3Backend extends AbstractSharedBackend {
 
             String putExpiry = properties.getProperty(S3Constants.PRESIGNED_PUT_EXPIRY_SEC);
             if (putExpiry != null) {
-                setURLWritableBinaryExpiryTime(Integer.parseInt(putExpiry));
+                setURLWritableBinaryExpirySeconds(Integer.parseInt(putExpiry));
             }
 
             LOG.debug("S3 Backend initialized in [{}] ms",
@@ -618,7 +618,7 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public void setURLWritableBinaryExpiryTime(int seconds) {
+    public void setURLWritableBinaryExpirySeconds(int seconds) {
         this.presignedPutExpirySeconds = seconds;
     }
 
